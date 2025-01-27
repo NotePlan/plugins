@@ -73,9 +73,9 @@ h3, h4 {
 
 /* Resizer */
 .panel-resize-handle {
-  background-color: #ccc;
+  background-color: var(--divider-color);
   /* Example color */
-  width: 5px;
+  width: 4px;
   /* Adjust width as needed */
   cursor: col-resize;
   /* Change cursor to indicate resizing */

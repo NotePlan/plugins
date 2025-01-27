@@ -38,47 +38,47 @@
   /* Log styling */
   
   .log-selected {
-    background-color: #ffff99;
+    background-color: #ffff9966;
   }
   
   .log-warn {
-    background-color: #fafcda;
+    background-color: #fafcda66;
   }
 
   .log-highlighted {
-    background-color: #ffff99;
+    background-color: #ffff9966;
   }
   
   .log-error {
-    background-color: #ffcccc;
+    background-color: #ff333366;
   }
   
   .log-info {
-    background-color: rgb(193, 241, 241);
+    color: var(--tint-color);
   }
 
   .log-cyan {
-    background-color: rgb(132, 250, 250);
+    background-color: #84FAFA66;
   }
   
   .log-aquamarine {
-    background-color: aquamarine;
+    background-color: #80FFB066;
   }
 
   .log-thistle {
-    background-color: thistle;
+    background-color: #B095A066;
   }
   
   .log-orange {
-    background-color: orange;
+    background-color: #FFA00066;
   }
   
   .log-stripe-even {
-    background-color: white;
+    background-color: var(--bg-main-color);
   }
   
   .log-stripe-odd {
-    background-color: #f6f4f4;
+    background-color: var(--bg-alt-color);
   }
   
   .log-container {

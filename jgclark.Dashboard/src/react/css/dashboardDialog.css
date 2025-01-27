@@ -122,14 +122,15 @@ dialog:modal {
 }
 
 .fullTextInput {
-  width: -webkit-fill-available; /* calc(100% - 3rem); */
   font-size: 0.9rem;
   font-weight: 600;
+  width: -webkit-fill-available; /* calc(100% - 3rem); */
   padding: 1px 4px 1px 4px;
-  border: 1px solid var(--divider-color);
-  border-radius: 4px;
   /* margin-left: 0.3rem; */
   margin-right: 0.3rem;
+  border: 1px solid var(--divider-color);
+  border-radius: 4px;
+  background-color: var(--bg-mid-color);
 }
 
 /* for iphone, allow the text to wrap */

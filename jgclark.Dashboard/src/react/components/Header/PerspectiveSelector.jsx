@@ -12,13 +12,8 @@
 import React, { useReducer, useEffect, useCallback } from 'react'
 import type { TPerspectiveDef } from '../../../types.js'
 import { PERSPECTIVE_ACTIONS } from '../../reducers/actionTypes'
-// import { setPluginData } from '../../../dashboardHelpers'
-import { setActivePerspective } from '../../../perspectiveHelpers'
-import DropdownSelect /*, { type Option } */ from '../../../../../np.Shared/src/react/DynamicDialog/DropdownSelect'
-// import ThemedSelect from '../../../../../np.Shared/src/react/DynamicDialog/ThemedSelect'
-
+import { endsWithStar, setActivePerspective } from '../../../perspectiveHelpers'
 import {
-  // cleanDashboardSettings,
   getDisplayListOfPerspectiveNames,
   getPerspectiveNamed,
   getActivePerspectiveDef,
@@ -26,9 +21,10 @@ import {
   type TPerspectiveOptionObject,
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
-import { clo, logDebug, logWarn, logError } from '@helpers/react/reactDev.js'
-import { showDialog, showConfirmationDialog } from '@helpers/react/userInput'
-import { compareObjects, dt } from '@helpers/dev.js'
+import DropdownSelect /*, { type Option } */ from '@helpers/react/DynamicDialog/DropdownSelect.jsx'
+import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/react/reactDev.js'
+import { showDialog, showConfirmationDialog, showMessageYesNoCancel } from '@helpers/react/userInput'
+// import { compareObjects, dt } from '@helpers/dev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -86,18 +82,29 @@ const PerspectiveSelector = (): React$Node => {
         const copySettings = notIsDash ? [{ label: 'Copy Settings to…', value: 'Copy Perspective' }] : []
         const deletePersp = notIsDash ? [{ label: 'Delete Perspective…', value: 'Delete Perspective' }] : []
         const editAllPerspectives = [{ label: 'Edit All Perspectives…', value: 'Edit All Perspectives' }]
+        // logDebug each of the variables above
+        logDebug('PerspectiveSelector/SET_PERSPECTIVE_OPTIONS activePerspective=', { thisPersp })
+        logDebug('PerspectiveSelector/SET_PERSPECTIVE_OPTIONS', `notIsDash=${String(notIsDash)} action.payload=`, { payload: action.payload })
+        logDebug(
+          'PerspectiveSelector/SET_PERSPECTIVE_OPTIONS',
+          `saveModifiedOption=${JSON.stringify(saveModifiedOption)} renamePerspective=${JSON.stringify(renamePerspective)} copySettings=${JSON.stringify(
+            copySettings,
+          )} deletePersp=${JSON.stringify(deletePersp)} editAllPerspectives=${JSON.stringify(editAllPerspectives)}`,
+        )
+        const perspectiveNameOptions = [
+          ...action.payload,
+          ...separatorOption,
+          ...saveModifiedOption,
+          ...saveAsOption,
+          ...renamePerspective,
+          ...copySettings,
+          ...deletePersp,
+          ...editAllPerspectives,
+        ]
+        logDebug('PerspectiveSelector/SET_PERSPECTIVE_OPTIONS', `perspectiveNameOptions=`, perspectiveNameOptions)
         return {
           ...state,
-          perspectiveNameOptions: [
-            ...action.payload,
-            ...separatorOption,
-            ...saveModifiedOption,
-            ...saveAsOption,
-            ...renamePerspective,
-            ...copySettings,
-            ...deletePersp,
-            ...editAllPerspectives,
-          ],
+          perspectiveNameOptions: perspectiveNameOptions,
         }
       }
       case 'SET_ACTIVE_PERSPECTIVE':
@@ -183,12 +190,32 @@ const PerspectiveSelector = (): React$Node => {
   // Handler for Perspective Change with Comprehensive Logging
   //----------------------------------------------------------------------
 
+  const thisPersp = getPerspectiveNamed(activePerspectiveName, perspectiveSettings)
+  const nameToDisplay = thisPersp ? formatNameWithStarIfModified(thisPersp) : '-'
+
+  /**
+   * Handles a perspective change event. If the selected option's value
+   * is the same as the currently active perspective, then no further
+   * action is taken. Otherwise, it proceeds with the relevant
+   * perspective/option logic (delete, save, rename, copy, etc.).
+   *
+   * @param {TPerspectiveOptionObject} selectedOption - The newly selected perspective or action.
+   * @returns {Promise<void>} A promise that resolves when the event handling is complete.
+   */
   const handlePerspectiveChange = useCallback(
     async (selectedOption: TPerspectiveOptionObject) => {
       logDebug('PerspectiveSelector/handlePerspectiveChange', `User selected newValue: "${selectedOption.value}". Current activePerspectiveName: "${activePerspectiveName}".`)
 
+      // Add this at the start of the handler to store the current perspective
+      const currentPerspective = {
+        label: nameToDisplay,
+        value: thisPersp ? activePerspectiveName : '-',
+      }
+
       if (selectedOption.value === 'separator') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `clicked on separator option. No action taken.`)
+        // Force rerender with current perspective
+        handlePerspectiveReset(currentPerspective)
         return
       }
 
@@ -202,19 +229,39 @@ const PerspectiveSelector = (): React$Node => {
             { actionType: 'addNewPerspective', perspectiveName: userInputObj ? userInputObj.newName : '', logMessage: 'Add New Perspective selected from dropdown' },
             'Add New Perspective selected from dropdown',
           )
+        } else {
+          logDebug('PerspectiveSelector/handlePerspectiveChange', `No new name provided. Not adding new perspective.`)
+          handlePerspectiveReset(currentPerspective)
         }
         return
       }
 
       if (selectedOption.value === 'Delete Perspective') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `deletePerspective "${selectedOption.value}".`)
-        const confirmation = await showConfirmationDialog({ message: `Are you sure you want to delete the perspective "${activePerspectiveName}"?` })
-        if (confirmation) {
-          sendActionToPlugin(
-            'deletePerspective',
-            { actionType: 'deletePerspective', perspectiveName: activePerspectiveName, logMessage: `Delete  Perspective (${activePerspectiveName}) selected from dropdown` },
-            `Delete  Perspective (${activePerspectiveName}) selected from dropdown`,
-          )
+        try {
+          const confirmation = await showConfirmationDialog({
+            message: `Are you sure you want to delete the perspective "${activePerspectiveName}"?`,
+            onCancel: () => {
+              logDebug('PerspectiveSelector/handlePerspectiveChange', 'Delete Perspective cancelled via escape')
+              handlePerspectiveReset(currentPerspective)
+            },
+            options: ['Yes', 'No'],
+          })
+          logDebug('PerspectiveSelector/handlePerspectiveChange', `confirmation="${String(confirmation)}" typeof(confirmation)=${typeof confirmation}`)
+
+          if (confirmation && confirmation !== 'No') {
+            sendActionToPlugin(
+              'deletePerspective',
+              { actionType: 'deletePerspective', perspectiveName: activePerspectiveName, logMessage: `Delete Perspective (${activePerspectiveName}) selected from dropdown` },
+              `Delete Perspective (${activePerspectiveName}) selected from dropdown`,
+            )
+          } else {
+            logDebug('PerspectiveSelector/handlePerspectiveChange', `Delete Perspective cancelled`)
+            handlePerspectiveReset(currentPerspective)
+          }
+        } catch (error) {
+          logError('PerspectiveSelector/handlePerspectiveChange', `Error in delete perspective dialog: ${error}`)
+          handlePerspectiveReset(currentPerspective)
         }
         return
       }
@@ -232,6 +279,7 @@ const PerspectiveSelector = (): React$Node => {
           logDebug('PerspectiveSelector/handlePerspectiveChange', `${thisPersp.name} saved!`)
         } else {
           logDebug('PerspectiveSelector/handlePerspectiveChange', `${thisPersp?.name || ''} was not modified. Not saving.`)
+          handlePerspectiveReset(currentPerspective)
         }
         return
       }
@@ -254,6 +302,9 @@ const PerspectiveSelector = (): React$Node => {
             { actionType: 'renamePerspective', userInputObj, logMessage: `Rename Perspective (${selectedOption.value}) selected from dropdown` },
             `Rename Perspective (${selectedOption.value}) selected from dropdown`,
           )
+        } else {
+          logDebug('PerspectiveSelector/handlePerspectiveChange', `No new name provided. Not renaming perspective.`)
+          handlePerspectiveReset(currentPerspective)
         }
         return
       }
@@ -282,6 +333,9 @@ const PerspectiveSelector = (): React$Node => {
             { actionType: 'copyPerspective', userInputObj, logMessage: `Copy Settings from (${state.activePerspectiveName}) selected from dropdown` },
             `Copy Settings from (${state.activePerspectiveName}) selected from dropdown`,
           )
+        } else {
+          logDebug('PerspectiveSelector/handlePerspectiveChange', `No new name provided. Not copying settings.`)
+          handlePerspectiveReset(currentPerspective)
         }
         return
       }
@@ -296,9 +350,38 @@ const PerspectiveSelector = (): React$Node => {
       // but not if the option changed only because the plugin sent it to us (no user action)
       const apn = getActivePerspectiveName(perspectiveSettings)
       logDebug('PerspectiveSelector/handlePerspectiveChange', `selectedOption.label: "${selectedOption.label}" apn: "${apn}"`)
+      const currentPerspIsModified = perspectiveSettings.find((persp) => persp.name === apn)?.isModified || false
+      if (currentPerspIsModified) {
+        logDebug('PerspectiveSelector/handlePerspectiveChange', `Current perspective "${apn}" has unsaved changes. Showing confirmation dialog.`)
+        const confirmation = await showMessageYesNoCancel(
+          `Your current perspective "${activePerspectiveName}" has unsaved changes. Would you like to save these changes before switching to "${selectedOption.label}"?`,
+          ['Cancel', 'Switch', 'Save+Switch'],
+          'Confirm Perspective Switch',
+        )
+        if (!confirmation) {
+          logDebug('PerspectiveSelector/handlePerspectiveChange', `Delete Perspective cancelled`)
+          handlePerspectiveReset(currentPerspective)
+          return
+        } else if (confirmation === 'Save+Switch') {
+          logDebug(
+            'PerspectiveSelector/handlePerspectiveChange',
+            `Save+Switch selected. Saving perspective "${activePerspectiveName}" before switching to "${selectedOption.label}".`,
+          )
+          const thisPersp = getActivePerspectiveDef(perspectiveSettings)
+          if (thisPersp && thisPersp.name !== '-') {
+            sendActionToPlugin(
+              'savePerspective',
+              { actionType: 'savePerspective', perspectiveName: thisPersp.name, logMessage: `Saving Perspective (${thisPersp.name}) before switching.` },
+              `Save Perspective (${thisPersp.name}) selected from dropdown`,
+            )
+          }
+        } else if (confirmation === 'Switch') {
+          logDebug('PerspectiveSelector/handlePerspectiveChange', `Switch selected`)
+        }
+      }
       // The perspectives ground truth is set by the plugin and will be returned in pluginData
       // but for now, we will do an optimistic update so the UI is updated immediately
-      console.log(`PerspectiveSelector/handlePerspectiveChange optimistic update to activePerspectiveName: "${selectedOption.value}"`)
+      logDebug(`PerspectiveSelector/handlePerspectiveChange optimistic update to activePerspectiveName: "${selectedOption.value}"`)
       const newPerspectiveSettings = setActivePerspective(selectedOption.value, perspectiveSettings)
       dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: newPerspectiveSettings })
       dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: selectedOption.value })
@@ -309,8 +392,19 @@ const PerspectiveSelector = (): React$Node => {
         `Perspective changed to ${selectedOption.value}`,
       )
     },
-    [perspectiveSettings, state, activePerspectiveName, dashboardSettings],
+    [perspectiveSettings, state, activePerspectiveName, dashboardSettings, nameToDisplay, thisPersp],
   )
+
+  /**
+   * Resets the DropdownSelect to the current perspective without triggering a full perspective change.
+   *
+   * @param {TPerspectiveOptionObject} currentPerspective - The current perspective to reset to.
+   */
+  const handlePerspectiveReset = useCallback((currentPerspective: TPerspectiveOptionObject) => {
+    logDebug('PerspectiveSelector/handlePerspectiveReset', `Resetting to: ${JSON.stringify(currentPerspective)}`)
+    // Directly update the DropdownSelect to reflect the current perspective
+    dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: currentPerspective.value })
+  }, [])
 
   //----------------------------------------------------------------------
   // Render Logic with Comprehensive Logging
@@ -344,10 +438,9 @@ const PerspectiveSelector = (): React$Node => {
     },
   }
 
-  const thisPersp = getPerspectiveNamed(activePerspectiveName, perspectiveSettings)
-  const nameToDisplay = thisPersp ? formatNameWithStarIfModified(thisPersp) : '-'
   const selectedValue = { label: nameToDisplay, value: thisPersp ? activePerspectiveName : '-' }
-  // logDebug('PerspectiveSelector', `selectedValue: ${JSON.stringify(selectedValue)} value(activePerspectiveName)=${activePerspectiveName}`)
+  logDebug('PerspectiveSelector', `selectedValue: ${JSON.stringify(selectedValue)} value(activePerspectiveName)=${activePerspectiveName}`)
+  logDebug('Calling DropdownSelect with PerspectiveSelector/perspectiveNameOptions', { perspectiveNameOptions })
 
   return (
     <DropdownSelect

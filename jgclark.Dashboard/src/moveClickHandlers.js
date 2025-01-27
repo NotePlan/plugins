@@ -1,11 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated for v2.1.0.b
+// Last updated for v2.1.1
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
-import { allCalendarSectionCodes, } from './constants'
+// import { allCalendarSectionCodes, } from './constants'
 import {
   getDashboardSettings,
   handlerResult,
@@ -27,9 +27,8 @@ import {
   moveItemToRegularNote,
 } from '@helpers/NPMoveItems'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
-import { scheduleItem } from '@helpers/NPScheduleItems'
+import { scheduleItem, scheduleItemLiteMethod } from '@helpers/NPScheduleItems'
 import { showMessage } from '@helpers/userInput'
-import { scheduleItemLiteMethod } from '../../helpers/NPScheduleItems'
 
 //-----------------------------------------------------------------
 
@@ -99,24 +98,33 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
   }
 }
 
-// Instruction to move task from a note to a project note.
-// Note: Requires user input, so most of the work is done in moveItemToRegularNote() on plugin side.
+/**
+ * Instruction to move task from a note to a project note.
+ * Note: Requires user input, so most of the work is done in moveItemToRegularNote() on plugin side.
+ * @param {MessageDataObject} data for the item
+ * @returns {TBridgeClickHandlerResult} how to handle this result
+ */
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, itemType, para } = validateAndFlattenMessageObject(data)
-  logDebug('doMoveToNote', `starting -> ${filename} / ${content} / ${itemType}`)
-  const newNote: TNote | null | void = await moveItemToRegularNote(filename, content, itemType)
+  const { filename, content, itemType, para, item } = validateAndFlattenMessageObject(data)
+  logDebug('doMoveToNote', `starting for ID ${item?.ID ?? '?'} (${filename} / ${content} / ${itemType})`)
+  const newNote: TNote | null | void = await moveItemToRegularNote(filename, content, itemType) // TODO: make a boolean result?
+
+  // If success, then update the display
   if (newNote) {
-    logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title || ''}"`)
-    logDebug('doMoveToNote', `- now needing to find the TPara for ${para.type}:"${content}" ...`)
+    // logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title || ''}"`)
+    // logDebug('doMoveToNote', `- now needing to find the TPara for ${para.type}:"${content}" ...`)
     // updatedParagraph (below) is an actual NP object (TParagraph) not a TParagraphForDashboard, so we need to go and find it again
-    const updatedParagraph = newNote.paragraphs.find((p) => p.content === content && p.type === para.type)
-    if (updatedParagraph) {
-      logDebug('doMoveToNote', `- Sending update line request $JSP(updatedParagraph)`)
-      return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph })
-    } else {
-      logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all enabled sections :-(`)
-      return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'], { sectionCodes: allCalendarSectionCodes })
-    }
+    // const updatedParagraph = newNote.paragraphs.find((p) => p.content === content && p.type === para.type)
+    // if (updatedParagraph) {
+    // logDebug('doMoveToNote', `- Sending update line request $JSP(updatedParagraph)`)
+    // return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph })
+    // TEST: Should this be REMOVE_LINE_FROM_JSON instead?
+    logDebug('doMoveToNote', `- Sending remove line request for ID ${item?.ID ?? '?'}`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], {})
+    // } else {
+    //   logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all enabled sections :-(`)
+    //   return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'], { sectionCodes: allCalendarSectionCodes })
+    // }
   } else {
     return handlerResult(false)
   }
@@ -125,7 +133,7 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
 /**
  * Reschedule (i.e. update the >date) an item in place.
  * The new date is indicated by the controlStr ('t' or date interval), or failing that the dateString (an NP date).
- * TEST: Can now do full (NP-style) 'schedule' or my preferred 'lite' method.
+ * Can now do full (NP-style) 'schedule' or my preferred 'lite' method.
  * @param {MessageDataObject} data for the item
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
@@ -146,6 +154,7 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
     await showMessage(`Note ${filename} doesn't seem to contain "{${content}}"`)
     return handlerResult(false)
   }
+  const origNoteType = thePara.note?.type
 
   if (dateOrInterval === 't') {
     // Special case to change to '>today' (or the actual date equivalent)
@@ -175,7 +184,7 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
     logError('doRescheduleItem', `bad move date/interval: ${dateOrInterval}`)
     return handlerResult(false)
   }
-  logDebug('doRescheduleItem', `change due date on task from ${startDateStr} -> ${newDateStr}`)
+  logDebug('doRescheduleItem', `change due date on task from '${startDateStr ?? '?'}' -> '${newDateStr}'`)
 
   // Make the actual change to reschedule the item
   // v1:
@@ -186,19 +195,19 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
   // v2:
   // const res = scheduleItem(thePara, newDateStr, config.useRescheduleMarker)
   // v3: choice of 2 schedule methods
-  const res = (config.useLiteScheduleMethod)
+  // Note: need to use the 'Lite' method if the para is in a regular (not calendar) note
+  const res = (origNoteType === 'Notes' || config.useLiteScheduleMethod)
     ? scheduleItemLiteMethod(thePara, newDateStr)
     : scheduleItem(thePara, newDateStr, config.newTaskSectionHeading)
   const thisNote = thePara.note
   if (thisNote) {
     thisNote.updateParagraph(thePara)
-    logDebug('doRescheduleItem', `- appeared to update line OK using ${config.useLiteScheduleMethod ? 'lite' : 'NP full'} method -> {${thePara.content}}`)
+    logDebug('doRescheduleItem', `- appeared to update line OK using ${origNoteType === 'Notes' || config.useLiteScheduleMethod ? 'lite' : 'NP full'} method -> {${thePara.content}}`)
 
-    // Ask for cache refresh for this note -- done above
-    // DataStore.updateCache(thisNote, false)
+    // Note: No need to ask for cache refresh for this note -- done in functions above
 
     // refresh all enabled sections, as we don't know here which if any section the moved task might need to be added to (if any)
-    // logDebug('doRescheduleItem', `------------ refresh enabled ------------`)
+    logDebug('doRescheduleItem', `------------ refresh enabled ------------`)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_ENABLED_SECTIONS'], { updatedParagraph: thePara })
   } else {
     logWarn('doRescheduleItem', `- some other failure`)

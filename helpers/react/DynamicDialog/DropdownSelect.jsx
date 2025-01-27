@@ -1,7 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
 // React component to show an HTML DropdownSelect control, with various possible settings.
-// Based on basic HTML controls, not a fancy React Component.
+// Uses basic HTML controls; it's not a fancy React Component.
+// Written by @dwertheimer
 // TODO: Have not fully tested the isEditable feature
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, useMemo, type ElementRef, useLayoutEffect } from 'react'

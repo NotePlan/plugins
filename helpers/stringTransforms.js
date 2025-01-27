@@ -101,8 +101,8 @@ export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean 
   let output = original
   const captures = Array.from(original.matchAll(RE_SIMPLE_BARE_URI_MATCH_G) ?? [])
   if (captures.length > 0) {
-    logDebug('changeBareLinksToHTMLLink', `Found link in '${original}' with truncateLength ${String(truncateLength)}${addWebIcon ? ' and addWebIcon' : ''}`)
-    clo(captures, `${String(captures.length)} results from bare URL matches:`)
+    // logDebug('changeBareLinksToHTMLLink', `Found link in '${original}' with truncateLength ${String(truncateLength)}${addWebIcon ? ' and addWebIcon' : ''}`)
+    // clo(captures, `${String(captures.length)} results from bare URL matches:`)
     for (const capture of captures) {
       const linkURL = capture[3]
       const URLForDisplay = truncateLength > 0 && linkURL.length > truncateLength ? truncateHTML(linkURL, truncateLength, true) : linkURL
@@ -113,7 +113,7 @@ export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean 
         output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}">${URLForDisplay}</a>`)
       }
     }
-    logDebug('changeBareLinksToHTMLLink', `=> ${output}`)
+    // logDebug('changeBareLinksToHTMLLink', `=> ${output}`)
   }
   return output
 }
@@ -293,7 +293,7 @@ export function stripHashtagsFromString(original: string): string {
   // TODO: matchAll?
   const captures = output.match(/(?:\s|^|\"|\(|\)|\')(#[A-Za-z]\w*)/g)
   if (captures) {
-    clo(captures, 'results from hashtag matches:')
+    // clo(captures, 'results from hashtag matches:')
     for (const capture of captures) {
       const match = capture.slice(1)
       // logDebug('hashtag match', match)
@@ -318,7 +318,7 @@ export function stripMentionsFromString(original: string): string {
   // Note: the regex from @EduardMe's file is /(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/ but :punct: doesn't work in JS, so here's my simplified version
   const captures = output.match(/(?:\s|^|\"|\(|\)\')(@[A-Za-z][\w\d\.\-\(\)]*)/g)
   if (captures) {
-    clo(captures, 'results from mention matches:')
+    // clo(captures, 'results from mention matches:')
     for (const capture of captures) {
       const match = capture.slice(1)
       // logDebug('mention match', match)

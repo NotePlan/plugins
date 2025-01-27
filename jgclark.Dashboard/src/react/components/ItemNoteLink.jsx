@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show Note Links after main item content
-// Last updated 13.4.2024 for v2.0.0 by @jgclark
+// Last updated 2025-01-13 for v2.1.2 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
@@ -10,10 +10,6 @@ import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { getFolderFromFilename } from '@helpers/folders'
 import { logDebug, clo } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
-
-// import {
-//   getAPIDateStrFromDisplayDateStr,
-// } from '@helpers/dateTime'
 
 type Props = {
   item: TSectionItem,
@@ -43,8 +39,12 @@ function ItemNoteLink({ item, thisSection }: Props): React$Node {
 
   if (filename !== thisSection.sectionFilename) {
     return (
-      <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`${item.itemType}_${item.ID}_Open Note Link`} enabled={!reactSettings?.dialogData?.isOpen}>
-        <span className="pad-left-larger folderName">{folderNamePart}</span>
+      <TooltipOnKeyPress
+        altKey={{ text: 'Open in Split View' }}
+        metaKey={{ text: 'Open in Floating Window' }}
+        label={`${item.itemType}_${item.ID}_Open Note Link`}
+        enabled={!reactSettings?.dialogData?.isOpen}>
+        <span className="pad-left-larger folderName pad-right">{folderNamePart}</span>
         <a className="noteTitle sectionItem" onClick={handleLinkClick}>
           <i className="fa-regular fa-file-lines pad-right"></i>
           {noteTitle}

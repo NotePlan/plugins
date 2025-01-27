@@ -10,7 +10,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     min-width: 25rem;
-    max-width: 80%;
+    max-width: 80vw;
     width: fit-content;
     border: none;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
@@ -18,7 +18,8 @@
     opacity: 1;
     border-radius: 8px;
     transition: opacity 0.2s ease-out;
-    /* overflow: hidden; commented out to allow for dropdowns to show */
+    overflow:auto;
+    max-height: 80vh;
 }
 
 /* Narrow for simpler confirmation dialogs */
@@ -34,7 +35,8 @@
     background-color: var(--bg-mid-color);
     padding: 0.75rem 0.6rem;
     border-radius: 8px;
-    overflow-y: auto; 
+    overflow: visible;
+    position: relative;
     max-height: 95%;
     font-size: 95%;
 }
@@ -46,6 +48,9 @@
 
 /* Style for the dialog buttons container */
 .dynamic-dialog-header {
+    position: sticky;
+    top: 0;
+    z-index: 100; /* Ensure it stays above other content */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -55,7 +60,6 @@
     background-color: var(--bg-alt-color);
     color: var(--tint-color);
     margin: 0;
-    background: none;
     line-height: 1.2rem;
     min-height: 2.5rem;
     border-bottom: gray solid .5px;
@@ -422,12 +426,13 @@
         font-family: system-ui;
     }
 
-    .ui-button:hover {
-        background-color: var(--bg-alt-color);
-        color: var(--fg-alt-color);
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    /* Hover style for ui-button - though don't apply to default-button as well */
+    .ui-button:hover:not(.default-button) {
+        /* background-color: var(--bg-alt-color); */
+        /* color: var(--fg-alt-color); */
+        /* box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); */
+        filter: brightness(95%);
     }
-
     .default-button {
         background-color: var(--tint-color);
         color: var(--bg-main-color);
@@ -435,10 +440,11 @@
     }
 
     .default-button:hover {
-        color: var(--bg-main-color);
-        filter: brightness(80%);
+        /* color: var(--bg-main-color); */
         /* background-color: hsl(from var(--tint-color) h s calc(l*0.8)); */
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for emphasis */
+        /* Add shadow for emphasis */
+        /* box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);  */
+        filter: brightness(105%);
     }
 
     div.text-component.description {
@@ -449,13 +455,12 @@
 /* Hide increment and decrement buttons for number input */
 .hide-step-buttons::-webkit-outer-spin-button,
 .hide-step-buttons::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .hide-step-buttons {
-  -moz-appearance: textfield; /* Firefox */
-
+    -moz-appearance: textfield; /* Firefox */
 }
 
 /* Style for dropdown-dropdown -- these need to be global, not nested because they apply to the portal */
@@ -493,18 +498,24 @@
 
 .thin-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #c5c5c5 #f6f6f6;
-  }
-  
-  .thin-scrollbar::-webkit-scrollbar {
+    /* The following is not yet supported in the NP HTML environment */
+    /* scrollbar-color: var(--bg-alt-color) var(--divider-color); */
+}
+
+.thin-scrollbar::-webkit-scrollbar {
     width: 8px;
-  }
-  
-  .thin-scrollbar::-webkit-scrollbar-track {
-    background: #f6f6f6;
-  }
-  
-  .thin-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #c5c5c5;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+    background: var(--bg-alt-color);
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--divider-color);
     border-radius: 4px;
-  }
+}
+
+.dropdown-select-dropdiv {
+    max-height: 90vh;
+    overflow-y: auto;
+}

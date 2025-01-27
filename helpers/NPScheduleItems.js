@@ -4,10 +4,11 @@
 // -----------------------------------------------------------------
 
 import {
+  findScheduledDates,
   getDateStringFromCalendarFilename,
   getDisplayDateStrFromFilenameDateStr,
   getFilenameDateStrFromDisplayDateStr,
-  replaceArrowDatesInString
+  replaceArrowDatesInString,
 } from '@helpers/dateTime'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -55,6 +56,7 @@ export function unscheduleItem(filename: string, content: string): boolean {
  * It adds the '>' to the start of the date, and appends to the end of the para.
  * It removes any existing scheduled >dates.
  * It does not change the para type, or Add a new line in the destination date's note.
+ * Note: Therefore this is the only method to use if you are scheduling an item in a regular note.
  * @author @jgclark
  * @param {TParagraph} para of open item
  * @param {string} dateStrToAdd, without leading '>'. Can be special date 'today'.
@@ -65,8 +67,9 @@ export function scheduleItemLiteMethod(thisPara: TParagraph, dateStrToAdd: strin
     const thisNote = thisPara.note
     const origContent = thisPara.content
     if (!thisNote) throw new Error(`Could not get note for para '${origContent}'`)
-    const origDateStr = getDateStringFromCalendarFilename(thisNote.filename)
-    logDebug('scheduleItem', `Starting to schedule from ${origDateStr} to '${dateStrToAdd}'`)
+
+    const origDateStr = thisNote.type === 'Calendar' ? getDateStringFromCalendarFilename(thisNote.filename) : findScheduledDates(origContent)[0]
+    logDebug('scheduleItemLiteMethod', `Starting to schedule from ${origDateStr} to '${dateStrToAdd}'`)
 
     // In existing line find and then remove any existing scheduled dates, and add new scheduled date
     thisPara.content = replaceArrowDatesInString(origContent, `>${dateStrToAdd}`)
@@ -86,14 +89,14 @@ export function scheduleItemLiteMethod(thisPara: TParagraph, dateStrToAdd: strin
 
 /**
  * Note: This is the 'Full' method of Scheduling, as performed by NotePlan UI on items in Calendar notes. See original 'Lite' method above.
- * Schedule an open item for a given date (e.g. >YYYY-MM-DD, >YYYY-Www, >today etc.) for a given paragraph. 
+ * Schedule an open item for a given date (e.g. >YYYY-MM-DD, >YYYY-Www, >today etc.) for a given paragraph.
  * In more detail this:
  * - adds the '>' to the start of the date, and appends to the end of the para.
  * - removes any existing scheduled >dates.
- * TEST: changes here ..........................
  * - changes the para type to 'scheduled'/'checklistScheduled'
  * - makes original line become `- [>] item >new_date`
  * - and new line `- [ ] item <old_date`
+ * Note: It doesn't make sense to run this on a para from regular note. If it tries it will redirect to use the 'Lite' method above.
  * @author @jgclark
  * @param {TParagraph} origPara of open item
  * @param {string} dateStrToAdd, without leading '>'. Can be special date 'today'.
@@ -104,7 +107,10 @@ export function scheduleItem(origPara: TParagraph, dateStrToAdd: string, newTask
   try {
     const origNote = origPara.note
     if (!origNote) throw new Error(`Could not get note for existing para`)
-    if (origNote.type !== 'Calendar') throw new Error(`Doesn't make sense to run this on a para from regular note '${origNote.filename}'`)
+    if (origNote.type === 'Notes') {
+      logDebug('scheduleItem', `It doesn't make sense to run this on a para from regular note '${origNote.filename}'. Will call scheduleItemLiteMethod instead.`)
+      return scheduleItemLiteMethod(origPara, dateStrToAdd)
+    }
 
     const origDateStr = getDisplayDateStrFromFilenameDateStr(origNote.filename)
     const origContent = origPara.content
@@ -131,7 +137,7 @@ export function scheduleItem(origPara: TParagraph, dateStrToAdd: string, newTask
     const newContent = replaceArrowDatesInString(origContent, `<${origDateStr}`)
     const newType = origType
     const heading = newTaskSectionHeading
-    logDebug('scheduleItem', `New  -> '${newContent}' type '${newType}' under heading ${heading}`)
+    logDebug('scheduleItem', `New -> '${newContent}' type '${newType}' under heading ${heading}`)
     newNote.addParagraphBelowHeadingTitle(newContent, newType, heading, true, true)
     logDebug('scheduleItem', `-> new added to ${newNote.filename}`)
 

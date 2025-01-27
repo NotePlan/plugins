@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated for v2.1.0.a
+// Last updated for v2.1.2
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -12,6 +12,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import type { TSection, TSectionItem, TActionButton } from '../../../types.js'
 import CommandButton from '../CommandButton.jsx'
 import ItemGrid from '../ItemGrid.jsx'
+// import SectionTimer from '../SectionTimer.jsx'
 import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
@@ -44,6 +45,12 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Constants
   // ---------------------------------------------------------------------
   const { sectionFilename, totalCount } = section
+
+  //----------------------------------------------------------------------
+  // Section Timer
+  //----------------------------------------------------------------------
+  // FIXME(dwerteimer): this is what Cursor added (and I tweaked) but doesn't work.
+  // const { sectionTimer } = SectionTimer({ maxDelay: 60000, enabled: section.sectionCode === 'TB', sectionCode: 'TB' })
 
   //----------------------------------------------------------------------
   // Effects
@@ -91,10 +98,41 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     setItems(sectionItems)
   }, [section, dashboardSettings])
 
+  /**
+   * Set a timer to refresh the TB section every 1 minute.
+   * FIXME(dwerteimer): this is what Cursor added on my second attempt -- just trying to keep it all in this file. But doesn't work.
+   */
+  useEffect(() => {
+    const refreshInterval = 60000 // 1 minute
+    let timerId
+
+    if (section.sectionCode === 'TB') {
+      timerId = setInterval(() => {
+        refresh()
+      }, refreshInterval)
+      logDebug('Section/TBTimer', `Section ${section.sectionCode} timer set for ${refreshInterval / 1000} seconds`)
+    }
+
+    return () => {
+      if (timerId) {
+        clearInterval(timerId)
+        logDebug('Section/TBTimer', `Section ${section.sectionCode} timer cleared`)
+      }
+    }
+  }, [section.sectionCode])
+
+  const refresh = useCallback(() => {
+    logDebug('Section/TBTimer', 'Refreshing section ${section.sectionCode}...')
+    // TEST: Add your refresh logic here
+    const detailsMessageObject = { actionType: 'refreshSomeSections', sectionCodes: ['TB'] }
+    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'TBTimer fired refreshSomeSections', true)
+  }, [])
+
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
   const { itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
+  clo(itemsToShow[0]?.para?.content, `Section.jsx numFilteredOut=${numFilteredOut} limitApplied=${String(limitApplied)} itemsToShow[0].para.content=`)
 
   //----------------------------------------------------------------------
   // Handlers
@@ -106,7 +144,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       console.log('Section 🥸 handleIPItemProcessed reactSettings at top of handleInteractiveProcessingClick function', reactSettings)
 
       const clickPosition = { clientY: e.clientY, clientX: e.clientX + 200 }
-      const itemDetails = { actionType: '', item: itemsToShow[0] }
+      const itemDetails = { actionType: '', item: itemsToShow[0], sectionCodes: [section.sectionCode] }
       logDebug('Section', `handleInteractiveProcessingClick; setting currentIPIndex=${String(0)} itemDetails=${JSON.stringify(itemDetails)}`)
       setReactSettings((prevSettings) => {
         const newReactSettings = {
@@ -140,7 +178,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
 
   // $FlowIgnore[invalid-computed-prop]
-  const hideSection = !items.length || (dashboardSettings && dashboardSettings[section.showSettingName] === false)
+  let hideSection = !items.length || (dashboardSettings && dashboardSettings[section.showSettingName] === false) // note this can be updated later
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   const isDesktop = pluginData.platform === 'macOS'
   let numItemsToShow = itemsToShow.length
@@ -149,7 +187,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   const addNewActionButtons = isDesktop ? section.actionButtons?.filter((b) => b.actionName.startsWith('add')) : []
   let processActionButtons = isDesktop ? section.actionButtons?.filter((b) => !b.actionName.startsWith('add')) : []
 
-  // If we have no data items to show (other than a congrats message), only show its 'add...' buttons
+  // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
   if (numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {
     processActionButtons = []
   }
@@ -196,8 +234,22 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // If we have no data items to show (other than a congrats message), don't show description
   const descriptionDiv = numItemsToShow > 0 ? <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div> : <div></div>
 
+  // Decide whether to show interactiveProcessing button
+  // TODO(later): enable again for PROJ
+  const showIPButton =
+    dashboardSettings.enableInteractiveProcessing &&
+    numItemsToShow > 1 &&
+    !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) &&
+    section.sectionCode !== 'TB' &&
+    section.sectionCode !== 'PROJ'
+
   const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
   titleStyle.color = section.sectionTitleColorPart ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})` : 'var(--item-icon-color)'
+
+  // TB section can show up blank, without this extra check
+  if (itemsToShow.length === 0) {
+    hideSection = true
+  }
 
   /**
    * Layout of sectionInfo = 4 divs:
@@ -207,11 +259,9 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
    * On normal width screen these are a row-based grid (1x3).
    * On narrow window, these are a column-based grid (3x1).
    * Then <SectionGrid> which contains the actual data items.
-   *
-   * TODO: add fields to CommandButton to allow use of the react input component, not the command bar
    */
   return hideSection ? null : (
-    <div className="section">
+    <section className="section">
       <div className="sectionInfo">
         <div className="sectionInfoFirstLine">
           <TooltipOnKeyPress
@@ -235,23 +285,23 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         {descriptionDiv}
         <div className="sectionProcessButtons">
           {processActionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="PCButton" />) ?? []}
-          {numItemsToShow > 1 && !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) && dashboardSettings.enableInteractiveProcessing && (
-            <>
-              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} items`}>
-                {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
-                {/* wanted to use 'fa-arrow-progress' here but not in our build */}
-                {/* <i className="fa-regular fa-layer-group fa-rotate-90"></i> */}
-                <i className="fa-regular fa-angles-right"></i>
-                <span className="interactiveProcessingNumber" style={{ fontWeight: 500, paddingLeft: '3px' }}>
-                  {numItemsToShow}
-                </span>
-              </button>
-            </>
+          {showIPButton && (
+            // <>
+            <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} items`}>
+              {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
+              {/* wanted to use 'fa-arrow-progress' here but not in our build */}
+              {/* <i className="fa-regular fa-layer-group fa-rotate-90"></i> */}
+              <i className="fa-regular fa-angles-right"></i>
+              <span className="interactiveProcessingNumber" style={{ fontWeight: 500, paddingLeft: '3px' }}>
+                {numItemsToShow}
+              </span>
+            </button>
+            // </>
           )}
         </div>
       </div>
       <ItemGrid thisSection={section} items={itemsToShow} />
-    </div>
+    </section>
   )
 }
 

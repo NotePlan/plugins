@@ -6,17 +6,10 @@
 // Last updated for v2.1.0.a
 //-----------------------------------------------------------------------------
 import { WEBVIEW_WINDOW_ID } from './constants'
-import {
-  updateDoneCountsFromChangedNotes,
-} from './countDoneTasks'
-import {
-  getNotePlanSettings,
-  handlerResult,
-  mergeSections,
-  setPluginData,
-} from './dashboardHelpers'
+import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
+import { getNotePlanSettings, handlerResult, mergeSections, setPluginData } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData, } from './types'
+import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getGlobalSharedData } from '@helpers/HTMLView'
 
@@ -72,7 +65,6 @@ export async function refreshAllSections(): Promise<void> {
     await setPluginData(changedData, 'Updating doneCounts at end of refreshAllSections')
   }
 }
-
 
 /**
  * Loop through sectionCodes and tell the React window to update by re-generating a subset of Sections.

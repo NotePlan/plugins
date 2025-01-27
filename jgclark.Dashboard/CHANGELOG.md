@@ -1,9 +1,79 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.1] 2025-01-02
+## [2.1.6] 2025-01-26
+<!-- ### New
+- TODO: if a task is marked complete, and it has a `@repeat(date)` (using the Repeat Extensions plugin) then it will now automatically generate the new repeat. (This works around a limitation in the API where the usual trigger doesn't fire.) -->
+### Changed
+- when you click on a task/checklist line in the Dashboard window, it will highlight that line in the open NP Editor, and now bring the NP window to the front.
+- allow all current timeblocks to be shown, not just the first
+- styling improvements in Edit All Perspectives... window and various dialogs
 ### Fixed
-- fixed bug where Tomorrow section was not showing up.
+- an extra item could stop being displayed when the item before it was marked as complete
+- timeblocks in list items ignored if also filtering out checklists
+
+## [2.1.5] 2025-01-21
+### New
+- when moving an item to a different note, and the item contains a scheduled date, it now offers to remove the date (suggested by @drb)
+### Fixes
+- fixed regression when (re)scheduling an item (thanks, @SneakAttack)
+- fixed timeblock still appearing on completed items (thanks, @MC-1848)
+### Dev notes
+- changed doMoveToNote to finish with REMOVE_LINE_FROM_JSON not UPDATE_LINE_IN_JSON
+- refactored REMOVE_LINE_FROM_JSON to happen in `processActionOnReturn()` not `updateReactWindowFromLineChange()`. This simplifies things a bit. @DBW please review to make sure I'm not doing something silly here.
+ 
+## [2.1.4] 2025-01-19
+### Changes
+- the 'Edit All Perspectives' dialog now shows a modified Perspective as well as the unmodified version of that Perspective, plus options to 'Save' or 'Revert' those changes.  (Feedback welcome on this.)
+### Fixes
+- fixed Interactive Processing dialog failing
+### Dev notes
+- Remove vestiges of showModal() using <Modal> component instead
+- Changed some <div>s to be <header>, <main> and <section> instead -- should provide better accessibility, and recommended by ARIA
+- Fixed Feature Flags not being saved.
+
+## [2.1.3] 2025-01-16
+### New
+- the task dialog box is now a bit smarter: it won't display 'this month' when the item is from the monthly note, but will give 'next month' option instead. Similarly for items in 'This week' and 'This Quarter' sections.
+### Changes
+- made the message to user more useful on (valid) occasions where Dashboard can't update something because its recently changed in the underlying note
+### Fixes
+- fixed regression that stopped 'hide checklists' from being honoured in some parts of the display
+- the 'current timeblock' could stop being displayed too soon
+- fixed settings from the Filter dropdown menu getting out of sync
+- fixed special '<<top of note>>' option in setting 'Section heading to add/move new tasks under' not being handled properly (thanks, @dwertheimer)
+### Dev notes
+- I realised that some of the logic for what to display and not is spread out in several places, making it difficult to reason with and test. So I've moved a checklist filter out of ItemGrid up to Section level (through its useSection... effect) which has much more logic about how to filter and display this.
+
+## [2.1.2] 2025-01-13
+### New
+- Spinner after final section to indicate when a Perspective is still changing
+### Fixes
+- Today section not showing up before a settings change
+- fix perspectives where some tags were being shown even though they were not included in the tagsToShow setting for the current perspective
+- settings description for max items to show
+- fix ESC key on PerspectiveSelector non-perspective options
+- hide Interactive Processing button in Projects section (will be introduced later) (thanks, @Wook5000)
+- fix 'Last Week' section not refreshing after clicking 'All->This Week' button
+- spacing after folder names in referenced links
+
+## [2.1.1] 2025-01-06
+### New
+- time blocks are now found in regular notes that reference to today (e.g. `>2025-01-04 at 11:00`) as well as calendar notes
+- new 'show Today' toggle, as you can now choose to hide the Today section. [This is in preparation for future changes.]
+- new '/test Perspective filter' command in case we still need more logging
+### Changed
+- eliminated some background refreshes -- feedback wanted on whether any sections are not fully up-to-date straight after an automatic or requested refresh
+- removed "Add new Perspective", "Delete Perspective" and "Update current Perspective" commands, as they're now more easily used in the Perspective dropdown menu.
+### Fixed
+- some open tasks were being included in a Perspective when they shouldn't have been excluded by folder (thanks @ormler, @dwertheimer)
+- fixed the Tomorrow Section sometimes not showing
+- fixed the (re)schedule actions (e.g. "+1d", "+1w") in the task dialog box not firing in regular notes that are referenced to >today
+### Dev note
+- cut down logging
+- commented out `updateReactWindowData()`
+- removed unused version of `getInitialDataForReactWindow` and renamed what we are using to this same name
+- testing deactivation of `START_DELAYED_REFRESH_TIMER`
 
 ## [2.1.0] 2024-12-31
 A major effort by @jgclark and @dwertheimer over the last 5 months. There are lots of new things, particularly **Perspectives, that allow you to switch very quickly between different complete sets of settings**.

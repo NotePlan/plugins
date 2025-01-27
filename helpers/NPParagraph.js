@@ -13,6 +13,7 @@ import {
   hyphenatedDate,
   isScheduled,
   replaceArrowDatesInString,
+  RE_DATE_INTERVAL,
   RE_SCHEDULED_ISO_DATE,
   SCHEDULED_WEEK_NOTE_LINK,
   SCHEDULED_QUARTERLY_NOTE_LINK,
@@ -24,6 +25,7 @@ import { displayTitle } from '@helpers/general'
 import { getFirstDateInPeriod, getNPWeekData, getMonthData, getQuarterData, getYearData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
+import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
@@ -1263,12 +1265,18 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
  * Highlight the given Paragraph details in the open editor.
  * The static object that's passed in must have at least the following TParagraph-type fields populated: filename and rawContent (or content, though this is naturally less exact).
  * If 'thenStopHighlight' is true, the cursor will be moved to the start of the paragraph after briefly flashing the whole line. This is to prevent starting to type and inadvertdently removing the whole line.
+ * If 'andFocusEditor' is true, the editor will be focused after highlighting.
  * @author @jgclark
  * @param {any} objectToTest
- * @param {boolean} thenStopHighlight?
+ * @param {boolean} thenStopHighlight? (default: false)
+ * @param {boolean} andFocusEditor? (default: true)
  * @results {boolean} success?
  */
-export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight: boolean = false): boolean {
+export function highlightParagraphInEditor(
+  objectToTest: any,
+  thenStopHighlight: boolean = false,
+  andFocusEditor: boolean = true,
+): boolean {
   try {
     logDebug('highlightParagraphInEditor', `Looking for <${objectToTest.rawContent ?? objectToTest.content}>`)
 
@@ -1284,6 +1292,9 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
       if (thenStopHighlight && paraRange) {
         logDebug('highlightParagraphInEditor', `Now moving cursor to highlight at charIndex ${String(paraRange.start)}`)
         Editor.highlightByIndex(paraRange.start, 0)
+      }
+      if (andFocusEditor) {
+        Editor.focus()
       }
       return true
     } else {
@@ -1352,6 +1363,7 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 /**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
  * Removes '>date' (including '>today') if present.
+ * Also calls the Repeat Extensions plugin to fire the /rpt trigger if this has a @repeat(date) and the plugin is installed.
  * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {TParagraph} para
@@ -1391,21 +1403,39 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
     // Remove >today if present
     para.content = stripTodaysDateRefsFromString(para.content)
 
+    let result: TParagraph | false
     if (para.type === 'open' || para.type === 'scheduled') {
       para.type = 'done'
       para.content += doneString
       para.note?.updateParagraph(para)
       logDebug('markComplete', `updated para "${para.content}"`)
-      return para
+      result = para
     } else if (para.type === 'checklist' || para.type === 'checklistScheduled') {
       para.type = 'checklistDone'
       para.note?.updateParagraph(para)
       logDebug('markComplete', `updated para "${para.content}"`)
-      return para
+      result = para
     } else {
       logWarn('markComplete', `unexpected para type ${para.type}, so won't continue`)
-      return false
+      result = false
     }
+
+    // Call the Repeat Extensions plugin to fire the /rpt trigger if this has a @repeat(date) and the plugin is installed.
+    // TODO: TEST me
+    const RE_EXTENDED_REPEAT = /@repeat\(${RE_DATE_INTERVAL}\)/ // find @repeat(). From Repeat Extensions plugin.
+    if (RE_EXTENDED_REPEAT.test(para.content)) {
+      if (pluginIsInstalled('jgclark.RepeatExtensions')) {
+        const repeatDate = getFirstDateInPeriod(para.content)
+        logDebug('markComplete', `will call Repeat Extensions plugin to fire /rpt trigger for date ${repeatDate}`)
+        // Call the /generate repeats command, but don't wait for it to finish
+        // TODO: refactor to split out the core repeat generation from the rest of the command
+        DataStore.invokePluginCommandByName('generate repeats', 'jgclark.RepeatExtensions', [false, para.note])
+      } else {
+        logWarn('markComplete', `Repeat Extensions plugin is not installed, so can't call it`)
+        // TODO: add a visible warning to the user
+      }
+    }
+    return result
   } else {
     logError(pluginJson, `markComplete: para is null`)
     return false

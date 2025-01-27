@@ -198,7 +198,7 @@
 }
 
 .dropdown .changes-pending {
-  font-size: x-small;
+  font-size: small;
   color: red;
   /* margin-bottom: 4px; */
   height: 20px; /* fixed height whether message is empty or not */

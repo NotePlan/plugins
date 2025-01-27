@@ -565,9 +565,13 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
 export const shouldOutputForFunctionName = (pluginInfo: any): boolean => {
   const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
   if (pluginSettings && pluginSettings.hasOwnProperty('_logFunctionRE')) {
-    const functionRE = new RegExp(pluginSettings['_logFunctionRE'], 'i')
-    const infoStr: string = pluginInfo === 'object' ? pluginInfo['plugin.id'] : String(pluginInfo)
-    return functionRE.test(infoStr)
+    const logFunctionRE = pluginSettings['_logFunctionRE']
+    if (logFunctionRE) {
+      // Check if the regular expression is not empty
+      const functionRE = new RegExp(logFunctionRE, 'i')
+      const infoStr: string = pluginInfo === 'object' ? pluginInfo['plugin.id'] : String(pluginInfo)
+      return functionRE.test(infoStr)
+    }
   }
   return false
 }

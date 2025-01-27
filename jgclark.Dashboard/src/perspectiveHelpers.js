@@ -2,21 +2,23 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated for v2.1.0.b
+// Last updated for v2.1.1
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getDashboardSettings, setPluginData } from './dashboardHelpers.js'
+import { getDashboardSettings, getOpenItemParasForTimePeriod, setPluginData } from './dashboardHelpers.js'
 import { dashboardSettingsDefaults } from './react/support/settingsHelpers'
 import { getTagSectionDetails, showSectionSettingItems } from './react/components/Section/sectionHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings.js'
+import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type { TDashboardSettings, TPerspectiveDef } from './types'
-// import { PERSPECTIVE_ACTIONS } from './react/reducers/actionTypes'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFoldersMatching } from '@helpers/folders'
-import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
+import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
+import { displayTitle } from '@helpers/general'
+import { getNoteByFilename } from '@helpers/note'
+import { chooseNote, chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
 
@@ -121,19 +123,39 @@ export async function getPerspectiveSettingDefaults(): Promise<Array<TPerspectiv
 }
 
 /**
- * Log out short list of key Perspective details
- * @param {Array<TPerspectiveDef>} settingsArr
+ * Log out short list of Perspective names (with active/modified flags)
+ * @param {Array<TPerspectiveDef>} perspectivesArray
  */
-export function logPerspectives(settingsArr: Array<TPerspectiveDef>, showAllKeys: boolean = false): void {
-  for (const thisP of settingsArr) {
+export function logPerspectiveNames(perspectivesArray: Array<TPerspectiveDef>, preamble: string = ''): void {
+  for (const thisP of perspectivesArray) {
+    logDebug(preamble || 'logPerspectiveNames', ` - ${thisP.name}: ${thisP.isModified ? ' (modified)' : ''}${thisP.isActive ? ' <isActive>' : ''}`)
+  }
+}
+
+/**
+ * Log out short list of key Perspective details
+ * @param {Array<TPerspectiveDef>} perspectivesArray
+ * @param {boolean?} logAllKeys? (default: false)
+ */
+export function logPerspectives(perspectivesArray: Array<TPerspectiveDef>, logAllKeys: boolean = false): void {
+  for (const thisP of perspectivesArray) {
     const name = thisP.name === '-' ? 'Default (-)' : thisP.name
     logDebug(
       'logPerspectives',
       `- ${name}: ${thisP.isModified ? ' (modified)' : ''}${thisP.isActive ? ' <isActive>' : ''} has ${Object.keys(thisP.dashboardSettings).length} dashboardSetting keys`,
     )
 
-    if (showAllKeys) {
-      clo(thisP.dashboardSettings, `logPerspectives: -`)
+    if (logAllKeys) {
+      clo(thisP.dashboardSettings, `${name}'s full dashboardSettings:`)
+    } else {
+      // Show key settings for Perspective filtering
+      clof(thisP.dashboardSettings, `${name}'s main dashboardSettings:`, [
+        'includedFolders',
+        'excludedFolders',
+        'ignoreItemsWithTerms',
+        'applyIgnoreTermsToCalendarHeadingSections',
+        'separateSectionForReferencedNotes',
+      ])
     }
   }
 }
@@ -152,9 +174,10 @@ function ensureDefaultPerspectiveExists(perspectiveSettings: Array<TPerspectiveD
 
 /**
  * Get all perspective settings (as array of TPerspectiveDef)
+ * @param {boolean?} logAllKeys? whether to log every setting key:value or just the key ones (default: false)
  * @returns {Array<TPerspectiveDef>} all perspective settings
  */
-export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> {
+export async function getPerspectiveSettings(logAllKeys: boolean = false): Promise<Array<TPerspectiveDef>> {
   try {
     // Note: (in an earlier place this code was used) we think following (newer API call) is unreliable.
     let pluginSettings = DataStore.settings
@@ -169,7 +192,7 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
     if (perspectiveSettingsStr && perspectiveSettingsStr !== '[]') {
       // must parse it because it is stringified JSON (an array of TPerspectiveDef)
       perspectiveSettings = parseSettings(perspectiveSettingsStr) ?? []
-      logPerspectives(perspectiveSettings)
+      // logPerspectives(perspectiveSettings, logAllKeys)
     } else {
       // No settings found, so will need to set from the defaults instead
       logWarn('getPerspectiveSettings', `None found: will load in the defaults:`)
@@ -182,26 +205,17 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
       const dashboardSettings = await getDashboardSettings()
       defaultPersp.dashboardSettings = { ...defaultPersp.dashboardSettings, ...cleanDashboardSettings(dashboardSettings) }
       perspectiveSettings = replacePerspectiveDef(perspectiveSettings, defaultPersp)
-      logPerspectives(perspectiveSettings)
+      // logPerspectives(perspectiveSettings, logAllKeys)
     }
-    clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
+    // clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
     const perspSettings = ensureDefaultPerspectiveExists(perspectiveSettings)
-    clo(perspSettings, `getPerspectiveSettings: after ensureDefaultPerspectiveExists perspSettings=`)
+    logDebug('getPerspectiveSettings', `After ensureDefaultPerspectiveExists():`)
+    logPerspectives(perspectiveSettings, logAllKeys)
     return perspSettings
   } catch (error) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
     return []
   }
-}
-
-/**
- * Get active Perspective name (or '-' if none)
- * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns {string}
- */
-export function getActivePerspectiveName(perspectiveSettings: Array<TPerspectiveDef>): string {
-  const activeDef = getActivePerspectiveDef(perspectiveSettings)
-  return activeDef ? activeDef.name : '-'
 }
 
 /**
@@ -215,6 +229,16 @@ export function getActivePerspectiveDef(perspectiveSettings: Array<TPerspectiveD
     return null
   }
   return perspectiveSettings.find((s) => s.isActive === true) || null
+}
+
+/**
+ * Get active Perspective name (or '-' if none)
+ * @param {Array<TPerspectiveDef>} perspectiveSettings
+ * @returns {string}
+ */
+export function getActivePerspectiveName(perspectiveSettings: Array<TPerspectiveDef>): string {
+  const activeDef = getActivePerspectiveDef(perspectiveSettings)
+  return activeDef ? activeDef.name : '-'
 }
 
 /**
@@ -364,6 +388,63 @@ export function getAllowedFoldersInCurrentPerspective(perspectiveSettings: Array
   return folderListToUse
 }
 
+/**
+ * Show how current perspective filtering applies to a given note
+ * @param {string?} filenameArg optional -- if not supplied, then will ask user for a note
+ */
+export async function logPerspectiveFiltering(filenameArg?: string): Promise<void> {
+  try {
+    // The following logs the most important fields for each perspective definition
+    const allPerspectiveDefs: Array<TPerspectiveDef> = await getPerspectiveSettings(false)
+    const dashboardSettings: TDashboardSettings = await getDashboardSettings()
+    const activePerspectiveName = getActivePerspectiveName(allPerspectiveDefs)
+    // Get list of allowed folders
+    const allowedFolders1: Array<string> = getAllowedFoldersInCurrentPerspective(allPerspectiveDefs)
+    logInfo('logPerspectiveFiltering', `${String(allowedFolders1.length)} allowedFolders for '${activePerspectiveName}': [${String(allowedFolders1)}]`)
+    const allowedFolders2 = getCurrentlyAllowedFolders(dashboardSettings)
+    logInfo('logPerspectiveFiltering', `${String(allowedFolders2.length)} currentlyAllowedFolders for '${activePerspectiveName}': [${String(allowedFolders2)}]`)
+
+    // Get note to test against -- from param or user
+    let filename = ''
+    let note: ?TNote
+
+    if (filenameArg && filenameArg !== '') {
+      note = getNoteByFilename(filenameArg) // need helper that does both Calendar and Notes type
+      // filename = filenameArg
+    } else {
+      // Ask user
+      note = await chooseNote(false, true, [], 'Choose calendar note to test', true, false)
+    }
+    if (!note) {
+      throw new Error(`User cancelled, or otherwise couldn't get note for filename '${filename}'. Stopping.`)
+    }
+    filename = note.filename
+    const folder = getFolderFromFilename(filename)
+    console.log('')
+    logInfo('logPerspectiveFiltering', `Starting for active perspective **${activePerspectiveName}**:`)
+    logInfo('logPerspectiveFiltering', `for filename: '${filename}', folder: '${folder}', note: '${displayTitle(note)}'`)
+
+    // Find open items if this is a Calendar Note
+    if (note.type === 'Calendar') {
+      // Force generation of separate lists for testing purposes
+      dashboardSettings.separateSectionForReferencedNotes = true
+      const [openDashboardParas, refOpenDashboardParas] = getOpenItemParasForTimePeriod('<testing>', note, dashboardSettings, false)
+      logInfo('', `There are ${String(openDashboardParas.length)} lines valid for this perspective in this note:`)
+      openDashboardParas.forEach((p) => {
+        console.log(`  - ${p.lineIndex}: ${p.type}: ${p.content}`)
+      })
+      logInfo('', `There are ${String(refOpenDashboardParas.length)} lines valid for this perspective, referenced to this note:`)
+      refOpenDashboardParas.forEach((p) => {
+        console.log(`  - ${p.lineIndex}: ${p.type}: filename ${p.filename}: ${p.content}`)
+      })
+    } else {
+      // Not so obvious what to show for regular notes
+    }
+  } catch (error) {
+    logError('logPerspectiveFiltering', error.message)
+  }
+}
+
 //-----------------------------------------------------------------------------
 // Setters
 //-----------------------------------------------------------------------------
@@ -381,7 +462,9 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
   logDebug('switchToPerspective', `Starting looking for name ${name} in ...`)
   logPerspectives(allDefs)
 
-  const newPerspectiveSettings = setActivePerspective(name, allDefs)
+  const newPerspectiveSettings = setActivePerspective(name, allDefs).map((p) => ({ ...p, isModified: p.name === name ? p.isModified : false }))
+  logDebug('switchToPerspective', `New perspectiveSettings:`)
+  logPerspectives(newPerspectiveSettings)
   const newPerspectiveDef = getPerspectiveNamed(name, newPerspectiveSettings)
   if (!newPerspectiveDef) {
     logError('switchToPerspective', `Couldn't find definition for perspective "${name}"`)
@@ -396,7 +479,10 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
 
   // SAVE IT!
   DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) }
-
+  clo(
+    newPerspectiveSettings.map((p) => ({ name: p.name, isModified: p.isModified })),
+    'switchToPerspective: newPerspectiveSettings saved to DataStore.settings',
+  )
   return newPerspectiveSettings
 }
 
@@ -433,22 +519,12 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
  * Clean a Dashboard settings object of properties we don't want to use
  * (we only want things in the perspectiveSettings object that could be set in dashboard settings or filters)
  * @param {TDashboardSettings} settingsIn
+ * @param {boolean} deleteAllShowTagSections - also clean out showTag_* settings
  * @returns {TDashboardSettings}
  */
-export function cleanDashboardSettings(settingsIn: TDashboardSettings): Partial<TDashboardSettings> {
+export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAllShowTagSections?: boolean): Partial<TDashboardSettings> {
   // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
-  const tagSectionDetails = getTagSectionDetails(settingsIn)
-  const showTagSectionKeysToRemove = Object.keys(settingsIn).filter(
-    (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
-  )
-
-  // Remove the keys only if they exist and are defined
-  showTagSectionKeysToRemove.forEach((key) => {
-    if (settingsIn[key] !== undefined && typeof settingsIn[key] === 'boolean') {
-      // $FlowIgnore[incompatible-type]
-      delete settingsIn[key]
-    }
-  })
+  const settingsWithoutIrrelevantTags = removeInvalidTagSections(settingsIn)
 
   const patternsToRemove = [
     'perspectivesEnabled',
@@ -464,18 +540,43 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): Partial<
     /separator\d/,
     /heading\d/,
   ].map((pattern) => (typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern))
+  if (deleteAllShowTagSections) {
+    patternsToRemove.push(/showTagSection_/)
+  }
 
   function shouldRemoveKey(key: string): boolean {
     return patternsToRemove.some((pattern) => pattern.test(key))
   }
 
-  return Object.keys(settingsIn).reduce((acc: Partial<TDashboardSettings>, key) => {
+  return Object.keys(settingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
     if (!shouldRemoveKey(key)) {
       // $FlowIgnore[incompatible-type]
       acc[key] = settingsIn[key]
     }
     return acc
   }, {})
+}
+
+/**
+ * Remove tag sections from the dashboard settings that are not relevant to the current perspective
+ * (e.g. leaving only the tags included in dashboardSettings.tagsToShow)
+ * @param {TDashboardSettings} settingsIn
+ * @returns {TDashboardSettings} - settings without irrelevant tag sections
+ */
+export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashboardSettings {
+  const tagSectionDetails = getTagSectionDetails(settingsIn)
+  const showTagSectionKeysToRemove = Object.keys(settingsIn).filter(
+    (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
+  )
+
+  // Remove the keys only if they exist and are defined
+  showTagSectionKeysToRemove.forEach((key) => {
+    if (settingsIn[key] !== undefined && typeof settingsIn[key] === 'boolean') {
+      // $FlowIgnore[incompatible-type]
+      delete settingsIn[key]
+    }
+  })
+  return settingsIn
 }
 
 /**

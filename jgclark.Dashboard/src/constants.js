@@ -4,7 +4,7 @@
 // Last updated 2024-11-20 for v2.1.0.a
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
-import type { TSectionDetails, TSectionCode } from "./types"
+import type { TSectionDetails, TSectionCode } from './types'
 
 // NOTE: Dashboard Settings are in the src/dashboardSettingsItems.js file
 
@@ -13,14 +13,14 @@ export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be us
 
 export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'TB', sectionName: 'Current time block', showSettingName: 'showTimeBlockSection' },
-  { sectionCode: 'DT', sectionName: 'Today', showSettingName: '' }, // always show Today section
+  { sectionCode: 'DT', sectionName: 'Today', showSettingName: 'showTodaySection' },
   { sectionCode: 'DY', sectionName: 'Yesterday', showSettingName: 'showYesterdaySection' },
   { sectionCode: 'DO', sectionName: 'Tomorrow', showSettingName: 'showTomorrowSection' },
   { sectionCode: 'LW', sectionName: 'Last Week', showSettingName: 'showLastWeekSection' },
   { sectionCode: 'W', sectionName: 'Week', showSettingName: 'showWeekSection' },
   { sectionCode: 'M', sectionName: 'Month', showSettingName: 'showMonthSection' },
   { sectionCode: 'Q', sectionName: 'Quarter', showSettingName: 'showQuarterSection' },
-  // TAG types are treated specially (one for each tag a user wants to see). 
+  // TAG types are treated specially (one for each tag a user wants to see).
   // Use getTagSectionDetails() to get them
   { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` }, // sectionName set later to reflect the tagsToShow setting
   { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
@@ -29,7 +29,7 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
 ]
 
-export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map(s => s.sectionCode)
+export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map((s) => s.sectionCode)
 
 export const allCalendarSectionCodes = ['TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q']
 

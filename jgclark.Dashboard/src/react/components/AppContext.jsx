@@ -10,10 +10,10 @@
 // @flow
 
 import React, { createContext, useContext, useEffect, useReducer, useRef, type Node } from 'react'
-import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
+// import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import type { TDashboardSettings, TReactSettings, TPluginData, TPerspectiveSettings } from '../../types'
 import { dashboardSettingsReducer } from '../reducers/dashboardSettingsReducer'
-import { cleanDashboardSettings, getActivePerspectiveName, replacePerspectiveDef } from '../../perspectiveHelpers'
+// import { cleanDashboardSettings, getActivePerspectiveName, replacePerspectiveDef } from '../../perspectiveHelpers'
 import { perspectiveSettingsReducer } from '../reducers/perspectiveSettingsReducer'
 import { useSyncDashboardSettingsWithPlugin } from '../customHooks/useSyncDashboardSettingsWithPlugin'
 import { useSyncPerspectivesWithPlugin } from '../customHooks/useSyncPerspectivesWithPlugin'

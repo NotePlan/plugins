@@ -12,10 +12,10 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
 import { getVisibleSectionCodes } from '../Section/sectionHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
+import { useAppContext } from '../AppContext.jsx'
 import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
 import RefreshControl from '../RefreshControl.jsx'
-import { useAppContext } from '../AppContext.jsx'
 import { DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
 import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
@@ -23,6 +23,7 @@ import { createFilterDropdownItems } from './filterDropdownItems.js'
 import PerspectiveSelector from './PerspectiveSelector.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
+import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
 import './Header.css'
 
 // --------------------------------------------------------------------------
@@ -65,7 +66,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
    * Synchronize tempDashboardSettings with dashboardSettings when the dropdown menu is not open.
    */
   useEffect(() => {
+    logDebug(`Header/useEffect dashboardSettings or openDropdownMenu changed. openDropdownMenu=${String(openDropdownMenu)}`, { dashboardSettings })
     if (!openDropdownMenu) {
+      logDebug(`Header/useEffect dashboardSettings or openDropdownMenu changed memo. openDropdownMenu=${String(openDropdownMenu)}`, { dashboardSettings })
       setTempDashboardSettings({ ...dashboardSettings })
     }
   }, [dashboardSettings, openDropdownMenu])
@@ -79,7 +82,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
    */
   const handleToggleDropdownMenu = useCallback(
     (dropdown: string) => {
-      console.log('Header/handleToggleDropdownMenu', `Toggling dropdown menu: "${dropdown}"; current openDropdownMenu=${openDropdownMenu}`)
+      console.log('Header/handleToggleDropdownMenu', `Toggling dropdown menu: "${dropdown}"; current openDropdownMenu=${String(openDropdownMenu)}`)
       if (openDropdownMenu === dropdown) {
         // Closing the dropdown menu
         logDebug('Header/handleToggleDropdownMenu', `Closing dropdown menu ${dropdown}`)
@@ -101,13 +104,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
    */
   const handleChangesInSettings = useCallback(
     (updatedSettings?: Object) => {
-      console.log('Header/handleChangesInSettings', `Received updated settings`, { updatedSettings })
       const newSettings = {
         ...dashboardSettings,
         ...tempDashboardSettings,
         ...updatedSettings,
       }
-      console.log('Header/handleChangesInSettings about to dispatch newSettings=', { newSettings })
       dispatchDashboardSettings({
         type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
         payload: newSettings,
@@ -169,7 +170,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
   // Memoized dropdown items that update when tempDashboardSettings changes
   const [dropdownSectionItems, dropdownOtherItems] = useMemo(() => createFilterDropdownItems(tempDashboardSettings), [tempDashboardSettings])
-  const dashboardSettingsItems = useMemo(() => createDashboardSettingsItems(dashboardSettings), [dashboardSettings])
+  const dashboardSettingsItems = useMemo(() => createDashboardSettingsItems(tempDashboardSettings), [tempDashboardSettings])
   const featureFlagItems = useMemo(() => createFeatureFlagItems(tempDashboardSettings), [tempDashboardSettings])
 
   const isDevMode = logSettings._logLevel === 'DEV'
@@ -184,7 +185,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(' mins', 'm').replace(' min', 'm').replace(' hours', 'h').replace(' hour', 'h')
   // logInfo('Header', `Rendering Header; isMobile:${String(isMobile)}, isNarrowWidth:${String(isNarrowWidth)}, showRefreshButton:${String(showRefreshButton)}, showHardRefreshButton:${String(showHardRefreshButton)}`)
   return (
-    <div className="header">
+    <header className="header">
       {/* Perspective selector */}
       {dashboardSettings.perspectivesEnabled && (
         <div className="perspectiveName">
@@ -212,6 +213,14 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         </div>
       )}
 
+      {/* TODO: use this to test out modals + tooltips. Needs a trigger button first. */}
+      {/* <div>
+        <ModalWithTooltip
+          tooltipTextNoModifier="tooltip with no extra key pressed"
+          tooltipTextCmdModifier="tooltip with ⌘ key pressed"
+        />
+      </div>
+ */}
       {!(isMobile || isNarrowWidth) && (
         <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
       )}
@@ -259,7 +268,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           <i className="fa-solid fa-gear" onClick={handleToggleDialog}></i>
         </div>
       </div>
-    </div>
+    </header>
   )
 }
 

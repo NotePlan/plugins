@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated for v2.1.0.a
+// last updated for v2.1.1
 // ----------------------------------------------------------------------------
 
 /**
@@ -29,6 +29,7 @@ export {
   deletePerspective,
   deleteAllNamedPerspectiveSettings,
   getPerspectiveSettings, // TODO(later): remove
+  logPerspectiveFiltering,
   updateCurrentPerspectiveDef,
 } from './perspectiveHelpers.js'
 
@@ -41,6 +42,7 @@ export {
   setSetting,
   setSettings,
   makeSettingsAsCallback,
+  reactWindowInitialised,
 } from './reactMain.js'
 
 export { onUpdateOrInstall, init, onSettingsUpdated, versionCheck } from './NPHooks'

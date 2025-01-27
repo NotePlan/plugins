@@ -2,25 +2,26 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated for v2.1.0.b
+// Last updated for v2.1.3
 //-----------------------------------------------------------------------------
 
-import { convertStrikethroughToHTML, getGlobalSharedData, sendToHTMLWindow, getCallbackCodeString } from '../../helpers/HTMLView'
+import { getGlobalSharedData, sendToHTMLWindow } from '../../helpers/HTMLView'
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getDashboardSettings, getLogSettings, getNotePlanSettings } from './dashboardHelpers'
+import { getDashboardSettings, getLogSettings, getNotePlanSettings, getListOfEnabledSections } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
-import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import { getPerspectiveSettings, setActivePerspective, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
+import { getAllSectionsData /*getSomeSectionsData*/ } from './dataGeneration'
+import { getPerspectiveSettings, /*setActivePerspective,*/ getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
 // import { doSwitchToPerspective } from './perspectiveClickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
+import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { getWindowFromId } from '@helpers/NPWindows'
+// import { getWindowFromId } from '@helpers/NPWindows'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
 export type PassedData = {
@@ -53,10 +54,6 @@ export type PassedData = {
 // <script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
 // <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
 // ------------------------------------------------------------
-
-const commsBridge = `
-  <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
-`
 
 /**
  * Show dashboard using Demo dashboard, and last used perspective.
@@ -228,19 +225,16 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
   keys.forEach((key) => (dashboardSettings[key] = false))
   const sectionsToShow = limitToSections.split(',')
   sectionsToShow.forEach((sectionCode) => {
-    // For all sections other than 'DT' (which has to be shown)
-    if (sectionCode !== 'DT') {
-      const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
-      if (showSectionKey) {
+    const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
+    if (showSectionKey) {
+      // $FlowIgnore
+      dashboardSettings[showSectionKey] = true
+    } else {
+      if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
         // $FlowIgnore
-        dashboardSettings[showSectionKey] = true
+        dashboardSettings[`showTagSection_${sectionCode}`] = true
       } else {
-        if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
-          // $FlowIgnore
-          dashboardSettings[`showTagSection_${sectionCode}`] = true
-        } else {
-          logWarn(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails. Continuing with others.`)
-        }
+        logWarn(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails. Continuing with others.`)
       }
     }
   })
@@ -255,9 +249,11 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
  * @param {boolean?} useDemoData? (default: false)
  */
 export async function showDashboardReact(callMode: string = 'full', perspectiveName: string = '', useDemoData: boolean = false): Promise<void> {
-  logInfo(pluginJson, `showDashboardReact starting up (mode '${callMode}') with perpsectiveName '${perspectiveName}' ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
   try {
+    logInfo(pluginJson, `showDashboardReact starting up (mode '${callMode}') with perpsectiveName '${perspectiveName}' ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
+    // clo(DataStore.settings, `showDashboardReact: DataStore.settings=`)
     const startTime = new Date()
+
     // If callMode is a CSV of specific wanted sections, then override section flags for them
     // (e.g. from xcallback)
     if (callMode !== 'trigger' && callMode !== 'full') await updateSectionFlagsToShowOnly(callMode)
@@ -265,12 +261,12 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     // make sure we have the np.Shared plugin which has the core react code and some basic CSS
     // TODO: can this be moved to onInstallOrUpdate?
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
-    logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
+    // logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
 
     // log warnings if we don't have required files
     // TODO: can this be moved to onInstallOrUpdate?
     await checkForRequiredSharedFiles(pluginJson)
-    logDebug(pluginJson, `showDashboardReact: checkForRequiredSharedFiles completed`)
+    // logDebug(pluginJson, `showDashboardReact: checkForRequiredSharedFiles completed`)
 
     // Get settings
     const config = await getDashboardSettings() // pulls the JSON stringified dashboardSettings and parses it into object
@@ -278,8 +274,8 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     const logSettings = await getLogSettings()
 
     // get initial data to pass to the React Window
-    const data = await getInitialDataForReactWindowObjectForReactView(perspectiveName, useDemoData)
-    logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
+    const data = await getInitialDataForReactWindow(perspectiveName, useDemoData)
+    // logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
 
     // these JS functions are inserted as text into the header of the React Window to allow for bi-directional comms (esp BANNER sending)
     // TEST: removed
@@ -297,7 +293,6 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
-      ${commsBridge}
       `
     const windowOptions = {
       windowTitle: data.title,
@@ -309,15 +304,14 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       headerTags: `${resourceLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // set in separate CSS file referenced in header
-      preBodyScript: ``,
-      postBodyScript: `
+      preBodyScript: `        
         <script type="text/javascript" >
-        // Set DataStore.settings so default logDebug etc. logging works in React
-        let DataStore = { settings: {_logLevel: "${logSettings._logLevel}" } };
-        </script>
-      `,
+          // Set DataStore.settings so default logDebug etc. logging works in React
+          // This setting comes from ${pluginJson['plugin.id']}
+          let DataStore = { settings: {_logLevel: "${DataStore?.settings?._logLevel}" } };
+        </script>`,
+      postBodyScript: ``,
     }
-    //TODO: add the loglevel to the template and the dialog test
     logTimer('showDashboardReact', startTime, `===== Calling React =====`)
     // clo(data, `showDashboardReact data object passed`)
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
@@ -326,6 +320,17 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
   } catch (error) {
     logError('showDashboardReact', JSP(error))
   }
+}
+
+/**
+ * This is called from Dashboard.jsx when the React Window has initialised, and is ready to start receiving Sections.
+ * It kicks off the incremental generation of the Sections.
+ * @returns {Promise<void>}
+ */
+export async function reactWindowInitialised(): Promise<void> {
+  logDebug('reactWindowInitialised', `--> React Window reported back to plugin that it has loaded <--`)
+  const enabledSections = getListOfEnabledSections(await getDashboardSettings())
+  await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
 }
 
 /**
@@ -353,21 +358,22 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
  * @param {boolean?} useDemoData - whether to use demo data
  * @returns {PassedData} the React Data Window object
  */
-export async function getInitialDataForReactWindowObjectForReactView(perspectiveName: string = '', useDemoData: boolean = false): Promise<PassedData> {
+export async function getInitialDataForReactWindow(perspectiveName: string = '', useDemoData: boolean = false): Promise<PassedData> {
   try {
     const startTime = new Date()
     let perspectiveSettings = await getPerspectiveSettings()
     // If a perspective is specified, then update the setting to point to it before opening the React Window
-    if (perspectiveName !== '') {
-      logInfo('getInitialDataForReactWindowObjectForReactView', `switching to perspective '${perspectiveName}'`)
+    let dashboardSettings: TDashboardSettings = await getDashboardSettings()
+    if (perspectiveName) {
+      logInfo('getInitialDataForReactWindow', `switching to perspective '${perspectiveName}'`)
       // perspectiveSettings = setActivePerspective(perspectiveName, perspectiveSettings)
       perspectiveSettings = (await switchToPerspective(perspectiveName, perspectiveSettings)) || perspectiveSettings
+      dashboardSettings = await getDashboardSettingsFromPerspective(perspectiveSettings)
     }
-    const dashboardSettings: TDashboardSettings = await getDashboardSettingsFromPerspective(perspectiveSettings)
-    clo(dashboardSettings, `getInitialDataForReactWindowObjectForReactView: dashboardSettings=`)
+    // clo(dashboardSettings, `getInitialDataForReactWindow: dashboardSettings=`)
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData)
-    logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
+    logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
     clo(pluginData.dashboardSettings, `getInitialData pluginData.dashboardData`)
     const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
@@ -389,65 +395,7 @@ export async function getInitialDataForReactWindowObjectForReactView(perspective
 }
 
 /**
- * Gather data you want passed to the React Window (e.g. what you you will use to display).
- * You will likely use this function to pull together your starting window data.
- * Must return an object, with any number of properties, however you cannot use the following reserved properties:
- * pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime.
- * @param {TDashboardSettings} dashboardSettings
- * @param {boolean?} useDemoData?
- * @returns {[string]: mixed} - the data that your React Window will start with
- */
-export async function getInitialDataForReactWindow(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TPluginData> {
-  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''}`)
-
-  // Important Note: If we need to force load everything, it's easy.
-  // But if we don't then 2 things are needed:
-  // - the getSomeSectionsData() for just the Today section(s)
-  // - then once the HTML Window is available, Dashboard.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSomeSections to generate the others
-  // const logSettings = await getLogSettings()
-  const sections =
-    dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
-      ? await getAllSectionsData(useDemoData, true, true)
-      : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
-
-  const NPSettings = getNotePlanSettings()
-
-  // $FlowFixMe[prop-missing] TODO(@dwertheimer): is it OK this is missing perpsectiveSections?
-  const pluginData: TPluginData = {
-    sections: sections,
-    lastFullRefresh: new Date(),
-    dashboardSettings: dashboardSettings,
-    notePlanSettings: NPSettings,
-    logSettings: await getLogSettings(),
-    demoMode: useDemoData,
-    platform: NotePlan.environment.platform, // used in dialog positioning
-    themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
-    version: pluginJson['plugin.version'],
-    serverPush: {
-      dashboardSettings: true,
-      perspectiveSettings: true,
-    },
-  }
-
-  // Calculate all done task counts (if the appropriate setting is on)
-  if (NPSettings.doneDatesAvailable) {
-    // V1 method
-    // const totalDoneCounts = rollUpDoneCounts([getTotalDoneCountsFromSections(sections)], buildListOfDoneTasksToday())
-    // pluginData.totalDoneCounts = totalDoneCounts
-    // V2 method
-    const totalDoneCount = updateDoneCountsFromChangedNotes('end of getInitialDataForReactWindow')
-
-    pluginData.totalDoneCount = totalDoneCount
-  }
-
-  return pluginData
-}
-
-/**
- * TODO: think about doing a function to remove all duplicates from sections *on completion* not on display
- */
-
-/**
+ * Note: This comes from the React Template, but is no longer used, so commenting out.
  * Update the data in the React Window (and cause it to re-draw as necessary with the new data)
  * This is likely most relevant when a trigger has been sent from a NotePlan window, but could be used anytime a plugin wants to update the data in the React Window
  * This is exactly the same as onMessageFromHTMLView, but named updateReactWindowData to clarify that the plugin is updating the data in the React Window
@@ -457,13 +405,13 @@ export async function getInitialDataForReactWindow(dashboardSettings: TDashboard
  * @param {any} data - any data that the router (specified in onMessageFromHTMLView) needs -- may be nothing
  * @returns {Promise<any>} - does not return anything important
  */
-export async function updateReactWindowData(actionType: string, data: any = null): Promise<any> {
-  if (!getWindowFromId(WEBVIEW_WINDOW_ID)) {
-    logError(pluginJson, `updateReactWindowData('${actionType}'): Window with ID ${WEBVIEW_WINDOW_ID} not found. Could not update data.`)
-    return
-  }
-  await onMessageFromHTMLView(actionType, data)
-}
+// export async function updateReactWindowData(actionType: string, data: any = null): Promise<any> {
+//   if (!getWindowFromId(WEBVIEW_WINDOW_ID)) {
+//     logError(pluginJson, `updateReactWindowData('${actionType}'): Window with ID ${WEBVIEW_WINDOW_ID} not found. Could not update data.`)
+//     return
+//   }
+//   await onMessageFromHTMLView(actionType, data)
+// }
 
 /**
  * Router function that receives requests from the React Window and routes them to the appropriate function
@@ -529,10 +477,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
   // - the getSomeSectionsData() for just the Today section(s)
   // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSomeSections to generate the others
   // const logSettings = await getLogSettings()
-  const sections =
-    dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
-      ? await getAllSectionsData(useDemoData, true, true)
-      : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
+  const sections = dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true ? await getAllSectionsData(useDemoData, true, true) : [] // was: await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
 
   const NPSettings = getNotePlanSettings()
 

@@ -67,8 +67,9 @@ You can make many more changes by clicking on the **pencil** icon after each tas
 You can also update the text of the item itself, which is saved whenever you press the `Update` button (or any of the other action buttons). You can press `ESC` key to close the dialog, or click on the `X` button.
 
 ### Interactive Processing
+<img src="task-dialog-IP-mode-2.1.0.png" margin="8px" width="600px" alt="interactive processing mode" />
+
 In sections with more than 1 item, a `>> N` button is available (where `N` is the number of items). This brings up the above dialog, but in 'interactive processing' mode, with extra buttons in the header to move forward (or backward) between the items. This allows you to more quickly go through a set of items, and take different actions for each one.
-<img src="task-dialog-IP-mode-2.1.0.png" width="600px" alt="interactive processing mode" />
 
 Notes:
 - you can break out from the sequence at any time by closing the dialog.
@@ -76,7 +77,8 @@ Notes:
 - there are 3 settings that control aspects of this in the Dashboard Settings dialog.
 
 ### Add Task/Checklist items
-<img src="add-buttons-2.1.0.png" align="right" width="200px" alt="add buttons" />
+<img src="add-buttons-2.1.0.png" margin="8px" width="200px" alt="add buttons" />
+
 On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month. In the 'Today' section only is an extra button to allow you to add a task directly to any existing note.
 
 ### 'All → ...' Move buttons
@@ -98,9 +100,9 @@ The top bar has a **count of tasks done today** (apart from on narrow windows an
 The display will **automatically refresh** in the background if you set the "Automatic Update frequency" to any number > 0. This number is the number of minutes after the window is idle when it will refresh the sections you want to display. You can also press the 'Refresh' button at any point, and/or you can set a trigger (see below).
 
 ### Current Time Block section
-[Time blocks in NotePlan](https://help.noteplan.co/article/121-time-blocking) are a helpful way to help you plan your days. If you define some, they appear in the calendar sidebar.  If the current time is within a time block, then this section appears at the top of the Dashboard:
+[Time blocks in NotePlan](https://help.noteplan.co/article/121-time-blocking) are a helpful way to help you plan your days. If you define some, they appear in the calendar sidebar.  If the current time is within a time block, then this section appears at the top of the Dashboard. For example:
 
-<img src="timeblock-section-2.1.0.a15.png" width="800px" margin="8px" alt="project action buttons" />
+<img src="timeblock-section-2.1.0.png" width="740px" margin="8px" border="1px solid grey" alt="current timeblock display" />
 
 It always shows the time range first, minus any 'Text must contain' string that you have set in NP's 'Todo' settings pane. Where a time block is defined on a heading or list item, then the calendar+clock icon is shown in place of the task/checklist icon.
 
@@ -123,8 +125,16 @@ The 'action buttons' available in this section are:
 
 The 'Start Reviews' button does the same as the button of the same name in the Project & Reviews plugin, and is the equivalent of its **/start reviews** command. See the documentation for how that works, and which commands to follow it with once you've done reviewed the note.
 
+### Overdue section
+This finds open items with a schedule date (e.g. `>2025-01-22`) in the past. This can generate a lot of tasks, and take a while, so there's a setting "Number of days to look back for Overdue tasks", which if set to any number > 0, will restrict Overdue tasks to just this last number of days.
+
+You can set the "Sort order for Tag/Mention and Overdue items": 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.
+
+
 ### Priority section
-Note: this is likely to be very slow to generate, as it can't use any of NotePlan's internal caches.
+Note: this is likely to be very slow to generate, as it can't use any of NotePlan's internal caches, and doesn't have a natural way to limit it, like the Overdue section.
+
+David's advice is: "Priority tasks float to the tops of their individual sections already. And I go through all overdue tasks and handle them so that section stays small after you bite the bullet and do it once."
 
 ## Configuration Settings
 Dashboard v2 provides a quicker-to-access Settings window, accessed from the cog wheel at the top right of the dashboard window. (This replaces the normal method of going to the NotePlan Preference Pane, and finding the right Plugin.)  It is broken up in to a number of different sections.

@@ -12,18 +12,22 @@ import React, { useEffect, useRef, useMemo } from 'react'
 // import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import {
-  dontDedupeSectionCodes, sectionDisplayOrder, sectionPriority,
+  dontDedupeSectionCodes,
+  sectionDisplayOrder,
+  sectionPriority,
   // allSectionDetails
 } from '../../constants.js'
-import { getListOfEnabledSections, getDisplayListOfSectionCodes } from '../../dashboardHelpers'
+// import {
+// getListOfEnabledSections,
+// getDisplayListOfSectionCodes
+// } from '../../dashboardHelpers'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
-import type {
-  TSectionCode,
-  // TPerspectiveSettings
-} from '../../types.js'
+// import type {
+// TSectionCode,
+// TPerspectiveSettings
+// } from '../../types.js'
 // import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
-import type { TSettingItem } from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
 // import useWatchForResizes from '../customHooks/useWatchForResizes.jsx' // jgclark removed in plugin so commenting out here
@@ -34,8 +38,11 @@ import Section from './Section/Section.jsx'
 import '../css/Dashboard.css'
 import { getTestGroups } from './testing/tests'
 import PerspectivesTable from './PerspectivesTable.jsx'
+import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import DebugPanel from '@helpers/react/DebugPanel'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
+import ModalSpinner from '@helpers/react/ModalSpinner'
+import NonModalSpinner from '@helpers/react/NonModalSpinner'
 
 export const standardSections: Array<TSettingItem> = showSectionSettingItems
 
@@ -47,6 +54,8 @@ declare var globalSharedData: {
     sections: Array<Object>,
   },
 }
+
+declare function runPluginCommand(command: string, id: string, args: Array<any>): void
 
 type Props = {
   pluginData: Object, // the data that was sent from the plugin in the field "pluginData"
@@ -70,11 +79,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Define getContext function
   const getContext = () => contextRef.current
 
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, dispatchPerspectiveSettings, dispatchDashboardSettings, updatePluginData } =
-    context
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, updatePluginData } = context
 
   const { sections: origSections, lastFullRefresh } = pluginData
-  const enabledSectionCodes: Array<TSectionCode> = getListOfEnabledSections(dashboardSettings)
+  // const enabledSectionCodes: Array<TSectionCode> = getListOfEnabledSections(dashboardSettings)
 
   const logSettings = pluginData.logSettings
 
@@ -170,7 +178,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [dashboardSettings])
 
-  // Durinv DEV, temporary code to output variable changes to Chrome DevTools console
+  // During DEV, temporary code to output variable changes to Chrome DevTools console
   const logChanges = (label: string, value: any) =>
     !window.webkit ? logDebug(`Dashboard`, `${label}${!value || Object.keys(value).length === 0 ? ' (not intialized yet)' : ' changed vvv'}`, value) : null
   useEffect(() => {
@@ -185,34 +193,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     logChanges('pluginData', pluginData)
   }, [pluginData])
 
-  // Load the rest of the content (Today section loads first)
-  // DBW: "Just runs once when it loads"
+  // At Startup, request the Dashboard Sections content by telling the plugin that Dashboard is loaded
+  // Sections starts out as empty array, so this is the first time it will be populated
   useEffect(() => {
-    // If we did a force reload (DEV only) of the full sections data, no need to load the rest.
-    // But if we are doing a normal load, then get the rest of the section data incrementally.
-    // This executes before globalSharedData is saved into state
-    logInfo(
-      'Dashboard/useEffect [] (startup only)',
-      `lastFullRefresh: ${lastFullRefresh.toString()} and sections.length: ${sections.length}: ${sections.map((s) => s.sectionCode).join(', ')}`,
-    )
-
-    // Note: changed from "<= 2" to "=== 1"
-    // TODO: DBW had an idea about a cleaner way to trigger this
-    if (origSections.length === 1) {
-      // Send all enabledSection codes other than the first one already shown
-      const sectionCodesToAdd = enabledSectionCodes.filter((sc) => sc !== origSections[0].sectionCode)
-      logInfo('Dashboard/useEffect [] (startup only)', `- initial section is ${origSections[0].sectionCode}. sectionCodesToAdd => ${String(sectionCodesToAdd)}`)
-      sendActionToPlugin(
-        'incrementallyRefreshSomeSections',
-        {
-          actionType: 'incrementallyRefreshSomeSections',
-          sectionCodes: sectionCodesToAdd,
-          logMessage: `Kicking off incremental "refresh" of remaining section ${String(sectionCodesToAdd)} b/c sections.length === 1`,
-        },
-        'Dashboard loaded',
-        true,
-      )
-    }
+    // Note: This executes before globalSharedData is saved into state
+    logInfo('Dashboard/useEffect [] (startup only)', `${sections.length} sections (${origSections.length} origSections): [${sections.map((s) => s.sectionCode).join(', ')}]`)
+    logDebug('Dashboard', `React: sending reactWindowInitialised command to plugin`)
+    runPluginCommand('reactWindowInitialised', 'jgclark.Dashboard', [''])
   }, [])
 
   // Change the title when the section data changes
@@ -310,9 +297,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
-  if (sections.length === 0) {
-    return <div className="dashboard">Error: No Sections to display ...</div>
-  }
+
   const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0
 
   const showDebugPanel = (pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel) || false
@@ -329,9 +314,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       )}
       <div className="dashboard">
         <Header lastFullRefresh={lastFullRefresh} />
-        {sections.map((section, index) => (
-          <Section key={index} section={section} onButtonClick={handleCommandButtonClick} />
-        ))}
+        <main>
+          {sections.map((section, index) => (
+            <Section key={index} section={section} onButtonClick={handleCommandButtonClick} />
+          ))}
+        </main>
         <Dialog
           onClose={handleDialogClose}
           isOpen={reactSettings?.dialogData?.isOpen ?? false}
@@ -339,6 +326,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           details={reactSettings?.dialogData?.details ?? {}}
         />
       </div>
+      {pluginData.perspectiveChanging && (
+        <NonModalSpinner
+          textBelow="Switching perspectives"
+          // onClose={() => getContext().updatePluginData({ ...pluginData, perspectiveChanging: false }, 'Dashboard: perspectiveChanging set to false')}
+          style={{ container: { color: 'var(--tint-color)', textAlign: 'center', marginTop: '0.6rem', marginBottom: '0rem' } }}
+        />
+      )}
       {pluginData?.logSettings?._logLevel === 'DEV' && (
         <DebugPanel isVisible={showDebugPanel} getContext={getContext} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />
       )}

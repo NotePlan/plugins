@@ -144,7 +144,7 @@ export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Pro
           DataStore.updateCache(thisNote, false)
         }
       }
-      logDebug('scheduleAllThisWeekNextWeek', `-> scheduled ${String(numberScheduled)} open items from this week to tomorrow`)
+      logDebug('scheduleAllThisWeekNextWeek', `-> scheduled ${String(numberScheduled)} open items from this week to next week`)
     }
 
     // remove progress indicator
@@ -211,7 +211,7 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
 
     if (combinedSortedParas.length > 0) {
       reactWindowData.pluginData.refreshing = ['W']
-      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for section ['W']`)
+      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for section [LW']`)
 
       if (config.rescheduleNotMove) {
         // For each para append ' >' and this week's ISO date
@@ -248,7 +248,7 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
     // Now do the same for items scheduled to last week from other notes
     if (sortedRefParas.length > 0) {
       reactWindowData.pluginData.refreshing = ['W']
-      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ['W']`)
+      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for section ['LW']`)
 
       // For each para append ' >YYYY-Wnn'
       for (const dashboardPara of sortedRefParas) {
@@ -280,8 +280,8 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `scheduleAllLastWeekThisWeek week finished `)
 
     // Update display of these 2 sections
-    logDebug('scheduleAllLastWeekThisWeek', `returning {true, REFRESH_SECTION_IN_JSON, [W]}`)
-    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['W'] }
+    logDebug('scheduleAllLastWeekThisWeek', `returning {true, REFRESH_SECTION_IN_JSON, [LW,W]}`)
+    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['LW', 'W'] }
   } catch (error) {
     logError('scheduleAllLastWeekThisWeek', error.message)
     return { success: false }

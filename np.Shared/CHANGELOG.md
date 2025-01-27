@@ -2,6 +2,11 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.7.5] @dwertheimer 2025-01-24
+
+- Remove DynamicDialog from Root (it was duplicating code and CSS)
+- FormView and other components now can import DynamicDialog when they need it
+
 ## [0.7.4] @dwertheimer 2024-12-21
 
 - Remove minified versions of Root and FormView components

@@ -727,41 +727,29 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
 }
 
 /**
- * Determines whether a line is overdue or not. A line with multiple dates is only overdue if all dates are overdue.
- * Finds ISO8601 dates in a string and returns an array of the dates found if all dates are overdue (or an empty array)
- * @param {string} line
- * @returns foundDates - array of dates found
- */
-export function findOverdueDatesInString(line: string): Array<string> {
-  const todayHyphenated = hyphenatedDateString(moment().toDate())
-  const dates = line.match(RE_PLUS_DATE_G)
-  if (dates) {
-    const overdue = dates.filter((d) => d.slice(1) < todayHyphenated)
-    return overdue.length === dates.length ? overdue.sort() : [] // if all dates are overdue, return them sorted
-  }
-  return []
-}
-
-/**
- * Is the note from the given list of folders (or allowed by allowAllCalendarNotes)?
+ * Is the note from the given list of folders (or a Calendar allowed by allowAllCalendarNotes)?
  * @param {TNote} note
- * @param {Array<string>} folderList
+ * @param {Array<string>} allowedFolderList
  * @param {boolean} allowAllCalendarNotes (optional, defaults to true)
  * @returns {boolean}
+ * @tests in jest file
  */
 export function isNoteFromAllowedFolder(
   note: TNote,
-  folderList: Array<string>,
+  allowedFolderList: Array<string>,
   allowAllCalendarNotes: boolean = true
 ): boolean {
   // Calendar note check
-  if (allowAllCalendarNotes && note.type === 'Calendar') return true
+  if (note.type === 'Calendar') {
+    // logDebug('isNoteFromAllowedFolder', `-> Calendar note ${allowAllCalendarNotes ? 'allowed' : 'NOT allowed'} as a result of allowAllCalendarNotes`)
+    return allowAllCalendarNotes
+  }
 
-  // Is regular note's filename in folderList?
+  // Is regular note's filename in allowedFolderList?
   const noteFolder = getFolderFromFilename(note.filename)
-  // Test if folderList includes noteFolder
-  const matchFound = folderList.some((f) => noteFolder.includes(f))
-  // logDebug('isNoteFromAllowedFolder', `- ${matchFound ? 'match' : 'NO match'} to ${note.filename} from ${String(folderList.length)} folders`)
+  // Test if allowedFolderList includes noteFolder
+  const matchFound = allowedFolderList.includes(noteFolder)
+  // logDebug('isNoteFromAllowedFolder', `- ${matchFound ? 'match' : 'NO match'} to '${note.filename}' folder '${noteFolder}' from ${String(allowedFolderList.length)} folders`)
   return matchFound
 }
 

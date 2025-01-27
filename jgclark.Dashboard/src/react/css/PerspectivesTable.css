@@ -1,94 +1,96 @@
-/* FIXME: Container for the table with scrolling  */
+/* Container for the table with scrolling  */
 .perspectives-table-container {
   overflow: auto;
 }
 
 /* Change scrollbar look to match theme */
 /* Note: Non-standard: in time hopefully will support scrollbar-color:  https://developer.mozilla.org/en-US/docs/Web/CSS/scrollbar-color) */
-.perspectives-table-container::-webkit-scrollbar {
+/* .perspectives-table-container::-webkit-scrollbar {
     width: 9px;
     background: var(--bg-main-color);
-}
+} */
 /* shouldn't be needed as well as one above. But TEST: to see if it helps. So far it doesn't on Safari. */
-.perspectives-table-container::-webkit-scrollbar:horizontal {
+/* .perspectives-table-container::-webkit-scrollbar:horizontal {
     width: 9px;
     background: var(--bg-main-color);
-}
-.perspectives-table-container::-webkit-scrollbar-thumb {
+} */
+/* .perspectives-table-container::-webkit-scrollbar-thumb {
     background: rgb(from var(--fg-main-color) r g b / 0.3);
     border-radius: 12px;
-}
+} */
 
-/* Style for the table */
 .perspectives-table {
+
+  /* Style for the whole table */
   width: 100%;
   border-collapse: collapse;
+  border: 2px solid var(--divider-color);
   font-size: 90%;
-}
 
-/* Table cells and headers */
-.perspectives-table th,
-.perspectives-table td {
-  border: 1px solid var(--divider-color);
-  padding: 0.2rem; /* 8px; */
-  /* vertical-align: top; */
-  align-content: center;
-}
+  /* Table cells and headers */
+  th,
+  td {
+    min-width: 7rem; /*150px*/
+    border-left: 1px solid var(--divider-color);
+    border-right: 1px solid var(--divider-color);
+    padding: 0.2rem; /* 8px; */
+    /* vertical-align: top; */
+    align-content: center;
+  }
 
-/* Sticky column for settings labels */
-.perspectives-table .sticky-column {
-  position: sticky;
-  left: 0;
-  background-color: var(--bg-main-color);
-  z-index: 2;
-}
+  th {
+    padding: 0.5rem 0.3rem;
+  }
 
-.perspectives-table thead th {
-  border-bottom: 1px solid var(--divider-color);
-}
+  /* Sticky first column (i.e. settings-heading and setting-label) */
+  td:first-child {
+  /* .perspectives-table .sticky-column { */
+    position: sticky;
+    overflow: hidden;
+    left: 0;
+    z-index: 3;
+    /* Unset borders in these particular cells */
+    border-left: none;
+    border-right: none;
+  }
 
-/* Sticky header for perspective names */
-.perspectives-table .sticky-header {
-  position: sticky;
-  top: 0;
-  background-color: var(--bg-main-color);
-  z-index: 3;
-}
+  /* Sticky header for perspective names */
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    background-color: var(--bg-main-color);
+    z-index: 5;
+  }
 
-/* Style for settings headings */
-.perspectives-table .settings-heading {
-  font-weight: bold;
-  background-color: var(--bg-alt-color);
-  color: var(--tint-color);
-  padding: 0.3rem;
-  position: sticky;
-  left: 0;
-}
+  /* Style for settings headings */
+  .settings-heading-row {
+    /* Add subtle borders at the top and bottom of the heading row */
+    border-top: 1px solid var(--divider-color);
+    border-bottom: 1px solid var(--divider-color);
+    /* Note: This doesn't work in practice to cover gaps without <td>s */
+    /* background-color: var(--bg-alt-color); */
+  }
 
-/* Style for setting labels */
-.perspectives-table .setting-label {
-  /* width: 200px; */
-  min-width: 12rem; /*200px;*/
-  padding: 0.2rem 0.4rem;
-}
+  .settings-heading {
+    font-weight: bold;
+    color: var(--tint-color);
+    background-color: var(--bg-alt-color);
+    padding: 0.3rem;
+    border-left: none;
+    border-right: none;
+  }
 
-.perspectives-table th,
-.perspectives-table td {
-  min-width: 7rem; /*150px*/
-}
+  /* Style for setting labels */
+  .setting-label {
+    min-width: 12rem;
+    padding: 0.2rem 0.4rem;
+    background-color: var(--bg-main-color);
+  }
 
-.perspectives-table th {
-  padding: 0.4rem 0.4rem;
-}
-
-/* Adjustments for inputs within table cells */
-.perspectives-table input,
-.perspectives-table select {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.perspectives-table {
+  /* Make header row cell 1 highest z-index. Note joined selector. */
+  .sticky-header.sticky-column {
+    z-index: 10;
+  }
 
   /* Optional styling for setting labels */
   .setting-label-text {
@@ -99,7 +101,7 @@
   /* Style for setting cells */
   .setting-cell {
     min-width: 9rem;
-    padding: 2px 6px;
+    padding: 3px 6px;
   }
 
   /* Style for item description */
@@ -110,7 +112,14 @@
     margin-top: 4px;
   }
 
-  /* Adjustments for the input label position */
+  /* Adjustments for inputs within table cells */
+  input,
+  select {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Adjustments for the input items (overriding dynamic-dialog styles) */
   .switch-line {
     gap: 0px !important;
     justify-content: center !important;
@@ -120,6 +129,14 @@
     flex-direction: column;
     justify-content: flex-start;
     row-gap: 0px; /* remove spacing under switch */
+  }
+  .input-box-wrapper {
+    align-self: center;
+    justify-self: center;
+  }
+  /* Hide label for input boxes */
+  .input-box-label {
+    display: none;
   }
 
   /* Make separators have no height */
@@ -138,4 +155,8 @@
     align-self: flex-end;
     margin-top: 4px;
   }
+
+  .dropdown-select-container-compact {
+    gap: 0px; /* remove spacing before dropdown */
+  } 
 }

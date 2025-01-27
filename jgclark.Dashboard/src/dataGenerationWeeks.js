@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated for 2.1.0.b
+// Last updated for 2.1.1
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -9,7 +9,7 @@ import pluginJson from '../plugin.json'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
-  createSectionItemsFromParas,
+  createSectionOpenItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
   // createSectionItemObject,
@@ -75,7 +75,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         // })
 
         // Iterate and write items for first (or combined) section
-        items = createSectionItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
         itemCount += items.length
         // logDebug('getDataForDashboard', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
       } else {
@@ -213,7 +213,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           //   itemCount++
           // })
           // Iterate and write items for first (or combined) section
-          items = createSectionItemsFromParas(sortedRefParas, sectionNumStr)
+          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
           itemCount += items.length
         }
       }
@@ -288,7 +288,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
         //   itemCount++
         // })
         // Iterate and write items for first (or combined) section
-        items = createSectionItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
         itemCount += items.length
 
         // logDebug('getLastWeekSectionData', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
@@ -345,7 +345,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
           //   itemCount++
           // })
           // Iterate and write items for first (or combined) section
-          items = createSectionItemsFromParas(sortedRefParas, sectionNumStr)
+          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
           itemCount += items.length
         }
       }

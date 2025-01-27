@@ -71,7 +71,7 @@ export function coreAddChecklistToNoteHeading(
         logDebug('coreAddChecklistToNoteHeading', `- then adding text '${checklistText}' after `)
         note.insertParagraph(checklistText, insertionIndex + 1, 'checklist')
       }
-      DataStore.updateCache(note)
+      DataStore.updateCache(note, false)
     }
   } catch (err) {
     logError('coreAddChecklistToNoteHeading', err.message)
@@ -138,7 +138,7 @@ export function coreAddTaskToNoteHeading(
         note.insertParagraph(taskText, insertionIndex + 1, 'open')
       }
 
-      DataStore.updateCache(note)
+      DataStore.updateCache(note, false)
     }
   } catch (err) {
     logError('coreAddTaskToNoteHeading', err.message)

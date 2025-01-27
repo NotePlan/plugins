@@ -66,6 +66,63 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
+   * findScheduledDates()
+   */
+  describe('findScheduledDates()' /* function */, () => {
+    test('should return nothing on empty string', () => {
+      const result = dt.findScheduledDates('')
+      expect(result).toEqual([])
+    })
+    test('should find single >ISO date', () => {
+      const result = dt.findScheduledDates('foo >2020-01-01 sinething')
+      expect(result).toEqual(['2020-01-01'])
+    })
+    test('should find single >today', () => {
+      const result = dt.findScheduledDates('foo >today sinething')
+      expect(result).toEqual(['today'])
+    })
+    test('should find single >week date', () => {
+      const result = dt.findScheduledDates('foo >2025-W01 sinething')
+      expect(result).toEqual(['2025-W01'])
+    })
+    test('should not find single ISO date without >', () => {
+      const result = dt.findScheduledDates('foo 2020-01-01 sinething')
+      expect(result).toEqual([])
+    })
+    test('should find multiple >ISO dates', () => {
+      const result = dt.findScheduledDates('foo >2020-01-01 sinething >2025-01-04')
+      expect(result).toEqual(['2020-01-01', '2025-01-04'])
+    })
+    test('should find multiple types of >dates', () => {
+      const result = dt.findScheduledDates('foo >2020-01-01 sinething >2025-W52')
+      expect(result).toEqual(['2020-01-01', '2025-W52'])
+    })
+  })
+
+  /*
+    * findOverdueDatesInString()
+    */
+  describe('findOverdueDatesInString()' /* function */, () => {
+    test('should find no date in line with no overdue', () => {
+      const result = dt.findOverdueDatesInString('>2922-01-01')
+      expect(result.length).toEqual(0)
+    })
+    test('should find date in line with overdue', () => {
+      const result = dt.findOverdueDatesInString('>1999-01-01')
+      expect(result.length).toEqual(1)
+      expect(result).toEqual(['>1999-01-01'])
+    })
+    test('should find 2 overdue dates', () => {
+      const result = dt.findOverdueDatesInString('>1999-01-01 >1998-01-01')
+      expect(result).toEqual(['>1998-01-01', '>1999-01-01'])
+    })
+    test('should find no overdue dates if there are multiple and any are not overdue', () => {
+      const result = dt.findOverdueDatesInString('>1999-01-01 >2922-01-01')
+      expect(result.length).toEqual(0)
+    })
+  })
+
+  /*
    * isWeeklyNote()
    */
   describe('isWeeklyNote()' /* function */, () => {

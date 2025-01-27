@@ -2,7 +2,6 @@
 //--------------------------------------------------------------------------
 // React component to show a dialog using dynamic field definitions.
 // Changes are saved when the "Submit" button is clicked, but not before.
-// Imported by Root.jsx and displayed when the context variable reactSettings.dynamicDialog.visible is true.
 //--------------------------------------------------------------------------
 /**
  * TODO:
@@ -25,7 +24,7 @@ import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import { renderItem } from './dialogElementRenderer'
 import './DynamicDialog.css' // Import the CSS file
 import Modal from '@helpers/react/Modal'
-import { clo, logWarn, timer, logDebug, logError } from '@helpers/react/reactDev.js'
+import { logWarn, timer, logDebug, logError } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -109,7 +108,7 @@ const DynamicDialog = ({
   style, // Destructure style prop
   isModal = true, // by default, it is a modal dialog, but can run full screen
   onSave, // caller needs to process the updated settings
-  onCancel, // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
+  onCancel,
   handleButtonClick = (key, value) => {}, // Destructure handleButtonClick prop
   hideDependentItems = false,
   submitOnEnter = true,
@@ -226,8 +225,7 @@ const DynamicDialog = ({
   //----------------------------------------------------------------------
 
   useEffect(() => {
-    if (isOpen && dialogRef.current instanceof HTMLDialogElement) {
-      dialogRef.current.showModal()
+    if (isOpen) {
       document.addEventListener('keydown', handleEscapeKey)
     } else if (dialogRef.current instanceof HTMLDialogElement) {
       dialogRef.current.close()
@@ -264,9 +262,29 @@ const DynamicDialog = ({
   }, [isOpen, submitOnEnter])
 
   //----------------------------------------------------------------------
+  // ONLY attach an ESC listener if isModal = false
+  // (When isModal = true, our custom Modal handles ESC.)
+  //----------------------------------------------------------------------
+  useEffect(() => {
+    if (!isModal) {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          // let's call onCancel to close
+          logDebug('DynamicDialog', 'ESC pressed in non-modal scenario. onCancel called.')
+          onCancel && onCancel()
+        }
+      }
+
+      document.addEventListener('keydown', handleKeyDown)
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown)
+      }
+    }
+  }, [isModal, onCancel])
+
+  //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
-  // clo(items, `DynamicDialog items=`)
   if (!updatedSettings) return null
   const dialogStyle = {
     minWidth: '50%', // defaults which can be overridden by the style prop
@@ -321,6 +339,7 @@ const DynamicDialog = ({
   return isModal ? (
     <Modal
       onClose={() => {
+        logDebug('DynamicDialog', 'Modal onClose called.')
         onCancel && onCancel()
       }}
     >

@@ -14,7 +14,7 @@ import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/re
  * @returns {Array<TSettingItem>}
  */
 export const showSectionSettingItems: Array<TSettingItem> = allSectionDetails.reduce((acc, s) => {
-  if (s.sectionCode !== 'TAG' && s.sectionCode !== 'DT') {
+  if (s.sectionCode !== 'TAG') {
     acc.push({ label: `Show ${s.sectionName}`, key: s.showSettingName, type: 'switch', default: true, checked: true })
   }
   return acc

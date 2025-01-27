@@ -1,6 +1,8 @@
 // IdleTimer.jsx
-// Dashboard React component to keep track of user idle time and perform an action when the
-// window has not been used in the last 'idleTime' milliseconds.
+//------------------------------------------------------------------------------
+// Dashboard React component to keep track of user idle time and perform an
+// action when the window has not been used in the last 'idleTime' milliseconds.
+//------------------------------------------------------------------------------
 
 // @flow
 import { useEffect, useState } from 'react'

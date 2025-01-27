@@ -14,12 +14,16 @@ This is a basic skeleton of a Dashboard React app .
 
 ## Building the Code
 
-There are two parts to this code that need to be watched/rebuilt as you develop.
+There are four parts to this code that need to be watched/rebuilt as you develop.
 I open these side-by-side in a terminal in VSCode.
 1. The React code, which contains React components in the `src/react` folder, starting with `WebView.jsx` which will be the root of your React application. This code must be rolled up in order for it to be viewable in a NotePlan HTML window. You will roll this code up from the command line by opening up a separate terminal and running the command:
-  `node ./jgclark.Dashboard/src/react/support/performRollup.node.js --watch ` 
+  `node ./jgclark.Dashboard/src/react/support/performRollup.node.js --watch`
 1. The plugin code in reactMain.js which is built (like every other plugin) by running a command like:
   `npc plugin:dev jgclark.Dashboard -w`
+1. Supporting React Root and other components in np.Shared plugin. To build this:
+  `node ./np.Shared/src/react/support/performRollup.node.js --watch`
+1. Supporting plugin-side code, imported into Dashboard through `plugin.requiredFiles` key in `plugin.json`:
+  `npc plugin:dev np.Shared -w`
 1. Once both sides are built, the `/Test React Window` should open a window with interactivity
 
 > **NOTE** 

@@ -50,14 +50,10 @@ import {
   doSetNextReviewDate,
   doStartReviews,
 } from './projectClickHandlers'
-import {
-  doMoveFromCalToCal,
-  doMoveToNote,
-  doRescheduleItem,
-} from './moveClickHandlers'
+import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickHandlers'
 import { scheduleAllOverdueOpenToToday, scheduleAllTodayTomorrow, scheduleAllYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
-import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas } from './dashboardHelpers'
+import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas, setPluginData } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
@@ -104,7 +100,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug(`*************** bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} ***************`)
+    logDebug(`************* bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} *************`)
     // clo(data, 'bridgeClickDashboardItem received data object; data=')
     if (!actionType === 'refreshEnabledSections' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
@@ -342,10 +338,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doCommsBridgeTest(data)
         break
       }
-      // case 'turnOffPriorityItemsFilter': {
-      //   result = await turnOffPriorityItemsFilter()
-      //   break
-      // }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
@@ -396,23 +388,54 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       }
       if (filename !== '') {
         // update the cache for the note, as it might have changed
-        const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* Note: added await in case Eduard makes it an async at some point */
+        const thisNote = getNoteByFilename(filename)
+        if (thisNote) {
+          const res = await DataStore.updateCache(thisNote, false) /* Note: added await in case Eduard makes it an async at some point */
+        }
       }
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-        logDebug(
-          'processActionOnReturn',
-          `REMOVE_LINE_FROM_JSON: calling updateReactWindowFLC() for ID:${data?.item?.ID || ''} ${
-            data.item?.project ? 'project:"${data.item?.project.title}"' : `task:"${data?.item?.para?.content || ''}"`
-          }`,
-        )
-        await updateReactWindowFromLineChange(handlerResult, data, [])
+        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        const sections = reactWindowData.pluginData.sections
+
+        if (isProject) {
+          const thisProject = data.item?.project
+          const projFilename = data.item?.project?.filename
+          if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
+          logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: for ID:${data?.item?.ID || ''} project:"${thisProject.title}"`)
+          // Find the item from its filename
+          const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
+            itemType: 'project',
+            'project.filename': projFilename,
+          })
+          indexes.reverse().forEach((index) => {
+            const { sectionIndex, itemIndex } = index
+            sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+            // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
+          })
+        } else {
+          const thisItemID = data.item?.ID
+          logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: for ID:${data?.item?.ID || ''} task:{${data?.item?.para?.content || ''}}`)
+          if (thisItemID) {
+            // Get sectionNumber from item.ID and remove the item from that section
+            const indexes = findSectionItems(sections, ['ID'], { ID: thisItemID })
+            indexes.reverse().forEach((index) => {
+              const { sectionIndex, itemIndex } = index
+              logDebug('processActionOnReturn', `-> removing item ${thisItemID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+              sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+              // clo(sections[sectionIndex], `processActionOnReturn: After splicing sections[${sectionIndex}]`)
+            })
+          }
+        }
+        logDebug('processActionOnReturn', `-> NOT asking for any further refresh: hopefully React will do its stuff!`)
+
+        // await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
         if (isProject) {
-          logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for Project '${filename}': calling updateReactWindowFLC()`)
+          logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for Project '${filename}': calling updateReactWindowFromLineChange()`)
           await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'project'])
         } else {
-          logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for non-Project: {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFLC()`)
+          logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for non-Project: {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFromLineChange()`)
           await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para'])
         }
       }
@@ -426,15 +449,19 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       }
 
       if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
-        // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
-        logInfo('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
+        logDebug('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
         await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
+      } else if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
+        logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
+        await setPluginData({ perspectiveChanging: true }, `Starting perspective change`)
+        await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
+        logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (should hide modal spinner)`)
+        await setPluginData({ perspectiveChanging: false }, `Ending perspective change`)
       } else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
-        logInfo('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)
-        // await refreshAllSections() // this works fine
+        logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)
         await incrementallyRefreshSomeSections({ ...data, sectionCodes: allSectionCodes })
       } else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
-        logInfo('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
+        logDebug('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
         for (const sectionCode of allCalendarSectionCodes) {
           // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
           await incrementallyRefreshSomeSections({ ...data, sectionCodes: [sectionCode] })
@@ -442,7 +469,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       } else {
         // At least update TB section (if enabled) to make sure its as up to date as possible
         if (enabledSections.includes('TB')) {
-          logInfo('processActionOnReturn', `Adding REFRESH_SECTION_IN_JSON for TB ...`)
+          logDebug('processActionOnReturn', `Adding REFRESH_SECTION_IN_JSON for TB ...`)
           if (!actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
             actionsOnSuccess.push('REFRESH_SECTION_IN_JSON')
             if (!handlerResult.sectionCodes) {
@@ -452,23 +479,23 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
               handlerResult.sectionCodes?.push('TB')
             }
           }
-          logInfo('processActionOnReturn', `... -> ${String(handlerResult.sectionCodes)}`)
+          logDebug('processActionOnReturn', `... -> ${String(handlerResult.sectionCodes)}`)
         }
       }
 
       if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
         const wantedsectionCodes = handlerResult.sectionCodes ?? []
         if (!wantedsectionCodes?.length) logError('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided`)
-        logInfo('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData (for ['${String(wantedsectionCodes)}']) ...`)
-        // await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
+        logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData (for ['${String(wantedsectionCodes)}']) ...`)
         await incrementallyRefreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
       }
 
       if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {
-        logInfo('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: setting startDelayedRefreshTimer in pluginData`)
-        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-        reactWindowData.pluginData.startDelayedRefreshTimer = true
-        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
+        // TEST: turning this off for now
+        logDebug('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: 😳 NOT NOW setting startDelayedRefreshTimer in pluginData`)
+        // const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        // reactWindowData.pluginData.startDelayedRefreshTimer = true
+        // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
       }
     } else {
       logDebug('processActionOnReturn', `-> failed handlerResult(false) ${handlerResult.errorMsg || ''}`)
@@ -485,6 +512,8 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 
 /**
  * Update React window data based on the result of handling item content update.
+ * Note: now simple REMOVE_LINE_FROM_JSON is handled in processActionOnReturn().
+ * 
  * @param {TBridgeClickHandlerResult} res The result of handling item content update.
  * @param {MessageDataObject} data The data of the item that was updated.
  * @param {Array<string>} fieldPathsToUpdate The field paths to update in React window data -- paths are in SectionItem fields (e.g. "ID" or "para.content")
@@ -496,13 +525,14 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
     const shouldRemove = actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')
     const { ID } = data.item ?? { ID: '?' }
-    // clo(handlerResult.updatedParagraph, 'updateReactWindowFLC: handlerResult.updatedParagraph:')
     if (!success) {
       throw new Error(`handlerResult indicates failure with item: ID ${ID}, so won't update window. ${errorMsg || ''}`)
     }
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     let sections = reactWindowData.pluginData.sections
-    const isProject = data.item?.itemType === 'project'
+    // const isProject = data.item?.itemType === 'project'
+
+    logDebug('updateReactWindowFLC', `for item ID: ${ID} from ${String(data.sectionCodes) ?? '?'} to do ${String(actionsOnSuccess)}`)
 
     if (updatedParagraph) {
       logDebug(`updateReactWindowFLC`, ` -> updatedParagraph: "${updatedParagraph.content}"`)
@@ -518,14 +548,14 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
 
       if (indexes.length) {
         const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
-        // clo(indexes, 'updateReactWindowFLC: indexes to update')
-        // clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+        clo(indexes, 'updateReactWindowFLC: indexes to update') // TEST: then TODO: turn off
+        clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`) // TEST: then TODO: turn off
         if (shouldRemove) {
           logDebug('updateReactWindowFLC', `-> removed item ${ID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
           indexes.reverse().forEach((index) => {
             const { sectionIndex, itemIndex } = index
             sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-            // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
+            clo(sections[sectionIndex], `updateReactWindowFLC After splicing sections[${sectionIndex}]`) // TEST: then TODO: turn off
           })
         } else {
           sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)
@@ -534,26 +564,30 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
       } else {
         throw new Error(`updateReactWindowFLC: unable to find item to update: ID ${ID} was looking for: content="${oldContent}" filename="${oldFilename}" : ${errorMsg || ''}`)
       }
-    } else if (isProject) {
-      //
-      const projFilename = data.item?.project?.filename
-      if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
-      const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
-        itemType: 'project',
-        'project.filename': projFilename,
-      })
-      logDebug('updateReactWindowFLC', `- filename '${projFilename}' actions: ${String(actionsOnSuccess ?? '-')}`)
-      clo(indexes, 'updateReactWindowFLC: indexes to update')
-      if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-        logDebug('updateReactWindowFLC', `- doing REMOVE_LINE_FROM_JSON:`)
-        indexes.reverse().forEach((index) => {
-          const { sectionIndex, itemIndex } = index
-          sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-          // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
-        })
-      }
+      // Note: now done in previous function
+      // } else if (isProject) {
+      //   //
+      //   const projFilename = data.item?.project?.filename
+      //   if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
+      //   const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
+      //     itemType: 'project',
+      //     'project.filename': projFilename,
+      //   })
+      //   logDebug('updateReactWindowFLC', `- filename '${projFilename}' actions: ${String(actionsOnSuccess ?? '-')}`)
+      //   clo(indexes, 'updateReactWindowFLC: indexes to update')
+      //   if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
+      //     logDebug('updateReactWindowFLC', `- doing REMOVE_LINE_FROM_JSON:`)
+      //     indexes.reverse().forEach((index) => {
+      //       const { sectionIndex, itemIndex } = index
+      //       sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+      //       // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
+      //     })
+      //   }
+    } else if (actionsOnSuccess === ['REMOVE_LINE_FROM_JSON']) {
+      // This is a special case where it's OK that we don't have an updatedParagraph
+      logDebug('updateReactWindowFLC', `-> 🥺 just removed item ${ID}`)
     } else {
-      throw new Error(`no updatedParagraph param was given, and its not a Project update. So cannot update react window content for: ID=${ID}| errorMsg=${errorMsg || '-'}`)
+      throw new Error(`no updatedParagraph param was given, and its not a Project update. So cannot update react window content for: ID=${ID}. errorMsg=${errorMsg || '-'}`)
     }
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
   } catch (error) {

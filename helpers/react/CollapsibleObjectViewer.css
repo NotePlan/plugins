@@ -3,11 +3,12 @@
 .collapsible-object-viewer {
 
     .property-line.highlighted {
-        background-color: #fff064b7 !important; /* Yellow for search highlights */
+        background-color: #fff06422 !important; /* Yellow for search highlights */
+        
     }
 
     .parent-highlighted {
-        background-color: #f9f9f9; /* A very light gray for subtle highlighting */
+        background-color: #f9f9f922; /* A very light gray for subtle highlighting */
       }
 
       .property-line {
@@ -19,10 +20,8 @@
     }
 
     .changed {
-        background-color: #ffcccc; /* Red for changes */
+        background-color: #ff444444; /* Red for changes */
     }
-
-
 
     .value {
         display: inline-block;
@@ -31,5 +30,4 @@
     .expandable .toggle {
         cursor: pointer;
     }
-
 }

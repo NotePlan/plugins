@@ -10,7 +10,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
 })
 
 beforeEach(() => {
@@ -158,16 +158,28 @@ describe('paragraph.js', () => {
       expect(result).toEqual(0)
     })
 
-    const noteC = {
+    const noteCA = {
       paragraphs: [
-        { type: 'title', lineIndex: 0, content: 'NoteC Title', headingLevel: 1 },
+        { type: 'title', lineIndex: 0, content: 'NoteCA Title', headingLevel: 1 },
         { type: 'empty', lineIndex: 1 },
         { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
       ],
     }
     test('should find at line 1 (note C)', () => {
-      const result = p.findStartOfActivePartOfNote(noteC)
+      const result = p.findStartOfActivePartOfNote(noteCA)
       expect(result).toEqual(1)
+    })
+
+    const noteCB = {
+      paragraphs: [
+        { type: 'title', lineIndex: 0, content: 'Section 1', headingLevel: 2 },
+        { type: 'empty', lineIndex: 1 },
+        { type: 'title', lineIndex: 2, content: 'Section 2', headingLevel: 2 },
+      ],
+    }
+    test('should find at line 0 (note CB)', () => {
+      const result = p.findStartOfActivePartOfNote(noteCB)
+      expect(result).toEqual(0)
     })
 
     const noteD = {

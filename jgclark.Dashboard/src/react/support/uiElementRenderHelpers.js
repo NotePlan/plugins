@@ -11,10 +11,10 @@
 import React from 'react'
 import Switch from '../components/Switch.jsx'
 import InputBox from '../components/InputBox.jsx'
-import DropdownSelect, { type Option } from '../../../../np.Shared/src/react/DynamicDialog/DropdownSelect.jsx'
 import TextComponent from '../components/TextComponent.jsx'
 import PerspectiveSettings from '../components/PerspectiveSettings.jsx'
 import type { TSettingItem, TPerspectiveDef } from '../../types'
+import DropdownSelect, { type Option } from '@helpers/react/DynamicDialog/DropdownSelect.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------

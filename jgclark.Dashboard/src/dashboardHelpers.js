@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated for v2.1.0.b
+// Last updated for v2.1.6
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -26,23 +26,20 @@ import { getAPIDateStrFromDisplayDateStr, getTimeStringFromHM, getTodaysDateHyph
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
-import { filterOutParasInExcludeFolders, getNoteByFilename, isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
-// import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
+import { filterOutParasInExcludeFolders, isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import { isAChildPara } from '@helpers/parentsAndChildren'
-import {
-  // findEndOfActivePartOfNote, findHeadingStartsWith, findStartOfActivePartOfNote,
-  isTermInURL,
-  // parasToText, smartPrependPara
-} from '@helpers/paragraph'
+// import { isTermInURL } from '@helpers/paragraph'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
-import {
-  getNumericPriorityFromPara,
-  // sortListBy
-} from '@helpers/sorting'
+import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import { getStartTimeObjFromParaContent, getTimeBlockString, isTypeThatCanHaveATimeBlock, RE_TIMEBLOCK_IN_LINE } from '@helpers/timeblocks'
-import { isOpen, isOpenTask, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
+import {
+  getStartTimeObjFromParaContent,
+  getTimeBlockString,
+  isActiveOrFutureTimeBlockPara,
+  // isTypeThatCanHaveATimeBlock, RE_TIMEBLOCK_IN_LINE
+} from '@helpers/timeblocks'
+import { isOpenChecklist, isOpen, isOpenTask, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Types
@@ -136,7 +133,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   // Work out which sections to show
   const sectionsToShow: Array<TSectionCode> = []
   if (config.showTimeBlockSection) sectionsToShow.push('TB')
-  sectionsToShow.push('DT') // always show this
+  if (config.showTodaySection || config.showTodaySection === undefined) sectionsToShow.push('DT')
   if (config.showYesterdaySection) sectionsToShow.push('DY')
   if (config.showTomorrowSection) sectionsToShow.push('DO')
   if (config.showWeekSection) sectionsToShow.push('W')
@@ -152,7 +149,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
 
 /**
  * Return an optimised set of fields based on each paragraph (plus filename + computed priority + title - many).
- * 
+ *
  * @param {Array<TParagraph>} origParas
  * @returns {Array<TParagraphForDashboard>} dashboardParas
  */
@@ -172,7 +169,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           const nextLineIndex = p.lineIndex + 1
           clo(
             p,
-            `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type
+            `FYI 👉 makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${
+              pp[nextLineIndex]?.type
             }} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`,
           )
           // clo(p.contentRange, `contentRange for paragraph`)
@@ -226,6 +224,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
  * @param {TNote} timePeriodNote base calendar note to process
  * @param {TDashboardSettings} dashboardSettings
  * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open
+ * @param {boolean} alsoReturnTimeblockLines? also include valid non-task/checklist lines that contain a timeblock
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
 export function getOpenItemParasForTimePeriod(
@@ -233,9 +232,12 @@ export function getOpenItemParasForTimePeriod(
   timePeriodNote: TNote,
   dashboardSettings: TDashboardSettings,
   useEditorWherePossible: boolean = false,
+  alsoReturnTimeblockLines: boolean = false,
 ): [Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] {
   try {
     let parasToUse: $ReadOnlyArray<TParagraph>
+    const NPSettings = getNotePlanSettings()
+    const mustContainString = NPSettings.timeblockMustContainString
 
     //------------------------------------------------
     // Get paras from calendar note
@@ -255,10 +257,7 @@ export function getOpenItemParasForTimePeriod(
       logTimer('getOpenItemPFCTP', startTime, `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
     }
 
-    // Run following in background thread
-    // NB: Has to wait until after Editor has been accessed to start this
-    // Note: Commented out in v1.x, as I found it more than doubled the time taken to run this section.
-    // await CommandBar.onAsyncThread()
+    // Note: No longer running in background thread, as I found in v1.x it more than doubled the time taken to run this section.
 
     // Need to filter out non-open task/checklist types for following function, and any scheduled tasks (with a >date) and any blank tasks.
     const todayHyphenated = getTodaysDateHyphenated()
@@ -266,32 +265,49 @@ export function getOpenItemParasForTimePeriod(
     const isToday = theNoteDateHyphenated === todayHyphenated
     const latestDate = todayHyphenated > theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
     // logDebug('getOpenItemPFCTP', `timeframe:${timePeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
-    // Keep only non-empty open tasks (and checklists if wanted)
-    let openParas = dashboardSettings.ignoreChecklistItems
-      ? parasToUse.filter((p) => isOpenTask(p) && p.content.trim() !== '')
-      : parasToUse.filter((p) => isOpen(p) && p.content.trim() !== '')
-    // logTimer('OpenItemPFCTP', startTime, `- after '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras`)
+    
+    // Keep only non-empty open tasks (and checklists if wanted),
+    // and now add in other timeblock lines (if wanted), other than checklists (if excluded)
+    let openParas = alsoReturnTimeblockLines
+      ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
+      : parasToUse.filter((p) => isOpen(p))
+    logDebug('getOpenItemPFCTP', `- after initial pull: ${openParas.length} para(s)`)
+    if (dashboardSettings.ignoreChecklistItems) {
+      openParas = openParas.filter((p) => !(p.type === 'checklist'))
+      logDebug('getOpenItemPFCTP', `- after filtering out checklists: ${openParas.length} para(s)`)
+    }
+    // Filter out checklists with timeblocks, if wanted
+    if (dashboardSettings.excludeChecklistsWithTimeblocks) {
+      openParas = openParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
+    }
+    // logTimer('getOpenItemPFCTP', startTime, `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
+    // Filter out any blank lines
+    openParas = openParas.filter((p) => p.content.trim() !== '')
+    logTimer(
+      'getOpenItemPFCTP',
+      startTime,
+      `- after finding '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} ${
+        alsoReturnTimeblockLines ? '+ timeblocks ' : ''
+      }+ not blank' filter: ${openParas.length} paras`,
+    )
     const tempSize = openParas.length
 
-    // Keep only non-empty open items not scheduled (other than >today)
+    // Keep only items not scheduled (other than >today or whatever calendar note we're on)
     const thisNoteDateSched = `>${theNoteDateHyphenated}`
     openParas = openParas.filter((p) => isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')))
-    // logTimer('OpenItemPFCTP', startTime, `- after not-scheduled-apart-from-today filter: ${openParas.length} paras`)
+    // logTimer('getOpenItemPFCTP', startTime, `- after not-scheduled-apart-from-today filter: ${openParas.length} paras`)
 
     // Filter out any future-scheduled tasks from this calendar note
     openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content, latestDate))
     if (openParas.length !== tempSize) {
       // logDebug('getOpenItemPFCTP', `- removed ${tempSize - openParas.length} future scheduled tasks`)
     }
-    // logTimer('OpenItemPFCTP', startTime, `- after 'future' filter: ${openParas.length} paras`)
+    logTimer('getOpenItemPFCTP', startTime, `- after 'future' filter: ${openParas.length} paras`)
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
-      // V1
-      // const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
-      // openParas = openParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
-      // V2
       openParas = openParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
+      logTimer('getOpenItemPFCTP', startTime, `- after 'dashboardSettings.ignoreItemsWithTerms' filter: ${openParas.length} paras`)
 
       // Additionally apply to calendar headings in this note
       if (dashboardSettings.applyIgnoreTermsToCalendarHeadingSections) {
@@ -299,24 +315,17 @@ export function getOpenItemParasForTimePeriod(
           const thisHeading = p.heading
           return !isLineDisallowedByExcludedTerms(thisHeading, dashboardSettings.ignoreItemsWithTerms)
         })
-        logDebug('OpenItemPFCTP', `- after applying this to calendar headings as well: ${openParas.length} paras`)
+        logTimer('getOpenItemPFCTP', startTime, `- after applying this to calendar headings as well: ${openParas.length} paras`)
       }
     } else {
-      // logDebug('OpenItemPFCTP', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
+      // logDebug('getOpenItemPFCTP',`dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }
-    // logDebug('OpenItemPFCTP', `- after 'dashboardSettings.ignoreItemsWithTerms' filter: ${openParas.length} paras`)
-
-    // Filter out checklists with timeblocks, if wanted
-    if (dashboardSettings.excludeChecklistsWithTimeblocks) {
-      openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
-    }
-    // logTimer('OpenItemPFCTP', startTime, `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const openDashboardParas = makeDashboardParas(openParas)
     // clo(openDashboardParas)
 
-    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName}`)
+    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(openDashboardParas.length ?? 0)} cal items for ${timePeriodName}`)
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
@@ -324,54 +333,55 @@ export function getOpenItemParasForTimePeriod(
     // (In v1.x this was 2-3x quicker than part above)
     let refOpenParas: Array<TParagraph> = []
     if (timePeriodNote) {
-      // Allow to ignore checklist items.
-      refOpenParas = dashboardSettings.ignoreChecklistItems
-        ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
-        : getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
-    }
-    // logTimer('getOpenItemPFCTP', startTime, `- after getReferencedParagraphs(): ${refOpenParas.length} para(s)`)
+      refOpenParas = alsoReturnTimeblockLines
+        ? getReferencedParagraphs(timePeriodNote, false).filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
+        : getReferencedParagraphs(timePeriodNote, false).filter((p) => isOpen(p))
+      logTimer(
+        'getOpenItemPFCTP',
+        startTime,
+        `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`,
+      )
+      if (dashboardSettings.ignoreChecklistItems) {
+        refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist'))
+        logDebug('getOpenItemPFCTP', `- after filtering out referenced checklists: ${refOpenParas.length} para(s)`)
+      }
+      if (dashboardSettings.excludeChecklistsWithTimeblocks) {
+        refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
+      }
 
-    // Get list of allowed folders (using both include and exlcude settings)
-    const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
-    // $FlowIgnore[incompatible-call]
-    refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
-    // logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
+      // Get list of allowed folders (using both include and exlcude settings)
+      const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
+      // $FlowIgnore[incompatible-call]
+      refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
+      // logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
 
-    // Remove possible dupes from sync'd lines
-    refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
-    // logTimer('getOpenItemPFCTP', startTime, `- after 'dedupe' filter: ${refOpenParas.length} para(s)`)
+      // Remove possible dupes from sync'd lines
+      refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
+      // logTimer('getOpenItemPFCTP', startTime, `- after 'dedupe' filter: ${refOpenParas.length} para(s)`)
 
-    // Filter out anything from 'ignoreItemsWithTerms' setting
-    if (dashboardSettings.ignoreItemsWithTerms) {
-      // V1
-      // const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
-      // refOpenParas = refOpenParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
-      // V2
-      refOpenParas = refOpenParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
-      // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
-    } else {
-      // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
+      // Filter out anything from 'ignoreItemsWithTerms' setting
+      if (dashboardSettings.ignoreItemsWithTerms) {
+        refOpenParas = refOpenParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
+        // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
+      } else {
+        // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
+      }
     }
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const refOpenDashboardParas = makeDashboardParas(refOpenParas)
-    // clo(refOpenDashboardParas)
+    // clo(refOpenDashboardParas, 'getOpenItemPFCTP refOpenDashboardParas after extending paras')
 
     logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(refOpenParas.length ?? 0)} referenced items for ${timePeriodName}`)
 
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
     if (dashboardSettings.separateSectionForReferencedNotes) {
-      // TEST: JGC Removing sorting, 16.12.2024, as this happens later in useSectionSortAndFilter
-      // const sortedOpenParas = sortListBy(openDashboardParas, ['-priority', 'timeStr'])
-      // const sortedRefOpenParas = sortListBy(refOpenDashboardParas, ['-priority', 'timeStr'])
-      // return [sortedOpenParas, sortedRefOpenParas]
+      // Note: sorting now happens later in useSectionSortAndFilter
       return [openDashboardParas, refOpenDashboardParas]
     } else {
       const combinedParas = openDashboardParas.concat(refOpenDashboardParas)
-      // TEST: JGC Removing sorting, 16.12.2024, as this happens later in useSectionSortAndFilter
-      // const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
-      // return [combinedSortedParas, []]
+      // Note: sorting now happens later in useSectionSortAndFilter
       return [combinedParas, []]
     }
   } catch (err) {
@@ -424,47 +434,6 @@ function isObject(value: any): boolean {
 // ---------------------------------------------------
 
 /**
- * Decide whether this line contains an active time block.
- * Note: This is a local variant of what is in timeblocks.js, that works without referring to DataStore.
- * @author @dwertheimer
- * @param {string} contentString
- * @returns {boolean}
- */
-function isTimeBlockLine(contentString: string, mustContainString: string = ''): boolean {
-  try {
-    // Following works around a bug when the preference isn't being set at all at the start.
-    if (mustContainString !== '') {
-      const res1 = contentString.includes(mustContainString)
-      if (!res1) {
-        return false
-      }
-    }
-    const res2 = contentString.match(RE_TIMEBLOCK_IN_LINE) ?? []
-    return res2.length > 0
-  } catch (err) {
-    console.log(`isTimeBlockLine error`, err)
-    return false
-  }
-}
-
-/**
- * Decide whether this paragraph contains an active time block.
- * Also now defeats on timeblock in middle of a [...](filename) or URL
- * Note: This is a local variant of what is in timeblocks.js, that works without referring to DataStore.
- * @author @jgclark
- * @param {TParagraph} para
- * @param {string} mustContainParaArg (optional)
- * @returns {boolean}
- */
-function isTimeBlockPara(para: TParagraph, mustContainStringArg: string = ''): boolean {
-  if (!isTypeThatCanHaveATimeBlock(para) || !isTimeBlockLine(para.content, mustContainStringArg)) {
-    return false
-  }
-  const tbString = getTimeBlockString(para.content)
-  return !isTermInURL(tbString, para.content)
-}
-
-/**
  * Get all overdue tasks, filtered and sorted according to various settings. But the number of items returned is not limited.
  * If we are showing the Yesterday section, and we have some yesterdaysParas passed, then don't return any ones matching this list.
  * @param {TDashboardSettings} dashboardSettings
@@ -484,10 +453,6 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'excludedFolders'(${String(excludedFolders)}) filter: ${filteredOverdueParas.length} paras`)
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
-      // V1
-      // const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
-      // filteredOverdueParas = filteredOverdueParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
-      // V2
       filteredOverdueParas = filteredOverdueParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
     } else {
       logDebug(
@@ -611,9 +576,10 @@ export function isLineDisallowedByExcludedTerms(lineContent: string, ignoreItems
   const ignoreTermsArr = stringListOrArrayToArray(ignoreItemsWithTerms, ',')
   // logDebug('isLineDisallowedByExcludedTerms', `using ${String(ignoreTermsArr.length)} exclusions [${ignoreTermsArr.toString()}]`)
 
-  // const matchFound = ignoreTermsArr.some((t) => lineContent.includes(t))
   const matchFound = caseInsensitiveSubstringIncludes(lineContent, ignoreTermsArr)
-  // logDebug('isLineDisallowedByExcludedTerms', `- Did ${matchFound ? 'find ' : 'NOT find'} matching term(s) amongst '${String(lineContent)}'`)
+  if (matchFound) {
+    logDebug('isLineDisallowedByExcludedTerms', `- DID find excluding term(s) [${ignoreTermsArr.toString()}] in '${String(lineContent)}'`)
+  }
   return matchFound
 }
 
@@ -784,6 +750,7 @@ export function handlerResult(success: boolean, actionsOnSuccess?: Array<TAction
     actionsOnSuccess,
   }
 }
+
 /**
  * Convenience function to update the global shared data in the webview window, telling React to update it
  * @param {TAnyObject} changeObject - the fields inside pluginData to update
@@ -830,12 +797,13 @@ export function createSectionItemObject(id: string, p: TParagraph | TParagraphFo
 }
 
 /**
- * Make a sectionItem for each paragraph of interest
+ * Make a sectionItem for each open item (para) of interest.
+ * Note: sometimes non-open items are included, e.g. other types of timeblocks. They need to be filtered out first.
  * @param {Array<TParagraphForDashboard>} sortedOrCombinedParas
  * @param {string} sectionNumStr
  * @returns {Array<TSectionItem>}
  */
-export function createSectionItemsFromParas(sortedOrCombinedParas: Array<TParagraphForDashboard>, sectionNumStr: string): Array<TSectionItem> {
+export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TParagraphForDashboard>, sectionNumStr: string): Array<TSectionItem> {
   let itemCounter = 0
   let lastIndent0ParentID = ''
   let lastIndent1ParentID = ''
@@ -843,6 +811,9 @@ export function createSectionItemsFromParas(sortedOrCombinedParas: Array<TParagr
   let lastIndent3ParentID = ''
   const items: Array<TSectionItem> = []
   for (const socp of sortedOrCombinedParas) {
+    if (!isOpen(socp)) {
+      continue
+    }
     const thisID = `${sectionNumStr}-${itemCounter}`
     const thisSectionItemObject = createSectionItemObject(thisID, socp)
     // Now add parentID where relevant
@@ -851,12 +822,12 @@ export function createSectionItemsFromParas(sortedOrCombinedParas: Array<TParagr
         socp.indentLevel === 1
           ? lastIndent0ParentID
           : socp.indentLevel === 2
-            ? lastIndent1ParentID
-            : socp.indentLevel === 3
-              ? lastIndent2ParentID
-              : socp.indentLevel === 4
-                ? lastIndent3ParentID
-                : '' // getting silly by this point, so stop
+          ? lastIndent1ParentID
+          : socp.indentLevel === 3
+          ? lastIndent2ParentID
+          : socp.indentLevel === 4
+          ? lastIndent3ParentID
+          : '' // getting silly by this point, so stop
       thisSectionItemObject.parentID = parentParaID
       // logDebug(``, `- found parentID ${parentParaID} for ID ${thisID}`)
     }

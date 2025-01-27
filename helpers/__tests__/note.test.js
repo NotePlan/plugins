@@ -9,29 +9,12 @@ const PLUGIN_NAME = `helpers/note`
 beforeAll(() => {
   global.DataStore = DataStore // so we see DEBUG logs in VSCode Jest debugs
   global.Calendar = Calendar
+  DataStore.settings['_logLevel'] = 'none' // change 'none' to 'DEBUG' to get more logging, or 'none' for quiet
+
 })
 
 // Jest suite
 describe(`${PLUGIN_NAME}`, () => {
-  /*
-   * findOverdueDatesInString()
-   */
-  describe('findOverdueDatesInString()' /* function */, () => {
-    test('should find no date in line with no overdue', () => {
-      const result = n.findOverdueDatesInString('>2922-01-01')
-      expect(result.length).toEqual(0)
-    })
-    test('should find date in line with overdue', () => {
-      const result = n.findOverdueDatesInString('>1999-01-01')
-      expect(result.length).toEqual(1)
-      expect(result).toEqual(['>1999-01-01'])
-    })
-    test('should find 2 overdue dates', () => {
-      const result = n.findOverdueDatesInString('>1999-01-01 >1998-01-01')
-      expect(result.length).toEqual(2)
-    })
-  })
-
   /*
    * updateDatePlusTags()
    */
@@ -150,6 +133,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result[0].content).toEqual(`foo >2020-01-01 >today`) //make no change
     })
   })
+
   /*
    * getNotetype()
    */
@@ -195,6 +179,52 @@ describe(`${PLUGIN_NAME}`, () => {
       const expected = 'Yearly'
       const result = n.getNoteType(input)
       expect(result).toEqual(expected)
+    })
+  })
+
+  /*
+   * isNoteFromAllowedFolder()
+   */
+  describe('isNoteFromAllowedFolder()' /* function */, () => {
+    const allowedList = ['/', 'Work', 'Work/Client A', 'Work/Client B', 'TEST']
+    describe("should pass", () => {
+      test("root folder note", () => {
+        const note = { filename: "foo.md", type: "Notes" }
+        const result = n.isNoteFromAllowedFolder(note, allowedList)
+        expect(result).toEqual(true)
+      })
+      test("'Work' folder note", () => {
+        const note = { filename: "Work/foo_bar.md", type: "Notes" }
+        const result = n.isNoteFromAllowedFolder(note, allowedList)
+        expect(result).toEqual(true)
+      })
+      test("'Work/Client A' folder note", () => {
+        const note = { filename: "Work/Client A/something.txt", type: "Notes" }
+        const result = n.isNoteFromAllowedFolder(note, allowedList)
+        expect(result).toEqual(true)
+      })
+      test("daily note", () => {
+        const note = { filename: "2025-01-06.md", type: "Calendar" }
+        const result = n.isNoteFromAllowedFolder(note, allowedList)
+        expect(result).toEqual(true)
+      })
+    })
+    describe("should NOT pass", () => {
+      test("'Home' folder note", () => {
+        const note = { filename: "Home/foo_bar.md", type: "Notes" }
+        const result = n.isNoteFromAllowedFolder(note, allowedList)
+        expect(result).toEqual(false)
+      })
+      test("'Work/Client C' folder note", () => {
+        const note = { filename: "Work/Client C/something.txt", type: "Notes" }
+        const result = n.isNoteFromAllowedFolder(note, allowedList)
+        expect(result).toEqual(false)
+      })
+      test("daily note where allowAllCalendarNotes is false", () => {
+        const note = { filename: "2025-01-06.md", type: "Calendar" }
+        const result = n.isNoteFromAllowedFolder(note, allowedList, false)
+        expect(result).toEqual(false)
+      })
     })
   })
 })

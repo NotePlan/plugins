@@ -6,11 +6,7 @@
 // Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 
-import {
-  getDashboardSettings,
-  handlerResult,
-  setPluginData
-} from './dashboardHelpers'
+import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
 import {
   addNewPerspective,
@@ -24,6 +20,8 @@ import {
   switchToPerspective,
   renamePerspective,
   savePerspectiveSettings,
+  removeInvalidTagSections,
+  logPerspectiveNames,
 } from './perspectiveHelpers'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 
@@ -118,38 +116,60 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
   return handlerResult(true, [])
 }
 
-// TODO: Jsdoc
-// TODO: Is this
+/**
+ * Switch to a perspective and save the new perspective settings and dashboard settings
+ * @param {MessageDataObject} data - the data object containing the perspective name
+ * @returns {TBridgeClickHandlerResult} - the result of the switch to perspective
+ */
 export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const switchToName = data?.perspectiveName || ''
   if (!switchToName) {
     logError('doSwitchToPerspective', `No perspective name provided.`)
     return handlerResult(false, [], { errorMsg: `No perspectiveName provided.` })
   }
-  const revisedDefs = await switchToPerspective(switchToName, await getPerspectiveSettings())
+  const ps = await getPerspectiveSettings()
+  logPerspectiveNames(ps, 'doSwitchToPerspective: Persp settings before switch:')
+  const revisedDefs = await switchToPerspective(switchToName, ps)
+  logPerspectiveNames(revisedDefs || [], 'doSwitchToPerspective: Persp settings after switch:')
   if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective failed` })
   const activeDef = getActivePerspectiveDef(revisedDefs)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
   const prevDashboardSettings = await getDashboardSettings()
-  if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+  // each perspective has its own tagged sections so we don't want to keep old ones around
+  // so we will remove all keys from prevDS that start with showTagSection_
+  const prevDSWithoutTags = removeInvalidTagSections(prevDashboardSettings)
+  if (!prevDSWithoutTags) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
   // apply the new perspective's settings to the main dashboard settings
   const newDashboardSettings = {
-    ...prevDashboardSettings,
+    ...prevDSWithoutTags,
     ...(activeDef.dashboardSettings || {}),
     lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
   } // the ending "changed from plugin" is important because it keeps it from sending back
   logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
   clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
   DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }
-  const updatesToPluginData = { perspectiveSettings: revisedDefs, dashboardSettings: newDashboardSettings, serverPush: { dashboardSettings: true, perspectiveSettings: true } }
+  const afterPerspSettings = await getPerspectiveSettings(true)
+  logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Persp settings reading back from DataStore.settings:')
+  // TODO: @jgclark resetting sections to [] on perspective switch forces a refresh of all enabled sections
+  // You may or may not want to get fancy and try to delete the sections that are no longer enabled (e.g. tags)
+  // and only refresh the sections that are new
+  // But for now, the brute force way seems the most reliable :)
+  const updatesToPluginData = {
+    perspectiveSettings: revisedDefs,
+    dashboardSettings: newDashboardSettings,
+    serverPush: { dashboardSettings: true, perspectiveSettings: true },
+    sections: [],
+    lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
+  }
   logDebug(
     `doSwitchToPerspective`,
     `sending revised perspectiveSettings and dashboardSettings to react window after switching to ${data?.perspectiveName || ''} current excludedFolders=${
-      newDashboardSettings.excludedFolders
+      newDashboardSettings.excludedFolders ? newDashboardSettings.excludedFolders : 'not set'
     }`,
   )
+  logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Sending these perspectiveSettings to react window in pluginData')
   await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
-  return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'])
+  return handlerResult(true, ['PERSPECTIVE_CHANGED'])
 }
 
 /**
@@ -170,7 +190,7 @@ export function setDashPerspectiveSettings(newDashboardSettings: TDashboardSetti
  * @returns {TBridgeClickHandlerResult}
  */
 export async function doPerspectiveSettingsChanged(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  clo(data, `dodoPerspectiveSettingsChangedSettingsChanged() starting with data = `)
+  clo(data, `doPerspectiveSettingsChanged() starting with data = `)
   const newSettings = data.settings
   if (!DataStore.settings || !newSettings || !Array.isArray(newSettings)) {
     return handlerResult(false, [], { errorMsg: `doPerspectiveSettingsChanged: newSettings is null or undefined.` })

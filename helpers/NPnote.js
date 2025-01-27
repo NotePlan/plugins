@@ -708,10 +708,8 @@ export function findNotesMatchingHashtag(
       })
     }
     if (projectNotesWithTag.length > 0) {
-      logDebug(
-        'NPnote/findNotesMatchingHashtag',
-        `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}': [${String(projectNotesWithTag.map((a) => a.title ?? a.filename ?? '?'))}]`,
-      )
+      // logDebug('NPnote/findNotesMatchingHashtag',`In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}': [${String(projectNotesWithTag.map((a) => a.title ?? a.filename ?? '?'))}]`)
+      logDebug('NPnote/findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
     }
 
     // If we care about the excluded tag, then further filter out notes where it is found

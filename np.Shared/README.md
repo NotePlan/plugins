@@ -101,29 +101,11 @@ There is also a `pluginToHTMLCommsBridge` file that can be used to enable bi-dir
 ## Dialogs
 ### Opening a dialog/form from a Template:
 - The template function `/Open Template Form` will open a dialog/form with the items specified in the template.
-- Under the hood, this uses the `DynamicDialog` component from np.Shared and another Component `FormView` which basically just takes the form items from the template and sends them to the DynamicDialog component using the `reactSettings.dynamicDialog` object (see below).
+- Under the hood, this uses the `DynamicDialog` component from np.Shared and another Component `FormView` which basically just takes the form items from the template and sends them to the DynamicDialog component 
 - Users shouldn't need to know anything about this
 
 ### Opening a dialog from within a React plugin window:
-set `reactSettings.dynamicDialog` in your plugin to open a dialog. The component which renders the dialog is embedded in the Root component (np.Shared) which holds reactSettings. So just setting reactSettings.dynamicDialog in the context scope is enough to open the dialog with the items specified.
-See:
-
-```javascript
-export type TDynamicDialogProps = {
-  isOpen: boolean,
-  title: string,
-  items: Array<TSettingItem>,
-  className?: string,
-  labelPosition?: 'left' | 'right',
-  allowEmptySubmit?: boolean,
-  style?: Object, // Add style prop
-  isModal?: boolean, // default is true, but can be overridden to run full screen
-  onSave?: (updatedSettings: { [key: string]: any }) => void,
-  onCancel: () => void,
-  hideDependentItems?: boolean, // if true, dependent items are hidden, if false, they are shown but greyed out
-  children: React$Node, // children nodes (primarily for banner message)
-}
-```
+use the `DynamicDialog` component from np.Shared
 
 >**NOTE:** The html-plugin-comms.js is where you will do the sending/receiving in the HTML window (browser side). That file is auto-created for you when you run a `np-cli plugin:create` command. 
 
