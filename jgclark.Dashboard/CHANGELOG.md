@@ -9,6 +9,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - allow all current timeblocks to be shown, not just the first
 - styling improvements in Edit All Perspectives... window and various dialogs
 ### Fixed
+- an extra item could stop being displayed when the item before it was marked as complete
 - timeblocks in list items ignored if also filtering out checklists
 
 ## [2.1.5] 2025-01-21
