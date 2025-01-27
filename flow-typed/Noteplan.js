@@ -1303,9 +1303,9 @@ declare interface Paragraph {
    */
   +isRecurring: boolean;
   /**
-   * Get the amount of indentations.
+   * Get/Set the amount of indentations.
    */
-  +indents: number;
+indents: number;
   /**
    * Get the filename of the note this paragraph was loaded from
    */
