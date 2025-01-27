@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated for v2.1.0.b
+// Last updated for v2.1.6
 //-----------------------------------------------------------------------------
 import moment from 'moment'
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
@@ -135,9 +135,9 @@ export async function doAddItemToFuture(data: MessageDataObject): Promise<TBridg
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
-export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResult {
+export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedParagraph = completeItem(filename, content)
+  const updatedParagraph = await completeItem(filename, content)
   // clo(updatedParagraph, `doCompleteTask -> updatedParagraph`)
 
   if (typeof updatedParagraph !== 'boolean') {
@@ -154,9 +154,9 @@ export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResu
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
-export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandlerResult {
+export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedParagraph = completeItemEarlier(filename, content)
+  const updatedParagraph = await completeItemEarlier(filename, content)
   if (typeof updatedParagraph !== 'boolean') {
     logDebug('doCompleteTaskThen', `-> {${updatedParagraph.content}}`)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
@@ -190,9 +190,9 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
-export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
+export async function doCompleteChecklist(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedParagraph = completeItem(filename, content)
+  const updatedParagraph = await completeItem(filename, content)
   // clo(updatedParagraph, `doCompleteChecklist -> updatedParagraph`)
   // clo(updatedParagraph.note.filename, `doCompleteChecklist -> updatedParagraph.note.filename`)
   return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })

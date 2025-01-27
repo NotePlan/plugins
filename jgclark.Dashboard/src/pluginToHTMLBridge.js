@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated for v2.1.0.b
+// Last updated for v2.1.6
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -150,11 +150,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         return
       }
       case 'completeTask': {
-        result = doCompleteTask(data)
+        result = await doCompleteTask(data)
         break
       }
       case 'completeTaskThen': {
-        result = doCompleteTaskThen(data)
+        result = await doCompleteTaskThen(data)
         break
       }
       case 'cancelTask': {
@@ -162,7 +162,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'completeChecklist': {
-        result = doCompleteChecklist(data)
+        result = await doCompleteChecklist(data)
         break
       }
       case 'cancelChecklist': {
@@ -401,7 +401,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
           const thisProject = data.item?.project
           const projFilename = data.item?.project?.filename
           if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
-          logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: for ID:${data?.item?.ID || ''} project:"${thisProject.title}"`)
+          logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: for ID:${data?.item?.ID || ''} project:"${thisProject?.title || '?'}"`)
           // Find the item from its filename
           const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
             itemType: 'project',

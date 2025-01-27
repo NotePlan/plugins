@@ -5,6 +5,8 @@
 // -----------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
+import { getRepeatSettings, RE_EXTENDED_REPEAT, type RepeatConfig } from '../jgclark.RepeatExtensions/src/repeatHelpers'
+import { generateRepeatForPara } from '../jgclark.RepeatExtensions/src/repeatPara'
 import { trimString } from '@helpers/dataManipulation'
 import {
   getNPWeekStr,
@@ -1363,14 +1365,14 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 /**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
  * Removes '>date' (including '>today') if present.
- * Also calls the Repeat Extensions plugin to fire the /rpt trigger if this has a @repeat(date) and the plugin is installed.
+ * If this para has a @repeat(date), and the Repeat Extensions plugin is installed, generate a new repeat line for the next date.
  * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {TParagraph} para
  * @param {boolean} useScheduledDateAsCompletionDate?
  * @returns {TParagraph|false} success? - returns the paragraph updated if successful (for use in updateCache) or false
  */
-export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): false | TParagraph {
+export async function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): Promise<false | TParagraph> {
   if (para) {
     // Default to using current date/time
     // TEST: this should return in user locale time format (up to a point)
@@ -1421,18 +1423,27 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
     }
 
     // Call the Repeat Extensions plugin to fire the /rpt trigger if this has a @repeat(date) and the plugin is installed.
-    // TODO: TEST me
-    const RE_EXTENDED_REPEAT = /@repeat\(${RE_DATE_INTERVAL}\)/ // find @repeat(). From Repeat Extensions plugin.
     if (RE_EXTENDED_REPEAT.test(para.content)) {
-      if (pluginIsInstalled('jgclark.RepeatExtensions')) {
-        const repeatDate = getFirstDateInPeriod(para.content)
-        logDebug('markComplete', `will call Repeat Extensions plugin to fire /rpt trigger for date ${repeatDate}`)
-        // Call the /generate repeats command, but don't wait for it to finish
-        // TODO: refactor to split out the core repeat generation from the rest of the command
-        DataStore.invokePluginCommandByName('generate repeats', 'jgclark.RepeatExtensions', [false, para.note])
+      let repeatConfig: RepeatConfig
+      if (!pluginIsInstalled('jgclark.RepeatExtensions')) {
+        logWarn('markComplete', `Repeat Extensions plugin is not installed and configured, so will use safe defaults`)
+        repeatConfig = {
+          deleteCompletedRepeat: false,
+          dontLookForRepeatsInDoneOrArchive: true,
+          runTaskSorter: false,
+          _logLevel: 'INFO',
+        }
       } else {
-        logWarn('markComplete', `Repeat Extensions plugin is not installed, so can't call it`)
-        // TODO: add a visible warning to the user
+        repeatConfig = await getRepeatSettings()
+      }
+      const repeatDate = getFirstDateInPeriod(para.content)
+      logDebug('markComplete', `will call Repeat Extensions plugin to fire /rpt trigger for date ${repeatDate}`)
+      // Call the Repeat Extensions plugin's generateRepeat function for just this para
+      clo(repeatConfig, 'repeatConfig')
+      // $FlowIgnore[incompatible-call]
+      const res = await generateRepeatForPara(para, para.note, false, repeatConfig)
+      if (!res) {
+        logWarn('markComplete', `Call to generate repeat for para {${para.content}} failed.`)
       }
     }
     return result
@@ -1445,6 +1456,7 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
 /**
  * Change para type of the given paragraph to cancelled (for both tasks/checklists)
  * TODO: extend to cancel sub-items as well if wanted.
+ * TODO(later): If Repeat Extensions plugin is extended to cover cancelled paras, then apply it here like in markComplete() above.
  * @param {TParagraph} para
  * @returns {boolean} success?
  */
@@ -1483,7 +1495,7 @@ export function markCancelled(para: TParagraph): boolean {
  * @param {string} content to find
  * @returns {boolean|TParagraph} success? - retuns the updated paragraph if successful (for use in updateCache)
  */
-export function completeItem(filenameIn: string, content: string): boolean | TParagraph {
+export async function completeItem(filenameIn: string, content: string): Promise<boolean | TParagraph> {
   try {
     if (filenameIn === '') {
       throw new Error('completeItem: filenameIn is empty')
@@ -1496,7 +1508,7 @@ export function completeItem(filenameIn: string, content: string): boolean | TPa
     if (typeof possiblePara === 'boolean') {
       return false
     }
-    return markComplete(possiblePara, false)
+    return await markComplete(possiblePara, false)
   } catch (error) {
     logError(pluginJson, `NPP/completeItem: ${error.message} for note '${filenameIn}'`)
     return false
@@ -1513,14 +1525,14 @@ export function completeItem(filenameIn: string, content: string): boolean | TPa
  * @param {string} content to find
  * @returns {TParagraph | boolean} completed paragraph if succesful, false if unsuccesful
  */
-export function completeItemEarlier(filenameIn: string, content: string): boolean | TParagraph {
+export async function completeItemEarlier(filenameIn: string, content: string): Promise<boolean | TParagraph> {
   try {
     logDebug('NPP/completeItemEarlier', `starting with filename: ${filenameIn}, content: "${content}"`)
     const possiblePara = findParaFromStringAndFilename(filenameIn, content)
     if (typeof possiblePara === 'boolean') {
       return false
     }
-    return markComplete(possiblePara, true)
+    return await markComplete(possiblePara, true)
   } catch (error) {
     logError(pluginJson, `NPP/completeItemEarlier: ${error.message} for note '${filenameIn}'`)
     return false
