@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Repeat Extensions plugin.
 // Jonathan Clark
-// last updated 2025-01-24, for v0.9.0
+// last updated 2025-01-27, for v0.9.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -13,6 +13,7 @@ import {
   isMonthlyNote,
   isQuarterlyNote,
   isYearlyNote,
+  RE_DATE_INTERVAL,
   RE_SCHEDULED_DAILY_NOTE_LINK,
   RE_SCHEDULED_WEEK_NOTE_LINK,
   RE_SCHEDULED_MONTH_NOTE_LINK,
@@ -26,7 +27,8 @@ import { showMessage } from '@helpers/userInput'
 //------------------------------------------------------------------
 // Constants + Types
 
-const RE_EXTENDED_REPEAT_CAPTURE = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
+export const RE_EXTENDED_REPEAT = `@repeat\\(${RE_DATE_INTERVAL}\\)` // find @repeat()
+export const RE_EXTENDED_REPEAT_CAPTURE = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
 
 const pluginID = pluginJson['plugin.id'] // was 'jgclark.Filer'
 

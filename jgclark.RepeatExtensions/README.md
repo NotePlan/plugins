@@ -67,9 +67,6 @@ From v0.6 you can specify scheduled dates to all the other calendar note types s
 
 The resulting repeat lines will also be specified using that same note type, and will write to the appropriate new calendar note (unless it came from a project note, in which case it will stay in the same project note).
 
-## Limitations
-There's a known issue with the plugin not being able to add any indents to the new repeat line, if the original line was indented. This is a known issue with the NotePlan API, and I'm waiting for a fix from the developer.
-
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
