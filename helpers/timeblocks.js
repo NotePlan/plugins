@@ -307,7 +307,7 @@ export const getTimeBlockString = (contentString: string): string => {
 /**
  * Return the start time of a time block in a given paragraph, or else 'none' (which will then sort after times).
  * @param {string} content to process
- * @returns {string} e.g. 3:45PM (or 'none' or 'error')
+ * @returns {string} e.g. from '3:00PM-4:00PM' returns '3:00PM' (or 'none' or 'error')
  */
 export function getStartTimeStrFromParaContent(content: string): string {
   try {
@@ -324,7 +324,7 @@ export function getStartTimeStrFromParaContent(content: string): string {
 /**
  * Return the end time (if present) of a time block in a given paragraph, or else calculate.
  * @param {string} content to process
- * @returns {string} e.g. 3:45PM (or '' or 'error')
+ * @returns {string} e.g. from '3:00PM-4:00PM' returns '4:00PM' (or '' or 'error')
  */
 export function getEndTimeStrFromParaContent(content: string): string {
   try {
@@ -425,12 +425,12 @@ export function getEndTimeObjFromParaContent(content: string): { hours: number, 
 export function getCurrentTimeBlockPara(note: TNote, excludeClosedParas: boolean = false, mustContainString: string = ''): ?TParagraph {
   try {
     const currentTimeMom = moment()
-    // logDebug('getCurrentTimeBlock', `currentTimeMom: ${currentTimeMom.format('HH:mm:ss')}`)
+    // logDebug('getCurrentTimeBlockPara', `currentTimeMom: ${currentTimeMom.format('HH:mm:ss')}`)
 
     for (const para of note.paragraphs) {
       // Ignore completed and text paras
       if (excludeClosedParas && ['done', 'cancelled', 'checklistDone', 'checklistCancelled', 'text'].includes(para.type)) {
-        // logDebug('getCurrentTimeBlock', `- ignored {${para.content}} as its of type ${para.type}`)
+        // logDebug('getCurrentTimeBlockPara', `- ignored {${para.content}} as its of type ${para.type}`)
         continue
       }
       if (isTimeBlockLine(para.content, mustContainString)) {
@@ -441,24 +441,24 @@ export function getCurrentTimeBlockPara(note: TNote, excludeClosedParas: boolean
         const startTimeStr = getStartTimeStrFromParaContent(para.content)
         const startTimeMom = moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
         const endTimeStr = getEndTimeStrFromParaContent(para.content)
-        const endTimeMom = (endTimeStr === '')
+        const endTimeMom = (endTimeStr !== '' && endTimeStr !== 'error')
           ? moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
           // Add 15 mins on from start time (this appears to be the NP default duration).
           : moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH']).add(15, 'minutes')
-        logInfo('getCurrentTimeBlock', `${startTimeMom.format('HH:mm')} - ${endTimeMom.format('HH:mm')} from ${timeBlockString}`) // TODO: turn down later
+        logDebug('getCurrentTimeBlockPara', `${startTimeMom.format('HH:mm')} - ${endTimeMom.format('HH:mm')} (${endTimeStr}) from ${timeBlockString}`)
 
         if (currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')) {
-          logDebug('getCurrentTimeBlock', `Found current timeblock ${timeBlockString} in para {${para.content}} from note '${displayTitle(note)}'`)
+          logDebug('getCurrentTimeBlockPara', `Found current timeblock ${timeBlockString} in para {${para.content}} from note '${displayTitle(note)}'`)
           return para
         }
       } else {
-        // logDebug('getCurrentTimeBlock', `- ignored line {${para.content}} as it is not a timeblock line`)
+        // logDebug('getCurrentTimeBlockPara', `- ignored line {${para.content}} as it is not a timeblock line`)
       }
     }
     // None found
     return null
   } catch (err) {
-    logError('getCurrentTimeBlock', err.message)
+    logError('getCurrentTimeBlockPara', err.message)
     return null
   }
 }
