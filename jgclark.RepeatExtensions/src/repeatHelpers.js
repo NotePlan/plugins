@@ -27,8 +27,10 @@ import { showMessage } from '@helpers/userInput'
 //------------------------------------------------------------------
 // Constants + Types
 
-export const RE_EXTENDED_REPEAT = `@repeat\\(${RE_DATE_INTERVAL}\\)` // find @repeat()
-export const RE_EXTENDED_REPEAT_CAPTURE = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
+const EXTENDED_REPEAT_STR: string = `@repeat\\(${RE_DATE_INTERVAL}\\)` // find @repeat()
+export const RE_EXTENDED_REPEAT: RegExp = new RegExp(EXTENDED_REPEAT_STR) // find @repeat()
+const EXTENDED_REPEAT_CAPTURE_STR: string = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
+export const RE_EXTENDED_REPEAT_CAPTURE: RegExp = new RegExp(EXTENDED_REPEAT_CAPTURE_STR) // find @repeat() and return part inside brackets
 
 const pluginID = pluginJson['plugin.id'] // was 'jgclark.Filer'
 

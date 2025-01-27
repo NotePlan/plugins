@@ -14,7 +14,8 @@ import { editSettings } from '@helpers/NPSettings'
 
 const pluginID = "jgclark.RepeatExtensions"
 
-export { generateRepeats, onEditorWillSave } from './repeatMain'
+export { generateRepeats } from './repeatMain'
+export { onEditorWillSave } from './repeatTrigger'
 
 export function init(): void {
   try {

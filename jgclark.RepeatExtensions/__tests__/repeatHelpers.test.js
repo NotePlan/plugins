@@ -1,8 +1,10 @@
 /* global describe, expect, test, beforeAll */
-import { generateNewRepeatDate } from '../src/repeatHelpers'
 import moment from 'moment'
+import { generateNewRepeatDate } from '../src/repeatHelpers'
 
 // import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
+
+// TODO: Add tests for generateRepeatForPara()
 
 describe('generateNewRepeatDate', () => {
   describe('tests from calendar notes', () => {
