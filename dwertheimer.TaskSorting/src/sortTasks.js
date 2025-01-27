@@ -668,6 +668,8 @@ export async function sortTasks(
  * sortTasksUnderHeading
  * Plugin entrypoint for "/sth".
  * Can also be called from templates or other plugins.
+ * @param {string} _heading - the heading to sort (probably comes in from xcallback)
+ * @param {string} _sortOrder - the sort order (probably comes in from xcallback)
  */
 export async function sortTasksUnderHeading(_heading: string, _sortOrder: string | Array<string>): Promise<void> {
   try {
