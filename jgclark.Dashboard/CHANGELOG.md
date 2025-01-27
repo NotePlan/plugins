@@ -1,11 +1,15 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.6] 2025-01-???
+## [2.1.6] 2025-01-26
+<!-- ### New
+- TODO: if a task is marked complete, and it has a `@repeat(date)` (using the Repeat Extensions plugin) then it will now automatically generate the new repeat. (This works around a limitation in the API where the usual trigger doesn't fire.) -->
 ### Changed
-- allow all current timeblocks to be shown, not just the first.
+- when you click on a task/checklist line in the Dashboard window, it will highlight that line in the open NP Editor, and now bring the NP window to the front.
+- allow all current timeblocks to be shown, not just the first
+- styling improvements in Edit All Perspectives... window and various dialogs
 ### Fixed
-- timeblocks as a list ignored if also filtering out checklists
+- timeblocks in list items ignored if also filtering out checklists
 
 ## [2.1.5] 2025-01-21
 ### New
