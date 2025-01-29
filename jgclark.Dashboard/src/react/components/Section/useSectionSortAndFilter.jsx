@@ -8,7 +8,7 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2025-01-13 for v2.1.6
+// Last updated 2025-01-29 for v2.1.7
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated for v2.1.1
+// Last updated 2025-01-29 for v2.1.7
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
