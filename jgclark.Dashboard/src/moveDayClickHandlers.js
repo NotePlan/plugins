@@ -19,9 +19,7 @@ import {
   replaceArrowDatesInString,
 } from '@helpers/dateTime'
 import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
-import {
-  moveItemBetweenCalendarNotes,
-} from '@helpers/NPMoveItems'
+import { moveItemBetweenCalendarNotes } from '@helpers/NPMoveItems'
 import { getParagraphFromStaticObject } from '@helpers/NPParagraph'
 import { showMessageYesNo } from '@helpers/userInput'
 
@@ -171,7 +169,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `scheduleAllYesterdayOpenToToday finished `)
 
     // Update display of these 2 sections
-    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DY', 'DT'] }
+    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DY', 'DT', 'OVERDUE'] }
   } catch (error) {
     logError('scheduleAllYesterdayOpenToToday', JSP(error))
     return { success: false }
@@ -302,8 +300,8 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `scheduleAllTodayTomorrow finished `)
 
     // Update display of these 2 sections
-    logDebug('scheduleAllTodayTomorrow', `returning {true, REFRESH_SECTION_IN_JSON, [DT,DO]}`)
-    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DT', 'DO'] }
+    logDebug('scheduleAllTodayTomorrow', `returning {true, REFRESH_SECTION_IN_JSON, [DT,DO,OVERDUE]}`)
+    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DT', 'DO', 'OVERDUE'] }
   } catch (error) {
     logError('scheduleAllTodayTomorrow', error.message)
     return { success: false }
@@ -367,7 +365,8 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
     if (NotePlan.environment.platform === 'macOS' && totalOverdue > checkThreshold) {
       const res = await showMessageYesNo(
-        `Are you sure you want to ${config.rescheduleNotMove ? 'rescheduleItem' : 'move'
+        `Are you sure you want to ${
+          config.rescheduleNotMove ? 'rescheduleItem' : 'move'
         } ${totalOverdue} overdue items to today? This can be a slow operation, and can't easily be undone.`,
         ['Yes', 'No'],
         'Move Overdue to Today',
