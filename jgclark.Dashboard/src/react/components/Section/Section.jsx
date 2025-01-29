@@ -132,7 +132,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Hooks
   //----------------------------------------------------------------------
   const { itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
-  clo(itemsToShow[0]?.para?.content, `Section.jsx numFilteredOut=${numFilteredOut} limitApplied=${String(limitApplied)} itemsToShow[0].para.content=`)
 
   //----------------------------------------------------------------------
   // Handlers
@@ -140,12 +139,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // handle a click to start interactive processing
   const handleInteractiveProcessingClick = useCallback(
     (e: MouseEvent): void => {
-      logDebug(`Section`, `handleInteractiveProcessingClick x,y=(${e.clientX}, ${e.clientY})`)
-      console.log('Section 🥸 handleIPItemProcessed reactSettings at top of handleInteractiveProcessingClick function', reactSettings)
-
       const clickPosition = { clientY: e.clientY, clientX: e.clientX + 200 }
       const itemDetails = { actionType: '', item: itemsToShow[0], sectionCodes: [section.sectionCode] }
-      logDebug('Section', `handleInteractiveProcessingClick; setting currentIPIndex=${String(0)} itemDetails=${JSON.stringify(itemDetails)}`)
       setReactSettings((prevSettings) => {
         const newReactSettings = {
           ...prevSettings,
@@ -153,7 +148,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           interactiveProcessing: { sectionName: section.name, currentIPIndex: 0, totalTasks: itemsToShow.length, visibleItems: [...itemsToShow], clickPosition }, // called when interactive processing on an item is complete
           dialogData: { isOpen: true, isTask: true, details: itemDetails, clickPosition },
         }
-        console.log('Section 🥸 newReactSettings.dialogData.details', newReactSettings)
         return newReactSettings
       })
     },
@@ -161,7 +155,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   )
 
   const handleCommandButtonClick = (button: TActionButton): void => {
-    logDebug(`Section`, `handleCommandButtonClick was called for section ${section.name} section`)
     // but this section could be empty and go away, so we need to propagate up
     onButtonClick(button)
   }
@@ -195,7 +188,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Decrement the number of items to show if the last one is the filterIndicator
   if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') {
     numItemsToShow--
-    // logDebug('Section', `Section ${section.ID} has only one item: ${itemsToShow[0].itemType}, so decrement numItemsToShow to ${String(numItemsToShow)}`)
   }
   if (numItemsToShow === 1 && (itemsToShow[0].itemType === 'itemCongrats' || itemsToShow[0].itemType === 'projectCongrats')) numItemsToShow = 0
 
