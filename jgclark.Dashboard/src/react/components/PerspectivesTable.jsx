@@ -3,7 +3,7 @@
 // PerspectivesTable Component
 // Displays a table of settings for multiple perspectives.
 // Users can edit settings for each perspective.
-// Last updated 2025-01-18 for 2.1.4
+// Last updated 2025-01-29 for v2.1.7
 //------------------------------------------------------------------------------
 
 // TODO: Something really strange happens if you "Apply" a perspective that has been modified but then click "Cancel".
@@ -13,11 +13,11 @@
 
 import React, { useState } from 'react'
 import '../css/PerspectivesTable.css' // Import CSS for styling
+import type { TPerspectiveSettings, TPerspectiveDef } from '../../types.js'
+import { useAppContext } from './AppContext.jsx'
 import { renderItem } from '@helpers/react/DynamicDialog/dialogElementRenderer.js'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
-import type { TPerspectiveSettings, TPerspectiveDef } from '../../types.js'
-import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug } from '@helpers/react/reactDev.js'
 import { getDiff } from '@helpers/dev'
 
@@ -47,6 +47,9 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
 
   const [updatedPerspectives, setUpdatedPerspectives] = useState(perspectiveWithModifiedMaybe.sort((a, b) => a.name.localeCompare(b.name)))
   const [changesMade, setChangesMade] = useState(false) // Manage changesMade state here
+
+  // Filter out some settingDefs that are not relevant to the PerspectivesTable
+  const settingDefsForTable = settingDefs.filter((settingDef) => settingDef.key !== 'perspectivesEnabled' && settingDef.label !== 'Perspectives' && settingDef.label !== 'Logging' && settingDef.label !== '' && settingDef.type !== "separator")
 
   // Handler for field changes
   const handleFieldChange = (perspectiveIndex: number, key: string, value: any) => {
@@ -181,17 +184,17 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
             </tr>
           </thead>
           <tbody>
-            {settingDefs
-              .filter((settingDef) => settingDef.key !== 'perspectivesEnabled' && settingDef.label !== 'Perspectives' && settingDef.label !== 'Logging')
-              .map((settingDef, settingIndex) => {
-                if (settingDef.type === 'separator') {
-                  // Note: Removed by JGC 26.1.2025, as it doesn't seem to be used
-                  // return (
-                  // <tr key={`separator-${settingIndex}`}>
-                  //   <td colSpan={updatedPerspectives.length + 1} className="ui-separator"></td>
-                  // </tr>
-                  // )
-                }
+            {settingDefsForTable.map((settingDef, settingIndex) => {
+            // .filter((settingDef) => settingDef.key !== 'perspectivesEnabled' && settingDef.label !== 'Perspectives' && settingDef.label !== 'Logging')
+            // .map((settingDef, settingIndex) => {
+            //   if (settingDef.type === 'separator') {
+            //     // Note: Removed by JGC 26.1.2025, as it doesn't seem to be used
+            //     // return (
+            //     // <tr key={`separator-${settingIndex}`}>
+            //     //   <td colSpan={updatedPerspectives.length + 1} className="ui-separator"></td>
+            //     // </tr>
+            //     // )
+            //   }
                 // Note: this is a big hack to get the heading to appear to span the whole table width. In practice the 'sticky' doesn't work if there is a single colspan covering all columns.
                 // So we have to use a colspan of 2 for the first column, and then a colspan of the remaining columns.
                 if (settingDef.type === 'heading') {
@@ -200,7 +203,8 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
                       <td colSpan="2" className="settings-heading ui-heading">
                         {settingDef.label}
                       </td>
-                      <td colSpan={updatedPerspectives.length - 1} className="settings-heading"></td>
+                      <td colSpan={updatedPerspectives.length - 1} className="settings-heading-filler">
+                      </td>
                     </tr>
                   )
                 }

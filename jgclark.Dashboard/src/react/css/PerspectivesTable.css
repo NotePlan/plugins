@@ -71,13 +71,24 @@
     /* background-color: var(--bg-alt-color); */
   }
 
+  /* First cell in heading row, which has a colspan */
   .settings-heading {
     font-weight: bold;
     color: var(--tint-color);
     background-color: var(--bg-alt-color);
     padding: 0.3rem;
-    border-left: none;
+    border-left: 1px solid var(--divider-color);
     border-right: none;
+  }
+
+  /* For filling rest of heading row */
+  .settings-heading-filler {
+    font-weight: bold;
+    color: var(--tint-color);
+    background-color: var(--bg-alt-color);
+    padding: 0.3rem;
+    border-left: none;
+    border-right: 1px solid var(--divider-color);
   }
 
   /* Style for setting labels */
@@ -85,6 +96,13 @@
     min-width: 12rem;
     padding: 0.2rem 0.4rem;
     background-color: var(--bg-main-color);
+  }
+
+  /* More style for setting labels */
+  /* TEST: Following don't work  */
+  td .setting-label {
+    border-left: 1px solid var(--divider-color);
+    border-right: 1px solid var(--divider-color);
   }
 
   /* Make header row cell 1 highest z-index. Note joined selector. */
