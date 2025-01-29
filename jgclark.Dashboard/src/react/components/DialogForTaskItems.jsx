@@ -13,7 +13,6 @@ import { type MessageDataObject } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
-// import StatusIcon from './StatusIcon.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logInfo } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
@@ -299,12 +298,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       }))
     }
   }
-
-  // Following handleIconClick() at the lower StatusIcon component, all we need to do now is close the dialog.
-  // function handleIconClick() {
-  //   // logDebug(`DialogForTaskItems/handleIconClick`, `handleIconClick -- closing dialog.`)
-  //   closeDialog()
-  // }
 
   function handleButtonClick(event: MouseEvent, controlStr: string, handlingFunction: string) {
     const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(event) // Indicates whether a modifier key was pressed

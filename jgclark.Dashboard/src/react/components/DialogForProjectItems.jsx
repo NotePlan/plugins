@@ -2,10 +2,11 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by Dialog component
-// Last updated 2024-09-21 for v2.1.0.a12 by @jgclark
+// Last updated 2025-01-29 for v2.1.7
 //--------------------------------------------------------------------------
 
-import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
+import React, { useRef, useEffect, useLayoutEffect, useState } from 'react'
+// import type { ElementRef } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
@@ -13,11 +14,9 @@ import CalendarPicker from './CalendarPicker.jsx'
 import ProjectIcon from './ProjectIcon'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString, relativeDateFromNumber } from '@helpers/dateTime'
-import { clo, logDebug } from '@helpers/react/reactDev'
+import { clo, clof, JSP, logDebug, logInfo } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
-
-// type RefType<T> = {| current: null | T |}
 
 type Props = {
   onClose: (xWasClicked: boolean) => void,
@@ -37,9 +36,11 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const [animationClass, setAnimationClass] = useState('')
   const [resetCalendar, setResetCalendar] = useState(false)
 
-  const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
+  // const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
+  // TEST: borrowing from DialogForTaskItems.jsx
+  const dialogRef: React$RefObject<?HTMLDialogElement> = useRef <? HTMLDialogElement > (null)
 
-  // clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`)
+  clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`, 2)
   const thisItem = detailsMessageObject?.item
   if (!thisItem) { throw `Cannot find item` }
   const lastProgressText = (thisItem.project?.lastProgressComment) ? `last: ${thisItem.project?.lastProgressComment}` : ''
@@ -100,7 +101,8 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const closeDialog = (forceClose: boolean = false) => {
     // Start the zoom-out animation
     setAnimationClass('zoom-out')
-    scheduleClose(500, forceClose)  // Match the duration of the animation
+    scheduleClose(300, forceClose)  // Match the duration of the animation
+    // onClose(forceClose)
   }
 
   const scheduleClose = (delay: number, forceClose: boolean = false) => {
@@ -114,7 +116,8 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     const actionType = 'setNextReviewDate'
 
     logDebug(`DialogForProjectItems`, `Specific Date selected: ${String(date)} isoDateStr:${isoDateStr}. Will use actionType ${actionType}`)
-    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, controlStr: isoDateStr }, 'Date selected', true)
+    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, controlStr: isoDateStr }, `${isoDateStr} selected in date picker`, true)
+
     // reset the calendar picker after some time or in the next render cycle so it forgets the last selected date
     setResetCalendar(true)
     setTimeout(() => setResetCalendar(false), 0) // Reset the calendar in the next render cycle
@@ -123,8 +126,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
   function handleButtonClick(_event: MouseEvent, controlStr: string, type: string) {
     clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
-    logDebug(`DialogForProjectItems handleButtonClick`, `Clicked ${controlStr}`)
-    console.log(
+    logDebug(`DialogForProjectItems handleButtonClick`,
       `Button clicked on ID: ${ID} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, Filename: ${filename}`,
     )
     const dataToSend = {
@@ -137,13 +139,14 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, true)
 
     // Start the zoom/flip-out animation
-    setAnimationClass('zoom-out') //flip-out
+    // setAnimationClass('zoom-out') //flip-out
 
     // Dismiss dialog
     // Wait for zoom animation animation to finish before actually closing
     setTimeout(() => {
       onClose(false)
-    }, 500) // Match the duration of the animation
+    }, 300) // Match the duration of the animation
+    // onClose(false)
   }
 
   useLayoutEffect(() => {
@@ -165,6 +168,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
         className={`projectControlDialog ${animationClass}`}
         aria-labelledby="Actions Dialog"
         aria-describedby="Actions that can be taken on projects"
+        // $FlowIgnore[incompatible-type]
         ref={dialogRef}
       >
         {/* Title area ---------------- */}
