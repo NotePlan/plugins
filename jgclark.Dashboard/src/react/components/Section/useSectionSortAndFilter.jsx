@@ -11,7 +11,7 @@
 // Last updated 2025-01-13 for v2.1.6
 //-----------------------------------------------------------------------------
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import moment from 'moment/min/moment-with-locales'
 import type { TSection, TSectionItem } from '../../../types.js'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev'
@@ -25,18 +25,22 @@ type UseSectionSortAndFilter = {
 }
 
 const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, dashboardSettings: any): UseSectionSortAndFilter => {
-  const [filteredItems, setFilteredItems] = useState < Array < TSectionItem >> ([])
-  const [itemsToShow, setItemsToShow] = useState < Array < TSectionItem >> ([])
-  const [numFilteredOut, setFilteredOut] = useState < number > (0)
-  const [limitApplied, setLimitApplied] = useState < boolean > (false)
+  // Memoize the items array to prevent unnecessary re-renders
+  const memoizedItems = useMemo(() => items, [items])
+  const memoizedDashboardSettings = useMemo(() => dashboardSettings, [dashboardSettings])
+
+  const [filteredItems, setFilteredItems] = useState<Array<TSectionItem>>([])
+  const [itemsToShow, setItemsToShow] = useState<Array<TSectionItem>>([])
+  const [numFilteredOut, setFilteredOut] = useState<number>(0)
+  const [limitApplied, setLimitApplied] = useState<boolean>(false)
 
   useEffect(() => {
     // Handle TB section differently
     if (section.sectionCode === 'TB') {
-      logDebug('useSectionSortAndFilter/timeblock', `Starting for TB section with ${items.length} items`)
+      logDebug('useSectionSortAndFilter/timeblock', `Starting for TB section with ${memoizedItems.length} items`)
       // Filter out all non-current timeblocks, and show what remains
       // Note: assumes they come in (start) time order.
-      const currentTBItems = items.filter((i) => {
+      const currentTBItems = memoizedItems.filter((i) => {
         const currentTimeMom = moment()
         const para = i.para
         if (!para) return false
@@ -44,23 +48,22 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
         const startTimeStr = getStartTimeStrFromParaContent(para.content)
         const startTimeMom = moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
         const endTimeStr = getEndTimeStrFromParaContent(para.content) ?? ''
-        const endTimeMom = (endTimeStr !== '' && endTimeStr !== 'error')
-          ? moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
-          : moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH']).add(15, 'minutes')
+        const endTimeMom =
+          endTimeStr !== '' && endTimeStr !== 'error'
+            ? moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
+            : moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH']).add(15, 'minutes')
         // Special syntax for moment.isBetween which allows the end time minute to be excluded.
         return currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')
-      }
-      )
-      const TBItemOrEmptyList = (currentTBItems.length)
-        ? currentTBItems
-        : []
+      })
+      const TBItemOrEmptyList = currentTBItems.length ? currentTBItems : []
       setItemsToShow(TBItemOrEmptyList)
     }
-      // Handle all other sections
+    // Handle all other sections
     else {
-      const typeFilteredItems = (dashboardSettings && dashboardSettings.ignoreChecklistItems && items.length)
-        ? items.filter(si => !(si.para?.type === "checklist"))
-        : items
+      const typeFilteredItems =
+        memoizedDashboardSettings && memoizedDashboardSettings.ignoreChecklistItems && memoizedItems.length
+          ? memoizedItems.filter((si) => !(si.para?.type === 'checklist'))
+          : memoizedItems
 
       // Find highest priority seen
       let maxPrioritySeen = -1
@@ -70,12 +73,10 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
         }
       }
       // and then filter out lower-priority items (if wanted)
-      const filterByPriority = dashboardSettings.filterPriorityItems ?? false
-      const filteredItems = filterByPriority
-        ? typeFilteredItems.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen)
-        : typeFilteredItems.slice()
-      const priorityFilteringHappening = items.length > filteredItems.length
-      // logDebug('useSectionSortAndFilter', `${section.sectionCode}: ${items.length} items; maxPri = ${String(maxPrioritySeen)}; leaves ${String(filteredItems.length)} filteredItems`)
+      const filterByPriority = memoizedDashboardSettings.filterPriorityItems ?? false
+      const filteredItems = filterByPriority ? typeFilteredItems.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen) : typeFilteredItems.slice()
+      const priorityFilteringHappening = memoizedItems.length > filteredItems.length
+      // logDebug('useSectionSortAndFilter', `${section.sectionCode}: ${memoizedItems.length} items; maxPri = ${String(maxPrioritySeen)}; leaves ${String(filteredItems.length)} filteredItems`)
       // clo(filteredItems, 'useSectionSortAndFilter filteredItems:')
 
       filteredItems.sort(itemSort)
@@ -85,7 +86,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
       // logDebug('useSectionSortAndFilter', `after reordering children: ${String(filteredOrderedItems.map(fi => fi.ID).join(','))}`)
 
       // If more than limitToApply, then just keep the first items, otherwise keep all
-      const limitToApply = dashboardSettings.maxItemsToShowInSection ?? 20
+      const limitToApply = memoizedDashboardSettings.maxItemsToShowInSection ?? 20
       const itemsToShow = limitToApply > 0 ? filteredOrderedItems.slice(0, limitToApply) : filteredOrderedItems.slice()
       const limitApplied = typeFilteredItems.length > itemsToShow.length
 
@@ -96,13 +97,15 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
           ID: `${section.ID}-Filter`,
           itemType: 'filterIndicator',
           para: {
-            content: `There ${numFilteredOut >= 2 ? 'are' : 'is'} also ${String(numFilteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${numFilteredOut >= 2 ? 'items' : 'item'} currently hidden`,
+            content: `There ${numFilteredOut >= 2 ? 'are' : 'is'} also ${String(numFilteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${
+              numFilteredOut >= 2 ? 'items' : 'item'
+            } currently hidden`,
             filename: '',
             type: 'text',
             noteType: 'Notes',
             rawContent: '',
             priority: -1,
-            indentLevel: 0
+            indentLevel: 0,
           },
         })
       }
@@ -113,7 +116,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
       setFilteredOut(numFilteredOut)
       setLimitApplied(limitApplied)
     }
-  }, [section, items, dashboardSettings])
+  }, [section, memoizedItems, memoizedDashboardSettings])
 
   return { filteredItems, itemsToShow, numFilteredOut, limitApplied }
 }
@@ -164,7 +167,7 @@ export function reorderChildrenAfterParents(data: Array<Object>): Array<Object> 
   const map = new Map()
 
   // Create a map to store objects by parent
-  data.forEach(obj => {
+  data.forEach((obj) => {
     const parent = obj.parentID ? obj.parentID : ''
     if (!map.has(parent)) {
       map.set(parent, [])
@@ -176,7 +179,7 @@ export function reorderChildrenAfterParents(data: Array<Object>): Array<Object> 
   // Recursive function to build the sorted array
   const buildSorted = (parentID: string) => {
     const children = map.get(parentID ?? '') || []
-    children.forEach(child => {
+    children.forEach((child) => {
       orderedData.push(child)
       buildSorted(child.ID)
     })
