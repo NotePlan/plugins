@@ -274,7 +274,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
-  const handleDialogClose = (xWasClicked: boolean = false) => {}
+  const handleDialogClose = (xWasClicked: boolean = false) => {
+    logDebug('Dashboard', `handleDialogClose() called with xWasClicked=${String(xWasClicked)}`)
+    setReactSettings((prevSettings) => ({
+      ...prevSettings,
+      dialogData: { isOpen: false, isTask: true },
+    }))
+  }
 
   // Deal with the delayed refresh when a button was clicked
   // Because sections and buttons could be destroyed after a click, we need to refresh from here
