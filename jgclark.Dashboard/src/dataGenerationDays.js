@@ -67,6 +67,8 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       // Note: parentID already supplied
       const sortedItems = config.separateSectionForReferencedNotes ? openTodayItems : openTodayItems.concat(refTodayItems)
       sortedItems.map((item) => {
+        // $FlowIgnore[prop-missing]
+        // $FlowFixMe[incompatible-call]
         if (isOpen(item.para)) {
           if (item.para) {
             const timeStr = getStartTimeFromPara(item.para)

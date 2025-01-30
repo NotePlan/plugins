@@ -97,7 +97,7 @@ There's a UI toggle "**Filter out lower-priority items?**". If this is on, then 
 
 The top bar has a **count of tasks done today** (apart from on narrow windows and on iOS). This includes all those completed in project notes, not just from the calendar sections shown. Note: this requires having the NotePlan setting 'Todo > Append Completion Date' setting turned on, as otherwise we can't tell when a task is finished. (As @done(...) dates don't get appended to completed checklists, it's not possible to count completed checklists.) When you complete a task in a project note, it will be included the next time the Dashboard is refreshed, automatically on manually.
 
-The display will **automatically refresh** in the background if you set the "Automatic Update frequency" to any number > 0. This number is the number of minutes after the window is idle when it will refresh the sections you want to display. You can also press the 'Refresh' button at any point, and/or you can set a trigger (see below).
+The display will **automatically refresh** in the background if you set the "Automatic Update interval" to any number > 0. This number is the number of minutes after the window is idle when it will refresh the sections you want to display. You can also press the 'Refresh' button at any point, and/or you can set a trigger (see below).
 
 ### Current Time Block section
 [Time blocks in NotePlan](https://help.noteplan.co/article/121-time-blocking) are a helpful way to help you plan your days. If you define some, they appear in the calendar sidebar.  If the current time is within a time block, then this section appears at the top of the Dashboard. For example:
@@ -146,7 +146,14 @@ The 3 key settings in "What to Include and Exclude" section control what folders
 - Folders to Include: Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included.
 - Folders to Exclude: Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. The matches are partial, so 'Work' will exclude 'Work' and 'Work/CompanyA' etc. To ignore notes at the top-level (not in a folder), include '/' in the list. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)
 - Ignore items in notes with these phrase(s): If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. (This check is not case sensitive.) This is useful for situations where completing the item is outside your control.
-- Apply to sections under headings in Calendar notes? If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored.
+- Apply to sections under headings in Calendar notes? If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored. This applies to the preceding headings all the way up the H5->H1 hierarchy of section headings for that line. For example in the following note:
+  ```markdown
+  ## Work Tasks
+  ### Project VENONA
+  * Break Russia KGB cipher system >today
+  * Find the identity of the moles
+  ```
+  If this setting contains `Work`, then the two tasks in the H3 section will also be ignored because it is under the H2 `Work Tasks` section.
 
 These settings change some of how it displays and behaves:
 - Reschedule items in place, rather than move them?: When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.

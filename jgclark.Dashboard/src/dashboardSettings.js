@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated for v2.1.0.b
+// Last updated for v2.1.7
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -109,7 +109,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: 'applyIgnoreTermsToCalendarHeadingSections',
     label: 'Apply to sections under headings in Calendar notes?',
-    description: 'If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored.',
+    description: 'If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored. (This applies to the preceding headings all the way up the H5->H1 hierarchy of section headings for that line.)',
     type: 'switch',
     default: false,
     compactDisplay: true,
@@ -198,7 +198,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     key: 'autoUpdateAfterIdleTime', // aka "autoRefresh"
-    label: 'Automatic Update frequency',
+    label: 'Automatic Update interval',
     description: 'If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.',
     type: 'number',
     default: '10',

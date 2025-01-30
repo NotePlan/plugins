@@ -1,6 +1,14 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.7] 2025-01-30
+### Changed
+- Perspectives: if you have 'Apply to sections under headings in Calendar notes?' turned on, this now applies to all the preceding headings up the H5->H1 hierarchy for that line.
+- task and project edit dialogs now can be closed by clicking outside the window
+- setting 'Automatic Update frequency' renamed to 'Automatic Update interval'
+### Fixed
+- issue after project edit dialog opened
+
 ## [2.1.6] 2025-01-27
 ### New
 - if a task is marked complete, and it has a `@repeat(date)` (using the Repeat Extensions plugin) then it will now automatically generate the new repeat. (This works around a limitation in the API where the usual trigger doesn't fire.)

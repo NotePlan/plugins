@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated for v2.1.6
+// Last updated for v2.1.7
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -25,6 +25,7 @@ import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getAPIDateStrFromDisplayDateStr, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
+import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
 import { filterOutParasInExcludeFolders, isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
 import { getReferencedParagraphs } from '@helpers/NPnote'
@@ -39,7 +40,10 @@ import {
   isActiveOrFutureTimeBlockPara,
   // isTypeThatCanHaveATimeBlock, RE_TIMEBLOCK_IN_LINE
 } from '@helpers/timeblocks'
-import { isOpenChecklist, isOpen, isOpenTask, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
+import {
+  // isOpenChecklist, isOpenTask,
+  isOpen, isOpenNotScheduled, removeDuplicates
+} from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Types
@@ -310,10 +314,19 @@ export function getOpenItemParasForTimePeriod(
       logTimer('getOpenItemPFCTP', startTime, `- after 'dashboardSettings.ignoreItemsWithTerms' filter: ${openParas.length} paras`)
 
       // Additionally apply to calendar headings in this note
+      // Now using getHeadingHierarchyForThisPara() to apply to all H4/H3/H2 headings in the hierarchy for this para
       if (dashboardSettings.applyIgnoreTermsToCalendarHeadingSections) {
         openParas = openParas.filter((p) => {
-          const thisHeading = p.heading
-          return !isLineDisallowedByExcludedTerms(thisHeading, dashboardSettings.ignoreItemsWithTerms)
+          // const thisHeading = p.heading
+          const theseHeadings = getHeadingHierarchyForThisPara(p) // was just [p.heading]
+          let isAllowed = true
+          for (const thisHeading of theseHeadings) {
+            if (isLineDisallowedByExcludedTerms(thisHeading, dashboardSettings.ignoreItemsWithTerms)) {
+              isAllowed = false
+              break
+            }
+          }
+          return isAllowed
         })
         logTimer('getOpenItemPFCTP', startTime, `- after applying this to calendar headings as well: ${openParas.length} paras`)
       }
