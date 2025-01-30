@@ -151,69 +151,6 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
   }
 }
 
-export async function templateForm(templateTitle?: string): Promise<void> {
-  try {
-    let selectedTemplate // will be a filename
-    if (templateTitle?.trim().length) {
-      const options = await NPTemplating.getTemplateList('template-form')
-      const chosenOpt = options.find((option) => option.label === templateTitle)
-      if (chosenOpt) {
-        // variable passed is a note title, but we need the filename
-        selectedTemplate = chosenOpt.value
-      }
-    } else {
-      // ask the user for the template
-      selectedTemplate = await NPTemplating.chooseTemplate('template-form')
-    }
-    let formFields: Array<Object> = []
-    if (selectedTemplate) {
-      const note = await getNoteByFilename(selectedTemplate)
-      if (note) {
-        const codeBlocks = getCodeBlocksOfType(note, 'formfields')
-        if (codeBlocks.length > 0) {
-          const formFieldsString = codeBlocks[0].code
-          if (formFieldsString) {
-            try {
-              formFields = parseObjectString(formFieldsString)
-              if (!formFields) {
-                const errors = validateObjectString(formFieldsString)
-                logError(pluginJson, `templateForm: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
-                logError(pluginJson, `templateForm: errors: ${errors.join('\n')}`)
-                return
-              }
-              clo(formFields, `🎅🏼 DBWDELETE NPTemplating.templateForm formFields=`)
-            } catch (error) {
-              logError(pluginJson, `templateForm: error parsing form fields: ${error.message} String:\n${formFieldsString}`)
-              return
-            }
-          }
-        }
-      } else {
-        logError(pluginJson, `templateForm: could not find form template: ${selectedTemplate}`)
-        return
-      }
-    }
-    const templateData = await NPTemplating.getTemplate(selectedTemplate)
-    const templateFrontmatterAttributes = await NPTemplating.getTemplateAttributes(templateData)
-
-    if (!templateFrontmatterAttributes?.receivingTemplateTitle) {
-      logError(pluginJson, 'Template does not have a receivingTemplateTitle set')
-      await showMessage('Template does not have a receivingTemplateTitle set. Please set the receivingTemplateTitle in your template frontmatter first.')
-      return
-    }
-
-    //TODO: we may not need this step, ask @codedungeon what he thinks
-    let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
-
-    frontmatterAttributes = { ...frontmatterAttributes, formFields: formFields }
-
-    //TODO: IAMHERE - open the form fields in the editor, passing the data
-    DataStore.invokePluginCommandByName('openFormWindow', 'np.Shared', [frontmatterAttributes])
-  } catch (error) {
-    logError(pluginJson, error)
-  }
-}
-
 export async function templateInvoke(templateName?: string): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
@@ -290,7 +227,8 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, args)
     frontmatterAttributes = { ...frontmatterAttributes, ...args }
 
-    if (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
+    if (/select|choose/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {
+      // dbw note: I'm not sure I understand the second part of this condition, but it's always been that way, so not changing it
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
 

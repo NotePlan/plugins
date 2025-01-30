@@ -32,9 +32,10 @@
 .dropdown-select-input {
 	flex: 1;
 	padding: 2px 20px 0px 8px; /* tried to make it look the same as HAButton */
-	border-radius: 4px;
 	width: 100%;
 	font-family: system-ui;
+	border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
+	border-radius: 4px;
 }
 
 .dropdown-select-input:focus {

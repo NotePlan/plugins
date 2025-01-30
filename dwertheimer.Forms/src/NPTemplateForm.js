@@ -1,11 +1,15 @@
 // @flow
 
-import pluginJson from '../../np.Shared/plugin.json'
+import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { showMessage } from '@helpers/userInput'
+import NPTemplating from 'NPTemplating'
+import { getNoteByFilename } from '@helpers/note'
+import { getCodeBlocksOfType } from '@helpers/codeBlocks'
+import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} Form Entry React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
@@ -14,6 +18,8 @@ const REACT_WINDOW_TITLE = 'Form View' // change this to what you want window ti
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
   title?: string /* React Window Title */,
+  width?: number /* React Window Width */,
+  height?: number /* React Window Height */,
   pluginData: any /* Your plugin's data to pass on first launch (or edited later) */,
   ENV_MODE?: 'development' | 'production',
   debug: boolean /* set based on ENV_MODE above */,
@@ -24,10 +30,117 @@ export type PassedData = {
 }
 
 /**
+ * Validate the form fields to make sure they are valid
+ * @param {Array<Object>} formFields - the form fields to validate
+ * @returns {boolean} - true if the form fields are valid, false otherwise
+ */
+function validateFormFields(formFields: Array<Object>): boolean {
+  let i = 0
+  for (const field of formFields) {
+    i++
+    // check that each field has a type, and if not use showMessage to alert the user
+    if (!field.type) {
+      showMessage(`Field "${field.label || ''}" (index ${i}) does not have a type. Please set a type for every field.`)
+      return false
+    }
+    // every field that is not a separator must have a key
+    if (field.type !== 'separator' && field.type !== 'heading' && !field.key) {
+      showMessage(`Field "${field.label || ''}" (index ${i}) does not have a key. Please set a key for every field.`)
+      return false
+    }
+  }
+  return true
+}
+
+/**
+ * Plugin entrypoint for getting the form data and then opening the form window
+ * Open a form window with the form fields from the template codeblock named "formFields"
+ * @param {string} templateTitle - the title of the template to use
+ * @returns {void}
+ */
+export async function getTemplateFormData(templateTitle?: string): Promise<void> {
+  try {
+    let selectedTemplate // will be a filename
+    if (templateTitle?.trim().length) {
+      const options = await NPTemplating.getTemplateList('template-form')
+      const chosenOpt = options.find((option) => option.label === templateTitle)
+      if (chosenOpt) {
+        // variable passed is a note title, but we need the filename
+        selectedTemplate = chosenOpt.value
+      }
+    } else {
+      // ask the user for the template
+      selectedTemplate = await NPTemplating.chooseTemplate('template-form')
+    }
+    let formFields: Array<Object> = []
+    if (selectedTemplate) {
+      const note = await getNoteByFilename(selectedTemplate)
+      if (note) {
+        const codeBlocks = getCodeBlocksOfType(note, 'formfields')
+        if (codeBlocks.length > 0) {
+          const formFieldsString = codeBlocks[0].code
+          if (formFieldsString) {
+            try {
+              formFields = parseObjectString(formFieldsString)
+              if (!formFields) {
+                const errors = validateObjectString(formFieldsString)
+                logError(pluginJson, `getTemplateFormData: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
+                logError(pluginJson, `getTemplateFormData: errors: ${errors.join('\n')}`)
+                return
+              }
+              clo(formFields, `🎅🏼 DBWDELETE NPTemplating.getTemplateFormData formFields=`)
+              logDebug(pluginJson, `🎅🏼 DBWDELETE NPTemplating.getTemplateFormData formFields=\n${JSON.stringify(formFields, null, 2)}`)
+            } catch (error) {
+              const errors = validateObjectString(formFieldsString)
+              await showMessage(
+                `getTemplateFormData: There is an error in your form fields (most often a missing comma).\nJS Error: "${error.message}"\nCheck Plugin Console Log for more details.`,
+              )
+              logError(pluginJson, `getTemplateFormData: error parsing form fields: ${error.message} String:\n${formFieldsString}`)
+              logError(pluginJson, `getTemplateFormData: errors: ${errors.join('\n')}`)
+              return
+            }
+          }
+        }
+      } else {
+        logError(pluginJson, `getTemplateFormData: could not find form template: ${selectedTemplate}`)
+        return
+      }
+    }
+    const templateData = await NPTemplating.getTemplate(selectedTemplate)
+    const templateFrontmatterAttributes = await NPTemplating.getTemplateAttributes(templateData)
+
+    if (!templateFrontmatterAttributes?.receivingTemplateTitle) {
+      logError(pluginJson, 'Template does not have a receivingTemplateTitle set')
+      await showMessage('Template does not have a receivingTemplateTitle set. Please set the receivingTemplateTitle in your template frontmatter first.')
+      return
+    }
+
+    //TODO: we may not need this step, ask @codedungeon what he thinks
+    const { _, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+
+    if (templateFrontmatterAttributes.formFields) {
+      // yaml version of formFields
+      frontmatterAttributes.formFields = templateFrontmatterAttributes.formFields
+    } else {
+      // codeblock version of formFields
+      frontmatterAttributes.formFields = formFields
+    }
+
+    if (await validateFormFields(frontmatterAttributes.formFields)) {
+      await openFormWindow(frontmatterAttributes)
+    } else {
+      logError(pluginJson, 'Form fields validation failed. The form window will not be opened.')
+    }
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
+/**
  * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin
  * @returns {PassedData} the React Data Window object
  */
-export function getInitialReactWindowData(argObj: Object): PassedData {
+export function createWindowInitData(argObj: Object): PassedData {
   const startTime = new Date()
   // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
   const pluginData = getPluginData(argObj)
@@ -35,12 +148,14 @@ export function getInitialReactWindowData(argObj: Object): PassedData {
   const dataToPass: PassedData = {
     pluginData,
     title: argObj?.formTitle || REACT_WINDOW_TITLE,
+    width: argObj?.width ? parseInt(argObj.width) : undefined,
+    height: argObj?.height ? parseInt(argObj.height) : undefined,
     logProfilingMessage: false,
-    debug: ENV_MODE === 'development' ? true : false,
+    debug: false,
     ENV_MODE,
-    returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormMessageFromHTMLView' },
+    returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormSubmitFromHTMLView' },
     /* change the ID below to your plugin ID */
-    componentPath: `../np.Shared/react.c.FormView.bundle.dev.js`,
+    componentPath: `../dwertheimer.Forms/react.c.FormView.bundle.dev.js`,
     startTime,
   }
   return dataToPass
@@ -76,7 +191,7 @@ export function getPluginData(argObj: Object): { [string]: mixed } {
  * @param {any} data - the relevant sent from the React Window (could be anything the plugin needs to act on the actionType)
  * @author @dwertheimer
  */
-export async function onFormMessageFromHTMLView(actionType: string, data: any = null): Promise<any> {
+export async function onFormSubmitFromHTMLView(actionType: string, data: any = null): Promise<any> {
   try {
     logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
     clo(data, `Plugin onMessageFromHTMLView data=`)
@@ -145,7 +260,6 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
       const shouldOpenInEditor = true // TODO: maybe templaterunner should derive this from a frontmatter field. but note that if newNoteTitle is set, it will always open. not set in underlying template
       const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, JSON.stringify(formValues)]
       clo(argumentsToSend, `handleSubmitButtonClick: DataStore.invokePluginCommandByName('templateRunner', 'np.Templating' with arguments`)
-      //TODO: call directly once this code is moved to inside Templating plugin
       await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
     } else {
       logError(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
@@ -158,32 +272,44 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
 }
 
 /**
- * Plugin Entry Point for "Open Form Window"
+ * Opens the HTML+React window; Called after the form data has been generated
+ * @param {Object} argObj - the data to pass to the React Window (comes from templating "getTemplateFormData" command, a combination of the template frontmatter vars and formFields codeblock)
+ *  - formFields: array (required) - the form fields to display
+ *  - windowTitle: string (optional) - the title of the window (defaults to 'Form')
+ *  - formTitle: string (optional) - the title of the form (inside the window)
+ *  - width: string (optional) - the width of the form window
+ *  - height: string (optional) - the height of the form window
  * @author @dwertheimer
  */
 export async function openFormWindow(argObj: Object): Promise<void> {
   try {
     if (!argObj) {
-      logError(pluginJson, `np.Shared openFormWindow: argObj is undefined`)
+      logError(pluginJson, `openFormWindow: argObj is undefined`)
       await showMessage('openFormWindow: no form fields were sent. Cannot continue. Make sure your template has a "formfields" codeblock.')
       return
     }
-    logDebug(pluginJson, `np.Shared openFormWindow starting up`)
+    logDebug(pluginJson, `openFormWindow starting up`)
     // get initial data to pass to the React Window
-    const data = await getInitialReactWindowData(argObj)
+    const data = await createWindowInitData(argObj)
 
     // Note the first tag below uses the w3.css scaffolding for basic UI elements. You can delete that line if you don't want to use it
     // w3.css reference: https://www.w3schools.com/w3css/defaulT.asp
     // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
     const cssTagsString = `
       <link rel="stylesheet" href="../np.Shared/css.w3.css">
-		  <link rel="stylesheet" href="../np.Shared/css.plugin.css">\n`
+      <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
+      <link href="../np.Shared/fontawesome.css" rel="stylesheet">
+      <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
     const windowOptions = {
       savedFilename: `../../${pluginJson['plugin.id']}/form_output.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
-      windowTitle: 'Form', // Note: data.title holds the form title if you want that,
+      windowTitle: argObj?.windowTitle || 'Form',
+      width: argObj?.width,
+      height: argObj?.height,
       customId: WEBVIEW_WINDOW_ID,
-      shouldFocus: true /* focus window every time (set to false if you want a bg refresh) */,
+      shouldFocus: true /* focus window everyd time (set to false if you want a bg refresh) */,
       generalCSSIn: generateCSSFromTheme(), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       postBodyScript: `
         <script type="text/javascript" >
@@ -194,6 +320,7 @@ export async function openFormWindow(argObj: Object): Promise<void> {
     }
     logDebug(`===== testReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
     logDebug(pluginJson, `testReactWindow invoking window. testReactWindow stopping here. It's all React from this point forward`)
+    clo(windowOptions, `testReactWindow windowOptions object passed`)
     clo(data, `testReactWindow data object passed`)
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])

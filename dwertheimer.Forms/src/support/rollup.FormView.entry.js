@@ -4,4 +4,4 @@
 // Even though we have named this FormView.jsx, it is exported as WebView.jsx because that
 // is what the Root React Component expects
 
-export { FormView as WebView } from '../reactForm/components/FormView.jsx'
+export { FormView as WebView } from '../components/FormView.jsx'

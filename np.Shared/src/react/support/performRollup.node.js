@@ -58,35 +58,6 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
 
   rollupProms.push(rollupReactFiles(rootConfig, watch, 'np.Shared Root Component development version'))
 
-  // FormView bundle configs
-  const formViewRollupConfigs = [
-    getRollupConfig({
-      entryPointPath: 'np.Shared/src/react/support/rollup.FormView.entry.js',
-      outputFilePath: 'np.Shared/requiredFiles/react.c.FormView.bundle.REPLACEME.js',
-      externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
-      createBundleGraph: graph,
-      buildMode: 'development',
-      bundleName: 'FormViewBundle',
-    }),
-    getRollupConfig({
-      entryPointPath: 'np.Shared/src/react/support/rollup.FormView.entry.js',
-      outputFilePath: 'np.Shared/requiredFiles/react.c.FormView.bundle.REPLACEME.js',
-      externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
-      createBundleGraph: graph,
-      buildMode: 'production',
-      bundleName: 'FormViewBundle',
-    }),
-  ]
-
-  // dbw commenting out minified version for now. not worth the extra build step
-  // const formViewConfig = {
-  //   ...formViewRollupConfigs[0],
-  //   output: [formViewRollupConfigs[0].output, formViewRollupConfigs[1].output],
-  // }
-  const formViewConfig = formViewRollupConfigs[0] // use only dev version for now
-
-  rollupProms.push(rollupReactFiles(formViewConfig, watch, 'np.Shared FormView Component development version'))
-
   // dbw note to self: I don't think we need this anymore. It's not ever called with --react I don't think.
   if (hasReact) {
     const reactConfigs = [

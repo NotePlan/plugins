@@ -10,7 +10,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     min-width: 25rem;
-    max-width: 80vw;
+    max-width: 80%;
     width: fit-content;
     border: none;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
@@ -18,8 +18,7 @@
     opacity: 1;
     border-radius: 8px;
     transition: opacity 0.2s ease-out;
-    overflow:auto;
-    max-height: 80vh;
+    /* overflow: hidden; commented out to allow for dropdowns to show */
 }
 
 /* Narrow for simpler confirmation dialogs */
@@ -35,9 +34,8 @@
     background-color: var(--bg-mid-color);
     padding: 0.75rem 0.6rem;
     border-radius: 8px;
-    overflow: visible;
-    position: relative;
-    max-height: 95%;
+    overflow-y: auto; 
+    max-height: 80vh;
     font-size: 95%;
 }
 
@@ -48,9 +46,6 @@
 
 /* Style for the dialog buttons container */
 .dynamic-dialog-header {
-    position: sticky;
-    top: 0;
-    z-index: 100; /* Ensure it stays above other content */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -60,6 +55,7 @@
     background-color: var(--bg-alt-color);
     color: var(--tint-color);
     margin: 0;
+    background: none;
     line-height: 1.2rem;
     min-height: 2.5rem;
     border-bottom: gray solid .5px;
@@ -201,10 +197,9 @@
     .input-box-container-compact {
         display: flex;
         flex-direction: row;
-        align-items: end;
-        gap: 0px !important;
+        align-items: center;
+        gap: 1rem !important;
         column-gap: 0px;
-        justify-content: center;
     }
 
     /* Style for input-box-wrapper - TODO: remove later */
@@ -234,6 +229,7 @@
         font-size: 0.85rem;
         /* vertical spacing above and below */
         margin: 0.3rem 0rem;
+        margin-left: 10px
     }
     /* Apply styles for read-only input fields */
     .input-box-input:read-only {
@@ -518,4 +514,4 @@
 .dropdown-select-dropdiv {
     max-height: 90vh;
     overflow-y: auto;
-}
+  }

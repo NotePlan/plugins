@@ -146,12 +146,6 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
           await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
           return
         }
-        if (data['newNoteTitle']) {
-          // if form or template has a newNoteTitle field then we need to call templateNew
-          const argsArray = [selectedTemplate, data['folder'] || null, argObj]
-          await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
-          return
-        }
         let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
         // logDebug(pluginJson, `templateFileByTitleEx Template Render Complete renderedTemplate= "${renderedTemplate}"`)
         // clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes before set`)

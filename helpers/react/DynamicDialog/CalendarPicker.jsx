@@ -19,15 +19,30 @@ type Props = {
   reset?: boolean, // Whether the calendar is open/shown or not
   visible?: boolean, // Whether the calendar is shown or not
   className?: string, // Additional CSS class name for the calendar container
+  label?: string, // Label for the text next to the button
+  buttonText?: string, // Text for the button
+  leaveOpen?: boolean, // Whether the calendar should stay open after a date is selected
 }
 
-const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction, reset, visible, className }: Props): React$Node => {
+const CalendarPicker = ({
+  onSelectDate,
+  numberOfMonths = 2,
+  startingSelectedDate,
+  positionFunction,
+  reset,
+  visible,
+  className,
+  buttonText,
+  label,
+  leaveOpen,
+}: Props): React$Node => {
   const [selectedDate, setSelectedDate] = useState(startingSelectedDate)
   const [isOpen, setIsOpen] = useState(visible ?? true)
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date)
     onSelectDate(date) // Propagate the change up to the parent component
+    if (!leaveOpen) setIsOpen(false)
   }
 
   const callRepositionFunctionAfterOpening = () => (positionFunction ? window.setTimeout(() => positionFunction(), 100) : null)
@@ -44,28 +59,12 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
     }
   }, [reset])
 
-  //     '--rdp-cell-size': '20px', // Size down the calendar cells (default is 40px)
-
-  // TODO: looks like these could all move to CalendarPicker.css?
-  /* note: the non-color styles are set in CalendarPicker.css */
-  // const calendarStyles = {
-  //   container: { border: '1px solid #ccc', marginTop: '0px', paddingTop: '0px' },
-  //   caption: { color: 'var(--tint-color)' },
-  //   navButtonPrev: { color: 'var(--tint-color)' },
-  //   navButtonNext: { color: 'var(--tint-color)' },
-  //   weekdays: { backgroundColor: 'var(--bg-main-color)' },
-  //   weekday: { fontWeight: 'bold' },
-  //   weekend: { backgroundColor: 'var(--bg-alt-color)' },
-  //   week: { color: '#333' },
-  //   day: { color: 'var(--fg-main-color)' },
-  //   today: { color: 'var(--hashtag-color)', backgroundColor: 'var(--bg-alt-color)' },
-  //   selected: { color: 'var(--tint-color)', backgroundColor: 'var(--bg-alt-color)' },
-  // }
-
   return (
     <>
       <button className="PCButton" title="Open calendar to pick a specific day" onClick={toggleDatePicker}>
         <i className="fa-solid fa-calendar-alt pad-left pad-right"></i>
+        {buttonText ? <span className="calendar-picker-button-text">{buttonText}</span> : null}
+        {!isOpen && selectedDate && <span className="calendar-picker-label">: {selectedDate?.toLocaleDateString()}</span>}
       </button>
       {isOpen && (
         <div className="dayPicker-container">
@@ -76,7 +75,7 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
             numberOfMonths={numberOfMonths}
             required
             fixedHeight
-            // styles={calendarStyles}
+            label
             className={`calendarPickerCustom ${className || ''}`}
           />
         </div>

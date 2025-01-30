@@ -26,7 +26,6 @@
     "react.core.min.js",
     "react.core.dev.js",
     "react.c.Root.dev.js",
-    "react.c.FormView.bundle.dev.js",
     "noteplanstate-edited.otf",
     "shortcut.js",
     "encodeDecode.js"
@@ -42,18 +41,6 @@
       "name": "onMessageFromHTMLView",
       "description": "React Window calling back to plugin",
       "jsFunction": "onMessageFromHTMLView",
-      "hidden": true
-    },
-    {
-      "name": "openFormWindow",
-      "description": "Open HTML+React Form Window",
-      "jsFunction": "openFormWindow",
-      "hidden": true
-    },
-    {
-      "name": "onFormMessageFromHTMLView",
-      "description": "React Form Calling back to plugin",
-      "jsFunction": "onFormMessageFromHTMLView",
       "hidden": true
     },
     {

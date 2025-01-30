@@ -13,7 +13,6 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 
 export { openReactWindow, onMessageFromHTMLView } from './NPReactLocal'
-export { openFormWindow, onFormMessageFromHTMLView } from './NPFormPluginEntrypoint'
 
 /**
  * Log the list of resource files that should currently be available by this plugin (i.e. at run-time, not compile-time).

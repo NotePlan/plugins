@@ -31,11 +31,11 @@ type Props = {
  ****************************************************************************************************************************/
 
 import React, { useEffect, type Node } from 'react'
-import { type PassedData } from '../../../NPFormPluginEntrypoint.js'
-import MessageBanner from '../../MessageBanner.jsx'
+import { type PassedData } from '../NPTemplateForm.js'
 import { AppProvider } from './AppContext.jsx'
-import DynamicDialog from '@helpers/react/DynamicDialog/index.js'
+import DynamicDialog from '@helpers/react/DynamicDialog'
 import { clo, logDebug } from '@helpers/react/reactDev.js'
+import './FormView.css'
 
 /****************************************************************************************************************************
  *                             CONSOLE LOGGING
@@ -64,7 +64,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
    ****************************************************************************************************************************/
 
   // destructure all the startup data we expect from the plugin
-  const { pluginData, debug } = data
+  const { pluginData } = data
   const formFields = pluginData.formFields || []
 
   /****************************************************************************************************************************
@@ -189,6 +189,11 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
    *                             RENDER
    ****************************************************************************************************************************/
 
+  /**
+   * NOTE: THE FOLLOWING CODE DOES NOT DO MUCH, BECAUSE ALL THE MAGIC HAPPENS IN THE DynamicDialog.jsx component
+   * WHICH IS OPENED WHEN reactData.dynamicDialog.isOpen is set to true
+   * which happens when the useEffect() in this FormView.jsx file opens the dialog on page load
+   */
   return (
     <AppProvider
       sendActionToPlugin={sendActionToPlugin}

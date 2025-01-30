@@ -17,10 +17,10 @@ import TextComponent from './TextComponent.jsx'
 import ThemedSelect from './ThemedSelect.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
-import { logDebug, logError } from '@helpers/react/reactDev.js'
-import { parseObjectString, validateObjectString } from '@helpers/stringTransforms.js'
 import type { Option } from './DropdownSelect.jsx'
 import { Button, ButtonGroup } from './ButtonComponents.jsx'
+import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { parseObjectString, validateObjectString } from '@helpers/stringTransforms.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -40,6 +40,8 @@ type RenderItemProps = {
   className?: string,
   disabled?: boolean, // Add disabled prop
   handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
+  visible?: boolean, // Add visible prop
+  buttonText?: string, // Add buttonText prop
 }
 
 /**
@@ -62,6 +64,8 @@ export function renderItem({
   disabled,
   indent = false,
   className = '',
+  buttonText,
+  visible,
   handleButtonClick = (key, value) => {}, // Add handleButtonClick prop
 }: RenderItemProps): React$Node {
   const element = () => {
@@ -105,6 +109,8 @@ export function renderItem({
             showSaveButton={showSaveButton}
             compactDisplay={item.compactDisplay || false}
             className={indent ? 'indent' : ''}
+            required={item.required || false}
+            validationType={item.validationType || null}
           />
         )
       case 'input-readonly':
@@ -295,6 +301,7 @@ export function renderItem({
       case 'calendarpicker': {
         const selectedDate = item.selectedDate || null
         const numberOfMonths = item.numberOfMonths || 1
+        const label = item.label || ''
 
         const handleDateChange = (date) => {
           if (item.key) {
@@ -304,7 +311,15 @@ export function renderItem({
 
         return (
           <div key={`calendarpicker${index}`} className="calendarpicker-container">
-            <CalendarPicker startingSelectedDate={selectedDate} onSelectDate={handleDateChange} numberOfMonths={numberOfMonths} className="calendarPickerCustom" />
+            <CalendarPicker
+              startingSelectedDate={selectedDate}
+              onSelectDate={handleDateChange}
+              numberOfMonths={numberOfMonths}
+              className="calendarPickerCustom"
+              buttonText={item.buttonText}
+              label={item.label}
+              visible={item.visible}
+            />
           </div>
         )
       }

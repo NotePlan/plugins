@@ -1,9 +1,10 @@
 // @flow
 //--------------------------------------------------------------------------
 // React component to show an HTML DropdownSelect control, with various possible settings.
-// Uses basic HTML controls; it's not a fancy React Component.
-// Written by @dwertheimer
-// TODO: Have not fully tested the isEditable feature
+// Based on basic HTML controls, not a fancy React Component.
+//
+// Includes logic to either disable focus when isEditable=false,
+// and logic to only scroll if needed, plus an optional prop to disable scrolling altogether.
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, useMemo, type ElementRef, useLayoutEffect } from 'react'
 import './DropdownSelect.css'
@@ -55,6 +56,11 @@ type DropdownSelectProps = {
   fixedWidth?: number,
   className?: string,
   isEditable?: boolean,
+  /**
+   * Whether to skip automatic scrolling logic entirely.
+   * Defaults to false (meaning auto-scroll is active).
+   */
+  disableAutoScroll?: boolean,
 }
 
 /**
@@ -67,6 +73,15 @@ type DropdownSelectProps = {
 const mergeStyles = (baseStyles: { [string]: mixed }, overrideStyles: { [string]: mixed } = {}) => {
   return { ...baseStyles, ...overrideStyles }
 }
+
+/**
+ * DropdownSelect component for rendering a customizable dropdown menu.
+ *
+ * NOTE: This code reverts to the earlier scroll approach (checking isOutOfView before scrolling)
+ * while adding "disableAutoScroll" to allow a parent to skip scrolling logic entirely.
+ *
+ * @module DropdownSelect
+ */
 
 /**
  * DropdownSelect component for rendering a customizable dropdown menu.
@@ -88,6 +103,7 @@ const mergeStyles = (baseStyles: { [string]: mixed }, overrideStyles: { [string]
  * @param {number} [props.fixedWidth] - Fixed width for the dropdown.
  * @param {string} [props.className] - Additional class names for the dropdown.
  * @param {boolean} [props.isEditable] - Whether the dropdown input is editable.
+ * @param {boolean} [props.disableAutoScroll] - Whether to skip the auto-scrolling logic.
  * @returns {React$Node} The rendered dropdown component.
  */
 const DropdownSelect = ({
@@ -106,6 +122,7 @@ const DropdownSelect = ({
   className = '',
   isEditable = false,
   disabled = false,
+  disableAutoScroll = false,
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
 
@@ -167,6 +184,14 @@ const DropdownSelect = ({
     }
   }
 
+  // Handle input focus
+  const handleInputFocus = (event: SyntheticFocusEvent<HTMLInputElement>) => {
+    // Disable default focus behavior if not editable
+    if (!isEditable) {
+      event.preventDefault()
+    }
+  }
+
   // Helper function to safely normalize an option
   const safeNormalizeOption = (option: ?(string | Option)): Option => {
     if (!option) {
@@ -217,7 +242,7 @@ const DropdownSelect = ({
         const overflowY = style.overflowY
         const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && currentEl.scrollHeight > currentEl.clientHeight
         if (isScrollable) {
-          logDebug(`Found scrollable ancestor: `)
+          logDebug(`Found scrollable ancestor: `, currentEl)
           return currentEl
         }
       }
@@ -248,48 +273,60 @@ const DropdownSelect = ({
     }
   }, [value, normalizedOptions])
 
+  // Scroll adjustment effect
   useEffect(() => {
-    if (false) {
-      // dbw: commenting this out for now, as I'm not sure it's working as expected
-      if (isOpen && dropdownRef.current && optionsRef.current) {
-        setTimeout(() => {
-          if (!dropdownRef.current || !optionsRef.current) return
-          const dropdown: HTMLElement = dropdownRef.current
-          const options: HTMLElement = optionsRef.current
+    if (disableAutoScroll) {
+      // Skip the auto-scrolling logic if the parent doesn't want it
+      return
+    }
+    if (isOpen && dropdownRef.current && optionsRef.current) {
+      setTimeout(() => {
+        if (!dropdownRef.current || !optionsRef.current) return
+        const dropdown: HTMLElement = dropdownRef.current
+        const options: HTMLElement = optionsRef.current
 
-          const dropdownRect = dropdown.getBoundingClientRect()
-          const optionsRect = options.getBoundingClientRect()
+        const dropdownRect = dropdown.getBoundingClientRect()
+        const optionsRect = options.getBoundingClientRect()
 
-          const totalTop = Math.min(dropdownRect.top, optionsRect.top)
-          const totalBottom = Math.max(dropdownRect.bottom, optionsRect.bottom)
+        const totalTop = Math.min(dropdownRect.top, optionsRect.top)
+        const totalBottom = Math.max(dropdownRect.bottom, optionsRect.bottom)
 
-          const totalRect = {
-            top: totalTop,
-            bottom: totalBottom,
-          }
+        const totalRect = {
+          top: totalTop,
+          bottom: totalBottom,
+        }
 
-          const scrollableContainer = findScrollableAncestor(dropdown)
+        const scrollableContainer = findScrollableAncestor(dropdown)
 
-          if (scrollableContainer) {
-            const containerRect = scrollableContainer.getBoundingClientRect()
+        if (scrollableContainer) {
+          const containerRect = scrollableContainer.getBoundingClientRect()
 
-            const isOutOfView = totalRect.bottom > containerRect.bottom || totalRect.top < containerRect.top
+          // Determine if the dropdown is actually out of view
+          const isOutOfView = totalRect.top < containerRect.top || totalRect.bottom > containerRect.bottom
 
-            if (isOutOfView) {
-              let offset = scrollableContainer.scrollTop + (totalRect.bottom - containerRect.bottom)
-              if (totalRect.top < containerRect.top) {
-                offset = scrollableContainer.scrollTop - (containerRect.top - totalRect.top)
-              }
-              scrollableContainer.scrollTo({
-                top: offset,
+          logDebug(`DropdownSelect, isOutOfView:  ${isOutOfView ? 'true' : 'false'}`)
+
+          // Only adjust scroll if the dropdown is not fully in view
+          if (isOutOfView) {
+            const overshootBottom = totalRect.bottom - containerRect.bottom
+            const overshootTop = containerRect.top - totalRect.top
+
+            if (overshootBottom > 0) {
+              scrollableContainer.scrollBy({
+                top: overshootBottom,
+                behavior: 'smooth',
+              })
+            } else if (overshootTop > 0) {
+              scrollableContainer.scrollBy({
+                top: -overshootTop,
                 behavior: 'smooth',
               })
             }
           }
-        }, 100)
-      }
+        }
+      }, 300) // Increased delay to ensure layout is stable
     }
-  }, [isOpen])
+  }, [isOpen, disableAutoScroll])
 
   // Determine if the selected option should show the indicator
   const selectedOption = normalizedOptions.find((option) => option.value === effectiveValue.value)
@@ -346,6 +383,7 @@ const DropdownSelect = ({
             className="dropdown-select-input"
             value={inputValue}
             onChange={handleInputChange} // Handle input change
+            onFocus={handleInputFocus} // Handle input focus
             ref={inputRef}
             disabled={disabled}
             readOnly={!isEditable} // Set readOnly based on isEditable prop
@@ -356,7 +394,7 @@ const DropdownSelect = ({
           </span>
         </div>
         {isOpen && (
-          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}px` }, styles.dropdown)}>
+          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}px`, maxHeight: '200px', overflowY: 'auto' }, styles.dropdown)}>
             {filteredOptions.map((option: Option, i) => {
               if (option.type === 'separator') {
                 return <div key={option.value} style={styles.separator}></div>

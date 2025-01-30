@@ -20,7 +20,9 @@ type InputBoxProps = {
   disabled?: boolean,
   focus?: boolean,
   step?: number, // Add step prop
-};
+  required?: boolean,
+  validationType?: 'email' | 'number' | 'date-interval',
+}
 
 const InputBox = ({
   label,
@@ -35,12 +37,38 @@ const InputBox = ({
   className = '',
   focus,
   step,
+  required,
+  validationType,
 }: InputBoxProps): React$Node => {
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
   const [wasFocused, setWasFocused] = useState(false)
   const isNumberType = inputType === 'number'
   const inputRef = useRef<?HTMLInputElement>(null) // Create a ref for the input element
+  const [validationError, setValidationError] = useState<string | null>(null) // Add state for validation error message
+
+  const validateInput = (value: string): string | null => {
+    if (required && value.trim() === '') {
+      return 'This field is required.'
+    }
+    if (validationType) {
+      switch (validationType) {
+        case 'email':
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : 'Please enter a valid email address.'
+        case 'number':
+          return !isNaN(value) ? null : 'Please enter a valid number.'
+        case 'date-interval':
+          return /^[0-9]+[bdwmqy]$/.test(value) ? null : 'Please enter a valid date interval in the format: nn[bdwmqy].'
+        default:
+          return 'Invalid input.'
+      }
+    }
+    return null
+  }
+
+  useEffect(() => {
+    if (required) handleInputChange({ target: { value: value }, currentTarget: { value: value } }, true)
+  }, [])
 
   useEffect(() => {
     setIsSaveEnabled(inputValue !== value)
@@ -54,9 +82,16 @@ const InputBox = ({
     }
   }, [focus, inputValue])
 
-  const handleInputChange = (e: any) => {
-    setInputValue(e.target.value)
-    onChange(e)
+  const handleInputChange = (e: any, firstRun: boolean = false) => {
+    const newValue = e.target.value
+    setInputValue(newValue)
+    if (!firstRun) onChange(e)
+    if (required || validationType) {
+      const error = validateInput(newValue)
+      setValidationError(error)
+    } else {
+      setValidationError(null)
+    }
   }
 
   const handleSaveClick = () => {
@@ -67,31 +102,34 @@ const InputBox = ({
   }
 
   return (
-    <div className={`${disabled ? 'disabled' : ''} ${className} ${compactDisplay ? "input-box-container-compact" : "input-box-container"}`} >
-      <label className="input-box-label">{label}</label>
-      <div className="input-box-wrapper">
-        <input
-          ref={inputRef} // Attach the ref to the input element
-          type={inputType}
-          readOnly={readOnly}
-          className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''} ${isNumberType && (step === undefined || step === 0) ? 'hide-step-buttons' : ''}`}
-          value={inputValue}
-          onChange={handleInputChange}
-          disabled={disabled}
-          step={isNumberType && step !== undefined && step > 0 ? step : undefined} // Conditionally use step attribute
-          min="0" // works for 'number' type; ignored for rest.
-        />
-        {showSaveButton && (
-          <button
-            className="input-box-save"
-            onClick={handleSaveClick}
-            disabled={!isSaveEnabled}
-          >
-            Save
-          </button>
-        )}
+    <>
+      <div className={`${disabled ? 'disabled' : ''} ${className} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'}`}>
+        <label className="input-box-label">{label}</label>
+        <div className="input-box-wrapper">
+          <input
+            ref={inputRef} // Attach the ref to the input element
+            type={inputType}
+            readOnly={readOnly}
+            className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''} ${isNumberType && (step === undefined || step === 0) ? 'hide-step-buttons' : ''}`}
+            value={inputValue}
+            onChange={handleInputChange}
+            disabled={disabled}
+            step={isNumberType && step !== undefined && step > 0 ? step : undefined} // Conditionally use step attribute
+            min="0" // works for 'number' type; ignored for rest.
+          />
+          {showSaveButton && (
+            <button className="input-box-save" onClick={handleSaveClick} disabled={!isSaveEnabled}>
+              Save
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+      {validationError && (
+        <div className="validation-message" style={{ color: 'red', fontSize: 'small' }}>
+          {validationError} {/* Display the validation error message */}
+        </div>
+      )}
+    </>
   )
 }
 

@@ -68,6 +68,8 @@ export type TSettingItem = {
   fixedWidth?: number, // for dropdowns, set a fixed width
   selectedDate?: Date, // for calendarpicker, the selected date
   numberOfMonths?: number, // for calendarpicker, the number of months to show
+  required?: boolean, // for input fields, require the field to be filled out
+  validationType?: 'email' | 'number' | 'date-interval', // for input fields, validate the input
 }
 
 export type TDynamicDialogProps = {
@@ -288,7 +290,6 @@ const DynamicDialog = ({
   if (!updatedSettings) return null
   const dialogStyle = {
     minWidth: '50%', // defaults which can be overridden by the style prop
-    height: 'unset',
     ...style,
   }
   const dialogContents = (

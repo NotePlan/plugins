@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.11.0] 2025-01-26 @dwertheimer
+
+- Add <select> and <choose> to template forms
+
 ## [1.10.6] 2024-10-10 @dwertheimer
 
 - Fix: Allows letters 'ejs' in text to be left intact
