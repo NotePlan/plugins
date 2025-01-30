@@ -38,6 +38,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+      - name: Disable optional dependencies # work around git bug on macos arm64 dependencies
+        run: export NPM_CONFIG_OPTIONAL=false
       # shoulde eventually be a clean install using: - run: npm ci --legacy-peer-deps
       # - run: npm i -g node-gyp@latest && npm config set node_gyp "/usr/local/lib/node_modules/node-gyp/bin/node-gyp.js"
       - run: npm ci --legacy-peer-deps # clean install (deletes node_modules)
