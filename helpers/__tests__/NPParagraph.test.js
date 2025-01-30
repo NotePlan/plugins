@@ -3,7 +3,7 @@ import moment from 'moment'
 import { CustomConsole } from '@jest/console' // see note below
 import * as p from '../NPParagraph'
 import { clo, logDebug, logInfo } from '../dev'
-// import { paragraphMatches, getParagraphParentsOnly, getChildParas, getIndentedNonTaskLinesUnderPara, removeParentsWhoAreChildren } from '../NPParagraph'
+// import { paragraphMatches, getChildParas, getIndentedNonTaskLinesUnderPara, removeParentsWhoAreChildren } from '../NPParagraph'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, simpleFormatter } from '@mocks/index'
 import { SCHEDULED_MONTH_NOTE_LINK } from '@helpers/dateTime'
 

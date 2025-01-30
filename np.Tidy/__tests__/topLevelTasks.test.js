@@ -1,3 +1,4 @@
+// @flow
 /* eslint-disable no-unused-vars */
 /* eslint-disable import/order */
 /* global jest, it, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
@@ -5,6 +6,7 @@ import * as f from '../src/topLevelTasks.js'
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, Note, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 import * as NPParagraph from '@helpers/NPParagraph'
+import * as ParentsAndChildren from '@helpers/ParentsAndChildren'
 
 const PLUGIN_NAME = `np.Tidy`
 const FILENAME = `topLevelTasks.js`
@@ -212,7 +214,7 @@ describe(`${PLUGIN_NAME}`, () => {
       // Mock getParagraphParentsOnly to ensure results are consistent
       // it is tested elsewhere
       beforeEach(() => {
-        jest.spyOn(NPParagraph, 'getParagraphParentsOnly').mockImplementation((paragraphs: TParagraph[]) => {
+        jest.spyOn(ParentsAndChildren, 'getParagraphParentsOnly').mockImplementation((paragraphs: TParagraph[]) => {
           return paragraphs.map((para) => ({ parent: para, children: para.children || [] }))
         })
       })
