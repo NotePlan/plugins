@@ -42,6 +42,7 @@ export async function refreshAllSections(): Promise<void> {
   const newSections = await getAllSectionsData(reactWindowData.demoMode, false, false)
   const changedData = {
     refreshing: false,
+    firstRun: false,
     sections: newSections,
     lastFullRefresh: new Date(),
     // totalDoneCounts: getTotalDoneCountsFromSections(newSections),
@@ -99,6 +100,8 @@ export async function incrementallyRefreshSomeSections(
   if (setFullRefreshDate) updates.lastFullRefresh = new Date()
   await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (after ${timer(incrementalStart)})`)
   logTimer('incrementallyRefreshSomeSections', incrementalStart, `for ${sectionCodes.length} sections`, 2000)
+
+  await setPluginData({ firstRun: false, refreshing: false }, `End of incremental refresh, so setting firstRun + refreshing to false`)
 
   // re-calculate done task counts (if the appropriate setting is on)
   const NPSettings = await getNotePlanSettings()

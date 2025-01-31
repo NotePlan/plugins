@@ -360,19 +360,19 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
  */
 export async function getInitialDataForReactWindow(perspectiveName: string = '', useDemoData: boolean = false): Promise<PassedData> {
   try {
+    logDebug('getInitialDataForReactWindow', `>>>>> Starting`)
     const startTime = new Date()
     let perspectiveSettings = await getPerspectiveSettings()
     // If a perspective is specified, then update the setting to point to it before opening the React Window
     let dashboardSettings: TDashboardSettings = await getDashboardSettings()
     if (perspectiveName) {
-      logInfo('getInitialDataForReactWindow', `switching to perspective '${perspectiveName}'`)
-      // perspectiveSettings = setActivePerspective(perspectiveName, perspectiveSettings)
+      logDebug('getInitialDataForReactWindow', `will use perspective '${perspectiveName}'`)
       perspectiveSettings = (await switchToPerspective(perspectiveName, perspectiveSettings)) || perspectiveSettings
       dashboardSettings = await getDashboardSettingsFromPerspective(perspectiveSettings)
     }
     // clo(dashboardSettings, `getInitialDataForReactWindow: dashboardSettings=`)
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-    const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData)
+    const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData) // Note: the only time this is called.
     logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
     clo(pluginData.dashboardSettings, `getInitialData pluginData.dashboardData`)
     const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
@@ -386,6 +386,7 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
       startTime,
       windowID: WEBVIEW_WINDOW_ID,
     }
+    logDebug('getInitialDataForReactWindow', `<<<<< Finished`)
     return dataToPass
   } catch (error) {
     logError(pluginJson, error.message)
@@ -497,14 +498,12 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
       perspectiveSettings: true,
     },
     totalDoneCount: 0,
+    firstRun: true,
   }
+  logDebug('getPluginData', `After forming initial pluginData, firstRun = false`)
 
   // Calculate all done task counts (if the appropriate setting is on)
   if (NPSettings.doneDatesAvailable) {
-    // V1 method
-    // const totalDoneCounts = rollUpDoneCounts([getTotalDoneCountsFromSections(sections)], buildListOfDoneTasksToday())
-    // pluginData.totalDoneCounts = totalDoneCounts
-    // V2 method
     const totalDoneCount = updateDoneCountsFromChangedNotes('end of getPluginData')
     pluginData.totalDoneCount = totalDoneCount
   }

@@ -2,14 +2,16 @@
 //----------------------------------------------------------------------
 // RefreshControl.jsx
 // renders a refresh button or a refreshing spinner depending on refreshing state
-// Last updated 2024-09-18 for v2.1.0.a11 by @jgclark
+// Last updated 2025-01-31 for v2.1.8 by @jgclark
 //----------------------------------------------------------------------
 
 import React from 'react'
 import Button from './Button.jsx'
+import { logDebug, logInfo } from '@helpers/dev'
 
 type Props = {
   refreshing: boolean,
+  firstRun: boolean,
   handleRefreshClick: () => void,
 }
 
@@ -22,19 +24,19 @@ type Props = {
  * @returns {React$Node} - The spinner or button component based on the refreshing state.
  */
 const RefreshControl = (props: Props): React$Node => {
-  const { refreshing, handleRefreshClick } = props
+  const { refreshing, firstRun, handleRefreshClick } = props
+  logInfo('RefreshControl', `refreshing = ${String(refreshing)}, firstRun = ${String(firstRun)}`)
   return (
     <Button
       text={
         <>
-          {/* <i className={refreshing ? "fa-spinner fa-spin" : "fa-regular fa-arrow-rotate-right"}></i> */}
           <i className={refreshing ? 'fa-regular fa-arrow-rotate-right fa-spin' : 'fa-regular fa-arrow-rotate-right'}></i>
           {/* <span className="pad-left">{refreshing ? 'Refreshing' : 'Refresh'}</span> */}
-          <span className={refreshing ? "pad-left greyedText" : "pad-left"}>Refresh</span>
+          <span className={refreshing || firstRun ? "pad-left greyedText" : "pad-left"}>{firstRun ? 'Generating' : 'Refresh'}</span>
         </>
       }
       clickHandler={handleRefreshClick}
-      disabled={refreshing}
+      disabled={refreshing || firstRun}
       className="HAButton refreshButton"
     />
   )

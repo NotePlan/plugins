@@ -164,7 +164,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // ----------------------------------------------------------------------
   // Constants
   // ----------------------------------------------------------------------
-  const { sections, logSettings } = pluginData
+  const { sections, logSettings, firstRun } = pluginData
 
   const visibleSectionCodes = getVisibleSectionCodes(dashboardSettings, sections)
 
@@ -195,7 +195,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
       {showRefreshButton && (
         <div className="refreshButtons">
-          <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(false)} />
+          <RefreshControl refreshing={pluginData.refreshing === true} firstRun={firstRun} handleRefreshClick={handleRefreshClick(false)} />
           {showHardRefreshButton && (
             <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton">
               <i className={'fa-regular fa-arrows-retweet'}></i>
