@@ -2,11 +2,15 @@
 // ----------------------------------------------------------------------------
 // Helpers for QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 2024-12-06 for v0.16.0+ by @jgclark
+// last update 2025-01-31 for v0.16.0+ by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getFilenameDateStrFromDisplayDateStr, isValidCalendarNoteFilenameWithoutExtension, isValidCalendarNoteTitleStr } from '@helpers/dateTime'
+import {
+  getFilenameDateStrFromDisplayDateStr,
+  // isValidCalendarNoteFilenameWithoutExtension,
+  isValidCalendarNoteTitleStr
+} from '@helpers/dateTime'
 import { getRelativeDates } from '@helpers/NPdateTime'
 import { clo, logInfo, logDebug, logError, logTimer, logWarn } from '@helpers/dev'
 import { allNotesSortedByChanged, calendarNotesSortedByChanged } from '@helpers/note'
@@ -122,7 +126,7 @@ export async function getNoteFromParamOrUser(purpose: string, noteTitleArg?: str
         logDebug('getNoteFromParamOrUser', `- Made new note with filename ${note.filename}`)
       } else {
         logWarn('getNoteFromParamOrUser', `Couldn't find Calendar note with title '${noteTitleArg}'. Will suggest a work around to user.`)
-        throw Error(
+        throw new Error(
           `I can't find Calendar note '${noteTitleArg}', and unfortunately I can't create it for you.\nPlease create it by navigating to it, and adding any content, and then re-run this command.`,
         )
       }
@@ -144,35 +148,33 @@ export async function getNoteFromParamOrUser(purpose: string, noteTitleArg?: str
         logDebug('getNoteFromParamOrUser', `- noteTitleToMatch = ${noteTitleToMatch}`)
         // Change YYYY-MM-DD to YYYYMMDD format if needed.
         const wantedNotes = allNotesToUse.filter((n) => displayTitleWithRelDate(n, false) === noteTitleToMatch)
-        if (wantedNotes.length > 1)
-          logInfo('getNoteFromParamOrUser', `Found ${wantedNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
+        if (wantedNotes.length > 1) logInfo('getNoteFromParamOrUser', `Found ${wantedNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
+      }
+
+      logTimer('getNoteFromParamOrUser', startTime, `- mid point`)
+
+      if (!note) {
+        // Couldn't find the note. 
+        // If this looks to be a Calendar note then there's a bad work around for this.
+        if (noteTitleArgIsCalendarNote) {
+          logWarn('getNoteFromParamOrUser', `Couldn't find Calendar note with title '${noteTitleArg}'. Will suggest a work around to user.`)
+          throw new Error(`I can't find Calendar note '${noteTitleArg}', and unfortunately I can't create it for you.\nPlease create it by navigating to it, and adding any content, and then re-run this command.`)
         }
-      }
-    }
 
-    logDebug('getNoteFromParamOrUser', `- taken ${timer(startTime)} so far`)
+        if (noteTitleArg !== '') {
+          logDebug('getNoteFromParamOrUser', `Couldn't find regular note with title '${noteTitleArg}'. Will prompt user instead.`)
+        }
 
-    if (!note) {
-      // Couldn't find the note. 
-      // If this looks to be a Calendar note then there's a bad work around for this.
-      if (noteTitleArgIsCalendarNote) {
-        logWarn('getNoteFromParamOrUser', `Couldn't find Calendar note with title '${noteTitleArg}'. Will suggest a work around to user.`)
-        throw Error(`I can't find Calendar note '${noteTitleArg}', and unfortunately I can't create it for you.\nPlease create it by navigating to it, and adding any content, and then re-run this command.`)
-      }
-
-      if (noteTitleArg !== '') {
-        logDebug('getNoteFromParamOrUser', `Couldn't find regular note with title '${noteTitleArg}'. Will prompt user instead.`)
-      }
-
-      const notesList = allNotesToUse.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
-      const result = await CommandBar.showOptions(notesList, `Select note for new ${purpose}`)
-      if (typeof result !== 'boolean') {
-        note = allNotesToUse[result.index]
+        const notesList = allNotesToUse.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
+        const result = await CommandBar.showOptions(notesList, `Select note for new ${purpose}`)
+        if (typeof result !== 'boolean') {
+          note = allNotesToUse[result.index]
+        }
       }
     }
   }
   // Double-check this is a valid note
-  if (note == null) {
+  if (!note) {
     throw new Error("Couldn't get note for a reason I can't understand.")
   }
 
