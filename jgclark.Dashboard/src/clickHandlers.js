@@ -380,6 +380,7 @@ export async function doShowNoteInEditorFromFilename(data: MessageDataObject): P
   const { filename, modifierKey } = data
   if (!filename) throw 'doShowNoteInEditorFromFilename: No filename: stopping'
   const note = await openNoteByFilename(filename, { newWindow: modifierKey === 'meta', splitView: modifierKey === 'alt' })
+  Editor.focus()
   return handlerResult(note ? true : false)
 }
 
@@ -391,6 +392,7 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
   const wantedTitle = filename
   const note = await Editor.openNoteByTitle(wantedTitle)
   if (note) {
+    Editor.focus()
     logDebug('bridgeClickDashboardItem', `-> successful call to open title ${wantedTitle} in Editor`)
     return handlerResult(true)
   } else {
