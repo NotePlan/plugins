@@ -54,6 +54,11 @@
     border-right: none;
   }
 
+  /* Use slightly different style for every other row */
+  tr:nth-child(even) {
+    background-color: var(--bg-alt-color);
+  }
+
   /* Sticky header for perspective names */
   .sticky-header {
     position: sticky;
