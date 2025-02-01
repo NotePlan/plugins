@@ -539,10 +539,10 @@ export async function renderProjectListsHTML(
 
       // Write out all relevant HTML
       outputArray.push('')
-      outputArray.push(`<h2>${thisTag}: ${noteCount} notes, ${due} ready for review</h2>`)
+      outputArray.push(`<h3>${thisTag}: ${noteCount} notes, ${due} ready for review</h3>`)
       // Add folder name, but only if we're only looking at 1 folder, and we're not grouping by folder. (If we are then folder names are added inside the table.)
       if (!config.displayGroupedByFolder && config.foldersToInclude.length === 1) {
-        outputArray.push(`<h3>${config.foldersToInclude[0]} folder</h3>`)
+        outputArray.push(`<h4>${config.foldersToInclude[0]} folder</h4>`)
       }
 
       // Start constructing table (if there any results)
@@ -886,7 +886,7 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
           : folder
         if (folderPart === '/') folderPart = '(root folder)'
         if (style.match(/rich/i)) {
-          outputArray.push(`<thead>\n <tr class="section-header-row">  <th colspan=2 class="h3 section-header">${folderPart}</th>`)
+          outputArray.push(`<thead>\n <tr class="section-header-row">  <th colspan=2 class="h4 section-header">${folderPart}</th>`)
           if (config.displayDates) {
             outputArray.push(`  <th>Next Review</th><th>Due Date</th>`)
           } else if (config.displayProgress && config.displayNextActions) {
