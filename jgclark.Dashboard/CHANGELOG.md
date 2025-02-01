@@ -1,11 +1,14 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.8] 2025-01-31 (unreleased)
+<!-- Hiding from view as we are on the main branch
+## [2.1.8] 2025-02-01 (unreleased)
+### New
+- Added a '+ New Task' button to the end of the Task edit dialog. This effectively runs the '/quick add task under heading' command (from Quick Capture) which allows you to add a new task in any note under any heading without having to leave the Dashboard.
 ### Changed
 - When clicking on a Section Title or note link, the note will be opened in the Editor window, and that will now be brought to the front.
 - The Edit All Perspectives table now has subtly shaded alternate rows
-- The window starts saying 'Generating' not 'Refreshing'
+- The window starts saying 'Generating' not 'Refreshing' -->
 
 ## [2.1.7] 2025-01-30
 ### Changed

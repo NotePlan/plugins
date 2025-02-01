@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated for v2.1.6
+// Last updated for v2.1.8
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -9,6 +9,7 @@ import { allCalendarSectionCodes, allSectionCodes, WEBVIEW_WINDOW_ID } from './c
 import {
   doAddItem,
   doAddItemToFuture,
+  doAddTaskAnywhere,
   doCancelChecklist,
   doCancelTask,
   doContentUpdate,
@@ -308,6 +309,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'addTask': {
         result = await doAddItem(data)
+        break
+      }
+      case 'addTaskAnywhere': {
+        // Note: calls Quick Capture plugin /qath command which doesn't return anything
+        await doAddTaskAnywhere()
         break
       }
       case 'addTaskToFuture': {

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-01-13 for v2.1.3
+// Last updated 2025-02-01 for v2.1.8
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -69,6 +69,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     { label: '+1w', controlStr: '+1w' },
     { label: '+2w', controlStr: '+2w' },
     { label: 'this month', controlStr: '+0m' },
+    { label: '+1m', controlStr: '+1m' },
     { label: 'this quarter', controlStr: '+0q' },
   ]
 
@@ -134,16 +135,24 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       icons: [{ className: itemType === 'checklist' ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }],
     },
     {
-      label: 'Complete Then',
+      label: 'Complete',
       controlStr: 'commpletethen',
       description: 'Mark the item as completed on the date it was scheduled for',
       handlingFunction: 'completeTaskThen',
+      icons: [{ className: 'fa-regular fa-arrow-left', position: 'left' }],
     },
     {
-      label: 'Unschedule',
+      label: 'Unsched',
       controlStr: 'unsched',
       description: 'Remove date from this item',
       handlingFunction: 'unscheduleItem',
+    },
+    {
+      label: 'New Task',
+      controlStr: 'qath',
+      description: 'New task',
+      handlingFunction: 'addTaskAnywhere',
+      icons: [{ className: 'fa-regular fa-hexagon-plus', position: 'left' }],
     },
   ]
   // Now apply the filter with an explicit return type
