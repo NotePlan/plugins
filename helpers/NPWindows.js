@@ -8,6 +8,13 @@ import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search'
 import { inputIntegerBounded } from '@helpers/userInput'
 
+// ----------------------------------------------------------------------------
+// CONSTANTS
+
+export type TWindowType = 'Editor' | 'HTMLView'
+
+// ----------------------------------------------------------------------------
+
 /**
  * Return string version of Rect's x/y/width/height attributes
  * @param {Rect} rect
@@ -82,7 +89,7 @@ export async function setEditorSplitWidth(editorWinIn: number, widthIn: number):
       return
     }
     const existingWidth = thisWindowRect.width
-    logDebug('setEditorSplitWidth', 'Attempting to set width for editor #'.concat(String(editorWinIndex), ' from ').concat(existingWidth, ' to ').concat(String(width)))
+    logDebug('setEditorSplitWidth', 'Attempting to set width for editor #'.concat(String(editorWinIndex), ' from ').concat(String(existingWidth), ' to ').concat(String(width)))
     thisWindowRect.width = width
     editorWin.windowRect = thisWindowRect
     const newWidth = thisWindowRect.width
@@ -95,26 +102,34 @@ export async function setEditorSplitWidth(editorWinIn: number, widthIn: number):
 
 /**
  * Return list of all open window IDs (other than main Editor).
- * Uses API introduced in NP 3.8.1, and extended in 3.9.1 to add .rect.
+ * Note: minimum version 3.9.1
+ * @param {TWindowType} windowType - 'Editor' or 'HTMLView'
+ * @returns {Array<string>} list of non-main window IDs
  * @author @jgclark
  */
-export function getNonMainWindowIds(): Array<string> {
+export function getNonMainWindowIds(windowType: TWindowType = 'Editor'): Array<string> {
   const outputIDs = []
-  if (NotePlan.environment.buildVersion >= 973) {
-    let c = 0
-    for (const win of NotePlan.editors) {
-      if (c > 0) outputIDs.push(win.id)
-      c++
+  switch (windowType) {
+    case 'Editor': {
+      let c = 0
+      for (const win of NotePlan.editors) {
+        if (c > 0) outputIDs.push(win.id)
+        c++
+      }
+      break
     }
-    for (const win of NotePlan.htmlWindows) {
-      outputIDs.push(win.id)
+    case 'HTMLView': {
+      for (const win of NotePlan.htmlWindows) {
+        outputIDs.push(win.id)
+      }
+      break
     }
-    logInfo('logWindowsList', outputIDs.join('\n'))
-    return outputIDs
-  } else {
-    logWarn('logWindowsList', `(Cannot list windows: needs NP v3.8.1+)`)
-    return []
+    default: {
+      logWarn('getNonMainWindowIds', `Unknown window type '${windowType}'`)
+    }
   }
+  logDebug('getNonMainWindowIds', `for type '${windowType}' => ${outputIDs.join('\n')}`)
+  return outputIDs
 }
 
 /**

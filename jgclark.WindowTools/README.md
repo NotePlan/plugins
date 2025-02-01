@@ -34,7 +34,7 @@ Q: Why does this plugin create a new folder for me called @WindowSet?
 A: This is the way that all the details of a saved set can be displayed to users who want to be able to do advanced configuration.
 
 Q: Can I delete this folder or re-organise it?
-A: Yes, you can delete it or move it if you don't intend to be doing advanced configuration (see below).
+A: Yes, you can delete it or move it (say to the Archive) if you don't intend to be doing advanced configuration (see below).
 
 ## Configuration
 Click the gear button on the **Window Tools** line in the Plugin Preferences panel, and configure the two settings accordingly:

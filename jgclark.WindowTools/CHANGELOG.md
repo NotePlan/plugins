@@ -1,6 +1,11 @@
 # What's changed in 🖥️  Window Tools?
 _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md)._
 
+## [1.2.1] - 2025-02-01
+- **open window set** command is now smarter with plugin windows:
+  - won't close an open plugin window if it is part of the set it is about to open
+  - will run the plugin command even if the correct capitalization isn't used.
+
 ## [1.2.0] - 2024-03-15
 - new **swap splits** command that swaps the currently-selected split to main, or if no split is currently selected, asks the user which to swap (thanks to suggestion by @antony-skylar)
 - fix to main Editor window not being relocated correctly at times (thanks to report by @dwertheimer)
