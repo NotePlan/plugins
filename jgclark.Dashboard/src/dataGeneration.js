@@ -24,7 +24,7 @@ import {
   isLineDisallowedByExcludedTerms,
   makeDashboardParas,
 } from './dashboardHelpers'
-import { getTimeBlockSectionData, getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
+import { getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
 import { openMonthParas, refMonthParas, tagParasFromNote, nextProjectNoteItems } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
@@ -56,10 +56,10 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     // V2
     // Work out which sections to show
     const sectionsToShow: Array<TSectionCode> = forceLoadAll ? allSectionCodes : getListOfEnabledSections(config)
-    logInfo('getAllSectionsData', `${String(sectionsToShow.length)} sections to show: ${String(sectionsToShow)}`)
+    logDebug('getAllSectionsData', `>>>>> Starting with ${String(sectionsToShow.length)} sections to show: ${String(sectionsToShow)}`)
     const sections: Array<TSection> = await getSomeSectionsData(sectionsToShow, useDemoData, useEditorWherePossible)
-
     // logDebug('getAllSectionsData', `=> sections ${getDisplayListOfSectionCodes(sections)} (unfiltered)`)
+    logDebug('getAllSectionsData', `<<<<< Finished`)
 
     return sections.filter((s) => s) //get rid of any nulls b/c some of the sections above could return null
   } catch (error) {
@@ -294,12 +294,6 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
       } else {
         // Get list of open tasks/checklists from current monthly note (if it exists)
         if (sortedRefParas.length > 0) {
-          // // make a sectionItem for each item, and then make a section too.
-          // sortedRefParas.map((p) => {
-          //   const thisID = `${sectionNumStr}-${itemCount}`
-          //   items.push(createSectionItemObject(thisID, p))
-          //   itemCount++
-          // })
           // Iterate and write items for first (or combined) section
           items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
           itemCount += items.length
@@ -497,12 +491,6 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
       } else {
         // Get list of open tasks/checklists from current quarterly note (if it exists)
         if (sortedRefParas.length > 0) {
-          // // make a sectionItem for each item, and then make a section too.
-          // sortedRefParas.map((p) => {
-          //   const thisID = `${sectionNumStr}-${itemCount}`
-          //   items.push(createSectionItemObject(thisID, p))
-          //   itemCount++
-          // })
           // Iterate and write items for this section
           items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
           itemCount += items.length
@@ -691,8 +679,6 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
   }
 
   // Return section details, even if no items found
-  // const tagSectionDescription =
-  // totalCount > itemCount ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}` : `{count} item{s} ordered by ${config.overdueSortOrder}`
   const tagSectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
   const section: TSection = {
     ID: sectionNumStr,

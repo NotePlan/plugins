@@ -340,6 +340,7 @@ export type TPluginData = {
   logSettings: any /* logging settings from plugin preferences */,
   notePlanSettings: any /* for copies of some app settings */,
   refreshing?: Array<TSectionCode> | boolean /* true if all, or array of sectionCodes if some */,
+  firstRun?: boolean /* true if this is the first time the data is being displayed */,
   perspectiveChanging?: boolean /* true if perspective is changing, false if not. Displays a modal spinner */,
   sections: Array<TSection>,
   lastFullRefresh: Date /* localized date string new Date().toLocaleString() */,

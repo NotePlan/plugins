@@ -178,7 +178,7 @@ export function updateDoneCountsFromChangedNotes(reason: string = ''): number {
 
     // Read current list from todaysChangedNoteList.json, and get time of it.
     // Note: can't get a timestamp from plugin files, so need to use a separate preference
-    logInfo('updateDoneCountsFromChangedNotes', `Starting: ${reason}`)
+    logDebug('updateDoneCountsFromChangedNotes', `Starting: ${reason}`)
     // logDebug('updateDoneCountsFromChangedNotes', `About to read ${changedNoteFile} ...`)
     if (DataStore.fileExists(changedNoteFile)) {
       const data = DataStore.loadData(changedNoteFile, true) ?? ''

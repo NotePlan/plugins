@@ -1,6 +1,12 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.8] 2025-01-31 (unreleased)
+### Changed
+- When clicking on a Section Title or note link, the note will be opened in the Editor window, and that will now be brought to the front.
+- The Edit All Perspectives table now has subtly shaded alternate rows
+- The window starts saying 'Generating' not 'Refreshing'
+
 ## [2.1.7] 2025-01-30
 ### Changed
 - Perspectives: if you have 'Apply to sections under headings in Calendar notes?' turned on, this now applies to all the preceding headings up the H5->H1 hierarchy for that line.
