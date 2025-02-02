@@ -506,25 +506,31 @@ export async function renderProjectListsHTML(
     // outputArray.push(`<h1>${windowTitle}</h1>`)
 
     // Add a sticky area for buttons
-    const controlButtons = `<span class="sticky-box-header">Review:</span> ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n${newIntervalPCButton}\n<br /><span class="sticky-box-header">List</span>: \n${refreshPCButton} \n<span class="sticky-box-header">Project:</span>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
+    // const controlButtons = `<span class="sticky-box-header">Review:</span> ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n${newIntervalPCButton}\n<br /><span class="sticky-box-header">List</span>: \n${refreshPCButton} \n<span class="sticky-box-header">Project:</span>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
+    // New simpler version, with flexbox top bar
+    const refreshSection = `<div>${refreshPCButton}\n<span class="display-details pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+    const controlButtons = `<div>Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
     // Note: remove test lines to see scroll position:
     // controlButtons += ` <input id="id" type="button" value="Update Scroll Pos" onclick="getCurrentScrollHeight();"/>`
     // controlButtons += ` <span id="scrollDisplay" class="fix-top-right">?</span>`
-    outputArray.push(`<div class="sticky-box-top-middle">\n${controlButtons}\n</div>\n`)
+    outputArray.push(`<div class="sticky-box-top-middle">`)
+    outputArray.push(refreshSection)
+    outputArray.push(controlButtons)
 
     // Show time since generation + display settings
     const displayFinished = config.displayFinished ?? false
     const displayOnlyDue = config.displayOnlyDue ?? false
-    // logDebug('renderProjectListsHTML', `displayOnlyDue=${displayOnlyDue ? '✅' : '❌'}, displayFinished = ${displayFinished ? '✅' : '❌'}`)
+    logDebug('renderProjectListsHTML', `displayOnlyDue=${displayOnlyDue ? '✅' : '❌'}, displayFinished = ${displayFinished ? '✅' : '❌'}`)
     // let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
     // togglesValues += (displayFinished === 'hide') ? '' : ', plus finished ones'
-    outputArray.push(`<p class="display-details">Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> `)
+    // outputArray.push(`<p class="display-details">Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> `)
 
     // add checkbox toggles in place of previous text
     // outputArray.push(`(${togglesValues})`)
-    outputArray.push(`<input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">Display only due?</input>`)
-    outputArray.push(`<input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">Display finished?</input/>`)
-    outputArray.push(`</p>`)
+    outputArray.push(`<div>\n  <input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">Display only due?</input>`)
+    outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">Display finished?</input>\n</div>`)
+    // Close the sticky top bar
+    outputArray.push(`</div>`)
 
     // Allow multi-col working
     outputArray.push(`<div class="multi-cols">`)
