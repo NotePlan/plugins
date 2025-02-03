@@ -288,7 +288,7 @@ const DynamicDialog = ({
   // Render
   //----------------------------------------------------------------------
   if (!updatedSettings) return null
-  if (items[items.length - 1].type === 'dropdown-select') {
+  if (items?.length > 0 && items[items.length - 1].type === 'dropdown-select') {
     logDebug(
       'DynamicDialog',
       "NOTE: The last item in the DynamicDialog is a dropdown-select. Unless you have addressed this already in a specific CSS rule, it may cause problems with the dialog clipping the contents. You may want to move it up in the dialog or add a CSS rule to the dynamic-dialog-content class to set overflow: visible. (but then it won't scroll vertically--that's the trade-off)",
