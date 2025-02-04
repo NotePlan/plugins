@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated for v2.1.6
+// Last updated for v2.1.8
 //-----------------------------------------------------------------------------
 import moment from 'moment'
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
@@ -111,6 +111,17 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
 }
 
 /**
+ * Add a new item anywhere, using the /quickAddTaskUnderHeading command from Quick Capture plugin.
+ * Calls the doAddItem logic, once new filename is worked out.
+ * @param {MessageDataObject} {date: .data.data.data, text: .data.data.}
+ * @returns {TBridgeClickHandlerResult} result to be used by click result handler
+ */
+export async function doAddTaskAnywhere(): Promise<void> {
+  logDebug('doAddTaskAnywhere', `starting. Just calling addTaskToNoteHeading().`)
+  const res = await DataStore.invokePluginCommandByName('quick add task under heading', 'jgclark.QuickCapture') // with no args, this will prompt for the note, heading and text
+}
+
+/**
  * Add a new item to a future date, using the date and text provided.
  * Calls the doAddItem logic, once new filename is worked out.
  * @param {MessageDataObject} {date: .data.data.data, text: .data.data.}
@@ -121,8 +132,8 @@ export async function doAddItemToFuture(data: MessageDataObject): Promise<TBridg
   const { userInputObj } = data // "date": "2024-12-04T08:00:00.000Z",
   if (!userInputObj) return handlerResult(false)
   const { date, text } = userInputObj
-  if (!text) return handlerResult(false, [], { errorMsg: `No text was provided to addItemToFuture: "${date}"` })
-  if (!date) return handlerResult(false, [], { errorMsg: `No date was provided to addItemToFuture: "${text}"` })
+  if (!text) return handlerResult(false, [], { errorMsg: `No text was provided to addItemToFuture` })
+  if (!date) return handlerResult(false, [], { errorMsg: `No date was provided to addItemToFuture` })
   const extension = DataStore.defaultFileExtension
   const filename = `${moment(date).format(`YYYYMMDD`)}.${extension}`
   data.toFilename = filename

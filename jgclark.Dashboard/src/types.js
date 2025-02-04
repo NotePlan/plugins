@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated for v2.1.0.a
+// Last updated for v2.1.8
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -194,6 +194,7 @@ export type TActionType =
   | 'addChecklist'
   | 'addProgress'
   | 'addTask'
+  | 'addTaskAnywhere'
   | 'addTaskToFuture'
   | 'cancelProject'
   | 'cancelTask'

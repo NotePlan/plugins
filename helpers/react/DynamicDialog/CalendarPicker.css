@@ -62,6 +62,10 @@
   box-shadow: none;
 }
 
+.rdp button {
+  border: none;
+}
+
 .calendarPickerCustom {
   margin-top: 0px;
   padding-top: 0px;
@@ -77,6 +81,12 @@
 .rdp-month {
   margin-top: 0px !important;
   padding-top: 0px !important;
+}
+
+.rdp-months { /* align the tops of the month calendars when > 1 month is shown */
+  display: flex;
+  justify-content: flex-start;
+  align-items: baseline;
 }
 
 .rdp-nav {

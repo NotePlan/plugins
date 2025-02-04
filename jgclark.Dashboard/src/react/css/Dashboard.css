@@ -627,3 +627,7 @@ input.apple-switch:checked:after {
 .CircularProgressbar-background {
   fill: var(--bg-sidebar-color) !important;
 }
+
+.dynamic-dialog.dashboard-command-button .dynamic-dialog-content {
+	overflow: visible;
+}

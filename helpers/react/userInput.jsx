@@ -17,21 +17,17 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
     const container = document.createElement('div')
     if (document.body) {
       document.body.appendChild(container)
-      logDebug('showDialog', 'container appended to document.body')
     }
 
     const root = createRoot(container)
-    logDebug('showDialog', 'root created')
 
     const closeDialog = () => {
       try {
         if (root) {
           root.unmount()
-          logDebug('showDialog', 'root.unmount() called')
         }
         if (document.body && container.parentNode === document.body) {
           document.body.removeChild(container)
-          logDebug('showDialog', 'container removed from document.body')
         }
       } catch (error) {
         logError('showDialog', 'Error during closeDialog', error)
