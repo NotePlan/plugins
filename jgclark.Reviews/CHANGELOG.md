@@ -1,6 +1,19 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
+## [1.1.0] - 2025-02-03
+### New
+- Supports 'Perspectives' from Dashboard plugin. (If you turn the feature on in settings), the Project List will automatically use the current 'Perspective' definition from the Dashboard plugin to determine which folders are included and excluded.
+- where you have more than one project tag, each tag is shown in a section that can be collapsed or expanded using the triangle icons ▼ or ▶.
+
+### Changed
+- changed the top-middle box of controls to be a top bar, with only the controls that can't live in the popup 'edit dialog' boxes.
+- top bar now shows the current Perspective name (if used).
+- other improvements of the 'rich' style Project List, to bring more in line with the Dashboard plugin. Including a simpler style of tooltips that aren't clipped.
+- now supports multiple next action tags, and shows all of them in the Project List. (requested by @matt.)
+- when you run '/cancel project' it now asks for a progress comment (like happens when you pause a project).
+- the heading of the edit dialog box now shows the note title (not filename), and the current review interval
+
 ## [1.0.2] - 2024-12-28 (unreleased)
 - now uses the user's 'Editor Font Size' setting to determine the base font size for the rich view of the Project List -- and so can be changed up and down quite easily -- rather than using what the Theme defines.
 - small layout tweaks

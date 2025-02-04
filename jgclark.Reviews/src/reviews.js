@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2024-10-10 for v1.0.2, @jgclark
+// Last updated 2025-02-02 for v1.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -273,6 +273,37 @@ const addToggleEvents: string = `
   console.log('- '+ String(added) + ' input ELs added');
 </script>
 `
+
+// TODO(later): remove this once happy with details/summary system
+// const collapseSection: string = `
+// <script>
+// /**
+//  * Collapse/expand a section.
+//  * @param {Element} element The element to toggle.
+//  */
+// function toggleSection(element) {
+//   const tbody = element.closest('tbody');
+//   tbody.classList.toggle('collapsed');
+
+//   // Update the arrow indicator
+//   const headerText = element.textContent;
+//   element.firstElementChild.textContent = headerText.includes('▼')
+//     ? headerText.replace('▼', '▶')
+//     : headerText.replace('▶', '▼');
+// }
+
+// // Optional: Initialize all sections as expanded or collapsed
+// document.addEventListener('DOMContentLoaded', () => {
+//   // To start all collapsed:
+//   // document.querySelectorAll('.collapsible').forEach(tbody => {
+//   //   tbody.classList.add('collapsed');
+//   //   tbody.querySelector('.folder-header td').textContent =
+//   //     tbody.querySelector('.folder-header td').textContent.replace('▼', '▶');
+//   // });
+// });
+// </script>
+// `
+
 //-----------------------------------------------------------------------------
 
 /**
@@ -441,6 +472,7 @@ export async function renderProjectListsHTML(
       'project lists',
       '',
       'Recalculate project lists and update this window',
+      true
     )
     const startReviewPCButton = makePluginCommandButton(
       `<i class="fa-solid fa-play"></i>\u00A0Start`,
@@ -448,6 +480,7 @@ export async function renderProjectListsHTML(
       'start reviews',
       '',
       'Opens the next project to review in the NP editor',
+      true
     )
     const reviewedPCButton = makePluginCommandButton(
       `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish`,
@@ -455,6 +488,7 @@ export async function renderProjectListsHTML(
       'finish project review',
       '',
       `Update the ${checkString(DataStore.preference('reviewedMentionStr'))}() date for the Project you're currently editing`,
+      true
     )
     const nextReviewPCButton = makePluginCommandButton(
       `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
@@ -462,30 +496,34 @@ export async function renderProjectListsHTML(
       'next project review',
       '',
       `Finish review of currently open Project and start the next review`,
+      true
     )
     const skipReviewPCButton = makePluginCommandButton(`<i class="fa-solid fa-forward"></i>\u00A0Skip\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
       'jgclark.Reviews',
       'skip project review',
       '',
-      'Skip this Project review and select new date')
+      'Skip this Project review and select new date',
+      true)
     const newIntervalPCButton = makePluginCommandButton(`<i class="fa-solid fa-arrows-left-right"></i>\u00A0New Interval`,
       'jgclark.Reviews',
       'set new review interval',
       '',
-      'Set new review interval for Project')
+      'Set new review interval for Project',
+      true)
     const updateProgressPCButton = makePluginCommandButton(
       `\u00A0<i class="fa-solid fa-comment-lines"></i>\u00A0Add Progress`,
       'jgclark.Reviews',
       'add progress update',
       '',
       'Add a progress line to the currently open Project note',
-    )
+      true)
     const pausePCButton = makePluginCommandButton(
       `Toggle\u00A0<i class="fa-solid fa-circle-pause"></i>\u00A0Pause`,
       'jgclark.Reviews',
       'pause project toggle',
       '',
       'Pause the currently open Project note',
+      true
     )
     const completePCButton = makePluginCommandButton(
       `<i class="fa-solid fa-circle-check"></i>\u00A0Complete`,
@@ -493,28 +531,30 @@ export async function renderProjectListsHTML(
       'complete project',
       '',
       'Complete the currently open Project note',
+      true
     )
     const cancelPCButton = makePluginCommandButton(
       `<i class="fa-solid fa-circle-xmark"></i>\u00A0Cancel`,
       'jgclark.Reviews',
       'cancel project',
       '',
-      'Cancel the currently open Project note'
+      'Cancel the currently open Project note',
+      true
     )
 
-    // write lines before first table
-    // outputArray.push(`<h1>${windowTitle}</h1>`)
-
-    // Add a sticky area for buttons
+    // Start with a sticky top bar
+    outputArray.push(`<div class="topbar">`)
+    // v1: old style top middle box with lots of buttons
     // const controlButtons = `<span class="sticky-box-header">Review:</span> ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n${newIntervalPCButton}\n<br /><span class="sticky-box-header">List</span>: \n${refreshPCButton} \n<span class="sticky-box-header">Project:</span>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
-    // New simpler version, with flexbox top bar
-    const refreshSection = `<div>${refreshPCButton}\n<span class="display-details pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
-    const controlButtons = `<div>Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
-    // Note: remove test lines to see scroll position:
-    // controlButtons += ` <input id="id" type="button" value="Update Scroll Pos" onclick="getCurrentScrollHeight();"/>`
-    // controlButtons += ` <span id="scrollDisplay" class="fix-top-right">?</span>`
-    outputArray.push(`<div class="sticky-box-top-middle">`)
+
+    // v2: New simpler version, with flexbox top bar
+    if (config.usePerspectives) {
+      const perspectiveSection = `<div class="topbar-text">Persp: <span class="perspective-name">${config.perspectiveName}</span></div>`
+      outputArray.push(perspectiveSection)
+    }
+    const refreshSection = `<div class="pad-left">${refreshPCButton}\n<span class="topbar-text pad-left">Updated: <span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
     outputArray.push(refreshSection)
+    const controlButtons = `<div>Reviews: ${startReviewPCButton}\n${reviewedPCButton}\n${nextReviewPCButton}\n</div>`
     outputArray.push(controlButtons)
 
     // Show time since generation + display settings
@@ -527,10 +567,16 @@ export async function renderProjectListsHTML(
 
     // add checkbox toggles in place of previous text
     // outputArray.push(`(${togglesValues})`)
-    outputArray.push(`<div>\n  <input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">Display only due?</input>`)
-    outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">Display finished?</input>\n</div>`)
+    outputArray.push(`<div id="toggles">`)
+    outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">Display only due?</input>`)
+    outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">Display finished?</input>`)
+    outputArray.push(`</div>`)
     // Close the sticky top bar
     outputArray.push(`</div>`)
+
+    // Note: remove test lines to see scroll position:
+    // controlButtons += ` <input id="id" type="button" value="Update Scroll Pos" onclick="getCurrentScrollHeight();"/>`
+    // controlButtons += ` <span id="scrollDisplay" class="fix-top-right">?</span>`
 
     // Allow multi-col working
     outputArray.push(`<div class="multi-cols">`)
@@ -538,14 +584,21 @@ export async function renderProjectListsHTML(
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
 
     // Make the Summary list, for each projectTag in turn
-    // let tagCount = 0
     for (const thisTag of config.projectTypeTags) {
       // Get the summary line for each revelant project
       const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
 
       // Write out all relevant HTML
-      outputArray.push('')
-      outputArray.push(`<h3>${thisTag}: ${noteCount} notes, ${due} ready for review</h3>`)
+      // If there are multiple projectTypeTags, then use details/summary HTML tags to open/close the section
+      if (config.projectTypeTags.length > 1) {
+        outputArray.push(`  <details open>`) // start it open
+        // Had tried adding: <i class="fa-solid fa-chevron-down"></i>
+        outputArray.push(`   <summary class="folder-header"><span class="h3 folder-name">${thisTag} </span>(${noteCount} notes, ${due} ready for review)</summary>`)
+      } else {
+        outputArray.push(`  <div class="folder-header"><span class="h3 folder-name">${thisTag} </span>(${noteCount} notes, ${due} ready for review)</div>`)
+      }
+      outputArray.push('\n<div class="details-content">')
+
       // Add folder name, but only if we're only looking at 1 folder, and we're not grouping by folder. (If we are then folder names are added inside the table.)
       if (!config.displayGroupedByFolder && config.foldersToInclude.length === 1) {
         outputArray.push(`<h4>${config.foldersToInclude[0]} folder</h4>`)
@@ -581,22 +634,26 @@ export async function renderProjectListsHTML(
         }
         // outputArray.push('<tbody>')
         outputArray.push(thisSummaryLines.join('\n'))
-        outputArray.push('</tbody>')
-        outputArray.push('</table>')
+        outputArray.push('   </tbody>')
+        outputArray.push('  </table>')
+        outputArray.push(' </div>') // details-content div
+        if (config.projectTypeTags.length > 1) {
+          outputArray.push(`</details>`)
+        }
       }
       // tagCount++
       logTimer('renderProjectListsHTML', funcTimer, `end of loop for ${thisTag}`)
     }
-    outputArray.push(`</div>`)
 
     // Project control dialog
+    // Includes some 2x id elements to be updated with the project title + review interval
     // Note: in the future the draft spec for CSS Anchor Positioning could be helpful for positioning this dialog relative to other things
     const projectControlDialogHTML = `
   <!----------- Dialog to show on Project items ----------->
   <dialog id="projectControlDialog" class="projectControlDialog" aria-labelledby="Actions Dialog"
     aria-describedby="Actions that can be taken on projects">
     <div class="dialogTitle">
-      <div>For <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogProjectNote">?</span></b></div>
+      <div>For <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogProjectNote">?</span></b> <span id="dialogProjectInterval">?</span></div>
       <div class="dialog-top-right"><form><button id="closeButton" class="closeButton">
         <i class="fa-solid fa-square-xmark"></i>
       </button></form></div>
@@ -649,7 +706,7 @@ export async function renderProjectListsHTML(
       postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>
       <script type="text/javascript" src="./projectListEvents.js"></script>
-      ` + commsBridgeScripts + shortcutsScript + addToggleEvents, // resizeListenerScript + unloadListenerScript,
+      ` + commsBridgeScripts + shortcutsScript + addToggleEvents, // + collapseSection +  resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 800, // = default width of window (px)
@@ -698,6 +755,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
     const completeXCallbackButton = `[Complete](${completeXCallbackURL})`
     const cancelXCallbackButton = `[Cancel](${cancelXCallbackURL})`
     const nowDateTime = nowLocaleShortDateTime()
+    const perspectivePart = (config.usePerspectives) ? ` from _${config.perspectiveName}_ Perspective` : ''
 
     if (config.projectTypeTags.length > 0) {
       if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
@@ -722,19 +780,17 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           const startReviewButton = `[Start reviewing ${due} ready for review](${startReviewXCallbackURL})`
           const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
 
+          if (!config.displayGroupedByFolder) outputArray.unshift(`### All folders (${noteCount} notes)`)
+
           if (due > 0) {
-            outputArray.unshift(`Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${newIntervalXCallbackButton} Project: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
+            outputArray.unshift(`**${startReviewButton}**. For open Project note: Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${newIntervalXCallbackButton} Project: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
           }
-          // const displayFinished = config.displayFinished ?? 'display at end'
           const displayFinished = config.displayFinished ?? false
           const displayOnlyDue = config.displayOnlyDue ?? false
           let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
           togglesValues += (displayFinished) ? ' plus finished ones' : ''
-          outputArray.unshift(`Total ${noteCount} active projects${due > 0 ? `: **${startReviewButton}**` : ''} (${togglesValues}). Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
-
-          if (!config.displayGroupedByFolder) {
-            outputArray.unshift(`### All folders (${noteCount} notes)`)
-          }
+          // Write out the count + metadata
+          outputArray.unshift(`Total ${noteCount} active projects${perspectivePart}(${togglesValues}). Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
           outputArray.unshift(`# ${noteTitle}`)
 
           // Save the list(s) to this note
@@ -769,9 +825,9 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           outputArray.unshift(`### All folders (${noteCount} notes)`)
         }
         if (due > 0) {
-          outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
+          outputArray.unshift(`**${startReviewButton}** ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
         }
-        outputArray.unshift(`Total ${noteCount} active projects${due > 0 ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
+        outputArray.unshift(`Total ${noteCount} active projects${perspectivePart}. Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
         outputArray.unshift(`# ${noteTitle}`)
 
         // Save the list(s) to this note
@@ -892,7 +948,8 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
           : folder
         if (folderPart === '/') folderPart = '(root folder)'
         if (style.match(/rich/i)) {
-          outputArray.push(`<thead>\n <tr class="section-header-row">  <th colspan=2 class="h4 section-header">${folderPart}</th>`)
+          outputArray.push(`<thead>\n <tr class="folder-header-row">`)
+          outputArray.push(`  <th colspan=2 class="h4 folder-header">${folderPart}</th>`)
           if (config.displayDates) {
             outputArray.push(`  <th>Next Review</th><th>Due Date</th>`)
           } else if (config.displayProgress && config.displayNextActions) {
@@ -902,7 +959,8 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
           } else if (config.displayNextActions) {
             outputArray.push(`  <th>Next Action</th>`)
           }
-          outputArray.push(` </tr>\n</thead>\n\n<tbody>`)
+          outputArray.push(` </tr>\n</thead>\n`)
+          outputArray.push(` <tbody>`)
         } else if (style.match(/markdown/i)) {
           outputArray.push(`### ${folderPart}`)
         }
@@ -978,13 +1036,20 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
 
     // If we're interested in Next Actions, and there are open items in the note, check to see if one is now set
     const numOpenItems = numberOfOpenItemsInNote(note)
-    logDebug('finishReviewCoreLogic', `Checking for Next Action tag '${config.nextActionTag}' in '${displayTitle(note)}' ... with ${numOpenItems} open items`)
-    if (config.nextActionTag !== '' && numOpenItems > 0) {
-      const nextActionLineIndex = getNextActionLineIndex(note, config.nextActionTag)
-      logDebug('finishReviewCoreLogic', `nextActionLineIndex= '${String(nextActionLineIndex)}'`)
-      if (isNaN(nextActionLineIndex)) {
+    const nextActionTagLineIndexes: Array<number> = []
+    if (numOpenItems > 0 && config.nextActionTags.length > 0) {
+      for (const naTag of config.nextActionTags) {
+        logDebug('finishReviewCoreLogic', `Checking for Next Action tag '${naTag}' in '${displayTitle(note)}' ... with ${numOpenItems} open items`)
+        const nextActionLineIndex = getNextActionLineIndex(note, naTag)
+        logDebug('finishReviewCoreLogic', `nextActionLineIndex= '${String(nextActionLineIndex)}'`)
+
+        if (isNaN(nextActionLineIndex)) {
+          nextActionTagLineIndexes.push(nextActionLineIndex)
+        }
+      }
+      if (nextActionTagLineIndexes.length === 0) {
         const res = await showMessageYesNo(
-          `There's no Next Action tag '${config.nextActionTag}' in '${displayTitle(note)}'. Do you wish to continue finishing this review?`,
+          `There's no Next Action tag in '${displayTitle(note)}'. Do you wish to continue finishing this review?`,
         )
         if (res === 'No') {
           return

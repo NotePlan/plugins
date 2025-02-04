@@ -4,7 +4,7 @@
 
 /* Settings for flex-based layout */
 .header {
-	font-size: 0.92rem;
+	font-size: 0.9rem;
 	/* Define grid-template-areas for better control */
 	/* display: grid; */
 	display: flex;
@@ -104,7 +104,7 @@
 /* For buttons in header area */
 /* TODO: Ideally rationalise this with the addButton icon-buttons in the sectionInfo area */
 .HAButton {
-	font-size: 0.92rem;
+	font-size: 0.9rem;
 	font-weight: 500;
 	border-style: solid;
 	border-width: 1px;

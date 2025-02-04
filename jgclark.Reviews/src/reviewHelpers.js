@@ -2,12 +2,21 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2024-12-31 for v1.0.0+, @jgclark
+// Last updated 2025-02-03 for v1.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
+import {
+  getActivePerspectiveDef,
+  getAllowedFoldersInCurrentPerspective,
+  getPerspectiveSettings,
+} from '../../jgclark.Dashboard/src/perspectiveHelpers'
+import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { type Progress } from './projectClass'
+import {
+  stringListOrArrayToArray,
+} from '@helpers/dataManipulation'
 import {
   calcOffsetDate,
   getDateFromUnhyphenatedDateString,
@@ -30,6 +39,8 @@ import {
 // Config setup
 
 export type ReviewConfig = {
+  usePerspectives: boolean,
+  perspectiveName: string,
   outputStyle: string,
   reviewsTheme: string,
   folderToStore: string,
@@ -58,7 +69,7 @@ export type ReviewConfig = {
   archiveUsingFolderStructure: boolean,
   archiveFolder: string,
   removeDueDatesOnPause: boolean,
-  nextActionTag: string,
+  nextActionTags: Array<string>,
   displayNextActions: boolean,
   _logLevel: string,
   _logTimer: boolean,
@@ -96,6 +107,23 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     DataStore.setPreference('reviewIntervalMentionStr', config.reviewIntervalMentionStr)
     DataStore.setPreference('reviewedMentionStr', config.reviewedMentionStr)
     DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
+
+    // If we want to use Perspectives, get all perspective settings
+    if (config.usePerspectives) {
+      const perspectiveSettings: Array<TPerspectiveDef> = await getPerspectiveSettings(false)
+      // Get the current Perspective
+      const currentPerspective: any = getActivePerspectiveDef(perspectiveSettings)
+      // clo(currentPerspective, `currentPerspective`)
+      config.perspectiveName = currentPerspective.name
+      logInfo('getReviewSettings', `Will use Perspective '${config.perspectiveName}', and will override any foldersToInclude and foldersToIgnore settings`)
+      config.foldersToInclude = stringListOrArrayToArray(currentPerspective.dashboardSettings?.includedFolders ?? '', ',')
+      config.foldersToIgnore = stringListOrArrayToArray(currentPerspective.dashboardSettings?.excludedFolders ?? '', ',')
+      // logDebug('getReviewSettings', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
+      // logDebug('getReviewSettings', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
+
+      const validFolders = getAllowedFoldersInCurrentPerspective(perspectiveSettings)
+      logDebug('getReviewSettings', `-> validFolders for '${config.perspectiveName}': [${String(validFolders)}]`)
+    }
 
     return config
   } catch (err) {
@@ -143,9 +171,9 @@ export function getParamMentionFromList(mentionList: $ReadOnlyArray<string>, men
  * @returns {number}
  */
 export function getNextActionLineIndex(note: TNote, naTag: string): number {
-  logDebug('getNextActionLineIndex', `Checking for @${naTag} in ${displayTitle(note)} with ${note.paragraphs.length} paragraphs`)
+  // logDebug('getNextActionLineIndex', `Checking for @${naTag} in ${displayTitle(note)} with ${note.paragraphs.length} paras`)
   const NAParas = note.paragraphs.filter((p) => p.content.includes(naTag)) ?? []
-  logDebug('getNextActionLineIndex', `Found ${NAParas.length} matching paragraphs`)
+  logDebug('getNextActionLineIndex', `Found ${NAParas.length} matching ${naTag} paras`)
   const result = (NAParas.length > 0) ? NAParas[0].lineIndex : NaN
   return result
 }
@@ -544,20 +572,16 @@ export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteAr
 
 export async function updateDashboardIfOpen(): Promise<void> {
   // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
-  // v1 (callback)
-  // WARNING: This seems to cause the loss-of-files problem even when it is not called.
-  // const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshProjectSection', '')
-  // logInfo('updateDashboardIfOpen', `❗️ about to send message to refresh 🎛 Dashboard ❗️`)
-  // NotePlan.openURL(refreshXCallbackURL) // no point in having await
 
+  // v1 (NotePlan.openURL(refreshXCallbackURL)) seemed to cause loss-of-files problems
   // v2 (internal invoke plugin command)
   // Note: This works
   logInfo('updateDashboardIfOpen', `about to invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])`)
-  let result = await DataStore.invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])
+  let res = await DataStore.invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])
 
   // Now trying a null call to this plugin, to see if we can switch the window context back to Reviews
   // Note: commenting out to test the b1265 fix. Seems to work now, but leaving in for a few releases in case.
-  result = await DataStore.invokePluginCommandByName("NOP", "jgclark.Reviews", [])
+  // res = await DataStore.invokePluginCommandByName("NOP", "jgclark.Reviews", [])
 }
 
 // TODO: Can remove in time

@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2024-10-11 for v1.0.0, @jgclark
+// Last updated 2025-02-03 for v1.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -122,14 +122,14 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
     // Get notes that include projectTag in this folder, ignoring subfolders
     // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
     for (const tag of tags) {
-      logDebug('getAllMatchingProjects', `looking for tag '${tag}' in project notes in folder '${folder}'...`)
+      // logDebug('getAllMatchingProjects', `looking for tag '${tag}' in project notes in folder '${folder}'...`)
       // Note: this is very quick <1ms
       const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, [], true, filteredDataStore, false)
       if (projectNotesArr.length > 0) {
         // Get Project class representation of each note.
         // Save those which are ready for review in projectsReadyToReview array
         for (const n of projectNotesArr) {
-          const np = new Project(n, tag, true, config.nextActionTag)
+          const np = new Project(n, tag, true, config.nextActionTags)
           projectInstances.push(np)
         }
       }

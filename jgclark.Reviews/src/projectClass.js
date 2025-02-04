@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2024-10-07 for v1.0.0.b3, @jgclark
+// Last updated 2025-02-03 for v1.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -90,10 +90,10 @@ export class Project {
   percentComplete: number = NaN
   lastProgressComment: string = '' // e.g. "Progress: 60@20220809: comment
   mostRecentProgressLineIndex: number = NaN
-  nextActionRawContent: string = ''
+  nextActionsRawContent: Array<string> = []
   ID: string // required when making HTML views
 
-  constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTag: string = '') {
+  constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = []) {
     try {
       const startTime = new Date()
       if (note == null || note.title == null) {
@@ -234,13 +234,16 @@ export class Project {
         }
       }
 
-      // If we want to track next actions, find the first one (if any)
-      if (nextActionTag !== '') {
-        const nextActionParas = paras.filter(isOpen).filter((p) => p.content.match(nextActionTag))
+      // If we want to track next actions, find the first one of each tag (if any)
+      if (nextActionTags.length > 0) {
+        for (const nextActionTag of nextActionTags) {
+          const nextActionParas = paras.filter(isOpen).filter((p) => p.content.match(nextActionTag))
 
-        if (nextActionParas.length > 0) {
-          this.nextActionRawContent = simplifyRawContent(nextActionParas[0].rawContent)
-          // logDebug('Project', `  - found nextActionRawContent = ${this.nextActionRawContent}`)
+          if (nextActionParas.length > 0) {
+            const thisNA = nextActionParas[0].rawContent
+            this.nextActionsRawContent.push(simplifyRawContent(thisNA))
+            // logDebug('Project', `  - found nextActionRawContent = ${thisNA}`)
+          }
         }
       }
 
@@ -259,7 +262,7 @@ export class Project {
         if (this.mostRecentProgressLineIndex >= 0) logDebug('Project', `  - progress: #${String(this.mostRecentProgressLineIndex)} = ${this.lastProgressComment}`)
         logDebug('Project', `  - completed: ${String(this.completedTasks)}`)
         logDebug('Project', `  - % complete = ${String(this.percentComplete)}`)
-        logDebug('Project', `  - nextAction = <${this.nextActionRawContent}>`)
+        logDebug('Project', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
       } else {
         logTimer('Project', startTime, `Constructed ${this.projectTag} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
       }
@@ -489,7 +492,7 @@ export class Project {
       metadataPara.content = newMetadataLine
       if (Editor && Editor.note && Editor.note === this.note) {
         Editor.updateParagraph(metadataPara)
-        const res = DataStore.updateCache(this.note)
+        const res = DataStore.updateCache(this.note, true)
       } else {
         this.note.updateParagraph(metadataPara)
         DataStore.updateCache(this.note, true)
@@ -778,8 +781,9 @@ export function generateProjectOutputLine(
 ): string {
   let output = ''
   let statsProgress = ''
+  let thisPercent = ''
   if (thisProject.percentComplete != null) {
-    const thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
+    thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
     const totalTasksStr = (thisProject.completedTasks + thisProject.openTasks).toLocaleString()
     statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(thisProject.completedTasks + thisProject.openTasks !== 1) ? 'tasks' : 'task'})`
   } else {
@@ -811,7 +815,7 @@ export function generateProjectOutputLine(
     }
 
     // Column 2a: Project name / link / edit dialog trigger button
-    const editButton = `          <a class="dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+    const editButton = `          <a class="dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
     if (thisProject.isCompleted || thisProject.isCancelled || thisProject.isPaused) {
       output += `<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
     }
@@ -823,7 +827,9 @@ export function generateProjectOutputLine(
 
     if (!thisProject.isCompleted && !thisProject.isCancelled) {
       // tidy up nextActionContent to show only the main content and remove the nextAction tag
-      const nextActionContent = thisProject.nextActionRawContent ? thisProject.nextActionRawContent.slice(getLineMainContentPos(thisProject.nextActionRawContent)).replace(config.nextActionTag, '') : ''
+      const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
+        ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
+        : []
 
       if (config.displayDates) {
       // Write column 2b/2c under title
@@ -837,8 +843,10 @@ export function generateProjectOutputLine(
         }
 
         // Column 2c: next action (if present)
-        if (config.displayNextActions && nextActionContent !== '') {
-          output += `\n\t\t\t<br /><i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+        if (config.displayNextActions && nextActionsContent.length > 0) {
+          for (const nextActionContent of nextActionsContent) {
+            output += `\n\t\t\t<br /><i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+          }
         }
         output += `</td>`
       } else {
@@ -851,6 +859,7 @@ export function generateProjectOutputLine(
             output += `${statsProgress}`
           }
         }
+        // FIXME:
         if (config.displayNextActions && nextActionContent !== '') {
           if (config.displayProgress) output += '<br />'
           output += `<i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
@@ -862,7 +871,7 @@ export function generateProjectOutputLine(
     // Columns 3/4: date information
     if (config.displayDates && !thisProject.isPaused) {
       if (thisProject.isCompleted) {
-    // "completed after X"
+        // "completed after X"
         const completionRef = (thisProject.completedDuration)
           ? thisProject.completedDuration
           : "completed"
@@ -894,7 +903,7 @@ export function generateProjectOutputLine(
   else if (style === 'Markdown' || style === 'list') {
     output = '- '
     output += `${decoratedProjectTitle(thisProject, style, config)}`
-    // logDebug('', `${decoratedProjectTitle(thisProject, style, config
+    // logDebug('Project::generateProjectOutputLine', `${decoratedProjectTitle(thisProject, style, config
     if (config.displayDates && !thisProject.isPaused) {
       if (thisProject.isCompleted) {
     // completed after X or cancelled X ago, depending
@@ -911,7 +920,7 @@ export function generateProjectOutputLine(
       }
     }
     if (config.displayProgress && !thisProject.isCompleted && !thisProject.isCancelled) {
-    // Show progress comment if available ...
+      // Show progress comment if available ...
       if (thisProject.lastProgressComment !== '' && !thisProject.isCompleted && !thisProject.isCancelled) {
         output += `\t${thisPercent} done: ${thisProject.lastProgressComment}`
       }
@@ -931,9 +940,11 @@ export function generateProjectOutputLine(
     }
     // Add nextAction output if wanted and it exists
     // logDebug('Project::generateProjectOutputLine', `nextActionRawContent: ${thisProject.nextActionRawContent}`)
-    if (config.displayNextActions && thisProject.nextActionRawContent !== '' && !thisProject.isCompleted && !thisProject.isCancelled) {
-      const nextActionContent = thisProject.nextActionRawContent.slice(getLineMainContentPos(thisProject.nextActionRawContent)).replace(config.nextActionTag, '')
-      output += `\n\t- Next action: ${nextActionContent}`
+    if (config.displayNextActions && thisProject.nextActionsRawContent.length > 0 && !thisProject.isCompleted && !thisProject.isCancelled) {
+      const nextActionsContent: Array<string> = thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
+      for (const nextActionContent of nextActionsContent) {
+        output += `\n\t- Next action: ${nextActionContent}`
+      }
     }
   } else {
     logWarn('Project::generateProjectOutputLine', `Unknown style '${style}'; nothing returned.`)

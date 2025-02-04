@@ -1,16 +1,12 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2025-02-01 for v1.0.2+, @jgclark 
+ * Last updated 2025-02-03 for v1.1.0, @jgclark 
  */
 
 body {
-  /* a little breathing room around whole content */
-  padding: 0rem 0.25rem;
-  /* no left/right margin, but a top/bottom margin */
-  margin: 0px 0px 0.5rem 0px;
-  /* reset as theme inflates it */
+  margin: 0px;
 }
-/* add space below to better balance with spacing around H3 headings */
+
 table {
   /* font-size: 0.9rem; to make text a little smaller - but set elsewhere now */
   border-collapse: collapse; /* always! */
@@ -24,106 +20,195 @@ p {
 }
 /* de-emphasise bold a little */
 p b {
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 a, a:visited, a:active {
   color: inherit; text-decoration-line: none;
 }
+
+/* Remove margin-bottom and top from .h3 from last table */
+h3, .h3 {
+  margin-bottom: unset !important;
+  margin-top: unset !important;
+}
+
 /* Keep a header stuck to top middle of window */
-.sticky-box-top-middle {
+.topbar {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  gap: 0.5rem;
-  position: sticky; 
-  top: 0px; 
+  align-items: baseline; /* for parts without taller buttons */
+  position: sticky;
+  top: 0px;
+  gap: 0.6rem;
   background-color: var(--bg-sidebar-color); 
-  border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.4);
-  line-height: 1.8rem; 
-  padding: 0.3rem 0.7rem 0.2rem 0.4rem;
+  border-bottom: 1px solid var(--divider-color);
+  line-height: 1.8rem;
+  padding: 0.4rem 1rem 0.3rem 0.5rem;
   font-size: 0.9rem;
-  /* text-align: center;  */
+  z-index: 5;
+
+  .topbar-text {
+    font-size: 0.9rem;
+  }
+
+  .perspective-name {
+    font-weight: 500;
+  }
+
+  /* Hide the div with id 'toggles' if not quite wide */
+  @media (max-width: 900px) {
+    #toggles {
+      display: none;
+    }
+  }
 }
-/* stronger text within box */
-.sticky-box-header {
-  font-weight: 600;
-  margin-left: 0.5rem;
+
+/* Add 0.5rem padding to the left of the first cell in each row */
+td:first-child, th:first-child {
+  padding-left: 0.5rem;
 }
-p.display-details {
-  text-align: center;
-  font-size: 0.9rem;
+/* Styling for each cell in each row */
+td, th {
+  font-weight: normal;
+  text-align: left;
+  padding-right: 0.4rem;
+  font-size: 0.92rem;
 }
-/* Tweak inherited H2 and H3 font size down */
-h2, h3, h4, .h2, .h3, .h4 {
-  padding-left: 0.4rem;
-  padding-right: 0.3rem;
+
+details {
+  overflow: hidden;
 }
-/* Trying to phase this out → h3 */
-.h2 {
-  font-size: 1.25rem !important;
+
+/* Remove default disclosure triangle */
+details > summary {
+  list-style: none;
 }
-/* removed L-R borders for now */
-th {
-  text-align: left; 
-  padding-bottom: 0.2rem; 
-  font-weight: normal; 
-  border: 0px;
+details > summary::-webkit-details-marker {
+  display: none;
 }
+
+/* Style for the container */
+details > .content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 800ms ease-out;
+}
+
+/* Rotate triangle when open */
+details[open] > summary::after {
+  transform: rotate(90deg);
+}
+
+/* FIXME: Create inner wrapper for smooth animation */
+details > .details-content > * {
+  overflow: hidden;
+}
+
+/* When open, set full height */
+details[open] > .content {
+  grid-template-rows: 1fr;
+}
+
+/* Style the <summmary> tag in the <details> section */
+summary {
+  /* Text for section header */
+  /* color: var(--tint-color); */
+  /* padding-left: 0.5rem;
+  padding-top: 0.5rem; */
+
+  /* Create custom triangle with pseudo-element */
+  display: flex;
+  justify-content: start;
+  align-items: end;
+  cursor: pointer;
+  padding: 8px;
+  column-gap: 0.4rem;
+}
+  /* Animate the triangle icon */
+  /* summary i {
+    transition: transform 0.2s ease;
+  }
+  details[open] summary i {
+    transform: rotate(180deg);
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  */
+
+/* Animate the triangle icon */
+summary::after {
+  content: '▶';
+  transition: all 0.2s ease;
+}
+
 tr.projectRow {
   height: calc(var(--body-line-height)*2.5); /* seems to function as min-height, which itself doesn't work */
 }
-tr.section-header-row {
+tr.folder-header-row {
   column-span: all;
   vertical-align: bottom;
   background-color: var(--bg-main-color);
   border-top: none;
   border-bottom: 0.6px solid var(--tint-color);
 }
-.section-header {
-  /* font-size: 1.15rem !important; */
-  font-weight: bold;
-  padding: 1.0rem 0.3rem 0.3rem 0.4rem;
+
+.folder-header {
+  color: var(--tint-color);
+  padding-top: 0.7rem;
+  /* don't set padding-bottom to make it easier to line up rest of th in the row */
+  padding-left: 0.5rem;
+  padding-right: 0.3rem;
 }
+
+.folder-name {
+  font-size: 1.0rem;
+  font-weight: bold;
+  padding-top: 0.8rem;
+}
+
 .first-col-indicator {
-  padding: 0.3em 0.2rem 0 0.2rem;
+  padding: 0.5em 0.4rem 0.2rem 0.4rem; /* works but I don't understand why */
   text-align: center;
   align-content: center; /* not sure if this does anything? */
 }
+
 /* remove L-R borders for now */
-tbody td {
+td {
   line-height: 1.35rem;
   /* background-color: var(--bg-alt-color); */
-  padding: 3px 0.3rem 2px 0.4rem;
-  border-left: none; /* 0px solid var(--tint-color); */
-  border-right: none; /* 0px solid var(--tint-color); */
+  padding: 3px 0.2rem 2px 0.2rem;
+  border-left: none;
+  border-right: none;
 }
 /* turn on top border for tbody */
-table tbody tr:first-child {
+tbody tr:first-child {
   border-top: 1px solid rgb(from var(--tint-color) r g b / 0.3); /*0.3px solid var(--tint-color);*/
 }
 /* turn on bottom border for tbody */
-table tbody tr:last-child {
-  border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.7); /*1.0px solid var(--tint-color);*/
+tbody tr:last-child {
+  border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.3); /*1.0px solid var(--tint-color);*/
 }
 /* turn off outer table left border */
-table tr td:first-child {
+tr td:first-child {
   border-left: 0px;
 }
 /* turn off outer table left border */
-table tr th:first-child {
+tr th:first-child {
   border-left: 0px; 
 }
 /* turn off outer table right borders */
-table tr td:last-child, table tr th:last-child {
+tr td:last-child, tr th:last-child {
   border-right: 0px;
 }
-table tr.projectRow {
+tr.projectRow {
   /* border-bottom: 0.25px solid rgba(120,120,120,0.3); */
-  background-color: var(--bg-alt-color);
+  background-color: var(--bg-mid-color);
 }
 /* tweak color of every other row slightly */
-table tr.projectRow:nth-child(even) {
-  background-color: var(--bg-mid-color);
+tr.projectRow:nth-child(even) {
+  background-color: var(--bg-alt-color);
 }
 
 /* allow multi-column flow: set max columns and min width, and some other bits and pieces */
@@ -148,7 +233,7 @@ dialog::backdrop {
 	button, input {
 		color: var(--fg-main-color);
 		background-color: var(--bg-mid-color);
-		border: 1px solid rgb(from var(--fg-main-color) r g b / 0.4);
+		border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
 		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
     border-radius: 4px;
     font-weight: 500;
@@ -168,10 +253,10 @@ button, .fake-button, .clickTarget {
   border: 1px solid rgb(from var(--fg-main-color) r g b / 0.5);
 	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
 	padding: 2px 3px 0px 3px;
-	margin: 0px 2px; /* a little L and R */
+	margin: 2px 4px 0px 0px;
 	white-space: nowrap;
 	cursor: pointer;
-	font-size: 0.85rem;
+	font-size: 0.9rem;
 }
 
 .dialogTrigger {
@@ -224,8 +309,8 @@ button, .fake-button, .clickTarget {
 /* make noteTitles bold and coloured */
 .noteTitle {
   color: var(--tint-color);
-  font-size: 1.1rem;
-  font-weight: 600; 
+  font-size: 1.05rem; /* TODO: Gradually reduce from 1.1rem to 1.0rem? */
+  font-weight: 500;
   text-decoration: none;
 }
 /* make noteTitle links underlined on mouse hover */

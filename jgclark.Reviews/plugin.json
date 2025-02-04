@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "1.0.2",
-  "plugin.lastUpdateInfo": "1.0.2: theme font size can now be overriden by user setting in NP.\n1.0.1: fix bug with 'next action' setting.\n1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)",
+  "plugin.version": "1.1.0",
+  "plugin.lastUpdateInfo": "1.1.0: new option to use current 'Perspective' from the Dashboard plugin. New simpler top bar. Other small improvements and fixes.\n1.0.2: theme font size can now be overriden by user setting in NP.\n1.0.1: fix bug with 'next action' setting.\n1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)",
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
@@ -184,34 +184,34 @@
       "jsFunction": "updateSettings"
     },
     {
+      "hidden": true,
       "name": "test:generateAllProjectsList",
       "description": "make/update allProjects list JSON file",
-      "jsFunction": "generateAllProjectsList",
-      "hidden": true
+      "jsFunction": "generateAllProjectsList"
     },
     {
+      "hidden": true,
       "name": "test:getNextNoteToReview",
       "description": "log next note to review",
-      "jsFunction": "getNextNoteToReview",
-      "hidden": true
+      "jsFunction": "getNextNoteToReview"
     },
     {
+      "hidden": true,
       "name": "test:getNextProjectsToReview",
       "description": "log next notes to review",
-      "jsFunction": "getNextProjectsToReview",
-      "hidden": true
+      "jsFunction": "getNextProjectsToReview"
     },
     {
+      "hidden": true,
       "name": "test:logAllProjectsList",
       "description": "write allProjects JSON to log",
-      "jsFunction": "logAllProjectsList",
-      "hidden": true
+      "jsFunction": "logAllProjectsList"
     },
     {
+      "hidden": true,
       "name": "test:renderProjectLists",
       "description": "render current allProjects list in current style(s)",
-      "jsFunction": "renderProjectLists",
-      "hidden": true
+      "jsFunction": "renderProjectLists"
     }
   ],
   "plugin.inactiveCommands": [
@@ -273,9 +273,17 @@
       "required": false
     },
     {
+      "key": "usePerspectives",
+      "title": "Use Perspectives to filter projects?",
+      "description": "Whether to use the current Perspective definition from the Dashboard plugin to filter the projects to review.\nNote: this requires the Dashboard plugin to be installed, and if set it overrides the following 2 settings.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "key": "foldersToInclude",
-      "title": "Folders to use in reviews",
-      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nNote: if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders.\nIf empty, all folders will be used apart from those in the next setting.",
+      "title": "Folders to Include",
+      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nNotes:\n- if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders.\n- if empty, all folders will be used apart from those in the next setting.\n- if 'Use Perspectives' is set, then this setting is ignored.",
       "type": "[string]",
       "default": [
         "Projects"
@@ -284,8 +292,8 @@
     },
     {
       "key": "foldersToIgnore",
-      "title": "Folders to ignore in reviews",
-      "description": "If 'Folders to use in reviews' above is empty, then this setting specifies folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is also done anywhere in the folder name. Can be empty.\nNote: if you specify the root folder `/` this only ignores the root folder, and not all sub-folders.\nNote: the special @Trash, @Templates and @Archive folders are always excluded.",
+      "title": "Folders to Exclude",
+      "description": "If 'Folders to Include' above is empty, then this setting specifies folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is done anywhere in the folder name. Can be empty.\nNotes:\n- if you specify the root folder `/` this only ignores the root folder, and not all sub-folders.\n- the special @Trash, @Templates and @Archive folders are always excluded.\n- if 'Use Perspectives' is set, then this setting is ignored.",
       "type": "[string]",
       "default": [
         "Reviews",
@@ -381,11 +389,13 @@
       "required": true
     },
     {
-      "key": "nextActionTag",
-      "title": "Next action tag",
-      "description": "#hashtag to include in a task or checklist to indicate its the next action in this project (optional; default '#next')",
-      "type": "string",
-      "default": "#next",
+      "key": "nextActionTags",
+      "title": "Next action tag(s)",
+      "description": "Optional comma-separated list of possible#hashtags to include in a task or checklist to indicate its the next action in this project. (Default: '#next')",
+      "type": "[string]",
+      "default": [
+        "#next"
+      ],
       "required": false
     },
     {
