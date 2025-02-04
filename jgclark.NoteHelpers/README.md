@@ -1,5 +1,5 @@
 # 📙 NoteHelpers plugin
-This plugin provides commands to do things with notes that aren't yet provided in the app:
+This plugin (now a Core Plugin bundled with NotePlan 3.16.1 onwards) provides commands to do things with notes that aren't yet provided in the app:
 
 - **add number of days to dates**: looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds the number of days to or since that date. Useful for making lists of important days and easily knowing number of days to (or since) that day.
 - **add trigger to note**: makes it easy to add a trigger to a particular note. It lists the functions from all plugins that it can work out are written for triggers, but also allows any function to be picked. (See [NotePlan help page on Triggers](https://help.noteplan.co/article/173-plugin-note-triggers).)
@@ -40,6 +40,12 @@ This plugin provides commands to do things with notes that aren't yet provided i
 
 (If these commands are useful to you, you'll probably find the [TidyUp plugin](https://github.com/NotePlan/plugins/blob/main/np.Tidy/) helpful too. It's rather arbitrary which commands live in which plugin.)
 
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
+
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
+
+Thanks!
+
 ## "find and link unlinked notes ..." commands
 Here is a demo:
 ![Unlinked notes demo](docs/unlinked_note_demo.gif) 
@@ -70,12 +76,6 @@ The arguments are:
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
-
-If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
-
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
-
-Thanks!
 
 ## History
 See [CHANGELOG](CHANGELOG.md) for the plugin's history.
