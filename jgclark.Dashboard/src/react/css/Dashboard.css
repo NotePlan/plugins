@@ -294,15 +294,15 @@ dialog::backdrop {
 	button,
 	input {
 		color: var(--fg-sidebar-color);
-		background-color: var(--bg-sidebar-color);
-		border: 1px solid var(--divider-color);
+		background-color: var(--bg-alt-color);
+		border: 1px solid rgb(from var(--fg-main-color) r g b/0.3);
 		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
 	}
 	/* set input backgrounds a little lighter on hover */
 	input &:hover {
-		/* filter: brightness(140%); Not a pleasant effect. */
+		filter: brightness(104%);
 		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to use this when CSS standards catch up. */
-		background-color: color(var(--bg-sidebar-color) lightness(40%));
+		/* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
 	}
 }
 
@@ -352,7 +352,7 @@ dialog::backdrop {
 	&:hover {
 		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to this */
 		/* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
-		filter: brightness(107%);
+		filter: brightness(103%);
 	}
 }
 

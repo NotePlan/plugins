@@ -106,8 +106,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Set sidebar from NP fixed colours
     if (currentThemeMode === 'light') {
       rootSel.push(`--fg-sidebar-color: #242E32`)
-      rootSel.push(`--bg-sidebar-color: #F6F6F6`)
-      rootSel.push(`--divider-color: #D6D6D6`)
+      rootSel.push(`--bg-sidebar-color: #ECECEC`) // moving from #F6F6F6 to #DADADA in 3 steps
+      rootSel.push(`--divider-color: #CDCFD0`)
     } else {
       rootSel.push(`--fg-sidebar-color: #EBEBEB`)
       rootSel.push(`--bg-sidebar-color: #383838`)

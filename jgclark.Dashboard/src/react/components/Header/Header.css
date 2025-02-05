@@ -1,10 +1,9 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated for v2.1.0.b */
-/* Note: until 2.1.0.a8 was grid-based. But from a9 realised that flex is the natural, and thus easier, tool to use. */
+/* Last updated for v2.1.8 */
 
 /* Settings for flex-based layout */
 .header {
-	font-size: 0.9rem;
+	font-size: 1.0rem; /* was 0.9rem for a while */
 	/* Define grid-template-areas for better control */
 	/* display: grid; */
 	display: flex;
