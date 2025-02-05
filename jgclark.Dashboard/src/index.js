@@ -23,6 +23,8 @@ export {
   refreshSectionByCode,
 } from './dashboardHooks.js'
 
+export { generateDiagnosticsFile } from './diagnosticGenerator'
+
 export {
   addNewPerspective,
   deletePerspective,
