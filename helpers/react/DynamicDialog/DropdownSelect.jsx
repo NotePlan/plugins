@@ -394,7 +394,7 @@ const DropdownSelect = ({
           </span>
         </div>
         {isOpen && (
-          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}px`, maxHeight: '200px', overflowY: 'auto' }, styles.dropdown)}>
+          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}px`, maxHeight: '80vh', overflowY: 'auto' }, styles.dropdown)}>
             {filteredOptions.map((option: Option, i) => {
               if (option.type === 'separator') {
                 return <div key={option.value} style={styles.separator}></div>

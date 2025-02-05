@@ -432,9 +432,10 @@ const PerspectiveSelector = (): React$Node => {
     },
     input: {
       fontFamily: 'unset',
+      fontWeight: '500',
     },
     label: {
-      fontWeight: 500,
+      fontWeight: 'unset', // i.e. default for text = 400
     },
   }
 

@@ -77,7 +77,7 @@
 	cursor: pointer;
 	color: var(--fg-main-color);
 	margin: 0rem 0.2rem;
-	padding: 0.3rem 0.3rem;
+	padding: 0.2rem;
 	min-height: 0.9rem;
 	width: 100%;
 }
