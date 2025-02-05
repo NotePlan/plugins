@@ -45,13 +45,13 @@ h3, .h3 {
   border-bottom: 1px solid var(--divider-color);
   line-height: 1.8rem;
   padding: 0.4rem 1rem 0.3rem 0.5rem;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   z-index: 5;
 
-  .topbar-text {
+  /* .topbar-text {
     font-size: 0.9rem;
   }
-
+ */
   .perspective-name {
     font-weight: 500;
   }
@@ -237,6 +237,13 @@ dialog::backdrop {
 		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
     border-radius: 4px;
     font-weight: 500;
+
+    /* set backgrounds a little lighter on hover */
+    &:hover {
+      /* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to this */
+      /* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
+      filter: brightness(103%);
+    }
 	}
 }
 
@@ -248,10 +255,10 @@ button, .fake-button, .clickTarget {
 /* For buttons that trigger callbacks */
 .PCButton {
 	color: var(--fg-main-color);
-	background-color: var(--bg-main-color);
-  /* add a clearer border to all buttons (compared to Dashboard main window) */
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.5);
-	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
+	background-color: var(--bg-alt-color);
+  /* add a clearer border to all buttons */
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
+	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
 	padding: 2px 3px 0px 3px;
 	margin: 2px 4px 0px 0px;
 	white-space: nowrap;
@@ -383,7 +390,7 @@ i.fa-solid, i.fa-regular {
 /* from [Pure CSS3 iOS switch checkbox.](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb) */
 input.apple-switch {
   position: relative;
-  -webkit-appearance: none; /* FIXME: deprecated approach */
+  appearance: none; /* FIXME: deprecated approach */
   outline: none;
   width: 2.0rem; /* 50px; */
   height: 1.1rem; /* 30px; */
@@ -407,8 +414,8 @@ input.apple-switch:after {
   margin-right: 1.0rem;
 }
 input.apple-switch:checked {
-  box-shadow: inset 0.8rem 0 0 0 #4ed164; /* 20px; */
-  border-color: #4ed164;
+  box-shadow: inset 0.8rem 0 0 0 #4ac25e; /* 20px; */
+  border-color: #4ac25e;
 }
 input.apple-switch:checked:after {
   left: 0.8rem; /* 20px; */
