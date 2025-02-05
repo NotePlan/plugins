@@ -937,15 +937,15 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
  * Make a Section for all projects ready for review, using data written by the Projects + Reviews plugin: getNextProjectsToReview().
  * First check that the Projects & Reviews plugin is installed.
  * Note: this is taking 1815ms for JGC
- * @param {TDashboardSettings} config
+ * @param {TDashboardSettings} _config
  * @param {boolean} useDemoData?
  * @returns
  */
-export async function getProjectSectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
+export async function getProjectSectionData(_config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   const sectionNumStr = '15'
   const thisSectionCode = 'PROJ'
   let itemCount = 0
-  const maxProjectsToShow = config.maxItemsToShowInSection
+  // const maxProjectsToShow = _config.maxItemsToShowInSection
   let nextProjectsToReview: Array<Project> = []
   const items: Array<TSectionItem> = []
   logDebug('getProjectSectionData', `------- Gathering Project items for section #${String(sectionNumStr)} --------`)
@@ -984,7 +984,9 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
       // $FlowIgnore[incompatible-return] we cannot return anything if the plugin is not installed
       return null
     }
-    nextProjectsToReview = await getNextProjectsToReview(maxProjectsToShow)
+    // Get all projects to review (and apply maxProjectsToShow limit later)
+    // nextProjectsToReview = await getNextProjectsToReview(maxProjectsToShow)
+    nextProjectsToReview = await getNextProjectsToReview()
 
     // add basic filtering by folder for the current Perspective
     // const filteredProjects = nextProjectsToReview.filter((p) => {

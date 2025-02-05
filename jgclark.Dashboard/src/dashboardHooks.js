@@ -172,25 +172,6 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
 }
 
 /**
- * Refresh just the projects section -- if the Dashboard is open already.
- * Called by the Projects & Reviews plugin.
- */
-export async function refreshProjectSection(): Promise<void> {
-  if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
-    logDebug('refreshProjectSection', `Dashboard not open, so won't proceed ...`)
-    return
-  }
-  // Note: perhaps should check if PROJ section is open before proceeding. But certainly likely to be if Project List is being worked on.
-  logDebug('refreshProjectSection', `Dashboard is open, so starting ...`)
-  const data: MessageDataObject = {
-    sectionCodes: ['PROJ'],
-    actionType: 'refreshSomeSections',
-  }
-  const res = await refreshSomeSections(data, true)
-  // logDebug('refreshProjectSection', `done.`)
-}
-
-/**
  * Refresh a section given by its code -- if the Dashboard is open already.
  */
 export async function refreshSectionByCode(sectionCode: TSectionCode): Promise<void> {
@@ -204,4 +185,5 @@ export async function refreshSectionByCode(sectionCode: TSectionCode): Promise<v
     actionType: 'refreshSomeSections',
   }
   const res = await refreshSomeSections(data, true)
+  logDebug('refreshSectionByCode', `done.`)
 }

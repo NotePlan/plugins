@@ -50,6 +50,12 @@
       ]
     },
     {
+      "hidden": true,
+      "name": "genererateProjectListsAndRenderIfOpen",
+      "description": "genererate Project Lists And Render If Open -- called internally and by Dashboard plugin to refresh Projects list",
+      "jsFunction": "genererateProjectListsAndRenderIfOpen"
+    },
+    {
       "name": "onMessageFromHTMLView",
       "description": "Projects: Callback function to receive messages from HTML view",
       "jsFunction": "onMessageFromHTMLView",
@@ -424,7 +430,7 @@
     },
     {
       "type": "heading",
-      "title": "Setting for 'next project review' command"
+      "title": "'next project review' command settings"
     },
     {
       "key": "confirmNextReview",
@@ -436,7 +442,7 @@
     },
     {
       "type": "heading",
-      "title": "Settings for Complete and Cancel Project commands"
+      "title": "'complete Project' and 'cancel Project' command settings"
     },
     {
       "key": "finishedListHeading",
@@ -464,7 +470,7 @@
     },
     {
       "type": "heading",
-      "title": "Settings for 'pause project toggle' command"
+      "title": "'pause project toggle' command settings"
     },
     {
       "key": "removeDueDatesOnPause",

@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2025-02-03 for v1.1.0, @jgclark
+// Last updated 2025-02-05 for v1.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -294,9 +294,9 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
 export async function filterAndSortProjectsList(config: ReviewConfig, projectTag: string = ''): Promise<Array<Project>> {
   try {
     // const startTime = new Date()
-    logDebug('filterAndSortProjectsList', `Starting with tag '${projectTag}' ...`)
+    logDebug('reviews/filterAndSortProjectsList', `Starting with tag '${projectTag}' ...`)
     let projectInstances = await getAllProjectsFromList()
-    logDebug('filterAndSortProjectsList', `- for ${projectInstances.length} projects`)
+    logDebug('reviews/filterAndSortProjectsList', `- for ${projectInstances.length} projects`)
 
     // Filter out projects that are not tagged with the projectTag
     if (projectTag !== '') {
@@ -308,14 +308,14 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
     // if (displayFinished === 'hide') {
     if (!displayFinished) {
       projectInstances = projectInstances.filter((pi) => !pi.isCompleted).filter((pi) => !pi.isCancelled)
-      logDebug('filterAndSortProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
+      logDebug('reviews/filterAndSortProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
     }
 
     // Filter out non-due projects if required
     const displayOnlyDue = config.displayOnlyDue ?? false
     if (displayOnlyDue) {
       projectInstances = projectInstances.filter((pi) => pi.nextReviewDays <= 0)
-      logDebug('filterAndSortProjectsList', `- after filtering out non-due, ${projectInstances.length} projects`)
+      logDebug('reviews/filterAndSortProjectsList', `- after filtering out non-due, ${projectInstances.length} projects`)
     }
 
     // Sort projects by folder > nextReviewDays > dueDays > title
@@ -339,15 +339,15 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
         break
       }
     }
-    logDebug('filterAndSortProjectsList', `- sorting by ${String(sortingSpecification)}`)
+    logDebug('reviews/filterAndSortProjectsList', `- sorting by ${String(sortingSpecification)}`)
     const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)
     // sortedProjectInstances.forEach(pi => logDebug('', `${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
 
-    // logTimer(`filterAndSortProjectsList`, startTime, `Sorted ${sortedProjectInstances.length} projects`) // 2ms
+    // logTimer(`reviews/filterAndSortProjectsList`, startTime, `Sorted ${sortedProjectInstances.length} projects`) // 2ms
     return sortedProjectInstances
   }
   catch (error) {
-    logError('filterAndSortProjectsList', `error: ${error.message}`)
+    logError('reviews/filterAndSortProjectsList', `error: ${error.message}`)
     return []
   }
 }
@@ -475,10 +475,10 @@ export async function getNextNoteToReview(): Promise<?TNote> {
  * Note: v2, using the allProjects JSON file (not ordered but detailed)
  * Note: This is a variant of the original singular version above, and is only used by jgclark.Dashboard/src/dataGeneration.js
  * @author @jgclark
- * @param { number } numToReturn first n notes to return, or 0 indicating no limit.
+ * @param { number } numToReturn first n notes to return, or 0 indicating no limit. (Optional, default is 0)
  * @return { Array<Project> } next Projects to review, up to numToReturn. Can be an empty array. Note: not a TNote but Project object.
  */
-export async function getNextProjectsToReview(numToReturn: number = 6): Promise<Array<Project>> {
+export async function getNextProjectsToReview(numToReturn: number = 0): Promise<Array<Project>> {
   try {
     const config: ?ReviewConfig = await getReviewSettings(true)
     if (!config) {

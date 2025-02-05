@@ -573,14 +573,12 @@ export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteAr
 export async function updateDashboardIfOpen(): Promise<void> {
   // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
 
-  // v1 (NotePlan.openURL(refreshXCallbackURL)) seemed to cause loss-of-files problems
-  // v2 (internal invoke plugin command)
-  // Note: This works
-  logInfo('updateDashboardIfOpen', `about to invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])`)
-  let res = await DataStore.invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])
+  // v2 (internal invoke plugin command) TEST:
+  logInfo('updateDashboardIfOpen', `about to invokePluginCommandByName("refreshSectionByCode", "jgclark.Dashboard", ['PROJ'])`)
+  let res = await DataStore.invokePluginCommandByName("refreshSectionByCode", "jgclark.Dashboard", ['PROJ'])
 
   // Now trying a null call to this plugin, to see if we can switch the window context back to Reviews
-  // Note: commenting out to test the b1265 fix. Seems to work now, but leaving in for a few releases in case.
+  // TEST: commenting out to test the b1265 fix. Seems to work now, but leaving in for a few releases in case.
   // res = await DataStore.invokePluginCommandByName("NOP", "jgclark.Reviews", [])
 }
 

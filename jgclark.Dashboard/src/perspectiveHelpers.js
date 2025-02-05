@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated for v2.1.1
+// Last updated for v2.1.8
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -483,6 +483,10 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
     newPerspectiveSettings.map((p) => ({ name: p.name, isModified: p.isModified })),
     'switchToPerspective: newPerspectiveSettings saved to DataStore.settings',
   )
+
+  // Send message to Reviews (if open) to re-generate the Projects list and render it (if that window is already open)
+  const res = await DataStore.invokePluginCommandByName("genererateProjectListsAndRenderIfOpen", "jgclark.Reviews", [])
+
   return newPerspectiveSettings
 }
 
