@@ -6,13 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type {
-  TDashboardSettings,
-  TParagraphForDashboard,
-  TSection,
-  TSectionItem,
-  TSettingItem,
-} from './types'
+import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
   createSectionItemObject,
@@ -23,17 +17,12 @@ import {
   makeDashboardParas,
 } from './dashboardHelpers'
 import { openTodayItems, refTodayItems, openTomorrowParas, refTomorrowParas, openYesterdayParas, refYesterdayParas } from './demoData'
-import {
-  getTodaysDateHyphenated, getTodaysDateUnhyphenated,
-} from '@helpers/dateTime'
+import { getTodaysDateHyphenated, getTodaysDateUnhyphenated } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
-import {
-  getHeadingsFromNote,
-} from '@helpers/NPnote'
+import { getHeadingsFromNote } from '@helpers/NPnote'
 import { getCurrentTimeBlockPara, getTimeBlockDetails, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
 import { isOpen } from '@helpers/utils'
-
 
 //--------------------------------------------------------------------
 /**
@@ -241,22 +230,20 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       }
 
       // Add separate section (if there are any items found)
-      if (items.length > 0) {
-        const section: TSection = {
-          ID: sectionNumStr,
-          name: '>Today',
-          showSettingName: 'showTodaySection',
-          sectionCode: thisSectionCode,
-          description: `{count} scheduled to ${todayDateLocale}`,
-          FAIconClass: 'fa-light fa-calendar-star',
-          sectionTitleColorPart: 'sidebarDaily',
-          sectionFilename: thisFilename,
-          sectionItems: items,
-          generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
-          actionButtons: [],
-        }
-        sections.push(section)
+      const section: TSection = {
+        ID: sectionNumStr,
+        name: '>Today',
+        showSettingName: 'showTodaySection',
+        sectionCode: thisSectionCode,
+        description: `{count} scheduled to ${todayDateLocale}`,
+        FAIconClass: 'fa-light fa-calendar-star',
+        sectionTitleColorPart: 'sidebarDaily',
+        sectionFilename: thisFilename,
+        sectionItems: items,
+        generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
+        actionButtons: [],
       }
+      sections.push(section)
     }
 
     logTimer('getTodaySectionData', timer, `- found ${itemCount} daily items from ${filenameDateStr}`)
@@ -286,24 +273,22 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         }
       }
 
-      if (timeBlockItems.length > 0) {
-        const section: TSection = {
-          ID: TBsectionNumStr,
-          sectionCode: 'TB',
-          name: 'Current time block',
-          showSettingName: 'showTimeBlockSection',
-          description: '',
-          FAIconClass: 'fa-light fa-calendar-clock',
-          sectionTitleColorPart: 'sidebarYearly',
-          sectionFilename: thisFilename,
-          sectionItems: timeBlockItems,
-          generatedDate: new Date(),
-          actionButtons: [],
-        }
-        clo(section)
-        logTimer('getTodaySectionData', timer, `- found ${String(timeBlockItems.length)} timeblock items from ${filenameDateStr}`)
-        sections.push(section)
+      const section: TSection = {
+        ID: TBsectionNumStr,
+        sectionCode: 'TB',
+        name: 'Current time block',
+        showSettingName: 'showTimeBlockSection',
+        description: '',
+        FAIconClass: 'fa-light fa-calendar-clock',
+        sectionTitleColorPart: 'sidebarYearly',
+        sectionFilename: thisFilename,
+        sectionItems: timeBlockItems,
+        generatedDate: new Date(),
+        actionButtons: [],
       }
+      clo(section)
+      logTimer('getTodaySectionData', timer, `- found ${String(timeBlockItems.length)} timeblock items from ${filenameDateStr}`)
+      sections.push(section)
     }
 
     return sections
@@ -434,22 +419,20 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         }
       }
       // Add separate section (if there are any items found)
-      if (items.length > 0) {
-        const section: TSection = {
-          ID: sectionNumStr,
-          name: '>Yesterday',
-          showSettingName: 'showYesterdaySection',
-          sectionCode: thisSectionCode,
-          description: `{count} scheduled to ${yesterdayDateLocale}`,
-          FAIconClass: 'fa-light fa-calendar-star',
-          sectionTitleColorPart: 'sidebarDaily',
-          sectionFilename: thisFilename,
-          sectionItems: items,
-          generatedDate: new Date(),
-          actionButtons: [],
-        }
-        sections.push(section)
+      const section: TSection = {
+        ID: sectionNumStr,
+        name: '>Yesterday',
+        showSettingName: 'showYesterdaySection',
+        sectionCode: thisSectionCode,
+        description: `{count} scheduled to ${yesterdayDateLocale}`,
+        FAIconClass: 'fa-light fa-calendar-star',
+        sectionTitleColorPart: 'sidebarDaily',
+        sectionFilename: thisFilename,
+        sectionItems: items,
+        generatedDate: new Date(),
+        actionButtons: [],
       }
+      sections.push(section)
     }
 
     logTimer('getDataForDashboard', startTime, `- found ${itemCount} yesterday items from ${filenameDateStr}`)
@@ -574,22 +557,20 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         }
       }
       // Add separate section (if there are any items found)
-      if (items.length > 0) {
-        const section: TSection = {
-          ID: sectionNumStr,
-          name: '>Tomorrow',
-          showSettingName: 'showTomorrowSection',
-          sectionCode: thisSectionCode,
-          description: `{count} scheduled to ${tomorrowDateLocale}`,
-          FAIconClass: 'fa-light fa-calendar-arrow-down',
-          sectionTitleColorPart: 'sidebarDaily',
-          sectionFilename: thisFilename,
-          sectionItems: items,
-          generatedDate: new Date(),
-          actionButtons: [],
-        }
-        sections.push(section)
+      const section: TSection = {
+        ID: sectionNumStr,
+        name: '>Tomorrow',
+        showSettingName: 'showTomorrowSection',
+        sectionCode: thisSectionCode,
+        description: `{count} scheduled to ${tomorrowDateLocale}`,
+        FAIconClass: 'fa-light fa-calendar-arrow-down',
+        sectionTitleColorPart: 'sidebarDaily',
+        sectionFilename: thisFilename,
+        sectionItems: items,
+        generatedDate: new Date(),
+        actionButtons: [],
       }
+      sections.push(section)
     }
 
     logDebug('getDataForDashboard', `- found ${itemCount} Tomorrow items from ${filenameDateStr} in ${timer(startTime)}`)
