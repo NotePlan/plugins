@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated for 2.1.1
+// Last updated for 2.1.8
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -58,7 +58,6 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
       })
     } else {
       if (currentWeeklyNote) {
-        // const thisFilename = currentWeeklyNote?.filename ?? '(error)'
         const dateStr = getDateStringFromCalendarFilename(thisFilename)
         if (!thisFilename.includes(dateStr)) {
           logError('getThisWeekSectionData', `- filename '${thisFilename}' but '${dateStr}' ??`)
@@ -66,13 +65,6 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
 
         // Get list of open tasks/checklists from this calendar note
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('week', currentWeeklyNote, config, useEditorWherePossible)
-
-        // // write one combined section
-        // sortedOrCombinedParas.map((p) => {
-        //   const thisID = `${sectionNumStr}-${itemCount}`
-        //   items.push(createSectionItemObject(thisID, p))
-        //   itemCount++
-        // })
 
         // Iterate and write items for first (or combined) section
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
@@ -206,19 +198,12 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
       } else {
         // Get list of open tasks/checklists from current weekly note (if it exists)
         if (sortedRefParas.length > 0) {
-          // // make a sectionItem for each item, and then make a section too.
-          // sortedRefParas.map((p) => {
-          //   const thisID = `${sectionNumStr}-${itemCount}`
-          //   items.push(createSectionItemObject(thisID, p))
-          //   itemCount++
-          // })
-          // Iterate and write items for first (or combined) section
           items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
           itemCount += items.length
         }
       }
 
-      // Add separate section (if there are any items found)
+      // Add separate section (whether or not there are any items found; this is needed for React to render an empty section properly)
       if (items.length > 0) {
         const section: TSection = {
           ID: sectionNumStr,
@@ -281,12 +266,6 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
         // Get list of open tasks/checklists from this calendar note
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('week', lastWeeklyNote, config, useEditorWherePossible)
 
-        // write one combined section
-        // sortedOrCombinedParas.map((p) => {
-        //   const thisID = `${sectionNumStr}-${itemCount}`
-        //   items.push(createSectionItemObject(thisID, p))
-        //   itemCount++
-        // })
         // Iterate and write items for first (or combined) section
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
         itemCount += items.length
@@ -323,11 +302,12 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
       ],
     }
     sections.push(section)
+    logTimer('getLastWeekSectionData', startTime, `- made LW-19 direct section with ${String(itemCount)} items`)
 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
-      let items: Array<TSectionItem> = []
       sectionNumStr = '20'
+      let items: Array<TSectionItem> = []
       if (useDemoData) {
         const sortedRefParas = refWeekParas
         sortedRefParas.map((item) => {
@@ -338,38 +318,30 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
       } else {
         // Get list of open tasks/checklists from current weekly note (if it exists)
         if (sortedRefParas.length > 0) {
-          // // make a sectionItem for each item, and then make a section too.
-          // sortedRefParas.map((p) => {
-          //   const thisID = `${sectionNumStr}-${itemCount}`
-          //   items.push(createSectionItemObject(thisID, p))
-          //   itemCount++
-          // })
-          // Iterate and write items for first (or combined) section
           items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
           itemCount += items.length
         }
       }
 
-      // Add separate section (if there are any items found)
-      if (items.length > 0) {
-        const section: TSection = {
-          ID: sectionNumStr,
-          name: '>Last Week',
-          showSettingName: 'showWeekSection',
-          sectionCode: thisSectionCode,
-          description: `{count} scheduled to ${dateStr}`,
-          FAIconClass: 'fa-light fa-calendar-week',
-          sectionTitleColorPart: 'sidebarWeekly',
-          sectionFilename: thisFilename,
-          sectionItems: items,
-          generatedDate: new Date(),
-          actionButtons: [],
-        }
-        sections.push(section)
+      // Add separate section (whether or not there are any items found; this is needed for React to render an empty section properly)
+      const section: TSection = {
+        ID: sectionNumStr,
+        name: '>Last Week',
+        showSettingName: 'showLastWeekSection',
+        sectionCode: thisSectionCode,
+        description: `{count} scheduled to ${dateStr}`,
+        FAIconClass: 'fa-light fa-calendar-week',
+        sectionTitleColorPart: 'sidebarWeekly',
+        sectionFilename: thisFilename,
+        sectionItems: items,
+        generatedDate: new Date(),
+        actionButtons: [],
       }
+      sections.push(section)
+      logTimer('getLastWeekSectionData', startTime, `- made LW-20 referenced section with ${String(itemCount)} items in total`)
     }
 
-    logDebug('getLastWeekSectionData', `- found ${itemCount} weekly items from ${thisFilename} in ${timer(startTime)}`)
+    logTimer('getLastWeekSectionData', startTime, `- found ${itemCount} weekly items from ${thisFilename}`)
     return sections
   } catch (error) {
     logError('getLastWeekSectionData', `ERROR: ${error.message}`)

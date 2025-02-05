@@ -15,6 +15,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Updated passing of data from Projects & Reviews plugin (v1.1) to Dashboard.
 ### Fixed
 - Issue with 'Last Week' section taking a long time to appear (big thanks to @jpr1972 for tracking it down)
+- Issue with 'Last Week' section not working if 'Show referenced items in separate section' was turned on
 - Issue affecting @MC-1848 with timeblocks (thanks for patiently helping us track it down)
 - The 'Add a task' dialog box dropdown menu for Heading was clipped
 
