@@ -995,13 +995,18 @@ export function convertNPBlockIDToHTML(input: string): string {
  * @param {string} commandName to call when button is 'clicked'
  * @param {string} commandArgs (may be empty)
  * @param {string?} tooltipText to hover display next to button
+ * @param {boolean} nativeTooltips use native browser tooltips (default: false)
  * @returns {string}
  */
-export function makePluginCommandButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
+export function makePluginCommandButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = '', nativeTooltips: boolean = false): string {
   const output = tooltipText
-    ? `<button class="PCButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(
+    ? (nativeTooltips ?
+      `<button class="PCButton" title="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(
         commandArgs,
       )}">${buttonText}</button>`
+      : `<button class="PCButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(
+        commandArgs,
+      )}">${buttonText}</button>`)
     : `<button class="PCButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}" >${buttonText}</button>`
   return output
 }

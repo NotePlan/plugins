@@ -26,7 +26,7 @@ This plugin (now a Core Plugin bundled with NotePlan 3.16.1 onwards) provides co
 - **open note new window** (alias **onw**): open a user-selected note in a new window (and places the cursor at what it judges to be the start of the main content)
 - **open note new split** (alias **ons**): open a user-selected note in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
 - **open url from a note**: asks for a note, and then presents a list of URLs found in that note. The selected one is then opened in your default browser. (There's a setting to ignore URLs in closed tasks.)
-- **rename note filename**: renames the currently open note to one you specify. Note: this changes the underlying _filename_ not the visible _title_.
+- **rename note filename**: renames the currently open note to one you specify. Note: this changes the underlying _filename_ not the visible _title_. This has proved very helpful for people renaming notes who have imported them from other systems, including Obsidian.
 - **rename filename to title**: renames the current filename to the title of the note
 - **rename inconsistent note filenames**: renames the files of notes whose filenames are inconsistent with their titles. When run it offers to rename all in one go, or to go one by one so you can choose which ones to rename.
 - **reset title to match filename**: resets the current note title to match its filename.

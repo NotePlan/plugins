@@ -29,21 +29,25 @@ function showProjectControlDialog(dataObject) {
     dialog.close()
   }
 
+  const dialog = document.getElementById("projectControlDialog")
   const mousex = event.clientX  // Horizontal
   const mousey = event.clientY  // Vertical
   // const thisID = dataObject.itemID
   // const thisIDElement = document.getElementById(thisID)
   // const thisEncodedFilename = thisIDElement.dataset.encodedFilename // i.e. the "data-encoded-filename" element, with auto camelCase transposition
-  const thisEncodedFilename = dataObject.encodedFilename
-  const thisFilename = decodeRFC3986URIComponent(thisEncodedFilename)
-  // console.log(`dataObject() starting for ID ${thisID}, filename ${thisEncodedFilename}`)
-  console.log(`dataObject() starting for filename ${thisEncodedFilename}`)
 
-  const dialog = document.getElementById("projectControlDialog")
-
-  // Set the dialog title from the filename
+  // Set the dialog title from the filename or title
+  const thisFilename = decodeRFC3986URIComponent(dataObject.encodedFilename)
+  const thisTitle = decodeRFC3986URIComponent(dataObject.encodedTitle)
   const dialogItemNoteElem = document.getElementById('dialogProjectNote')
-  dialogItemNoteElem.innerHTML = thisFilename // TODO(later): use note title
+  dialogItemNoteElem.innerHTML = thisTitle ?? thisFilename
+
+  // Set the dialog interval from the note
+  const thisReviewInterval = dataObject.reviewInterval ?? ''
+  const dialogItemIntervalElem = document.getElementById('dialogProjectInterval')
+  dialogItemIntervalElem.innerHTML = ` (reviews: ${thisReviewInterval})`
+
+  console.log(`showProjectControlDialog() starting for filename '${thisFilename}', interval '${thisReviewInterval}', title '${thisTitle}'`)
 
   const possibleControlTypes = [
     // { displayString: 'Finish Review <i class="fa-solid fa-flag-checkered"></i>', controlStr: 'reviewed', handlingFunction: 'reviewFinished' },

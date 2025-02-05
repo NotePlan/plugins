@@ -13,7 +13,7 @@ After each project name (the title of the note) is an edit icon, which when clic
 
 ![Edit dialog](edit-dialog-1.0.png)
 
-User George (@george65) has recorded two video walkthroughs that show most of what the plugin does (recorded using an earlier version of the plugin):
+User George (@george65) has recorded two video walkthroughs that show most of what the plugin does (recorded using an earlier version of the plugin, so the UI is different):
 
 - [Inside Look: How George, CMO of Verge.io, Uses NotePlan for Effective Project Management](https://www.youtube.com/watch?v=J-FlyffE9iA) featuring this and my Dashboard plugin.
     [![thumbnail](effective-PM-with-George-thumbnail.jpg)](https://www.youtube.com/watch?v=J-FlyffE9iA)
@@ -90,12 +90,12 @@ Other notes:
 - If there are multiple copies of a metadata field, only the first one is used.
 - I'm sometimes asked why I use `@reviewed(2021-06-25)` rather than `@reviewed/2021-06-25`. The answer is that while the latter form is displayed in a neater way in the sidebar, the date part isn't available in the NotePlan API as the part after the slash is not a valid @tag as it doesn't contain an alphabetic character.
 
-## Reviewing Projects and/or Areas
-Use the '**Hashtags to review**' setting to control which notes are included in the review lists:
-- If this setting is empty, then it will include all notes for review that include a `@review(...)` string.
-- if it is set (e.g. `#project, #area, #goal`), then it will include just those notes which also have one or more of those tags.
-- Particularly if you have a large collection of notes in NP, you can also specify a 'Folders to include for reviews' setting (which includes any sub-folders).
-- You can specify folders to ignore using the 'Folders to Ignore for reviews' setting; I have this set to `Summaries, Reviews, Saved Searches`. Any sub-folders of these will also be ignored. (Note that the special Templates, Archive and Trash are always excluded.)
+## Selecting notes to include
+There are 2 parts of this:
+1. Use the '**Hashtags to review**' setting to control which notes are included in the review lists. If it is set (e.g. `#project, #area, #goal`), then it will include just those notes which also have one or more of those tags. If this setting is empty, then it will include all notes for review that include a `@review(...)` string.
+2. Then specifiy which folders you want to include and/or exclude notes from. There are 2 ways to do this:
+   1. From v1.1 you can use the '**Use Perspectives**' setting to control which folders are included. This requires the [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) to be installed, and if set then it uses the current Perspective's settings instead of the  following 2 settings.
+   2. Or Use the 'Folders to Include' and 'Folders to Exclude' settings to put a comma-separated list of folders to include and exclude. I have this set to `Summaries, Reviews, Saved Searches`. Any sub-folders of these will also be ignored. (Note that the special Templates, Archive and Trash are always excluded.)
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
@@ -107,16 +107,16 @@ You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, sh
 ![Example of 'Markdown' style of Project Lists](review-list-markdown-0.11@2x.png)
 
 Notes about the displays:
-- the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use (though see below on how to override this).  In this style this heading row deliberately 'sticks' to the top of the window as you scroll the list:
+- the **Rich style** is a temporary HTML window that picks up the NotePlan Theme you use (though see below on how to override this).  In this style there's a heading row deliberately 'sticks' to the top of the window as you scroll the list:
 ![Buttons in 'Rich' style](top-controls-1.0.png)
-- in the Rich style, all #tags to review get shown one after the other in a single window.
+- in the Rich style, all #tags to review get shown one after the other in a single window. These can be collapsed and expanded as a group using the triangle icons ▼ or ▶.
 - if you can make the window wide enough it will display in 2 (or even 3!) columns
-- the **Markdown style** list _is_ stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
+- the **Markdown style** list _is_ stored as a summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
 - the button 'Start reviews' / 'Start reviewing notes ready for review' is a shortcut to the '/start reviews' command (described below).
 - each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
 Other settings:
-- Next action tag: #hashtag to include in a task or checklist to indicate its the next action in this project (optional; default '#next').
+- Next action tag(s): optiona list of #hashtags to include in a task or checklist to indicate its the next action in this project (comma-separated; default '#next').
 - Display next actions in output? Whether to display the next action in the output? This requires the previous setting to be set. Note: If there are multiple items with the next action tag, only the first is shown.
 - Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`. Note also: 
   - if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders. 
@@ -146,7 +146,7 @@ This kicks off the most overdue review by opening that project's note in the edi
 
 ### "/finish project review" command
 This updates the current open project's `@reviewed(date)`, and if a Rich style project list is open, it is refreshed.
-If the 'Next action tag' setting is set, then it will warn if it finds no example of that tag on all open tasks/checklists.
+If the 'Next action tag(s)' setting is set, then it will warn if it finds no example of those tags on all open tasks/checklists.
 
 ### "/next project review" command
 This updates this project's `@reviewed(date)`, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
