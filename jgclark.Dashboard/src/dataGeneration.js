@@ -301,22 +301,20 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
       }
 
       // Add separate section (if there are any items found)
-      if (items.length > 0) {
-        const section: TSection = {
-          ID: sectionNumStr,
-          name: '>This Month',
-          showSettingName: 'showMonthSection',
-          sectionCode: thisSectionCode,
-          description: `{count} scheduled to ${dateStr}`,
-          FAIconClass: 'fa-light fa-calendar-range',
-          sectionTitleColorPart: 'sidebarMonthly',
-          sectionFilename: thisFilename,
-          sectionItems: items,
-          generatedDate: new Date(),
-          actionButtons: [],
-        }
-        sections.push(section)
+      const section: TSection = {
+        ID: sectionNumStr,
+        name: '>This Month',
+        showSettingName: 'showMonthSection',
+        sectionCode: thisSectionCode,
+        description: `{count} scheduled to ${dateStr}`,
+        FAIconClass: 'fa-light fa-calendar-range',
+        sectionTitleColorPart: 'sidebarMonthly',
+        sectionFilename: thisFilename,
+        sectionItems: items,
+        generatedDate: new Date(),
+        actionButtons: [],
       }
+      sections.push(section)
     }
 
     logTimer('getDataForDashboard', startTime, `- found ${itemCount} monthly items from ${thisFilename}`)
@@ -498,22 +496,20 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
       }
 
       // Add separate section (if there are any items found)
-      if (items.length > 0) {
-        const section: TSection = {
-          ID: sectionNumStr,
-          name: '>This Quarter',
-          showSettingName: 'showQuarterSection',
-          sectionCode: thisSectionCode,
-          description: `{count} scheduled to ${dateStr}`,
-          FAIconClass: 'fa-light fa-calendar-days',
-          sectionTitleColorPart: 'sidebarQuarterly',
-          sectionFilename: thisFilename,
-          sectionItems: items,
-          generatedDate: new Date(),
-          actionButtons: [],
-        }
-        sections.push(section)
+      const section: TSection = {
+        ID: sectionNumStr,
+        name: '>This Quarter',
+        showSettingName: 'showQuarterSection',
+        sectionCode: thisSectionCode,
+        description: `{count} scheduled to ${dateStr}`,
+        FAIconClass: 'fa-light fa-calendar-days',
+        sectionTitleColorPart: 'sidebarQuarterly',
+        sectionFilename: thisFilename,
+        sectionItems: items,
+        generatedDate: new Date(),
+        actionButtons: [],
       }
+      sections.push(section)
     }
 
     logDebug('getDataForDashboard', `- found ${itemCount} quarterly items from ${dateStr} in ${timer(startTime)}`)

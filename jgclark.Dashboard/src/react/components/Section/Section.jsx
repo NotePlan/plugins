@@ -98,12 +98,18 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     setItems(sectionItems)
   }, [section, dashboardSettings])
 
+  const refresh = useCallback(() => {
+    logDebug('Section/TBTimer', `Refreshing section ${section.sectionCode}...`)
+    const detailsMessageObject = { actionType: 'refreshSomeSections', sectionCodes: ['TB'] }
+    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'TBTimer fired refreshSomeSections', true)
+  }, [section.sectionCode, sendActionToPlugin])
+
   /**
    * Set a timer to refresh the TB section every 1 minute.
-   * FIXME(dwerteimer): this is what Cursor added on my second attempt -- just trying to keep it all in this file. But doesn't work.
+   * FIXME(dwertheimer): this is what Cursor added on my second attempt -- just trying to keep it all in this file. But doesn't work.
    */
   useEffect(() => {
-    const refreshInterval = 60000 // 1 minute
+    const refreshInterval = 50000 // A little less than 1 minute -- don't want it to collide with the IdleTimer if possible
     let timerId
 
     if (section.sectionCode === 'TB') {
@@ -119,14 +125,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         logDebug('Section/TBTimer', `Section ${section.sectionCode} timer cleared`)
       }
     }
-  }, [section.sectionCode])
-
-  const refresh = useCallback(() => {
-    logDebug('Section/TBTimer', 'Refreshing section ${section.sectionCode}...')
-    // TEST: Add your refresh logic here
-    const detailsMessageObject = { actionType: 'refreshSomeSections', sectionCodes: ['TB'] }
-    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'TBTimer fired refreshSomeSections', true)
-  }, [])
+  }, [section.sectionCode, refresh])
 
   //----------------------------------------------------------------------
   // Hooks
