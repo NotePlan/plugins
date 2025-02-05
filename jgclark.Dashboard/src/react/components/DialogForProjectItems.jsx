@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by Dialog component
-// Last updated 2025-01-29 for v2.1.7
+// Last updated 2025-02-04 for v2.1.8
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState } from 'react'
@@ -30,6 +30,7 @@ type DialogButtonProps = {
   handlingFunction?: string,
   description?: string,
   icons?: Array<{ className: string, position: 'left' | 'right' }>,
+  notOnMobile: boolean, // If true, the button will only be shown on macOS, because of limitations on iOS/iPadOS
 }
 
 const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
@@ -37,7 +38,6 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const [resetCalendar, setResetCalendar] = useState(false)
 
   // const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
-  // TEST: borrowing from DialogForTaskItems.jsx
   const dialogRef: React$RefObject<?HTMLDialogElement> = useRef <? HTMLDialogElement > (null)
 
   clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`, 2)
@@ -59,28 +59,34 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
   /**
    * Arrays of buttons to render.
+   * Note: Some buttons need to be suppressed on iOS/iPadOS as the CommandBar is not available while the window is open. They get removed below.
    */
-  const reviewButtons: Array<DialogButtonProps> = [
-    { label: 'Finish Review', controlStr: 'finish', description: 'Update the @review(...) date on the project to today', handlingFunction: 'reviewFinished', icons: [{ className: 'fa-regular fa-calendar-check', position: 'left' }] },
-    { label: 'Skip 1w', controlStr: 'nr+1w', description: 'Add a @nextReview(...) date for 1 week to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
-    { label: 'Skip 2w', controlStr: 'nr+2w', description: 'Add a @nextReview(...) date for 2 weeks to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
-    { label: 'Skip 1m', controlStr: 'nr+1m', description: 'Add a @nextReview(...) date for 1 month to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
-    { label: 'Skip 1q', controlStr: 'nr+1q', description: 'Add a @nextReview(...) date for 1 quarter to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+  let reviewButtons: Array<DialogButtonProps> = [
+    { label: 'Finish Review', controlStr: 'finish', description: 'Update the @review(...) date on the project to today', handlingFunction: 'reviewFinished', icons: [{ className: 'fa-regular fa-calendar-check', position: 'left' }], notOnMobile: false },
+    { label: 'Skip 1w', controlStr: 'nr+1w', description: 'Add a @nextReview(...) date for 1 week to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }], notOnMobile: false },
+    { label: 'Skip 2w', controlStr: 'nr+2w', description: 'Add a @nextReview(...) date for 2 weeks to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }], notOnMobile: false },
+    { label: 'Skip 1m', controlStr: 'nr+1m', description: 'Add a @nextReview(...) date for 1 month to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }], notOnMobile: false },
+    { label: 'Skip 1q', controlStr: 'nr+1q', description: 'Add a @nextReview(...) date for 1 quarter to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }], notOnMobile: false },
   ]
 
-  // Note: These cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open. They get ignored below.
-  const projectButtons: Array<DialogButtonProps> = [
-    { label: 'Complete', controlStr: 'complete', description: 'Add @completed(...) date to project metadata and remove from review lists', handlingFunction: 'completeProject', icons: [{ className: 'fa-solid fa-circle-check', position: 'left' }] },
-    { label: 'Cancel', controlStr: 'cancel', description: 'Add @cancelled(...) date to project metadata and remove from review lists', handlingFunction: 'cancelProject', icons: [{ className: 'fa-solid fa-circle-xmark', position: 'left' }] },
-    { label: 'Pause', controlStr: 'pause', 'description': 'Mark the project as paused', handlingFunction: 'togglePauseProject', icons: [{ className: 'fa-solid fa-circle-pause', position: 'left' }] },
+  let projectButtons: Array<DialogButtonProps> = [
+    { label: 'Toggle Pause', controlStr: 'pause', 'description': 'Mark the project as paused', handlingFunction: 'togglePauseProject', icons: [{ className: 'fa-solid fa-circle-pause', position: 'left' }], notOnMobile: false },
+    { label: 'Complete', controlStr: 'complete', description: 'Add @completed(...) date to project metadata and remove from review lists', handlingFunction: 'completeProject', icons: [{ className: 'fa-solid fa-circle-check', position: 'left' }], notOnMobile: false },
+    { label: 'Cancel', controlStr: 'cancel', description: 'Add @cancelled(...) date to project metadata and remove from review lists', handlingFunction: 'cancelProject', icons: [{ className: 'fa-solid fa-circle-xmark', position: 'left' }], notOnMobile: false },
     // TODO(later): I wanted this icon to be fa-solid fa-arrows-left-right-to-line, but it wasn't available when we made the build of icons.
-    { label: 'New Interval', controlStr: 'newint', description: 'Change the @review(...) interval for this project', handlingFunction: 'setNewReviewInterval', icons: [{ className: 'fa-solid fa-arrows-left-right', position: 'left' }] },
+    { label: 'New Interval', controlStr: 'newint', description: 'Change the @review(...) interval for this project', handlingFunction: 'setNewReviewInterval', icons: [{ className: 'fa-solid fa-arrows-left-right', position: 'left' }], notOnMobile: true },
   ]
 
-  // Note: These cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open. They get ignored below.
-  const progressButtons: Array<DialogButtonProps> = [
-    { label: 'Add', controlStr: 'progress', description: 'Add a progress comment to the project', handlingFunction: 'addProgress', icons: [{ className: 'fa-solid fa-comment-lines', position: 'right' }] },
+  let progressButtons: Array<DialogButtonProps> = [
+    { label: 'Add', controlStr: 'progress', description: 'Add a progress comment to the project', handlingFunction: 'addProgress', icons: [{ className: 'fa-solid fa-comment-lines', position: 'left' }], notOnMobile: true },
   ]
+
+  // Filter out buttons that are not available on mobile
+  if (!isDesktop) {
+    reviewButtons = reviewButtons.filter((button) => !button.notOnMobile)
+    progressButtons = progressButtons.filter((button) => !button.notOnMobile)
+    projectButtons = projectButtons.filter((button) => !button.notOnMobile)
+  }
 
   useEffect(() => {
     // logDebug(`DialogForProjectItems`, `BEFORE POSITION detailsMessageObject`, detailsMessageObject)
@@ -217,30 +223,26 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
               <CalendarPicker onSelectDate={handleDateSelect} numberOfMonths={1} reset={resetCalendar} />
             </div>
 
-            {/* line2 (macOS only) ---------------- */}
-            {isDesktop && (
-              <>
-                <div className="preText">Project:</div>
-                <div>
-                  {projectButtons.map((button, index) => (
-                    <button key={index}
-                      className="PCButton"
-                      title={button.description}
-                      onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
-                      {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
-                        <i key={icon.className} className={`${icon.className} pad-right`}></i>
-                      ))}
-                      {button.label}
-                      {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
-                        <i key={icon.className} className={`${icon.className} pad-left`}></i>
-                      ))}
-                    </button>
+            {/* line2: Project Actions ---------------- */}
+            <div className="preText">Project:</div>
+            <div>
+              {projectButtons.map((button, index) => (
+                <button key={index}
+                  className="PCButton"
+                  title={button.description}
+                  onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
+                  {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
+                    <i key={icon.className} className={`${icon.className} pad-right`}></i>
                   ))}
-                </div>
-              </>
-            )}
+                  {button.label}
+                  {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
+                    <i key={icon.className} className={`${icon.className} pad-left`}></i>
+                  ))}
+                </button>
+              ))}
+            </div>
 
-            {/* line3 ---------------- */}
+            {/* line3: Progress ---------------- */}
             <div className="preText">Progress:</div>
             <div>
               {progressButtons.map((button, index) => (
