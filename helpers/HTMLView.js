@@ -724,6 +724,34 @@ export async function getGlobalSharedData(windowId: string, varName: string = 'g
 }
 
 /**
+ * Check to see if the theme has changed since we initially drew the window
+ * This can happen when your computer goes from light to dark mode or you change the theme
+ * We want the dashboard to always match.
+ * Note: if/when we get a themeChanged trigger, then this can be simplified.
+ * Note: assumes you have a field in pluginData called themeName
+ * @param {string} windowID - The ID of the window to check.
+ * @param {string} overrideThemeName (optional) - The theme name to check against. If not provided, the current Editor theme will be used.
+ * @returns {Promise<boolean>} - true if the theme has changed, false otherwise.
+ */
+export async function themeHasChanged(windowID: string, overrideThemeName?: string): Promise<boolean> {
+  const reactWindowData = await getGlobalSharedData(windowID)
+  const { pluginData } = reactWindowData
+  const { themeName: themeInWindow } = pluginData
+
+  const currentTheme = overrideThemeName ? overrideThemeName : Editor.currentTheme?.name || null
+
+  if (!currentTheme) {
+    logError('themeHasChanged', `Could not find currentTheme: "${currentTheme}", overrideThemeName: "${overrideThemeName || ''}", themeInReactWindow: "${themeInWindow}"`)
+    return false
+  }
+  if (currentTheme !== themeInWindow) {
+    logDebug('themeHasChanged', `theme changed from "${themeInWindow}" to "${currentTheme}"`)
+    return true
+  }
+  return false
+}
+
+/**
  * Generally, we will try not to update the global shared object directly, but instead use message passing to let React update the state. But there will be times we need to update the state from here (e.g. when we hit limits of message passing).
  * @author @dwertheimer
  * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
@@ -998,15 +1026,22 @@ export function convertNPBlockIDToHTML(input: string): string {
  * @param {boolean} nativeTooltips use native browser tooltips (default: false)
  * @returns {string}
  */
-export function makePluginCommandButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = '', nativeTooltips: boolean = false): string {
+export function makePluginCommandButton(
+  buttonText: string,
+  pluginName: string,
+  commandName: string,
+  commandArgs: string,
+  tooltipText: string = '',
+  nativeTooltips: boolean = false,
+): string {
   const output = tooltipText
-    ? (nativeTooltips ?
-      `<button class="PCButton" title="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(
-        commandArgs,
-      )}">${buttonText}</button>`
+    ? nativeTooltips
+      ? `<button class="PCButton" title="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(
+          commandArgs,
+        )}">${buttonText}</button>`
       : `<button class="PCButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(
-        commandArgs,
-      )}">${buttonText}</button>`)
+          commandArgs,
+        )}">${buttonText}</button>`
     : `<button class="PCButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}" >${buttonText}</button>`
   return output
 }
