@@ -19,16 +19,16 @@ Here's a [great video from user George Crump](https://youtu.be/_lj8osSOvQc) that
 
 To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It automatically picks up the Theme from NotePlan and mimics it as far as possible (you're welcome).
 
-From v2, the top right has icons for two menus: 
+At the top right there are 2 important menus:
 - a **Filter menu** that allows quick access to what sections are shown, and some other display toggles:
     
     <img width="300px" src="filter-menu-2.1.0.png" border="1pt solid" margin="8px" alt=""/>
 
 - a **Settings menu** -- see [Settings](#settings) for more details about these more complex settings.
 
-[<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+_This Plugin requires the separate 'Shared Resources' plugin to be installed. It will offer to install it for you if necessary._
 
-_This Plugin requires the separate 'Shared Resources' plugin to be installed._
+[<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
 ## Perspectives (new in v2.1)
 A **Perspective** is a named set of all your Dashboard settings, including which folders to include/ignore, and which sections to show. Each 'Perspective' has a name, and can be updated and deleted. 
@@ -46,9 +46,9 @@ All tasks and checklists shown in the Dashboard view can be marked as **complete
 
 <img  src="complete+cancel-2.1.0.gif" width="440px" border="1pt solid" margin="8px" alt="example of completing or cancelling a task"/>
 
-You can make many more changes by clicking on the **pencil** icon after each task. A dialog box pops up with many **action buttons**:
+You can make many more changes by clicking on the **pencil** icon after each task. An 'edit' dialog box pops up with many **action buttons**:
 
-<img src="task-dialog-2.1.0.png" width="600px" margin="8px" alt="dialog showing task + checklist action buttons" />
+<img src="task-dialog-2.1.8.png" width="600px" margin="8px" alt="dialog showing task + checklist action buttons" />
 
 - `today` moves to today's note
 - `+1d` moves to the next day's note
@@ -61,17 +61,18 @@ You can make many more changes by clicking on the **pencil** icon after each tas
 - `↑ Priority` increases the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
 - `↓ Priority` decreases the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
 - `Change to ◯/◻︎` toggles an item between being a task and a checklist
-- `Complete Then` completes an overdue task, but marks it `@done(...)` on the _original_ due date, not today.
-- `Unschedule` unschedules a task (i.e. removes any `>date`).
+- `← Complete` completes an overdue task, but marks it `@done(...)` on the _original_ (earlier) due date, not today.
+- `Unsched` unschedules a task (i.e. removes any `>date`).
+- `+New Task` lets you add a completely new task in any note under any heading without having to leave the Dashboard, or even the Interactive Processing flow. (This is the same as running the '/quick add task under heading' command from the Quick Capture plugin.)
 
 You can also update the text of the item itself, which is saved whenever you press the `Update` button (or any of the other action buttons). You can press `ESC` key to close the dialog, or click on the `X` button.
 
 ### Interactive Processing
-<img src="task-dialog-IP-mode-2.1.0.png" margin="8px" width="600px" alt="interactive processing mode" />
+<img src="task-dialog-IP-mode-2.1.8.png" margin="8px" width="600px" alt="interactive processing mode" />
 
 In sections with more than 1 item, a `>> N` button is available (where `N` is the number of items). This brings up the above dialog, but in 'interactive processing' mode, with extra buttons in the header to move forward (or backward) between the items. This allows you to more quickly go through a set of items, and take different actions for each one.
 
-Notes:
+Note:
 - you can break out from the sequence at any time by closing the dialog.
 - at the moment this only processes tasks that are currently shown -- so it won't process any ones of lower priority that you have hidden.
 - there are 3 settings that control aspects of this in the Dashboard Settings dialog.
@@ -120,7 +121,7 @@ The 'action buttons' available in this section are:
 - `Finish Review` does the equivalent of the "/finish review" command, marking that project as @reviewed today.
 - the various `Skip ...` buttons do the equivalent of the "/skip project review" command, that override (or skips) the normal review interval by the duration given. This adds a `@nextReview(...)` to the note's metadata. See [Project + Reviews documentation](../jgclark.Reviews/README.md) for more details.
 - `🗓️` skips  to any date you choose, via a date picker
-- "Complete", "Cancel" and "Pause" Project buttons, that each mimic the same command from the Project & Reviews plugin
+- "Toggle Pause", "Complete" and "Cancel" buttons, that each mimic the same command from the Project & Reviews plugin
 - shows the latest 'Progress' comment for a project, and an `Add` button to add a new progress comment.
 
 The 'Start Reviews' button does the same as the button of the same name in the Project & Reviews plugin, and is the equivalent of its **/start reviews** command. See the documentation for how that works, and which commands to follow it with once you've done reviewed the note.

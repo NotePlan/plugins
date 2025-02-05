@@ -64,16 +64,19 @@ h3, .h3 {
   }
 }
 
-/* Add 0.5rem padding to the left of the first cell in each row */
-td:first-child, th:first-child {
-  padding-left: 0.5rem;
-}
 /* Styling for each cell in each row */
 td, th {
   font-weight: normal;
   text-align: left;
   padding-right: 0.4rem;
   font-size: 0.92rem;
+}
+th {
+  padding-bottom: 0.2rem;
+}
+/* Add 0.5rem padding to the left of the first cell in each row */
+td:first-child, th:first-child {
+  padding-left: 0.5rem;
 }
 
 details {

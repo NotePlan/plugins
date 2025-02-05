@@ -1,14 +1,22 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-<!-- Hiding from view as we are on the main branch
-## [2.1.8] 2025-02-01 (unreleased)
+## [2.1.8] 2025-02-05
 ### New
 - Added a '+ New Task' button to the end of the Task edit dialog. This effectively runs the '/quick add task under heading' command (from Quick Capture) which allows you to add a new task in any note under any heading without having to leave the Dashboard.
+- When you switch to a new Perspective, Dashboard now tells Projects & Reviews plugin (if it is already open) to update.
 ### Changed
-- When clicking on a Section Title or note link, the note will be opened in the Editor window, and that will now be brought to the front.
+- When clicking on a Section Title or a note link (which opens the relevant note in the Editor), the Editor is now brought to the front.
+- Some color changes to bring more in line with NP's app sidebar.
+- If you have enabled the Timeblock section on, it will now show/hide relevant new timeblocks much more quickly.
 - The Edit All Perspectives table now has subtly shaded alternate rows
-- The window starts saying 'Generating' not 'Refreshing' -->
+- The window starts saying 'Generating' not 'Refreshing'
+- Improved text in Projects section heading
+- Updated passing of data from Projects & Reviews plugin (v1.1) to Dashboard.
+### Fixed
+- Issue with 'Last Week' section taking a long time to appear (big thanks to @jpr1972 for tracking it down)
+- Issue affecting @MC-1848 with timeblocks (thanks for patiently helping us track it down)
+- The 'Add a task' dialog box dropdown menu for Heading was clipped
 
 ## [2.1.7] 2025-01-30
 ### Changed
