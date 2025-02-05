@@ -59,7 +59,7 @@ import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas, set
 import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
+import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
 import { formatReactError } from '@helpers/react/reactDev'
 
@@ -368,11 +368,15 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult, data: MessageDataObject) {
   try {
     // check to see if the theme has changed and if so, update it
-    await checkForThemeChange()
+    const config: any = await getDashboardSettings()
+    const themeChanged = await themeHasChanged(WEBVIEW_WINDOW_ID, config.dashboardTheme)
+    if (themeChanged) {
+      logDebug('processActionOnReturn', `Theme changed; forcing a refresh of the dashboard`)
+      DataStore.invokePluginCommandByName('showDashboardReact', 'jgclark.Dashboard', ['full'])
+    }
     if (!handlerResultIn) return
     const handlerResult = handlerResultIn
     const { success, updatedParagraph } = handlerResult
-    const config: any = await getDashboardSettings()
     const enabledSections = getListOfEnabledSections(config)
 
     if (success) {
@@ -519,7 +523,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 /**
  * Update React window data based on the result of handling item content update.
  * Note: now simple REMOVE_LINE_FROM_JSON is handled in processActionOnReturn().
- * 
+ *
  * @param {TBridgeClickHandlerResult} res The result of handling item content update.
  * @param {MessageDataObject} data The data of the item that was updated.
  * @param {Array<string>} fieldPathsToUpdate The field paths to update in React window data -- paths are in SectionItem fields (e.g. "ID" or "para.content")
@@ -599,43 +603,5 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
   } catch (error) {
     logError('updateReactWindowFLC', error.message)
     clo(data.item, `- data.item at error:`)
-  }
-}
-
-/**
- * Check to see if the theme has changed since we initially drew the winodw
- * This can happen when your computer goes from light to dark mode or you change the theme
- * We want the dashboard to always match.
- * Note: if/when we get a themeChanged trigger, then this can be simplified.
- */
-export async function checkForThemeChange(): Promise<void> {
-  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  const { pluginData } = reactWindowData
-  const { themeName: themeInWindow } = pluginData
-  const config = await getDashboardSettings()
-
-  // logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'} config.dashboardTheme: ${config.dashboardTheme} themeInWindow: ${themeInWindow}`)
-  // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')
-  const currentTheme = config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || null
-
-  // logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
-  if (!currentTheme) {
-    logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
-    return
-  }
-  if (currentTheme && currentTheme !== themeInWindow) {
-    logDebug('checkForThemeChange', `theme changed from "${themeInWindow}" to "${currentTheme}"`)
-    // Update the CSS in the window
-    // The following doesn't work in practice ...
-    // const themeCSS = generateCSSFromTheme()
-    // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'CHANGE_THEME', {themeCSS}, `Theme CSS Changed`)
-    // reactWindowData.themeName = currentTheme // save the theme in the reactWindowData
-    // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Theme Changed; Changing reactWindowData.themeName`)
-
-    // ... so for now, force a reload instead
-    // V1
-    // await showDashboardReact('full')
-    // V2: use callback to avoid creating circular dependency
-    DataStore.invokePluginCommandByName('showDashboardReact', 'jgclark.Dashboard', ['full'])
   }
 }
