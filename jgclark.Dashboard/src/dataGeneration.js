@@ -950,7 +950,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
   const allowedFolders = getCurrentlyAllowedFolders(dashboardSettings)
 
   if (useDemoData) {
-    // TEST: add basic filtering by folder for the current Perspective
+    // add basic filtering by folder for the current Perspective
     const filteredProjects = nextProjectNoteItems.filter((p) => {
       const folder = getFolderFromFilename(p.filename)
       return allowedFolders.includes(folder)
@@ -974,8 +974,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
       itemCount++
     })
   } else {
-    // Get the next projects to review from the other plugin.
-    // Note: this does not yet use 'Perspectives'.
+    // Get the next projects to review from the Project + Reviews plugin.
     if (!(await pluginIsInstalled('jgclark.Reviews'))) {
       logDebug('getProjectSectionData', `jgclark.Reviews plugin is not installed, so not continuing.`)
       // $FlowIgnore[incompatible-return] we cannot return anything if the plugin is not installed
@@ -983,13 +982,16 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
     }
     nextProjectsToReview = await getNextProjectsToReview(maxProjectsToShow)
 
-    // TEST: add basic filtering by folder for the current Perspective
-    const filteredProjects = nextProjectsToReview.filter((p) => {
-      const folder = getFolderFromFilename(p.filename)
-      return allowedFolders.includes(folder)
-    })
-    if (filteredProjects) {
-      filteredProjects.map((p) => {
+    // add basic filtering by folder for the current Perspective
+    // const filteredProjects = nextProjectsToReview.filter((p) => {
+    //   const folder = getFolderFromFilename(p.filename)
+    //   return allowedFolders.includes(folder)
+    // })
+    // For P+R v1.1 and later, Perspectives can be used, so this filtering is not needed.
+    // if (filteredProjects) {
+    //   filteredProjects.map((p) => {
+    if (nextProjectsToReview) {
+      nextProjectsToReview.map((p) => {
         const thisID = `${sectionNumStr}-${itemCount}`
         items.push({
           ID: thisID,

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated for v2.1.7
+// Last updated for v2.1.8
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -135,11 +135,13 @@ export function getNotePlanSettings(): TNotePlanSettings {
  */
 export function getListOfEnabledSections(config: TDashboardSettings): Array<TSectionCode> {
   // Work out which sections to show
+  // TODO(@dwertheimer): somehow make this automatically work for all new sections added in the future
   const sectionsToShow: Array<TSectionCode> = []
   if (config.showTimeBlockSection) sectionsToShow.push('TB')
   if (config.showTodaySection || config.showTodaySection === undefined) sectionsToShow.push('DT')
   if (config.showYesterdaySection) sectionsToShow.push('DY')
   if (config.showTomorrowSection) sectionsToShow.push('DO')
+  if (config.showLastWeekSection) sectionsToShow.push('LW')
   if (config.showWeekSection) sectionsToShow.push('W')
   if (config.showMonthSection) sectionsToShow.push('M')
   if (config.showQuarterSection) sectionsToShow.push('Q')
@@ -691,13 +693,12 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
 }
 
 /**
- * TODO: write some tests for AM/PM
  * Return the start time in a given paragraph.
  * This is from the start time of a time block, or else 'none' (which will then sort after times)
  * Copes with 'AM' and 'PM' suffixes.
  * Note: A version of this now lives in helpers/timeblocks.js
  * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
- * @tests in dashboardHelpers.test.js
+ * @tests in dashboardHelpers.test.js. TODO: write some tests for AM/PM
  * @param {TParagraph| TParagraphForDashboard} para to process
  * @returns {string} time string found
  */
@@ -824,6 +825,8 @@ export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TPa
   let lastIndent3ParentID = ''
   const items: Array<TSectionItem> = []
   for (const socp of sortedOrCombinedParas) {
+    // $FlowIgnore[incompatible-call]
+    // $FlowIgnore[prop-missing]
     if (!isOpen(socp)) {
       continue
     }

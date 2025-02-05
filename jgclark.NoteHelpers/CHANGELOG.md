@@ -10,6 +10,8 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 ### New
 - the **new note** command has been revived (alias **nn**). It creates a new (regular, not calendar) note with a title you give, and in a folder you can select. If the "Default Text to add to frontmatter" setting isn't blank, then the note will be created using that frontmatter.
 
+_Note: this version was promoted to be a Core Plugin from NotePlan 3.16.1._
+
 ### Important Changes
 - when **move note** shows the list of folders, the special Templates and Archive folders are moved to the end of the list. (Plus any other special ones that start with '@').
 - the **new note from clipboard** and **new note from selection** commands have moved from Filer plugin to NoteHelpers.
