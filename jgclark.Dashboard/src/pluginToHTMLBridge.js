@@ -438,7 +438,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         }
         logDebug('processActionOnReturn', `-> NOT asking for any further refresh: hopefully React will do its stuff!`)
 
-        // await updateReactWindowFromLineChange(handlerResult, data, [])
+        await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
         if (isProject) {
