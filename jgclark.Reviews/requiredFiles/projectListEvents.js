@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
-// Last updated: 2024-10-01 for v1.0.0.b1 by @jgclark
+// Last updated: 2025-02-06 for v1.1.0 by @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handlers
@@ -32,11 +32,11 @@ function showProjectControlDialog(dataObject) {
   const dialog = document.getElementById("projectControlDialog")
   const mousex = event.clientX  // Horizontal
   const mousey = event.clientY  // Vertical
-  // const thisID = dataObject.itemID
-  // const thisIDElement = document.getElementById(thisID)
-  // const thisEncodedFilename = thisIDElement.dataset.encodedFilename // i.e. the "data-encoded-filename" element, with auto camelCase transposition
+  const thisID = dataObject.itemID
+  const thisIDElement = document.getElementById(thisID)
 
   // Set the dialog title from the filename or title
+  const thisEncodedFilename = dataObject.encodedFilename // i.e. the "data-encoded-filename" element, with auto camelCase transposition
   const thisFilename = decodeRFC3986URIComponent(dataObject.encodedFilename)
   const thisTitle = decodeRFC3986URIComponent(dataObject.encodedTitle)
   const dialogItemNoteElem = document.getElementById('dialogProjectNote')

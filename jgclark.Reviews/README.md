@@ -5,21 +5,23 @@ This plugin provides commands to help **review** Project notes, and it helps me 
 
 The **/project lists** command shows the Project Review List screen, showing the projects due for review from various different NotePlan folders:
 
-![Project Lists: example in 'Rich' style](review-list-rich-1.0.0.png)
+![Project Lists: example in 'Rich' style](review-list-rich-1.1.0.png)
 
 If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 60 of these.
 
 After each project name (the title of the note) is an edit icon, which when clicked opens a dialog with helpful controls for that particular project:
 
-![Edit dialog](edit-dialog-1.0.png)
+![Edit dialog](edit-dialog-1.1.png)
 
 User George (@george65) has recorded two video walkthroughs that show most of what the plugin does (recorded using an earlier version of the plugin, so the UI is different):
 
 - [Inside Look: How George, CMO of Verge.io, Uses NotePlan for Effective Project Management](https://www.youtube.com/watch?v=J-FlyffE9iA) featuring this and my Dashboard plugin.
-    [![thumbnail](effective-PM-with-George-thumbnail.jpg)](https://www.youtube.com/watch?v=J-FlyffE9iA)
+
+  [![thumbnail](effective-PM-with-George-thumbnail.jpg)](https://www.youtube.com/watch?v=J-FlyffE9iA)
 
 - [Walk-through of Reviews in NotePlan with Project + Reviews Plugin](https://youtu.be/R-3qn6wdDLk) (Note: this was using v0.10, and there have been important improvements since then.)
-    [![thumbnail](georgec-video2-thumbnail.jpg)](https://youtu.be/R-3qn6wdDLk)
+
+  [![thumbnail](georgec-video2-thumbnail.jpg)](https://youtu.be/R-3qn6wdDLk)
 
 You might also like:
 - [my description of using PARA in NotePlan at scale](https://noteplan.co/n/BCC8CAFA-273F-4513-9A88-53CA811F3C8D)
@@ -93,9 +95,9 @@ Other notes:
 ## Selecting notes to include
 There are 2 parts of this:
 1. Use the '**Hashtags to review**' setting to control which notes are included in the review lists. If it is set (e.g. `#project, #area, #goal`), then it will include just those notes which also have one or more of those tags. If this setting is empty, then it will include all notes for review that include a `@review(...)` string.
-2. Then specifiy which folders you want to include and/or exclude notes from. There are 2 ways to do this:
-   1. From v1.1 you can use the '**Use Perspectives**' setting to control which folders are included. This requires the [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) to be installed, and if set then it uses the current Perspective's settings instead of the  following 2 settings.
-   2. Or Use the 'Folders to Include' and 'Folders to Exclude' settings to put a comma-separated list of folders to include and exclude. I have this set to `Summaries, Reviews, Saved Searches`. Any sub-folders of these will also be ignored. (Note that the special Templates, Archive and Trash are always excluded.)
+2. Then specify which folders you want to include and/or exclude notes from. There are 2 ways to do this:
+   1. The original way is to use the 'Folders to Include' and 'Folders to Exclude' settings to put a comma-separated list of folders to include and exclude. I have this set to `Summaries, Reviews, Saved Searches`. Any sub-folders of these will also be ignored. (Note that the special Templates, Archive and Trash are always excluded.)
+   2. From v1.1 you can now instead turn on the '**Use Perspectives**' setting to control which folders are included. This requires the [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) to be installed. Note that if you change the active Perspective in the Dashboard, this window will also automatically update.
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
@@ -107,9 +109,8 @@ You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, sh
 ![Example of 'Markdown' style of Project Lists](review-list-markdown-0.11@2x.png)
 
 Notes about the displays:
-- the **Rich style** is a temporary HTML window that picks up the NotePlan Theme you use (though see below on how to override this).  In this style there's a heading row deliberately 'sticks' to the top of the window as you scroll the list:
-![Buttons in 'Rich' style](top-controls-1.0.png)
-- in the Rich style, all #tags to review get shown one after the other in a single window. These can be collapsed and expanded as a group using the triangle icons ▼ or ▶.
+- the **Rich style** is a temporary HTML window that picks up the NotePlan Theme you use (though see below on how to override this).  In this style there's a heading row deliberately 'sticks' to the top of the window as you scroll the list.
+- in the Rich style, all your different #tags to review get shown one after the other in a single window. These can be collapsed and expanded as a group using the triangle icons ▼ or ▶.
 - if you can make the window wide enough it will display in 2 (or even 3!) columns
 - the **Markdown style** list _is_ stored as a summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
 - the button 'Start reviews' / 'Start reviewing notes ready for review' is a shortcut to the '/start reviews' command (described below).
