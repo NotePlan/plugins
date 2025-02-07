@@ -286,7 +286,6 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         generatedDate: new Date(),
         actionButtons: [],
       }
-      clo(section)
       logTimer('getTodaySectionData', timer, `- found ${String(timeBlockItems.length)} timeblock items from ${filenameDateStr}`)
       sections.push(section)
     }
