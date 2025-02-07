@@ -75,17 +75,19 @@ export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): 
         `- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`
       )
       if (alsoShowParagraphs) {
-        note.paragraphs.map((p) => console.log(`- ${p.lineIndex}: ${p.type} ${p.rawContent}`))
+        console.log(`Paragraphs`)
+        note.paragraphs.map((p) => console.log(`  ${p.lineIndex}: ${p.type} ${p.rawContent}`))
       }
     }
     // Now show .backlinks
     if (note.backlinks.length > 0) {
+      console.log(`Backlinks`)
       console.log(`- ${String(note.backlinks.length)} backlinked notes`)
       const flatBacklinkParas = getFlatListOfBacklinks(note) // Note: this requires DataStore
       console.log(`- ${String(flatBacklinkParas.length)} backlink paras:`)
       for (let i = 0; i < flatBacklinkParas.length; i++) {
         const p = flatBacklinkParas[i]
-        console.log(`  - ${p.lineIndex} [${p.type}, ${p.indents}]: ${p.content}`)
+        console.log(`  - ${p.note?.filename ?? '?'}:${p.lineIndex} [${p.type}, ${p.indents}]: ${p.content}`)
       }
     }
   } catch (e) {
@@ -306,37 +308,48 @@ export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
     if (noteBacklinks.length === 0) {
       return []
     }
-    // logDebug('note/getFlatListOfBacklinks', `Starting for note ${displayTitle(note)}`)
+    logDebug('NPnote/getFlatListOfBacklinks', `Starting for ${String(noteBacklinks.length)} backlinks in ${String(note.filename)} ...`)
     const flatBacklinkParas: Array<TParagraph> = []
     for (const noteBacklink of noteBacklinks) {
+      // const startTime = new Date() // only for timing inside this loop
+      
+      // v1: which has the issue of getting all paras, which has gone very slow.
       // Get the note that this backlink points to
-      const thisBacklinkNote = DataStore.noteByFilename(noteBacklink.filename, noteBacklink.noteType)
-      const thisBacklinkNoteParas = thisBacklinkNote?.paragraphs
-      if (!thisBacklinkNoteParas) {
-        logError('note/getFlatListOfBacklinks', `Error getting paragraphs for ${noteBacklink.filename}`)
-      }
-      // logDebug('note/getFlatListOfBacklinks', `in ${thisBacklinkNote?.filename ?? '(error)'}`)
-      let thisNoteItems: Array<TBacklinkFields> = []
-      // thisNoteLineIndexes.push(noteBacklink.lineIndex) // noteBacklink.lineIndex
+      // const thisBacklinkNote = DataStore.noteByFilename(noteBacklink.filename, noteBacklink.noteType)
+      // clo(noteBacklink.subItems, `noteBackLink in ${thisBacklinkNote?.filename ?? '(error)'}`)
+      // const thisBacklinkNoteParas = thisBacklinkNote?.paragraphs
+      // if (!thisBacklinkNoteParas) {
+      //   logError('NPnote/getFlatListOfBacklinks', `Error getting paragraphs for ${noteBacklink.filename}`)
+      // }
+      // let thisNoteItems: Array<TBacklinkFields> = []
+      // // thisNoteLineIndexes.push(noteBacklink.lineIndex) // noteBacklink.lineIndex
 
-      if (noteBacklink.subItems && noteBacklink.subItems.length > 0) {
-        // logDebug('note/getFlatListOfBacklinks', `- has ${noteBacklink.subItems.length} top-levelsubItems`)
-        thisNoteItems = flattenSubItems(noteBacklink.subItems)
-      }
-      // logDebug('note/getFlatListOfBacklinks', `  => ${thisNoteItems.length} items`)
+      // if (noteBacklink.subItems && noteBacklink.subItems.length > 0) {
+      //   logDebug('NPnote/getFlatListOfBacklinks', `- has ${noteBacklink.subItems.length} top-levelsubItems`)
+      //   thisNoteItems = flattenSubItems(noteBacklink.subItems)
+      // }
+      // logDebug('NPnote/getFlatListOfBacklinks', `  => ${thisNoteItems.length} items`)
 
-      // Now find paragraphs from those lineIndexes
-      for (const item of thisNoteItems) {
-        // logDebug('note/getFlatListOfBacklinks', `+ ${item.lineIndex}`)
-        // $FlowIgnore[incompatible-use]
-        flatBacklinkParas.push(thisBacklinkNoteParas[item.lineIndex])
+      // // Now find paragraphs from those lineIndexes
+      // for (const item of thisNoteItems) {
+      //   logDebug('NPnote/getFlatListOfBacklinks', `+ ${item.lineIndex}`)
+      //   // $FlowIgnore[incompatible-use]
+      //   flatBacklinkParas.push(thisBacklinkNoteParas[item.lineIndex])
+      // }
+      // logTimer('NPnote/getFlatListOfBacklinks', startTime, `- after processing backlinks for ${thisBacklinkNote?.filename ?? '(error)'} with ${String(thisBacklinkNoteParas?.length)} paras, now have ${String(flatBacklinkParas.length)} flat backlinks`, 100)
+
+      // v2: which just works on data returned within subItems (which are actual para refs it turns out)
+      for (const subItem of noteBacklink.subItems) {
+        if (subItem.type !== 'title') {
+          flatBacklinkParas.push(subItem)
+        }
       }
-      // logDebug('note/getFlatListOfBacklinks', `  fBLP now has ${String(flatBacklinkParas.length)} paragraphs`)
+      // logTimer('NPnote/getFlatListOfBacklinks', startTime, `- after processing backlinks for ${thisBacklinkNote?.filename ?? '(error)'} now has ${String(flatBacklinkParas.length)} flat backlinks`, 100)
     }
-
+    // logTimer('NPnote/getFlatListOfBacklinks', startTime, `=> ${String(noteBacklinks.length)} in flatListOfBacklinks`)
     return flatBacklinkParas
-  } catch (e) {
-    logError('note/printNote', `Error printing note: ${e.message}`)
+  } catch (err) {
+    logError('NPnote/getFlatListOfBacklinks', JSP(err))
   }
 }
 
@@ -400,6 +413,62 @@ export type OpenNoteOptions = Partial<{
   content?: string,
 }>
 
+const a = `
+"{\"type: title,
+content: Bugs etc.,
+rawContent: # Bugs etc.,
+prefix: # ,
+contentRange\":{},
+lineIndex\":152,
+date: 2025-02-06T00:00:00.000Z,
+heading: Dashboard Plugin 🧩,
+headingLevel\":0,
+isRecurring\":false,
+indents\":0,
+filename: NotePlan Projects/Plugins/Dashboard Plugin 🧩.md,
+noteType: Notes,
+linkedNoteTitles\":[],
+subItems\":[],
+referencedBlocks\":[],
+note\":{}}",
+
+  "{\"type: done,
+  content: Silly regression Fixed in 2.1.8 @done(2025-02-06),
+  rawContent: * [x] Silly regression Fixed in 2.1.8 @done(2025-02-06),
+  prefix: * [x] ,
+  contentRange\":{},
+  lineIndex\":153,
+  date: 2025-02-06T00:00:00.000Z,
+  heading: Bugs etc.,
+  headingRange\":{},
+  headingLevel\":3,
+  isRecurring\":false,
+  indents\":0,
+  filename: NotePlan Projects/Plugins/Dashboard Plugin 🧩.md,
+  noteType: Notes,
+  linkedNoteTitles\":[],
+  subItems\":[],
+  referencedBlocks\":[],
+  note\":{}}",
+
+  "{\"type: title,
+  content: Current Time Block section,
+  rawContent: # Current Time Block section,
+  prefix: # ,
+  contentRange\":{},
+  lineIndex\":192,
+  date: 2025-02-06T00:00:00.000Z,
+  heading: Dashboard Plugin 🧩,
+  headingLevel\":0,
+  isRecurring\":false,
+  indents\":0,
+  filename: NotePlan Projects/Plugins/Dashboard Plugin 🧩.md,
+  noteType: Notes,
+  linkedNoteTitles\":[],
+  subItems\":[],
+  referencedBlocks\":[],
+  note\":{}}",
+`
 /**
  * Convenience Method for Editor.openNoteByFilename, include only the options you care about (requires NP v3.7.2+)
  * Tries to work around NP bug where opening a note that doesn't exist doesn't work
