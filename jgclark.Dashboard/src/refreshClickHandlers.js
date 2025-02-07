@@ -94,21 +94,23 @@ export async function incrementallyRefreshSomeSections(
   for (const sectionCode of sectionCodes) {
     const start = new Date()
     await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
-    logTimer(`clickHandlers`, start, `incrementallyRefreshSomeSections getting ${sectionCode})`)
+    logTimer(`incrementallyRefreshSomeSections`, start, `to get section: ${sectionCode}`, 1000)
   }
   const updates: any = { refreshing: false, firstRun: false }
   if (setFullRefreshDate) updates.lastFullRefresh = new Date()
   await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (after ${timer(incrementalStart)})`)
-  logTimer('incrementallyRefreshSomeSections', incrementalStart, `for ${sectionCodes.length} sections`, 2000)
+  logTimer('incrementallyRefreshSomeSections', incrementalStart, `to refresh ${sectionCodes.length} sections: ${sectionCodes.toString()}`, 2000)
 
   // re-calculate done task counts (if the appropriate setting is on)
   const NPSettings = await getNotePlanSettings()
   if (NPSettings.doneDatesAvailable) {
+    const startTime = new Date()
     const totalDoneCount = updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSomeSections (for [${sectionCodes.join(',')}])`)
     const changedData = {
       totalDoneCount: totalDoneCount,
     }
     await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSomeSections')
+    logTimer('incrementallyRefreshSomeSections', startTime, `to calculate done counts at end of incrementallyRefreshSomeSections`, 1000)
   }
 
   return handlerResult(true)
@@ -148,9 +150,9 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
   if (!pluginData.refreshing === true) updates.refreshing = false
   await setPluginData(updates, `Finished refreshSomeSections for [${String(sectionCodes)}] (${timer(start)})`)
-  logTimer('refreshSomeSections', start, `for ${sectionCodes.toString()}`, 2000)
   // count sectionItems in all sections
   const totalSectionItems = mergedSections.reduce((acc, section) => acc + section.sectionItems.length, 0)
   logDebug('refreshSomeSections', `Total section items: ${totalSectionItems}`)
+  logTimer('refreshSomeSections', start, `for refreshSomeSections: ${sectionCodes.toString()}`, 2000)
   return handlerResult(true, [], { sectionItems: totalSectionItems })
 }

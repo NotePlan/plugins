@@ -183,10 +183,10 @@ export function updateDoneCountsFromChangedNotes(reason: string = ''): number {
     if (DataStore.fileExists(changedNoteFile)) {
       const data = DataStore.loadData(changedNoteFile, true) ?? ''
       const parsedData = JSON.parse(data)
-      parsedData.forEach(item => {
+      parsedData.forEach((item) => {
         changedNoteMap.set(item.filename, {
           lastUpdated: new Date(item.lastUpdated),
-          completedTasks: item.completedTasks
+          completedTasks: item.completedTasks,
         })
       })
       logDebug('updateDoneCountsFromChangedNotes', `Loaded ${parsedData.length} items from ${changedNoteFile}`)
@@ -214,7 +214,7 @@ export function updateDoneCountsFromChangedNotes(reason: string = ''): number {
 
     // For each note, calculate done task count
     logDebug(`updateDoneCountsFromChangedNotes`, `Checking notes for completed tasks today:`)
-    recentlychangedNotes.forEach(note => {
+    recentlychangedNotes.forEach((note) => {
       const doneTaskCount: TDoneCount = getNumCompletedTasksTodayFromNote(note.filename, false)
       // logDebug(`updateDoneCountsFromChangedNotes`, `- ${note.filename} -> ${String(doneTaskCount.completedTasks)} done`)
       // Update the map with the filename as key and an object with lastUpdated and doneCount as value
@@ -224,22 +224,24 @@ export function updateDoneCountsFromChangedNotes(reason: string = ''): number {
 
     // Sum the completedTasks from all map entries
     let totalCompletedTasks = 0
-    changedNoteMap.forEach(value => {
+    changedNoteMap.forEach((value) => {
       totalCompletedTasks += value.completedTasks
     })
     logInfo(`updateDoneCountsFromChangedNotes`, `=> there are now ${changedNoteMap.size} notes changed today in the map and ${String(totalCompletedTasks)} total completed tasks`)
-    logTimer(`in`, startTime, ``)
 
     // Serialise this to the JSON note, first converting Map to a full array of objects
     const mapArray = Array.from(changedNoteMap.entries()).map(([key, value]) => ({
-      filename: key, completedTasks: value.completedTasks,
-      lastUpdated: value.lastUpdated
+      filename: key,
+      completedTasks: value.completedTasks,
+      lastUpdated: value.lastUpdated,
     }))
     const res = DataStore.saveData(JSON.stringify(mapArray), changedNoteFile, true)
 
     // Update the preference for current time
     DataStore.setPreference(lastTimeThisWasRunPref, new Date())
     // logDebug('updateDoneCountsFromChangedNotes', `pref is now ${moment(DataStore.preference(lastTimeThisWasRunPref)).format()}`)
+
+    logTimer(`updateDoneCountsFromChangedNotes`, startTime, `total runtime for updateDoneCountsFromChangedNotes`, 1000)
 
     return totalCompletedTasks
   } catch (err) {

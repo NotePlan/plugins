@@ -58,7 +58,7 @@ import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas, set
 // import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
-import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
 import { formatReactError } from '@helpers/react/reactDev'
@@ -92,6 +92,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     //   logError('bridgeClickDashboardItem', `Can't find windowId for ${windowCustomId}`)
     //   return
     // }
+    const startTime = new Date()
 
     // const ID = data.item?.ID ?? '<no ID found>'
     const actionType: TActionType = data.actionType
@@ -348,13 +349,14 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
     }
-
+    logTimer('bridgeClickDashboardItem', startTime, `for bridgeClickDashboardItem: "${data.actionType}" before processActionOnReturn()`, 1000)
     if (result) {
       await processActionOnReturn(result, data) // process all actions based on result of handler
       // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', {msg:"Action processed\n\n\n\n\nYASSSSS" })
     } else {
       logWarn('bCDI', `false result from call`)
     }
+    logTimer('bridgeClickDashboardItem', startTime, `total runtime for bridgeClickDashboardItem: "${data.actionType}"`, 1000)
   } catch (error) {
     logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem: ${JSP(error)}`)
   }

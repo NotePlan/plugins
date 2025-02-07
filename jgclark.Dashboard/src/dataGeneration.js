@@ -592,6 +592,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
       const notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true)
       logTimer('getTaggedSectionData', thisStartTime, `to find ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
       for (const n of notesWithTag) {
+        const startTime2 = new Date()
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
         if (stringListOrArrayToArray(config.excludedFolders, ',').includes(thisNoteFolder)) {
@@ -600,29 +601,34 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
         }
 
         // Get the relevant paras from this note
-        const tagParasFromNote = n.paragraphs.filter((p) => p.content?.includes(sectionDetail.sectionName))
-        // logTimer('getTaggedSectionData', thisStartTime, `- found ${tagParasFromNote.length} paras containing ${sectionDetail.sectionName} in ${n.filename}`)
+        const paras = n.paragraphs ?? []
+        if (paras.length > 500) {
+          const startTime3 = new Date()
+          logTimer('getTaggedSectionData', startTime3, `- found ${paras.length} paras in "${n.filename}"`)
+          const content = n.content ?? ''
+          logTimer('getTaggedSectionData', startTime3, `- to pull content from note`)
+          const pp = content.split('\n')
+          logTimer('getTaggedSectionData', startTime3, `- to split content into ${pp.length} lines`)
+        }
+        const tagParasFromNote = paras.filter((p) => p.content?.includes(sectionDetail.sectionName))
+        logTimer('getTaggedSectionData', startTime2, `- found ${tagParasFromNote.length} paras containing ${sectionDetail.sectionName} in "${n.filename}"`)
 
         // Further filter out checklists and otherwise empty items
         const filteredTagParasFromNote = config.ignoreChecklistItems
           ? tagParasFromNote.filter((p) => isOpenTask(p) && p.content.trim() !== '')
           : tagParasFromNote.filter((p) => isOpen(p) && p.content.trim() !== '')
-        // logTimer('getTaggedSectionData', thisStartTime, `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras`)
 
         // Save this para, unless in matches the 'ignoreItemsWithTerms' setting (now modified to exclude this tag/mention)
         for (const p of filteredTagParasFromNote) {
-          // V1:
-          // if (!ignoreTermsMinusTag || ignoreTermsMinusTag === '' || !p.content.includes(ignoreTermsMinusTag)) {
-          // V2:
           if (!isLineDisallowedByExcludedTerms(p.content, ignoreTermsMinusTagCSV)) {
             filteredTagParas.push(p)
           } else {
             logDebug('getTaggedSectionData', `- ignoring para {${p.content}}`)
           }
         }
-        // logTimer('getTaggedSectionData', thisStartTime, `- after filtering for ${config.ignoreItemsWithTerms}, ${filteredTagParas.length} paras`)
+        logTimer('getTaggedSectionData', thisStartTime, `- "${n.title || ''}" after filtering out: ${config.ignoreItemsWithTerms}, ${filteredTagParas.length} paras`)
       }
-      logTimer('getTaggedSectionData', thisStartTime, `- ${filteredTagParas.length} paras`)
+      logTimer('getTaggedSectionData', thisStartTime, `- ${filteredTagParas.length} paras after filtering ${notesWithTag.length} notes`)
 
       // filter out paras in the future
       const dateToUseUnhyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format('YYYYMMDD') : new moment().format('YYYYMMDD')
