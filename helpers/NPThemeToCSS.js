@@ -19,7 +19,7 @@ let baseFontSize: number // updated later
 /**
  * Generate CSS as an equivalent to the given theme (or current one if not given, or 'dark' theme if that isn't available) to use as an embedded style sheet.
  * TODO: ideally consult theme to see if Editor's "shouldOverwriteFont" is false before changing font size and family?
- * 
+ *
  * @author @jgclark
  * @param {string?} themeNameIn (optional)
  * @returns {string} outputCSS
@@ -117,7 +117,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Set body:
     // - main font = styles.body.font
     const tempBodyFont = themeJSON.styles.body.font ?? '-apple-system'
-    const bodyFont = (tempBodyFont === '.AppleSystemUIFont') ? '-apple-system' : tempBodyFont
+    const bodyFont = tempBodyFont === '.AppleSystemUIFont' ? '-apple-system' : tempBodyFont
     logDebug('generateCSSFromTheme', `bodyFont: ${bodyFont}`)
     // - main foreground colour (styles.body.color)
     // - main background colour (editor.backgroundColor)
@@ -426,7 +426,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       (key) =>
         !themeJSON.styles[key] &&
         logWarn(
-          generateCSSFromTheme,
+          'generateCSSFromTheme',
           `Your theme does not have the key "${key}" which Dashboard uses. This may be ok if you don't want that style, but if you do, you need to rename your theme style for this type of line`,
         ),
     )
