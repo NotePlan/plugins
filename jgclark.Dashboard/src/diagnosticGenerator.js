@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate diagnostics file for Dashboard plugin to help with debugging
-// Last updated for v2.1.8
+// Last updated for v2.1.9
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -15,10 +15,13 @@ import { logPerspectives, logPerspectiveNames, getActivePerspectiveName, getPers
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import type { TPerspectiveDef } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
+import { getOrMakeNote } from '@helpers/note'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 
-const diagnosticsNoteFilename = 'diagnostics.md'
+const diagnosticsNoteFilename = 'diagnostics-for-dashboard.md'
+const diagnosticsNoteTitle = 'ℹ️ Diagnostics for Dashboard'
 
 /**
  * Generate a list of all the main settings in the Dashboard plugin for the current user to help with debugging.
@@ -46,12 +49,15 @@ export async function generateDiagnosticsFile() {
     const output: Array<string> = []
     const perspectiveDefs: Array<TPerspectiveDef> = await getPerspectiveSettings(false)
 
-    output.push(`# Dashboard Settings`)
-    output.push(`- Generated at ${moment().format('YYYY-MM-DD HH:mm:ss')}`)
+    output.push('---')
+    output.push(`title: ${diagnosticsNoteTitle}`)
+    output.push(`generated: ${moment().format('YYYY-MM-DD HH:mm:ss')}`)
+    output.push('---')
     output.push(`- NP v${NotePlan.environment.version} build ${NotePlan.environment.buildVersion} running on ${NotePlan.environment.platform}`)
+    output.push(`- Screen dimensions: ${String(NotePlan.environment.screenWidth)}w x ${String(NotePlan.environment.screenHeight)}h`)
     output.push(`- Plugin '${pluginJson['plugin.name']}' v${pluginJson['plugin.version']}`)
     output.push('')
-    output.push('## Current NotePlan settings')
+    output.push('## Current NotePlan settings for Dashboard')
     output.push('```json')
     output.push(JSON.stringify(npSettings, null, 2))
     output.push('```')
@@ -83,11 +89,13 @@ export async function generateDiagnosticsFile() {
     output.push(JSON.stringify(perspectiveDefs, null, 2))
     output.push('```')
 
-    const res = DataStore.saveData(output.join('\n'), diagnosticsNoteFilename, true)
-    if (res) {
-      logInfo('generateDiagnosticsFile', `Diagnostics file written to Plugins/data/jgclark.Dashboard/${diagnosticsNoteFilename}`)
-    } else {
-      logError('generateDiagnosticsFile', `Failed to write Diagnostics file to Plugins/data/jgclark.Dashboard/${diagnosticsNoteFilename}`)
+    // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
+    const outputNote = await getOrMakeNote(diagnosticsNoteTitle, '')
+    outputNote.content = output.join('\n')
+    const res = await showMessageYesNo(`Diagnostics for Dashboard written to note '${diagnosticsNoteTitle}' in your root folder. Use 'Show in Finder' from the note '...' menu to find it and send it to plugin authors. Would you like me to open this note now?`)
+    logInfo('generateDiagnosticsFile', `Diagnostics written to note ${diagnosticsNoteTitle} (hopefully)`)
+    if (res === 'Yes') {
+      await Editor.openNoteByFilename(outputNote.filename, false, 0, 0, false, false)
     }
   } catch (error) {
     logError('generateDiagnosticsFile', `Error: ${error.message}`)
