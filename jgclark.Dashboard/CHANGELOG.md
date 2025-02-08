@@ -2,6 +2,14 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 <!-- - ??? When switching from 'Show referenced items in separate section' on to off, the referenced sections weren't removed -->
+## [2.1.9] 2025-02-08
+### Changed
+- Larger tap targets for buttons on iOS/iPadOS
+- on iOS: Added 'Move all' and 'Interactive Processing' buttons to the Section heading, but removed the 'New Task' button from the edit  dialog (as it can't work there).
+- Updated '/generate diagnostics' command to write to a note in the root folder
+### Fixed
+- Added workaround for slow API response with particularly large notes
+
 ## [2.1.8] 2025-02-05
 ### New
 - Added a '+ New Task' button to the end of the Task edit dialog. This effectively runs the '/quick add task under heading' command (from Quick Capture) which allows you to add a new task in any note under any heading without having to leave the Dashboard.
