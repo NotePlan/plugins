@@ -63,12 +63,6 @@
 	}
 }
 
-.perspectiveName {
-	/* Assign the area */
-	/* grid-area: perspective; */
-	/* align-self: center; */
-}
-
 .dropdownButtons {
 	/* grid-area: dropdowns; */
 	/* display: flex; */
@@ -96,8 +90,8 @@
 
 /* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
 .iOS .dropdownButtons, .iPadOS .dropdownButtons {
-	gap: 1.2rem !important;
-	margin-inline-end: 2rem !important;
+	gap: 1.1rem !important;
+	margin-inline-end: 1.6rem !important;
 }
 
 /* For buttons in header area */

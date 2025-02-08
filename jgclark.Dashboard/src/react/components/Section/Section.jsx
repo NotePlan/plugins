@@ -176,8 +176,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   let numItemsToShow = itemsToShow.length
 
   // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
-  const addNewActionButtons = isDesktop ? section.actionButtons?.filter((b) => b.actionName.startsWith('add')) : []
-  let processActionButtons = isDesktop ? section.actionButtons?.filter((b) => !b.actionName.startsWith('add')) : []
+  const addNewActionButtons = /*isDesktop ? */ section.actionButtons?.filter((b) => b.actionName.startsWith('add'))// : []
+  let processActionButtons = /*isDesktop ? */ section.actionButtons?.filter((b) => !b.actionName.startsWith('add'))// : []
 
   // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
   if (numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {

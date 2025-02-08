@@ -90,7 +90,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // - Cancel button icon circle or square, and function
   // - Toggle Type icon circle or square
   // Note: Some also cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open
-  const buttonsToHideOnMobile: Array<string> = ['Move to']
+  const buttonsToHideOnMobile: Array<string> = ['Move to', 'New Task']
   const initialOtherControlButtons: Array<DialogButtonProps> = [
     {
       label: '',

@@ -124,7 +124,7 @@ dialog::backdrop {
 /* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
 .addNewActionButtons {
 	display: inline-flex;
-	gap: 0.3rem;
+	gap: 0.4rem;
 	justify-self: end;
 	align-self: flex-start;
 	border: 0px none;
@@ -132,11 +132,25 @@ dialog::backdrop {
 	padding-top: 1px;
 }
 
+/* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
+.iOS .addNewActionButtons, .iPadOS .addNewActionButtons {
+	gap: 0.9rem !important; /* haven't tested whether !important is needed here */
+	font-size: 1.0rem !important;
+}
+
 /* Next part of sectionInfo. */
 .sectionDescription {
 	/* a bit smaller */
 	font-size: 0.9rem;
 	padding-top: 0.1rem;
+
+}
+
+/* If very narrow -- for small iPhone drop .sectionDescription */
+@media screen and (max-width: 430px) {
+	.sectionDescription {
+		display: none;
+	}
 }
 
 .sectionItemRow {
