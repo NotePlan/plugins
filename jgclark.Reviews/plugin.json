@@ -51,9 +51,9 @@
     },
     {
       "hidden": true,
-      "name": "genererateProjectListsAndRenderIfOpen",
+      "name": "generateProjectListsAndRenderIfOpen",
       "description": "genererate Project Lists And Render If Open -- called internally and by Dashboard plugin to refresh Projects list",
-      "jsFunction": "genererateProjectListsAndRenderIfOpen"
+      "jsFunction": "generateProjectListsAndRenderIfOpen"
     },
     {
       "name": "onMessageFromHTMLView",

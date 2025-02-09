@@ -340,15 +340,15 @@ export async function makeProjectLists(argsIn?: string | null = null, scrollPos:
  * Internal version of above that doesn't open window if not already open.
  * @param {number?} scrollPos 
  */
-export async function genererateProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<void> {
+export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<void> {
   try {
     const config = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
-    logDebug(pluginJson, `genererateProjectListsAndRenderIfOpen() starting with scrollPos ${String(scrollPos)}`)
+    logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting with scrollPos ${String(scrollPos)}`)
 
     // Re-calculate the allProjects list (in foreground)
     await generateAllProjectsList(config, true)
-    logDebug('genererateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectLists() if open`)
+    logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectLists() if open`)
 
     // Call the relevant rendering function, but only continue if relevant window is open
     await renderProjectLists(config, false, scrollPos)
@@ -1096,7 +1096,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     } else {
       // Regenerate whole list (and display if window is already open)
       logWarn('finishReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
-      await genererateProjectListsAndRenderIfOpen()
+      await generateProjectListsAndRenderIfOpen()
     }
   }
   catch (error) {
@@ -1260,7 +1260,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
     } else {
       // Regenerate whole list (and display if window is already open)      
       logWarn('skipReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
-      await genererateProjectListsAndRenderIfOpen()
+      await generateProjectListsAndRenderIfOpen()
     }
   }
   catch (error) {
