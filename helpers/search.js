@@ -62,7 +62,9 @@ export function caseInsensitiveSubstringIncludes(stringToCheck: string, arrayOfT
  */
 export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): boolean {
   try {
-    const re = new RegExp(`^${searchTerm}$`, "i") // = case insensitive match
+    // First need to escape any special characters in the search term
+    const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`^${escapedSearchTerm}$`, "i") // = case insensitive match
     return re.test(textToSearch)
   }
   catch (error) {
@@ -81,7 +83,9 @@ export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): 
  */
 export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string): boolean {
   try {
-    const re = new RegExp(`${searchTerm}`, "i") // = case insensitive match
+    // First need to escape any special characters in the search term
+    const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`${escapedSearchTerm}`, "i") // = case insensitive match
     return re.test(textToSearch)
   }
   catch (error) {
@@ -102,9 +106,11 @@ export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: 
  */
 export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: string, strictSubset: boolean = true): boolean {
   try {
+    // First need to escape any special characters in the search term
+    const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = strictSubset
-      ? new RegExp(`^${searchTerm}.+`, "i") // = case insensitive 'starts with' regex
-      : new RegExp(`^${searchTerm}`, "i") // = case insensitive 'starts with' regex
+      ? new RegExp(`^${escapedSearchTerm}.+`, "i") // = case insensitive 'starts with' regex
+      : new RegExp(`^${escapedSearchTerm}`, "i") // = case insensitive 'starts with' regex
     return re.test(textToSearch)
   }
   catch (error) {
@@ -127,9 +133,11 @@ export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: stri
  */
 export function fullWordMatch(searchTerm: string, textToSearch: string, caseSensitive: boolean = true): boolean {
   try {
+    // First need to escape any special characters in the search term
+    const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = caseSensitive
-      ? new RegExp(`\\b${searchTerm}\\b`) // = case sensitive 'whole word' regex
-      : new RegExp(`\\b${searchTerm}\\b`, "i") // = case insensitive version
+      ? new RegExp(`\\b${escapedSearchTerm}\\b`) // = case sensitive 'whole word' regex
+      : new RegExp(`\\b${escapedSearchTerm}\\b`, "i") // = case insensitive version
     return re.test(textToSearch)
   }
   catch (error) {
