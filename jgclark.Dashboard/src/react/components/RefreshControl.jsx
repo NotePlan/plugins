@@ -25,7 +25,7 @@ type Props = {
  */
 const RefreshControl = (props: Props): React$Node => {
   const { refreshing, firstRun, handleRefreshClick } = props
-  logInfo('RefreshControl', `refreshing = ${String(refreshing)}, firstRun = ${String(firstRun)}`)
+  logDebug('RefreshControl', `refreshing = ${String(refreshing)}, firstRun = ${String(firstRun)}`)
   return (
     <Button
       text={

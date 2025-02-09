@@ -209,8 +209,8 @@ export async function getPerspectiveSettings(logAllKeys: boolean = false): Promi
     }
     // clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
     const perspSettings = ensureDefaultPerspectiveExists(perspectiveSettings)
-    logDebug('getPerspectiveSettings', `After ensureDefaultPerspectiveExists():`)
-    logPerspectives(perspectiveSettings, logAllKeys)
+    // logDebug('getPerspectiveSettings', `After ensureDefaultPerspectiveExists():`)
+    // logPerspectives(perspectiveSettings, logAllKeys)
     return perspSettings
   } catch (error) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
