@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated for v2.1.8
+// Last updated for v2.1.10
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -120,6 +120,7 @@ export type TSection = {
   name: string, // display name 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
   showSettingName: string, // setting for whether to hide this section
   sectionCode: TSectionCode,
+  isReferenced: boolean,
   description: string,
   sectionItems: Array<TSectionItem>,
   FAIconClass?: string, // CSS class to show FA Icons

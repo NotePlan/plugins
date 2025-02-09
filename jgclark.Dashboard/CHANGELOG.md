@@ -6,7 +6,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ### Changed
 - 
 ### Fixed
-- Fix '>Yesterday' section not appearing (thanks, @jpr1972)
+- Fix '>Yesterday' section not appearing (thanks, @MC-1848)
+- Fix the referenced sections not being removed when 'Show referenced items in separate section' is turned off
 
 ## [2.1.9] 2025-02-08
 ### Changed

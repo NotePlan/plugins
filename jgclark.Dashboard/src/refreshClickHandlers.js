@@ -136,7 +136,14 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   const pluginData: TPluginData = reactWindowData.pluginData
   // show refreshing message until done
   if (!pluginData.refreshing === true) await setPluginData({ refreshing: sectionCodes }, `Starting refresh for sections ${sectionCodes.toString()}`)
-  const existingSections = pluginData.sections
+  let existingSections = pluginData.sections
+
+  // If separateSectionForReferencedNotes is off, then we need to remove any referenced sections from the inherited set of sections
+  if (!pluginData.dashboardSettings.separateSectionForReferencedNotes) {
+    logDebug('refreshSomeSections', `Removing any referenced sections from inherited set of sections. Started with ${existingSections.length} sections [${getDisplayListOfSectionCodes(existingSections)}]`)
+    existingSections = existingSections.filter((section) => !section.isReferenced)
+    logDebug('refreshSomeSections', `removal → ${existingSections.length} sections [${getDisplayListOfSectionCodes(existingSections)}]`)
+  }
 
   // force the section refresh for the wanted sections
   const newSections = await getSomeSectionsData(sectionCodes, pluginData.demoMode, calledByTrigger)

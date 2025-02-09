@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated for v2.1.5+
+// Last updated for v2.1.10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -85,9 +85,8 @@ export async function getSomeSectionsData(
     logDebug('getSomeSectionsData', `🔹Starting with ${sectionCodesToGet.toString()} ...`)
     const config: TDashboardSettings = await getDashboardSettings()
 
+
     let sections: Array<TSection> = []
-    // V1: for Timeblocks
-    // if (sectionCodesToGet.includes('TB')) sections.push(getTimeBlockSectionData(config, useDemoData))
     // v2: for Timeblocks, now done inside getTodaySectionData()
     if (sectionCodesToGet.includes('DT') || sectionCodesToGet.includes('TB')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
@@ -276,6 +275,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
           submitButtonText: 'Add & Close',
         },
       ],
+      isReferenced: false,
     }
     sections.push(section)
 
@@ -313,6 +313,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         sectionItems: items,
         generatedDate: new Date(),
         actionButtons: [],
+        isReferenced: true,
       }
       sections.push(section)
     }
@@ -477,6 +478,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
           submitButtonText: 'Add & Close',
         },
       ],
+      isReferenced: false,
     }
     sections.push(section)
 
@@ -508,6 +510,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         sectionItems: items,
         generatedDate: new Date(),
         actionButtons: [],
+        isReferenced: true,
       }
       sections.push(section)
     }
@@ -695,6 +698,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
     totalCount: totalCount, // Note: Now not sure how this is used (if it is)
     generatedDate: new Date(),
     actionButtons: [],
+    isReferenced: false,
   }
   logTimer('getTaggedSectionData', thisStartTime, `to find ${itemCount} ${sectionDetail.sectionName} items`, 1000)
   return section
@@ -815,6 +819,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
           postActionRefresh: ['OVERDUE'],
         },
       ],
+      isReferenced: false,
     }
     // console.log(JSON.stringify(section))
     logTimer('getOverdueSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
@@ -925,6 +930,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
       generatedDate: new Date(),
       totalCount: totalPriority,
       actionButtons: [],
+      isReferenced: false,
     }
     logTimer('getPrioritySectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1500)
     return section
@@ -1043,6 +1049,7 @@ export async function getProjectSectionData(_config: TDashboardSettings, useDemo
         tooltip: 'Start reviewing your Project notes',
       },
     ],
+    isReferenced: false,
   }
   // console.log(JSON.stringify(section))
   logTimer('getProjectSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)

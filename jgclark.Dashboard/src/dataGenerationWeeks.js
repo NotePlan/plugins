@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated for 2.1.8
+// Last updated for 2.1.10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -12,7 +12,6 @@ import {
   createSectionOpenItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
-  // createSectionItemObject,
 } from './dashboardHelpers'
 import { openWeekParas, refWeekParas } from './demoData'
 import { getDateStringFromCalendarFilename, getNPWeekStr } from '@helpers/dateTime'
@@ -178,6 +177,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           postActionRefresh: ['W'], // refresh the week section afterwards
         },
       ],
+      isReferenced: false,
     }
     sections.push(section)
 
@@ -213,6 +213,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         sectionItems: items,
         generatedDate: new Date(),
         actionButtons: [],
+        isReferenced: true,
       }
       sections.push(section)
     }
@@ -295,6 +296,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
           postActionRefresh: ['LW', 'W'], // refresh the week section afterwards
         },
       ],
+      isReferenced: false,
     }
     sections.push(section)
     logTimer('getLastWeekSectionData', startTime, `- made LW-19 direct section with ${String(itemCount)} items`)
@@ -331,6 +333,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
         sectionItems: items,
         generatedDate: new Date(),
         actionButtons: [],
+        isReferenced: true,
       }
       sections.push(section)
       logTimer('getLastWeekSectionData', startTime, `- made LW-20 referenced section with ${String(itemCount)} items in total`)
