@@ -2,6 +2,12 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 <!-- - ??? When switching from 'Show referenced items in separate section' on to off, the referenced sections weren't removed -->
+## [2.1.10] 2025-02-09
+### Changed
+- 
+### Fixed
+- Fix '>Yesterday' section not appearing (thanks, @jpr1972)
+
 ## [2.1.9] 2025-02-08
 ### Changed
 - Larger tap targets for buttons on iOS/iPadOS

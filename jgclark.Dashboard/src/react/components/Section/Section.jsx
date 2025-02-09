@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated for v2.1.2
+// Last updated for v2.1.2+
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -12,7 +12,6 @@ import React, { useState, useEffect, useCallback } from 'react'
 import type { TSection, TSectionItem, TActionButton } from '../../../types.js'
 import CommandButton from '../CommandButton.jsx'
 import ItemGrid from '../ItemGrid.jsx'
-// import SectionTimer from '../SectionTimer.jsx'
 import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
@@ -35,6 +34,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Context
   //----------------------------------------------------------------------
   const { dashboardSettings, reactSettings, setReactSettings, pluginData, sendActionToPlugin } = useAppContext()
+  // logDebug('Section', `🔸 Section: ${section.sectionCode} (${String(section.sectionItems?.length ?? 0)} items in '${section.name}')`)
 
   //----------------------------------------------------------------------
   // State
@@ -45,12 +45,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Constants
   // ---------------------------------------------------------------------
   const { sectionFilename, totalCount } = section
-
-  //----------------------------------------------------------------------
-  // Section Timer
-  //----------------------------------------------------------------------
-  // FIXME(dwerteimer): this is what Cursor added (and I tweaked) but doesn't work.
-  // const { sectionTimer } = SectionTimer({ maxDelay: 60000, enabled: section.sectionCode === 'TB', sectionCode: 'TB' })
 
   //----------------------------------------------------------------------
   // Effects
@@ -175,9 +169,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   const isDesktop = pluginData.platform === 'macOS'
   let numItemsToShow = itemsToShow.length
 
-  // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
-  const addNewActionButtons = /*isDesktop ? */ section.actionButtons?.filter((b) => b.actionName.startsWith('add'))// : []
-  let processActionButtons = /*isDesktop ? */ section.actionButtons?.filter((b) => !b.actionName.startsWith('add'))// : []
+  const addNewActionButtons = section.actionButtons?.filter((b) => b.actionName.startsWith('add'))// : []
+  let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add'))// : []
 
   // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
   if (numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {

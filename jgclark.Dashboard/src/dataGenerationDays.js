@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated for 2.1.1
+// Last updated for 2.1.10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -186,7 +186,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           actionPluginID: `${pluginJson['plugin.id']}`,
           display: '<i class= "fa-regular fa-calendar-plus sidebarDaily" ></i> ',
           tooltip: 'Add a new task to future note',
-          postActionRefresh: ['DT'],
+          postActionRefresh: [], // Note: very likely to go to a note that isn't going to be shown in the dashboard, but can't be guaranteed
           formFields: anyDayFormFields,
           submitOnEnter: true,
           submitButtonText: 'Add & Close',
@@ -321,7 +321,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
     const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getDataForDashboard', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} from ${filenameDateStr} ----------`)
+    logInfo('getYesterdaySectionData', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} from ${filenameDateStr} ----------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -343,7 +343,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         const thisFilename = yesterdaysNote?.filename ?? '(error)'
         // const filenameDateStr = getDateStringFromCalendarFilename(thisFilename)
         if (!thisFilename.includes(filenameDateStr)) {
-          logError('getDataForDashboard', `- found filename '${thisFilename}' but '${filenameDateStr}' ??`)
+          logError('getYesterdaySectionData', `- found filename '${thisFilename}' but '${filenameDateStr}' ??`)
         }
 
         // Get list of open tasks/checklists from this calendar note
@@ -360,10 +360,10 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
         itemCount += items.length
 
-        // logDebug('getDataForDashboard', `- finished finding yesterday's items from ${filenameDateStr} after ${timer(startTime)}`)
+        // logDebug('getYesterdaySectionData', `- finished finding yesterday's items from ${filenameDateStr} after ${timer(startTime)}`)
         itemCount = items.length
       } else {
-        logDebug('getDataForDashboard', `No yesterday note found using filename '${thisFilename}'`)
+        logDebug('getYesterdaySectionData', `No yesterday note found using filename '${thisFilename}'`)
       }
     }
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
@@ -434,7 +434,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       sections.push(section)
     }
 
-    logTimer('getDataForDashboard', startTime, `- found ${itemCount} yesterday items from ${filenameDateStr}`)
+    logTimer('getYesterdaySectionData', startTime, `- found ${itemCount} yesterday items from ${filenameDateStr}`)
     return sections
   } catch (error) {
     logError(`getYesterdaySectionData`, error.message)
@@ -465,7 +465,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     // const thisFilename = tomorrowsNote?.filename ?? '(error)'
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logDebug('getDataForDashboard', `---------- Gathering Tomorrow's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} ------------`)
+    logDebug('getTomorrowSectionData', `---------- Gathering Tomorrow's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -486,7 +486,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
       if (tomorrowsNote) {
         // const filenameDateStr = getDateStringFromCalendarFilename(thisFilename)
         if (!thisFilename.includes(filenameDateStr)) {
-          logError('getDataForDashboard', `- found filename '${thisFilename}' but '${filenameDateStr}' ??`)
+          logError('getTomorrowSectionData', `- found filename '${thisFilename}' but '${filenameDateStr}' ??`)
         }
 
         // Get list of open tasks/checklists from this calendar note
@@ -503,9 +503,9 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
         itemCount += items.length
 
-        // logDebug('getDataForDashboard', `- finished finding tomorrow's items from ${filenameDateStr} after ${timer(startTime)}`)
+        // logDebug('getTomorrowSectionData', `- finished finding tomorrow's items from ${filenameDateStr} after ${timer(startTime)}`)
       } else {
-        logDebug('getDataForDashboard', `No tomorrow note found for filename '${thisFilename}'`)
+        logDebug('getTomorrowSectionData', `No tomorrow note found for filename '${thisFilename}'`)
       }
     }
 
@@ -522,7 +522,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
       generatedDate: new Date(),
       actionButtons: [],
     }
-    // clo(section)
+    // clo(section, 'Tomorrow section')
     sections.push(section)
 
     // If we want this separated from the referenced items, then form a second section
@@ -544,12 +544,6 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
       } else {
         // Get list of open tasks/checklists from current daily note (if it exists)
         if (sortedRefParas.length > 0) {
-          // // make a sectionItem for each item, and then make a section too.
-          // sortedRefParas.map((p) => {
-          //   const thisID = `${sectionNumStr}-${itemCount}`
-          //   items.push(createSectionItemObject(thisID, p))
-          //   itemCount++
-          // })
           // Iterate and write items for this section
           items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
           itemCount += items.length
@@ -569,13 +563,14 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         generatedDate: new Date(),
         actionButtons: [],
       }
+      // clo(section, `>Tomorrow section`)
       sections.push(section)
     }
 
-    logDebug('getDataForDashboard', `- found ${itemCount} Tomorrow items from ${filenameDateStr} in ${timer(startTime)}`)
-    return [section]
+    logDebug('getTomorrowSectionData', `- found ${itemCount} Tomorrow items from ${filenameDateStr} in ${timer(startTime)}`)
+    return sections
   } catch (error) {
-    logError('getDataForDashboard/tomorrow', `ERROR: ${error.message}`)
+    logError('getTomorrowSectionData', `ERROR: ${error.message}`)
     return []
   }
 }

@@ -3,11 +3,11 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated for v2.1.0.a
+// Last updated for v2.1.10
 //-----------------------------------------------------------------------------
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getNotePlanSettings, handlerResult, mergeSections, setPluginData } from './dashboardHelpers'
+import { getDisplayListOfSectionCodes, getNotePlanSettings, handlerResult, mergeSections, setPluginData } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -89,17 +89,18 @@ export async function incrementallyRefreshSomeSections(
     logError('incrementallyRefreshSomeSections', 'No sectionCodes provided')
     return handlerResult(false)
   }
+  logDebug('incrementallyRefreshSomeSections', `Starting incremental refresh for sections [${String(sectionCodes)}]`)
   await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
   // loop through sectionCodes
   for (const sectionCode of sectionCodes) {
     const start = new Date()
     await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
-    logTimer(`incrementallyRefreshSomeSections`, start, `to get section: ${sectionCode}`, 1000)
+    // logTimer(`incrementallyRefreshSomeSections`, start, `- to get section: ${sectionCode}`, 1000)
   }
   const updates: any = { refreshing: false, firstRun: false }
   if (setFullRefreshDate) updates.lastFullRefresh = new Date()
   await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (after ${timer(incrementalStart)})`)
-  logTimer('incrementallyRefreshSomeSections', incrementalStart, `to refresh ${sectionCodes.length} sections: ${sectionCodes.toString()}`, 2000)
+  logTimer('incrementallyRefreshSomeSections', incrementalStart, `- to refresh ${sectionCodes.length} sections: ${sectionCodes.toString()}`, 2000)
 
   // re-calculate done task counts (if the appropriate setting is on)
   const NPSettings = await getNotePlanSettings()
@@ -110,7 +111,7 @@ export async function incrementallyRefreshSomeSections(
       totalDoneCount: totalDoneCount,
     }
     await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSomeSections')
-    logTimer('incrementallyRefreshSomeSections', startTime, `to calculate done counts at end of incrementallyRefreshSomeSections`, 1000)
+    logTimer('incrementallyRefreshSomeSections', startTime, `- to calculate done counts at end of incrementallyRefreshSomeSections`, 1000)
   }
 
   return handlerResult(true)
@@ -124,7 +125,7 @@ export async function incrementallyRefreshSomeSections(
  * @returns {TBridgeClickHandlerResult}
  */
 export async function refreshSomeSections(data: MessageDataObject, calledByTrigger: boolean = false): Promise<TBridgeClickHandlerResult> {
-  const start = new Date()
+  const startTime = new Date()
   const { sectionCodes } = data
   if (!sectionCodes) {
     logError('refreshSomeSections', 'No sectionCodes provided')
@@ -139,9 +140,9 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
   // force the section refresh for the wanted sections
   const newSections = await getSomeSectionsData(sectionCodes, pluginData.demoMode, calledByTrigger)
-  // logDebug('refreshSomeSections', `- after getSomeSectionsData(): ${timer(start)}`)
+  // logTimer('refreshSomeSections', startTime, `- after getSomeSectionsData(): [${getDisplayListOfSectionCodes(newSections)}]`)
   const mergedSections = mergeSections(existingSections, newSections)
-  // logDebug('refreshSomeSections', `- after mergeSections(): ${timer(start)}`)
+  // logTimer('refreshSomeSections', startTime, `- after mergeSections(): [${getDisplayListOfSectionCodes(mergedSections)}]`)
 
   const updates: TAnyObject = { sections: mergedSections }
   // and update the total done counts
@@ -149,10 +150,10 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   // updates.totalDoneCounts = getTotalDoneCountsFromSections(mergedSections)
 
   if (!pluginData.refreshing === true) updates.refreshing = false
-  await setPluginData(updates, `Finished refreshSomeSections for [${String(sectionCodes)}] (${timer(start)})`)
+  await setPluginData(updates, `Finished refreshSomeSections for [${String(sectionCodes)}] (${timer(startTime)})`)
   // count sectionItems in all sections
   const totalSectionItems = mergedSections.reduce((acc, section) => acc + section.sectionItems.length, 0)
-  logDebug('refreshSomeSections', `Total section items: ${totalSectionItems}`)
-  logTimer('refreshSomeSections', start, `for refreshSomeSections: ${sectionCodes.toString()}`, 2000)
+  // logDebug('refreshSomeSections', `Total section items: ${totalSectionItems} from [${sectionCodes.toString()}]`)
+  logTimer('refreshSomeSections', startTime, `for refreshSomeSections: ${sectionCodes.toString()}`, 2000)
   return handlerResult(true, [], { sectionItems: totalSectionItems })
 }

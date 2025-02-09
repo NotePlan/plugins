@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated for v2.1.5
+// Last updated for v2.1.5+
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -15,7 +15,7 @@ import {
   createSectionOpenItemsFromParas,
   createSectionItemObject,
   getDashboardSettings,
-  // getDisplayListOfSectionCodes,
+  getDisplayListOfSectionCodes,
   getListOfEnabledSections,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
@@ -82,7 +82,7 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean,
 ): Promise<Array<TSection>> {
   try {
-    logDebug('getSomeSectionsData', `Starting with ${sectionCodesToGet.toString()} ...`)
+    logDebug('getSomeSectionsData', `🔹Starting with ${sectionCodesToGet.toString()} ...`)
     const config: TDashboardSettings = await getDashboardSettings()
 
     let sections: Array<TSection> = []
@@ -109,7 +109,7 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
 
-    // logDebug('getSomeSectionData', `=> sections ${getDisplayListOfSectionCodes(sections)} (unfiltered)`)
+    // logDebug('getSomeSectionData', `=> 🔹 sections ${getDisplayListOfSectionCodes(sections)} (unfiltered)`)
 
     sections.filter((s) => s) //get rid of any nulls b/c just in case any the sections above could return null
     return sections
