@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.7.2",
   "plugin.id": "np.ThemeChooser",
   "plugin.name": "🎨 Theme Chooser",
-  "plugin.version": "1.8.0",
-  "plugin.lastUpdateInfo": "1.8.0 Add color picker to choose colors",
+  "plugin.version": "1.9.0",
+  "plugin.lastUpdateInfo": "1.9.0 Add color picker to choose colors and write to frontmatter",
   "plugin.description": "Choose from your favorite themes",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -40,8 +40,8 @@
       ]
     },
     {
-      "name": "Choose HTML Color",
-      "description": "Copy a color code to the clipboard",
+      "name": "Choose HTML Color for Background",
+      "description": "Choose a color and either save to the clipboard or write to frontmatter",
       "jsFunction": "chooseColor",
       "alias": [
         "color", "picker"
@@ -49,6 +49,15 @@
       "arguments": [
         "default color value (e.g. selected text)"
       ]
+    },
+    {
+      "name": "setFrontmatterColor",
+      "description": "Command comes from the HTML Color Picker Window",
+      "jsFunction": "setFrontmatterColor",
+      "alias": [
+      ],
+      "arguments": ["color to set", "key to set (e.g. 'bg-color' or 'bg-color-dark')"],
+      "hidden": true
     },
     {
       "name": "Change Theme Preset",
