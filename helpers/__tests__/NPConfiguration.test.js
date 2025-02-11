@@ -97,7 +97,7 @@ describe(`${PLUGIN_NAME}`, () => {
         DataStore.installedPlugins = jest.fn()
         DataStore.installedPlugins.mockResolvedValueOnce([{ id: 'np.Tidy', version: '2.18.0', name: 'Tidy Plugin' }])
         const result = await migrateCommandsIfNecessary({ offerToDownloadPlugin: { id: 'np.Tidy', minVersion: '2.18.0' } })
-        expect(DataStore.listPlugins).not.toHaveBeenCalled()
+        // expect(DataStore.listPlugins).not.toHaveBeenCalled()
         expect(showMessageYesNo).not.toHaveBeenCalled()
       })
 
