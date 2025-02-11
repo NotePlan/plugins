@@ -35,6 +35,7 @@ This plugin (now a Core Plugin bundled with NotePlan 3.16.1 onwards) provides co
 - **Show This Quarter** (alias **/stq**)
 - **Show This Year** (alias **/sty**)
 - **update all indexes** (alias **uai**): updates all the existing folder index notes
+- **Write changed/modified date to frontmatter** (alias **modified**): writes the modified date to frontmatter (on each save). Writes to 'modified' key. Also (optionally) writes the author's initials to the 'author' key (see plugin settings).
 
 **Tip**: some of these are even more helpful if you assign a keyboard shortcut to them, using macOS's Keyboard > Shortcuts > App Shortcuts system. For example I have mapped ⇧⌘H to `/jump to heading`.
 

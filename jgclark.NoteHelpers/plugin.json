@@ -253,6 +253,23 @@
       "description": "onEditorWillSave",
       "jsFunction": "triggerFindUnlinkedNotes",
       "hidden": true
+    },
+    {
+      "name": "Write changed/modified date to frontmatter",
+      "description": "Write the modified date to frontmatter (on each save). Writes to 'modified' key.",
+      "jsFunction": "writeModified",
+      "alias": [
+        "modified"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "writeModified",
+      "description": "Write the modified date to frontmatter (on each save). Writes to 'modified' key. Can be run by hand or can be included as a trigger using the 'add trigger to note' command.",
+      "jsFunction": "writeModified",
+      "alias": [],
+      "arguments": [],
+      "hidden": true
     }
   ],
   "offerToDownloadPlugin": {
@@ -368,6 +385,33 @@
       "type": "bool",
       "default": true,
       "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "'Write changed/modified date to frontmatter' command settings"
+    },
+    {
+      "key": "dateFormat",
+      "title": "Date format",
+      "description": "The format of the date to write to frontmatter. Use 'ISO' for ISO 8601 format (YYYY-MM-DDTHH:MM:SS.SSSZ), or 'Local' to use your local time settings format.",
+      "type": "string",
+      "default": "ISO",
+      "required": false,
+      "choices": [
+        "ISO",
+        "Local"
+      ]
+    },
+    {
+      "key": "authorID",
+      "title": "Author ID",
+      "description": "Your intiials or ID to use in command 'Write changed/modified date to frontmatter'. Leave blank to not include an author ID next to the date.",
+      "type": "string",
+      "default": "",
+      "required": false
     },
     {
       "type": "separator"
