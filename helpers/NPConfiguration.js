@@ -312,17 +312,19 @@ export type PluginObjectWithUpdateField = {
  * @returns the plugin object if the id is found and the minVersion matches (>= the minVersion)
  */
 export const findPluginInList = (list: Array<any>, pluginID: string, minVersion?: string = '0.0.0'): any => {
-  return list.find((p) => {
-    if (p.id === pluginID) {
-      logDebug(
-        `findPluginInList: ${p.id} ${p.version} (${semverVersionToNumber(p.version)}) >= ${minVersion} ${String(
-          minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true,
-        )}`,
-      )
-      return minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true
-    }
-    return false
-  })
+  return list && Array.isArray(list)
+    ? list.find((p) => {
+        if (p.id === pluginID) {
+          logDebug(
+            `findPluginInList: ${p.id} ${p.version} (${semverVersionToNumber(p.version)}) >= ${minVersion} ${String(
+              minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true,
+            )}`,
+          )
+          return minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true
+        }
+        return false
+      })
+    : null
 }
 
 /**
@@ -342,7 +344,7 @@ export function pluginIsInstalled(pluginID: string, minVersion?: string): boolea
  * @returns {Array<string>} - list of command names
  */
 export function getPluginCommandNames(pluginID: string): Array<string> {
-  const thisPluginObj = DataStore.installedPlugins().find(p => p.id === pluginID)
+  const thisPluginObj = DataStore.installedPlugins().find((p) => p.id === pluginID)
   if (!thisPluginObj) {
     logWarn('getPluginCommandNames', `could not find installed plugin ${pluginID}`)
     return []

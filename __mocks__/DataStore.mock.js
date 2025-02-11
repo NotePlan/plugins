@@ -7,7 +7,7 @@
  *
  */
 import * as samplePlugin from './support/pluginSample.json'
-
+import { logDebug } from '@helpers/dev'
 let __json = samplePlugin //variable used for saving/getting json
 
 export const DataStore = {
@@ -38,7 +38,10 @@ export const DataStore = {
   defaultFileExtension: 'md',
   /* folders: [{ return / }], */
   // async installOrUpdatePluginsByID() { return null },
-  // async installPlugin() { return null },
+  async installPlugin(pluginObject, showLoading = false) {
+    logDebug('DataStore.installPlugin (mock)', `requested install of plugin: ${pluginObject.id}; showLoading: ${showLoading}; returning null`)
+    return null
+  },
   // async installedPlugins() { return null },
   // async invokePluginCommand() { return null },
   // async invokePluginCommandByName() { return null },
