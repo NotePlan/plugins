@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "1.0.0: move '/new note from ...' commands here from Filer plugin, and revived '/new note' command.\n0.20.3: New 'printEditorDetailed' command to log all paragraph details as well.\n0.20.2: 'printNote' extended to cover backlinks.\n0.20.1: new command 'printNote' for debugging purposes.\n0.20.0: new commands \"unlinked note finder\" and \"delete note\". Bug fix to \"rename note filename\" command.\n0.19.2: fix edge cases with \"add trigger to note\".\n0.19.1: \"add trigger to note\" command can now be run from template. Added migration message about 'open note' commands.\n0.19.0: fix to '/rename inconsistent filename' command. Moved 'open note' functions to WindowTools plugin. Updated the display of the 'index folders' command. Removed 'Show month/quarter/year' commands as they are now in the main NP menus.",
+  "plugin.version": "1.1.0",
+  "plugin.lastUpdateInfo": "1.1.0: added 'write modified' command to write the modified date to frontmatter (on each save). Can be run by hand or can be included as a trigger using the 'add trigger to note' command.\n1.0.0: move '/new note from ...' commands here from Filer plugin, and revived '/new note' command.\n0.20.3: New 'printEditorDetailed' command to log all paragraph details as well.\n0.20.2: 'printNote' extended to cover backlinks.\n0.20.1: new command 'printNote' for debugging purposes.\n0.20.0: new commands \"unlinked note finder\" and \"delete note\". Bug fix to \"rename note filename\" command.\n0.19.2: fix edge cases with \"add trigger to note\".\n0.19.1: \"add trigger to note\" command can now be run from template. Added migration message about 'open note' commands.\n0.19.0: fix to '/rename inconsistent filename' command. Moved 'open note' functions to WindowTools plugin. Updated the display of the 'index folders' command. Removed 'Show month/quarter/year' commands as they are now in the main NP menus.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -253,6 +253,23 @@
       "description": "onEditorWillSave",
       "jsFunction": "triggerFindUnlinkedNotes",
       "hidden": true
+    },
+    {
+      "name": "Write changed/modified date to frontmatter",
+      "description": "Write the modified date to frontmatter (on each save). Writes to 'modified' key.",
+      "jsFunction": "writeModified",
+      "alias": [
+        "modified"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "writeModified",
+      "description": "Write the modified date to frontmatter (on each save). Writes to 'modified' key. Can be run by hand or can be included as a trigger using the 'add trigger to note' command.",
+      "jsFunction": "writeModified",
+      "alias": [],
+      "arguments": [],
+      "hidden": true
     }
   ],
   "offerToDownloadPlugin": {
@@ -368,6 +385,33 @@
       "type": "bool",
       "default": true,
       "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "'Write changed/modified date to frontmatter' command settings"
+    },
+    {
+      "key": "dateFormat",
+      "title": "Date format",
+      "description": "The format of the date to write to frontmatter. Use 'ISO' for ISO 8601 format (YYYY-MM-DDTHH:MM:SS.SSSZ), or 'Local' to use your local time settings format.",
+      "type": "string",
+      "default": "ISO",
+      "required": false,
+      "choices": [
+        "ISO",
+        "Local"
+      ]
+    },
+    {
+      "key": "authorID",
+      "title": "Author ID",
+      "description": "Your intiials or ID to use in command 'Write changed/modified date to frontmatter'. Leave blank to not include an author ID next to the date.",
+      "type": "string",
+      "default": "",
+      "required": false
     },
     {
       "type": "separator"

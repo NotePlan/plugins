@@ -21,15 +21,7 @@ export { titleToFilename } from './lib/commands/titleToFilename'
 export { filenameToTitle } from './lib/commands/filenameToTitle'
 export { renameInconsistentNames } from './lib/commands/renameInconsistentNames'
 export { newNote, newNoteFromClipboard, newNoteFromSelection } from './newNote'
-export {
-  addTriggerToNote,
-  convertLocalLinksToPluginLinks,
-  addFrontmatterToNote,
-  moveNote,
-  logEditorNoteDetailed,
-  renameNoteFile,
-  trashNote
-} from './noteHelpers'
+export { addTriggerToNote, convertLocalLinksToPluginLinks, addFrontmatterToNote, moveNote, logEditorNoteDetailed, renameNoteFile, trashNote } from './noteHelpers'
 export {
   jumpToDone,
   jumpToHeading,
@@ -45,6 +37,8 @@ export {
 } from './noteNavigation'
 export { findUnlinkedNotesInCurrentNote, findUnlinkedNotesInAllNotes, triggerFindUnlinkedNotes } from './unlinkedNoteFinder'
 export { printNote } from '@helpers/NPnote'
+
+export { writeModified } from './writeModified'
 
 export function resetCaches() {
   NotePlan.resetCaches()
