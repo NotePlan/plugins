@@ -990,6 +990,7 @@ declare class CommandBar {
    * If you don't supply any buttons, an "OK" button will be displayed.
    * The promise returns selected button, with button index (0 - first button)
    * Note: Available from v3.3.2
+   * WARNING: The order of the buttons is reversed on iOS compared to macOS. Issue raised 2025-02-11 for developer to fix.
    * @param {string} title
    * @param {string} message
    * @param {$ReadOnlyArray<string>?} buttons
@@ -1003,6 +1004,7 @@ declare class CommandBar {
    * If the user selects "OK", the promise returns users entered value
    * If the user selects "Cancel", the promise returns false.
    * Note: Available from v3.3.2
+   * WARNING: The order of the buttons is reversed on iOS compared to macOS. Issue raised 2025-02-11 for developer to fix.
    * @param {string} title
    * @param {string} message
    * @param {string?} defaultValue
