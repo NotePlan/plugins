@@ -1,11 +1,11 @@
 // @flow
 // -----------------------------------------------------------------
 // Helpers for working with children/parent paragraphs in a note.
-// TODO: move getParaAndAllChildren, isAChildPara from blocks in here.
+// TODO: finish moving getParaAndAllChildren, isAChildPara from blocks in here.
 // -----------------------------------------------------------------
 
 import { TASK_TYPES } from './sorting'
-import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer, timer } from '@helpers/dev'
 
 export type ParentParagraphs = {
   parent: TParagraph,
@@ -145,29 +145,27 @@ export function getIndentedNonTaskLinesUnderPara(para: TParagraph, paragraphs: A
  * Return whether this paragraph is a 'child' of a given 'parent' para.
  * The NP documentation requires a child to be an indented task/checklist of an earlier task/checklist.
  * (JGC doesn't know enough to make jest tests for this. But is confident this works from lots of logging.)
- * Note: Copy from blocks.js
+ * WARNING: Currently this is a slow operation (up to 200ms) for complex notes.
+ * TODO: Optimize this further to reduce number of long children() calls
+ * Note: Forked from blocks.js
  * @author @jgclark
  * @param {TParagraph} para - the 'parent' paragraph
  * @returns {Array<TParagraph>} - array of child paragraphs
  */
 export function isAChildPara(thisPara: TParagraph): boolean {
   try {
+    const timer = new Date()
     const thisLineIndex = thisPara.lineIndex
     const allParas = thisPara.note?.paragraphs ?? []
-    // First get all paras up to this one which are parents
-    const allParentsUpToHere = allParas
-      .filter((p) => p.children().length > 0)
-      .filter((p) => p.lineIndex < thisLineIndex)
-    for (const parent of allParentsUpToHere) {
-      const theseChildren = parent.children()
-      for (const child of theseChildren) {
-        if (child.lineIndex === thisLineIndex) {
-          // logInfo('blocks/isAChildPara', `✅: ${thisPara.rawContent}`)
-          return true // note: now allowed in forEach but OK in for
-        }
+
+    // Walk backwards from here to the start of the note to find the parent paras and compare
+    for (let i = thisLineIndex - 1; i >= 0; i--) {
+      const para = allParas[i]
+      if (para.children().some(child => child.lineIndex === thisLineIndex)) {
+        return true
       }
     }
-    // logInfo('blocks/isAChildPara', `❌: ${thisPara.rawContent}`)
+    logTimer('isAChildPara', timer, `- for ${thisPara.content}`)
     return false
   } catch (error) {
     logError('blocks/isAChildPara', `isAChildPara(): ${error.message}`)

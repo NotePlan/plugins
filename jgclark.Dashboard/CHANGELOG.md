@@ -1,13 +1,14 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-<!-- - ??? When switching from 'Show referenced items in separate section' on to off, the referenced sections weren't removed -->
-## [2.1.10] 2025-02-09
+## [2.1.10] 2025-02-???
 ### Changed
-- 
+- Speeded up all generation, particularly in the case of notes with many parent/child items.
 ### Fixed
 - Fix '>Yesterday' section not appearing (thanks, @MC-1848)
 - Fix the referenced sections not being removed when 'Show referenced items in separate section' is turned off
+### Dev notes
+- Speeded up `isAChildPara()` by using `children()` once instead of calling it multiple times. This is called by `makeDashboardParas()` which is used in all generation..
 
 ## [2.1.9] 2025-02-08
 ### Changed
