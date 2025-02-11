@@ -28,10 +28,12 @@ import { log, logError, logDebug, timer, clo, clof, JSP } from '@helpers/dev'
 export async function writeModified(): Promise<void> {
   try {
     logDebug('writeModified', 'Starting')
-    const { authorID, dateFormat } = await DataStore.settings
+    const { authorID, dateFormat, showMachineInfo } = await DataStore.settings
     const theTime = !dateFormat || dateFormat === 'ISO' ? new Date().toISOString() : new Date().toLocaleString()
+    const { machineName, platform } = NotePlan.environment
+    const machine = showMachineInfo ? `@${machineName ? `${machineName}|` : ''}${platform}` : ''
     setFrontMatterVars(Editor, {
-      modified: authorID ? `${theTime} (${authorID})` : theTime,
+      modified: authorID ? `${theTime} (${authorID}${machine})` : `${theTime}${machine}`,
     })
   } catch (e) {
     logError(pluginJson, JSP(e))

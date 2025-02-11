@@ -414,6 +414,14 @@
       "required": false
     },
     {
+      "key": "showMachineInfo",
+      "title": "Include platform information in modified line",
+      "description": "If selected, provides additional detail of platform and potentially machine name (where available)",
+      "type": "bool",
+      "default": false,
+      "required": false
+    },
+    {
       "type": "separator"
     },
     {
