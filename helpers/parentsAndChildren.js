@@ -162,7 +162,7 @@ export function isAChildPara(thisPara: TParagraph, thisNote: TNote): boolean {
     const timer = new Date()
     const thisLineIndex = thisPara.lineIndex
     const allParas = thisNote.paragraphs
-    logDebug('isAChildPara', `thisLineIndex: ${String(thisLineIndex)}, allParas: ${String(allParas.length)}`)
+    // logDebug('isAChildPara', `thisLineIndex: ${String(thisLineIndex)}, allParas: ${String(allParas.length)}`)
 
     // V2 Method (noticeably faster than original version)
     // Note: not fully tested, as test data isn't set up for .children().
@@ -179,17 +179,17 @@ export function isAChildPara(thisPara: TParagraph, thisNote: TNote): boolean {
     // Walk backwards from here to the start of the note to find the parent paras and compare, but use my own indents-based method instead of children()
     for (let i = thisLineIndex - 1; i >= 0; i--) {
       const para = allParas[i]
-      logDebug('isAChildPara', `${i}: para.indents: ${para.indents}, thisPara.indents: ${thisPara.indents}, para.type: ${para.type}`)
+      // logDebug('isAChildPara', `${i}: para.indents: ${para.indents}, thisPara.indents: ${thisPara.indents}, para.type: ${para.type}`)
       if (['title', 'empty', 'separator'].includes(para.type)) {
-        logTimer('isAChildPara', timer, `- FALSE for ${thisPara.rawContent}`)
+        // logTimer('isAChildPara', timer, `- FALSE for ${thisPara.rawContent}`)
         return false
       }
       if (para.indents < thisPara.indents && ['open', 'scheduled', 'checklist', 'checklistScheduled', 'done', 'doneChecklist', 'cancelled', 'cancelledChecklist'].includes(para.type)) {
-        logTimer('isAChildPara', timer, `- TRUE for ${thisPara.rawContent}`)
+        // logTimer('isAChildPara', timer, `- TRUE for ${thisPara.rawContent}`)
         return true
       }
     }
-    logTimer('isAChildPara', timer, `- FALSE for ${thisPara.rawContent}`)
+    // logTimer('isAChildPara', timer, `- FALSE for ${thisPara.rawContent}`)
     return false
   } catch (error) {
     logError('blocks/isAChildPara', `isAChildPara(): ${error.message}`)
