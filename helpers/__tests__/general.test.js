@@ -36,6 +36,57 @@ describe(`${FILE}`, () => {
     })
   })
 
+  describe(section('class CaseInsensitiveSet'), () => {
+    // Set up some data
+    const initiallyEmptySet = new g.CaseInsensitiveSet()
+    initiallyEmptySet.add('tesTING')
+    initiallyEmptySet.add('testing')
+    initiallyEmptySet.add('TESTING')
+    initiallyEmptySet.add('BOB')
+    initiallyEmptySet.add('bob')
+
+    // Make sure correct values are returned
+    test('initiallyEmptySet size -> 2', () => {
+      expect(initiallyEmptySet.size()).toEqual(2)
+    })
+    test('initiallyEmptySet for "TESTING" variations', () => {
+      expect(initiallyEmptySet.has('TESTING')).toEqual(true)
+      expect(initiallyEmptySet.has('testing')).toEqual(true)
+      expect(initiallyEmptySet.has('TEstiNG')).toEqual(true)
+    })
+    test('initiallyEmptySet for "bob" variations', () => {
+      expect(initiallyEmptySet.get('bob')).toEqual(true)
+    })
+    test('initiallyEmptySet for "RP"', () => {
+      expect(initiallyEmptySet.get('RP')).toEqual(false)
+    })
+
+    // More complex tests to make sure we can iterate over the set
+    const output = []
+    for (const item of initiallyEmptySet) {
+      output.push(item)
+    }
+    test('initiallyEmptySet contents', () => {
+      expect(output[0]).toEqual('tesTING')
+      expect(output[1]).toEqual('BOB')
+    })
+
+    // Set up some more test data
+    const itemArray = []
+    itemArray.push('tesTING')
+    itemArray.push('testing')
+    itemArray.push('TESTING')
+    itemArray.push('BOB')
+    itemArray.push('bob')
+    const initiallyFilledSet = new g.CaseInsensitiveSet(itemArray)
+
+    // Make sure correct values are returned
+    test('initiallyFilledSet size -> 2', () => {
+      expect(initiallyFilledSet.size()).toEqual(2)
+    })
+
+  })
+
   describe(section('returnNoteLink()'), () => {
     test('should create a link with a heading', () => {
       expect(g.returnNoteLink('foo', 'bar')).toEqual('[[foo#bar]]')
