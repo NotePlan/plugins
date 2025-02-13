@@ -6,7 +6,7 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import { generateRepeats } from '../../jgclark.RepeatExtensions/src/main'
+import { generateRepeats } from '../../jgclark.RepeatExtensions/src/repeatMain'
 import pluginJson from '../plugin.json'
 import { getSettings, type TidyConfig } from './tidyHelpers'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
@@ -63,9 +63,7 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
 
     // Find past calendar notes changed in the last numDays (or all if numDays === 0)
     // v2 method:
-    const recentNotes = (config.numDays > 0)
-      ? getNotesChangedInInterval(config.numDays, ['Notes', 'Calendar'])
-      : getAllNotesOfType(['Notes', 'Calendar'])
+    const recentNotes = config.numDays > 0 ? getNotesChangedInInterval(config.numDays, ['Notes', 'Calendar']) : getAllNotesOfType(['Notes', 'Calendar'])
 
     logDebug('generateRepeatsFromRecentNotes', `- found  ${String(recentNotes.length)} 'recent' notes to process`)
 
