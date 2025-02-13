@@ -155,19 +155,23 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
 
 /**
  * Return an optimised set of fields based on each paragraph (plus filename + computed priority + title - many).
+ * Note: can range from 7-70ms/para in JGC tests.
  *
  * @param {Array<TParagraph>} origParas
  * @returns {Array<TParagraphForDashboard>} dashboardParas
  */
 export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagraphForDashboard> {
   try {
+    const timer = new Date()
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p: TParagraph) => {
       const note = p.note
       if (note) {
+        const timerAnyChildren = new Date()
+        // Note: seems to be a quick operation (1ms), but leaving a timer for now to indicate if >10ms
         const anyChildren = p.children()
+        logTimer('makeDashboardParas', timerAnyChildren, `- for p.children() in ${note.filename}`, 10)
         const hasChild = anyChildren.length > 0
         const isAChild = isAChildPara(p)
-
         // Note: debugging why sometimes hasChild is wrong
         // TODO(later): remove this debugging
         if (hasChild) {
@@ -209,6 +213,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         return
       }
     })
+    // $FlowIgnore[unsafe-arithmetic]
+    logTimer('makeDashboardParas', timer, `- done for ${origParas.length} paras (i.e. average ${String((new Date() - timer) / origParas.length)}/para)`)
     return dashboardParas
   } catch (error) {
     logError('makeDashboardParas', error.message)
