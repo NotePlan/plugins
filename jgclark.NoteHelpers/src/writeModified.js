@@ -22,12 +22,11 @@ import { log, logError, logDebug, timer, clo, clof, JSP } from '@helpers/dev'
 
 /**
  * Writes the modified date to frontmatter (on each save). Writes to 'modified' key
- * Requires the trigger onEditorWillSave
- * @author @jgclark
+ * Requires the trigger: onEditorWillSave => jgclark.NoteHelpers.writeModified
+ * @author @dwertheimer
  */
 export async function writeModified(): Promise<void> {
   try {
-    logDebug('writeModified', 'Starting')
     // only run if the note has not been written to in the last 5 seconds
     if (Editor?.note && !isTriggerLoop(Editor.note, 5000)) {
       const { authorID, dateFormat, showMachineInfo } = await DataStore.settings
