@@ -14,14 +14,13 @@ import {
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
   getStartTimeFromPara,
-  makeDashboardParas,
 } from './dashboardHelpers'
 import { openTodayItems, refTodayItems, openTomorrowParas, refTomorrowParas, openYesterdayParas, refYesterdayParas } from './demoData'
-import { getTodaysDateHyphenated, getTodaysDateUnhyphenated } from '@helpers/dateTime'
+import { getTodaysDateUnhyphenated } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { getHeadingsFromNote } from '@helpers/NPnote'
-import { getCurrentTimeBlockPara, getTimeBlockDetails, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
+import { isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
 import { isOpen } from '@helpers/utils'
 
 //--------------------------------------------------------------------
@@ -90,14 +89,14 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     }
 
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')
-    const nextPeriodFilename = nextPeriodNote?.filename ?? '(error)'
+    const nextPeriodFilename = nextPeriodNote?.filename ?? '(errorthisFilename'
     logDebug('getTodaySectionData', `- nextPeriodFilename = ${nextPeriodFilename}`)
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
-    const todayHeadings: Array<string> = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, true) : []
-    const tomorrowHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    const todayHeadings: Array<string> = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, false) : []
+    const tomorrowHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, false) : []
     const todayFormFields: Array<TSettingItem> = formFieldsBase.concat(
       todayHeadings.length
         ? // $FlowIgnore[incompatible-type]
@@ -135,6 +134,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       sectionItems: items,
       generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
       doneCounts: doneCountData,
+      isReferenced: false,
       actionButtons: [
         {
           actionName: 'addTask',
@@ -241,6 +241,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
+        isReferenced: true,
         actionButtons: [],
       }
       sections.push(section)
@@ -284,6 +285,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         sectionFilename: thisFilename,
         sectionItems: timeBlockItems,
         generatedDate: new Date(),
+        isReferenced: false,
         actionButtons: [],
       }
       logTimer('getTodaySectionData', timer, `- found ${String(timeBlockItems.length)} timeblock items from ${filenameDateStr}`)
@@ -380,6 +382,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       sectionItems: items,
       generatedDate: new Date(),
       doneCounts: doneCountData,
+      isReferenced: false,
       actionButtons: [
         {
           actionName: 'moveAllYesterdayToToday',
@@ -429,6 +432,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
+        isReferenced: true,
         actionButtons: [],
       }
       sections.push(section)
@@ -509,6 +513,16 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
       }
     }
 
+    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
+    const tomorrowHeadings: Array<string> = tomorrowsNote ? getHeadingsFromNote(tomorrowsNote, false, true, true, false) : []
+    const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
+      tomorrowHeadings.length
+        ? // $FlowIgnore[incompatible-type]
+        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        : [],
+    )
+
     const section: TSection = {
       ID: sectionNumStr,
       name: 'Tomorrow',
@@ -520,7 +534,31 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
-      actionButtons: [],
+      isReferenced: false,
+      actionButtons: [
+        {
+          actionName: 'addTask',
+          actionParam: thisFilename,
+          actionPluginID: `${pluginJson['plugin.id']}`,
+          display: '<i class= "fa-regular fa-circle-arrow-right sidebarDaily" ></i> ',
+          tooltip: "Add a new task to tomorrow's note",
+          postActionRefresh: ['DO'],
+          formFields: tomorrowFormFields,
+          submitOnEnter: true,
+          submitButtonText: 'Add & Close',
+        },
+        {
+          actionName: 'addChecklist',
+          actionParam: thisFilename,
+          actionPluginID: `${pluginJson['plugin.id']}`,
+          display: '<i class= "fa-regular fa-square-arrow-right sidebarDaily" ></i> ',
+          tooltip: "Add a checklist item to tomorrow's note",
+          postActionRefresh: ['DO'],
+          formFields: tomorrowFormFields,
+          submitOnEnter: true,
+          submitButtonText: 'Add & Close',
+        },
+      ],
     }
     // clo(section, 'Tomorrow section')
     sections.push(section)
@@ -561,6 +599,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
+        isReferenced: true,
         actionButtons: [],
       }
       // clo(section, `>Tomorrow section`)
@@ -572,117 +611,5 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
   } catch (error) {
     logError('getTomorrowSectionData', `ERROR: ${error.message}`)
     return []
-  }
-}
-
-/**
- * Get the current time block paras from Today's note if it exists.
- * Ignore any time block paras that are done or cancelled.
- * TODO: Make this cover time blocks for today scheduled from regular notes. Note: these are calculated normally about the same time as this section. So perhaps roll the two together and generate two sections?
- * @param {TDashboardSettings} config
- * @param {boolean} useDemoData?
- * @returns {Array<TSection>}
- */
-export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData: boolean = false): TSection {
-  try {
-    const sectionNumStr = '116' // FIXME: revert later
-    const thisSectionCode = '_TB' // FIXME: revert later
-    const items: Array<TSectionItem> = []
-    const NPSettings = getNotePlanSettings()
-    const mustContainString = NPSettings.timeblockMustContainString
-    const thisFilename = `${getTodaysDateUnhyphenated()}.${NPSettings.defaultFileExtension}`
-    const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
-    const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
-    logInfo('getTimeBlockSectionData', `--------- Gathering${useDemoData ? ' DEMO' : ''} time blocks from ${filenameDateStr} with mCS ${mustContainString} ----------`)
-    const startTime = new Date() // for timing only
-    let timeblockPara: ?TParagraph
-
-    if (useDemoData) {
-      const fakeTodayNoteParagraphs: Array<TParagraphForDashboard> = []
-      for (const item of openTodayItems) {
-        if (item.para) fakeTodayNoteParagraphs.push(item.para)
-      }
-      // $FlowFixMe[prop-missing]
-      // $FlowFixMe[incompatible-type]
-      const fakeTodayNote: TNote = {
-        // $FlowFixMe[incompatible-type]
-        // $FlowFixMe[prop-missing]
-        // $FlowFixMe[incompatible-exact]
-        paragraphs: fakeTodayNoteParagraphs,
-        type: 'Calendar',
-        title: getTodaysDateHyphenated(),
-        filename: `${filenameDateStr}.md`,
-      }
-      clo(fakeTodayNote, `fakeTodayNote`)
-      timeblockPara = getCurrentTimeBlockPara(fakeTodayNote, true, mustContainString)
-    } else {
-      // Get list of open tasks/checklists from current daily note (if it exists)
-      if (currentDailyNote) {
-        timeblockPara = getCurrentTimeBlockPara(currentDailyNote, true, mustContainString)
-      } else {
-        logDebug('getTimeBlockSectionData', `No daily note found using filename '${filenameDateStr}'`)
-      }
-    }
-
-    if (!timeblockPara) {
-      logDebug('getTimeBlockSectionData', `-> none`)
-    } else {
-      const timeBlockParaContent = timeblockPara?.content ?? ''
-      const [timeBlockString, contentWithoutTimeBlock] = getTimeBlockDetails(timeBlockParaContent, mustContainString)
-      logDebug('getTimeBlockSectionData', `-> ${timeBlockString} / ${contentWithoutTimeBlock}`)
-
-      // write item for section
-      const thisID = `${sectionNumStr}-0`
-      // I was trying to reorder the display of the timeblock para content, but that makes life very difficult for editing or checking off time block items
-      const thisDParas = makeDashboardParas([timeblockPara])
-      // // change text so that time details are always at the front
-      // // If this timeblock is on a task or checklist line, leave the type alone, otherwise make it type 'timeblock'. This affects StatusIcon.
-      // thisDPara.content = `${timeBlockString} ${contentWithoutTimeBlock}`
-      // // handle priority markers
-      // if (thisDPara.priority > 0) {
-      //   const priorityMarker = ['!', '!!', '!!!', '>>'][thisDPara.priority - 1]
-      //   thisDPara.content = `${priorityMarker} ${thisDPara.content}`
-      // }
-      if (thisDParas.length > 0) {
-        const thisDPara = thisDParas[0]
-        if (thisDPara) {
-          const itemTypeToUse = thisDPara.type === 'open' || thisDPara.type === 'checklist' ? thisDPara.type : 'timeblock'
-          const thisSectionItemObject = { ID: thisID, itemType: itemTypeToUse, para: thisDPara }
-          // $FlowFixMe[incompatible-call]
-          items.push(thisSectionItemObject)
-        } else {
-          logDebug('getTimeBlockSectionData', `Can't fully show time block as this is DEMO data.`)
-        }
-      } else {
-        if (useDemoData) {
-          logDebug('getTimeBlockSectionData', `Can't fully show time block as this is DEMO data.`)
-        } else {
-          logWarn('getTimeBlockSectionData', `Couldn't find thisDPara to match '${timeBlockParaContent}'. Doesn't `)
-        }
-      }
-    }
-
-    const section: TSection = {
-      ID: sectionNumStr,
-      name: 'Current time block',
-      showSettingName: 'showTimeBlockSection',
-      sectionCode: thisSectionCode,
-      description: '', //`current time block`,
-      FAIconClass: 'fa-light fa-calendar-clock',
-      sectionTitleColorPart: 'sidebarYearly',
-      sectionFilename: thisFilename,
-      // sectionItems: items,
-      sectionItems: [],
-      generatedDate: new Date(),
-      actionButtons: [],
-    }
-    // clo(section)
-    logTimer('getTimeBlockSectionData', startTime, `- found Current Time Block from ${filenameDateStr}`)
-
-    return section
-  } catch (error) {
-    logError(`getTimeBlockSectionData`, error.message)
-    // $FlowFixMe[incompatible-return]
-    return null
   }
 }

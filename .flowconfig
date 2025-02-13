@@ -20,6 +20,7 @@ flow-typed
 #all=warn # warn on everything, except those specified. I don't see why this isn't working.
 #sketchy-null=warn
 #sketchy-number=warn
+#invalid-computed-prop=off
 #unnecessary-optional-chain=warn
 #unused-promise=warn  # was not working for @jgclark at v0.202
 

@@ -1,8 +1,18 @@
 // @flow
+//--------------------------------------------------------------------------
+// Manage the Dashboard settings state changes
+// Last updated for v2.0.x
+//--------------------------------------------------------------------------
+// Imports
+//--------------------------------------------------------------------------
 import type { TDashboardSettings } from '../../../src/types'
 import { DASHBOARD_ACTIONS } from './actionTypes'
 import { compareObjects, getDiff, dtl } from '@helpers/dev'
 import { logDebug, logError } from '@helpers/react/reactDev'
+
+//--------------------------------------------------------------------------
+// Type Definitions
+//--------------------------------------------------------------------------
 
 export type TDashboardSettingsAction = {
   type: $Values<typeof DASHBOARD_ACTIONS>,

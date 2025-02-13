@@ -1979,8 +1979,23 @@ declare class NotePlan {
    *   .version: string (NotePlan's version, for example "3.4.1". Note: it may contain alpha characters too, so it is not recommended for use in tests or comparisons)
    *   .versionNumber: number (NotePlan's version as integer,for example 341. JGC Note: this will return '36' for v3.6.0, and is not recommended for use in tests or comparisons)
    *   .buildVersion: number (NotePlan's build number as integer,for example 730. Note: This is the item recommended for use in tests or comparisons)
+   *   .templateFolder: {String}, relative path to the template folder = "@Templates"
+   *   .machineName: {String}, name of the device, like 'macbook-pro.local', available in v3.9.7
+   *   .screenWidth: {number}, available in v3.9.7
+   *   .screenHeight: {number}, available in v3.9.7
    */
   static +environment: Object;
+  /**
+   * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result. 
+   * Optionally send the content of notes as well to process by specifying them in the list 'filenames', which is an array. For example ["note1.md", "folder/note2.md"]. This needs to be the exact path to the note. Your note extension might differ, the default is .txt, if you haven't changed it.
+   * For calendar notes, you can use YYYYMMDD.md, like 20241101.md, or 2024-W10.md for weeks, etc. Natural language input is also supported like "this week", "today", "tomorrow", "this month", "next year", etc.
+   * Note: Available from v3.15.1
+   * @param {string} prompt
+   * @param {Array<string>} filenames
+   * @param {boolean} useStrictFilenames
+   * @returns {Promise<string>}
+  */
+  static ai(prompt: string, filenames: Array < string >, useStrictFilenames: boolean): Promise < string >;
   /**
    * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)
    * Note: available from v3.5.1
@@ -2027,9 +2042,9 @@ declare class NotePlan {
   * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result. 
   * Optionally send the content of notes as well to process by specifying them in the list 'filenames', which is an array. For example ["note1.md", "folder/note2.md"]. This needs to be the exact path to the note. Your note extension might differ, the default is .txt, if you haven't changed it.
   * For calendar notes, you can use YYYYMMDD.md, like 20241101.md, or 2024-W10.md for weeks, etc. Natural language input is also supported like "this week", "today", "tomorrow", "this month", "next year", etc.
-  * @param { string } prompt
-  * @param { Array<string> } filenames
-  * @param { boolean } useStrictFilenames?
+  * @param {string} prompt
+  * @param {Arraystring> } filenames
+  * @param {boolean} useStrictFilenames?
   * @returns {Promise<string>}
   */
   static ai(prompt: string, filenames: Array < string >, useStrictFilenames: boolean): Promise < string >;

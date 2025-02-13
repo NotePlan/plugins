@@ -166,7 +166,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       if (note) {
         const anyChildren = p.children()
         const hasChild = anyChildren.length > 0
-        const isAChild = isAChildPara(p)
+        const isAChild = isAChildPara(p, note)
 
         // Note: debugging why sometimes hasChild is wrong
         // TODO(later): remove this debugging
