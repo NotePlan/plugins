@@ -15,7 +15,6 @@ import {
   hyphenatedDate,
   isScheduled,
   replaceArrowDatesInString,
-  RE_DATE_INTERVAL,
   RE_SCHEDULED_ISO_DATE,
   SCHEDULED_WEEK_NOTE_LINK,
   SCHEDULED_QUARTERLY_NOTE_LINK,
@@ -27,7 +26,6 @@ import { displayTitle } from '@helpers/general'
 import { getFirstDateInPeriod, getNPWeekData, getMonthData, getQuarterData, getYearData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
-import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
@@ -1274,11 +1272,7 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
  * @param {boolean} andFocusEditor? (default: true)
  * @results {boolean} success?
  */
-export function highlightParagraphInEditor(
-  objectToTest: any,
-  thenStopHighlight: boolean = false,
-  andFocusEditor: boolean = true,
-): boolean {
+export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight: boolean = false, andFocusEditor: boolean = true): boolean {
   try {
     logDebug('highlightParagraphInEditor', `Looking for <${objectToTest.rawContent ?? objectToTest.content}>`)
 
@@ -1338,13 +1332,13 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
         const isTruncated = content.endsWith('...')
         const truncatedContent = isTruncated ? content.slice(0, -3) : content // only slice if truncated
 
-        let c = 0
+        // let c = 0
         for (const para of thisNote.paragraphs) {
           if (isTruncated ? para.content.startsWith(truncatedContent) : para.content === content) {
             // logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
             return para
           }
-          c++
+          // c++
         }
         logWarn('NPP/findParaFromStringAndFilename', `Couldn't find paragraph {${content}} in note '${filename}'`)
         return false
@@ -1425,7 +1419,9 @@ export async function markComplete(para: TParagraph, useScheduledDateAsCompletio
     // Call the Repeat Extensions plugin to fire the /rpt trigger if this has a @repeat(date) and the plugin is installed.
     if (RE_EXTENDED_REPEAT.test(para.content)) {
       let repeatConfig: RepeatConfig
-      if (!pluginIsInstalled('jgclark.RepeatExtensions')) {
+      const installedPlugins = DataStore.installedPlugins()
+      const repeatsIsInstalled = Boolean(Array.isArray(installedPlugins) ? installedPlugins.find((p) => p.id === 'jgclark.RepeatExtensions') : null)
+      if (repeatsIsInstalled) {
         logWarn('markComplete', `Repeat Extensions plugin is not installed and configured, so will use safe defaults`)
         repeatConfig = {
           deleteCompletedRepeat: false,

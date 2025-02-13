@@ -7,7 +7,7 @@
 //-----------------------------------------------------------------------------
 
 import { log } from '@helpers/dev'
-import { printNote } from '@helpers/note'
+import { printNote } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { chooseNote } from '@helpers/userInput'
 

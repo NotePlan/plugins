@@ -749,7 +749,7 @@ export function findNotesMatchingHashtag(
       // no folder specified, so grab all notes from DataStore
       projectNotesInFolder = notesToSearch.slice()
     }
-    // logDebug(`NPnote/findNotesMatchingHashtag`,`tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} for ${String(projectNotesInFolder.length)} notes`)
+    logDebug(`NPnote/findNotesMatchingHashtag`, `tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} for ${String(projectNotesInFolder.length)} notes`)
 
     // Filter by tag (and now mentions as well, if requested)
     // Note: now using the cut-down list of hashtags as the API returns partial duplicates

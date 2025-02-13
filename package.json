@@ -72,6 +72,7 @@
     "autoprefixer": "^10.4.20",
     "babel-jest": "^29.7.0",
     "concurrently": "^6.2.0",
+    "cross-env": "^7.0.3",
     "documentation": "^14.0.3",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.10.0",
@@ -117,11 +118,11 @@
   },
   "scripts": {
     "init": "node ./tasks/init.js",
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --build",
-    "build:minified": "NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --build --minify",
-    "build:compact": "NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --build --compact",
-    "autowatch": "NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js",
-    "autowatch:compact": "NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --compact",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --build",
+    "build:minified": "cross-env NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --build --minify",
+    "build:compact": "cross-env NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --build --compact",
+    "autowatch": "cross-env NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js",
+    "autowatch:compact": "cross-env NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --compact",
     "release": "node scripts/releases.js",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
@@ -205,5 +206,8 @@
     "toml": "^3.0.0",
     "vinyl": "^3.0.0",
     "vinyl-fs": "^4.0.0"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-darwin-arm64": "^4.34.6"
   }
 }

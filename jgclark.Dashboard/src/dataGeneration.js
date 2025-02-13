@@ -105,8 +105,24 @@ export async function getSomeSectionsData(
     }
     // The rest can all be slow to generate
     if (sectionCodesToGet.includes('TAG') && config.tagsToShow) {
-      const tagSections = (await getTaggedSections(config, useDemoData)).filter((s) => s) //get rid of any nulls
-      sections = tagSections.length ? sections.concat(tagSections) : sections
+      // v1:
+      // const tagSections = getTaggedSections(config, useDemoData).filter((s) => s) //get rid of any nulls
+      // sections = tagSections.length ? sections.concat(tagSections) : sections
+
+      // v2:
+      const tagSections = getTagSectionDetails(removeInvalidTagSections(config))
+      clo(tagSections, 'getSomeSectionsData tagSections')
+      let index = 0
+      for (const tagSection of tagSections) {
+        // $FlowIgnore[invalid-computed-prop]
+        const showSettingForTag = config[tagSection.showSettingName]
+        logDebug('getTaggedSections', `💚 sectionDetail.sectionName=${tagSection.sectionName} showSettingForTag=${showSettingForTag}`)
+        if (typeof showSettingForTag === 'undefined' || showSettingForTag) {
+          const newSection = await getTaggedSectionData(config, useDemoData, tagSection, index)
+          if (newSection) sections.push(newSection)
+          index++
+        }
+      }
     }
     if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
@@ -526,51 +542,37 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
   }
 }
 
-//-----------------------------------------------------------
-// Note: If we want to do yearly in the future then the icon is fa-calendar-days (same as quarter). This would be #6
-//-----------------------------------------------------------
+//----------------------------------------------------------------
+// Note: If we want to do yearly in the future then the icon is
+//   fa-calendar-days (same as quarter). This would be section #6
+//----------------------------------------------------------------
 
 /**
+ * Note: now not used, as core of it is now in getSomeSectionsData() above. This is because:
+ *  1. it is really just a wrapper around getTaggedSectionData()
+ *  2. this means multiple TAG sections can be returned as they are generated, rather than all at once, which feels more natural.
  * Get the tagged sections for each tag - they will all be sectionCode=TAG
  * sectionName will be the tag name, and showSettingName will be unique for this tag
  * @param {TDashboardSettings} config
  * @param {boolean} [useDemoData=false]
  * @returns {Array<TSection>}
  */
-export async function getTaggedSections(config: TDashboardSettings, useDemoData: boolean = false): Promise<Array<TSection>> {
-  const startTime = new Date()
-  const tagSections = getTagSectionDetails(removeInvalidTagSections(config))
-  // clo(tagSections)
-  // logInfo('getTaggedSections', `- after getTagSectionDetails:  ${timer(startTime)}`)
-
-  // V1: worked when getTaggedSectionData was synchronous
-  // const output = tagSections.reduce((acc: Array<TSection>, sectionDetail: TSectionDetails, index: number) => {
-  //   const showSettingForTag = config[sectionDetail.showSettingName]
-  //   // logDebug('getTaggedSections', `sectionDetail.sectionName=${sectionDetail.sectionName} showSettingForTag=${showSettingForTag}`)
-  //   if (typeof showSettingForTag === 'undefined' || showSettingForTag) {
-  //     const section = getTaggedSectionData(config, useDemoData, sectionDetail, index)
-  //     if (section) acc.push(section)
-  //   }
-  //   return acc
-  // }, [])
-
-  // V2: now that getTaggedSectionData is asynchronous (which stops us using forEach, and I think map and reduce as well)
-  let index = 0
-  const output: Array<TSection> = []
-  for (const sectionDetail of tagSections) {
-    // $FlowIgnore[invalid-computed-prop]
-    const showSettingForTag = config[sectionDetail.showSettingName]
-    // logDebug('getTaggedSections', `sectionDetail.sectionName=${sectionDetail.sectionName} showSettingForTag=${showSettingForTag}`)
-    if (typeof showSettingForTag === 'undefined' || showSettingForTag) {
-      const section = await getTaggedSectionData(config, useDemoData, sectionDetail, index)
-      if (section) output.push(section)
-    }
-    index++
-  }
-
-  logTimer('getTaggedSections', startTime, `at end`, 1500)
-  return output
-}
+// export function getTaggedSections(config: TDashboardSettings, useDemoData: boolean = false): Array<TSection> {
+//   const startTime = new Date()
+//   const tagSections = getTagSectionDetails(removeInvalidTagSections(config))
+//   // clo(tagSections)
+//   // logInfo('getTaggedSections', `- after getTagSectionDetails:  ${timer(startTime)}`)
+//
+//   const output = tagSections.reduce((acc: Array<TSection>, sectionDetail: TSectionDetails, index: number) => {
+//     // $FlowIgnore[invalid-computed-prop]
+//     const showSettingForTag = config[sectionDetail.showSettingName]
+//     // logDebug('getTaggedSections', `sectionDetail.sectionName=${sectionDetail.sectionName} showSettingForTag=${showSettingForTag}`)
+//     if (typeof showSettingForTag === 'undefined' || showSettingForTag) acc.push(getTaggedSectionData(config, useDemoData, sectionDetail, index))
+//     return acc // Return the accumulator
+//   }, [])
+//   logTimer('getTaggedSections', startTime, `at end`, 1500)
+//   return output
+// }
 
 /**
  * Generate data for a section for items with a Tag/Mention.
@@ -625,12 +627,13 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         // $FlowIgnore[unsafe-arithmetic]
         cacheLookupTime = new Date() - cachedOperationStartTime
       }
-      // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes)
+      // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes).
+      // Though JGC has also seen 9,900ms for all notes in the system, so its variable.
       const thisStartTime = new Date()
       const notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true)
       // $FlowIgnore[unsafe-arithmetic]
       const APILookupTime = new Date() - thisStartTime
-      logInfo('getTaggedSectionData', `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName} in ${timer(thisStartTime)}`)
+      logInfo('getTaggedSectionData', `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName} from API in ${timer(thisStartTime)}`)
 
       if (config?.FFlag_UseTagCache) {
         // Log timing details and comparison
@@ -648,7 +651,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       }
 
       for (const n of notesWithTag) {
-        const startTime2 = new Date()
+        // const startTime2 = new Date()
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
         if (stringListOrArrayToArray(config.excludedFolders, ',').includes(thisNoteFolder)) {
@@ -659,13 +662,14 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         // Get the relevant paras from this note
         const paras = n.paragraphs ?? []
         if (paras.length > 500) {
-          const startTime3 = new Date()
+          // const startTime3 = new Date()
           // logTimer('getTaggedSectionData', startTime3, `- found ${paras.length} paras in "${n.filename}"`)
           const content = n.content ?? ''
           // logTimer('getTaggedSectionData', startTime3, `- to pull content from note`)
           const pp = content.split('\n')
           // logTimer('getTaggedSectionData', startTime3, `- to split content into ${pp.length} lines`)
         }
+        // Next operation typically takes 1ms
         const tagParasFromNote = paras.filter((p) => p.content?.includes(sectionDetail.sectionName))
         // logTimer('getTaggedSectionData', startTime2, `- found ${tagParasFromNote.length} paras containing ${sectionDetail.sectionName} in "${n.filename}"`)
 
@@ -690,11 +694,12 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       const dateToUseUnhyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format('YYYYMMDD') : new moment().format('YYYYMMDD')
       filteredTagParas = filteredTagParas.filter((p) => !filenameIsInFuture(p.filename || '', dateToUseUnhyphenated))
       const dateToUseHyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format('YYYY-MM-DD') : new moment().format('YYYY-MM-DD')
+      // Next operation typically takes 1ms
       filteredTagParas = filteredTagParas.filter((p) => !includesScheduledFutureDate(p.content, dateToUseHyphenated))
       logTimer('getTaggedSectionData', thisStartTime, `- after filtering for future, ${filteredTagParas.length} paras`)
 
       if (filteredTagParas.length > 0) {
-        // Remove possible dupes from these sync'd lines
+        // Remove possible dupes from these sync'd lines. Note: this is a quick operation.
         filteredTagParas = eliminateDuplicateSyncedParagraphs(filteredTagParas)
         logTimer('getTaggedSectionData', thisStartTime, `- after sync dedupe -> ${filteredTagParas.length}`)
         // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
@@ -704,10 +709,9 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         logTimer('getTaggedSectionData', thisStartTime, `- after removeDuplicates -> ${filteredTagParas.length}`)
 
         // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
-        // Note: this is a quick operation
-        // $FlowIgnore[class-object-subtyping]
-        const dashboardParas: Array<TParagraphForDashboard> = makeDashboardParas(filteredTagParas)
-        logTimer('getTaggedSectionData', thisStartTime, `- after make dashboardParas -> ${dashboardParas.length}`)
+        // Note: this is a pretty quick operation (3-4ms / item)
+        const dashboardParas = makeDashboardParas(filteredTagParas)
+        logTimer('getTaggedSectionData', thisStartTime, `- after eliminating dupes -> ${dashboardParas.length}`)
 
         totalCount = dashboardParas.length
 
@@ -722,11 +726,13 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         logTimer('getTaggedSectionData', thisStartTime, `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)}`)
 
         // Apply limit to set of ordered results
-        const sortedTagParasLimited = sortedTagParas.length > maxInSection ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
-        logDebug('getTaggedSectionData', `- after applying [${maxInSection}] limit, now ${sortedTagParasLimited.length} items to show for ${sectionDetail.sectionName}`)
-        // sortedTagParasLimited.length ? clo(sortedTagParasLimited, 'getTaggedSectionData sortedTagParasLimited') : null
+        // TEST: remove this limiter
+        // const sortedTagParasLimited = sortedTagParas.length > maxInSection ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
+        // logDebug('getTaggedSectionData', `- after applying [${maxInSection}] limit, now ${sortedTagParasLimited.length} items to show for ${sectionDetail.sectionName}`)
+        // // sortedTagParasLimited.length ? clo(sortedTagParasLimited, 'getTaggedSectionData sortedTagParasLimited') : null
 
-        for (const p of sortedTagParasLimited) {
+        // for (const p of sortedTagParasLimited) {
+        for (const p of sortedTagParas) {
           const thisID = `${sectionNumStr}.${itemCount}`
           // const thisFilename = p.filename ?? ''
           // $FlowIgnore[incompatible-call]
@@ -753,8 +759,8 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
     sectionItems: items,
     totalCount: totalCount, // Note: Now not sure how this is used (if it is)
     generatedDate: new Date(),
-    actionButtons: [],
     isReferenced: false,
+    actionButtons: [],
   }
   logTimer('getTaggedSectionData', thisStartTime, `to find ${itemCount} ${sectionDetail.sectionName} items`, 1000)
   return section
@@ -865,6 +871,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       sectionItems: items,
       generatedDate: new Date(),
       totalCount: totalOverdue,
+      isReferenced: false,
       actionButtons: [
         {
           actionName: 'scheduleAllOverdueToday',
@@ -875,7 +882,6 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
           postActionRefresh: ['OVERDUE'],
         },
       ],
-      isReferenced: false,
     }
     // console.log(JSON.stringify(section))
     logTimer('getOverdueSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
@@ -985,8 +991,8 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
       sectionItems: items,
       generatedDate: new Date(),
       totalCount: totalPriority,
-      actionButtons: [],
       isReferenced: false,
+      actionButtons: [],
     }
     logTimer('getPrioritySectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1500)
     return section
@@ -1096,6 +1102,7 @@ export async function getProjectSectionData(_config: TDashboardSettings, useDemo
     // FAIconClass: 'fa-light fa-square-kanban',
     // NP has no sectionTitleColorPart, so will use default
     generatedDate: new Date(),
+    isReferenced: false,
     actionButtons: [
       {
         display: '<i class="fa-regular fa-play"></i> Start Reviews',
@@ -1105,7 +1112,6 @@ export async function getProjectSectionData(_config: TDashboardSettings, useDemo
         tooltip: 'Start reviewing your Project notes',
       },
     ],
-    isReferenced: false,
   }
   // console.log(JSON.stringify(section))
   logTimer('getProjectSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)

@@ -171,7 +171,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         const anyChildren = p.children()
         logTimer('makeDashboardParas', timerAnyChildren, `- for p.children() in ${note.filename}`, 10)
         const hasChild = anyChildren.length > 0
-        const isAChild = isAChildPara(p)
+        const isAChild = isAChildPara(p, note)
+
         // Note: debugging why sometimes hasChild is wrong
         // TODO(later): remove this debugging
         if (hasChild) {
