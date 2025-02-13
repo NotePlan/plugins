@@ -1,7 +1,7 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { setFrontMatterVars } from '@helpers/NPFrontMatter'
+import { updateFrontMatterVars, isTriggerLoop } from '../../helpers/NPFrontMatter'
 import { log, logError, logDebug, timer, clo, clof, JSP } from '@helpers/dev'
 
 /****************************************************************************************************************************
@@ -28,13 +28,16 @@ import { log, logError, logDebug, timer, clo, clof, JSP } from '@helpers/dev'
 export async function writeModified(): Promise<void> {
   try {
     logDebug('writeModified', 'Starting')
-    const { authorID, dateFormat, showMachineInfo } = await DataStore.settings
-    const theTime = !dateFormat || dateFormat === 'ISO' ? new Date().toISOString() : new Date().toLocaleString()
-    const { machineName, platform } = NotePlan.environment
-    const machine = showMachineInfo ? `@${machineName ? `${machineName}|` : ''}${platform}` : ''
-    setFrontMatterVars(Editor, {
-      modified: authorID ? `${theTime} (${authorID}${machine})` : `${theTime}${machine}`,
-    })
+    // only run if the note has not been written to in the last 5 seconds
+    if (Editor?.note && !isTriggerLoop(Editor.note, 5000)) {
+      const { authorID, dateFormat, showMachineInfo } = await DataStore.settings
+      const theTime = !dateFormat || dateFormat === 'ISO' ? new Date().toISOString() : new Date().toLocaleString()
+      const { machineName, platform } = NotePlan.environment
+      const machine = showMachineInfo ? `@${machineName ? `${machineName}|` : ''}${platform}` : ''
+      updateFrontMatterVars(Editor, {
+        modified: authorID ? `${theTime} (${authorID}${machine})` : `${theTime}${machine}`,
+      })
+    }
   } catch (e) {
     logError(pluginJson, JSP(e))
   }
