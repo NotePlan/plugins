@@ -3,7 +3,7 @@
 
 import { hyphenatedDateString, removeDateTags } from '../../helpers/dateTime'
 import { chooseOption } from '../../helpers/userInput'
-import { isOverdue } from '@helpers/NPParagraph'
+import { paragraphIsEffectivelyOverdue } from '@helpers/NPParagraph'
 
 export type ReturnStatus = {
   status: string,
@@ -54,7 +54,7 @@ export default async function sweepNote(
       return
     }
 
-    const itemIsOverdue = isOverdue(p)
+    const itemIsOverdue = paragraphIsEffectivelyOverdue(p)
     if (itemIsOverdue && overdueOnly) overdueParagraphs.push(p)
     const checkOverdue = !overdueOnly || itemIsOverdue
 

@@ -29,7 +29,7 @@ export type PassedData = {
 export function getInitialDataForReactWindow(): PassedData {
   const startTime = new Date()
   // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-  const pluginData = getInitialDataForReactWindow()
+  const pluginData = getPluginData()
   const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
   const dataToPass: PassedData = {
     pluginData,
@@ -52,7 +52,7 @@ export function getInitialDataForReactWindow(): PassedData {
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
-export function getInitialDataForReactWindow(): { [string]: mixed } {
+export function getPluginData(): { [string]: mixed } {
   // for demonstration purposes will just fake some data for now,
   // you would want to gather some data from your plugin
   const data = Array.from(Array(10).keys()).map((i) => ({ textValue: `Item ${i}`, id: i, buttonText: `Submit ${i}` }))
