@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin function to find and track tasks completed today in non-calendar notes
-// Last updated for v2.1.0.a
+// Last updated for v2.1.10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -13,13 +13,13 @@ import { getNotesChangedInInterval } from '@helpers/NPnote'
 //--------------------------------------------------------------------------
 
 const changedNoteFile = 'todaysChangedNoteList.json'
-const lastTimeThisWasRunPref = 'jgclark.Dashboard.lastTimeThisWasRunPref'
+const lastTimeThisWasRunPref = 'jgclark.Dashboard.todayDoneCountsList.lastTimeThisWasRunPref'
 
 //-----------------------------------------------------------------
 // functions
 
 /**
- * Note: replaced by final function below.
+ * Note: replaced by final function below (updateDoneCountsFromChangedNotes())
  * TODO: However, this could still make the overall work quicker by writing to the same JSON note that does.
  * @param {Array<TSection>} sections
  */

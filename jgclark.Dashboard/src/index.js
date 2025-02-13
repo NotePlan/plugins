@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated for v2.1.8
+// last updated for v2.2.0, 2025-02-09 by @jgclark
 // ----------------------------------------------------------------------------
 
 /**
@@ -47,3 +47,23 @@ export {
 } from './reactMain.js'
 
 export { onUpdateOrInstall, init, onSettingsUpdated, versionCheck } from './NPHooks'
+
+export {
+  generateTagMentionCache,
+  updateTagMentionCache
+} from './tagMentionCache'
+
+//-----------------------------------------------------------------------------
+// TODO(later): remove this for testing tag cache
+
+import {
+  getNotesWithTagOrMention
+} from './tagMentionCache'
+
+/**
+ * Test functions
+ */
+export async function testTagCache(): Promise<void> {
+  let res = await getNotesWithTagOrMention(['@home'], false)
+  res = await getNotesWithTagOrMention(['#jgcDR'], false)
+}
