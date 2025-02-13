@@ -65,8 +65,9 @@ export async function newNoteFromClipboard(): Promise<void> {
     logDebug(pluginJson, `newNoteFromClipboard() starting: have ${string.length} characters in clipboard`)
 
     // Get title for this note
-    // Offer the first line to use, shorn of any leading # marks
-    const firstLineMatches: Array<string> = string.match(/(?:---\n(?:title:\s*)?|[#\s]*)?(.*)\n/) ?? []
+    // Offer the first line to use, shorn of any leading # marks, from either frontmatter's 'title:' or the first line of the text
+    // FIXME: 
+    const firstLineMatches: Array<string> = string.match(/^(?:---\n(?:title:\s*)?|^title:\s+(.*)\n|^[#\s]*)?(.*)\n/) ?? []
     const titleToOffer = firstLineMatches[1] ?? ''
     let title = await getInput('Title of new note', 'OK', 'New Note from Clipboard', titleToOffer)
     if (typeof title === 'string') {
@@ -108,13 +109,16 @@ export async function newNoteFromSelection(): Promise<void> {
     logDebug(pluginJson, `newNoteFromSelection() starting with ${selectedParagraphs.length} selected:`)
     const selectedLinesTextToMutate = selectedLinesText.slice() // copy that we can change
 
-    // Get title for this note
-    const isTextContent = ['title', 'text'].indexOf(selectedParagraphs[0].type) >= 0
-    const strippedFirstLine = selectedParagraphs[0].content
-    let title = await getInput('Title of new note', 'OK', 'New Note from Selection', strippedFirstLine)
+    // Get title for the new note
+    // First get frontmatter's 'title:' (if present) or the first line of the text (shorn of any leading # or spaces)
+    const isTextContent = ['title', 'text', 'separator'].indexOf(selectedParagraphs[0].type) >= 0
+    const firstLineMatches: Array<string> = selectedText?.match(/^(?:---\n(?:title:\s*)?|^title:\s+(.*)\n|^[#\s]*)?(.*)\n/) ?? []
+    const titleToOffer = isTextContent && firstLineMatches[1] ? firstLineMatches[1] : ''
+    // const strippedFirstLine = selectedParagraphs[0].content
+    let title = await getInput('Title of new note', 'OK', 'New Note from Selection', titleToOffer)
     if (typeof title === 'string') {
       // If user selected the first line, then remove it from the body content
-      if (title === strippedFirstLine && isTextContent) {
+      if (title === titleToOffer && selectedParagraphs[0].type === 'title') {
         selectedLinesTextToMutate.shift()
       }
       const movedText = selectedLinesTextToMutate.join('\n')
