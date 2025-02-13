@@ -1,3 +1,6 @@
+# Note: this workflow is currently disabled because it is not working due to recent github+node changes
+# Re-enable it at: https://github.com/NotePlan/plugins/actions/workflows/node.js.yml
+
 # Run tests on push or pull_request
 # per: https://joelhooks.com/jest-and-github-actions/
 # also uses github-actions-reporter.js for reporting
