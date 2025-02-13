@@ -1,9 +1,7 @@
 /* global describe, expect, test, beforeAll, beforeEach, it */
-// import moment from 'moment'
 import { CustomConsole } from '@jest/console' // see note below
 import * as pac from '../parentsAndChildren'
 import { clo, logDebug, logInfo } from '../dev'
-// import { paragraphMatches } from '../NPParagraph'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, simpleFormatter } from '@mocks/index'
 
 let globalNote // use this to test with semi-real Note+paragraphs
@@ -22,7 +20,7 @@ beforeAll(() => {
 })
 
 beforeEach(() => {
-  const paragraphs = [
+  const paragraphsG = [
     {
       content: 'Call Allianz 1-800-334-7525',
       rawContent: '* Call Allianz 1-800-334-7525',
@@ -101,18 +99,18 @@ beforeEach(() => {
       noteType: 'Calendar',
     },
   ]
-  paragraphs[0].children = () => []
-  paragraphs[1].children = () => []
-  paragraphs[2].children = () => [paragraphs[3], paragraphs[4], paragraphs[5]]
-  paragraphs[3].children = () => [paragraphs[4], paragraphs[5]]
-  paragraphs[4].children = () => []
-  paragraphs[5].children = () => []
-  paragraphs[6].children = () => []
-  globalNote = new Note({ paragraphs })
+  paragraphsG[0].children = () => []
+  paragraphsG[1].children = () => []
+  paragraphsG[2].children = () => [paragraphsG[3], paragraphsG[4], paragraphsG[5]]
+  paragraphsG[3].children = () => [paragraphsG[4], paragraphsG[5]]
+  paragraphsG[4].children = () => []
+  paragraphsG[5].children = () => []
+  paragraphsG[6].children = () => []
+  globalNote = new Note({ paragraphs: paragraphsG })
 })
 
 // mimicking a project note
-let paragraphs = [
+const paragraphsB = [
   new Paragraph({ type: 'title', content: 'theTitle', headingLevel: 1, indents: 0, lineIndex: 0 }),
   new Paragraph({ type: 'text', content: 'line 2', headingLevel: 1, indents: 0, lineIndex: 1 }),
   new Paragraph({ type: 'text', content: 'line 3 (child of 2)', headingLevel: 1, indents: 1, lineIndex: 2 }),
@@ -125,15 +123,19 @@ let paragraphs = [
   new Paragraph({ type: 'empty', content: '', headingLevel: 2, indents: 0, lineIndex: 9 }),
   new Paragraph({ type: 'title', content: 'Cancelled', headingLevel: 2, indents: 0, lineIndex: 10 }),
   new Paragraph({ type: 'cancelled', content: 'cancelled task under Cancelled', headingLevel: 2, indents: 0, lineIndex: 11 }),
-  new Paragraph({ type: 'text', content: 'line under Cancelled', headingLevel: 2, indents: 0, lineIndex: 12 }),
+  new Paragraph({ type: 'open', content: 'open task under Cancelled (I know I know)', headingLevel: 2, indents: 0, lineIndex: 12 }),
   new Paragraph({ type: 'empty', content: '', headingLevel: 2, indents: 0, lineIndex: 13 }),
+  new Paragraph({ type: 'open', content: 'open indented task (but not a child)', headingLevel: 2, indents: 1, lineIndex: 14 }),
+  new Paragraph({ type: 'list', content: 'open bullet', headingLevel: 2, indents: 2, lineIndex: 15 }),
+  new Paragraph({ type: 'open', content: 'child task', headingLevel: 2, indents: 2, lineIndex: 16 }),
+  new Paragraph({ type: 'open', content: 'child task', headingLevel: 2, indents: 4, lineIndex: 17 }),
+  new Paragraph({ type: 'open', content: 'task but not a child as on same level as last', headingLevel: 2, indents: 4, lineIndex: 18 }),
+  new Paragraph({ type: 'checklist', content: 'checklist at top level', headingLevel: 2, indents: 0, lineIndex: 19 }),
+  new Paragraph({ type: 'checklist', content: 'checklist indented under checklist', headingLevel: 2, indents: 1, lineIndex: 20 }),
 ]
-Editor.note = new Note({ paragraphs, type: 'Notes' })
-// Note: This used to be set in a
-//   beforeEach(() => {
-//     ...
-//   })
-// block, but now need to override it for some tests.
+const noteB = new Note({ paragraphs: paragraphsB, type: 'Notes' })
+// Note: This used to be set in a beforeEach() block, but now need to override it for some tests.
+Editor.note = new Note({ paragraphs: paragraphsB, type: 'Notes' })
 
 /*
  * getParagraphParentsOnly()
@@ -202,6 +204,56 @@ describe('removeParentsWhoAreChildren()' /* function */, () => {
 })
 
 /*
+ * isAChildPara()
+ */
+describe('isAChildPara', () => {
+  describe('should return true', () => {
+    it('should return true when the checklist paragraph is a direct child of a checklist paragraph', () => {
+      const result = pac.isAChildPara(paragraphsB[20], noteB)
+      expect(result).toBe(true)
+    })
+    it('should return true when the bullet paragraph is a direct child', () => {
+      const result = pac.isAChildPara(paragraphsB[15], noteB)
+      expect(result).toBe(true)
+    })
+    it('should return true when the parent task paragraph has multiple direct children', () => {
+      const result = pac.isAChildPara(paragraphsB[16], noteB)
+      expect(result).toBe(true)
+    })
+    it('should return false when the paragraph is not a direct child', () => {
+      const result = pac.isAChildPara(paragraphsB[15], noteB)
+      expect(result).toBe(true)
+    })
+    it('should return true when the task paragraph is a child indented twice', () => {
+      const result = pac.isAChildPara(paragraphsB[17], noteB)
+      expect(result).toBe(true)
+    })
+    it('should return true when the paragraph is at the same level as the parent', () => {
+      const result = pac.isAChildPara(paragraphsB[18], noteB)
+      expect(result).toBe(true)
+    })
+  })
+  describe('should return false', () => {
+    it('should return false for heading para', () => {
+      const result = pac.isAChildPara(paragraphsB[6], noteB)
+      expect(result).toBe(false)
+    })
+    it('should return false for separator para', () => {
+      const result = pac.isAChildPara(paragraphsB[5], noteB)
+      expect(result).toBe(false)
+    })
+    it('should return false for empty para', () => {
+      const result = pac.isAChildPara(paragraphsB[4], noteB)
+      expect(result).toBe(false)
+    })
+    it('should return false when the checklist paragraph is a direct child of a non-task/checklist paragraph', () => {
+      const result = pac.isAChildPara(paragraphsB[14], noteB)
+      expect(result).toBe(false)
+    })
+  })
+})
+
+/*
  * getChildParas()
  */
 describe('getChildParas', () => {
@@ -237,8 +289,7 @@ describe('getChildParas', () => {
   })
 
   it('should work for complex multi-indent case', () => {
-    const para = globalNote.paragraphs[2]
-    const result = pac.getChildParas(para, globalNote.paragraphs)
+    const result = pac.getChildParas(globalNote.paragraphs[2], globalNote.paragraphs)
     expect(result.length).toEqual(1)
     expect(result[0].lineIndex).toEqual(3)
   })
@@ -330,6 +381,7 @@ describe('getChildParas', () => {
     expect(result6.length).toEqual(1)
     expect(result6[0].lineIndex).toEqual(7)
   })
+})
 
   describe('getIndentedNonTaskLinesUnderPara', () => {
     // Mock data
@@ -376,9 +428,7 @@ describe('getChildParas', () => {
     })
 
     it('should handle complex real-world data', () => {
-      const para = globalNote.paragraphs[3]
-      const result = pac.getIndentedNonTaskLinesUnderPara(para, globalNote.paragraphs)
+      const result = pac.getIndentedNonTaskLinesUnderPara(globalNote.paragraphs[3], globalNote.paragraphs)
       expect(result).toEqual([globalNote.paragraphs[4]])
     })
-  })
 })

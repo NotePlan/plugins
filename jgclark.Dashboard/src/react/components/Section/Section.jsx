@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated for v2.1.2+
+// Last updated for v2.1.10
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -166,7 +166,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // $FlowIgnore[invalid-computed-prop]
   let hideSection = !items.length || (dashboardSettings && dashboardSettings[section.showSettingName] === false) // note this can be updated later
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
-  const isDesktop = pluginData.platform === 'macOS'
+  // const isDesktop = pluginData.platform === 'macOS'
   let numItemsToShow = itemsToShow.length
 
   const addNewActionButtons = section.actionButtons?.filter((b) => b.actionName.startsWith('add'))// : []

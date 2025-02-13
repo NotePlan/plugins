@@ -1,11 +1,11 @@
 // @flow
 // -----------------------------------------------------------------
 // Helpers for working with children/parent paragraphs in a note.
-// TODO: move getParaAndAllChildren, isAChildPara from blocks in here.
+// TODO: finish moving getParaAndAllChildren, isAChildPara from blocks in here.
 // -----------------------------------------------------------------
 
 import { TASK_TYPES } from './sorting'
-import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer, timer } from '@helpers/dev'
 
 export type ParentParagraphs = {
   parent: TParagraph,
@@ -14,16 +14,15 @@ export type ParentParagraphs = {
 
 /**
  * Note: not currently used.
- * By definition, a paragraph's .children() method API returns an array of TParagraphs indented underneath it
- * a grandparent will have its children and grandchildren listed in its .children() method and the child will have the grandchildren also
- * This function returns only the children of the paragraph, not any descendants, eliminating duplicates
- * Every paragraph sent into this function will be listed as a parent in the resulting array of ParentParagraphs
- * Use removeParentsWhoAreChildren() afterwards to remove any children from the array of ParentParagraphs
- * (if you only want a paragraph to be listed in one place in the resulting array of ParentParagraphs)
+ * By definition, a paragraph's .children() method API returns an array of TParagraphs indented underneath it.
+ * a grandparent will have its children and grandchildren listed in its .children() method and the child will have the grandchildren also.
+ * This function returns only the children of the paragraph, not any descendants, eliminating duplicates.
+ * Every paragraph sent into this function will be listed as a parent in the resulting array of ParentParagraphs.
+ * Use removeParentsWhoAreChildren() afterwards to remove any children from the array of ParentParagraphs if you only want a paragraph to be listed in one place in the resulting array of ParentParagraphs.
  * @param {Array<TParagraph>} paragraphs - array of paragraphs
  * @returns {Array<ParentParagraphs>} - array of parent paragraphs with their children
  */
-export function getParagraphParentsOnly(paragraphs: Array<TParagraph>): Array<ParentParagraphs> /* tag: children */ {
+export function getParagraphParentsOnly(paragraphs: Array<TParagraph>): Array<ParentParagraphs> {
   const parentsOnly = []
   for (let i = 0; i < paragraphs.length; i++) {
     const para = paragraphs[i]
@@ -143,34 +142,58 @@ export function getIndentedNonTaskLinesUnderPara(para: TParagraph, paragraphs: A
 
 /**
  * Return whether this paragraph is a 'child' of a given 'parent' para.
- * The NP documentation requires a child to be an indented task/checklist of an earlier task/checklist.
+ * The NP documentation says:
+ *  "Only tasks can have children, but any paragraph indented 
+ *   underneath a task can be a child of the task.
+ *   This includes bullets, tasks, quotes, text.
+ *   Children are counted until a blank line, HR, title, or another item
+ *   at the same level as the parent task. So for items to be counted as
+ *   children, they need to be contiguous vertically."
  * (JGC doesn't know enough to make jest tests for this. But is confident this works from lots of logging.)
- * Note: Copy from blocks.js
+ * WARNING: This is quite a slow operation. (V1 up to 200ms for notes with quite a lot of nesting; V2 up to 150ms; V3 up to 45ms.)
+ * Note: Forked from blocks.js
  * @author @jgclark
- * @param {TParagraph} para - the 'parent' paragraph
+ * @param {TParagraph} thisPara - the 'parent' paragraph
+ * @param {TNote} thisNote - the note
  * @returns {Array<TParagraph>} - array of child paragraphs
  */
-export function isAChildPara(thisPara: TParagraph): boolean {
+export function isAChildPara(thisPara: TParagraph, thisNote: TNote): boolean {
   try {
+    const timer = new Date()
     const thisLineIndex = thisPara.lineIndex
-    const allParas = thisPara.note?.paragraphs ?? []
-    // First get all paras up to this one which are parents
-    const allParentsUpToHere = allParas
-      .filter((p) => p.children().length > 0)
-      .filter((p) => p.lineIndex < thisLineIndex)
-    for (const parent of allParentsUpToHere) {
-      const theseChildren = parent.children()
-      for (const child of theseChildren) {
-        if (child.lineIndex === thisLineIndex) {
-          // logInfo('blocks/isAChildPara', `✅: ${thisPara.rawContent}`)
-          return true // note: now allowed in forEach but OK in for
-        }
+    const allParas = thisNote.paragraphs
+    // logDebug('isAChildPara', `thisLineIndex: ${String(thisLineIndex)}, allParas: ${String(allParas.length)}`)
+
+    // V2 Method (noticeably faster than original version)
+    // Note: not fully tested, as test data isn't set up for .children().
+    // Walk backwards from here to the start of the note to find the parent paras and compare
+    // for (let i = thisLineIndex - 1; i >= 0; i--) {
+    //   const para = allParas[i]
+    //   if (para.children().some(child => child.lineIndex === thisLineIndex)) {
+    //     logTimer('isAChildPara', timer, `- TRUE for ${thisPara.content}`)
+    //     return true
+    //   }
+    // }
+
+    // V3 Method
+    // Walk backwards from here to the start of the note to find the parent paras and compare, but use my own indents-based method instead of children()
+    for (let i = thisLineIndex - 1; i >= 0; i--) {
+      const para = allParas[i]
+      // logDebug('isAChildPara', `${i}: para.indents: ${para.indents}, thisPara.indents: ${thisPara.indents}, para.type: ${para.type}`)
+      if (['title', 'empty', 'separator'].includes(para.type)) {
+        // logTimer('isAChildPara', timer, `- FALSE for ${thisPara.rawContent}`)
+        return false
+      }
+      if (para.indents < thisPara.indents && ['open', 'scheduled', 'checklist', 'checklistScheduled', 'done', 'doneChecklist', 'cancelled', 'cancelledChecklist'].includes(para.type)) {
+        // logTimer('isAChildPara', timer, `- TRUE for ${thisPara.rawContent}`)
+        return true
       }
     }
-    // logInfo('blocks/isAChildPara', `❌: ${thisPara.rawContent}`)
+    // logTimer('isAChildPara', timer, `- FALSE for ${thisPara.rawContent}`)
     return false
   } catch (error) {
     logError('blocks/isAChildPara', `isAChildPara(): ${error.message}`)
+    clo(thisPara, "ERROR para:")
     return false
   }
 }
