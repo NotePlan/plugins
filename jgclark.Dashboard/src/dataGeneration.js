@@ -6,8 +6,6 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { Project } from '../../jgclark.Reviews/src/projectClass.js'
-import { getNextProjectsToReview } from '../../jgclark.Reviews/src/allProjectsListHelpers.js' // assumes v0.15+ of Reviews Plugin
 import type { TDashboardSettings, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSectionDetails, TSettingItem } from './types'
 import { allSectionCodes } from './constants.js'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
@@ -15,7 +13,7 @@ import {
   createSectionOpenItemsFromParas,
   createSectionItemObject,
   getDashboardSettings,
-  getDisplayListOfSectionCodes,
+  // getDisplayListOfSectionCodes,
   getListOfEnabledSections,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
@@ -25,13 +23,12 @@ import {
   makeDashboardParas,
 } from './dashboardHelpers'
 import { getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
+import { getProjectSectionData } from './dataGenerationProjects.js'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
-import { openMonthParas, refMonthParas, tagParasFromNote, nextProjectNoteItems } from './demoData'
+import { openMonthParas, refMonthParas, tagParasFromNote } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
-import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { removeInvalidTagSections } from './perspectiveHelpers'
 import { getNotesWithTagOrMention } from './tagMentionCache'
-import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { getDateStringFromCalendarFilename, getNPMonthStr, getNPQuarterStr, filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -72,8 +69,8 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
 }
 
 /**
- * Generate data for some specified sections (subject to user currently wanting them as well)
- * NOTE: Always refreshes today section
+ * Generate data for some specified sections (subject to user currently wanting them as well).
+ * Note: Returns all wanted sections in one go.
  * @param {Array<string>} sectionCodesToGet (default: allSectionCodes)
  * @param {boolean} useDemoData (default: false)
  * @param {boolean} useEditorWherePossible?
@@ -88,8 +85,7 @@ export async function getSomeSectionsData(
     logDebug('getSomeSectionsData', `🔹Starting with ${sectionCodesToGet.toString()} ...`)
     const config: TDashboardSettings = await getDashboardSettings()
 
-
-    let sections: Array<TSection> = []
+    const sections: Array<TSection> = []
     // v2: for Timeblocks, now done inside getTodaySectionData()
     if (sectionCodesToGet.includes('DT') || sectionCodesToGet.includes('TB')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
@@ -1000,121 +996,6 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
     // $FlowFixMe[incompatible-return]
     return null
   }
-}
-
-/**
- * Make a Section for all projects ready for review, using data written by the Projects + Reviews plugin: getNextProjectsToReview().
- * First check that the Projects & Reviews plugin is installed.
- * Note: this is taking 1815ms for JGC
- * @param {TDashboardSettings} _config
- * @param {boolean} useDemoData?
- * @returns
- */
-export async function getProjectSectionData(_config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
-  const sectionNumStr = '15'
-  const thisSectionCode = 'PROJ'
-  let itemCount = 0
-  // const maxProjectsToShow = _config.maxItemsToShowInSection
-  let nextProjectsToReview: Array<Project> = []
-  const items: Array<TSectionItem> = []
-  logDebug('getProjectSectionData', `------- Gathering Project items for section #${String(sectionNumStr)} --------`)
-  const thisStartTime = new Date()
-  const dashboardSettings = await getDashboardSettings()
-  const allowedFolders = getCurrentlyAllowedFolders(dashboardSettings)
-
-  if (useDemoData) {
-    // add basic filtering by folder for the current Perspective
-    const filteredProjects = nextProjectNoteItems.filter((p) => {
-      const folder = getFolderFromFilename(p.filename)
-      return allowedFolders.includes(folder)
-    })
-
-    filteredProjects.map((p) => {
-      const thisID = `${sectionNumStr}-${itemCount}`
-      const thisFilename = p.filename ?? '<filename not found>'
-      items.push({
-        ID: thisID,
-        itemType: 'project',
-        // $FlowIgnore[prop-missing]
-        project: {
-          title: p.title ?? '(error)',
-          filename: thisFilename,
-          reviewInterval: p.reviewInterval ?? '',
-          percentComplete: p.percentComplete ?? NaN,
-          lastProgressComment: p.lastProgressComment ?? '',
-        },
-      })
-      itemCount++
-    })
-  } else {
-    // Get the next projects to review from the Project + Reviews plugin.
-    if (!(await pluginIsInstalled('jgclark.Reviews'))) {
-      logDebug('getProjectSectionData', `jgclark.Reviews plugin is not installed, so not continuing.`)
-      // $FlowIgnore[incompatible-return] we cannot return anything if the plugin is not installed
-      return null
-    }
-    // Get all projects to review (and apply maxProjectsToShow limit later)
-    // nextProjectsToReview = await getNextProjectsToReview(maxProjectsToShow)
-    nextProjectsToReview = await getNextProjectsToReview()
-
-    // add basic filtering by folder for the current Perspective
-    // const filteredProjects = nextProjectsToReview.filter((p) => {
-    //   const folder = getFolderFromFilename(p.filename)
-    //   return allowedFolders.includes(folder)
-    // })
-    // For P+R v1.1 and later, Perspectives can be used, so this filtering is not needed.
-    // if (filteredProjects) {
-    //   filteredProjects.map((p) => {
-    if (nextProjectsToReview) {
-      nextProjectsToReview.map((p) => {
-        const thisID = `${sectionNumStr}-${itemCount}`
-        items.push({
-          ID: thisID,
-          itemType: 'project',
-          // $FlowIgnore[prop-missing]
-          project: {
-            title: p.title,
-            filename: p.filename,
-            reviewInterval: p.reviewInterval,
-            percentComplete: p.percentComplete,
-            lastProgressComment: p.lastProgressComment,
-          },
-        })
-        itemCount++
-      })
-    } else {
-      logDebug('getProjectSectionData', `looked but found no notes to review`)
-      // $FlowFixMe[incompatible-return]
-      return null
-    }
-  }
-  // clo(nextProjectsToReview, "nextProjectsToReview")
-
-  const section = {
-    name: 'Projects',
-    showSettingName: 'showProjectSection',
-    ID: sectionNumStr,
-    sectionCode: thisSectionCode,
-    description: `{count} project{s} ready to review`,
-    sectionItems: items,
-    FAIconClass: 'fa-regular fa-chart-gantt',
-    // FAIconClass: 'fa-light fa-square-kanban',
-    // NP has no sectionTitleColorPart, so will use default
-    generatedDate: new Date(),
-    isReferenced: false,
-    actionButtons: [
-      {
-        display: '<i class="fa-regular fa-play"></i> Start Reviews',
-        actionPluginID: 'jgclark.Reviews',
-        actionName: 'startReviews',
-        actionParam: '',
-        tooltip: 'Start reviewing your Project notes',
-      },
-    ],
-  }
-  // console.log(JSON.stringify(section))
-  logTimer('getProjectSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
-  return section
 }
 
 /**

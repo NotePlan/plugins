@@ -1,6 +1,8 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
+<!-- TODO: Fix for the "getOrMakeMetadataLine :: Warning: Can't find an existing metadata line, so will insert one after title" operation -->
+
 ## [1.1.0] - 2025-02-03
 ### New
 - **Supports 'Perspectives' from Dashboard plugin**. If you turn the feature on in settings, the Project List will automatically use the current 'Perspective' definition from the Dashboard plugin to determine which folders are included and excluded.

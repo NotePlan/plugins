@@ -72,7 +72,8 @@ export async function refreshAllSections(): Promise<void> {
  * This is used on first launch to improve the UX and speed of first render.
  * Each section is returned to React as it's generated.
  * Today loads first and then this function is automatically called from a useEffect in Dashboard.jsx to load the rest.
-// FIXME: DBW thinks this generates way more updates than necessary
+ * FIXME: DBW thinks this generates way more updates than necessary
+ * 
  * @param {MessageDataObject} data
  * @param {boolean} calledByTrigger? (default: false)
  * @param {boolean} setFullRefreshDate? (default: false) - whether to set the lastFullRefresh date (default is no)
@@ -93,7 +94,7 @@ export async function incrementallyRefreshSomeSections(
   await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
   // loop through sectionCodes
   for (const sectionCode of sectionCodes) {
-    const start = new Date()
+    // const start = new Date()
     await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
     // logTimer(`incrementallyRefreshSomeSections`, start, `- to get section: ${sectionCode}`, 1000)
   }
@@ -155,7 +156,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
   const updates: TAnyObject = { sections: mergedSections }
   // and update the total done counts
-  // FIXME: turning off for now, as was being called too often? Need to figure this out.
+  // TODO: turning off for now, as was being called too often? Need to figure this out.
   // updates.totalDoneCounts = getTotalDoneCountsFromSections(mergedSections)
 
   if (!pluginData.refreshing === true) updates.refreshing = false

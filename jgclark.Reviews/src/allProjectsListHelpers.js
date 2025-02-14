@@ -470,10 +470,9 @@ export async function getNextNoteToReview(): Promise<?TNote> {
 }
 
 /**
- * Get list of the next note(s) to review (if any).
- * It assumes the full-review-list exists and is sorted by nextReviewDate (earliest to latest).
- * Note: v2, using the allProjects JSON file (not ordered but detailed)
- * Note: This is a variant of the original singular version above, and is only used by jgclark.Dashboard/src/dataGeneration.js
+ * Get list of the next Project(s) to review (if any).
+ * Note: v2, using the allProjects JSON file (not ordered but detailed).
+ * Note: This is a variant of the original singular version above, and is only used by jgclark.Dashboard/src/dataGenerationProjects.js
  * @author @jgclark
  * @param { number } numToReturn first n notes to return, or 0 indicating no limit. (Optional, default is 0)
  * @return { Array<Project> } next Projects to review, up to numToReturn. Can be an empty array. Note: not a TNote but Project object.
