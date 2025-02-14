@@ -166,10 +166,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p: TParagraph) => {
       const note = p.note
       if (note) {
-        const timerAnyChildren = new Date()
         // Note: seems to be a quick operation (1ms), but leaving a timer for now to indicate if >10ms
         const anyChildren = p.children()
-        logTimer('makeDashboardParas', timerAnyChildren, `- for p.children() in ${note.filename}`, 10)
         const hasChild = anyChildren.length > 0
         const isAChild = isAChildPara(p, note)
 

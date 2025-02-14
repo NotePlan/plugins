@@ -290,18 +290,18 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
 // $FlowFixMe[incompatible-return]
 export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
   // Iterate over all backlinks, recursing where necessary to visit all subItems, returning a flat list of lineIndex
-  function flattenSubItems(subItems: Array<TBacklinkFields>): Array<TBacklinkFields> {
-    const items: Array<TBacklinkFields> = []
-    subItems.forEach((item) => {
-      if (item.subItems) {
-        items.push(item)
-        // logDebug('note/getFlatListOfBacklinks', `+ ${item.lineIndex}: ${item.content} [has ${items.length} saved indexes`)
-        // Recursively process any subItems of the current item
-        items.push(...flattenSubItems(item.subItems))
-      }
-    })
-    return items
-  }
+  // function flattenSubItems(subItems: Array<TBacklinkFields>): Array<TBacklinkFields> {
+  //   const items: Array<TBacklinkFields> = []
+  //   subItems.forEach((item) => {
+  //     if (item.subItems) {
+  //       items.push(item)
+  //       // logDebug('note/getFlatListOfBacklinks', `+ ${item.lineIndex}: ${item.content} [has ${items.length} saved indexes`)
+  //       // Recursively process any subItems of the current item
+  //       items.push(...flattenSubItems(item.subItems))
+  //     }
+  //   })
+  //   return items
+  // }
 
   try {
     const noteBacklinks = note.backlinks
@@ -413,62 +413,6 @@ export type OpenNoteOptions = Partial<{
   content?: string,
 }>
 
-const a = `
-"{\"type: title,
-content: Bugs etc.,
-rawContent: # Bugs etc.,
-prefix: # ,
-contentRange\":{},
-lineIndex\":152,
-date: 2025-02-06T00:00:00.000Z,
-heading: Dashboard Plugin 🧩,
-headingLevel\":0,
-isRecurring\":false,
-indents\":0,
-filename: NotePlan Projects/Plugins/Dashboard Plugin 🧩.md,
-noteType: Notes,
-linkedNoteTitles\":[],
-subItems\":[],
-referencedBlocks\":[],
-note\":{}}",
-
-  "{\"type: done,
-  content: Silly regression Fixed in 2.1.8 @done(2025-02-06),
-  rawContent: * [x] Silly regression Fixed in 2.1.8 @done(2025-02-06),
-  prefix: * [x] ,
-  contentRange\":{},
-  lineIndex\":153,
-  date: 2025-02-06T00:00:00.000Z,
-  heading: Bugs etc.,
-  headingRange\":{},
-  headingLevel\":3,
-  isRecurring\":false,
-  indents\":0,
-  filename: NotePlan Projects/Plugins/Dashboard Plugin 🧩.md,
-  noteType: Notes,
-  linkedNoteTitles\":[],
-  subItems\":[],
-  referencedBlocks\":[],
-  note\":{}}",
-
-  "{\"type: title,
-  content: Current Time Block section,
-  rawContent: # Current Time Block section,
-  prefix: # ,
-  contentRange\":{},
-  lineIndex\":192,
-  date: 2025-02-06T00:00:00.000Z,
-  heading: Dashboard Plugin 🧩,
-  headingLevel\":0,
-  isRecurring\":false,
-  indents\":0,
-  filename: NotePlan Projects/Plugins/Dashboard Plugin 🧩.md,
-  noteType: Notes,
-  linkedNoteTitles\":[],
-  subItems\":[],
-  referencedBlocks\":[],
-  note\":{}}",
-`
 /**
  * Convenience Method for Editor.openNoteByFilename, include only the options you care about (requires NP v3.7.2+)
  * Tries to work around NP bug where opening a note that doesn't exist doesn't work
@@ -671,68 +615,41 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
 }
 
 /**
- * Return array of notes with a particular #hashtag or @mention, with further optional parameters about which (sub)folders to look in
+ * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on etc.
+ * Note: since Feb 2025 there is newer mechanism for this: the tagMentionCache, which is much more efficient.
  * @author @jgclark
- * @param {string} tag - tag/mention name to look for
- * @param {boolean?} alsoSearchCalendarNotes - (optional, defaults to false)
+ * @param {string} item - tag/mention name to look for
+ * @param {boolean} caseInsensitiveMatch? - whether to ignore case when matching
+ * @param {boolean} alsoSearchCalendarNotes? - whether to search calendar notes
+ * @param {boolean} excludeSpecialFolders? - whether to ignore regular notes in special folders, i.e. those starting with '@', including @Templates, @Archive and @Trash (optional, defaults to true)
+ * @param {Array<string>} itemsToExclude - optional list of tags/mentions that if found in the note, excludes the note
  * @param {string?} folder - optional folder to limit to
- * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @param {Array<string>?} tagsToExclude - optional list of tags that if found in the note, excludes the note
- * @param {boolean?} caseInsensitiveMatch? - whether to ignore case when matching (optional, defaults to true)
- * @param {Array<TNote>?} notesToSearchIn - optional array of notes to search in
- * @returns {Array<TNote>}
- */
-export function findNotesMatchingHashtagOrMention(
-  tag: string,
-  alsoSearchCalendarNotes: boolean = false,
-  folder: string = '',
-  includeSubfolders: boolean = false,
-  tagsToExclude: Array<string> = [],
-  caseInsensitiveMatch: boolean = true,
-  notesToSearchIn?: Array<TNote>,
-): Array<TNote> {
-  // logDebug(
-  //   `NPNote/findNotesMatchingHashtagOrMention`,
-  //   `tag:${tag} folder:${folder ?? '(none)'} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
-  // )
-  return findNotesMatchingHashtag(tag, folder, includeSubfolders, tagsToExclude, caseInsensitiveMatch, notesToSearchIn, true, alsoSearchCalendarNotes)
-}
-
-/**
- * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on.
- * Originally only looked in Project Notes, but 'alsoSearchCalendarNotes' allows it to look further.
- * @author @jgclark
- * @param {string} tag - tag/mention name to look for
- * @param {string?} folder - optional folder to limit to
- * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @param {Array<string>?} tagsToExclude - optional list of tags that if found in the note, excludes the note
- * @param {boolean?} caseInsensitiveMatch - whether to ignore case when matching (optional, defaults to true)
- * @param {Array<TNote>?} notesToSearchIn - optional array of notes to search in
- * @param {boolean?} alsoSearchMentions - whether to search @mentions as well (optional, defaults to false)
- * @param {boolean?} alsoSearchCalendarNotes - (optional, defaults to false)
+ * @param {boolean} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not
  * @return {Array<TNote>}
  */
-export function findNotesMatchingHashtag(
-  tag: string,
+export function findNotesMatchingHashtagOrMention(
+  item: string,
+  caseInsensitiveMatch: boolean,
+  alsoSearchCalendarNotes: boolean,
+  excludeSpecialFolders: boolean,
+  itemsToExclude: Array<string> = [],
   folder: ?string,
-  includeSubfolders: boolean = false,
-  tagsToExclude: Array<string> = [],
-  caseInsensitiveMatch: boolean = true,
-  notesToSearchIn?: Array<TNote>,
-  alsoSearchMentions: boolean = false,
-  alsoSearchCalendarNotes: boolean = false,
+  includeSubfolders: boolean,
 ): Array<TNote> {
   try {
     // Check for special conditions first
-    if (tag === '') {
-      logError('NPnote/findNotesMatchingHashtag', `No hashtag given. Stopping`)
+    if (item === '') {
+      logError('NPnote/findNotesMatchingHashtagOrMention', `No hashtag given. Stopping`)
       return [] // for completeness
     }
-    let notesToSearch = notesToSearchIn ?? DataStore.projectNotes
+    const isHashtag = item.startsWith('#')
+    let notesToSearch = excludeSpecialFolders
+      ? DataStore.projectNotes.filter((n) => !n.filename.startsWith('@'))
+      : DataStore.projectNotes
     if (alsoSearchCalendarNotes) {
       notesToSearch = notesToSearch.concat(DataStore.calendarNotes)
     }
-    // logDebug('NPnote/findNotesMatchingHashtag', `starting with ${notesToSearch.length} notes (${notesToSearchIn ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${alsoSearchCalendarNotes ? '+ calendar notes)' : ')'}`)
+    logDebug('NPnote/findNotesMatchingHashtagOrMention', `starting with ${notesToSearch.length} notes (${notesToSearch ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${alsoSearchCalendarNotes ? '+ calendar notes)' : ')'}`)
 
     // const startTime = new Date()
     let projectNotesInFolder: Array<TNote>
@@ -749,99 +666,154 @@ export function findNotesMatchingHashtag(
       // no folder specified, so grab all notes from DataStore
       projectNotesInFolder = notesToSearch.slice()
     }
-    logDebug(`NPnote/findNotesMatchingHashtag`, `tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} for ${String(projectNotesInFolder.length)} notes`)
+    logDebug(`NPnote/findNotesMatchingHashtagOrMention`, `item:${item} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} ItemsToExclude:${String(itemsToExclude)} for ${String(projectNotesInFolder.length)} notes`)
 
     // Filter by tag (and now mentions as well, if requested)
     // Note: now using the cut-down list of hashtags as the API returns partial duplicates
-    let projectNotesWithTag: Array<TNote>
+    let projectNotesWithItem: Array<TNote>
     if (caseInsensitiveMatch) {
-      projectNotesWithTag = projectNotesInFolder.filter((n) => {
+      projectNotesWithItem = projectNotesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
-        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtag', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
-        if (alsoSearchMentions) {
+        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMention', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
+        // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+        return isHashtag
+          ? caseInsensitiveIncludes(item, correctedHashtags)
           // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-          return caseInsensitiveIncludes(tag, correctedHashtags) || caseInsensitiveIncludes(tag, n.mentions)
-        } else {
-          return caseInsensitiveIncludes(tag, correctedHashtags)
-        }
+          : caseInsensitiveIncludes(item, n.mentions)
       })
     } else {
-      projectNotesWithTag = projectNotesInFolder.filter((n) => {
+      projectNotesWithItem = projectNotesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
-        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtag', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
-        if (alsoSearchMentions) {
-          return n.mentions.includes(tag) || correctedHashtags.includes(tag)
-        } else {
-          return correctedHashtags.includes(tag)
-        }
+        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMention', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
+        // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+        return isHashtag
+          ? caseInsensitiveIncludes(item, correctedHashtags)
+          // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+          : caseInsensitiveIncludes(item, n.mentions)
       })
     }
-    if (projectNotesWithTag.length > 0) {
-      // logDebug('NPnote/findNotesMatchingHashtag',`In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}': [${String(projectNotesWithTag.map((a) => a.title ?? a.filename ?? '?'))}]`)
-      logDebug('NPnote/findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+    if (projectNotesWithItem.length > 0) {
+      // logDebug('NPnote/findNotesMatchingHashtagOrMention',`In folder '${folder ?? '<all>'}' found ${projectNotesWithItem.length} notes matching '${tag}': [${String(projectNotesWithItem.map((a) => a.title ?? a.filename ?? '?'))}]`)
+      logDebug('NPnote/findNotesMatchingHashtagOrMention', `In folder '${folder ?? '<all>'}' found ${projectNotesWithItem.length} notes matching '${item}'`)
     }
 
-    // If we care about the excluded tag, then further filter out notes where it is found
-    if (tagsToExclude.length > 0) {
-      const doesNotMatchTagsToExclude = (e: string) => !tagsToExclude.includes(e)
-      const projectNotesWithTagWithoutExclusion = projectNotesWithTag.filter((n) => n.hashtags.some(doesNotMatchTagsToExclude))
-      const removedItems = projectNotesWithTag.length - projectNotesWithTagWithoutExclusion.length
+    // If we care about the excluded item, then further filter out notes where it is found
+    if (itemsToExclude.length > 0) {
+      const doesNotMatchItemsToExclude = (e: string) => !itemsToExclude.includes(e)
+      const projectNotesWithItemWithoutExclusion = projectNotesWithItem.filter((n) => n.hashtags.some(doesNotMatchItemsToExclude))
+      const removedItems = projectNotesWithItem.length - projectNotesWithItemWithoutExclusion.length
       if (removedItems > 0) {
-        // logDebug('NPnote/findNotesMatchingHashtag', `- but removed ${removedItems} excluded notes:`)
-        // logDebug('NPnote/findNotesMatchingHashtag', `= ${String(projectNotesWithTag.filter((n) => n.hashtags.includes(tagToExclude)).map((m) => m.title))}`)
+        // logDebug('NPnote/findNotesMatchingHashtagOrMention', `- but removed ${removedItems} excluded notes:`)
+        // logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(projectNotesWithItem.filter((n) => n.hashtags.includes(tagToExclude)).map((m) => m.title))}`)
       }
-      return projectNotesWithTagWithoutExclusion
+      return projectNotesWithItemWithoutExclusion
     } else {
-      return projectNotesWithTag
+      return projectNotesWithItem
     }
   } catch (err) {
-    logError('NPnote/findNotesMatchingHashtag', err.message)
+    logError('NPnote/findNotesMatchingHashtagOrMention', err.message)
     return []
   }
 }
 
 /**
- * Return array of array of notes with particular hashtags (plural), optionally from the given folder.
- * Note: Currently unused!
+ * From a given array of notes, return the subset with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on etc.
+ * Note: since Feb 2025 there is newer mechanism for this: the tagMentionCache, which is much more efficient.
  * @author @jgclark
- *
- * @param {Array<string>} tags - tags to look for
- * @param {?string} folder - optional folder to limit to
- * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @return {Array<Array<TNote>>} array of list of notes
+ * @param {string} item - tag/mention name to look for
+ * @param {Array<TNote>} notesToSearchIn - array of notes to search in
+ * @param {boolean} caseInsensitiveMatch? - whether to ignore case when matching
+ * @param {boolean} alsoSearchCalendarNotes?
+ * @param {string?} folder - optional folder to limit to
+ * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
+ * @param {Array<string>?} itemsToExclude - optional list of tags/mentions that if found in the note, excludes the note
+ * @return {Array<TNote>}
  */
-export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, includeSubfolders: ?boolean = false): Array<Array<TNote>> {
-  if (tags.length === 0) {
-    logError('NPnote/findNotesMatchingHashtags', `No hashtags supplied. Stopping`)
+export function findNotesMatchingHashtagOrMentionFromList(
+  item: string,
+  notesToSearchIn: Array<TNote>,
+  caseInsensitiveMatch: boolean,
+  alsoSearchCalendarNotes: boolean,
+  folder: ?string,
+  includeSubfolders: boolean = false,
+  itemsToExclude: Array<string> = [],
+): Array<TNote> {
+  try {
+    // Check for special conditions first
+    if (item === '') {
+      logError('NPnote/findNotesMatchingHashtagOrMentionFromList', `No tag/mention given. Stopping`)
+      return [] // for completeness
+    }
+    const isHashtag = item.startsWith('#')
+    let notesToSearch = notesToSearchIn
+    if (alsoSearchCalendarNotes) {
+      notesToSearch = notesToSearch.concat(DataStore.calendarNotes)
+    }
+    // logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `starting with ${notesToSearch.length} notes (${notesToSearchIn ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${alsoSearchCalendarNotes ? '+ calendar notes)' : ')'}`)
+
+    // const startTime = new Date()
+    let projectNotesInFolder: Array<TNote>
+    // If folder given (not empty) then filter using it
+    if (folder && folder !== '') {
+      if (includeSubfolders) {
+    // use startsWith as filter to include subfolders
+        projectNotesInFolder = notesToSearch.slice().filter((n) => n.filename.startsWith(`${folder}/`))
+      } else {
+        // use match as filter to exclude subfolders
+        projectNotesInFolder = notesToSearch.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
+      }
+    } else {
+      // no folder specified, so grab all notes from DataStore
+      projectNotesInFolder = notesToSearch.slice()
+    }
+    logDebug(`NPnote/findNotesMatchingHashtagOrMentionFromList`, `item:${item} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} itemsToExclude:${String(itemsToExclude)} for ${String(projectNotesInFolder.length)} notes`)
+
+    // Filter by tag (and now mentions as well, if requested)
+    // Note: now using the cut-down list of hashtags as the API returns partial duplicates
+    let projectNotesWithItem: Array<TNote>
+    if (caseInsensitiveMatch) {
+      projectNotesWithItem = projectNotesInFolder.filter((n) => {
+        const correctedHashtags = getCorrectedHashtagsFromNote(n)
+        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
+        return isHashtag
+          ? caseInsensitiveIncludes(item, correctedHashtags)
+          // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+          : caseInsensitiveIncludes(item, n.mentions)
+      })
+    } else {
+      projectNotesWithItem = projectNotesInFolder.filter((n) => {
+        const correctedHashtags = getCorrectedHashtagsFromNote(n)
+        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
+        return isHashtag
+          ? caseInsensitiveIncludes(item, correctedHashtags)
+          // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+          : caseInsensitiveIncludes(item, n.mentions)
+      })
+    }
+    if (projectNotesWithItem.length > 0) {
+      // logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList',`In folder '${folder ?? '<all>'}' found ${projectNotesWithItem.length} notes matching '${tag}': [${String(projectNotesWithItem.map((a) => a.title ?? a.filename ?? '?'))}]`)
+      logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `In folder '${folder ?? '<all>'}' found ${projectNotesWithItem.length} notes matching '${item}'`)
+    }
+
+    // If we care about the excluded tag, then further filter out notes where it is found
+    if (itemsToExclude.length > 0) {
+      const doesNotMatchItemsToExclude = (e: string) => !itemsToExclude.includes(e)
+      const projectNotesWithItemWithoutExclusion = projectNotesWithItem.filter((n) => n.hashtags.some(doesNotMatchItemsToExclude))
+      const removedItems = projectNotesWithItem.length - projectNotesWithItemWithoutExclusion.length
+      if (removedItems > 0) {
+        // logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- but removed ${removedItems} excluded notes:`)
+        // logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `= ${String(projectNotesWithItem.filter((n) => n.hashtags.includes(tagToExclude)).map((m) => m.title))}`)
+      }
+      return projectNotesWithItemWithoutExclusion
+    } else {
+      return projectNotesWithItem
+    }
+  } catch (err) {
+    logError('NPnote/findNotesMatchingHashtagOrMentionFromList', err.message)
     return []
   }
-
-  let projectNotesInFolder: Array<TNote>
-  // If folder given (not empty) then filter using it
-  if (folder != null) {
-    if (includeSubfolders) {
-      // use startsWith as filter to include subfolders
-      // TEST: does this need same update for root-level notes as findNotesMatchingHashtag() above?
-      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => n.filename.startsWith(`${folder}/`))
-    } else {
-      // use match as filter to exclude subfolders
-      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
-    }
-  } else {
-    // no folder specified, so grab all notes from DataStore
-    projectNotesInFolder = DataStore.projectNotes.slice()
-  }
-
-  // Filter by tags
-  const projectNotesWithTags: Array<Array<TNote>> = [[]]
-  for (const tag of tags) {
-    // FIXME: need to change this to the hashtag-aware-includes
-    const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
-    // logDebug('NPnote/findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
-    projectNotesWithTags.push(projectNotesWithTag)
-  }
-  return projectNotesWithTags
 }
+
 /**
  * Get list of headings from a note, optionally including markdown markers.
  * Note: If the first 'title' line matches the note title, then skip it (as it's the title itself).

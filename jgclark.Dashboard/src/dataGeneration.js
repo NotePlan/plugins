@@ -585,7 +585,6 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
   const thisStartTime = new Date()
   const sectionNumStr = `12-${index}`
   const thisSectionCode = 'TAG'
-  const maxInSection = config.maxItemsToShowInSection ?? 30
   logInfo('getTaggedSectionData', `------- Gathering Tag items for section #${String(sectionNumStr)}: ${sectionDetail.sectionName} --------`)
   // if (config.ignoreChecklistItems) logDebug('getTaggedSectionData', `Note: will filter out checklists`)
   let itemCount = 0
@@ -618,7 +617,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       const notesWithTagFromCache: Array<TNote> = []
       if (config?.FFlag_UseTagCache) {
         const cachedOperationStartTime = new Date()
-        const filenamesWithTagFromCache = await getNotesWithTagOrMention([sectionDetail.sectionName], false)
+        const filenamesWithTagFromCache = await getNotesWithTagOrMention([sectionDetail.sectionName], true)
         filenamesWithTagFromCache.forEach((filename) => {
           const note = getNoteByFilename(filename)
           if (note) notesWithTagFromCache.push(note)
@@ -630,7 +629,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes).
       // Though JGC has also seen 9,900ms for all notes in the system, so its variable.
       const thisStartTime = new Date()
-      const notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true)
+      const notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true, true, true)
       // $FlowIgnore[unsafe-arithmetic]
       const APILookupTime = new Date() - thisStartTime
       logInfo('getTaggedSectionData', `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName} from API in ${timer(thisStartTime)}`)

@@ -72,9 +72,11 @@ export function setTagMentionCacheDefinitions(tags: Array<string>, mentions: Arr
 }
 
 /**
- * Returns a list of notes that contain the given tag or mention.
+ * Returns a list of notes that contain the given tag or mention. 
+ * It does so in a case-insensitive way, so asking for '@BOB' will find '@bob' and '@Bob'.
+ * It does not do any filtering by para type.
  * @param {string} tagOrMention The tag or mention to search for.
- * @param {boolean} firstUpdateCache If true, the cache will be updated before the search is done. (default is true)
+ * @param {boolean} firstUpdateCache If true, the cache will be updated before the search is done. (Default: true)
  * @returns {Array<string>} An array of note filenames that contain the tag or mention.
  */
 export async function getNotesWithTagOrMention(tagOrMentions: Array<string>, firstUpdateCache: boolean = true): Promise<Array<string>> {
@@ -88,11 +90,15 @@ export async function getNotesWithTagOrMention(tagOrMentions: Array<string>, fir
     const parsedCache = JSON.parse(cache)
     const regularNoteItems = parsedCache.regularNotes
     const calNoteItems = parsedCache.calendarNotes
+    const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
 
-    let outputList = calNoteItems.filter((item) => item.tags.some((tag) => tagOrMentions.includes(tag))).map((item) => item.filename)
-    outputList = outputList.concat(calNoteItems.filter((item) => item.mentions.some((tag) => tagOrMentions.includes(tag))).map((item) => item.filename))
-    outputList = outputList.concat(regularNoteItems.filter((item) => item.tags.some((tag) => tagOrMentions.includes(tag))).map((item) => item.filename))
-    outputList = outputList.concat(regularNoteItems.filter((item) => item.mentions.some((tag) => tagOrMentions.includes(tag))).map((item) => item.filename))
+    // From Cache get from calendar notes first
+    let outputList = calNoteItems.filter((item) => item.tags.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename)
+    outputList = outputList.concat(calNoteItems.filter((item) => item.mentions.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename))
+
+    // From Cache then get from regular notes
+    outputList = outputList.concat(regularNoteItems.filter((item) => item.tags.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename))
+    outputList = outputList.concat(regularNoteItems.filter((item) => item.mentions.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename))
     logTimer('getNotesWithTagMention', startTime, `- ${String(outputList.length)} notes found with wanted tag/mention [${String(tagOrMentions)}]:`, 400)
     // logDebug('getNotesWithTagMention', `For [${String(tagOrMentions)}] =>\n${outputList.join('\n')}`)
     return outputList
@@ -105,7 +111,8 @@ export async function getNotesWithTagOrMention(tagOrMentions: Array<string>, fir
 
 /**
  * Generate the mention tag cache from scratch.
- * Writes to the tagMentionCacheFile.
+ * Writes all instances of wanted mentions and tags (from the wantedTagMentionsList) to the tagMentionCacheFile, by filename.
+ * Note: this includes all calendar notes, and all regular notes, apart from those in special folders (starts with '@'), including @Templates, @Archive and @Trash folders.
  */
 export async function generateTagMentionCache(): Promise<void> {
   try {
@@ -118,17 +125,16 @@ export async function generateTagMentionCache(): Promise<void> {
     await CommandBar.onAsyncThread()
 
     // Get all notes to scan
-    const allCalNotes = DataStore.calendarNotes //.filter((note) => note.filename.startsWith('2025'))
-    const allRegularNotes = DataStore.projectNotes //.filter((note) => note.filename.startsWith('Home') || note.filename.startsWith('NotePlan'))
-    // TODO: decide whether to filter out @folders etc.
-    logTimer('generateTagMentionCache', startTime, `- processing ${allCalNotes.length} calendar notes / ${allRegularNotes.length} regular notes`)
+    const allCalNotes = DataStore.calendarNotes
+    const allRegularNotes = DataStore.projectNotes.filter((note) => !note.filename.startsWith('@'))
+    logTimer('generateTagMentionCache', startTime, `- processing ${allCalNotes.length} calendar notes + ${allRegularNotes.length} regular notes ...`)
 
     // Iterate over all notes and get all open paras with tags and mentions
     const calWantedItems = []
     let ccal = 0
     for (const note of allCalNotes) {
       const foundWantedTags = getWantedTagListFromNote(note, wantedTags)
-      if (foundWantedTags.length > 0) logDebug('generateTagMentionCache', `-> ${String(foundWantedTags.length)} foundWantedTags [${String(foundWantedTags)}] calWantedTags`)
+      // if (foundWantedTags.length > 0) logDebug('generateTagMentionCache', `-> ${String(foundWantedTags.length)} foundWantedTags [${String(foundWantedTags)}] calWantedTags`)
       const foundWantedMentions = getWantedMentionListFromNote(note, wantedMentions)
       if (foundWantedTags.length > 0 || foundWantedMentions.length > 0) {
         calWantedItems.push({ filename: note.filename, tags: foundWantedTags, mentions: foundWantedMentions })
@@ -139,14 +145,14 @@ export async function generateTagMentionCache(): Promise<void> {
     let creg = 0
     for (const note of allRegularNotes) {
       const foundWantedTags = getWantedTagListFromNote(note, wantedTags)
-      if (foundWantedTags.length > 0) logDebug('generateTagMentionCache', `-> ${String(foundWantedTags.length)} foundWantedTags [${String(foundWantedTags)}] regularWantedTags`)
+      // if (foundWantedTags.length > 0) logDebug('generateTagMentionCache', `-> ${String(foundWantedTags.length)} foundWantedTags [${String(foundWantedTags)}] regularWantedTags`)
       const foundWantedMentions = getWantedMentionListFromNote(note, wantedMentions)
       if (foundWantedTags.length > 0 || foundWantedMentions.length > 0) {
         regularWantedItems.push({ filename: note.filename, tags: foundWantedTags, mentions: foundWantedMentions })
         creg++
       }
     }
-    logTimer('generateTagMentionCache', startTime, `-> ${ccal} calendar notes with wanted items / ${creg} regular notes with wanted items`)
+    logTimer('generateTagMentionCache', startTime, `to find ${ccal} calendar notes with wanted items / ${creg} regular notes with wanted items`)
 
     // Save the filteredMentions and filteredTags to the mentionTagCacheFile
     const cache = {
@@ -173,21 +179,20 @@ export async function updateTagMentionCache(): Promise<void> {
   try {
     const startTime = new Date() // just for timing this function
 
-    // Get the list of wanted tags and mentions
-    const { wantedTags: wantedTags, wantedMentions: wantedMentions } = getTagMentionCacheDefinitions()
-
     // Read current list from tagMentionCacheFile, and get time of it.
     // Note: can't get a timestamp from plugin files, so need to use a separate preference
     logDebug('updateTagMentionCache', `About to read ${tagMentionCacheFile} ...`)
     if (!DataStore.fileExists(tagMentionCacheFile)) {
       logDebug('updateTagMentionCache', `${tagMentionCacheFile} file does not exist, so re-generating the cache from scratch.`)
       await generateTagMentionCache()
-      await updateTagMentionCache()
       return
     }
 
+    // Get the list of wanted tags and mentions
+    const { wantedTags: wantedTags, wantedMentions: wantedMentions } = getTagMentionCacheDefinitions()
+
     const data = DataStore.loadData(tagMentionCacheFile, true) ?? ''
-    let cache = JSON.parse(data)
+    const cache = JSON.parse(data)
     // existingCache.forEach((item) => {
     //   changedNoteMap.set(item.filename, {
     //     lastUpdated: new Date(item.lastUpdated),
@@ -197,8 +202,11 @@ export async function updateTagMentionCache(): Promise<void> {
 
     // Get last updated time from special preference
     const previousJSDate = DataStore.preference(lastTimeThisWasRunPref) ?? null
-    const momNow = moment()
+    if (!previousJSDate) {
+      throw new Error(`No previous cache update time found (as pref '${lastTimeThisWasRunPref}' appears not to be set)`)
+    }
     const momPrevious = moment(previousJSDate)
+    const momNow = moment()
     const fileAgeMins = momNow.diff(momPrevious, 'minutes')
     logDebug('updateTagMentionCache', `Last updated ${fileAgeMins} mins ago (previous time: ${momPrevious.format()} / now time: ${momNow.format()})`)
 
@@ -217,6 +225,7 @@ export async function updateTagMentionCache(): Promise<void> {
       // First clear existing details for this note
       logDebug('updateTagMentionCache', `- deleting existing items for recently changed file '${note.filename}'`)
       if (isCalendarNote) {
+        // FIXME: can get errors here
         cache.calendarNotes.delete(note.filename)
       } else {
         cache.regularNotes.delete(note.filename)
