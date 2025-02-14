@@ -1,8 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated for v2.2.0, 2025-02-09 by @jgclark
+// last updated for v2.1.10, 2025-02-14 by @jgclark
 //-----------------------------------------------------------------------------
+
+/**
+ * WARNING: In a weird development (literally), I found that a refactor of the original findNotesWithMatchingHashtag() suddenly made it now as fast, if not faster, as this new Cache.
+ * I didn't take out any code, so I'm mystified. 
+ * But not complaining, particularly as this still had some work required.
+ */
 
 import moment from 'moment/min/moment-with-locales'
 // import { getDateStringFromCalendarFilename, getTodaysDateHyphenated } from '@helpers/dateTime'

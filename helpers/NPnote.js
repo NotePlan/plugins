@@ -616,7 +616,7 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
 
 /**
  * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on etc.
- * Note: since Feb 2025 there is newer mechanism for this: the tagMentionCache, which is much more efficient.
+ * Note: in Feb 2025 there @jgclark developed almost all of a newer mechanism for this: the tagMentionCache. But then this suddenly seemed to speed up, after a little refactoring. Mystifying.
  * @author @jgclark
  * @param {string} item - tag/mention name to look for
  * @param {boolean} caseInsensitiveMatch? - whether to ignore case when matching
@@ -624,7 +624,7 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
  * @param {boolean} excludeSpecialFolders? - whether to ignore regular notes in special folders, i.e. those starting with '@', including @Templates, @Archive and @Trash (optional, defaults to true)
  * @param {Array<string>} itemsToExclude - optional list of tags/mentions that if found in the note, excludes the note
  * @param {string?} folder - optional folder to limit to
- * @param {boolean} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not
+ * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @return {Array<TNote>}
  */
 export function findNotesMatchingHashtagOrMention(
@@ -634,7 +634,7 @@ export function findNotesMatchingHashtagOrMention(
   excludeSpecialFolders: boolean,
   itemsToExclude: Array<string> = [],
   folder: ?string,
-  includeSubfolders: boolean,
+  includeSubfolders?: boolean = false,
 ): Array<TNote> {
   try {
     // Check for special conditions first
@@ -718,7 +718,6 @@ export function findNotesMatchingHashtagOrMention(
 
 /**
  * From a given array of notes, return the subset with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on etc.
- * Note: since Feb 2025 there is newer mechanism for this: the tagMentionCache, which is much more efficient.
  * @author @jgclark
  * @param {string} item - tag/mention name to look for
  * @param {Array<TNote>} notesToSearchIn - array of notes to search in
