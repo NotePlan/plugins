@@ -1,12 +1,12 @@
 // @flow
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import TestingPane from './TestingPane'
 import CollapsibleObjectViewer from '@helpers/react/CollapsibleObjectViewer'
 import ConsoleLogView from '@helpers/react/ConsoleLogView'
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import './DebugPanel.css'
 import SearchBox from '@helpers/react/SearchBox'
-import TestingPane from './TestingPane'
 
 export type LogEntry = {
   message: string,
@@ -58,16 +58,16 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
   const [highlightRegex, setHighlightRegex] = useState<string>('')
   const [useRegex, setUseRegex] = useState<boolean>(true)
   const [expandToShow, setExpandToShow] = useState<boolean>(true)
-  const [filter, setFilter] = useState<boolean>(true)
+  const [filter, setFilter] = useState<boolean>(false)
   const resetViewerRef = useRef<() => void>(() => {})
   const FFlag_ShowTestingPanel = getContext().dashboardSettings?.FFlag_ShowTestingPanel
 
   useEffect(() => {
-    const initialSearchValue = 'pluginData:dashboardSettings:excludedFolders|dashboardSettings:excludedFolders|isActive|name|isModified'
+    const initialSearchValue = ''
     setHighlightRegex(initialSearchValue)
     setUseRegex(true)
     setExpandToShow(true)
-    setFilter(true)
+    setFilter(false)
   }, [])
 
   useEffect(() => {
@@ -160,7 +160,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
               useRegex={useRegex}
               expandToShow={expandToShow}
               filter={filter}
-              currentValue={'pluginData:dashboardSettings:excludedFolders|dashboardSettings:excludedFolders|isActive|name|isModified'}
+              currentValue={''}
             />
             <CollapsibleObjectViewer
               data={contextVariablesWithoutFunctions}

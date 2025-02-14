@@ -93,7 +93,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   }, [section, dashboardSettings])
 
   const refresh = useCallback(() => {
-    logDebug('Section/TBTimer', `Refreshing section ${section.sectionCode}...`)
     const detailsMessageObject = { actionType: 'refreshSomeSections', sectionCodes: ['TB'] }
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'TBTimer fired refreshSomeSections', true)
   }, [section.sectionCode, sendActionToPlugin])
@@ -110,13 +109,11 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       timerId = setInterval(() => {
         refresh()
       }, refreshInterval)
-      logDebug('Section/TBTimer', `Section ${section.sectionCode} timer set for ${refreshInterval / 1000} seconds`)
     }
 
     return () => {
       if (timerId) {
         clearInterval(timerId)
-        logDebug('Section/TBTimer', `Section ${section.sectionCode} timer cleared`)
       }
     }
   }, [section.sectionCode, refresh])
@@ -169,8 +166,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // const isDesktop = pluginData.platform === 'macOS'
   let numItemsToShow = itemsToShow.length
 
-  const addNewActionButtons = section.actionButtons?.filter((b) => b.actionName.startsWith('add'))// : []
-  let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add'))// : []
+  const addNewActionButtons = section.actionButtons?.filter((b) => b.actionName.startsWith('add')) // : []
+  let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add')) // : []
 
   // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
   if (numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {

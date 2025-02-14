@@ -136,8 +136,8 @@ export function getSectionsWithoutDuplicateLines(
   // This ensures `orderedSections` contains all sections, ordered by `useFirstVisibleOnly` with duplicates included.
   // because there could be multiples (e.g. TAGs or Today/>Today with the same sectionCode)
   const orderedSections = useFirstVisibleOnly.flatMap((st) => sections.filter((section) => section.sectionCode === st))
-  const totalItemsBeforeDedupe = countTotalSectionItems(orderedSections, dontDedupeList)
-  logDebug('getSectionsWithoutDuplicateLines', `Starting with useFirstVisibleOnly: ${useFirstVisibleOnly.join('-')}  with ${totalItemsBeforeDedupe} items`)
+  // const totalItemsBeforeDedupe = countTotalSectionItems(orderedSections, dontDedupeList)
+  // logDebug('getSectionsWithoutDuplicateLines', `Starting with useFirstVisibleOnly: ${useFirstVisibleOnly.join('-')}  with ${totalItemsBeforeDedupe} items`)
 
   // Include sections not listed in useFirst at the end of the array
   orderedSections.push(...sections.filter((section) => !useFirst.includes(section.sectionCode)))
@@ -166,8 +166,8 @@ export function getSectionsWithoutDuplicateLines(
     })
     // logInfo('getSectionsWithoutDuplicateLines', `- ${section.sectionCode} ends with ${section.sectionItems.length} items`) // OK
   })
-  const totalItemsAfterDedupe = countTotalSectionItems(orderedSections, dontDedupeList)
-  logDebug('getSectionsWithoutDuplicateLines', ` ${orderedSections.length} sections ${String(orderedSections.map((s) => s.name))} with ${totalItemsAfterDedupe} items`)
+  // const totalItemsAfterDedupe = countTotalSectionItems(orderedSections, dontDedupeList)
+  // logDebug('getSectionsWithoutDuplicateLines', ` ${orderedSections.length} sections ${String(orderedSections.map((s) => s.name))} with ${totalItemsAfterDedupe} items`)
 
   // Return the orderedSections instead of the original sections
   return orderedSections
@@ -181,7 +181,6 @@ export function getSectionsWithoutDuplicateLines(
  * @returns {number} The total number of sectionItems
  */
 export const countTotalSectionItems = (sections: Array<TSection>, ignoreList: Array<TSectionCode>): number => {
-  logDebug(`countTotalSectionItems`, `Starting with ${sections.length} sections and ignoreList ${String(ignoreList)}`)
   return sections.filter((section) => !ignoreList.includes(section.sectionCode)).reduce((total, section) => total + section.sectionItems?.length ?? 0, 0)
 }
 

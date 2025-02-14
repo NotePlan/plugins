@@ -37,7 +37,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
   useEffect(() => {
     // Handle TB section differently
     if (section.sectionCode === 'TB') {
-      logDebug('useSectionSortAndFilter/timeblock', `Starting for TB section with ${memoizedItems.length} items`)
+      // logDebug('useSectionSortAndFilter/timeblock', `Starting for TB section with ${memoizedItems.length} items`)
       // Filter out all non-current timeblocks, and show what remains
       // Note: assumes they come in (start) time order.
       const currentTBItems = memoizedItems.filter((i) => {

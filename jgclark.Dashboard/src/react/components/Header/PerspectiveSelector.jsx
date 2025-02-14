@@ -82,15 +82,7 @@ const PerspectiveSelector = (): React$Node => {
         const copySettings = notIsDash ? [{ label: 'Copy Settings to…', value: 'Copy Perspective' }] : []
         const deletePersp = notIsDash ? [{ label: 'Delete Perspective…', value: 'Delete Perspective' }] : []
         const editAllPerspectives = [{ label: 'Edit All Perspectives…', value: 'Edit All Perspectives' }]
-        // logDebug each of the variables above
-        logDebug('PerspectiveSelector/SET_PERSPECTIVE_OPTIONS activePerspective=', { thisPersp })
-        logDebug('PerspectiveSelector/SET_PERSPECTIVE_OPTIONS', `notIsDash=${String(notIsDash)} action.payload=`, { payload: action.payload })
-        logDebug(
-          'PerspectiveSelector/SET_PERSPECTIVE_OPTIONS',
-          `saveModifiedOption=${JSON.stringify(saveModifiedOption)} renamePerspective=${JSON.stringify(renamePerspective)} copySettings=${JSON.stringify(
-            copySettings,
-          )} deletePersp=${JSON.stringify(deletePersp)} editAllPerspectives=${JSON.stringify(editAllPerspectives)}`,
-        )
+        logDebug('PerspectiveSelector/SET_PERSPECTIVE_OPTIONS', `notIsDash=${String(notIsDash)} action.payload=`, { activePersp: thisPersp }, { payload: action.payload })
         const perspectiveNameOptions = [
           ...action.payload,
           ...separatorOption,
@@ -101,7 +93,6 @@ const PerspectiveSelector = (): React$Node => {
           ...deletePersp,
           ...editAllPerspectives,
         ]
-        logDebug('PerspectiveSelector/SET_PERSPECTIVE_OPTIONS', `perspectiveNameOptions=`, perspectiveNameOptions)
         return {
           ...state,
           perspectiveNameOptions: perspectiveNameOptions,
@@ -440,8 +431,10 @@ const PerspectiveSelector = (): React$Node => {
   }
 
   const selectedValue = { label: nameToDisplay, value: thisPersp ? activePerspectiveName : '-' }
-  logDebug('PerspectiveSelector', `selectedValue: ${JSON.stringify(selectedValue)} value(activePerspectiveName)=${activePerspectiveName}`)
-  logDebug('Calling DropdownSelect with PerspectiveSelector/perspectiveNameOptions', { perspectiveNameOptions })
+  logDebug(
+    'PerspectiveSelector',
+    `selectedValue: ${JSON.stringify(selectedValue)} value(activePerspectiveName)=${activePerspectiveName} ${thisPersp?.isModified ? '<modified>' : ''}`,
+  )
 
   return (
     <DropdownSelect
