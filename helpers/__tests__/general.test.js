@@ -47,7 +47,7 @@ describe(`${FILE}`, () => {
 
     // Make sure correct values are returned
     test('initiallyEmptySet size -> 2', () => {
-      expect(initiallyEmptySet.size()).toEqual(2)
+      expect(initiallyEmptySet.size).toEqual(2)
     })
     test('initiallyEmptySet for "TESTING" variations', () => {
       expect(initiallyEmptySet.has('TESTING')).toEqual(true)
@@ -55,10 +55,10 @@ describe(`${FILE}`, () => {
       expect(initiallyEmptySet.has('TEstiNG')).toEqual(true)
     })
     test('initiallyEmptySet for "bob" variations', () => {
-      expect(initiallyEmptySet.get('bob')).toEqual(true)
+      expect(initiallyEmptySet.has('bob')).toEqual(true)
     })
     test('initiallyEmptySet for "RP"', () => {
-      expect(initiallyEmptySet.get('RP')).toEqual(false)
+      expect(initiallyEmptySet.has('RP')).toEqual(false)
     })
 
     // More complex tests to make sure we can iterate over the set
@@ -67,11 +67,11 @@ describe(`${FILE}`, () => {
       output.push(item)
     }
     test('initiallyEmptySet contents', () => {
-      expect(output[0]).toEqual('tesTING')
-      expect(output[1]).toEqual('BOB')
+      expect(output[0]).toEqual('testing')
+      expect(output[1]).toEqual('bob')
     })
 
-    // Set up some more test data
+    // Set up the same test data, but a different way
     const itemArray = []
     itemArray.push('tesTING')
     itemArray.push('testing')
@@ -82,7 +82,7 @@ describe(`${FILE}`, () => {
 
     // Make sure correct values are returned
     test('initiallyFilledSet size -> 2', () => {
-      expect(initiallyFilledSet.size()).toEqual(2)
+      expect(initiallyFilledSet.size).toEqual(2)
     })
 
   })
