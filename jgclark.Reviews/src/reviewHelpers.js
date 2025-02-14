@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2025-02-03 for v1.1.0, @jgclark
+// Last updated 2025-02-14 for v1.1.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -306,24 +306,26 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
  * @param {string} metadataLinePlaceholder optional to use if we need to make a new metadata line
  * @returns {number} the line number for the existing or new metadata line
  */
-export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: string = ''): number {
+export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: string = '#project @review(1w) <-- _update your tag and your review interval here_'): number {
   try {
     const lines = note.paragraphs?.map((s) => s.content) ?? []
-    // logDebug('getOrMakeMetadataLine', `Starting with ${lines.length} lines`)
+    logDebug('getOrMakeMetadataLine', `Starting with ${lines.length} lines for ${displayTitle(note)}`)
 
     // Belt-and-Braces: deal with empty or almost-empty notes
     if (lines.length === 0) {
       note.appendParagraph('<placeholder title>', 'title')
       note.appendParagraph(metadataLinePlaceholder, 'text')
+      logInfo('getOrMakeMetadataLine', `- Finishing after appending placeholder title and metadata placeholder line`)
       return 1
     } else if (lines.length === 1) {
       note.appendParagraph(metadataLinePlaceholder, 'text')
+      logInfo('getOrMakeMetadataLine', `- Finishing after appending metadata placeholder line`)
       return 1
     }
 
     let lineNumber: number = NaN
     for (let i = 1; i < lines.length; i++) {
-      if (lines[i].match(/^project:/i) || lines[i].match(/^metadata:/i) || lines[i].match(/^#[\w]/) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
+      if (lines[i].match(/^(project|metadata|review|reviewed):/i) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
         lineNumber = i
         break
       }
@@ -331,7 +333,7 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
     // If no metadataPara found, then insert one either after title, or in the frontmatter if present.
     if (Number.isNaN(lineNumber)) {
       if (noteHasFrontMatter(note)) {
-        logWarn('getOrMakeMetadataLine', `Warning: Can't find an existing metadata line, so will insert into metadata`)
+        logWarn('getOrMakeMetadataLine', `I couldn't find an existing metadata line, so have added a placeholder at the top of the note. Please review it.`)
         const res = setFrontMatterVars(note, {
           'metadata': metadataLinePlaceholder
         })
@@ -570,22 +572,21 @@ export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteAr
   }
 }
 
+/**
+ * Update Dashboard if it is open.
+ * Note: Designed to fail silently if it isn't installed, or open.
+ * @author @jgclark
+ */
+// eslint-disable-next-line 
 export async function updateDashboardIfOpen(): Promise<void> {
   // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
 
-  // v2 (internal invoke plugin command) TEST:
-  logInfo('updateDashboardIfOpen', `about to invokePluginCommandByName("refreshSectionByCode", "jgclark.Dashboard", ['PROJ'])`)
-  let res = await DataStore.invokePluginCommandByName("refreshSectionByCode", "jgclark.Dashboard", ['PROJ'])
+  // WARNING: Note: Turning this off for Dashboard 2.1.10 / P+R as it was causing race conditions in D Perspective changes.
+  logDebug('updateDashboardIfOpen', `NOT ACTUALLY GOING TO DO ANYTHING AT THE MOMENT!`)
 
-  // Now trying a null call to this plugin, to see if we can switch the window context back to Reviews
-  // TEST: commenting out to test the b1265 fix. Seems to work now, but leaving in for a few releases in case.
-  // res = await DataStore.invokePluginCommandByName("NOP", "jgclark.Reviews", [])
-}
-
-// TODO: Can remove in time
-export function NOP(): void {
-  // do nothing!
-  logDebug('NOP', `A call to do nothing. Deliberately.`)
+  // v2 (internal invoke plugin command)
+  // logInfo('updateDashboardIfOpen', `about to invokePluginCommandByName("refreshSectionByCode", "jgclark.Dashboard", ['PROJ'])`)
+  // const res = await DataStore.invokePluginCommandByName("refreshSectionByCode", "jgclark.Dashboard", ['PROJ'])
 }
 
 /**

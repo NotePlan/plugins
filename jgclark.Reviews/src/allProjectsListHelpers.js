@@ -523,10 +523,10 @@ export async function getNextProjectsToReview(numToReturn: number = 0): Promise<
     }
 
     if (projectsToReview.length > 0) {
-      logDebug('reviews/getNextProjectsToReview', `- Returning ${projectsToReview.length} project notes ready for review:`)
-      projectsToReview.forEach((p) => {
-        logDebug('', `${p.title}`)
-      })
+      logDebug('reviews/getNextProjectsToReview', `- Returning ${projectsToReview.length} project notes ready for review`)
+      // projectsToReview.forEach((p) => {
+      //   logDebug('', `${p.title}`)
+      // })
     } else {
       logDebug('reviews/getNextProjectsToReview', `- No project notes ready for review 🎉`)
     }

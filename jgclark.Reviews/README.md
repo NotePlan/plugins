@@ -117,7 +117,7 @@ Notes about the displays:
 - each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
 Other settings:
-- Next action tag(s): optiona list of #hashtags to include in a task or checklist to indicate its the next action in this project (comma-separated; default '#next').
+- Next action tag(s): optional list of #hashtags to include in a task or checklist to indicate its the next action in this project (comma-separated; default '#next').
 - Display next actions in output? Whether to display the next action in the output? This requires the previous setting to be set. Note: If there are multiple items with the next action tag, only the first is shown.
 - Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`. Note also: 
   - if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders. 
@@ -140,6 +140,7 @@ Other settings:
 
 
 ## The other Commands
+
 Each command is described in turn. If you have a Rich style project list open, the list will be automatically updated after most of them.
 
 ### "/start reviews" command
@@ -194,8 +195,18 @@ Progress: 0@2021-04-05: Project started with a briefing from M about SPECTRE's d
 ```
 The starting percentage number doesn't have to be given; if it's not it is calculated from the % of open and completed tasks found in the note (that aren't due in the future). The comment are needed, and the date is inserted automatically.
 
-## Capturing Next Action
-Part of the Gettings Things Done methodology is to be clear what your 'next action' is. If you want to put a standard tag on such tasks/checklists -- e.g. `#next`, and put that in the settings, then in the project lists this next action will be shown after the progress summary.
+## 'Next Actions': capturing and displaying
+Part of the "Getting Things Done" methodology is to be clear what your 'next action' is. If you want to put a standard tag on such actionable tasks/checklists -- e.g. `#next` or `#na`, and put that in the settings, then in the project lists this next action will be shown after the progress summary. In fact you can set several different 'next action' tags, and the first of each will be shown in the progress summary. I use this to distinguish the things I can do (`#na`) from things I'm waiting on others to do (`#waiting`).
+
+The **Dashboard Plugin** has the ability to set up Sections for tags/mentions, that show all open tasks/checklists with those tags/mentions. This is a different way to see all such 'next actions'
+
+Alternatively, you could use the "/searchOpenTasks" command (from the [Search Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions)) with search term `#next` to sync _all_ your open `#next` tasks to your `#next Search Results` note. You can then use this as the source to drag'n'drop tasks into daily/weekly/monthly notes.
+
+Another approach comes from user George C:
+- when reviewing notes I use the "/add sync'd copy to note" command (from the [Filer plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer)) to 'sync' actionable tasks to the current weekly note. (Or, if I know I don't need to get to it until the next week, then it goes into the following week or whatever. If it is actionable but I don't need to get to it until the next month I sync it into that next months task.)
+- in essence this recreates the GTD 30 day, and monthly folders, but with the advantage that all these tasks are synced back to their projects.
+- each day I drag out from the reference area's week's note any actions I want to do that day, maintaining the Sync line status.
+- I also will copy over any tasks I didn't do from the previous day.
 
 ## Creating a new Project/Area note
 A good way to quickly create a new Project or Area note is to use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the Templating plugin. Here is what I use as my New Project Template:
@@ -211,17 +222,6 @@ folder: <select>
 Aim: <%- prompt('aim') %>
 Context: <%- prompt('context') %>
 ```
-
-## Using 'Next Actions'
-Part of the GTD methodology is to note which are the 'next actions' for a project. This plugin doesn't have specific commands to manage these, but NP has various other features and plugins that can help.
-
-This is what user @George65 does:
-- when reviewing notes I use the "/add sync'd copy to note" command (from the [Filer plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer)) to 'sync' actionable tasks to the current weekly note. (Or, if I know I don't need to get to it until the next week, then it goes into the following week or whatever. If it is actionable but I don't need to get to it until the next month I sync it into that next months task.)
-- in essence this recreates the GTD 30 day, and monthly folders, but with the advantage that all these tasks are synced back to their projects.
-- each day I drag out from the reference area's week's note any actions I want to do that day, maintaining the Sync line status.
-- I also will copy over any tasks I didn't do from the previous day.
-
-Another approach is to add a hashtag like `#next` or `#na` to all actionable tasks. Then you can use the "/searchOpenTasks" command (from the [Search Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions)) with search term `#next` to sync _all_ your open `#next` tasks to your `#next Search Results` note. You can then use this as the source to drag'n'drop tasks into daily/weekly/monthly notes.
 
 ## Using with Dashboard plugin
 My separate [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) shows a simpler version of the data from the Projects Review List in its 'Projects' section. It has the same type of edit dialog to complete/cancel/finish review/skip review, and also shows progress indicators.

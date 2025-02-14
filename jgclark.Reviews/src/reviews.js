@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2025-02-05 for v1.1.0, @jgclark
+// Last updated 2025-02-14 for v1.1.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -500,49 +500,49 @@ export async function renderProjectListsHTML(
       `Finish review of currently open Project and start the next review`,
       true
     )
-    const skipReviewPCButton = makePluginCommandButton(`<i class="fa-solid fa-forward"></i>\u00A0Skip\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
-      'jgclark.Reviews',
-      'skip project review',
-      '',
-      'Skip this Project review and select new date',
-      true)
-    const newIntervalPCButton = makePluginCommandButton(`<i class="fa-solid fa-arrows-left-right"></i>\u00A0New Interval`,
-      'jgclark.Reviews',
-      'set new review interval',
-      '',
-      'Set new review interval for Project',
-      true)
-    const updateProgressPCButton = makePluginCommandButton(
-      `\u00A0<i class="fa-solid fa-comment-lines"></i>\u00A0Add Progress`,
-      'jgclark.Reviews',
-      'add progress update',
-      '',
-      'Add a progress line to the currently open Project note',
-      true)
-    const pausePCButton = makePluginCommandButton(
-      `Toggle\u00A0<i class="fa-solid fa-circle-pause"></i>\u00A0Pause`,
-      'jgclark.Reviews',
-      'pause project toggle',
-      '',
-      'Pause the currently open Project note',
-      true
-    )
-    const completePCButton = makePluginCommandButton(
-      `<i class="fa-solid fa-circle-check"></i>\u00A0Complete`,
-      'jgclark.Reviews',
-      'complete project',
-      '',
-      'Complete the currently open Project note',
-      true
-    )
-    const cancelPCButton = makePluginCommandButton(
-      `<i class="fa-solid fa-circle-xmark"></i>\u00A0Cancel`,
-      'jgclark.Reviews',
-      'cancel project',
-      '',
-      'Cancel the currently open Project note',
-      true
-    )
+    // const skipReviewPCButton = makePluginCommandButton(`<i class="fa-solid fa-forward"></i>\u00A0Skip\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
+    //   'jgclark.Reviews',
+    //   'skip project review',
+    //   '',
+    //   'Skip this Project review and select new date',
+    //   true)
+    // const newIntervalPCButton = makePluginCommandButton(`<i class="fa-solid fa-arrows-left-right"></i>\u00A0New Interval`,
+    //   'jgclark.Reviews',
+    //   'set new review interval',
+    //   '',
+    //   'Set new review interval for Project',
+    //   true)
+    // const updateProgressPCButton = makePluginCommandButton(
+    //   `\u00A0<i class="fa-solid fa-comment-lines"></i>\u00A0Add Progress`,
+    //   'jgclark.Reviews',
+    //   'add progress update',
+    //   '',
+    //   'Add a progress line to the currently open Project note',
+    //   true)
+    // const pausePCButton = makePluginCommandButton(
+    //   `Toggle\u00A0<i class="fa-solid fa-circle-pause"></i>\u00A0Pause`,
+    //   'jgclark.Reviews',
+    //   'pause project toggle',
+    //   '',
+    //   'Pause the currently open Project note',
+    //   true
+    // )
+    // const completePCButton = makePluginCommandButton(
+    //   `<i class="fa-solid fa-circle-check"></i>\u00A0Complete`,
+    //   'jgclark.Reviews',
+    //   'complete project',
+    //   '',
+    //   'Complete the currently open Project note',
+    //   true
+    // )
+    // const cancelPCButton = makePluginCommandButton(
+    //   `<i class="fa-solid fa-circle-xmark"></i>\u00A0Cancel`,
+    //   'jgclark.Reviews',
+    //   'cancel project',
+    //   '',
+    //   'Cancel the currently open Project note',
+    //   true
+    // )
 
     // Start with a sticky top bar
     outputArray.push(`<div class="topbar">`)

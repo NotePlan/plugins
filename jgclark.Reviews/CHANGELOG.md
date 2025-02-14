@@ -1,7 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
-<!-- TODO: Fix for the "getOrMakeMetadataLine :: Warning: Can't find an existing metadata line, so will insert one after title" operation -->
+## [1.1.1] - 2025-02-14
+### Changes
+- Turns off the background refresh of Dashboard plugin after every change to Project List, as it was interfering with changing Perspectives. The Dashboard will still update on its usual 'automatically update' interval without problems.
+- If a project note is being processed but doesn't yet have any relevant metadata (specifically at least `@review` or `@reviewed` mention, or at least one project/metadata/review/reviewed frontmatter field), then a very basic metadata line will be added after the note title.
 
 ## [1.1.0] - 2025-02-03
 ### New
