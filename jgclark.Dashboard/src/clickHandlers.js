@@ -112,6 +112,8 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
 
 /**
  * Add a new item anywhere, using the /quickAddTaskUnderHeading command from Quick Capture plugin.
+ * Note: this uses the Quick Capture plugin's command, as it was available.
+ * Ideally it would use a DynamicDialog instead, as that's more flexible and looks nicer, but we don't necessarily have a dropbdown-select component that can scale to 1,000s of items.
  * Calls the doAddItem logic, once new filename is worked out.
  * @param {MessageDataObject} {date: .data.data.data, text: .data.data.}
  * @returns {TBridgeClickHandlerResult} result to be used by click result handler
