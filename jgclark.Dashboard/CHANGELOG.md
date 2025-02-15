@@ -12,8 +12,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ### Fixed
 - Fix '>Yesterday' section not appearing (thanks, @MC-1848)
 - Fix the referenced sections not being removed when 'Show referenced items in separate section' is turned off
+- Fix (re)scheduling items when the Heading setting was set to '<<top of note>>' (thanks, @dwertheimer)
 ### Dev notes
-- Speeded up `isAChildPara()` by using `children()` once instead of calling it multiple times. This is called by `makeDashboardParas()` which is used in all generation..
+- Speeded up `isAChildPara()` by using `children()` once instead of calling it multiple times. This is called by `makeDashboardParas()` which is used in all generation.
+- Restructured makeDashboardParas() and found it could be a lot quicker as a result. I don't understand this, but it's a bonus.
 
 ## [2.1.9] 2025-02-08
 ### Changed
