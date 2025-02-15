@@ -38,7 +38,7 @@ export {
 export { findUnlinkedNotesInCurrentNote, findUnlinkedNotesInAllNotes, triggerFindUnlinkedNotes } from './unlinkedNoteFinder'
 export { printNote } from '@helpers/NPnote'
 
-export { writeModified } from './writeModified'
+export { writeModified, writeModifiedWithoutTriggerGuard } from './writeModified'
 
 export function resetCaches() {
   NotePlan.resetCaches()

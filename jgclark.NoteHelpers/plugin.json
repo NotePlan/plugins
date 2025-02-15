@@ -256,8 +256,8 @@
     },
     {
       "name": "Write changed/modified date to frontmatter",
-      "description": "Write the modified date to frontmatter (on each save). Writes to 'modified' key.",
-      "jsFunction": "writeModified",
+      "description": "Write the modified date to frontmatter (on each save). Writes to 'modified' key. (Immediately writes. Should not be used as a [t]rigger)",
+      "jsFunction": "writeModifiedWithoutTriggerGuard",
       "alias": [
         "modified"
       ],
@@ -265,7 +265,7 @@
     },
     {
       "name": "writeModified",
-      "description": "Write the modified date to frontmatter (on each save). Writes to 'modified' key. Can be run by hand or can be included as a trigger using the 'add trigger to note' command.",
+      "description": "Write the modified date to frontmatter (on each save). Writes to 'modified' key. Can be run by hand or can be included as a trigger using the 'add trigger to note' command. Has a trigger guard that keeps writes from happening more than once per 5s",
       "jsFunction": "writeModified",
       "alias": [],
       "arguments": [],
