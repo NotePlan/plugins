@@ -539,11 +539,11 @@ export async function createNewNote(_title?: string = '', _content?: string = ''
  */
 export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDates: boolean = true): string {
   if (noteIn.type === 'Calendar') {
-    let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, true) ?? '(error)'
+    let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
     if (showRelativeDates) {
       for (const rd of relativeDates) {
         if (calNoteTitle === rd.dateStr) {
-          // console.log(`Found match with ${rd.relName}`)
+          // logDebug('displayTitleWithRelDate',`Found match with ${rd.dateStr} => ${rd.relName}`)
           calNoteTitle = `${rd.dateStr}\t(📆 ${rd.relName})`
         }
       }

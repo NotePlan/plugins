@@ -17,7 +17,7 @@ import {
   isWeeklyDateStr,
   isYearlyDateStr,
   isValidCalendarNoteTitleStr,
-  MOMENT_FORMAT_NP_ISO,
+  // MOMENT_FORMAT_NP_ISO,
   MOMENT_FORMAT_NP_DAY,
   MOMENT_FORMAT_NP_MONTH,
   MOMENT_FORMAT_NP_QUARTER,
@@ -31,6 +31,7 @@ import {
   toISOShortDateTimeString,
 } from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
+// import { displayTitle } from './general'
 
 //--------------------------------------------------------------------------------
 // Local copies of other helpers to avoid circular dependencies
@@ -1003,19 +1004,20 @@ export function getRelativeDates(): Array<Object> {
       return [{}]
     }
 
-    // Calculate relative dates. Remember to clone todayMom first as moments aren't immutable
-    const thisDateStrDisplay = moment(todayMom).format(MOMENT_FORMAT_NP_ISO)
-    const todayDateStr = moment(todayMom).format(MOMENT_FORMAT_NP_DAY)
-    relativeDates.push({ relName: 'today', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(todayDateStr) })
-    const yesterdayDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
-    relativeDates.push({ relName: 'yesterday', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(yesterdayDateStr) })
-    const tomorrowDateStr = moment(todayMom).add(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
-    relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(tomorrowDateStr) })
+    // Calculate relative dates. Remember to clone todayMom first as moments aren't immutable!
+    // Days
+    let thisDateStr = moment(todayMom).format(MOMENT_FORMAT_NP_DAY)
+    relativeDates.push({ relName: 'today', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+    relativeDates.push({ relName: 'yesterday', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+    relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
 
-    // can't start with moment as NP weeks count differently
+    // Weeks
+    // Note: can't start with moment as NP weeks count differently
     // $FlowIgnore[incompatible-type]
     let thisNPWeekInfo: NotePlanWeekInfo = getNPWeekData(new Date())
-    let thisDateStr = thisNPWeekInfo.weekString
+    thisDateStr = thisNPWeekInfo.weekString
     relativeDates.push({ relName: 'this week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     // $FlowIgnore[incompatible-type]
     thisNPWeekInfo = getNPWeekData(new Date(), -1)
@@ -1028,6 +1030,7 @@ export function getRelativeDates(): Array<Object> {
     thisDateStr = thisNPWeekInfo.weekString
     relativeDates.push({ relName: 'next week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
 
+    // Months
     thisDateStr = moment(todayMom).startOf('month').format(MOMENT_FORMAT_NP_MONTH)
     relativeDates.push({ relName: 'this month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     thisDateStr = moment(todayMom).subtract(1, 'month').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
@@ -1035,6 +1038,7 @@ export function getRelativeDates(): Array<Object> {
     thisDateStr = moment(todayMom).add(1, 'month').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
     relativeDates.push({ relName: 'next month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
 
+    // Quarters
     thisDateStr = moment(todayMom).startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
     relativeDates.push({ relName: 'this quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     thisDateStr = moment(todayMom).subtract(1, 'quarter').startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
@@ -1044,7 +1048,7 @@ export function getRelativeDates(): Array<Object> {
 
     // for (const rd of relativeDates) {
     //   const noteTitle = (rd.note) ? displayTitle(rd.note) : '(error)'
-    //   logDebug('getRelativeDates', `${rd.name ?? ''}: ${rd.dateStr ?? ''} / ${noteTitle}`)
+    //   logDebug('getRelativeDates', `${rd.relName ?? ''}: ${rd.dateStr ?? ''} / ${noteTitle}`)
     // }
     return relativeDates
   } catch (err) {
