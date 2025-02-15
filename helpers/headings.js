@@ -8,10 +8,10 @@ import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '
  * @param {TParagraph} para
  * @returns {Array<string>} array of headings, lowest (e.g. H4) to highest (e.g. H1)
  */
-export function getHeadingHierarchyForThisPara(para) {
+export function getHeadingHierarchyForThisPara(para: TParagraph): Array<string> {
   let lineIndex = para.lineIndex
   const noteFilename = para.note?.filename ?? '?'
-  // logDebug('getHeadingHierarchyForThisPara', `Finding headings for line #${String(lineIndex)} in note ${noteFilename}:`)
+  logDebug('getHeadingHierarchyForThisPara', `Finding headings for line #${String(lineIndex)} in note ${noteFilename}:`)
   const thisNote = para.note
   const noteParas = thisNote?.paragraphs
   if (!noteParas || noteParas.length === 0) {
@@ -31,6 +31,6 @@ export function getHeadingHierarchyForThisPara(para) {
     }
     lineIndex--
   }
-  // logDebug('getHeadingHierarchyForThisPara', `-> ${String(theseHeadings.length)} headings found: [${String(theseHeadings)}]`)
+  logDebug('getHeadingHierarchyForThisPara', `-> ${String(theseHeadings.length)} headings found: [${String(theseHeadings)}]`)
   return theseHeadings
 }

@@ -2,6 +2,8 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 ## [2.1.10] 2025-02-???
+### New
+- when you move an item from one note to another, if you want the current hierarchy of headings to be maintained in the new note (if they aren't already present), you can now use special setting `<<carry forward>>` in 'Section heading to add/move new tasks under'.  For example, if the item to move is in section `### Project VENONA` which in turn is under heading `## Work`, then `## Work` and `### Project VENONA` will be inserted first, if they aren't already present.
 ### Changed
 - Whole Dashboard a little quicker to generate, particularly in the case of notes with many parent/child items.
 - The Tag section(s) are now about twice as quick to generate, and if there are multiple ones to show, they start appearing more quickly.

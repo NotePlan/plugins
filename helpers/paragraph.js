@@ -233,6 +233,60 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
 }
 
 /**
+ * Add a new paragraph and preceding heading(s) to a note. If the headings already exist, then don't add them again, but insert the paragraph after the existing headings.
+ * @param {TNote} destNote
+ * @param {string} paraText 
+ * @param {ParagraphType} paragraphType 
+ * @param {Array<string>} headingArray - the headings from H1 (or H2) downwards
+ * @param {number} firstHeadingLevel - the level of the first heading given (1, 2, 3, etc.)
+ */
+export function smartCreateSectionsAndPara(destNote: TNote, paraText: string, paragraphType: ParagraphType, headingArray: Array<string>, firstHeadingLevel: number): void {
+  try {
+    // Work out which of the given headings already exist.
+    // Form a parallel array of existing headings, with empty strings for any that don't exist.
+    const existingHeadingParas = []
+    let notExistingHeadings = 0
+    for (const h of headingArray) {
+      const existingHeading = findHeading(destNote, h)
+      if (existingHeading) {
+        existingHeadingParas.push(existingHeading)
+      } else {
+        // Heading doesn't exist, so add it
+        existingHeadingParas.push('')
+        notExistingHeadings++
+      }
+    }
+    logInfo('paragraph/smartCreateSections', `existingHeadingParas: [${String(existingHeadingParas.map((p) => p.content || '?'))}]`)
+
+    let currentHeadingLineIndex = findStartOfActivePartOfNote(destNote)
+
+    // Now use smartPrepend to add any headings that don't already exist
+    if (notExistingHeadings > 0) {
+      // Get start of active part of note
+      // Add the headings
+      for (let i = 0; i < existingHeadingParas.length; i++) {
+        if (existingHeadingParas[i] !== '') {
+          const thisHeadingPara = existingHeadingParas[i]
+          currentHeadingLineIndex = thisHeadingPara.lineIndex
+          logInfo('paragraph/smartCreateSections', `noting existing heading "${thisHeadingPara.content}" at line ${String(currentHeadingLineIndex)} level ${String(thisHeadingPara.headingLevel)}`)
+        } else {
+          // Heading doesn't exist, so add it
+          // $FlowFixMe[incompatible-call] headingLevel is a number, but the API expects an enumeration
+          destNote.insertHeading(headingArray[i], currentHeadingLineIndex + 1, firstHeadingLevel + i)
+          logInfo('paragraph/smartCreateSections', `added heading "${headingArray[i]}" at line ${String(currentHeadingLineIndex)} level ${String(firstHeadingLevel + i)}`)
+        }
+      }
+    }
+
+    // Finally add the paragraph after them
+    destNote.addParagraphBelowHeadingTitle(paraText, paragraphType, headingArray[headingArray.length - 1], false, false)
+    logInfo('paragraph/smartCreateSections', `inserting para at line ${String(currentHeadingLineIndex)}`)
+  } catch (err) {
+    logError('paragraph/smartCreateSections', err.message)
+  }
+}
+
+/**
  * TEST:
  * Prepends multiple lines of text to a chosen note, as separate paragraphs, but more smartly than usual.
  * I.e. if the note starts with YAML frontmatter
