@@ -141,7 +141,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'newTaskSectionHeading',
     label: 'Section heading to add/move new tasks under',
     description:
-      "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If you leave this field blank, it will prompt you each time which heading to use. If you want new tasks to always appear at the top of the note, use <<top of note>> (with the << and >>). Or if you want the current hierarchy of headings to be maintained in the new note (if they aren't already present), use <<carry forward>> (with the << and >>).",
+      "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If you leave this field blank, it will prompt you each time which heading to use. If you want new tasks to always appear at the top of the note, use '<<top of note>>'. Likewise for '<<bottom of note>>' if you want them to appear at the bottom. Or if you want the current hierarchy of headings to be maintained in the new note, use '<<carry forward>>'.",
     type: 'input',
     default: 'Tasks',
     compactDisplay: true,
@@ -174,7 +174,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'useLiteScheduleMethod',
     label: 'Use simplified (re)scheduling method?',
     description:
-      "If set then the item simply has its '>date' updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. This is not the normal method NotePlan uses.",
+      "If set then the item simply has its '>date' updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. Note: This is not the normal method NotePlan uses.",
     type: 'switch',
     default: false,
     dependsOnKey: 'rescheduleNotMove',

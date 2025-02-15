@@ -140,18 +140,18 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
     matchedPara.content = updatedMatchedPara
     originNote.updateParagraph(matchedPara)
 
-    // const itemType = matchedPara?.type
     const matchedParaAndChildren = getParaAndAllChildren(matchedPara)
     const targetContent = parasToText(matchedParaAndChildren)
 
-    // add to destNote
+    // Add to destNote
+    // Handle options for where to insert the new lines (see also NPScheduleItems::scheduleItem())
     if (heading === '<<top of note>>') {
       // Handle this special case
-      logDebug('coreAddTaskdestNoteHeading', `Adding line '${targetContent}' to start of active part of note '${displayTitle(destNote)}' using smartPrependPara()`)
+      logDebug('coreAddTaskdestNoteHeading', `- Adding line '${targetContent}' to start of active part of note '${displayTitle(destNote)}' using smartPrependPara()`)
       smartPrependPara(destNote, targetContent, 'text')
     }
     else if (heading === '' || heading === '<<bottom of note>>') {
-      logDebug('moveItemBetweenCalendarNotes', `- Calling smartAppendPara() for '${String(matchedParaAndChildren.length)}' to '${displayTitle(destNote)}'`)
+      logDebug('moveItemBetweenCalendarNotes', `- Adding line '${targetContent}' to start of active part of note '${displayTitle(destNote)}' using smartAppendPara()`)
       smartAppendPara(destNote, targetContent, 'text')
     }
     else if (heading === '<<carry forward>>') {
@@ -174,7 +174,6 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
       )
 
       // ? TODO: Add new setting + Logic to handle inserting section heading(s) more generally (ref tastapod)
-      // ? TODO: Add new setting + logic to not add new section heading (ref #551)
 
       if (matchedHeading !== '') {
         // Heading does exist in note already

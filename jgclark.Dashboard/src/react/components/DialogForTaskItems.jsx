@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-02-01 for v2.1.8
+// Last updated 2025-02-15 for v2.1.10
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -177,7 +177,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // will eventually call onClose() from Dialog.jsx (does nothing special)
   // and will pass it on to Dashboard::handleDialogClose which (may) refresh the page
   const closeDialog = (forceClose: boolean = false) => {
-    logDebug(`DialogForTaskItems 🥸 closeDialog(${String(forceClose)}) reactSettings; looking for interactiveProcessing`)
+    logDebug(`DialogForTaskItems closeDialog(${String(forceClose)}) reactSettings; looking for interactiveProcessing`)
     if (reactSettings?.interactiveProcessing) {
       if (forceClose) {
         setReactSettings((prevSettings) => ({
@@ -190,15 +190,15 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         return
       }
     }
-    console.log('DialogForTaskItems 🥸 closeDialog() calling setAnimationClass')
+    // logDebug('DialogForTaskItems closeDialog() calling setAnimationClass')
     showAnimations ? setAnimationClass('zoom-out') : null
     scheduleClose(showAnimations ? 300 : 0, forceClose) // Match the duration of the animation
   }
 
   const scheduleClose = (delay: number, forceClose: boolean = false) => {
-    logDebug(`DialogForTaskItems`, `🥸 scheduleClose() ${String(delay)}ms delay, forceClose=${String(forceClose)}`)
+    logDebug(`DialogForTaskItems`, `scheduleClose() ${String(delay)}ms delay, forceClose=${String(forceClose)}`)
     setTimeout(() => {
-      console.log('DialogForTaskItems 🥸 scheduleClose() after timeout reactSettings; looking for interactiveProcessing', reactSettings)
+      logDebug('DialogForTaskItems scheduleClose() after timeout reactSettings; looking for interactiveProcessing', reactSettings)
       // $FlowIgnore
       // logDebug('DialogForTaskItems', `scheduleClose calling handleIPItemProcessed`)
       // reactSettings?.interactiveProcessing ? handleIPItemProcessed(false) : null

@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2024-09-21 for v2.1.0.a12 by @jgclark
+// Last updated 2025-02-15 for v2.1.10 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -11,7 +11,7 @@
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import type { TSettingItem, TDashboardSettings } from '../../types'
-import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
+// import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import { setPerspectivesIfJSONChanged, getActivePerspectiveName } from '../../perspectiveHelpers'
 import { useAppContext } from './AppContext.jsx'
@@ -19,7 +19,7 @@ import { useAppContext } from './AppContext.jsx'
 import '../css/SettingsDialog.css' // Import the CSS file
 import Modal from './Modal'
 import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
-import { dt } from '@helpers/dev.js'
+// import { dt } from '@helpers/dev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -52,7 +52,7 @@ const SettingsDialog = ({
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, dispatchDashboardSettings, dispatchPerspectiveSettings, pluginData, perspectiveSettings, sendActionToPlugin } = useAppContext()
+  const { dashboardSettings, pluginData, sendActionToPlugin } = useAppContext()
 
   const pluginDisplayVersion = `v${pluginData?.version || ''}`
 
@@ -95,7 +95,7 @@ const SettingsDialog = ({
   //----------------------------------------------------------------------
 
   const handleEscapeKey = (event: KeyboardEvent) => {
-    logDebug('SettingsDialog', `Event.key: ${event.key}`)
+    // logDebug('SettingsDialog', `Event.key: ${event.key}`)
     if (event.key === 'Escape') {
       toggleDialog()
     }

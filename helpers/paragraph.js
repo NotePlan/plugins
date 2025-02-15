@@ -256,9 +256,9 @@ export function smartCreateSectionsAndPara(destNote: TNote, paraText: string, pa
         notExistingHeadings++
       }
     }
-    logInfo('paragraph/smartCreateSections', `existingHeadingParas: [${String(existingHeadingParas.map((p) => p.content || '?'))}]`)
 
-    let currentHeadingLineIndex = findStartOfActivePartOfNote(destNote)
+    logInfo('paragraph/smartCreateSections', `existingHeadingParas: [${String(existingHeadingParas.map((p) => p.content || ''))}]`)
+    let latestInsertionLineIndex = findStartOfActivePartOfNote(destNote)
 
     // Now use smartPrepend to add any headings that don't already exist
     if (notExistingHeadings > 0) {
@@ -267,20 +267,22 @@ export function smartCreateSectionsAndPara(destNote: TNote, paraText: string, pa
       for (let i = 0; i < existingHeadingParas.length; i++) {
         if (existingHeadingParas[i] !== '') {
           const thisHeadingPara = existingHeadingParas[i]
-          currentHeadingLineIndex = thisHeadingPara.lineIndex
-          logInfo('paragraph/smartCreateSections', `noting existing heading "${thisHeadingPara.content}" at line ${String(currentHeadingLineIndex)} level ${String(thisHeadingPara.headingLevel)}`)
+          latestInsertionLineIndex = thisHeadingPara.lineIndex + 1
+          logInfo('paragraph/smartCreateSections', `noting existing heading "${thisHeadingPara.content}" at line ${String(latestInsertionLineIndex - 1)} level ${String(thisHeadingPara.headingLevel)}`)
         } else {
           // Heading doesn't exist, so add it
           // $FlowFixMe[incompatible-call] headingLevel is a number, but the API expects an enumeration
-          destNote.insertHeading(headingArray[i], currentHeadingLineIndex + 1, firstHeadingLevel + i)
-          logInfo('paragraph/smartCreateSections', `added heading "${headingArray[i]}" at line ${String(currentHeadingLineIndex)} level ${String(firstHeadingLevel + i)}`)
+          destNote.insertHeading(headingArray[i], latestInsertionLineIndex, firstHeadingLevel + i)
+          logInfo('paragraph/smartCreateSections', `added heading "${headingArray[i]}" at line ${String(latestInsertionLineIndex)} level ${String(firstHeadingLevel + i)}`)
         }
       }
+    } else {
+      logInfo('paragraph/smartCreateSections', `all existingHeadingParas found, so only need to add the paragraph`)
     }
 
     // Finally add the paragraph after them
     destNote.addParagraphBelowHeadingTitle(paraText, paragraphType, headingArray[headingArray.length - 1], false, false)
-    logInfo('paragraph/smartCreateSections', `inserting para at line ${String(currentHeadingLineIndex)}`)
+    logInfo('paragraph/smartCreateSections', `inserting para after heading "${headingArray[headingArray.length - 1]}" (i.e. line ${String(latestInsertionLineIndex + 1)})`)
   } catch (err) {
     logError('paragraph/smartCreateSections', err.message)
   }

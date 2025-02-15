@@ -10,8 +10,11 @@ import {
   getFilenameDateStrFromDisplayDateStr,
   replaceArrowDatesInString,
 } from '@helpers/dateTime'
-import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
+import { getHeadingHierarchyForThisPara } from '@helpers/headings'
+import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
+import { findHeading, smartAppendPara, smartCreateSectionsAndPara, smartPrependPara } from '@helpers/paragraph'
 
 /**
  * Remove any scheduled date (e.g. >YYYY-MM-DD or >YYYY-Www) from given line in note identified by filename.
@@ -101,21 +104,22 @@ export function scheduleItemLiteMethod(thisPara: TParagraph, dateStrToAdd: strin
  * @param {TParagraph} origPara of open item
  * @param {string} dateStrToAdd, without leading '>'. Can be special date 'today'.
  * @param {string?} newTaskSectionHeading, which can be empty, in which case it will be added at the end of the note.
+ * @param {number?} newTaskSectionHeadingLevel heading level to use for new headings (optional, defaults to 2)
  * @returns {boolean} success?
  */
-export function scheduleItem(origPara: TParagraph, dateStrToAdd: string, newTaskSectionHeading: string = ''): boolean {
+export function scheduleItem(origPara: TParagraph, dateStrToAdd: string, newTaskSectionHeading: string = '', newTaskSectionHeadingLevel: number = 2): boolean {
   try {
-    const origNote = origPara.note
-    if (!origNote) throw new Error(`Could not get note for existing para`)
-    if (origNote.type === 'Notes') {
-      logDebug('scheduleItem', `It doesn't make sense to run this on a para from regular note '${origNote.filename}'. Will call scheduleItemLiteMethod instead.`)
+    const originNote = origPara.note
+    if (!originNote) throw new Error(`Could not get note for existing para`)
+    if (originNote.type === 'Notes') {
+      logDebug('scheduleItem', `It doesn't make sense to run this on a para from regular note '${originNote.filename}'. Will call scheduleItemLiteMethod instead.`)
       return scheduleItemLiteMethod(origPara, dateStrToAdd)
     }
 
-    const origDateStr = getDisplayDateStrFromFilenameDateStr(origNote.filename)
+    const origDateStr = getDisplayDateStrFromFilenameDateStr(originNote.filename)
     const origContent = origPara.content
     const origType = origPara.type
-    if (!origNote) throw new Error(`Could not get note for para '${origContent}'`)
+    if (!originNote) throw new Error(`Could not get note for para '${origContent}'`)
     logDebug('scheduleItem', `Starting to schedule from ${origDateStr} to '${dateStrToAdd}'`)
 
     // In existing line find and then remove any existing scheduled dates, and add new scheduled date
@@ -123,26 +127,45 @@ export function scheduleItem(origPara: TParagraph, dateStrToAdd: string, newTask
     // Change line type (if not already *Scheduled)
     if (origType === 'checklist') origPara.type = 'checklistScheduled'
     if (origType === 'open') origPara.type = 'scheduled'
-    logDebug('scheduleItem', `Orig -> '${origPara.content}' type '${origPara.type}' in note ${origNote.filename}`)
+    logDebug('scheduleItem', `Orig -> '${origPara.content}' type '${origPara.type}' in note ${originNote.filename}`)
 
     // Update to DataStore, and ask for cache refresh
-    origNote.updateParagraph(origPara)
-    DataStore.updateCache(origNote, false)
+    originNote.updateParagraph(origPara)
+    DataStore.updateCache(originNote, false)
     logDebug('scheduleItem', `-> orig updated`)
 
     // Then add new line in destination note
     const dateStrToAddForAPICall = getFilenameDateStrFromDisplayDateStr(dateStrToAdd)
-    const newNote = DataStore.calendarNoteByDateString(dateStrToAddForAPICall)
-    if (!newNote) throw new Error(`Could not get note for new date ${dateStrToAddForAPICall}`)
+    const destNote = DataStore.calendarNoteByDateString(dateStrToAddForAPICall)
+    if (!destNote) throw new Error(`Could not get note for new date ${dateStrToAddForAPICall}`)
     const newContent = replaceArrowDatesInString(origContent, `<${origDateStr}`)
     const newType = origType
     const heading = newTaskSectionHeading
-    logDebug('scheduleItem', `New -> '${newContent}' type '${newType}' under heading ${heading}`)
-    newNote.addParagraphBelowHeadingTitle(newContent, newType, heading, true, true)
-    logDebug('scheduleItem', `-> new added to ${newNote.filename}`)
+    // Handle options for where to insert the new lines (see also NPMoveItems::moveItemBetweenCalendarNotes())
+    if (heading === '<<top of note>>') {
+      // Handle this special case
+      logDebug('scheduleItem', `- Adding line '${newContent}' to start of active part of note '${displayTitle(destNote)}' using smartPrependPara()`)
+      smartPrependPara(destNote, newContent, origType)
+    }
+    else if (heading === '' || heading === '<<bottom of note>>') {
+      logDebug('scheduleItem', `- Adding line '${newContent}' to start of active part of note '${displayTitle(destNote)}' using smartAppendPara()`)
+      smartAppendPara(destNote, newContent, origType)
+    }
+    else if (heading === '<<carry forward>>') {
+      // Get preceding headings for origPara
+      const headingHierarchy = getHeadingHierarchyForThisPara(origPara).reverse()
+      logDebug('scheduleItem', `- Calling smartCreateSectionsAndPara() to add line '${newContent}' to '${displayTitle(destNote)}' with headingHierarchy: [${String(headingHierarchy)}]`)
+      const firstHeadingPara = findHeading(originNote, headingHierarchy[0])
+      const firstHeadingLevel = firstHeadingPara?.headingLevel ?? newTaskSectionHeadingLevel
+      smartCreateSectionsAndPara(destNote, newContent, origType, headingHierarchy, firstHeadingLevel)
+    } else {
+      logDebug('scheduleItem', `New -> '${newContent}' type '${newType}' under heading ${heading}`)
+      destNote.addParagraphBelowHeadingTitle(newContent, newType, heading, true, true)
+    }
+    logDebug('scheduleItem', `-> new added to ${destNote.filename}`)
 
     // Ask for cache refresh for new note
-    DataStore.updateCache(newNote, false)
+    DataStore.updateCache(destNote, false)
 
     return true
   } catch (error) {
