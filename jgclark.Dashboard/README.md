@@ -67,6 +67,24 @@ You can make many more changes by clicking on the **pencil** icon after each tas
 
 You can also update the text of the item itself, which is saved whenever you press the `Update` button (or any of the other action buttons). You can press `ESC` key to close the dialog, or click on the `X` button.
 
+### Moving/Scheduling items
+A very common action is to move items from calendar note to another, or to a regular note. The Dashboard supports many different possible workflows, which will hopefully suit all users.  The main choice is whether to:
+- **move items** from one note to the other -- which deletes from the origin note; or
+- **(re)schedule items** -- which makes a *copy* in the destination note and appends a `<date` indicating the date it was copied from.
+
+You make this choice in the '(Re)schedule items in place, rather than move them?' setting. There's also a sub-setting if you want to (re)schedule:
+  - Use simplified (re)scheduling method?: By default this is off, but if selected then the item simply has its `>date` updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. (This is my much preferred way of operating, and avoids duplicating unfinished tasks in calendar notes.)
+
+There are also options about whether to make the same **heading (or hierarchy of headings) appear** in the destination note. The settings that control the options are in the section 'Moving/Scheduling Items':
+
+- Section heading to add/move new tasks under: When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If you leave this field blank, it will prompt you each time which heading to use. If you want new tasks to always appear at the top of the note, use `<<top of note>>`. Likewise for `<<bottom of note>>` if you want them to appear at the bottom. Or if you want the current hierarchy of headings to be maintained in the new note, use `<<carry forward>>`.
+- Heading level for new Headings: level 1-5 to use when adding new headings in notes. This can also be set to `0`, which tells the Dashboard to only create the wanted heading if it isn't already present in the destination note.
+
+There are several detailed options:
+
+- Move sub-items with the item? If set, then indented sub-items of an item will be moved if the item is moved to a different note.
+- Use '>today' to schedule tasks for today?: You can have tasks scheduled for today to use `>today` or the current date. If you use `>today`, the task will automatically move to tomorrow if not completed. If you use the current date, the task will not automatically move and will show as an overdue task. 
+
 ### Interactive Processing
 <img src="task-dialog-IP-mode-2.1.8.png" margin="8px" width="600px" alt="interactive processing mode" />
 
@@ -131,7 +149,6 @@ This finds open items with a schedule date (e.g. `>2025-01-22`) in the past. Thi
 
 You can set the "Sort order for Tag/Mention and Overdue items": 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.
 
-
 ### Priority section
 Note: this is likely to be very slow to generate, as it can't use any of NotePlan's internal caches, and doesn't have a natural way to limit it, like the Overdue section.
 
@@ -158,12 +175,7 @@ The 3 key settings in "What to Include and Exclude" section control what folders
 
 The rest of the Settings change some of how the Dashboard displays and behaves:
 - #tag/@mention(s) to show: If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. May also be more than one, separated by a comma. NOTE: These tasks will only show up in their separate section, unless you have the 'Hide Duplicates' option turned OFF.
-- Section heading to add/move new tasks under: When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If you leave this field blank, it will prompt you each time which heading to use. If you want new tasks to always appear at the top of the note, use `<<top of note>>`. Likewise for `<<bottom of note>>` if you want them to appear at the bottom. Or if you want the current hierarchy of headings to be maintained in the new note, use `<<carry forward>>`.
-- Heading level for new Headings: level 1-5 to use when adding new headings in notes.
-- Move sub-items with the item? If set, then indented sub-items of an item will be moved if the item is moved to a different note.
-- (Re)schedule items in place, rather than move them?: When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.
-  - Use simplified (re)scheduling method?: By default this is off, but if selected then the item simply has its `>date` updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. (This is my much preferred way of operating, and avoids duplicating unfinished tasks in calendar notes.)
-- Use '>today' to schedule tasks for today?: You can have tasks scheduled for today to use `>today` or the current date. If you use `>today`, the task will automatically move to tomorrow if not completed. If you use the current date, the task will not automatically move and will show as an overdue task. 
+- _the settings in the 'Moving/Scheduling Items' section are covered above_.
 - Max number of items to show in a section?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections. (Default: 30)
 - Show completed task count?: Show the number of tasks completed today at the top of the Dashboard. Note: For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.
 - Automatic Update frequency: If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.

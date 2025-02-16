@@ -637,8 +637,8 @@ export async function addNewPerspective(nameArg?: string): Promise<void> {
   // persist the updated Perpsective settings
   const updatedPerspectives = addPerspectiveDef(allDefs, newDef)
 
-  // TODO: TEST: (DBW): this was commented out but after refactoring how perspectives work I am trying it again
-  const res = savePerspectiveSettings(updatedPerspectives) // saves the perspective settings to DataStore.settings
+  // saves the perspective settings to DataStore.settings
+  const res = savePerspectiveSettings(updatedPerspectives)
   logDebug('addPerspectiveSetting', `- Saved '${name}': now ${String(updatedPerspectives.length)} perspectives (with the new one (${name}) active)`)
 
   const perspectiveNames = updatedPerspectives.map((p) => p.name).join(', ')

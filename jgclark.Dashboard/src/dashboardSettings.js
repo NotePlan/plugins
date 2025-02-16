@@ -138,6 +138,24 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Moving/Scheduling Items',
   },
   {
+    key: 'rescheduleNotMove',
+    label: '(Re)schedule items in place, rather than move?',
+    description: 'When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.',
+    type: 'switch',
+    default: false,
+    compactDisplay: true,
+    controlsOtherKeys: ['useLiteScheduleMethod'],
+  },
+  {
+    key: 'useLiteScheduleMethod',
+    label: 'Use simplified (re)scheduling method?',
+    description:
+      "If set then the item simply has its '>date' updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. Note: This is not the normal method NotePlan uses.",
+    type: 'switch',
+    default: false,
+    dependsOnKey: 'rescheduleNotMove',
+  },
+  {
     key: 'newTaskSectionHeading',
     label: 'Section heading to add/move new tasks under',
     description:
@@ -160,24 +178,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: 'If set, then indented sub-items of an item will be moved if the item is moved to a different note.',
     type: 'switch',
     default: true,
-  },
-  {
-    key: 'rescheduleNotMove',
-    label: '(Re)schedule items in place, rather than move?',
-    description: 'When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.',
-    type: 'switch',
-    default: false,
-    compactDisplay: true,
-    controlsOtherKeys: ['useLiteScheduleMethod'],
-  },
-  {
-    key: 'useLiteScheduleMethod',
-    label: 'Use simplified (re)scheduling method?',
-    description:
-      "If set then the item simply has its '>date' updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. Note: This is not the normal method NotePlan uses.",
-    type: 'switch',
-    default: false,
-    dependsOnKey: 'rescheduleNotMove',
   },
   {
     key: 'useTodayDate',
