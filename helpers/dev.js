@@ -151,7 +151,7 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
  * @example clvt(obj, 'myObj:')
  */
 export function clvt(obj: any, preamble: string = ''): void {
-  if (!obj) {
+  if (obj == null) {
     console.log(`${preamble} null`)
     return
   }

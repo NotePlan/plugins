@@ -151,7 +151,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Heading level for new Headings',
     description: 'Heading level (1-5) to use when adding new headings in notes. Note: you can also set this to 0 which means add task under the heading, but only if it already exists.',
     type: 'number',
-    default: '2',
+    default: 2,
     compactDisplay: true,
   },
   {
@@ -200,7 +200,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Max number of items to show in a section?',
     description: "The Dashboard isn't designed to show very large numbers of tasks. This sets the maximum number of items that will be shown at one time in each section.",
     type: 'number',
-    default: '24',
+    default: 24,
     compactDisplay: true,
   },
   {
@@ -216,7 +216,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Automatic Update interval',
     description: 'If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.',
     type: 'number',
-    default: '10',
+    default: 10,
     compactDisplay: true,
   },
   {
@@ -296,7 +296,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Number of days to look back for Overdue tasks',
     description: 'If set to any number > 0, will restrict Overdue tasks to just this last number of days.',
     type: 'number',
-    default: '7',
+    default: 7,
     compactDisplay: true,
   },
   {
