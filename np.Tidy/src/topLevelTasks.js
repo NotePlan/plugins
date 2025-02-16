@@ -95,7 +95,7 @@ export async function moveTopLevelTasksInNote(
  */
 export function getHeadingName(headingName: string | null): string {
   try {
-    return headingName || DataStore.settings.moveTopLevelTasksHeading
+    return headingName || DataStore?.settings?.moveTopLevelTasksHeading || ''
   } catch (error) {
     handleCatchError(error, true, 'getHeadingName')
   }
@@ -242,11 +242,12 @@ export function removeEmptyTopParagraphs(note: CoreNoteFields): void {
   try {
     if (note?.paragraphs?.length) {
       for (const para of note.paragraphs) {
-        console.log(`removeEmptyTopParagraphs: para.type: ${para.type} para.content: ${para.content}`)
-        if (para.type === 'empty' || para.content.trim() === '') {
+        logDebug(`removeEmptyTopParagraphs: para.type: ${para.type} para.content: ${para.content}`)
+        if (para?.type === 'empty' || para?.content?.trim() === '') {
           logDebug(`removeEmptyTopParagraphs: found empty paragraph at top of note ${para.lineIndex}. deleting. This may not work in a template.`)
           note.removeParagraph(para)
-          if ((note.paragraphs.length && note.paragraphs[0].type === 'empty') || note.paragraphs[0].content.trim() === '') {
+          clo(note.paragraphs, 'note.paragraphs after paragraph removal')
+          if (note?.paragraphs?.length && (note.paragraphs[0].type === 'empty' || note.paragraphs[0].content.trim() === '')) {
             // there's a bug in the NP API where it doesn't handle empty paragraphs at the top of the note
             // so we need to handle it manually
             const content = note.content

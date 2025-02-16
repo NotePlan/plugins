@@ -265,20 +265,59 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f.processTopLevelTasks(globalNote, globalNote.paragraphs, 'Tasks', true)
         expect(result).toEqual(expected)
       })
+      test('should return an array of rawContent of top level tasks (the whole note)', () => {
+        // use globalNote defined in beforeAll
+        const expected = globalNote.paragraphs.map((p) => p.rawContent)
+        expected.pop() // remove the "" empty at the end
+        const result = f.processTopLevelTasks(globalNote, globalNote.paragraphs, '', true)
+        expect(result).toEqual(expected)
+      })
+      test('should return an array of rawContent when passed the top level tasks (not including the text under the top level tasks)', () => {
+        // use globalNote defined in beforeAll
+        const expected = globalNote.paragraphs.map((p) => p.rawContent)
+        const paras = globalNote.paragraphs.filter((p) => p.lineIndex !== 4 && p.lineIndex !== 6) // only the tasks, not text or blanks
+        expected.pop() // remove the "" empty at the end because it should not return it
+        const result = f.processTopLevelTasks(globalNote, globalNote.paragraphs, '', true)
+        expect(result).toEqual(expected)
+      })
+    })
+
+    /*
+     * moveTopLevelTasksInNote()
+     */
+    describe('moveTopLevelTasksInNote()' /* function */, () => {
+      test('should return the proper string of tasks (template call)', async () => {
+        // use globalNote defined in beforeAll
+        Editor.note = globalNote
+        Editor.paragraphs = globalNote.paragraphs
+        const expectedArray = Editor.paragraphs.map((p) => p.rawContent)
+        expectedArray.pop() // remove the "" empty at the end
+        const expectedStr = expectedArray.join('\n')
+        const result = await f.moveTopLevelTasksInNote(Editor, '', true, true)
+        expect(result).toEqual(expectedStr)
+      })
     })
 
     /*
      * moveTopLevelTasksInEditor()
      */
     describe('moveTopLevelTasksInEditor()' /* function */, () => {
+      test('should not do anything if heading name is empty and returnContentAsText is not true', async () => {
+        // use globalNote defined in beforeAll
+        Editor.paragraphs = globalNote.paragraphs
+        Editor.note = globalNote
+        // test the return-as-string version
+        const result = await f.moveTopLevelTasksInEditor('', true, 'false')
+        // expect result to be a string
+        expect(result).toEqual(expect.any(String))
+        expect(result).toEqual('')
+      })
       test('should return tasks as string (entrypoint integration test)', async () => {
         // use globalNote defined in beforeAll
         Editor.paragraphs = globalNote.paragraphs
         Editor.note = globalNote
         // test the return-as-string version
         const result = await f.moveTopLevelTasksInEditor('', true, true)
-        // expect result to be a string
-        expect(result).toEqual(expect.any(String))
         const lines = result.split('\n')
         expect(lines.length).toEqual(6)
         expect(lines[0]).toEqual('* Call Allianz 1-800-334-7525')

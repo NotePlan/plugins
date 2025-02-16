@@ -1,6 +1,10 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.14.6] - 2025-02-16 @dwertheimer
+
+- Minor fix to calling **/Move top-level tasks to heading** from a template
+
 ## [0.14.5] - 2025-02-15 @dwertheimer
 - tweak **/Move top-level tasks to heading** to be able to be run from an xcallback
 
