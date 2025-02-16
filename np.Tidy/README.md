@@ -81,7 +81,16 @@ NOTE: (thx @phenix): The order is important because the task header needs to be 
 
 > **NOTE:** If you also run the `Tidy Up` command in your template, you should uncheck this command in the TidyUp settings.
 
-### Using from x-callback calls
+#### Running **/Move top-level tasks in Editor to heading** from an xcallback
+This xcallback link can be placed in your daily note template, or in a template for another note, to run the **/Move top-level tasks in Editor to heading** command and will move all top-level tasks in the current note to a heading, in this example "Tasks".
+```markdown
+[Top-level->Tasks](noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Move%20top-level%20tasks%20in%20Editor%20to%20heading&arg0=Tasks&arg1=false&arg2=false)
+```
+
+
+
+
+### Using from x-callback calls (generally)
 It's possible to call most of these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
 
 `noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=<encoded command name>&arg0=<encoded parameters>`

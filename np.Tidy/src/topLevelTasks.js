@@ -19,21 +19,33 @@ import { removeRepeats } from '@helpers/dateTime'
  * @param {string} headingName - Name of heading to place the tasks under (will be created if doesn't exist)
  * @param {boolean} runSilently - Run silently (e.g. in a template). Default is false.
  * @param {boolean} returnContentAsText - Return the content of the note as text, rather than inserting under a heading (e.g. for template use)
+ * @param {boolean|string} isTemplate - Is this running from a template? (default: false)
  * @returns {Promise<string>} Promise resolving to the modified note content or null
  */
-export async function moveTopLevelTasksInEditor(headingName: string | null = null, runSilently: boolean = false, returnContentAsText: boolean = false): Promise<string> {
+export async function moveTopLevelTasksInEditor(
+  headingName: string | null = null,
+  _runSilently: boolean = false,
+  _returnContentAsText: boolean = false,
+  _isTemplate: boolean | string = false,
+): Promise<string> {
+  const runSilently = typeof _runSilently === 'boolean' ? _runSilently : /true/i.test(_runSilently) || false
+  const returnContentAsText = typeof _returnContentAsText === 'boolean' ? _returnContentAsText : /true/i.test(_returnContentAsText) || false
+  const isTemplate = typeof _isTemplate === 'boolean' ? _isTemplate : /true/i.test(_isTemplate) || false
   try {
     logDebug(
       pluginJson,
-      `moveTopLevelTasksInEditor running with headingName: ${String(headingName)}, runSilently: ${String(runSilently)} returnContentAsText: ${String(returnContentAsText)}`,
+      `moveTopLevelTasksInEditor running with headingName: ${String(headingName)}, runSilently: ${String(runSilently)} returnContentAsText: ${String(
+        returnContentAsText,
+      )} (typeof returnContentAsText: ${typeof returnContentAsText})`,
     )
-    if (headingName && !returnContentAsText) {
+    if (headingName && !returnContentAsText && isTemplate) {
       const msg = `It appears you are running the moveTopLevelTasksInEditor from an xcallback or template tag. When invoked this way, you must set the final argument (returnContentAsText) to true to return the content to be moved as text to output the results. Otherwise, concurrent edits by the templating engine could cause unexpected results. See the README for more information. Skipping this function.`
       logError(pluginJson, msg)
       return ''
     }
     const result = await moveTopLevelTasksInNote(Editor, headingName, runSilently, returnContentAsText)
     returnContentAsText ? logDebug(pluginJson, `moveTopLevelTasksInEditor: returning to Templating:${String(returnContentAsText)}, result:"${result}"`) : null
+    removeEmptyTopParagraphs(Editor)
     return result ?? ''
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -52,9 +64,11 @@ export async function moveTopLevelTasksInEditor(headingName: string | null = nul
 export async function moveTopLevelTasksInNote(
   note: CoreNoteFields,
   headingName: string | null = null,
-  runSilently: boolean = false,
-  returnContentAsText?: boolean = false,
+  _runSilently: boolean = false,
+  _returnContentAsText?: boolean = false,
 ): Promise<string> {
+  const runSilently = typeof _runSilently === 'boolean' ? _runSilently : /true/i.test(_runSilently) || false
+  const returnContentAsText = typeof _returnContentAsText === 'boolean' ? _returnContentAsText : /true/i.test(_returnContentAsText) || false
   try {
     const heading = getHeadingName(headingName) // get heading from arguments or default
     const topLevelTasks = getTopLevelTasks(note) // get top-level paras that are tasks
@@ -157,7 +171,7 @@ export function processTopLevelTasks(note: CoreNoteFields, topLevelTasks: Array<
     moveParagraph(note, para, heading, returnContentAsText, returnTextArr)
   })
   // commenting out trying to fix the empty blank lines at top of note issue
-  handleEmptyParagraph(note) // adding under a heading doesn't work unless we do this
+  removeEmptyTopParagraphs(note) // adding under a heading doesn't work unless we do this
 
   returnContentAsText ? null : scrollToTitle(note, heading)
   // delete one or multiple items that contain empty text at the end of the returnTextArr
@@ -197,18 +211,25 @@ export function moveParagraph(note: CoreNoteFields, para: Paragraph, heading: st
 }
 
 /**
- * Handle an blank/empty paragraph at the top of the note
+ * Remove blank/empty paragraph(s) at the top of the note
  * IMPORTANT: This function mutates the note
  * @param {CoreNoteFields} note - The note to process
- * @param {boolean} returnContentAsText - Flag to determine if content should be returned as text
- * @param {string} heading - Heading under which the paragraph will be moved
  */
-export function handleEmptyParagraph(note: CoreNoteFields): void {
+export function removeEmptyTopParagraphs(note: CoreNoteFields): void {
   if (note?.paragraphs?.length) {
     for (const para of note.paragraphs) {
       if (para.type === 'empty' || para.content.trim() === '') {
-        logDebug(`handleEmptyParagraph: found empty paragraph at top of note ${para.lineIndex}. deleting. This may not work in a template.`)
+        logDebug(`removeEmptyTopParagraphs: found empty paragraph at top of note ${para.lineIndex}. deleting. This may not work in a template.`)
         note.removeParagraph(para)
+        if (note.paragraphs[0].type === 'empty' || note.paragraphs[0].content.trim() === '') {
+          // there's a bug in the NP API where it doesn't handle empty paragraphs at the top of the note
+          // so we need to handle it manually
+          const content = note.content
+          if (content) {
+            const contentWithoutLeadingNewlines = content.replace(/^[\n\r]+/, '')
+            note.content = contentWithoutLeadingNewlines
+          }
+        }
       } else {
         //stop looking
         return

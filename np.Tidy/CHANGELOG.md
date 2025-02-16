@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.14.5] - 2025-02-15 @dwertheimer
+- tweak **/Move top-level tasks to heading** to be able to be run from an xcallback
+
 ## [0.14.4] - 2024-12-18 @jgclark
 - fix to allow blank Calendar notes to be removed by '/remove blank notes'.
 
