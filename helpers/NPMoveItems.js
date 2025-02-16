@@ -111,12 +111,14 @@ export async function moveItemToRegularNote(origFilename: string, paraContent: s
  * @author @jgclark
  * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
- * @param {string} paraContent content of the para to move.
+ * @param {string} paraRawContent raw content of the para to move
  * @param {string?} heading which will be created if necessary
+ * @param {number?} newTaskSectionHeadingLevel heading level to use for new headings (optional, defaults to 2). If set to 0, then no new heading will be created if it doesn't already exist.
  * @returns {TNote | false} if succesful pass the new note, otherwise false
  */
-export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, heading: string = '', newTaskSectionHeadingLevel: number = 2): TNote | false {
-  logDebug('moveItemBetweenCalendarNotes', `starting for ${NPFromDateStr} to ${NPToDateStr} under heading '${heading}'`)
+export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraRawContent: string, heading: string = '', newTaskSectionHeadingLevel: number = 2): TNote | false {
+  logDebug('moveItemBetweenCalendarNotes', `starting for ${NPFromDateStr} to ${NPToDateStr} under heading '${heading}' with newTaskSectionHeadingLevel ${String(newTaskSectionHeadingLevel)} ${typeof newTaskSectionHeadingLevel}`)
+
   try {
     // Get calendar note to use
     const originNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
@@ -128,31 +130,44 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
     }
 
     // find para in the originNote
-    const matchedPara: TParagraph | boolean = findParaFromStringAndFilename(originNote.filename, paraContent)
+    const matchedPara: TParagraph | boolean = findParaFromStringAndFilename(originNote.filename, paraRawContent)
     if (typeof matchedPara === 'boolean') {
-      logWarn('moveItemBetweenCalendarNotes', `Cannot find paragraph {${paraContent}} in note '${NPFromDateStr}'. Likely cause: updated note since last Dashboard refresh.`)
-      showMessage(`Cannot find paragraph {${paraContent}} in calendar note '${NPFromDateStr}'. Have you updated this line in the note since the last Dashboard refresh?`, 'OK', 'Dashboard: Move Item', false)
+      logWarn('moveItemBetweenCalendarNotes', `Cannot find paragraph {${paraRawContent}} in note '${NPFromDateStr}'. Likely cause: updated note since last Dashboard refresh.`)
+      showMessage(`Cannot find paragraph {${paraRawContent}} in calendar note '${NPFromDateStr}'. Have you updated this line in the note since the last Dashboard refresh?`, 'OK', 'Dashboard: Move Item', false)
       return false
     }
 
     // Remove any scheduled date on the parent para
-    const updatedMatchedPara = removeDateTagsAndToday(paraContent, true)
+    const updatedMatchedPara = removeDateTagsAndToday(paraRawContent, true)
     matchedPara.content = updatedMatchedPara
     originNote.updateParagraph(matchedPara)
 
     const matchedParaAndChildren = getParaAndAllChildren(matchedPara)
-    const targetContent = parasToText(matchedParaAndChildren)
+    const newContent = parasToText(matchedParaAndChildren)
 
     // Add to destNote
     // Handle options for where to insert the new lines (see also NPScheduleItems::scheduleItem())
     if (heading === '<<top of note>>') {
       // Handle this special case
-      logDebug('coreAddTaskdestNoteHeading', `- Adding line '${targetContent}' to start of active part of note '${displayTitle(destNote)}' using smartPrependPara()`)
-      smartPrependPara(destNote, targetContent, 'text')
+      logDebug('coreAddTaskdestNoteHeading', `- Adding line '${newContent}' to start of active part of note '${displayTitle(destNote)}' using smartPrependPara()`)
+      smartPrependPara(destNote, newContent, 'text')
     }
     else if (heading === '' || heading === '<<bottom of note>>') {
-      logDebug('moveItemBetweenCalendarNotes', `- Adding line '${targetContent}' to start of active part of note '${displayTitle(destNote)}' using smartAppendPara()`)
-      smartAppendPara(destNote, targetContent, 'text')
+      logDebug('moveItemBetweenCalendarNotes', `- Adding line '${newContent}' to start of active part of note '${displayTitle(destNote)}' using smartAppendPara()`)
+      smartAppendPara(destNote, newContent, 'text')
+    }
+    else if (heading !== '' && newTaskSectionHeadingLevel === 0) {
+      // If the heading exists, then use it, but don't create a new one if it doesn't exist
+      // FIXME: doesn't get here
+      logDebug('scheduleItem', `- Heading ${heading} is wanted, but only if it already exists.`)
+      const wantedHeadingPara = findHeading(destNote, heading)
+      if (wantedHeadingPara) {
+        logDebug('scheduleItem', `- Adding line '${newContent}' under heading ${heading} using addParagraphBelowHeadingTitle()`)
+        destNote.addParagraphBelowHeadingTitle(newContent, 'text', heading, true, true)
+      } else {
+        logDebug('scheduleItem', `- Heading '${heading}' doesn't exist in note '${displayTitle(destNote)}'. Will add line to start of note using smartPrependPara() instead.`)
+        smartPrependPara(destNote, newContent, 'text')
+      }
     }
     else if (heading === '<<carry forward>>') {
       // Get preceding headings for matchedPara
@@ -160,25 +175,24 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
       logDebug('moveItemBetweenCalendarNotes', `- Calling smartCreateSectionsAndPara() for '${String(matchedParaAndChildren.length)}' to '${displayTitle(destNote)}' with headingHierarchy: [${String(headingHierarchy)}]`)
       const firstHeadingPara = findHeading(originNote, headingHierarchy[0])
       const firstHeadingLevel = firstHeadingPara?.headingLevel ?? newTaskSectionHeadingLevel
-      smartCreateSectionsAndPara(destNote, targetContent, 'text', headingHierarchy, firstHeadingLevel)
-    } else {
+      smartCreateSectionsAndPara(destNote, newContent, 'text', headingHierarchy, firstHeadingLevel)
+    }
+    else {
       logDebug('moveItemBetweenCalendarNotes', `- Adding ${matchedParaAndChildren.length} lines under heading '${heading}' in '${displayTitle(destNote)}'`)
       // Note: this doesn't allow setting heading level ...
-      // destNote.addParagraphBelowHeadingTitle(paraContent, itemType, heading, false, true)
+      // destNote.addParagraphBelowHeadingTitle(paraRawContent, itemType, heading, false, true)
       // so need to do it manually
       const shouldAppend = false
       const matchedHeading = findHeadingStartsWith(destNote, heading)
       logDebug(
         'moveItemBetweenCalendarNotes',
-        `Adding line "${targetContent}" to '${displayTitleWithRelDate(destNote)}' below matchedHeading '${matchedHeading}' (heading was '${heading}')`,
+        `Adding line "${newContent}" to '${displayTitleWithRelDate(destNote)}' below matchedHeading '${matchedHeading}' (heading was '${heading}')`,
       )
-
-      // ? TODO: Add new setting + Logic to handle inserting section heading(s) more generally (ref tastapod)
 
       if (matchedHeading !== '') {
         // Heading does exist in note already
         destNote.addParagraphBelowHeadingTitle(
-          targetContent,
+          newContent,
           'text',
           matchedHeading !== '' ? matchedHeading : heading,
           shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
@@ -193,7 +207,7 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
         logDebug('moveItemBetweenCalendarNotes', `- adding new heading '${headingToUse}' at line index ${insertionIndex} ${shouldAppend ? 'at end' : 'at start'}`)
         destNote.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
         logDebug('moveItemBetweenCalendarNotes', `- then adding text after it`)
-        destNote.insertParagraph(targetContent, insertionIndex + 1, 'text')
+        destNote.insertParagraph(newContent, insertionIndex + 1, 'text')
       }
     }
 
@@ -207,7 +221,7 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
 
     return destNote
   } catch (err) {
-    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message} moving {${paraContent}} from ${NPFromDateStr} to ${NPToDateStr}`)
+    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message} moving {${paraRawContent}} from ${NPFromDateStr} to ${NPToDateStr}`)
     return false
   }
 }

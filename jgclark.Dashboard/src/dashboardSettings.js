@@ -149,7 +149,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: 'newTaskSectionHeadingLevel',
     label: 'Heading level for new Headings',
-    description: 'Heading level (1-5) to use when adding new headings in notes.',
+    description: 'Heading level (1-5) to use when adding new headings in notes. Note: you can also set this to 0 which means add task under the heading, but only if it already exists.',
     type: 'number',
     default: '2',
     compactDisplay: true,

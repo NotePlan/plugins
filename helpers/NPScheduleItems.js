@@ -104,7 +104,7 @@ export function scheduleItemLiteMethod(thisPara: TParagraph, dateStrToAdd: strin
  * @param {TParagraph} origPara of open item
  * @param {string} dateStrToAdd, without leading '>'. Can be special date 'today'.
  * @param {string?} newTaskSectionHeading, which can be empty, in which case it will be added at the end of the note.
- * @param {number?} newTaskSectionHeadingLevel heading level to use for new headings (optional, defaults to 2)
+ * @param {number?} newTaskSectionHeadingLevel heading level to use for new headings (optional, defaults to 2). If set to 0, then no new heading will be created if it doesn't already exist.
  * @returns {boolean} success?
  */
 export function scheduleItem(origPara: TParagraph, dateStrToAdd: string, newTaskSectionHeading: string = '', newTaskSectionHeadingLevel: number = 2): boolean {
@@ -120,7 +120,7 @@ export function scheduleItem(origPara: TParagraph, dateStrToAdd: string, newTask
     const origContent = origPara.content
     const origType = origPara.type
     if (!originNote) throw new Error(`Could not get note for para '${origContent}'`)
-    logDebug('scheduleItem', `Starting to schedule from ${origDateStr} to '${dateStrToAdd}'`)
+    logDebug('scheduleItem', `Starting to schedule from ${origDateStr} to '${dateStrToAdd}' under heading '${newTaskSectionHeading}' with newTaskSectionHeadingLevel ${String(newTaskSectionHeadingLevel)} ${typeof newTaskSectionHeadingLevel}`)
 
     // In existing line find and then remove any existing scheduled dates, and add new scheduled date
     origPara.content = replaceArrowDatesInString(origContent, `>${dateStrToAdd}`)
@@ -151,6 +151,19 @@ export function scheduleItem(origPara: TParagraph, dateStrToAdd: string, newTask
       logDebug('scheduleItem', `- Adding line '${newContent}' to start of active part of note '${displayTitle(destNote)}' using smartAppendPara()`)
       smartAppendPara(destNote, newContent, origType)
     }
+    else if (heading !== '' && newTaskSectionHeadingLevel === 0) {
+      // If the heading exists, then use it, but don't create a new one if it doesn't exist
+      // FIXME: doesn't get here
+      logDebug('scheduleItem', `- Heading ${heading} is wanted, but only if it already exists.`)
+      const wantedHeadingPara = findHeading(destNote, newTaskSectionHeading)
+      if (wantedHeadingPara) {
+        logDebug('scheduleItem', `- Adding line '${newContent}' type '${newType}' under heading ${heading} using addParagraphBelowHeadingTitle()`)
+        destNote.addParagraphBelowHeadingTitle(newContent, newType, heading, true, true)
+      } else {
+        logDebug('scheduleItem', `- Heading '${newTaskSectionHeading}' doesn't exist in note '${displayTitle(destNote)}'. Will add line to start of note using smartPrependPara() instead.`)
+        smartPrependPara(destNote, newContent, origType)
+      }
+    }
     else if (heading === '<<carry forward>>') {
       // Get preceding headings for origPara
       const headingHierarchy = getHeadingHierarchyForThisPara(origPara).reverse()
@@ -159,7 +172,7 @@ export function scheduleItem(origPara: TParagraph, dateStrToAdd: string, newTask
       const firstHeadingLevel = firstHeadingPara?.headingLevel ?? newTaskSectionHeadingLevel
       smartCreateSectionsAndPara(destNote, newContent, origType, headingHierarchy, firstHeadingLevel)
     } else {
-      logDebug('scheduleItem', `New -> '${newContent}' type '${newType}' under heading ${heading}`)
+      logDebug('scheduleItem', `- Adding line '${newContent}' type '${newType}' under heading ${heading} using addParagraphBelowHeadingTitle()`)
       destNote.addParagraphBelowHeadingTitle(newContent, newType, heading, true, true)
     }
     logDebug('scheduleItem', `-> new added to ${destNote.filename}`)
