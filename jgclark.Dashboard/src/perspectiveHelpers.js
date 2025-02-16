@@ -56,8 +56,8 @@ Named perspectives
   - done by calling updateCurrentPerspectiveDef(), which sets isModified to false
 
 - Deleted: through settings UI or /delete current perspective.
-  - TEST: needs to update list of available perspectives
-  - TEST: set active perspective to default
+  - updates list of available perspectives
+  - set active perspective to default
 
 -----------------------------------------------------------------------------*/
 
@@ -675,7 +675,7 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
 
   allDefs = await getPerspectiveSettings()
   const updatedListOfPerspectives = getDisplayListOfPerspectiveNames(allDefs)
-  logDebug('deleteAllNamedPerspectiveSettings', `- Test: new list of available perspectives: [${String(updatedListOfPerspectives ?? [])}]`)
+  logDebug('deleteAllNamedPerspectiveSettings', `New default list of available perspectives: [${String(updatedListOfPerspectives ?? [])}]`)
   // Set current perspective to default ("-")
   const newPerspectiveSettings = await switchToPerspective('-', allDefs)
   await setPluginData({ perspectiveSettings: newPerspectiveSettings }, `_Deleted all named perspectives`)
@@ -684,9 +684,8 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
 
 /**
  * Delete a Perspective definition from dashboardSettings.
+ * Can be called from callback: noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Delete%20Perspective&arg0=Test
  * @param {string} nameIn
- * TEST: live.
- * TEST: from param: noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Delete%20Perspective&arg0=Test
  */
 export async function deletePerspective(nameIn: string = ''): Promise<void> {
   try {
@@ -724,13 +723,17 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
     if (activeDef && nameToUse === activeDef.name) {
       // delete and then switch
       logDebug('deletePerspective', `Deleting active perspective, so will need to switch to default Perspective ("-")`)
-      const newDefs = deletePerspectiveDef(existingDefs, nameToUse)
-      savePerspectiveSettings(newDefs)
-      await switchToPerspective('-', newDefs)
+      const updatedDefs = deletePerspectiveDef(existingDefs, nameToUse)
+      savePerspectiveSettings(updatedDefs)
+      await switchToPerspective('-', updatedDefs)
+      // update/refresh PerspectiveSelector component
+      await setPluginData({ perspectiveSettings: updatedDefs }, `after deleting Perspective ${nameToUse}.`)
     } else {
       // just delete
-      const newDefs = deletePerspectiveDef(existingDefs, nameToUse)
-      savePerspectiveSettings(newDefs)
+      const updatedDefs = deletePerspectiveDef(existingDefs, nameToUse)
+      savePerspectiveSettings(updatedDefs)
+      // update/refresh PerspectiveSelector component
+      await setPluginData({ perspectiveSettings: updatedDefs }, `after deleting Perspective ${nameToUse}.`)
     }
 
     clof(DataStore.settings, `deletePerspective at end DataStore.settings =`, ['name', 'isActive'], true) // ✅
