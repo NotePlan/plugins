@@ -30,7 +30,8 @@ export async function moveTopLevelTasksInEditor(
 ): Promise<string> {
   const runSilently = typeof _runSilently === 'boolean' ? _runSilently : /true/i.test(_runSilently) || false
   const returnContentAsText = typeof _returnContentAsText === 'boolean' ? _returnContentAsText : /true/i.test(_returnContentAsText) || false
-  const isTemplate = typeof _isTemplate === 'boolean' ? _isTemplate : /true/i.test(_isTemplate) || false
+  const headingNameIsEmpty = !headingName || headingName.trim() === ''
+
   try {
     logDebug(
       pluginJson,
@@ -38,8 +39,8 @@ export async function moveTopLevelTasksInEditor(
         returnContentAsText,
       )} (typeof returnContentAsText: ${typeof returnContentAsText})`,
     )
-    if (headingName && !returnContentAsText && isTemplate) {
-      const msg = `It appears you are running the moveTopLevelTasksInEditor from an xcallback or template tag. When invoked this way, you must set the final argument (returnContentAsText) to true to return the content to be moved as text to output the results. Otherwise, concurrent edits by the templating engine could cause unexpected results. See the README for more information. Skipping this function.`
+    if (headingNameIsEmpty && !returnContentAsText) {
+      const msg = `It appears you are running the moveTopLevelTasksInEditor from a template tag. When invoked this way, you must set the final argument (returnContentAsText) to true to return the content to be moved as text to output the results. Otherwise, concurrent edits by the templating engine could cause unexpected results. See the README for more information. Skipping this function.`
       logError(pluginJson, msg)
       return ''
     }
@@ -48,7 +49,7 @@ export async function moveTopLevelTasksInEditor(
     removeEmptyTopParagraphs(Editor)
     return result ?? ''
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    handleCatchError(error, returnContentAsText, 'moveTopLevelTasksInEditor')
   }
   return ''
 }
@@ -81,7 +82,7 @@ export async function moveTopLevelTasksInNote(
       await handleNoTopLevelParagraphs(runSilently, returnContentAsText)
     }
   } catch (error) {
-    handleCatchError(error, returnContentAsText)
+    handleCatchError(error, returnContentAsText, 'moveTopLevelTasksInNote')
     return ''
   }
   return returnContentAsText ? '' : ''
@@ -93,7 +94,12 @@ export async function moveTopLevelTasksInNote(
  * @returns {string} The heading name
  */
 export function getHeadingName(headingName: string | null): string {
-  return headingName || DataStore.settings.moveTopLevelTasksHeading
+  try {
+    return headingName || DataStore.settings.moveTopLevelTasksHeading
+  } catch (error) {
+    handleCatchError(error, true, 'getHeadingName')
+  }
+  return ''
 }
 
 /**
@@ -105,7 +111,12 @@ export function getTopLevelTasks(note: CoreNoteFields): Array<Paragraph> {
   const minLevel = 0
   logDebug(`getTopLevelTasks TASK_TYPES: ${TASK_TYPES.toString()}`)
   clo(note.paragraphs, `getTopLevelTasks paragraphs: ${note.paragraphs.length}`)
-  return note.paragraphs.filter((para) => para.headingLevel < minLevel && TASK_TYPES.includes(para.type))
+  try {
+    return note.paragraphs.filter((para) => para.headingLevel < minLevel && TASK_TYPES.includes(para.type))
+  } catch (error) {
+    handleCatchError(error, true, 'getTopLevelTasks')
+  }
+  return []
 }
 
 /**
@@ -142,11 +153,21 @@ export function getFlatArrayOfParentsAndChildren(topLevelParas: Array<Paragraph>
   //   pp.children.length ? outputParas.push(...pp.children) : null
   // }
   // return outputParas
-  return topLevelParasAndAllChildren
+  try {
+    return topLevelParasAndAllChildren
+  } catch (error) {
+    handleCatchError(error, true, 'getFlatArrayOfParentsAndChildren')
+  }
+  return []
 }
 
 /**
  * Process top-level tasks in the note
+ * - remove the top-level tasks from the note (including their children)
+ * - and either:
+ * - return an array of the rawContent of the top-level tasks
+ * - or, if returnContentAsText is true, return an array of the rawContent of the top-level tasks
+ * - and return the note with the top-level tasks removed
  * @param {CoreNoteFields} note - The note to process
  * @param {Array<Paragraph>} topLevelParas - Array of top-level paragraphs
  * @param {string} heading - Heading under which tasks will be moved
@@ -157,7 +178,6 @@ export function processTopLevelTasks(note: CoreNoteFields, topLevelTasks: Array<
   let returnTextArr: Array<string> = []
   // Some indented items under tasks may not be topLevelTasks (could be notes etc)
   // so we need to get all the parents and the children of those parents
-  // FIXME: I AM HERE
   // skip all empty paragraphs (may want to make that only if it's at the end but we shall see)
   const flat = getFlatArrayOfParentsAndChildren(topLevelTasks)
   // const flat = parentsAndChildren.map((pp) => pp.parent).filter((pp) => pp.type !== 'empty')
@@ -170,8 +190,7 @@ export function processTopLevelTasks(note: CoreNoteFields, topLevelTasks: Array<
   reversedParentsAndChildren.forEach((para) => {
     moveParagraph(note, para, heading, returnContentAsText, returnTextArr)
   })
-  // commenting out trying to fix the empty blank lines at top of note issue
-  removeEmptyTopParagraphs(note) // adding under a heading doesn't work unless we do this
+  removeEmptyTopParagraphs(note)
 
   returnContentAsText ? null : scrollToTitle(note, heading)
   // delete one or multiple items that contain empty text at the end of the returnTextArr
@@ -200,13 +219,17 @@ export function moveParagraph(note: CoreNoteFields, para: Paragraph, heading: st
       returnContentAsText ? `(removing for now - will return as text)` : `to heading ${heading}`
     }`,
   )
-  returnContentAsText ? returnTextArr.push(para.rawContent) : note.addParagraphBelowHeadingTitle(para.rawContent, 'text', heading || '', false, true)
-  para.content = removeRepeats(para.content)
-  note.updateParagraph(para)
-  note.removeParagraph(note.paragraphs[para.lineIndex])
-  if (note.paragraphs[para.lineIndex] && note.paragraphs[para.lineIndex].rawContent === para.rawContent) {
-    logError(pluginJson, `moveTopLevelTasks: Failed to remove paragraph ${para.lineIndex}: "${para.rawContent}"`)
-    clo(note.paragraphs, 'note.paragraphs after failed paragraph removal - is it a race condition?')
+  try {
+    returnContentAsText ? returnTextArr.push(para.rawContent) : note.addParagraphBelowHeadingTitle(para.rawContent, 'text', heading || '', false, true)
+    para.content = removeRepeats(para.content)
+    note.updateParagraph(para)
+    note.removeParagraph(note.paragraphs[para.lineIndex])
+    if (note.paragraphs[para.lineIndex] && note.paragraphs[para.lineIndex].rawContent === para.rawContent) {
+      logError(pluginJson, `moveTopLevelTasks: Failed to remove paragraph ${para.lineIndex}: "${para.rawContent}"`)
+      clo(note.paragraphs, 'note.paragraphs after failed paragraph removal - is it a race condition?')
+    }
+  } catch (error) {
+    handleCatchError(error, returnContentAsText, 'moveParagraph')
   }
 }
 
@@ -216,34 +239,43 @@ export function moveParagraph(note: CoreNoteFields, para: Paragraph, heading: st
  * @param {CoreNoteFields} note - The note to process
  */
 export function removeEmptyTopParagraphs(note: CoreNoteFields): void {
-  if (note?.paragraphs?.length) {
-    for (const para of note.paragraphs) {
-      if (para.type === 'empty' || para.content.trim() === '') {
-        logDebug(`removeEmptyTopParagraphs: found empty paragraph at top of note ${para.lineIndex}. deleting. This may not work in a template.`)
-        note.removeParagraph(para)
-        if (note.paragraphs[0].type === 'empty' || note.paragraphs[0].content.trim() === '') {
-          // there's a bug in the NP API where it doesn't handle empty paragraphs at the top of the note
-          // so we need to handle it manually
-          const content = note.content
-          if (content) {
-            const contentWithoutLeadingNewlines = content.replace(/^[\n\r]+/, '')
-            note.content = contentWithoutLeadingNewlines
+  try {
+    if (note?.paragraphs?.length) {
+      for (const para of note.paragraphs) {
+        console.log(`removeEmptyTopParagraphs: para.type: ${para.type} para.content: ${para.content}`)
+        if (para.type === 'empty' || para.content.trim() === '') {
+          logDebug(`removeEmptyTopParagraphs: found empty paragraph at top of note ${para.lineIndex}. deleting. This may not work in a template.`)
+          note.removeParagraph(para)
+          if ((note.paragraphs.length && note.paragraphs[0].type === 'empty') || note.paragraphs[0].content.trim() === '') {
+            // there's a bug in the NP API where it doesn't handle empty paragraphs at the top of the note
+            // so we need to handle it manually
+            const content = note.content
+            if (content) {
+              const contentWithoutLeadingNewlines = content.replace(/^[\n\r]+/, '')
+              note.content = contentWithoutLeadingNewlines
+            }
           }
+        } else {
+          //stop looking
+          return
         }
-      } else {
-        //stop looking
-        return
       }
     }
+  } catch (error) {
+    handleCatchError(error, true, 'removeEmptyTopParagraphs')
   }
 }
 
 export function scrollToTitle(note: CoreNoteFields, heading: string) {
-  logDebug(pluginJson, `scrollToTitle: "${heading}"`)
-  const headingPara = note.paragraphs.find((para) => para.type === 'title' && para.content === heading)
-  if (headingPara) {
-    const headingContentRangeEnd = headingPara.contentRange?.end || 0
-    Editor.highlightByIndex(headingContentRangeEnd + 1, 0)
+  try {
+    logDebug(pluginJson, `scrollToTitle: "${heading}"`)
+    const headingPara = note.paragraphs.find((para) => para.type === 'title' && para.content === heading)
+    if (headingPara) {
+      const headingContentRangeEnd = headingPara.contentRange?.end || 0
+      Editor.highlightByIndex(headingContentRangeEnd + 1, 0)
+    }
+  } catch (error) {
+    handleCatchError(error, true, 'scrollToTitle')
   }
 }
 
@@ -254,7 +286,12 @@ export function scrollToTitle(note: CoreNoteFields, heading: string) {
  * @returns {Promise<string|null>} Promise resolving to an empty string or null
  */
 async function handleNoTopLevelParagraphs(runSilently: boolean, returnContentAsText: boolean): Promise<string | null> {
-  runSilently ? logDebug('No task-type paragraphs in note. Exiting.') : await showMessage('No task-type paragraphs at top level of this note.')
+  try {
+    runSilently ? logDebug('No task-type paragraphs in note. Exiting.') : await showMessage('No task-type paragraphs at top level of this note.')
+    return returnContentAsText ? '' : null
+  } catch (error) {
+    handleCatchError(error, returnContentAsText, 'handleNoTopLevelParagraphs')
+  }
   return returnContentAsText ? '' : null
 }
 
@@ -264,7 +301,12 @@ async function handleNoTopLevelParagraphs(runSilently: boolean, returnContentAsT
  * @param {boolean} returnContentAsText - Flag to determine if content should be returned as text
  * @returns {string|null} Returns an empty string or null based on the flag
  */
-export function handleCatchError(error: any, returnContentAsText: boolean): string | null {
-  logError(pluginJson, JSP(error))
+export function handleCatchError(error: any, returnContentAsText: boolean = true, failingFunction: string = ''): string | null {
+  try {
+    logError(pluginJson, `${failingFunction ? `${failingFunction}: ` : ''}${JSP(error)}`)
+    return returnContentAsText ? '' : null
+  } catch (error) {
+    logError(pluginJson, `handleCatchError: ${JSP(error)}`)
+  }
   return returnContentAsText ? '' : null
 }
