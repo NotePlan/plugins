@@ -31,13 +31,41 @@ import {
   // isClosed, isDone, isScheduled
 } from '@helpers/utils'
 
-// const pluginJson = 'helpers/note.js'
+import { noteHasFrontMatter, getFrontMatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+
+/*
+ * Set the title of a note whether it's a frontmatter note or a regular note
+ * @param {CoreNoteFields} note - the note to set the title of
+ * @param {string} title - the new title
+ */
+export function setTitle(note: CoreNoteFields, title: string): void {
+  const isFrontmatterNote = noteHasFrontMatter(note)
+  logDebug('note/setTitle', `Setting title to ${title} for note ${note.filename} (${isFrontmatterNote ? 'frontmatter' : 'regular'})`)
+  if (isFrontmatterNote) {
+    const fmFields = getFrontMatterAttributes(note)
+    if (fmFields) {
+      fmFields.title = title
+      updateFrontMatterVars(note, fmFields, true)
+    } else {
+      logError('note/setTitle', `can't find frontmatter attributes in note ${note.filename}`)
+    }
+  } else {
+    const oldTitlePara = note.paragraphs[0]
+    if (oldTitlePara && oldTitlePara.type === 'title' && oldTitlePara.headingLevel === 1) {
+      oldTitlePara.content = title
+      note.updateParagraph(oldTitlePara)
+    } else {
+      logError('note/setTitle', `can't find title paragraph in note ${note.filename}`)
+      note.insertParagraph(title, 0, 'title')
+    }
+  }
+}
 
 /**
  * Return simply 'Calendar' or 'Notes' from note's filename.
  * Note: getNoteType() is more detailed.
  * Note: But use note.type when you have note object available.
- * @param {string} filename 
+ * @param {string} filename
  * @returns {NoteType}
  */
 export function noteType(filename: string): NoteType {
@@ -86,7 +114,7 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
         ` >${hyphenatedDate(note.date)} `
       : dateStyle === 'date'
       ? // $FlowIgnore(incompatible-call)
-          ` (${toNPLocaleDateString(note.date)})`
+        ` (${toNPLocaleDateString(note.date)})`
       : dateStyle === 'at'
       ? // $FlowIgnore(incompatible-call)
         ` @${hyphenatedDate(note.date)} `
@@ -364,7 +392,6 @@ export function calendarNotesSortedByChanged(): Array<TNote> {
  * @return {Array<TNote>} array of notes
  */
 export function calendarNotesSortedByDate(): Array<TNote> {
-
   return DataStore.calendarNotes.slice().sort(function (first, second) {
     const a = first.filename
     const b = second.filename
@@ -453,7 +480,11 @@ export function projectNotesSortedByTitle(foldersToExclude: Array<string> = [], 
  * @param {boolean} excludeSpecialFolders? (optional: default = true)
  * @return {Array<TNote>} array of notes
  */
-export function filterOutProjectNotesFromExcludedFolders(projectNotesIn: $ReadOnlyArray<TNote>, foldersToExclude: Array<string>, excludeSpecialFolders: boolean = true): Array<TNote> {
+export function filterOutProjectNotesFromExcludedFolders(
+  projectNotesIn: $ReadOnlyArray<TNote>,
+  foldersToExclude: Array<string>,
+  excludeSpecialFolders: boolean = true,
+): Array<TNote> {
   try {
     const excludedFolders = foldersToExclude
     if (excludeSpecialFolders) {
@@ -734,11 +765,7 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
  * @returns {boolean}
  * @tests in jest file
  */
-export function isNoteFromAllowedFolder(
-  note: TNote,
-  allowedFolderList: Array<string>,
-  allowAllCalendarNotes: boolean = true
-): boolean {
+export function isNoteFromAllowedFolder(note: TNote, allowedFolderList: Array<string>, allowAllCalendarNotes: boolean = true): boolean {
   // Calendar note check
   if (note.type === 'Calendar') {
     // logDebug('isNoteFromAllowedFolder', `-> Calendar note ${allowAllCalendarNotes ? 'allowed' : 'NOT allowed'} as a result of allowAllCalendarNotes`)
@@ -755,7 +782,7 @@ export function isNoteFromAllowedFolder(
 
 /**
  * Return count of number of open tasks/checklists in the content.
- * @param {string} content 
+ * @param {string} content
  * @returns {number}
  */
 export function numberOfOpenItemsInString(content: string): number {
@@ -767,10 +794,10 @@ export function numberOfOpenItemsInString(content: string): number {
 
 /**
  * Return count of number of open tasks/checklists in the content.
- * @param {string} content 
+ * @param {string} content
  * @returns {number}
  */
 export function numberOfOpenItemsInNote(note: TNote): number {
-  const res = note.paragraphs.filter(p => ['open','scheduled','checklist','checklistScheduled'].includes(p.type))
+  const res = note.paragraphs.filter((p) => ['open', 'scheduled', 'checklist', 'checklistScheduled'].includes(p.type))
   return res ? res.length : 0
 }

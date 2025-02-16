@@ -1,5 +1,9 @@
 # Favorites Plugin Changelog
 
+## [1.2.5] - 2025-02-15 @dwertheimer
+
+- Favorites now works with frontmatter
+
 ## [1.2.4] - 2024-06-12 @dwertheimer
 
 - bump version for rerelease (plugin was missing from github)

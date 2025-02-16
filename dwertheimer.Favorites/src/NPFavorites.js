@@ -1,6 +1,8 @@
 // @flow
 import { chooseOption, showMessage } from '../../helpers/userInput'
 import { getFavoriteDefault, getFavoritedTitle, filterForFaves, getFaveOptionsArray, hasFavoriteIcon, removeFavoriteFromTitle } from './favorites'
+import { setTitle } from '@helpers/note'
+import { logDebug } from '@helpers/dev'
 
 function getConfig() {
   const config = { favoriteIcon: getFavoriteDefault(), position: 'prepend' }
@@ -17,9 +19,8 @@ export async function setFavorite(): Promise<void> {
       return
     } else {
       const newTitle = await getFavoritedTitle(note.title || '', config.position, config.favoriteIcon)
-      const titlePara = note.paragraphs[0]
-      titlePara.content = newTitle
-      Editor.updateParagraph(titlePara)
+      logDebug('NPFavorites', `Setting title to ${newTitle}`)
+      setTitle(Editor, newTitle)
     }
   } else {
     await showMessage('Please select a Project Note in Editor first.')
@@ -52,9 +53,7 @@ export async function removeFavorite(): Promise<void> {
     if (isFavorite && note.title) {
       // remove the favorite icon
       const newTitle = removeFavoriteFromTitle(note.title, config.favoriteIcon)
-      const titlePara = note.paragraphs[0]
-      titlePara.content = newTitle
-      Editor.updateParagraph(titlePara)
+      setTitle(Editor, newTitle)
     } else {
       await showMessage(`This file is not a Favorite! Use /fave to make it one.`)
     }
