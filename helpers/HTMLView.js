@@ -115,7 +115,6 @@ export async function getNoteContentAsHTML(content: string, note: NPNote): ?stri
     // In particular remove trigger line
     if (hasFrontmatter) {
       let titleAsMD = ''
-      lines = lines.filter(l => l !== 'triggers: onEditorWillSave => np.Preview.updatePreview')
       // look for 2nd '---' and double it, because of showdown bug
       for (let i = 1; i < lines.length; i++) {
         if (lines[i].match(/^title:\s/)) {
