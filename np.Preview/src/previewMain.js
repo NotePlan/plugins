@@ -77,8 +77,8 @@ Button a { text-decoration: none; font-size: 0.9rem; }
 export async function previewNote(mermaidTheme?: string): void {
   try {
     const { note, content, title } = Editor
-    const lines = content?.split('\n') ?? []
-
+    let lines = content?.split('\n') ?? []
+    lines = lines.filter(l => l !== 'triggers: onEditorWillSave => np.Preview.updatePreview')
     // Update mermaid fenced code blocks to suitable <divs>
     // Note: did try to use getCodeBlocksOfType() helper but found it wasn't architected helpfully for this use case
     let includesMermaid = false
