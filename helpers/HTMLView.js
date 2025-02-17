@@ -97,8 +97,9 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
 
 
 /**
- * Convert a note's content to HTML
+ * Convert a note's content to HTML and include any images as base64
  * @author @cwhittl
+ * @param {string} content
  * @param {NPNote} Note
  * @returns {string} HTML
  */
