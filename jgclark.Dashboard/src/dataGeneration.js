@@ -694,7 +694,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       logTimer('getTaggedSectionData', thisStartTime, `- after filtering for future, ${filteredTagParas.length} paras`)
 
       if (filteredTagParas.length > 0) {
-        // Remove possible dupes from these sync'd lines. Note: this is a quick operation.
+        // Remove possible dupes from these sync'd lines. Note: this is a quick operation, as we aren't using the 'most recent' option (which does a sort)
         filteredTagParas = eliminateDuplicateSyncedParagraphs(filteredTagParas)
         logTimer('getTaggedSectionData', thisStartTime, `- after sync dedupe -> ${filteredTagParas.length}`)
         // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
@@ -705,6 +705,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
         // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
         // Note: this is a pretty quick operation (3-4ms / item)
+        // $FlowIgnore[class-object-subtyping]
         const dashboardParas = makeDashboardParas(filteredTagParas)
         logTimer('getTaggedSectionData', thisStartTime, `- after eliminating dupes -> ${dashboardParas.length}`)
 
@@ -720,16 +721,8 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         const sortedTagParas = sortListBy(dashboardParas, sortOrder)
         logTimer('getTaggedSectionData', thisStartTime, `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)}`)
 
-        // Apply limit to set of ordered results
-        // TEST: remove this limiter
-        // const sortedTagParasLimited = sortedTagParas.length > maxInSection ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
-        // logDebug('getTaggedSectionData', `- after applying [${maxInSection}] limit, now ${sortedTagParasLimited.length} items to show for ${sectionDetail.sectionName}`)
-        // // sortedTagParasLimited.length ? clo(sortedTagParasLimited, 'getTaggedSectionData sortedTagParasLimited') : null
-
-        // for (const p of sortedTagParasLimited) {
         for (const p of sortedTagParas) {
           const thisID = `${sectionNumStr}.${itemCount}`
-          // const thisFilename = p.filename ?? ''
           // $FlowIgnore[incompatible-call]
           items.push(createSectionItemObject(thisID, p))
           itemCount++
@@ -822,9 +815,10 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       logDebug('getOverdueSectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
 
       // Remove possible dupes from sync'd lines
+      // TODO(@dwertheimer): please test whether we can re-introduce this?
       // Note: currently commented out, to save 2? secs of processing
       // overdueParas = eliminateDuplicateSyncedParagraphs(overdueParas)
-      // logDebug('getOverdueSectionData', `- after sync lines dedupe ->  ${overdueParas.length}`)
+      // logTimer('getOverdueSectionData', thisStartTime, `- after sync lines dedupe ->  ${overdueParas.length}`)
 
       totalOverdue = dashboardParas.length
 

@@ -150,7 +150,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
     // Now check that the paras have been added -- it was sometimes failing probably with whitespace issues.
     const afterNumParasInDestNote = destNote.paragraphs.length
-    logDebug(pluginJson, `Added ${selectedNumLines} lines to ${destNote.title}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
+    logDebug(pluginJson, `Added ${selectedNumLines} lines to ${destNote.title ?? 'error'}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
     if (beforeNumParasInDestNote === afterNumParasInDestNote) {
       throw new Error(`Failed to add ${selectedNumLines} lines to ${displayTitle(destNote)}, so will stop before removing the lines from ${displayTitle(note)}.\nThis is normally caused by spaces on the start/end of the heading.`)
     }

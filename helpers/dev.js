@@ -142,8 +142,27 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
   }
 }
 
-type DiffValue = { before: any, after: any } | DiffObject | DiffArray
+/**
+ * Console.logs variable and its type
+ * @author @jgclark
+ *
+ * @param {object} obj - array or object
+ * @param {string} preamble - (optional) text to prepend to the output
+ * @example clvt(obj, 'myObj:')
+ */
+export function clvt(obj: any, preamble: string = ''): void {
+  if (obj == null) {
+    console.log(`${preamble} null`)
+    return
+  }
+  if (typeof obj !== 'object') {
+    console.log(`${preamble} ${typeof obj}: ${obj}`)
+  } else {
+    console.log(`${preamble} ${typeof obj}: ${JSP(obj)}`)
+  }
+}
 
+type DiffValue = { before: any, after: any } | DiffObject | DiffArray
 type DiffObject = { [key: string]: DiffValue }
 type DiffArray = Array<DiffValue | null>
 

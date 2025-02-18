@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2025-01-29 for v2.1.7
+// Last updated 2025-02-16 for v2.1.10
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -42,56 +42,57 @@ import { showMessage } from '@helpers/userInput'
  */
 export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-  const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
-  const config = await getDashboardSettings()
-  const dateOrInterval = String(controlStr)
-  logDebug('doMoveFromCalToCal', `Starting with controlStr ${controlStr}`)
-  let startDateStr = getDateStringFromCalendarFilename(filename, true)
-  let newDateStr = ''
-  if (dateOrInterval === 't') {
+    const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
+    const config = await getDashboardSettings()
+    const dateOrInterval = String(controlStr)
+    logDebug('doMoveFromCalToCal', `Starting with controlStr ${controlStr}`)
+
+    let startDateStr = getDateStringFromCalendarFilename(filename, true)
+    let newDateStr = ''
+    if (dateOrInterval === 't') {
     // Special case to change to '>today'
 
-    startDateStr = getDateStringFromCalendarFilename(filename, true)
-    newDateStr = getTodaysDateHyphenated()
-  } else if (dateOrInterval.match(RE_DATE_INTERVAL)) {
-    const offsetUnit = dateOrInterval.charAt(dateOrInterval.length - 1) // get last character
+      startDateStr = getDateStringFromCalendarFilename(filename, true)
+      newDateStr = getTodaysDateHyphenated()
+    } else if (dateOrInterval.match(RE_DATE_INTERVAL)) {
+      const offsetUnit = dateOrInterval.charAt(dateOrInterval.length - 1) // get last character
 
-    startDateStr = getDateStringFromCalendarFilename(filename, true)
-    // To calculate new date, use today's date (not the original date on the task) + offset
-    newDateStr = calcOffsetDateStr(getTodaysDateHyphenated(), dateOrInterval, 'offset') // 'longer'
+      startDateStr = getDateStringFromCalendarFilename(filename, true)
+      // To calculate new date, use today's date (not the original date on the task) + offset
+      newDateStr = calcOffsetDateStr(getTodaysDateHyphenated(), dateOrInterval, 'offset') // 'longer'
 
-    // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week' but startDateStr is not of type 'week'
-    if (offsetUnit === 'w' && !startDateStr.match(RE_NP_WEEK_SPEC)) {
-      const offsetNum = Number(dateOrInterval.substr(0, dateOrInterval.length - 1)) // return all but last character
-      const NPWeekData = getNPWeekData(startDateStr, offsetNum, 'week')
-      if (NPWeekData) {
-        newDateStr = NPWeekData.weekString
-        logDebug('doMoveFromCalToCal', `- used NPWeekData instead -> ${newDateStr}`)
-      } else {
-        throw new Error(`Can't get NPWeekData for '${String(offsetNum)}w' when moving task from ${filename} (${startDateStr})`)
+      // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week' but startDateStr is not of type 'week'
+      if (offsetUnit === 'w' && !startDateStr.match(RE_NP_WEEK_SPEC)) {
+        const offsetNum = Number(dateOrInterval.substr(0, dateOrInterval.length - 1)) // return all but last character
+        const NPWeekData = getNPWeekData(startDateStr, offsetNum, 'week')
+        if (NPWeekData) {
+          newDateStr = NPWeekData.weekString
+          logDebug('doMoveFromCalToCal', `- used NPWeekData instead -> ${newDateStr}`)
+        } else {
+          throw new Error(`Can't get NPWeekData for '${String(offsetNum)}w' when moving task from ${filename} (${startDateStr})`)
+        }
       }
+    } else if (dateOrInterval.match(RE_DATE)) {
+      newDateStr = controlStr
+    } else {
+      logError('doMoveFromCalToCal', `bad move date/interval: ${dateOrInterval}`)
+      return handlerResult(false)
     }
-  } else if (dateOrInterval.match(RE_DATE)) {
-    newDateStr = controlStr
-  } else {
-    logError('doMoveFromCalToCal', `bad move date/interval: ${dateOrInterval}`)
-    return handlerResult(false)
-  }
     logDebug('doMoveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
 
     // Do the actual move 
     const res = await moveItemBetweenCalendarNotes(startDateStr,
       newDateStr, content,
-      config.newTaskSectionHeading ?? '', config.newTaskSectionHeadingLevel ?? 2)
+      config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
 
-  if (res) {
-    logDebug('doMoveFromCalToCal', `-> appeared to move item succesfully`)
-    // Send a message to update all the calendar sections (as its too hard to work out which of the sections to update)
-    return handlerResult(true, ['REFRESH_ALL_CALENDAR_SECTIONS', 'START_DELAYED_REFRESH_TIMER'])
-  } else {
-    logWarn('doMoveFromCalToCal', `-> doMoveFromCalToCal to ${newDateStr} not successful`)
-    return handlerResult(false)
-  }
+    if (res) {
+      logDebug('doMoveFromCalToCal', `-> appeared to move item succesfully`)
+      // Send a message to update all the calendar sections (as its too hard to work out which of the sections to update)
+      return handlerResult(true, ['REFRESH_ALL_CALENDAR_SECTIONS', 'START_DELAYED_REFRESH_TIMER'])
+    } else {
+      logWarn('doMoveFromCalToCal', `-> doMoveFromCalToCal to ${newDateStr} not successful`)
+      return handlerResult(false)
+    }
   } catch (error) {
     logError('doMoveFromCalToCal', JSP(error))
     return { success: false }
@@ -112,19 +113,8 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
   // If success, then update the display
   if (newNote) {
     // logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title || ''}"`)
-    // logDebug('doMoveToNote', `- now needing to find the TPara for ${para.type}:"${content}" ...`)
-    // updatedParagraph (below) is an actual NP object (TParagraph) not a TParagraphForDashboard, so we need to go and find it again
-    // const updatedParagraph = newNote.paragraphs.find((p) => p.content === content && p.type === para.type)
-    // if (updatedParagraph) {
-    // logDebug('doMoveToNote', `- Sending update line request $JSP(updatedParagraph)`)
-    // return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph })
-    // TEST: Should this be REMOVE_LINE_FROM_JSON instead?
     logDebug('doMoveToNote', `- Sending remove line request for ID ${item?.ID ?? '?'}`)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], {})
-    // } else {
-    //   logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all enabled sections :-(`)
-    //   return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'], { sectionCodes: allCalendarSectionCodes })
-    // }
   } else {
     return handlerResult(false)
   }
@@ -140,8 +130,11 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
 export async function doRescheduleItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
   const config: TDashboardSettings = await getDashboardSettings()
-  // logDebug('doRescheduleItem', `- config.rescheduleNotMove = ${config.rescheduleNotMove}`)
   logDebug('doRescheduleItem', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}`)
+  logDebug('doRescheduleItem', `- config.rescheduleNotMove = ${String(config.rescheduleNotMove)}`)
+  logDebug('doRescheduleItem', `- config.useLiteScheduleMethod = ${String(config.useLiteScheduleMethod)}`)
+  logDebug('doRescheduleItem', `- config.newTaskSectionHeading = ${String(config.newTaskSectionHeading)}`)
+  logDebug('doRescheduleItem', `- config.newTaskSectionHeadingLevel = ${typeof config.newTaskSectionHeadingLevel} ${String(config.newTaskSectionHeadingLevel)}`)
   const dateOrInterval = String(controlStr)
   // const dateInterval = controlStr || ''
   let startDateStr = ''
@@ -198,7 +191,7 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
   // Note: need to use the 'Lite' method if the para is in a regular (not calendar) note
   const res = (origNoteType === 'Notes' || config.useLiteScheduleMethod)
     ? scheduleItemLiteMethod(thePara, newDateStr)
-    : scheduleItem(thePara, newDateStr, config.newTaskSectionHeading)
+    : scheduleItem(thePara, newDateStr, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
   const thisNote = thePara.note
   if (thisNote) {
     thisNote.updateParagraph(thePara)

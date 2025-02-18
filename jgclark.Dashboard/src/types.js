@@ -45,6 +45,9 @@ export type TDashboardSettings = {
   /* PERSPECTIVE-SPECIFIC SETTINGS */
   // autoAddTrigger: boolean, // Note: removed in v2.1
   // sharedSettings: any, // Note: no longer needed after settings refactor
+  // Note: if you add a new setting, make sure to
+  // - update the dashboardSettingsDefaults object in dashboardSettings.js
+  // - update the getDashboardSettings() function in dashboardHelpers.js if it is type number
   autoUpdateAfterIdleTime: number,
   dashboardTheme: string,
   displayDoneCounts: boolean,

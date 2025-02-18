@@ -1,12 +1,13 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated for v2.1.0.b
+// Last updated for v2.1.0.b+
 //--------------------------------------------------------------------------
 
 import type { TSection, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
 import { allSectionDetails } from '../../../constants.js'
 // import { getDisplayListOfSectionCodes } from '../../../dashboardHelpers.js'
+import { logTimer } from '@helpers/dev.js'
 import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/reactDev.js'
 
 /**
@@ -87,17 +88,17 @@ const sectionIsVisible = (section: TSection, dashboardSettings: TDashboardSettin
 function getUseFirstButVisible(useFirst: Array<TSectionCode>, dashboardSettings: TDashboardSettings, sections: Array<TSection>): Array<TSectionCode> {
   const useFirstButVisible = dashboardSettings
     ? useFirst.filter((sectionCode) => {
-        const section = sections.find((section) => section.sectionCode === sectionCode)
-        if (section) {
-          const isVisible = sectionIsVisible(section, dashboardSettings)
-          // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
-          return section && isVisible
-        } else {
-          // TAG sections are a special case, so don't log an error if not found
-          // sectionCode !== "TAG" ? logDebug('sectionHelpers/getUseFirstButVisible', `sectionCode=${sectionCode} not found in sections data (if switched off, this is ok)`, sections) : null
-          return false
-        }
-      })
+      const section = sections.find((section) => section.sectionCode === sectionCode)
+      if (section) {
+        const isVisible = sectionIsVisible(section, dashboardSettings)
+        // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
+        return section && isVisible
+      } else {
+        // TAG sections are a special case, so don't log an error if not found
+        // sectionCode !== "TAG" ? logDebug('sectionHelpers/getUseFirstButVisible', `sectionCode=${sectionCode} not found in sections data (if switched off, this is ok)`, sections) : null
+        return false
+      }
+    })
     : useFirst
   // logDebug('sectionHelpers/getUseFirstButVisible', `Visible section codes: ${String(useFirstButVisible)}`)
   // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible`,useFirstButVisible)
@@ -121,56 +122,62 @@ export function getSectionsWithoutDuplicateLines(
   dontDedupeList: Array<TSectionCode>,
   dashboardSettings: TDashboardSettings,
 ): Array<TSection> {
-  if (!paraMatcherFields) return _sections
+  try {
+    if (!paraMatcherFields) return _sections
+    const startTime = new Date()
 
-  // Deep copy the sections to avoid mutating the original data
-  const sections = JSON.parse(JSON.stringify(_sections))
+    // Deep copy the sections to avoid mutating the original data
+    const sections = JSON.parse(JSON.stringify(_sections))
 
-  // Get ordered list of sectionCodes based on visibility and priority
-  const useFirstVisibleOnly: Array<TSectionCode> = getUseFirstButVisible(useFirst, dashboardSettings, sections)
+    // Get ordered list of sectionCodes based on visibility and priority
+    const useFirstVisibleOnly: Array<TSectionCode> = getUseFirstButVisible(useFirst, dashboardSettings, sections)
 
-  // Create an array of ordered sections based on the `useFirstVisibleOnly` priority list.
-  // For each section code (`st`) in `useFirstVisibleOnly`, use `flatMap` to:
-  // - Filter the `sections` array to find all sections with a matching `sectionCode`.
-  // - Flatten these arrays into a single array of sections.
-  // This ensures `orderedSections` contains all sections, ordered by `useFirstVisibleOnly` with duplicates included.
-  // because there could be multiples (e.g. TAGs or Today/>Today with the same sectionCode)
-  const orderedSections = useFirstVisibleOnly.flatMap((st) => sections.filter((section) => section.sectionCode === st))
-  // const totalItemsBeforeDedupe = countTotalSectionItems(orderedSections, dontDedupeList)
-  // logDebug('getSectionsWithoutDuplicateLines', `Starting with useFirstVisibleOnly: ${useFirstVisibleOnly.join('-')}  with ${totalItemsBeforeDedupe} items`)
+    // Create an array of ordered sections based on the `useFirstVisibleOnly` priority list.
+    // For each section code (`st`) in `useFirstVisibleOnly`, use `flatMap` to:
+    // - Filter the `sections` array to find all sections with a matching `sectionCode`.
+    // - Flatten these arrays into a single array of sections.
+    // This ensures `orderedSections` contains all sections, ordered by `useFirstVisibleOnly` with duplicates included.
+    // because there could be multiples (e.g. TAGs or Today/>Today with the same sectionCode)
+    const orderedSections = useFirstVisibleOnly.flatMap((st) => sections.filter((section) => section.sectionCode === st))
+    // const totalItemsBeforeDedupe = countTotalSectionItems(orderedSections, dontDedupeList)
+    // logDebug('getSectionsWithoutDuplicateLines', `Starting with useFirstVisibleOnly: ${useFirstVisibleOnly.join('-')}  with ${totalItemsBeforeDedupe} items`)
 
-  // Include sections not listed in useFirst at the end of the array
-  orderedSections.push(...sections.filter((section) => !useFirst.includes(section.sectionCode)))
-  // Map to track unique items
-  const itemMap: any = new Map()
+    // Include sections not listed in useFirst at the end of the array
+    orderedSections.push(...sections.filter((section) => !useFirst.includes(section.sectionCode)))
+    // Map to track unique items
+    const itemMap: any = new Map()
 
-  // Now we are working with actual TSection objects, not sectionCodes anymore
-  // Process each section (but not if it's a "TB" or "PROJ" section, because they have different sorts of items)
-  orderedSections.forEach((section) => {
-    // logDebug('getSectionsWithoutDuplicateLines', `- Checking section ${section.sectionCode}. Starts with ${section.sectionItems.length} items`)
-    if (dontDedupeList.includes(section.sectionCode)) return
+    // Now we are working with actual TSection objects, not sectionCodes anymore
+    // Process each section (but not if it's a "TB" or "PROJ" section, because they have different sorts of items)
+    orderedSections.forEach((section) => {
+      // logDebug('getSectionsWithoutDuplicateLines', `- Checking section ${section.sectionCode}. Starts with ${section.sectionItems.length} items`)
+      if (dontDedupeList.includes(section.sectionCode)) return
 
-    // If the item has a synced line, use the blockId for the key, not the constructed key
-    // because we want to delete duplicates that are in different sections of synced lines also
-    section.sectionItems = section.sectionItems.filter((item) => {
-      const key = item?.para?.content?.match(/\^[a-z0-9]{6}/)?.[0] || paraMatcherFields.map((field) => (item?.para ? item.para[field] : '<no value>')).join('|')
+      // If the item has a synced line, use the blockId for the key, not the constructed key
+      // because we want to delete duplicates that are in different sections of synced lines also
+      section.sectionItems = section.sectionItems.filter((item) => {
+        const key = item?.para?.content?.match(/\^[a-z0-9]{6}/)?.[0] || paraMatcherFields.map((field) => (item?.para ? item.para[field] : '<no value>')).join('|')
 
-      if (!itemMap.has(key)) {
-        itemMap.set(key, true)
-        return true
-      } else {
-        // logInfo('getSectionsWithoutDuplicateLines', `  - Duplicate item ${item.ID}: ${key}`)
-      }
+        if (!itemMap.has(key)) {
+          itemMap.set(key, true)
+          return true
+        } else {
+          // logInfo('getSectionsWithoutDuplicateLines', `  - Duplicate item ${item.ID}: ${key}`)
+        }
 
-      return false
+        return false
+      })
+      // logInfo('getSectionsWithoutDuplicateLines', `- ${section.sectionCode} ends with ${section.sectionItems.length} items`) // OK
     })
-    // logInfo('getSectionsWithoutDuplicateLines', `- ${section.sectionCode} ends with ${section.sectionItems.length} items`) // OK
-  })
-  // const totalItemsAfterDedupe = countTotalSectionItems(orderedSections, dontDedupeList)
-  // logDebug('getSectionsWithoutDuplicateLines', ` ${orderedSections.length} sections ${String(orderedSections.map((s) => s.name))} with ${totalItemsAfterDedupe} items`)
+    const totalItemsAfterDedupe = countTotalSectionItems(orderedSections, dontDedupeList)
+    logTimer('getSectionsWithoutDuplicateLines', startTime, ` ${orderedSections.length} sections ${String(orderedSections.map((s) => s.name))} with ${totalItemsAfterDedupe} items`)
 
-  // Return the orderedSections instead of the original sections
-  return orderedSections
+    // Return the orderedSections instead of the original sections
+    return orderedSections
+  } catch (error) {
+    logError('getSectionsWithoutDuplicateLines', `Error: ${error}. Returning unchanged sections instead.`)
+    return _sections
+  }
 }
 
 /**

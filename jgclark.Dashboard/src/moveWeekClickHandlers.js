@@ -102,7 +102,7 @@ export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Pro
         for (const para of combinedSortedParas) {
           logDebug('scheduleAllThisWeekNextWeek', `- moving "${para.content}" to next week`)
           c++
-          const res = await moveItemBetweenCalendarNotes(thisWeekDateStr, nextWeekDateStr, para.content, config.newTaskSectionHeading ?? '', config.newTaskSectionHeadingLevel ?? 2)
+          const res = await moveItemBetweenCalendarNotes(thisWeekDateStr, nextWeekDateStr, para.content, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
           if (res) {
             logDebug('scheduleAllThisWeekNextWeek', `-> appeared to move item succesfully`)
             numberScheduled++
@@ -231,7 +231,7 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
         // For each para move to this week's note
         for (const para of combinedSortedParas) {
           logDebug('scheduleAllLastWeekThisWeek', `- moving "${para.content}" to this week`)
-          const res = await moveItemBetweenCalendarNotes(lastWeekDateStr, thisWeekDateStr, para.content, config.newTaskSectionHeading ?? '', config.newTaskSectionHeadingLevel ?? 2)
+          const res = await moveItemBetweenCalendarNotes(lastWeekDateStr, thisWeekDateStr, para.content, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
           if (res) {
             logDebug('scheduleAllLastWeekThisWeek', `-> appeared to move item succesfully`)
             numberScheduled++

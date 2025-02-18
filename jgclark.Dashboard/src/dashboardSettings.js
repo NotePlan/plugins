@@ -138,30 +138,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Moving/Scheduling Items',
   },
   {
-    key: 'newTaskSectionHeading',
-    label: 'Section heading to add/move new tasks under',
-    description:
-      "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If you leave this field blank, it will prompt you each time which heading to use. If you want new tasks to always appear at the top of the note, use '<<top of note>>'. Likewise for '<<bottom of note>>' if you want them to appear at the bottom. Or if you want the current hierarchy of headings to be maintained in the new note, use '<<carry forward>>'.",
-    type: 'input',
-    default: 'Tasks',
-    compactDisplay: true,
-  },
-  {
-    key: 'newTaskSectionHeadingLevel',
-    label: 'Heading level for new Headings',
-    description: 'Heading level (1-5) to use when adding new headings in notes.',
-    type: 'number',
-    default: '2',
-    compactDisplay: true,
-  },
-  {
-    key: 'moveSubItems',
-    label: 'Move sub-items with the item?',
-    description: 'If set, then indented sub-items of an item will be moved if the item is moved to a different note.',
-    type: 'switch',
-    default: true,
-  },
-  {
     key: 'rescheduleNotMove',
     label: '(Re)schedule items in place, rather than move?',
     description: 'When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.',
@@ -178,6 +154,30 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'switch',
     default: false,
     dependsOnKey: 'rescheduleNotMove',
+  },
+  {
+    key: 'newTaskSectionHeading',
+    label: 'Section heading to add/move new tasks under',
+    description:
+      "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If you leave this field blank, it will prompt you each time which heading to use. If you want new tasks to always appear at the top of the note, use '<<top of note>>'. Likewise for '<<bottom of note>>' if you want them to appear at the bottom. Or if you want the current hierarchy of headings to be maintained in the new note, use '<<carry forward>>'.",
+    type: 'input',
+    default: 'Tasks',
+    compactDisplay: true,
+  },
+  {
+    key: 'newTaskSectionHeadingLevel',
+    label: 'Heading level for new Headings',
+    description: 'Heading level (1-5) to use when adding new headings in notes. Note: you can also set this to 0 which means add task under the heading, but only if it already exists.',
+    type: 'number',
+    default: 2,
+    compactDisplay: true,
+  },
+  {
+    key: 'moveSubItems',
+    label: 'Move sub-items with the item?',
+    description: 'If set, then indented sub-items of an item will be moved if the item is moved to a different note.',
+    type: 'switch',
+    default: true,
   },
   {
     key: 'useTodayDate',
@@ -200,7 +200,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Max number of items to show in a section?',
     description: "The Dashboard isn't designed to show very large numbers of tasks. This sets the maximum number of items that will be shown at one time in each section.",
     type: 'number',
-    default: '24',
+    default: 24,
     compactDisplay: true,
   },
   {
@@ -216,7 +216,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Automatic Update interval',
     description: 'If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.',
     type: 'number',
-    default: '10',
+    default: 10,
     compactDisplay: true,
   },
   {
@@ -296,7 +296,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Number of days to look back for Overdue tasks',
     description: 'If set to any number > 0, will restrict Overdue tasks to just this last number of days.',
     type: 'number',
-    default: '7',
+    default: 7,
     compactDisplay: true,
   },
   {

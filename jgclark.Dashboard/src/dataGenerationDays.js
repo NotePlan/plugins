@@ -351,18 +351,11 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         // Get list of open tasks/checklists from this calendar note
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', yesterdaysNote, config, useEditorWherePossible)
 
-        // // write items for first (or combined) section
-        // sortedOrCombinedParas.map((p) => {
-        //   const thisID = `${sectionNumStr}-${itemCount}`
-        //   items.push(createSectionItemObject(thisID, p))
-        //   itemCount++
-        // })
-
         // Iterate and write items for first (or combined) section
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
         itemCount += items.length
 
-        // logDebug('getYesterdaySectionData', `- finished finding yesterday's items from ${filenameDateStr} after ${timer(startTime)}`)
+        // logTimer('getYesterdaySectionData', startTime, `- finished finding yesterday's items from ${filenameDateStr}`)
         itemCount = items.length
       } else {
         logDebug('getYesterdaySectionData', `No yesterday note found using filename '${thisFilename}'`)
@@ -496,18 +489,11 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         // Get list of open tasks/checklists from this calendar note
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', tomorrowsNote, config, useEditorWherePossible)
 
-        // // write items for first or combined section
-        // sortedOrCombinedParas.map((p) => {
-        //   const thisID = `${sectionNumStr}-${itemCount}`
-        //   items.push(createSectionItemObject(thisID, p))
-        //   itemCount++
-        // })
-
         // Iterate and write items for first (or combined) section
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
         itemCount += items.length
 
-        // logDebug('getTomorrowSectionData', `- finished finding tomorrow's items from ${filenameDateStr} after ${timer(startTime)}`)
+        // logTimer('getTomorrowSectionData', startTime, `- finished finding tomorrow's items from ${filenameDateStr}`)
       } else {
         logDebug('getTomorrowSectionData', `No tomorrow note found for filename '${thisFilename}'`)
       }
@@ -560,7 +546,6 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         },
       ],
     }
-    // clo(section, 'Tomorrow section')
     sections.push(section)
 
     // If we want this separated from the referenced items, then form a second section
@@ -602,7 +587,6 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         isReferenced: true,
         actionButtons: [],
       }
-      // clo(section, `>Tomorrow section`)
       sections.push(section)
     }
 

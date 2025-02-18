@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated for v2.1.8
+// Last updated for v2.1.10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -23,14 +23,13 @@ import type {
 } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getAPIDateStrFromDisplayDateStr, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
-import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
 import { filterOutParasInExcludeFolders, isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import { isAChildPara } from '@helpers/parentsAndChildren'
-// import { isTermInURL } from '@helpers/paragraph'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
@@ -38,16 +37,10 @@ import {
   getStartTimeObjFromParaContent,
   getTimeBlockString,
   isActiveOrFutureTimeBlockPara,
-  // isTypeThatCanHaveATimeBlock, RE_TIMEBLOCK_IN_LINE
 } from '@helpers/timeblocks'
 import {
-  // isOpenChecklist, isOpenTask,
   isOpen, isOpenNotScheduled, removeDuplicates
 } from '@helpers/utils'
-
-//-----------------------------------------------------------------
-// Types
-// Note: see types.js for all the main Type definitions
 
 //-----------------------------------------------------------------
 // Settings
@@ -83,7 +76,22 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     )
   }
 
-  return parseSettings(pluginSettings.dashboardSettings)
+  const parsedSettings = parseSettings(pluginSettings.dashboardSettings)
+
+  // Note: Workaround for  number types getting changed to strings at some point in our Settings system.
+  parsedSettings.newTaskSectionHeadingLevel = parseInt(parsedSettings.newTaskSectionHeadingLevel || '2')
+  parsedSettings.maxItemsToShowInSection = parseInt(parsedSettings.maxItemsToShowInSection || '24')
+  parsedSettings.lookBackDaysForOverdue = parseInt(parsedSettings.lookBackDaysForOverdue || '7')
+  parsedSettings.autoUpdateAfterIdleTime = parseInt(parsedSettings.autoUpdateAfterIdleTime || '10')
+
+  // When the underlying issue is tackled, then TEST: to see whether JSON number type handling has been corrected
+  // clvt(parsedSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedSettings.newTaskSectionHeadingLevel:`)
+  // Warn if any of the settings are not numbers
+  // if (typeof parsedSettings.newTaskSectionHeadingLevel !== 'number') {
+  //   logWarn('getDashboardSettings', `parsedSettings.newTaskSectionHeadingLevel is not a number type: ${parsedSettings.newTaskSectionHeadingLevel}`)
+  // }
+
+  return parsedSettings
 }
 
 /**
@@ -301,7 +309,6 @@ export function getOpenItemParasForTimePeriod(
         alsoReturnTimeblockLines ? '+ timeblocks ' : ''
       }+ not blank' filter: ${openParas.length} paras`,
     )
-    const tempSize = openParas.length
 
     // Keep only items not scheduled (other than >today or whatever calendar note we're on)
     const thisNoteDateSched = `>${theNoteDateHyphenated}`
@@ -310,9 +317,6 @@ export function getOpenItemParasForTimePeriod(
 
     // Filter out any future-scheduled tasks from this calendar note
     openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content, latestDate))
-    if (openParas.length !== tempSize) {
-      // logDebug('getOpenItemPFCTP', `- removed ${tempSize - openParas.length} future scheduled tasks`)
-    }
     logTimer('getOpenItemPFCTP', startTime, `- after 'future' filter: ${openParas.length} paras`)
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
@@ -324,8 +328,7 @@ export function getOpenItemParasForTimePeriod(
       // Now using getHeadingHierarchyForThisPara() to apply to all H4/H3/H2 headings in the hierarchy for this para
       if (dashboardSettings.applyIgnoreTermsToCalendarHeadingSections) {
         openParas = openParas.filter((p) => {
-          // const thisHeading = p.heading
-          const theseHeadings = getHeadingHierarchyForThisPara(p) // was just [p.heading]
+          const theseHeadings = getHeadingHierarchyForThisPara(p)
           let isAllowed = true
           for (const thisHeading of theseHeadings) {
             if (isLineDisallowedByExcludedTerms(thisHeading, dashboardSettings.ignoreItemsWithTerms)) {
@@ -337,8 +340,6 @@ export function getOpenItemParasForTimePeriod(
         })
         logTimer('getOpenItemPFCTP', startTime, `- after applying this to calendar headings as well: ${openParas.length} paras`)
       }
-    } else {
-      // logDebug('getOpenItemPFCTP',`dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
@@ -375,16 +376,14 @@ export function getOpenItemParasForTimePeriod(
       refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
       // logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
 
-      // Remove possible dupes from sync'd lines
+      // Remove possible dupes from sync'd lines (returning the first copy found, without doing a sort first)
       refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
-      // logTimer('getOpenItemPFCTP', startTime, `- after 'dedupe' filter: ${refOpenParas.length} para(s)`)
+      // logTimer('getOpenItemPFCTP', startTime, `- after 'eliminate sync dupes' filter: ${refOpenParas.length} para(s)`)
 
       // Filter out anything from 'ignoreItemsWithTerms' setting
       if (dashboardSettings.ignoreItemsWithTerms) {
         refOpenParas = refOpenParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
         // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
-      } else {
-        // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
       }
     }
 
