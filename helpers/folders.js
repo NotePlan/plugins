@@ -120,13 +120,11 @@ export function getSubFolders(parentFolderPathArg: string): Array<string> {
 
 /**
  * Return a list of folders, with those that match the 'exclusions' list (or any of their sub-folders) removed.
- * EITHER
- *   - include only those that start with one of the strings on the inclusions list (so will include any sub-folders) if given. Note: Root folder can be included by '/'; this doesn't include sub-folders.
- * OR
+ * Specifically:
  *   - exclude those that start with those on the 'exclusions' list, and any sub-folders (other than root folder ('/') which would then exclude everything).
- *   - optionally exclude all special @... folders as well [this overrides inclusions and exclusions]
+ *   - optionally exclude all special @... folders as well [this overrides exclusions list]
  *   - optionally force exclude root folder. Note: setting this to false does not force include it.
- * If given inclusions, then exclusions will be ignored.
+ *   - always exclude '@Trash' folder (as the API doesn't return it).
  * @author @jgclark
  * @tests in jest file
  * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder -- can be empty
@@ -136,9 +134,6 @@ export function getSubFolders(parentFolderPathArg: string): Array<string> {
  */
 export function getFolderListMinusExclusions(exclusions: Array<string>, excludeSpecialFolders: boolean = true, forceExcludeRootFolder: boolean = false): Array<string> {
   try {
-    // if (!inclusions && inclusions.length === 0 && !exclusions && exclusions.length === 0) {
-    //   throw new Error('No inclusions or exclusions given.')
-    // }
     // Get all folders as array of strings (other than @Trash). Also remove root as a special case
     const fullFolderList = DataStore.folders
     let excludeRoot = forceExcludeRootFolder

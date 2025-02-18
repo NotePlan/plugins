@@ -325,6 +325,22 @@ export async function openNoteInNewWindowIfNeeded(filename: string): Promise<boo
 }
 
 /**
+ * Open a calendar note in a split editor, and (optionally) move insertion point to 'cursorPointIn'
+ * @author @jgclark
+ * @param {*} filename
+ * @param {*} cursorPointIn
+ */
+export async function openCalendarNoteInSplit(filename: string, cursorPointIn?: string | number = 0): Promise<void> {
+  // For some reason need to add a bit to get to the right place.
+  const cursorPoint = (typeof cursorPointIn === 'string') ? parseInt(cursorPointIn) + 21 : cursorPointIn + 21
+  const res = Editor.openNoteByDateString(filename.split('.')[0], false, cursorPoint, cursorPoint, true)
+  if (res) {
+    // Make sure it all fits on the screen
+    await constrainMainWindow()
+  }
+}
+
+/**
  * Opens note in new split, if it's not already open in one
  * @param {string} filename to open in split
  * @returns {boolean} success?

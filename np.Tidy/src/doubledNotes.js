@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2.1.2024 for v0.11.0 by @jgclark
+// Last updated 2025-02-16 for v0.14.7 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -19,7 +19,7 @@ import {
 } from '@helpers/general'
 import { getProjectNotesInFolder } from '@helpers/note'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { noteOpenInEditor } from '@helpers/NPWindows'
+import { noteOpenInEditor, openCalendarNoteInSplit } from '@helpers/NPWindows'
 import { showMessage } from "@helpers/userInput"
 
 const pluginID = 'np.Tidy'
@@ -35,14 +35,14 @@ type DoubleDetails = {
 //----------------------------------------------------------------------------
 
 /**
- * Private function to generate list of potentially doubled Calendar notes.
+ * Private function to generate a list of potentially doubled Calendar notes.
  * Does this by comparing the first and second halves of each note, and if the difference is <= 10%, then its likely to be doubled.
  * @author @jgclark
  * @returns {Array<DoubleDetails>} array of filenames, one for each suspected doubled Calendar note
 */
-function getPotentialDoubledNotes(): Array<DoubleDetails> {
+function findPotentialDoubledNotes(): Array<DoubleDetails> {
   try {
-    logDebug(pluginJson, `getPotentialDoubledNotes() starting`)
+    logDebug(pluginJson, `findPotentialDoubledNotes() starting`)
     let outputArray: Array<DoubleDetails> = [] // of NP filenames
 
     // Get all Calendar notes to check (that are at least 8 lines long)
@@ -65,14 +65,14 @@ function getPotentialDoubledNotes(): Array<DoubleDetails> {
       const percentDiff: number = (totalDiffBytes > 0) ? ((totalDiffBytes / allContent.length / 2) * 100) : 100
       // If diff is <= 10%, then it's likely to be doubled
       if (percentDiff <= 10) {
-        // logDebug('getPotentialDoubledNotes', `${n.filename} = ${percentDiff}`)
+        // logDebug('findPotentialDoubledNotes', `${n.filename} = ${percentDiff}`)
         outputArray.push({ filename: n.filename, contentLength: allContent.length, matchLevel: percentDiff })
       }
     }
     return outputArray
   }
   catch (err) {
-    logError(pluginJson, 'getPotentialDoubledNotes() ' + JSP(err))
+    logError(pluginJson, 'findPotentialDoubledNotes() ' + JSP(err))
     return [] // for completeness
   }
 }
@@ -95,7 +95,7 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
     CommandBar.showLoading(true, `Finding possible doubles`)
     await CommandBar.onAsyncThread()
     const startTime = new Date()
-    const doubles: Array<DoubleDetails> = getPotentialDoubledNotes()
+    const doubles: Array<DoubleDetails> = findPotentialDoubledNotes()
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
     logDebug('listPotentialDoubles', `Found ${doubles.length} potential doubles in ${timer(startTime)}:`)
@@ -142,21 +142,5 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
   }
   catch (err) {
     logError('listPotentialDoubles', JSP(err))
-  }
-}
-
-/**
- * Open a calendar note in a split editor, and (optionally) move insertion point to 'cursorPointIn'
- * @author @jgclark
- * @param {*} filename
- * @param {*} cursorPointIn
- */
-export async function openCalendarNoteInSplit(filename: string, cursorPointIn?: string | number = 0): Promise<void> {
-  // For some reason need to add a bit to get to the right place.
-  const cursorPoint = (typeof cursorPointIn === 'string') ? parseInt(cursorPointIn) + 21 : cursorPointIn + 21
-  const res = Editor.openNoteByDateString(filename.split('.')[0], false, cursorPoint, cursorPoint, true)
-  if (res) {
-    // Make sure it all fits on the screen
-    await constrainMainWindow()
   }
 }
