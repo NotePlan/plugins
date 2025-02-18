@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // listStubs function for Tidy
 // Jonathan Clark
-// Last updated 19.3.2024 for v0.9.0+, @jgclark
+// Last updated 2025-02-16 for v0.14.7 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { getSettings, type TidyConfig } from './tidyHelpers'
@@ -41,22 +41,22 @@ type stubDetails = {
 //----------------------------------------------------------------------------
 
 /**
- * Private function to generate list of wikilink stubs (i.e. links that don't lead to actual notes).
+ * Private function to generate a list of wikilink stubs (i.e. links that don't lead to actual notes).
  * Ignores links to calendar notes.
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
  * @returns {Array<stubDetails>} array of strings, one for each output line
 */
-function getStubs(
+function findStubs(
   foldersToExclude: Array<string> = [],
   filenamesToExclude: Array<string> = [],
 ): Array<stubDetails> {
   try {
-    logDebug(pluginJson, `getStubs() starting`)
+    logDebug(pluginJson, `findStubs() starting`)
     const outputArray: Array<stubDetails> = []
 
     // get folder list, minus any to exclude
-    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, true)
+    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, false, false)
     logDebug('getDuplicateNotes', `- Found ${relevantFolderList.length} folders to check`)
 
     // Get all notes to check
@@ -80,16 +80,18 @@ function getStubs(
       const matches = thisContent.matchAll(/\[\[[^\[]+?\]\]/g) // has to be global
       for (const match of matches) {
         const thisLink = match[0].slice(2, -2) // remove enclosing brackets
-        const thisLinkTitle = (thisLink.includes('#')) ? thisLink.split('#', 1)[0] : thisLink // remove any '#heading' part
+        // remove any '#heading' or '^link' part
+        let thisLinkTitle = (thisLink.includes('#')) ? thisLink.split('#', 1)[0] : thisLink
+        thisLinkTitle = (thisLink.includes('^')) ? thisLink.split('^', 1)[0] : thisLink
         // Check to see if each match leads anywhere
         const isCalendarNote = isValidCalendarNoteTitleStr(thisLinkTitle)
         const notesMatchingTitle = DataStore.projectNoteByTitle(thisLinkTitle) ?? []
         if (!isCalendarNote && notesMatchingTitle.length === 0) {
-          // logDebug('getStubs', `- ${thisLink} is a stub`)
+          // logDebug('findStubs', `- ${thisLink} is a stub`)
           stubs++
           outputArray.push({ note: thisNote, wikilink: thisLink })
         } else {
-          // logDebug('getStubs', `- ${thisLink} NOT a stub`)
+          // logDebug('findStubs', `- ${thisLink} NOT a stub`)
         }
       }
     }
@@ -122,7 +124,7 @@ export async function listStubs(params: string = ''): Promise<void> {
     CommandBar.showLoading(true, `Finding wikilink stubs`)
     await CommandBar.onAsyncThread()
     const startTime = new Date()
-    const stubs: Array<stubDetails> = getStubs(config.listFoldersToExclude, [config.stubsNoteFilename])
+    const stubs: Array<stubDetails> = findStubs(config.listFoldersToExclude, [config.stubsNoteFilename])
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 

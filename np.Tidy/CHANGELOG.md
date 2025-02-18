@@ -1,8 +1,12 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
-## [0.14.6] - 2025-02-16 @dwertheimer
+## [0.14.7] - 2025-02-18 @jgclark
+- Stop lots of popups appearing when running **/Generate @repeats in recent notes** command (thanks, @kanera).
+- The **/List stubs** command now understands line links (and so ignores the part of the link after the `^` character) (thanks, @ChrisMetcalf).
+- Improved descriptions of some settings.
 
+## [0.14.6] - 2025-02-16 @dwertheimer
 - Minor fix to calling **/Move top-level tasks to heading** from a template
 
 ## [0.14.5] - 2025-02-15 @dwertheimer
