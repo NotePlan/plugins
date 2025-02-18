@@ -74,9 +74,9 @@ Button a { text-decoration: none; font-size: 0.9rem; }
  * @author @jgclark
  * @param {string?} mermaidTheme name (optional)
  */
-export async function previewNote(mermaidTheme?: string): void {
+export async function previewNote(mermaidTheme?: string = "green"): void {
   try {
-    const { note, content, title } = Editor
+    const { note, content } = Editor
     let lines = content?.split('\n') ?? []
     lines = lines.filter(l => l !== 'triggers: onEditorWillSave => np.Preview.updatePreview')
     // Update mermaid fenced code blocks to suitable <divs>

@@ -98,12 +98,11 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
 
 /**
  * Convert a note's content to HTML and include any images as base64
- * @author @cwhittl
  * @param {string} content
- * @param {NPNote} Note
+ * @param {TNote} Note
  * @returns {string} HTML
  */
-export async function getNoteContentAsHTML(content: string, note: NPNote): ?string {
+export async function getNoteContentAsHTML(content: string, note: TNote): ?string {
   try {
     let lines = content?.split('\n') ?? []
 
