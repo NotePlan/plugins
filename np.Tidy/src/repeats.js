@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Generate @repeat()s for recent notes
 // Jonathan Clark
-// Last updated 29.6.2024 for v0.14.0+, @jgclark
+// Last updated 2025-02-16 for v0.14.7, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -70,7 +70,7 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
     // Now run generateRepeats() on each and count how many were changed
     let numGenerated = 0
     for (const thisNote of recentNotes) {
-      const num = await generateRepeats(runSilently, thisNote)
+      const num = await generateRepeats(true, thisNote)
       numGenerated += num
     }
     await CommandBar.onMainThread()
