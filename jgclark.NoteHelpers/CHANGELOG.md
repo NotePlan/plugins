@@ -6,6 +6,9 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 - ??? Look at spinning out Index... commands to separate plugin 
 - -->
 
+## [1.1.0] - 2025-02-19
+- new **list published notes** command, that generates a list in the new 'Publlished Notes' note of all notes that have been published to published to the internet through NotePlan.
+
 ## [1.0.0] - 2024-12-31
 ### New
 - the **new note** command has been revived (alias **nn**). It creates a new (regular, not calendar) note with a title you give, and in a folder you can select. If the "Default Text to add to frontmatter" setting isn't blank, then the note will be created using that frontmatter.

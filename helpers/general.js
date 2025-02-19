@@ -7,6 +7,7 @@
 import json5 from 'json5'
 import { clo, JSP, logError, logDebug } from './dev'
 import { getDateStringFromCalendarFilename } from './dateTime'
+import { getFolderFromFilename } from './folders'
 
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
 
@@ -193,6 +194,20 @@ export function displayTitle(n: ?CoreNoteFields): string {
     : n.type === 'Calendar'
       ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
       : n.title ?? '(error)'
+}
+
+/**
+ * Return title of note useful for display, including for
+ * - calendar notes based on the filename
+ * @author @jgclark
+ *
+ * @param {CoreNoteFields} note
+ * @return {string}
+ */
+export function displayFolderAndTitle(note: CoreNoteFields, titleAsLink: boolean = true): string {
+  return note.type === 'Calendar'
+    ? getDateStringFromCalendarFilename(note.filename) ?? ''
+    : `${getFolderFromFilename(note.filename)}/${titleAsLink ? `[[${note.title ?? '?'}]]` : note.title ?? '?'}`
 }
 
 /**

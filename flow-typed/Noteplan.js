@@ -1719,6 +1719,25 @@ declare interface CoreNoteFields {
    */
   +frontmatterAttributes: Object;
   /**
+  * Returns the database record ID of the published note (on CloudKit). Returns null if the note is not published yet.
+  * Use this to verify if a note has been published and to build the public link: https://noteplan.co/n/{publicRecordID}
+  * Note: Available from v3.9.1
+  * @type {String?}
+  */
++publicRecordID: ?string;
+/**
+* Publishes the note using CloudKit (inserts a record on the public database). Build the web-link to the note by using the publicRecordID.
+* Note: Available from v3.9.1
+* @return {Promise}
+*/
+publish(): Promise < void>;
+/**
+* Unpublishes the note from CloudKit (deletes the database entry from the public database).
+* Note: Available from v3.9.1
+* @return {Promise}
+*/
+unpublish(): Promise < void>;
+  /**
    * Returns the conflicted version if any, including 'url' which is the path to the file. Otherwise, returns undefined.
    * Note: Available from v3.9.3
    * @return { Object(filename: string, url: string, content: string) }
@@ -1942,9 +1961,9 @@ declare interface CoreNoteFields {
   /**
    * Print the note, optionally with backlinks and events sections
    * Note: available from v3.4 on macOS
-   * @param {boolean} addReferenceSections
+   * @param {boolean} withBacklinksAndEvents
    */
-  printNote(addReferenceSections: boolean): void;
+printNote(withBacklinksAndEvents: boolean): void;
 
   /**
    * Resolves a conflict, if any, using the current version (which is version 1 in the conflict bar inside the UI). Once resolved you need to reload the note.
