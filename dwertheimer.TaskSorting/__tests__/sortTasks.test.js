@@ -364,10 +364,10 @@ describe(`${PLUGIN_NAME}`, () => {
         // export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
         // output order is the reverse of that order
         // Note that types will be unreliable because rawContent is being pasted
-        expect(result[4].content).toEqual('- [-] 3-cancelled')
-        expect(result[3].content).toEqual('- [x] 2-done')
-        expect(result[2].content).toEqual('- [>] 4-scheduled')
-        expect(result[1].content).toEqual('- [ ] 1-open')
+        expect(result[4].content).toEqual('3-cancelled')
+        expect(result[3].content).toEqual('2-done')
+        expect(result[2].content).toEqual('4-scheduled')
+        expect(result[1].content).toEqual('1-open')
         global.Editor = editorBackup
       })
       test('should write to Editor one of each task+checklist type in default order', async () => {
@@ -395,14 +395,14 @@ describe(`${PLUGIN_NAME}`, () => {
         // Note that types will be unreliable because rawContent is being pasted
         // so we're just checking the content
         // console.log(`sortTasks result`, result)
-        expect(result[8].content).toEqual('+ [-] 6-checklistCancelled')
-        expect(result[7].content).toEqual('- [-] 5-cancelled')
-        expect(result[6].content).toEqual('+ [x] 4-checklistDone')
-        expect(result[5].content).toEqual('- [x] 3-done')
-        expect(result[4].content).toEqual('+ [>] 8-checklistScheduled')
-        expect(result[3].content).toEqual('- [>] 7-scheduled')
-        expect(result[2].content).toEqual('+ [ ] 2-checklist')
-        expect(result[1].content).toEqual('- [ ] 1-open')
+        expect(result[8].content).toEqual('6-checklistCancelled')
+        expect(result[7].content).toEqual('5-cancelled')
+        expect(result[6].content).toEqual('4-checklistDone')
+        expect(result[5].content).toEqual('3-done')
+        expect(result[4].content).toEqual('8-checklistScheduled')
+        expect(result[3].content).toEqual('7-scheduled')
+        expect(result[2].content).toEqual('2-checklist')
+        expect(result[1].content).toEqual('1-open')
         global.Editor = editorBackup
       })
       test('should write to Editor one of each task type in user-specified order', async () => {
@@ -425,10 +425,10 @@ describe(`${PLUGIN_NAME}`, () => {
         // export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
         // output order is the reverse of that order
         // Note that types will be unreliable because rawContent is being pasted
-        expect(result[1].content).toEqual('- [-] 3-cancelled')
-        expect(result[2].content).toEqual('- [x] 2-done')
-        expect(result[3].content).toEqual('- [>] 4-scheduled')
-        expect(result[4].content).toEqual('- [ ] 1-open')
+        expect(result[1].content).toEqual('3-cancelled')
+        expect(result[2].content).toEqual('2-done')
+        expect(result[3].content).toEqual('4-scheduled')
+        expect(result[4].content).toEqual('1-open')
         global.Editor = { ...editorBackup }
         global.DataStore = { ...dataStoreBackup }
       })
@@ -453,10 +453,10 @@ describe(`${PLUGIN_NAME}`, () => {
         // export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
         // output order is the reverse of that order
         // Note that types will be unreliable because rawContent is being pasted
-        expect(result[1].content).toEqual('- [-] 3-cancelled')
-        expect(result[2].content).toEqual('- [x] 2-done')
-        expect(result[3].content).toEqual('- [>] 4-scheduled')
-        expect(result[4].content).toEqual('- [ ] 1-open')
+        expect(result[1].content).toEqual('3-cancelled')
+        expect(result[2].content).toEqual('2-done')
+        expect(result[3].content).toEqual('4-scheduled')
+        expect(result[4].content).toEqual('1-open')
         global.Editor = { ...editorBackup }
         global.DataStore = { ...dataStoreBackup }
       })
@@ -476,7 +476,7 @@ describe(`${PLUGIN_NAME}`, () => {
         await f.writeOutTasks(note, tByType)
         const result = note.paragraphs
         expect(result.length).toEqual(4)
-        expect(result[3].content).toEqual('- [ ] 1-open')
+        expect(result[3].content).toEqual('1-open')
         global.Editor = { ...editorBackup }
         global.DataStore = { ...dataStoreBackup }
       })
@@ -498,7 +498,7 @@ describe(`${PLUGIN_NAME}`, () => {
         await f.writeOutTasks(note, tByType, false, false, false, 'theTitle')
         const result = note.paragraphs
         expect(result.length).toEqual(5)
-        expect(result[3].content).toEqual('- [ ] 1-open')
+        expect(result[3].content).toEqual('1-open')
         global.Editor = editorBackup
       })
       test('should append to Editor when frontmatter exists', async () => {
@@ -518,7 +518,7 @@ describe(`${PLUGIN_NAME}`, () => {
         await f.writeOutTasks(note, tByType)
         const result = note.paragraphs
         expect(result.length).toEqual(7)
-        expect(result[6].content).toEqual('- [ ] 1-open')
+        expect(result[6].content).toEqual('1-open')
         global.Editor = editorBackup
       })
       test('should perform a basic write to Editor of testNote content', async () => {
@@ -528,9 +528,10 @@ describe(`${PLUGIN_NAME}`, () => {
         const tByType = getTasksByType(tasks)
         await f.writeOutTasks(note, tByType)
         const result = note.paragraphs
+        expect(result[0].content).toEqual('Task-4 @done(2022-10-01)')
+        expect(result[8].content).toEqual('And a note under Task-8')
+        expect(result[8].indents).toEqual(1)
         expect(result.length).toEqual(9)
-        expect(result[0].content).toEqual('* [x] Task-4 @done(2022-10-01)')
-        expect(result[8].content).toEqual('\tAnd a note under Task-8')
         global.Editor = editorBackup
       })
     })

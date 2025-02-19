@@ -21,9 +21,9 @@ beforeAll(() => {
 describe(`${PLUGIN_NAME}`, () => {
   describe(`${FILENAME}`, () => {
     describe('getFrontMatterAttributes()', () => {
-      test('should return false if no frontmatter', () => {
-        const result = f.getFrontMatterAttributes({ content: '' })
-        expect(result).toEqual(false)
+      test('should return empty object if no frontmatter', () => {
+        const result = f.getFrontMatterAttributes(new Note({ content: '' }))
+        expect(result).toEqual({})
       })
       test('should return empty object if empty frontmatter', () => {
         const text = '---\n---\n'
@@ -32,12 +32,12 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should return object with frontmatter vars and boolean values', () => {
         const text = '---\nfield1: true\nfield2: false\n---\n'
-        const result = f.getFrontMatterAttributes({ content: text })
+        const result = f.getFrontMatterAttributes(new Note({ content: text }))
         expect(result).toEqual({ field1: true, field2: false })
       })
       test('should return object with frontmatter vars', () => {
         const text = '---\nfield1: true\nfield2: foo\n---\n'
-        const result = f.getFrontMatterAttributes({ content: text })
+        const result = f.getFrontMatterAttributes(new Note({ content: text }))
         expect(result).toEqual({ field1: true, field2: 'foo' })
       })
     })

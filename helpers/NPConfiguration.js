@@ -77,22 +77,28 @@ export function updateSettingData(pluginJsonData: any): number {
       }
     }
   })
-  // FIXME: @jgclark at least once saw an 'undefined is not an object' error, which appeared to be for this line.
-  // dbw did the following logging to try to track it down but it looks like, JS thinks that DataStore is not an object at times
-  // and yet, somehow the migration actually does work and migrates new settings. So, I'm not sure what's going on here.
-  // we are going to leave this alone for the time being, but if you see this error again, please uncomment the following to keep hunting
-  logDebug(
-    'NPConfiguration/updateSettingData',
-    `typeof DataStore: ${typeof DataStore} isArray:${String(
-      Array.isArray(DataStore),
-    )} typeof DataStore.settings: ${typeof DataStore?.settings} typeof newSettings: ${typeof newSettings}`,
-  )
   // logDebug(`NPConfiguration/updateSettingData: Object.keys(DataStore): ${Object.keys(DataStore).join(',')}`)
   // logDebug('currentSettingData:', JSP(currentSettingData, 2))
   // logDebug('newSettings:', JSP(newSettings, 2))
   // logDebug('DataStore.settings:', JSP(DataStore.settings, 2))
   try {
-    DataStore.settings = newSettings
+    if (DataStore && typeof DataStore.settings === 'object' && updateResult > 0) {
+      // FIXME: @jgclark at least once saw an 'undefined is not an object' error, which appeared to be for this line.
+      // dbw did the following logging to try to track it down but it looks like, JS thinks that DataStore is not an object at times
+      // and yet, somehow the migration actually does work and migrates new settings. So, I'm not sure what's going on here.
+      // we are going to leave this alone for the time being, but if you see this error again, please uncomment the following to keep hunting
+      logDebug(
+        `NPConfiguration/updateSettingData for ${pluginJsonData['plugin.id']} updateResult: ${updateResult}`,
+        `typeof DataStore: ${typeof DataStore} isArray:${String(
+          Array.isArray(DataStore),
+        )} typeof DataStore.settings: ${typeof DataStore?.settings} typeof newSettings: ${typeof newSettings}`,
+      )
+      logDebug(
+        'NPConfiguration/updateSettingData',
+        `About to update DataStore.settings to newSettings after an update. If you see a TypeError right after this, please ignore it. It's a known NP bug that doesn't seem to matter.`,
+      )
+      DataStore.settings = newSettings
+    }
   } catch (error) {
     console.log(
       'NPConfiguration/updateSettingData/Plugin Settings Migration Failed. Was not able to automatically migrate your plugin settings to the new version. Please open the plugin settings and save in order to update your settings.',

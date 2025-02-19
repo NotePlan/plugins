@@ -3,7 +3,7 @@
 import colors from 'chalk'
 import * as h from '../HTMLView'
 import * as n from '../NPThemeToCSS'
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, /*Note, Paragraph*/ } from '@mocks/index'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*Note, Paragraph*/ } from '@mocks/index'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -12,7 +12,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 })
 
 // import { clo, logDebug, logError, logWarn } from '@helpers/dev'

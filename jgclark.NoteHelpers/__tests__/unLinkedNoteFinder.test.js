@@ -17,7 +17,7 @@ beforeAll(() => {
   global.Editor = Editor
   global.NotePlan = NotePlan
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
 describe('Regex tests for various specific terms', () => {
@@ -29,7 +29,7 @@ describe('Regex tests for various specific terms', () => {
         { desc: 'Simple Match', input: 'This is an example of regex.', expected: true },
         { desc: 'Match at Start of String', input: 'example starts the sentence.', expected: true },
         { desc: 'Match at End of String', input: 'The sentence ends with example', expected: true },
-        { desc: 'Match with Punctuation', input: 'Here is an example; it\'s clearly marked.', expected: true },
+        { desc: 'Match with Punctuation', input: "Here is an example; it's clearly marked.", expected: true },
         { desc: 'No Match Due to Hashtag', input: 'This is a #example hashtag.', expected: false },
         { desc: 'No Match Inside Noteplan note Links', input: 'Check this [[example]] link.', expected: false },
         { desc: 'No Match Inside Noteplan note Links starting with [[', input: 'Check this [[example]] link.', expected: false },
@@ -39,7 +39,7 @@ describe('Regex tests for various specific terms', () => {
         { desc: 'No Match Due to Adjacency to Non-Specified Characters', input: 'Anexample text here.', expected: false },
         { desc: 'Multiple Matches', input: 'An example with another example in it.', expectedLength: 2 },
         { desc: 'Match With Mixed Case', input: 'Example is uppercase at the beginning.', expected: true },
-      ]
+      ],
     },
     {
       description: 'matching specific term "example sentence"',
@@ -48,14 +48,14 @@ describe('Regex tests for various specific terms', () => {
         { desc: 'Simple Match', input: 'This is an example sentence of regex.', expected: true },
         { desc: 'Match at Start of String', input: 'example sentence starts the sentence.', expected: true },
         { desc: 'Match at End of String', input: 'The sentence ends with example sentence', expected: true },
-        { desc: 'Match with Punctuation', input: 'Here is an example sentence; it\'s clearly marked.', expected: true },
+        { desc: 'Match with Punctuation', input: "Here is an example sentence; it's clearly marked.", expected: true },
         { desc: 'No Match Inside Noteplan note Links', input: 'Check this [[example sentence]] link.', expected: false },
         { desc: 'No match Surrounded by Special Characters', input: 'Here is an (example sentence).', expected: false },
         { desc: 'Multiple Matches', input: 'An example sentence with another example sentence in it.', expectedLength: 2 },
         { desc: 'Match With Mixed Case initial letter', input: 'Example sentence is uppercase at the beginning.', expected: true },
         { desc: 'Match With Mixed Case all letters', input: 'Example Sentence is uppercase at the beginning.', expected: true },
         { desc: 'Match With Mixed Case last letter', input: 'example Sentence is uppercase at the beginning.', expected: true },
-      ]
+      ],
     },
     {
       description: 'matching specific term "✅example" that starts with a unicode character',
@@ -64,14 +64,14 @@ describe('Regex tests for various specific terms', () => {
         { desc: 'Simple Match', input: 'This is an ✅example of regex.', expected: true },
         { desc: 'Match at Start of String', input: '✅example starts the sentence.', expected: true },
         { desc: 'Match at End of String', input: 'The sentence ends with ✅example', expected: true },
-        { desc: 'Match with Punctuation', input: 'Here is an ✅example; it\'s clearly marked.', expected: true },
+        { desc: 'Match with Punctuation', input: "Here is an ✅example; it's clearly marked.", expected: true },
         { desc: 'No Match Due to Hashtag', input: 'This is a #✅example hashtag.', expected: false },
         { desc: 'No Match Inside Noteplan note Links', input: 'Check this [[✅example]] link.', expected: false },
         { desc: 'No match Surrounded by Special Characters', input: 'Here is an (✅example).', expected: false },
         { desc: 'No Match Due to Adjacency to Non-Specified Characters', input: 'An✅example text here.', expected: false },
         { desc: 'Multiple Matches', input: 'An ✅example with another ✅example in it.', expectedLength: 2 },
         { desc: 'Match With Mixed Case', input: '✅Example is uppercase at the beginning.', expected: true },
-      ]
+      ],
     },
     {
       description: 'matching specific term "example✅" that ends with a unicode character',
@@ -80,32 +80,32 @@ describe('Regex tests for various specific terms', () => {
         { desc: 'Simple Match', input: 'This is an example✅ of regex.', expected: true },
         { desc: 'Match at Start of String', input: 'example✅ starts the sentence.', expected: true },
         { desc: 'Match at End of String', input: 'The example✅ ends with example', expected: true },
-        { desc: 'Match with Punctuation', input: 'Here is an example✅; it\'s clearly marked.', expected: true },
+        { desc: 'Match with Punctuation', input: "Here is an example✅; it's clearly marked.", expected: true },
         { desc: 'No Match Due to Hashtag', input: 'This is a #example✅ hashtag.', expected: false },
         { desc: 'No Match Inside Noteplan note Links', input: 'Check this [[example✅]] link.', expected: false },
         { desc: 'No match Surrounded by Special Characters', input: 'Here is an (example✅).', expected: false },
         { desc: 'No Match Due to Adjacency to Non-Specified Characters', input: 'Anexample✅ text here.', expected: false },
         { desc: 'Multiple Matches', input: 'An example✅ with another example✅ in it.', expectedLength: 2 },
         { desc: 'Match With Mixed Case', input: 'Example✅ is uppercase at the beginning.', expected: true },
-      ]
+      ],
     },
-  ];
+  ]
 
   testCases.forEach(({ description, note, tests }) => {
     describe(description, () => {
-      const regex = buildRegex(note);
+      const regex = buildRegex(note)
 
       tests.forEach(({ desc, input, expected, expectedLength }) => {
         test(desc, () => {
-          const matches = input.match(regex);
+          const matches = input.match(regex)
           if (expected !== undefined) {
-            expect(!!matches).toBe(expected);
+            expect(!!matches).toBe(expected)
           }
           if (expectedLength !== undefined) {
-            expect(matches).toHaveLength(expectedLength);
+            expect(matches).toHaveLength(expectedLength)
           }
-        });
-      });
-    });
-  });
-});
+        })
+      })
+    })
+  })
+})

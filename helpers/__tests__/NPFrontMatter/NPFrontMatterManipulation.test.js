@@ -32,18 +32,18 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(true)
       })
       test('should return true if already has frontmatter', () => {
-        const note = { content: '---\nfoo: bar\n---\n' }
+        const note = new Note({ content: '---\nfoo: bar\n---\n' })
         const result = f.ensureFrontmatter(note)
         expect(result).toEqual(true)
       })
       test('should return true if already has frontmatter but change title', () => {
-        const note = { content: '---\ntitle: bar\n---\n' }
+        const note = new Note({ content: '---\ntitle: bar\n---\n' })
         const result = f.ensureFrontmatter(note, true, 'baz')
         expect(result).toEqual(true)
         expect(note.content).toMatch(/title: baz/)
       })
       test('should set note title if had no title', () => {
-        const note = { content: '---\nsam: bar\n---\n' }
+        const note = new Note({ content: '---\nsam: bar\n---\n' })
         const result = f.ensureFrontmatter(note, true, 'baz')
         expect(result).toEqual(true)
         expect(note.content).toMatch(/title: baz/)
@@ -52,10 +52,10 @@ describe(`${PLUGIN_NAME}`, () => {
         const note = new Note({ content: '', type: 'Calendar', paragraphs: [], title: '2022-01-01' })
         const result = f.ensureFrontmatter(note, false)
         expect(result).toEqual(true)
-        expect(note.content).toMatch(/---\n---\n/)
+        expect(note.content).toMatch(/---\n---/)
       })
       test('should set note title in frontmatter if had title in document', () => {
-        const note = new Note({ paragraphs: [{ content: 'foo', headingLevel: 1, type: 'title' }], content: '# foo' })
+        const note = new Note({ paragraphs: [{ content: 'foo', headingLevel: 1, type: 'title' }], content: '# foo', title: 'foo' })
         const result = f.ensureFrontmatter(note)
         expect(result).toEqual(true)
         expect(note.content).toMatch(/title: foo/)

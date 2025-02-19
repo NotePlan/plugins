@@ -53,7 +53,8 @@ export function quoteText(text: string): string {
 
 /**
  * Test whether a string contains front matter using the front-matter library which has a bug/limitation
- * Note: underlying library doesn't actually check whether the YAML comes at the start of the string. @jgclark has raised an issue to fix that.
+ * (this uses the full fm library and *not* the NP API frontmatterAttributes)
+ * Note: underlying fm library doesn't actually check whether the YAML comes at the start of the string. @jgclark has raised an issue to fix that.
  * Will allow nonstandard YAML (e.g. contain colons, value starts with @) by sanitizing it first
  * @param {string} text - the text to test (typically the content of a note -- note.content)
  * @returns {boolean} true if it has front matter
@@ -61,22 +62,43 @@ export function quoteText(text: string): string {
 export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] === '---' && fm.test(_sanitizeFrontmatterText(text, true))
 
 /**
- * Test whether a Note contains front matter
- * Note: the underlying library doesn't actually check whether the YAML comes at the start of the string.
- * So @jgclark has added an (imperfect, simple) test to see if it comes at the start, until such a time as the library is updated.
+ * Test whether a Note contains the requirements for frontmatter (uses NP API note.frontmatterAttributes)
+ * Will pass for notes with any fields or empty frontmatter (---\n---) so that variables can be added to it
+ * Regular notes will generally have a title, but not always because the title may be in the first line of the note under the fm
  * @param {CoreNoteFields} note - the note to test
  * @returns {boolean} true if the note has front matter
  */
 export function noteHasFrontMatter(note: CoreNoteFields): boolean {
-  if (!note || !note.paragraphs || note.paragraphs?.length < 2) return false
-  return note && hasFrontMatter(note.content || '') && (note.paragraphs[0].type === 'separator' || note.paragraphs[0].content === '---')
+  try {
+    logDebug('noteHasFrontMatter', `Checking note "${note.title || note.filename} "for frontmatter`)
+    if (!note) return false
+    logDebug('noteHasFrontMatter', `note.frontmatterAttributes: ${Object.keys(note.frontmatterAttributes).length}`)
+    if (!note.hasOwnProperty('frontmatterAttributes') || !note.frontmatterAttributes || typeof note.frontmatterAttributes !== 'object') return false
+    clo(note, 'noteHasFrontMatter note')
+    if (Object.keys(note.frontmatterAttributes).length > 0) return true // has frontmatter attributes
+    logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
+    if (!note || !note.paragraphs || note.paragraphs?.length < 2) return false // could not possibly have frontmatter
+    logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
+    const paras = note.paragraphs
+    logDebug('noteHasFrontMatter', `paras: ${paras.length}`)
+    if (paras[0].type === 'separator' && paras.filter((p) => p.type === 'separator').length >= 2) return true // has the separators
+    logDebug('noteHasFrontMatter', `noteHasFrontMatter: false`)
+    return false
+  } catch (err) {
+    logError('NPFrontMatter/noteHasFrontMatter()', JSP(err))
+    return false
+  }
 }
+
 /**
- * get the front matter attributes from a note
+ * get the front matter attributes from a note (uses NP API note.frontmatterAttributes) or an empty object if the note has no front matter
+ * NOTE: previously this returned false if the note had no front matter, but now it returns an empty object to correspond with the behavior of the NP API
  * @param {TNote} note
- * @returns object of attributes or false if the note has no front matter
+ * @returns object of attributes or empty object if the note has no front matter
  */
-export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: string } | false => (hasFrontMatter(note?.content || '') ? getAttributes(note.content) : false)
+export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: string } => note.frontmatterAttributes || {}
+// previous version using fm library
+// export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: string } | false => (hasFrontMatter(note?.content || '') ? getAttributes(note.content) : false)
 
 /**
  * Get the paragraphs that include the front matter (optionally with the separators)
@@ -100,6 +122,25 @@ export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators
     logError('NPFrontMatter/getFrontMatterParagraphs()', JSP(err))
     return false
   }
+}
+
+/**
+ * Get all notes that have frontmatter attributes, optionally including template notes
+ * @param {boolean} includeTemplateFolders - whether to include template notes (default: false). By default, excludes all Template folder notes.
+ * @param {boolean} onlyTemplateNotes - whether to include only template notes (default: false). By default, includes all notes that have frontmatter keys.
+ * @returns {Array<CoreNoteFields>} - an array of notes that have front matter (template notes are included only if includeTemplateFolders is true and the note has frontmatter keys)
+ */
+export function getFrontMatterNotes(includeTemplateFolders: boolean = false, onlyTemplateNotes: boolean = false): Array<CoreNoteFields> {
+  const start = new Date()
+  const templateFolder = NotePlan.environment.templateFolder || '@Templates'
+  const returnedNotes = DataStore.projectNotes.filter((note) => {
+    const hasKeys = Object.keys(note?.frontmatterAttributes || {}).length > 0
+    const isTemplate = note.filename.startsWith(templateFolder)
+    if (onlyTemplateNotes) return isTemplate && hasKeys
+    return !isTemplate ? hasKeys : includeTemplateFolders && hasKeys
+  })
+  logDebug('getFrontMatterNotes', `Found ${returnedNotes.length} (${includeTemplateFolders ? 'including' : 'excluding'} template notes) notes with frontmatter in ${timer(start)}`)
+  return returnedNotes
 }
 
 /**
@@ -330,12 +371,14 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
     if (note == null) {
       // no note - return false
       throw new Error(`No note found. Stopping conversion.`)
+    } else if (noteHasFrontMatter(note) && !(alsoEnsureTitle || title)) {
+      return true
     } else if (hasFrontMatter(note.content || '')) {
       // already has frontmatter
       const attr = getAttributes(note.content)
       if (!attr.title && title) {
         logDebug('ensureFrontmatter', `Note '${displayTitle(note)}' already has frontmatter but no title. Adding title.`)
-        if (note.content) note.content = note.content.replace('---', `---\ntitle: ${title}\n`)
+        if (note.content) note.content = note.content.replace('---', `---\ntitle: ${title}`)
       } else if (title && attr.title !== title) {
         logDebug('ensureFrontmatter', `Note '${displayTitle(note)}' already has frontmatter but title is wrong. Updating title.`)
         if (note.content) note.content = note.content.replace(`title: ${attr.title}`, `title: ${title}`)
@@ -348,7 +391,8 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         logDebug('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, so will now make one:`)
 
         const firstLine = note.paragraphs.length ? note.paragraphs[0] : {}
-        const titleFromFirstLine = firstLine.type === 'title' && firstLine.headingLevel === 1 ? firstLine.content : ''
+        const firstLineIsTitle = firstLine.type === 'title' && firstLine.headingLevel === 1
+        const titleFromFirstLine = firstLineIsTitle ? firstLine.content : ''
 
         // Make title from parameter or note's existing H1 title or note.title respectively
         newTitle = (title || titleFromFirstLine || note.title || '').replace(/`/g, '') // cover Calendar notes where title is not in the note
@@ -357,11 +401,11 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
           logError('ensureFrontmatter', `Cannot find title for '${note.filename}'. Stopping conversion.`)
         }
 
-        if (titleFromFirstLine) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
-        fm = `---\ntitle: ${quoteText(newTitle)}\n---\n`
+        if (firstLineIsTitle) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
+        fm = `---\ntitle: ${quoteText(newTitle)}\n---`
       } else {
         logDebug('ensureFrontmatter', `- just adding empty frontmatter to this calendar note`)
-        fm = `---\n---\n`
+        fm = `---\n---`
       }
       // const newContent = `${front}${note?.content || ''}`
       // logDebug('ensureFrontmatter', `newContent = ${newContent}`)
@@ -512,7 +556,7 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
     // clo(triggersObj, `addTrigger() triggersObj =`)
     const triggerFrontMatter = { triggers: formatTriggerString(triggersObj) }
     clo(triggerFrontMatter, `addTrigger() triggerFrontMatter setting frontmatter for ${displayTitle(note)}`)
-    return setFrontMatterVars(note, triggerFrontMatter)
+    return updateFrontMatterVars(note, triggerFrontMatter)
   } catch (error) {
     logError('NPFrontMatter/addTrigger()', JSP(error))
     return false

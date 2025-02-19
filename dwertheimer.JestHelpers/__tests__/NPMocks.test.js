@@ -84,8 +84,8 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
       })
     })
     describe('NP file settings mock' /* function */, () => {
-      test('should return mock data: filename', async () => {
-        const editor = await NPfile.getEditor() // should come back with the mock
+      test('should return Editor mock data: filename', () => {
+        const editor = NPfile.getEditor() // should come back with the mock
         expect(editor.filename).toEqual('FILENAME_PLACEHOLDER_FROM_NOTE_MOCK') // gets overwritten by Note mock
       })
     })

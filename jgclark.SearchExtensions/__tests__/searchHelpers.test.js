@@ -27,7 +27,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 })
 
 const searchTerms: Array<typedSearchTerm> = [
@@ -450,17 +450,17 @@ describe('searchHelpers.js tests', () => {
     })
     test("mix of quoted and unquoted terms and operators (don't modify)", () => {
       const result = normaliseSearchTerms('+bob "xxx" \'yyy\' !"asd\'sa" -"bob two" "" !hello')
-      expect(result).toEqual(['+bob', 'xxx', "'yyy'", "!asd'sa", "-bob two", '!hello'])
+      expect(result).toEqual(['+bob', 'xxx', "'yyy'", "!asd'sa", '-bob two', '!hello'])
     })
-    test("test for Greek characters", () => {
+    test('test for Greek characters', () => {
       const result = normaliseSearchTerms('γιάννης')
       expect(result).toEqual(['γιάννης'])
     })
-    test("mix of terms with ? and * operators (this is just normalising not validating)", () => {
+    test('mix of terms with ? and * operators (this is just normalising not validating)', () => {
       const result = normaliseSearchTerms('spirit* mo? *term mo*blues ?weird')
       expect(result).toEqual(['spirit*', 'mo?', '*term', 'mo*blues', '?weird'])
     })
-    test("test for Greek characters", () => {
+    test('test for Greek characters', () => {
       const result = normaliseSearchTerms('-#')
       expect(result).toEqual(['-#'])
     })
@@ -496,9 +496,7 @@ describe('searchHelpers.js tests', () => {
     })
     test('should return empty array from empty input (empty allowed)', () => {
       const result = validateAndTypeSearchTerms('', true)
-      expect(result).toEqual([
-        { term: '', type: 'must', termRep: '<empty>' }
-      ])
+      expect(result).toEqual([{ term: '', type: 'must', termRep: '<empty>' }])
     })
     test('should return empty array from too many terms', () => {
       const result = validateAndTypeSearchTerms('abc def ghi jkl mno pqr stu vwz nine ten')
@@ -510,9 +508,7 @@ describe('searchHelpers.js tests', () => {
     })
     test("single term string 'term1'", () => {
       const result = validateAndTypeSearchTerms('term1')
-      expect(result).toEqual([
-        { term: 'term1', type: 'may', termRep: 'term1' }
-      ])
+      expect(result).toEqual([{ term: 'term1', type: 'may', termRep: 'term1' }])
     })
     test("single term string 'twitter.com'", () => {
       const result = validateAndTypeSearchTerms('twitter.com')
@@ -520,9 +516,7 @@ describe('searchHelpers.js tests', () => {
     })
     test("quoted string with apostrophe [shouldn't matter]", () => {
       const result = validateAndTypeSearchTerms('"shouldn\'t matter"')
-      expect(result).toEqual([
-        { term: "shouldn't matter", type: 'may', termRep: "shouldn't matter" },
-      ])
+      expect(result).toEqual([{ term: "shouldn't matter", type: 'may', termRep: "shouldn't matter" }])
     })
     test('two term string', () => {
       const result = validateAndTypeSearchTerms('term1 "term two"')
@@ -554,36 +548,36 @@ describe('searchHelpers.js tests', () => {
         { term: '1Jn', type: 'may', termRep: '1Jn' },
       ])
     })
-    test("quoted terms with different must/may/cant", () => {
+    test('quoted terms with different must/may/cant', () => {
       const result = validateAndTypeSearchTerms('-"Bob Smith" "Holy Spirit" !"ice cream cone"')
       expect(result).toEqual([
         { term: 'Bob Smith', type: 'not-line', termRep: '-Bob Smith' },
         { term: 'Holy Spirit', type: 'may', termRep: 'Holy Spirit' },
-        { term: 'ice cream cone', type: 'not-note', termRep: '!ice cream cone' }])
+        { term: 'ice cream cone', type: 'not-note', termRep: '!ice cream cone' },
+      ])
     })
-    test("mix of terms with valid ? and * operators", () => {
+    test('mix of terms with valid ? and * operators', () => {
       const result = validateAndTypeSearchTerms('spirit* mo?t +term mo*blues we*d')
       expect(result).toEqual([
         { term: 'spirit*', type: 'may', termRep: 'spirit*' },
         { term: 'mo?t', type: 'may', termRep: 'mo?t' },
         { term: 'term', type: 'must', termRep: '+term' },
         { term: 'mo*blues', type: 'may', termRep: 'mo*blues' },
-        { term: 'we*d', type: 'may', termRep: 'we*d' }])
-    })
-    test("mix of terms with invalid ? and * operators", () => {
-      const result = validateAndTypeSearchTerms('*spirit ?moses we*d')
-      expect(result).toEqual([
-        { term: 'we*d', type: 'may', termRep: 'we*d' }
+        { term: 'we*d', type: 'may', termRep: 'we*d' },
       ])
     })
-    test("simple -# term with allowEmptyOrOnlyNegative true -> 2 terms", () => {
+    test('mix of terms with invalid ? and * operators', () => {
+      const result = validateAndTypeSearchTerms('*spirit ?moses we*d')
+      expect(result).toEqual([{ term: 'we*d', type: 'may', termRep: 'we*d' }])
+    })
+    test('simple -# term with allowEmptyOrOnlyNegative true -> 2 terms', () => {
       const result = validateAndTypeSearchTerms('-#', true)
       expect(result).toEqual([
         { term: '#', type: 'not-line', termRep: '-#' },
         { term: '', type: 'must', termRep: '<empty>' },
       ])
     })
-    test("simple -# term with allowEmptyOrOnlyNegative false -> no terms", () => {
+    test('simple -# term with allowEmptyOrOnlyNegative false -> no terms', () => {
       const result = validateAndTypeSearchTerms('-#', false)
       expect(result).toEqual([])
     })
