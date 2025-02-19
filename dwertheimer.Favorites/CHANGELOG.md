@@ -1,5 +1,9 @@
 # Favorites Plugin Changelog
 
+## [1.2.6] - 2025-02-19 @dwertheimer
+
+- Add "Favorite Key" setting to allow for customizing the frontmatter key used to identify favorites.
+
 ## [1.2.5] - 2025-02-15 @dwertheimer
 
 - Favorites now works with frontmatter

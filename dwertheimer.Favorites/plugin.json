@@ -6,8 +6,8 @@
   "plugin.name": "⭐️ Favorites",
   "plugin.description": "Get fast access to commonly-used notes. Set any Project Note(s) as a Favorites and have quick access to choose/open the file",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "1.2.5",
-  "plugin.lastUpdateInfo": "1.2.5: Favorites now works with frontmatter",
+  "plugin.version": "1.2.6",
+  "plugin.lastUpdateInfo": "1.2.6: Favorites now works with frontmatter, and you can set your own key name",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "Put a link to a web page or your github readme file here, and it will be displayed as the 'website' in the plugin preference pane to give users more info on the plugin before/after install, e.g.  https://github.com/dwertheimer/Noteplan-plugins/blob/main/np.plugin-flow-skeleton/readme.md",
@@ -213,18 +213,35 @@
       "title": "Favorites Settings"
     },
     {
-      "type": "hidden",
-      "key": "pluginID",
-      "default": "dwertheimer.Favorites",
-      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
-    },
-    {
       "key": "charsToPrepend",
       "title": "Characters to Prepend to Command",
       "description": "If there are characters like “-☆” in front of each command, it will keep them together and float them to the top of the menu. Whatever text you put here will be prepended to any command name you set. Blank this field out to not prepend any characters. No spaces will be added after text you put in this box, so if you want a space, add it to the text box.",
       "type": "string",
       "default": "-",
       "required": false
+    },
+    {
+      "key": "favoriteIdentifier",
+      "title": "How should favorite notes be identified?",
+      "description": "Favorite notes can be identified by:\n- A star (⭐️) in the title\n- A frontmatter field like `favorite: <any text>`\n- both ⭐️ in title and `favorite: <any text>` in frontmatter (both are required)\n- either ⭐️ in title or `favorite: <any text>` in frontmatter (either will do, but only one is required). (default)",
+      "type": "string",
+      "default": "Star or Frontmatter (either)",
+      "required": true,
+      "choices": ["Star in title", "Frontmatter only", "Star and Frontmatter (both)"  , "Star or Frontmatter (either)"]
+    },
+    {
+      "type": "string",
+      "title": "Favorite key/label to use in frontmatter to designate a favorite note",
+      "key": "favoriteKey",
+      "default": "favorite",
+      "required": true,
+      "description": "If you set the favorite notes identifer to any setting which includes frontmatter, this setting allows you to change the name of the frontmatter key used for the favorite field. Default is 'favorite' but you can change it to 'favourite' or 'fav' or whatever you want. Note: cannot include spaces, tabs, or special characters (e.g. #, @ etc.) in the key name."
+    },
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "dwertheimer.Favorites",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
     },
     {
       "key": "runPreset01",
@@ -365,6 +382,32 @@
       "default": "",
       "title": "Preset 20",
       "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "note": "================== DEBUGGING SETTINGS ========================"
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing PLUGIN DOWNLOAD TEST commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
     }
   ]
 }

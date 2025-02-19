@@ -13,7 +13,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
 })
 
 const pluginJson = 'helpers/dev.test'
@@ -290,13 +290,13 @@ describe('helpers/dev', () => {
     beforeEach(() => {
       // Spy on console.log before each test
       consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
-      DataStore.settings['_logLevel'] = 'DEBUG'
+      DataStore.settings['_logLevel'] = 'DEBUG' // necessary beforeEach dev test
     })
 
     afterEach(() => {
       // Restore console.log to its original state after each test
       consoleSpy.mockRestore()
-      DataStore.settings['_logLevel'] = 'none'
+      DataStore.settings['_logLevel'] = 'none' // reset afterEach dev test
     })
 
     it('should correctly log an object in compact mode with specified fields', () => {

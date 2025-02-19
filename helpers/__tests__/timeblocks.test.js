@@ -7,7 +7,7 @@ const originalGetTimezoneOffset = Date.prototype.getTimezoneOffset
 
 beforeAll(() => {
   global.DataStore = DataStore
-  DataStore.settings['_logLevel'] = 'DEBUG' // change between none and DEBUG to see more console output during test runs
+  DataStore.settings['_logLevel'] = 'none' // change between none and DEBUG to see more console output during test runs
   Date.prototype.getTimezoneOffset = jest.fn(() => 0) // make sure the timezone is always UTC/GMT
 })
 

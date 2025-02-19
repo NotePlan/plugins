@@ -1248,7 +1248,7 @@ describe('NPParagraphs()', () => {
 describe('makeBasicParasFromContent()', () => {
   // TODO: delete next phrase when all is working
   beforeEach(() => {
-    DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging | none for quiet
+    DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging | none for quiet
   })
   test.skip('should return block (with heading) when passed a heading string', () => {
     const content = `# line 0 title

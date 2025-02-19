@@ -16,14 +16,13 @@ import * as st from '../stringTransforms'
 //   global.DataStore = DataStore
 //   // global.Editor = Editor
 //   // global.NotePlan = NotePlan
-//   DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
+//   DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 // })
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateManipulation')}`
 // const section = colors.blue
 
 describe(`${PLUGIN_NAME}`, () => {
-
   describe('truncateHTML', () => {
     test('no change as maxLength is 0', () => {
       const htmlIn = '<p>This is a <strong>bold</strong> paragraph of text.</p>'
@@ -61,7 +60,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(st.truncateHTML(htmlIn, maxLength, false)).toBe(expectedOutput)
     })
   })
-        /*
+  /*
    * changeMarkdownLinksToHTMLLink()
    */
   describe('changeMarkdownLinksToHTMLLink()' /* function */, () => {
@@ -87,7 +86,9 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should produce HTML link 2', () => {
       const input = 'this has [title with spaces](https://www.something.com/with?various&chars%20ok) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>title with spaces</a> with a valid link')
+      expect(result).toEqual(
+        'this has <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>title with spaces</a> with a valid link',
+      )
     })
   })
 
@@ -113,29 +114,37 @@ describe(`${PLUGIN_NAME}`, () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
       const result = st.changeBareLinksToHTMLLink(input, true)
       expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long</a> valid bare link')
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long</a> valid bare link',
+      )
     })
     test('should produce HTML link 1 with icon and truncation', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
       const result = st.changeBareLinksToHTMLLink(input, true, 21)
       expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something…</a> valid bare link')
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something…</a> valid bare link',
+      )
     })
     test('should produce HTML link 1 without icon', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
       const result = st.changeBareLinksToHTMLLink(input, false)
       expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a> valid bare link')
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a> valid bare link',
+      )
     })
     test('should produce HTML link when a link takes up the whole line with icon', () => {
       const input = 'https://www.something.com/with?various&chars%20ok'
       const result = st.changeBareLinksToHTMLLink(input, true)
-      expect(result).toEqual('<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok</a>')
+      expect(result).toEqual(
+        '<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok</a>',
+      )
     })
     test('should produce truncated HTML link with a very long bare link', () => {
-      const input = 'https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0'
+      const input =
+        'https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0'
       const result = st.changeBareLinksToHTMLLink(input, false, 50)
-      expect(result).toEqual('<a class="externalLink" href="https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0">https://validation.poweredbypercent.com/validate/v…</a>')
+      expect(result).toEqual(
+        '<a class="externalLink" href="https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0">https://validation.poweredbypercent.com/validate/v…</a>',
+      )
     })
   })
 
@@ -276,8 +285,8 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    /* 
-     * stripTodaysDateRefsFromString() 
+    /*
+     * stripTodaysDateRefsFromString()
      */
     describe('stripTodaysDateRefsFromString()' /* function */, () => {
       test('should not strip anything', () => {
@@ -307,8 +316,8 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    /* 
-     * stripThisWeeksDateRefsFromString() 
+    /*
+     * stripThisWeeksDateRefsFromString()
      */
     describe('stripThisWeeksDateRefsFromString()' /* function */, () => {
       test('should not strip anything', () => {
@@ -403,7 +412,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(expected)
       })
       test('should encode additional punctuation', () => {
-        const input = '!()[]*\''
+        const input = "!()[]*'"
         const expected = '%21%28%29%5B%5D%2A%27'
         const result = st.encodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
@@ -446,7 +455,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should decode additional punctuation', () => {
         const input = '%21%28%29%5B%5D%2A%27'
-        const expected = '!()[]*\''
+        const expected = "!()[]*'"
         const result = st.decodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
       })
@@ -493,6 +502,5 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should work for many items in a line ', () => {
       expect(st.removeDateTagsAndToday(`test >2000-W02 >2020-01-01 <2020-02-02 >2020-09-28`, true)).toEqual('test')
     })
-})
-
+  })
 })

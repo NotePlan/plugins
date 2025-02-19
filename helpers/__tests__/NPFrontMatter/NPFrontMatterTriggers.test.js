@@ -55,7 +55,7 @@ describe(`${PLUGIN_NAME}`, () => {
         })
         const result = f.addTrigger(note, 'onOpen', 'foo', 'bar')
         expect(result).toEqual(true)
-        expect(note.content).toMatch(/triggers: onOpen => foo.bar/)
+        expect(note.content).toMatch(/triggers: "*onOpen => foo.bar/)
       })
       test('should not add a trigger where it already exists in FM', () => {
         const note = new Note({
@@ -86,7 +86,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f.addTrigger(note, 'onEditorWillSave', 'jgclark.Dashboard', 'decideWhetherToUpdateDashboard')
         expect(result).toEqual(true)
         expect(note.paragraphs[0].content).toEqual('---')
-        expect(note.paragraphs[1].content).toEqual('triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard')
+        expect(note.paragraphs[1].content).toMatch(/triggers: "*onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard"*/)
         expect(note.paragraphs[2].content).toEqual('---')
       })
     })

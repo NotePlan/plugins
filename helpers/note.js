@@ -39,6 +39,7 @@ import { noteHasFrontMatter, getFrontMatterAttributes, updateFrontMatterVars } f
  * @param {string} title - the new title
  */
 export function setTitle(note: CoreNoteFields, title: string): void {
+  logDebug('note/setTitle', `Setting title to ${title} for note "${note.title || ''}"`)
   const isFrontmatterNote = noteHasFrontMatter(note)
   logDebug('note/setTitle', `Setting title to ${title} for note ${note.filename} (${isFrontmatterNote ? 'frontmatter' : 'regular'})`)
   if (isFrontmatterNote) {

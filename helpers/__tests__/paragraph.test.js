@@ -10,7 +10,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 })
 
 beforeEach(() => {
@@ -134,8 +134,7 @@ describe('paragraph.js', () => {
       expect(result).toEqual(true)
     })
     test('should find time within term within an event link', () => {
-      const result = p.isTermInMarkdownPath('07:15',
-        '![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8)')
+      const result = p.isTermInMarkdownPath('07:15', '![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8)')
       expect(result).toEqual(true)
     })
   })

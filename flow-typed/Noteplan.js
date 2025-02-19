@@ -394,12 +394,12 @@ declare interface TEditor extends CoreNoteFields {
    * Note: Available with v3.9.1 build 1020
    */
   windowRect: Rect;
-/**
- * Prevents the next "Delete future todos" dialog when deleting a line with a @repeat(...) tag. Will be reset automatically.
- * Note: introduced in 3.15 build 1284/1230
- * @param {boolean}
- */
-skipNextRepeatDeletionCheck: boolean;
+  /**
+   * Prevents the next "Delete future todos" dialog when deleting a line with a @repeat(...) tag. Will be reset automatically.
+   * Note: introduced in 3.15 build 1284/1230
+   * @param {boolean}
+   */
+  skipNextRepeatDeletionCheck: boolean;
 }
 
 /**
@@ -624,7 +624,7 @@ declare class DataStore {
    * @param {NoteType} type? for note
    * @returns {?string} resulting final filename
    */
-  static moveNote(filename: string, folder: string, type ?: NoteType): ?string;
+  static moveNote(filename: string, folder: string, type?: NoteType): ?string;
   /**
    * Creates a regular note using the given title and folder.
    * Use "/" for the root folder.
@@ -1269,7 +1269,7 @@ declare interface Paragraph {
    */
   +rawContent: string;
   /**
-   * Get the Markdown prefix of the paragraph (like '* [ ]' for open task). 
+   * Get the Markdown prefix of the paragraph (like '* [ ]' for open task).
    * Note: @jgclark thinks this does not include any indentation whitespace.
    */
   +prefix: string;
@@ -1307,7 +1307,7 @@ declare interface Paragraph {
   /**
    * Get/Set the amount of indentations.
    */
-indents: number;
+  indents: number;
   /**
    * Get the filename of the note this paragraph was loaded from
    */
@@ -1329,7 +1329,7 @@ indents: number;
    * Only tasks can have children, but any paragraph indented underneath a task can be a child of the task.
    * This includes bullets, tasks, quotes, text.
    * Children are counted until a blank line, HR, title, or another item at the same level as the parent task. So for items to be counted as children, they need to be contiguous vertically.
-   * Important note: .children() for a task paragraph will return every child, grandchild, greatgrandchild, etc. 
+   * Important note: .children() for a task paragraph will return every child, grandchild, greatgrandchild, etc.
    * So a task that has a child task that has a child task will have 2 children (and the first child will have one).
    * Note: Available from v3.3
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
@@ -1618,11 +1618,11 @@ type ParagraphType =
   | 'separator'
 
 type TSubItem = TParagraph & {
-  subItems: Array<TSubItem>
+  subItems: Array<TSubItem>,
 }
 
 type TBacklinkFields = {
-  type: "note",
+  type: 'note',
   content: string,
   rawContent: string,
   prefix: string,
@@ -1705,7 +1705,7 @@ declare interface CoreNoteFields {
    * TODO(@nmn): Please include `subItems` here
    * Note: Available from v3.2.0
    */
-+backlinks: $ReadOnlyArray < TBacklinkNoteFields >;
+  +backlinks: $ReadOnlyArray<TBacklinkNoteFields>;
   /**
    * Get all types assigned to this note in the frontmatter as an array of strings.
    * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
@@ -1717,13 +1717,13 @@ declare interface CoreNoteFields {
    * Note: Added by @jgclark by inspection of real data
    * TODO(@EduardMe): add this to the documentation.
    */
-  +frontmatterAttributes: Object;
+  +frontmatterAttributes: Object | null; // dbw Note: NP API docs do not say this but I have seen it null in some cases
   /**
    * Returns the conflicted version if any, including 'url' which is the path to the file. Otherwise, returns undefined.
    * Note: Available from v3.9.3
    * @return { Object(filename: string, url: string, content: string) }
    */
-+conflictedVersion: Object;
+  +conflictedVersion: Object;
   /**
    * Get all available versions of a note from the backup database. It returns an array with objects that have following attributes: `content` (full content of the note) and `date` (when this version was saved).
    * You can use this in combination with note triggers and diffs to figure out what has changed inside the note.
@@ -1988,7 +1988,7 @@ declare class NotePlan {
    */
   static +environment: Object;
   /**
-   * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result. 
+   * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result.
    * Optionally send the content of notes as well to process by specifying them in the list 'filenames', which is an array. For example ["note1.md", "folder/note2.md"]. This needs to be the exact path to the note. Your note extension might differ, the default is .txt, if you haven't changed it.
    * For calendar notes, you can use YYYYMMDD.md, like 20241101.md, or 2024-W10.md for weeks, etc. Natural language input is also supported like "this week", "today", "tomorrow", "this month", "next year", etc.
    * Note: Available from v3.15.1
@@ -1996,8 +1996,8 @@ declare class NotePlan {
    * @param {Array<string>} filenames
    * @param {boolean} useStrictFilenames
    * @returns {Promise<string>}
-  */
-  static ai(prompt: string, filenames: Array < string >, useStrictFilenames: boolean): Promise < string >;
+   */
+  static ai(prompt: string, filenames: Array<string>, useStrictFilenames: boolean): Promise<string>;
   /**
    * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)
    * Note: available from v3.5.1
@@ -2040,16 +2040,16 @@ declare class NotePlan {
    */
   static +htmlWindows: Array<HTMLView>;
   /**
-  * Note: Available from v3.15.1 (macOS build 1300)
-  * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result. 
-  * Optionally send the content of notes as well to process by specifying them in the list 'filenames', which is an array. For example ["note1.md", "folder/note2.md"]. This needs to be the exact path to the note. Your note extension might differ, the default is .txt, if you haven't changed it.
-  * For calendar notes, you can use YYYYMMDD.md, like 20241101.md, or 2024-W10.md for weeks, etc. Natural language input is also supported like "this week", "today", "tomorrow", "this month", "next year", etc.
-  * @param {string} prompt
-  * @param {Arraystring> } filenames
-  * @param {boolean} useStrictFilenames?
-  * @returns {Promise<string>}
-  */
-  static ai(prompt: string, filenames: Array < string >, useStrictFilenames: boolean): Promise < string >;
+   * Note: Available from v3.15.1 (macOS build 1300)
+   * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result.
+   * Optionally send the content of notes as well to process by specifying them in the list 'filenames', which is an array. For example ["note1.md", "folder/note2.md"]. This needs to be the exact path to the note. Your note extension might differ, the default is .txt, if you haven't changed it.
+   * For calendar notes, you can use YYYYMMDD.md, like 20241101.md, or 2024-W10.md for weeks, etc. Natural language input is also supported like "this week", "today", "tomorrow", "this month", "next year", etc.
+   * @param {string} prompt
+   * @param {Arraystring> } filenames
+   * @param {boolean} useStrictFilenames?
+   * @returns {Promise<string>}
+   */
+  static ai(prompt: string, filenames: Array<string>, useStrictFilenames: boolean): Promise<string>;
 }
 
 declare class HTMLView {

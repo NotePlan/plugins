@@ -10,7 +10,7 @@ import { clo, clof, logDebug } from '@helpers/dev'
 import { DataStore } from '@mocks/index'
 
 beforeAll(() => {
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
 // tests start here
