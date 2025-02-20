@@ -1,6 +1,9 @@
 # What's Changed in 🖥️ Previews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/np.Preview), and how to configure it.
 
+## [0.4.4] - 2025-02-20
+- added embed images to preview, fixed some bugs
+
 ## [0.4.3] - 2023-11-10
 - stops the Preview window stealing focus in live preview mode
 
