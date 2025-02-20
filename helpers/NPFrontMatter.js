@@ -70,19 +70,18 @@ export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] 
  */
 export function noteHasFrontMatter(note: CoreNoteFields): boolean {
   try {
-    logDebug('noteHasFrontMatter', `Checking note "${note.title || note.filename} "for frontmatter`)
+    logDebug('noteHasFrontMatter', `Checking note "${note.title || note.filename}" for frontmatter`)
     if (!note) return false
-    logDebug('noteHasFrontMatter', `note.frontmatterAttributes: ${Object.keys(note.frontmatterAttributes).length}`)
-    if (!note.hasOwnProperty('frontmatterAttributes') || !note.frontmatterAttributes || typeof note.frontmatterAttributes !== 'object') return false
-    clo(note, 'noteHasFrontMatter note')
+    if (/*!note.hasOwnProperty('frontmatterAttributes') ||*/ !note.frontmatterAttributes || typeof note.frontmatterAttributes !== 'object') return false
+    logDebug('noteHasFrontMatter', `note has ${Object.keys(note.frontmatterAttributes).length} note.frontmatterAttributes`)
     if (Object.keys(note.frontmatterAttributes).length > 0) return true // has frontmatter attributes
-    logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
+    // logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
     if (!note || !note.paragraphs || note.paragraphs?.length < 2) return false // could not possibly have frontmatter
-    logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
+    // logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
     const paras = note.paragraphs
-    logDebug('noteHasFrontMatter', `paras: ${paras.length}`)
+    // logDebug('noteHasFrontMatter', `paras: ${paras.length}`)
     if (paras[0].type === 'separator' && paras.filter((p) => p.type === 'separator').length >= 2) return true // has the separators
-    logDebug('noteHasFrontMatter', `noteHasFrontMatter: false`)
+    logDebug('noteHasFrontMatter', `=> false`)
     return false
   } catch (err) {
     logError('NPFrontMatter/noteHasFrontMatter()', JSP(err))
@@ -144,8 +143,8 @@ export function getFrontMatterNotes(includeTemplateFolders: boolean = false, onl
 }
 
 /**
- * Remove the front matter from a note (optionally including the separators)
- * Note: this is a helper function called by setFrontMatterVars and probably won't need to be called directly
+ * Remove the front matter from a note (optionally including the separators).
+ * Note: this is a helper function called by setFrontMatterVars and probably won't need to be called directly.
  * @author @dwertheimer
  * @param {CoreNoteFields} note - the note
  * @param {boolean} removeSeparators? - whether to include the separator lines (---) in the deletion. Default: false.
@@ -252,11 +251,10 @@ function _objectToYaml(obj: any, indent: string = ' '): string {
 }
 
 /**
- * Write the frontmatter vars to a note which already has frontmatter
- * Note: this is a helper function called by setFrontMatterVars and probably won't need to be called directly
- * You should use setFrontMatterVars instead
- * will add fields for whatever attributes you send in the second argument (could be duplicates)
- * so delete the frontmatter first (using removeFrontMatter()) if you want to add/remove/change fields
+ * Note: this is a helper function called by setFrontMatterVars and probably won't need to be called directly. You should use updateFrontMatterVars() instead.
+ * Write the frontmatter vars to a note which already has frontmatter.
+ * Will add fields for whatever attributes you send in the second argument (could be duplicates).
+ * So delete the frontmatter first (using removeFrontMatter()) if you want to add/remove/change fields.
  * @param {CoreNoteFields} note
  * @param {Object} attributes - key/value pairs for frontmatter values
  * @param {boolean?} alsoEnsureTitle - ensure that the frontmatter has a title (and set it to the note title if not). Default: true.
@@ -285,7 +283,7 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
 export const hasTemplateTagsInFM = (fmText: string): boolean => fmText.includes('<%')
 
 /**
- * NOTE: This function is deprecated. Use the more efficient updateFrontMatterVars() instead.
+ * WARNING: This function is deprecated. Use the more efficient updateFrontMatterVars() instead.
  * Set/update the front matter attributes for a note.
  * Whatever key:value pairs you pass in will be set in the front matter.
  * If the key already exists, it will be set to the new value you passed;
@@ -334,22 +332,6 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
     return false
   }
 }
-
-// /**
-//  * TODO: Decide whether to keep this or the earlier rFMF one
-//  * @param {CoreNoteFields} note
-//  * @param {{[string]:string}} varObj - an object with the key:value pairs to unset (i.e. remove) in the front matter (all strings).
-//  * @returns {boolean} - whether the front matter was unset or not
-//  */
-// export function unsetFrontMatterFields(note: CoreNoteFields, fields: Array<string>): boolean {
-//   const attributes: { [string]: string | null } = {}
-//   // make object with a key for each field to unset
-//   for (let field of fields) {
-//     attributes[field] = null
-//   }
-//   const result = setFrontMatterVars(note, attributes)
-//   return result
-// }
 
 /**
  * Ensure that a note has front matter (and optionally has a title you specify).
@@ -796,30 +778,37 @@ export function normalizeValue(value: string): string {
 /**
  * Update existing front matter attributes based on the provided newAttributes.
  * Assumes that newAttributes is the complete desired set of attributes.
- * Adds new attributes, updates existing ones, and deletes any that are not present in newAttributes.
+ * Adds new attributes, updates existing ones, and will delete any that are not present in newAttributes (if requested).
  * @param {CoreNoteFields} note - The note to update.
- * @param {{ [string]: string }} newAttributes - The complete set of desired front matter attributes.
- * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in newAttributes (default: false)
+ * @param {{ [string]: string }} desiredAttributes - The complete set of desired front matter attributes.
+ * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in desiredAttributes (default: false)
  * @returns {boolean} - Whether the front matter was updated successfully.
  */
-export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
+export function updateFrontMatterVars(note: CoreNoteFields, desiredAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {
     // Ensure the note has front matter
     if (!ensureFrontmatter(note)) {
-      logError(pluginJson, `updateFrontMatterVars: Failed to ensure front matter for note "${note.filename || ''}".`)
+      logError('updateFrontMatterVars', `Failed to ensure front matter for note "${note.filename || ''}".`)
       return false
     }
-
-    const existingAttributes = getFrontMatterAttributes(note) || {}
-    // Normalize newAttributes before comparison
-    const normalizedNewAttributes = {}
-    Object.keys(newAttributes).forEach((key: string) => {
-      const value = newAttributes[key]
+    // FIXME(EduardMe): next line can return {}, which looks like an API error
+    const existingAttributes = getFrontMatterAttributes(note)
+    if (!existingAttributes) {
+      logWarn('updateFrontMatterVars', `API call returned no frontmatterAttributes for note "${note.filename || ''}" which is unexpected.`)
+      return false
+    }
+    // Normalize desiredAttributes before comparison
+    const normalizedDesiredAttributes = {}
+    Object.keys(desiredAttributes).forEach((key: string) => {
+      const value = desiredAttributes[key]
       // $FlowIgnore
-      normalizedNewAttributes[key] = typeof value === 'object' ? JSON.stringify(value) : quoteText(value)
+      normalizedDesiredAttributes[key] = typeof value === 'object' ? JSON.stringify(value) : quoteText(value)
     })
 
-    const { keysToAdd, keysToUpdate, keysToDelete } = determineAttributeChanges(existingAttributes, normalizedNewAttributes, deleteMissingAttributes)
+    clo(existingAttributes, `updateFrontMatterVars: existingAttributes`)
+    clo(desiredAttributes, `updateFrontMatterVars: desiredAttributes`)
+    clo(normalizedDesiredAttributes, `updateFrontMatterVars: normalizedDesiredAttributes`)
+    const { keysToAdd, keysToUpdate, keysToDelete } = determineAttributeChanges(existingAttributes, normalizedDesiredAttributes, deleteMissingAttributes)
 
     keysToAdd.length > 0 && clo(keysToAdd, `updateFrontMatterVars: keysToAdd`)
     keysToUpdate.length > 0 && clo(keysToUpdate, `updateFrontMatterVars: keysToUpdate`)
@@ -828,21 +817,21 @@ export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [st
     // Update existing attributes -- just replace the text in the paragraph
     keysToUpdate.forEach((key: string) => {
       // $FlowIgnore
-      const attributeLine = `${key}: ${normalizedNewAttributes[key]}`
+      const attributeLine = `${key}: ${normalizedDesiredAttributes[key]}`
       const paragraph = note.paragraphs.find((para) => para.content.startsWith(`${key}:`))
       if (paragraph) {
-        logDebug(pluginJson, `updateFrontMatterVars: updating paragraph "${paragraph.content}" with "${attributeLine}"`)
+        logDebug('updateFrontMatterVars', `updating paragraph "${paragraph.content}" with "${attributeLine}"`)
         paragraph.content = attributeLine
         note.updateParagraph(paragraph)
       } else {
-        logError(pluginJson, `updateFrontMatterVars: Failed to find frontmatter paragraph for key "${key}".`)
+        logError('updateFrontMatterVars', `Failed to find frontmatter paragraph for key "${key}".`)
       }
     })
 
     // Add new attributes to the end of the frontmatter
     keysToAdd.forEach((key) => {
       // $FlowIgnore
-      const newAttributeLine = `${key}: ${normalizedNewAttributes[key]}`
+      const newAttributeLine = `${key}: ${normalizedDesiredAttributes[key]}`
       // Insert before the closing '---'
       const closingIndex = note.paragraphs.findIndex((para) => para.content.trim() === '---' && para.lineIndex > 0)
       if (closingIndex !== -1) {

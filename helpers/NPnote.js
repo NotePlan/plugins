@@ -53,11 +53,10 @@ export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): 
     }
 
     if (note.type === 'Notes') {
-      const endOfActive = findEndOfActivePartOfNote(note)
       logInfo(
         'note/printNote',
         `title: ${note.title ?? ''}\n- filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${note.paragraphs.length
-        } (endOfActive: ${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
+        }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
       )
     } else {
       logInfo(
@@ -66,6 +65,11 @@ export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): 
         }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
       )
     }
+    const startOfActive = findStartOfActivePartOfNote(note)
+    const endOfActive = findEndOfActivePartOfNote(note)
+    console.log(`- active part: lines ${String(startOfActive)}-${String(endOfActive)}`)
+    console.log(`- frontmatter types: [${note.frontmatterTypes.join(', ')}]`)
+    console.log(`- ${Object.keys(note.frontmatterAttributes).length} frontmatter attributes: ${JSP(note.frontmatterAttributes)}`)
     if (note.paragraphs.length > 0) {
       const open = note.paragraphs.filter((p) => isOpen(p)).length
       const done = note.paragraphs.filter((p) => isDone(p)).length
