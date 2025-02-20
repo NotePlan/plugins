@@ -25,10 +25,19 @@ export const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
  * Frontmatter cannot have colons in the content (specifically ": " or ending in colon or values starting in @ or #), so we need to wrap that in quotes
  * If a string is wrapped in double quotes and contains additional double quotes, convert the internal quotes to single quotes.
  * This often happens when people include double quotes in template tags in their frontmatter
+ * TODO: for now I am casting any boolean or number values to strings, but this may not be the best approach. Let's see what happens.
  * @param {string} text
  * @returns {string} quotedText (if required)
  */
-export function quoteText(text: string): string {
+export function quoteText(text: string | number | boolean): string {
+  if (text === null || text === undefined || typeof text === 'object') {
+    logWarn('quoteText', `text (${typeof text}) is empty/not a string. Returning ''`)
+    return ''
+  }
+  if (typeof text === 'number' || typeof text === 'boolean') {
+    logDebug('quoteText', `text (${typeof text}) is a number or boolean. Returning stringified version: ${String(text)}`)
+    return String(text)
+  }
   const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#\S/.test(text) || /^@/.test(text) || text === '' || RE_MARKDOWN_LINKS_CAPTURE_G.test(text) || text.includes('>')
   const isWrappedInQuotes = /^".*"$/.test(text) // Check if already wrapped in quotes
 
@@ -70,12 +79,18 @@ export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] 
  */
 export function noteHasFrontMatter(note: CoreNoteFields): boolean {
   try {
-    logDebug('noteHasFrontMatter', `Checking note "${note.title || note.filename} "for frontmatter`)
-    if (!note) return false
+    logDebug('noteHasFrontMatter', `Checking note "${note.title || note.filename}" for frontmatter`)
+    if (!note) {
+      logError('NPFrontMatter/noteHasFrontMatter()', `note is null or undefined`)
+      return false
+    }
+    if (!note.frontmatterAttributes || typeof note.frontmatterAttributes !== 'object') {
+      logError('NPFrontMatter/noteHasFrontMatter()', `note.frontmatterAttributes is not an object; note.frontmatterAttributes=${JSP(note.frontmatterAttributes || {})}`)
+      return false
+    }
     logDebug('noteHasFrontMatter', `note.frontmatterAttributes: ${Object.keys(note.frontmatterAttributes).length}`)
-    if (!note.hasOwnProperty('frontmatterAttributes') || !note.frontmatterAttributes || typeof note.frontmatterAttributes !== 'object') return false
     clo(note, 'noteHasFrontMatter note')
-    if (Object.keys(note.frontmatterAttributes).length > 0) return true // has frontmatter attributes
+    if (note?.frontmatterAttributes && Object.keys(note.frontmatterAttributes).length > 0) return true // has frontmatter attributes
     logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
     if (!note || !note.paragraphs || note.paragraphs?.length < 2) return false // could not possibly have frontmatter
     logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
@@ -810,11 +825,12 @@ export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [st
       return false
     }
 
-    const existingAttributes = getFrontMatterAttributes(note) || {}
+    const existingAttributes = { ...getFrontMatterAttributes(note) } || {}
     // Normalize newAttributes before comparison
     const normalizedNewAttributes = {}
     Object.keys(newAttributes).forEach((key: string) => {
       const value = newAttributes[key]
+      logDebug('updateFrontMatterVars newAttributes', `key: ${key}, value: ${value}`)
       // $FlowIgnore
       normalizedNewAttributes[key] = typeof value === 'object' ? JSON.stringify(value) : quoteText(value)
     })

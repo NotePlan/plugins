@@ -39,25 +39,35 @@ import { noteHasFrontMatter, getFrontMatterAttributes, updateFrontMatterVars } f
  * @param {string} title - the new title
  */
 export function setTitle(note: CoreNoteFields, title: string): void {
-  logDebug('note/setTitle', `Setting title to ${title} for note "${note.title || ''}"`)
+  logDebug('note/setTitle', `Trying to set title to "${title}" for note "${note.title || ''}"`)
   const isFrontmatterNote = noteHasFrontMatter(note)
-  logDebug('note/setTitle', `Setting title to ${title} for note ${note.filename} (${isFrontmatterNote ? 'frontmatter' : 'regular'})`)
+  logDebug('note/setTitle', `Setting title to ${title} for note ${note.filename} isFrontmatter=${String(isFrontmatterNote)}`)
+  let titleIsChanged = false
   if (isFrontmatterNote) {
     const fmFields = getFrontMatterAttributes(note)
     if (fmFields) {
-      fmFields.title = title
-      updateFrontMatterVars(note, fmFields, true)
+      if (fmFields.hasOwnProperty('title')) {
+        const newFmFields = { ...fmFields }
+        newFmFields.title = title
+        updateFrontMatterVars(note, newFmFields, true)
+        titleIsChanged = true
+      } else {
+        logError('note/setTitle', `Note has frontmatter but no title field in fm in note: "${note.title || note.filename}"`)
+      }
     } else {
       logError('note/setTitle', `can't find frontmatter attributes in note ${note.filename}`)
     }
-  } else {
-    const oldTitlePara = note.paragraphs[0]
-    if (oldTitlePara && oldTitlePara.type === 'title' && oldTitlePara.headingLevel === 1) {
+  }
+  if (!titleIsChanged) {
+    // we need to change the title in the note
+    const oldTitlePara = note.paragraphs.find((p) => p.type === 'title' && p.headingLevel === 1)
+    if (oldTitlePara) {
       oldTitlePara.content = title
       note.updateParagraph(oldTitlePara)
     } else {
       logError('note/setTitle', `can't find title paragraph in note ${note.filename}`)
-      note.insertParagraph(title, 0, 'title')
+      const startIndex = findStartOfActivePartOfNote(note)
+      note.insertParagraph(title, startIndex || 0, 'title')
     }
   }
 }

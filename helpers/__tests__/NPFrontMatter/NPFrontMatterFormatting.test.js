@@ -105,6 +105,41 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f.quoteText('foo "bar: baz"')
         expect(result).toEqual('"foo \\"bar: baz\\""')
       })
+
+      test('should return empty string for null input', () => {
+        const result = f.quoteText(null)
+        expect(result).toEqual('')
+      })
+
+      test('should return empty string for undefined input', () => {
+        const result = f.quoteText(undefined)
+        expect(result).toEqual('')
+      })
+
+      test('should return string representation for number input', () => {
+        const result = f.quoteText(123)
+        expect(result).toEqual('123')
+      })
+
+      test('should return string representation for boolean input (true)', () => {
+        const result = f.quoteText(true)
+        expect(result).toEqual('true')
+      })
+
+      test('should return string representation for boolean input (false)', () => {
+        const result = f.quoteText(false)
+        expect(result).toEqual('false')
+      })
+
+      test('should return empty string for non-string input (object)', () => {
+        const result = f.quoteText({ key: 'value' })
+        expect(result).toEqual('')
+      })
+
+      test('should return empty string for non-string input (array)', () => {
+        const result = f.quoteText(['foo', 'bar'])
+        expect(result).toEqual('')
+      })
     })
 
     describe('_getFMText()', () => {

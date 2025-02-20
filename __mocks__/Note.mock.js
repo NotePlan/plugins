@@ -252,16 +252,17 @@ export class Note {
 }
 
 // Helper function to determine the type of a line based on its content
-function getLineTypeAndContent(content: string): { content: string, type: string } {
+function getLineTypeAndContent(content: string, lastHeadingLevel: number = 0): { content: string, type: string, headingLevel: number } {
   const trimmedContent = content.trim()
   let type = 'unknown'
   let lineContent = trimmedContent.replace(/^\t*/, '')
-
+  let headingLevel = lastHeadingLevel
   if (lineContent === '---') {
     type = 'separator'
   } else if (/^\s*#{1,} /.test(lineContent)) {
     type = 'title'
     lineContent = lineContent.replace(/^\s*#{1,} /, '')
+    headingLevel = lineContent.match(/^#{1,}/)?.length || 1
   } else if (lineContent.startsWith('- [x]') || lineContent.startsWith('* [x]')) {
     type = 'done'
     lineContent = lineContent.slice(5)
@@ -299,7 +300,7 @@ function getLineTypeAndContent(content: string): { content: string, type: string
     lineContent = lineContent.slice(2)
   }
 
-  return { content: lineContent.trim(), type }
+  return { content: lineContent.trim(), type, headingLevel }
 }
 
 // Helper function to count leading tabs in a line
@@ -315,13 +316,16 @@ function makeParagraphsFromContent(content: string): any[] {
     lines.pop() // Remove the last line if it's empty
   }
   return lines.map((c, i) => {
-    const { content: lineContent, type } = getLineTypeAndContent(c)
+    let lastHeadingLevel = 0
+    const { content: lineContent, type, headingLevel } = getLineTypeAndContent(c, lastHeadingLevel)
+    lastHeadingLevel = headingLevel
     return {
       content: lineContent,
       type,
       rawContent: c,
       lineIndex: i,
       indents: countLeadingTabs(c),
+      headingLevel,
     }
   })
 }
