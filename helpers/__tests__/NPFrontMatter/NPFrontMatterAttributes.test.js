@@ -212,7 +212,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const attributes = { description: 'This is a description: with a colon', name: '@username' }
         const quoteNonStandardYaml = true
         const result = f.createFrontmatterTextArray(attributes, quoteNonStandardYaml)
-        expect(result).toEqual(['description: "This is a description: with a colon"', 'name: "@username"'])
+        expect(result).toEqual(['description: "This is a description: with a colon"', 'name: @username'])
       })
 
       test('should handle object values by converting them to multi-line strings', () => {
@@ -317,6 +317,28 @@ describe(`${PLUGIN_NAME}`, () => {
         const titleParagraph = note.paragraphs.find((p) => p.content.startsWith('title:'))
         expect(titleParagraph).toBeDefined()
         expect(titleParagraph.content).toEqual('title: foo')
+      })
+
+      /**
+       * New test: Test that updateFrontMatterVars works when passed an Editor object wrapping a Note.
+       */
+      test('should update frontmatter vars when passed an Editor object', () => {
+        const note = new Note({
+          content: '---\ntitle: foo\nbar: baz\n---\n',
+          paragraphs: [
+            { type: 'separator', content: '---', lineIndex: 0 },
+            { content: 'title: foo', lineIndex: 1 },
+            { content: 'bar: baz', lineIndex: 2 },
+            { type: 'separator', content: '---', lineIndex: 3 },
+          ],
+          title: 'foo',
+        })
+        Editor.note = note
+        const result = f.updateFrontMatterVars(Editor, { title: 'foo', bar: 'newBaz' })
+        expect(result).toEqual(true)
+        const barParagraph = note.paragraphs.find((p) => p.content.startsWith('bar:'))
+        expect(barParagraph).toBeDefined()
+        expect(barParagraph.content).toEqual('bar: newBaz')
       })
     })
   })

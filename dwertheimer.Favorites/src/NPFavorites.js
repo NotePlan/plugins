@@ -2,7 +2,7 @@
 import { chooseOption, showMessage } from '../../helpers/userInput'
 import { favoriteNotes, getFaveOptionsArray, getFavoriteDefault, getFavoritedTitle, noteIsFavorite, removeFavoriteFromTitle, type FavoritesConfig } from './favorites'
 import { setTitle } from '@helpers/note'
-import { logDebug, clo } from '@helpers/dev'
+import { logDebug, clo, logError, JSP } from '@helpers/dev'
 import { getFrontMatterAttributes, getFrontMatterNotes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 
 export async function getConfig(): Promise<FavoritesConfig> {
@@ -27,6 +27,7 @@ export async function getConfig(): Promise<FavoritesConfig> {
       )
     }
   }
+  logDebug('NPFavorites', `Config: ${JSON.stringify(config)}`)
   return config
 }
 
@@ -48,7 +49,7 @@ export async function setFavorite(): Promise<void> {
       if (config.favoriteIdentifier.includes('Star')) {
         newTitle = await getFavoritedTitle(note.title || '', config.position, config.favoriteIcon, config.favoriteIdentifier)
         logDebug('NPFavorites', `[${config.favoriteIdentifier}] Setting title to ${newTitle}`)
-        setTitle(Editor, newTitle)
+        setTitle(note, newTitle)
       }
       if (config.favoriteIdentifier.includes('Frontmatter')) {
         logDebug('NPFavorites', `[${config.favoriteIdentifier}] Setting frontmatter ${favoriteKey} to true`)
@@ -68,7 +69,10 @@ export async function openFavorite(): Promise<void> {
   const config = await getConfig()
   const notesWithFM = getFrontMatterNotes() // not including template notes
   const notesWithStars = DataStore.projectNotes.filter((note) => note.title?.includes(config.favoriteIcon))
-  const faveNotes = favoriteNotes([...notesWithFM, ...notesWithStars], config)
+  const combinedNotes = [...notesWithFM, ...notesWithStars]
+  const nonDuplicateNotes = combinedNotes.filter((note, index, self) => self.findIndex((t) => t.filename === note.filename) === index)
+  const faveNotes = favoriteNotes(nonDuplicateNotes, config)
+
   const faveOptions = getFaveOptionsArray(faveNotes)
   if (faveOptions.length === 0) {
     showMessage(`No favorites found matching your setting which requires: "${config.favoriteIdentifier}"! Use the /fave document command to set a favorite.`)
@@ -85,30 +89,36 @@ export async function openFavorite(): Promise<void> {
  * @returns {Promise<void>}
  */
 export async function removeFavorite(): Promise<void> {
-  const config = await getConfig()
-  const { favoriteKey } = config
-  const note = Editor?.note
-  logDebug('NPFavorites', `Removing favorite from note "${note?.title || ''}" ${note?.type || ''}`)
-  if (note && note.title && note.type === 'Notes') {
-    const isFavorite = noteIsFavorite(note, config)
-    logDebug('NPFavorites', `Removing favorite from note "${note.title || ''}" ${isFavorite ? 'isFavorite' : 'is not a favorite'}`)
-    if (isFavorite && note.title) {
-      if (config.favoriteIdentifier.includes('Star')) {
-        // remove the favorite icon
-        const newTitle = removeFavoriteFromTitle(note.title || '', config.favoriteIcon, config.favoriteIdentifier)
-        setTitle(Editor, newTitle)
-      }
-      if (config.favoriteIdentifier.includes('Frontmatter')) {
-        const fm = getFrontMatterAttributes(note)
-        if (typeof fm === 'object' && fm !== null && fm.hasOwnProperty(favoriteKey)) {
-          delete fm[favoriteKey]
-          updateFrontMatterVars(note, fm, true)
+  try {
+    const config = await getConfig()
+    const { favoriteKey } = config
+    const note = Editor.note
+    logDebug('NPFavorites', `Removing favorite from note "${note?.title || ''}" ${note?.type || ''}`)
+    if (note && note.title && note.type === 'Notes') {
+      const isFavorite = noteIsFavorite(note, config)
+      logDebug('NPFavorites', `Removing favorite from note "${note.title || ''}" ${isFavorite ? 'isFavorite' : 'is not a favorite'}`)
+      if (isFavorite && note.title) {
+        if (config.favoriteIdentifier.includes('Star')) {
+          // remove the favorite icon
+          const newTitle = removeFavoriteFromTitle(note.title || '', config.favoriteIcon, config.favoriteIdentifier)
+          if (newTitle !== note.title) {
+            setTitle(note, newTitle)
+          }
         }
+        if (config.favoriteIdentifier.includes('Frontmatter')) {
+          const fm = { ...getFrontMatterAttributes(note) }
+          if (typeof fm === 'object' && fm !== null && fm[favoriteKey]) {
+            delete fm[favoriteKey]
+            updateFrontMatterVars(note, fm, true)
+          }
+        }
+      } else {
+        await showMessage(`This file is not a Favorite! Use /fave to make it one.`)
       }
     } else {
-      await showMessage(`This file is not a Favorite! Use /fave to make it one.`)
+      await showMessage('Please select a Project Note in Editor first.')
     }
-  } else {
-    await showMessage('Please select a Project Note in Editor first.')
+  } catch (err) {
+    logError('NPFavorites/removeFavorite()', JSP(err))
   }
 }

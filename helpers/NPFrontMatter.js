@@ -25,11 +25,30 @@ export const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
  * Frontmatter cannot have colons in the content (specifically ": " or ending in colon or values starting in @ or #), so we need to wrap that in quotes
  * If a string is wrapped in double quotes and contains additional double quotes, convert the internal quotes to single quotes.
  * This often happens when people include double quotes in template tags in their frontmatter
+ * TODO: for now I am casting any boolean or number values to strings, but this may not be the best approach. Let's see what happens.
  * @param {string} text
+ * @param {boolean} quoteSpecialCharacters - whether to quote hashtags (default: false) NOTE: YAML treats everything behind a # as a comment and so technically it should be quoted
  * @returns {string} quotedText (if required)
  */
-export function quoteText(text: string): string {
-  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#\S/.test(text) || /^@/.test(text) || text === '' || RE_MARKDOWN_LINKS_CAPTURE_G.test(text) || text.includes('>')
+export function quoteText(_text: string | number | boolean, quoteSpecialCharacters: boolean = false): string {
+  let text = _text
+  if (text === null || text === undefined || typeof text === 'object') {
+    logWarn('quoteText', `text (${typeof text}) is empty/not a string. Returning ''`)
+    return ''
+  }
+  if (typeof text === 'number' || typeof text === 'boolean') {
+    logDebug('quoteText', `text (${typeof text}) is a number or boolean. Returning stringified version: ${String(text)}`)
+    return String(text)
+  }
+  text = text.trim()
+  const needsQuoting =
+    text.includes(': ') ||
+    /:$/.test(text) ||
+    (quoteSpecialCharacters && /^#\S/.test(text)) ||
+    (quoteSpecialCharacters && /^@/.test(text)) ||
+    text === '' ||
+    RE_MARKDOWN_LINKS_CAPTURE_G.test(text) ||
+    text.includes('>')
   const isWrappedInQuotes = /^".*"$/.test(text) // Check if already wrapped in quotes
 
   // Handle the case where text is wrapped in double quotes but contains additional double quotes inside
@@ -71,11 +90,22 @@ export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] 
 export function noteHasFrontMatter(note: CoreNoteFields): boolean {
   try {
     logDebug('noteHasFrontMatter', `Checking note "${note.title || note.filename}" for frontmatter`)
-    if (!note) return false
-    if (/*!note.hasOwnProperty('frontmatterAttributes') ||*/ !note.frontmatterAttributes || typeof note.frontmatterAttributes !== 'object') return false
-    logDebug('noteHasFrontMatter', `note has ${Object.keys(note.frontmatterAttributes).length} note.frontmatterAttributes`)
-    if (Object.keys(note.frontmatterAttributes).length > 0) return true // has frontmatter attributes
-    // logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
+    if (!note) {
+      logError('NPFrontMatter/noteHasFrontMatter()', `note is null or undefined`)
+      return false
+    }
+    if (!note.frontmatterAttributes || typeof note.frontmatterAttributes !== 'object') {
+      logError(
+        'NPFrontMatter/noteHasFrontMatter()',
+        `note.frontmatterAttributes is ${typeof note.frontmatterAttributes === 'object' ? '' : 'not'} an object; note.frontmatterAttributes=${JSP(
+          note.frontmatterAttributes || 'null',
+        )}`,
+      )
+      return false
+    }
+    logDebug('noteHasFrontMatter', `note.frontmatterAttributes: ${Object.keys(note.frontmatterAttributes).length}`)
+    if (note?.frontmatterAttributes && Object.keys(note.frontmatterAttributes).length > 0) return true // has frontmatter attributes
+    logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
     if (!note || !note.paragraphs || note.paragraphs?.length < 2) return false // could not possibly have frontmatter
     // logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
     const paras = note.paragraphs
@@ -784,8 +814,10 @@ export function normalizeValue(value: string): string {
  * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in desiredAttributes (default: false)
  * @returns {boolean} - Whether the front matter was updated successfully.
  */
-export function updateFrontMatterVars(note: CoreNoteFields, desiredAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
+export function updateFrontMatterVars(_note: TEditor | TNote, desiredAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {
+    const isEditor = _note.note ? true : false
+    const note = isEditor ? _note.note : _note
     // Ensure the note has front matter
     if (!ensureFrontmatter(note)) {
       logError('updateFrontMatterVars', `Failed to ensure front matter for note "${note.filename || ''}".`)
@@ -802,7 +834,7 @@ export function updateFrontMatterVars(note: CoreNoteFields, desiredAttributes: {
     Object.keys(desiredAttributes).forEach((key: string) => {
       const value = desiredAttributes[key]
       // $FlowIgnore
-      normalizedDesiredAttributes[key] = typeof value === 'object' ? JSON.stringify(value) : quoteText(value)
+      normalizedDesiredAttributes[key] = typeof value === 'object' ? JSON.stringify(value) : quoteText(value.trim())
     })
 
     clo(existingAttributes, `updateFrontMatterVars: existingAttributes`)
@@ -822,7 +854,7 @@ export function updateFrontMatterVars(note: CoreNoteFields, desiredAttributes: {
       if (paragraph) {
         logDebug('updateFrontMatterVars', `updating paragraph "${paragraph.content}" with "${attributeLine}"`)
         paragraph.content = attributeLine
-        note.updateParagraph(paragraph)
+        _note.updateParagraph(paragraph)
       } else {
         logError('updateFrontMatterVars', `Failed to find frontmatter paragraph for key "${key}".`)
       }
@@ -833,9 +865,9 @@ export function updateFrontMatterVars(note: CoreNoteFields, desiredAttributes: {
       // $FlowIgnore
       const newAttributeLine = `${key}: ${normalizedDesiredAttributes[key]}`
       // Insert before the closing '---'
-      const closingIndex = note.paragraphs.findIndex((para) => para.content.trim() === '---' && para.lineIndex > 0)
+      const closingIndex = _note.paragraphs.findIndex((para) => para.content.trim() === '---' && para.lineIndex > 0)
       if (closingIndex !== -1) {
-        note.insertParagraph(newAttributeLine, closingIndex, 'text')
+        _note.insertParagraph(newAttributeLine, closingIndex, 'text')
       } else {
         logError(pluginJson, `updateFrontMatterVars: Failed to find closing '---' in note "${note.filename || ''}" could not add new attribute "${key}".`)
       }
@@ -844,7 +876,7 @@ export function updateFrontMatterVars(note: CoreNoteFields, desiredAttributes: {
     // Delete attributes that are no longer present
     const paragraphsToDelete = []
     keysToDelete.forEach((key) => {
-      const paragraph = note.paragraphs.find((para) => para.content.startsWith(`${key}:`))
+      const paragraph = _note.paragraphs.find((para) => para.content.startsWith(`${key}:`))
       if (paragraph) {
         paragraphsToDelete.push(paragraph)
       } else {
@@ -852,7 +884,7 @@ export function updateFrontMatterVars(note: CoreNoteFields, desiredAttributes: {
       }
     })
     if (paragraphsToDelete.length > 0) {
-      note.removeParagraphs(paragraphsToDelete)
+      _note.removeParagraphs(paragraphsToDelete)
     }
 
     return true

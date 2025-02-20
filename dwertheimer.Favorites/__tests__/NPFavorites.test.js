@@ -98,6 +98,64 @@ describe(`${PLUGIN_NAME}`, () => {
         await f.setFavorite()
         expect(showMessage).toHaveBeenCalledWith('Please select a Project Note in Editor first.')
       })
+      test('should work in real world example', async () => {
+        const note = new Note({
+          title: 'this is title',
+          filename: 'DELETEME/Productivity & Apps/this is title.md',
+          type: 'Notes',
+          frontmatterAttributes: { title: 'this is title' },
+          paragraphs: [
+            {
+              content: '---',
+              rawContent: '---',
+              type: 'separator',
+              heading: '',
+              headingLevel: -1,
+              lineIndex: 0,
+              isRecurring: false,
+              indents: 0,
+              noteType: 'Notes',
+            },
+            {
+              content: 'title: this is title',
+              rawContent: 'title: this is title',
+              type: 'text',
+              heading: '',
+              headingLevel: -1,
+              lineIndex: 1,
+              isRecurring: false,
+              indents: 0,
+              noteType: 'Notes',
+            },
+            {
+              content: '---',
+              rawContent: '---',
+              type: 'separator',
+              heading: '',
+              headingLevel: -1,
+              lineIndex: 2,
+              isRecurring: false,
+              indents: 0,
+              noteType: 'Notes',
+            },
+            {
+              content: 'this is text',
+              rawContent: 'this is text',
+              type: 'text',
+              heading: '',
+              headingLevel: -1,
+              lineIndex: 3,
+              isRecurring: false,
+              indents: 0,
+              noteType: 'Notes',
+            },
+          ],
+        })
+        Editor.note = note
+        await f.setFavorite()
+        expect(note.paragraphs[1].content).toEqual('title: ⭐️ this is title')
+        expect(note.paragraphs.length).toEqual(4)
+      })
     })
 
     /**

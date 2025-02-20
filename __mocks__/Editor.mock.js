@@ -69,4 +69,14 @@ export const Editor = new Proxy(editorOverrides, {
         `return a sensible default instead.\n`,
     )
   },
+  set(target, prop, value) {
+    if (prop === 'note') {
+      target.note = value
+      // Reinitialize the proxy with the new note
+      Object.assign(target, value)
+      return true
+    }
+    target[prop] = value
+    return true
+  },
 })

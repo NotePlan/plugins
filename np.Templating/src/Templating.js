@@ -29,7 +29,7 @@ import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 
 import { initConfiguration, updateSettingData } from '@helpers/NPConfiguration'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
-import { hasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
+import { hasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
@@ -265,7 +265,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       const hasFM = hasFrontMatter(templateResult)
       if (hasFM) {
         Editor.content = templateResult
-        setFrontMatterVars(Editor, { title: noteTitle })
+        updateFrontMatterVars(Editor, { title: noteTitle })
       } else {
         Editor.content = `# ${noteTitle}\n${templateResult}`
       }

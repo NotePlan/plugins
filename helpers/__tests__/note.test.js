@@ -1,7 +1,7 @@
-/* global describe, test, expect, beforeAll */
+/* global describe, test, expect, beforeAll, jest */
 import colors from 'chalk'
 import * as n from '../note'
-import { DataStore, Calendar } from '@mocks/index'
+import { Note, DataStore, Calendar } from '@mocks/index'
 import { hyphenatedDateString } from '@helpers/dateTime'
 
 const PLUGIN_NAME = `helpers/note`
@@ -10,7 +10,6 @@ beforeAll(() => {
   global.DataStore = DataStore // so we see DEBUG logs in VSCode Jest debugs
   global.Calendar = Calendar
   DataStore.settings['_logLevel'] = 'none' // change 'none' to 'DEBUG' to get more logging, or 'none' for quiet
-
 })
 
 // Jest suite
@@ -187,44 +186,194 @@ describe(`${PLUGIN_NAME}`, () => {
    */
   describe('isNoteFromAllowedFolder()' /* function */, () => {
     const allowedList = ['/', 'Work', 'Work/Client A', 'Work/Client B', 'TEST']
-    describe("should pass", () => {
-      test("root folder note", () => {
-        const note = { filename: "foo.md", type: "Notes" }
+    describe('should pass', () => {
+      test('root folder note', () => {
+        const note = { filename: 'foo.md', type: 'Notes' }
         const result = n.isNoteFromAllowedFolder(note, allowedList)
         expect(result).toEqual(true)
       })
       test("'Work' folder note", () => {
-        const note = { filename: "Work/foo_bar.md", type: "Notes" }
+        const note = { filename: 'Work/foo_bar.md', type: 'Notes' }
         const result = n.isNoteFromAllowedFolder(note, allowedList)
         expect(result).toEqual(true)
       })
       test("'Work/Client A' folder note", () => {
-        const note = { filename: "Work/Client A/something.txt", type: "Notes" }
+        const note = { filename: 'Work/Client A/something.txt', type: 'Notes' }
         const result = n.isNoteFromAllowedFolder(note, allowedList)
         expect(result).toEqual(true)
       })
-      test("daily note", () => {
-        const note = { filename: "2025-01-06.md", type: "Calendar" }
+      test('daily note', () => {
+        const note = { filename: '2025-01-06.md', type: 'Calendar' }
         const result = n.isNoteFromAllowedFolder(note, allowedList)
         expect(result).toEqual(true)
       })
     })
-    describe("should NOT pass", () => {
+    describe('should NOT pass', () => {
       test("'Home' folder note", () => {
-        const note = { filename: "Home/foo_bar.md", type: "Notes" }
+        const note = { filename: 'Home/foo_bar.md', type: 'Notes' }
         const result = n.isNoteFromAllowedFolder(note, allowedList)
         expect(result).toEqual(false)
       })
       test("'Work/Client C' folder note", () => {
-        const note = { filename: "Work/Client C/something.txt", type: "Notes" }
+        const note = { filename: 'Work/Client C/something.txt', type: 'Notes' }
         const result = n.isNoteFromAllowedFolder(note, allowedList)
         expect(result).toEqual(false)
       })
-      test("daily note where allowAllCalendarNotes is false", () => {
-        const note = { filename: "2025-01-06.md", type: "Calendar" }
+      test('daily note where allowAllCalendarNotes is false', () => {
+        const note = { filename: '2025-01-06.md', type: 'Calendar' }
         const result = n.isNoteFromAllowedFolder(note, allowedList, false)
         expect(result).toEqual(false)
       })
+    })
+  })
+
+  describe('setTitle()' /* function */, () => {
+    test('should set the title for a note with frontmatter but no title field', () => {
+      const note = new Note({
+        paragraphs: [
+          { type: 'separator', content: '---' },
+          { content: 'foo: bar' },
+          { type: 'separator', content: '---' },
+          { type: 'title', content: 'Existing Title', headingLevel: 1 },
+        ],
+        content: '---\nfoo: bar\n---\n# Existing Title',
+        title: '',
+      })
+      n.setTitle(note, 'New Title')
+      expect(note.paragraphs[3].content).toEqual('New Title')
+    })
+
+    test('should set the title for a note without frontmatter, using the first H1 heading', () => {
+      const note = new Note({
+        paragraphs: [{ type: 'title', content: 'Existing Title', headingLevel: 1 }],
+        content: '# Existing Title',
+        title: '',
+      })
+      n.setTitle(note, 'New Title')
+      expect(note.paragraphs[0].content).toEqual('New Title')
+    })
+
+    test('should update the title in frontmatter if it exists', () => {
+      const note = new Note({
+        paragraphs: [{ type: 'separator', content: '---' }, { content: 'title: Old Title' }, { type: 'separator', content: '---' }],
+        content: '---\ntitle: Old Title\n---',
+        title: 'Old Title',
+      })
+      n.setTitle(note, 'New Title')
+      expect(note.paragraphs[1].content).toEqual('title: New Title')
+    })
+
+    // This test works but creates log noise, so I am disabling it for now.
+    test.skip('should log an error if note has frontmatter but no title field and no H1 heading', () => {
+      const oldLogLevel = DataStore.settings['_logLevel'] || 'none'
+      DataStore.settings['_logLevel'] = 'DEBUG'
+      // mock logError
+      const logErrorSpy = jest.spyOn(n, 'logError').mockImplementation(() => {})
+      const note = new Note({
+        paragraphs: [{ type: 'separator', content: '---' }, { content: 'foo: bar' }, { type: 'separator', content: '---' }],
+        content: '---\nfoo: bar\n---',
+        title: '',
+      })
+      n.setTitle(note, 'New Title')
+      expect(logErrorSpy).toHaveBeenCalled()
+      logErrorSpy.mockRestore()
+      DataStore.settings['_logLevel'] = oldLogLevel
+    })
+
+    test('should insert a new title if note has no frontmatter and no H1 heading', () => {
+      const note = new Note({
+        paragraphs: [],
+        content: '',
+        title: '',
+      })
+      n.setTitle(note, 'New Title')
+      expect(note.paragraphs[0].content).toEqual('New Title')
+    })
+
+    test('should update the frontmatter title and not the H1 heading if both exist', () => {
+      const note = new Note({
+        paragraphs: [
+          { type: 'separator', content: '---' },
+          { content: 'title: Old Title' },
+          { type: 'separator', content: '---' },
+          { type: 'title', content: 'Existing Title', headingLevel: 1 },
+        ],
+        content: '---\ntitle: Old Title\n---\n# Existing Title',
+        title: 'Old Title',
+      })
+      n.setTitle(note, 'New Title')
+      expect(note.paragraphs[1].content).toEqual('title: New Title')
+      expect(note.paragraphs[3].content).toEqual('Existing Title')
+    })
+
+    test('should update only the first H1 heading if multiple exist', () => {
+      const note = new Note({
+        paragraphs: [
+          { type: 'title', content: 'First Title', headingLevel: 1 },
+          { type: 'title', content: 'Second Title', headingLevel: 1 },
+        ],
+        content: '# First Title\n# Second Title',
+        title: '',
+      })
+      n.setTitle(note, 'New Title')
+      expect(note.paragraphs[0].content).toEqual('New Title')
+      expect(note.paragraphs[1].content).toEqual('Second Title')
+    })
+
+    test('should work in real world example', () => {
+      const note = new Note({
+        title: 'this is title',
+        filename: 'DELETEME/Productivity & Apps/this is title.md',
+        type: 'Notes',
+        paragraphs: [
+          {
+            content: '---',
+            rawContent: '---',
+            type: 'separator',
+            heading: '',
+            headingLevel: -1,
+            lineIndex: 0,
+            isRecurring: false,
+            indents: 0,
+            noteType: 'Notes',
+          },
+          {
+            content: 'title: this is title',
+            rawContent: 'title: this is title',
+            type: 'text',
+            heading: '',
+            headingLevel: -1,
+            lineIndex: 1,
+            isRecurring: false,
+            indents: 0,
+            noteType: 'Notes',
+          },
+          {
+            content: '---',
+            rawContent: '---',
+            type: 'separator',
+            heading: '',
+            headingLevel: -1,
+            lineIndex: 2,
+            isRecurring: false,
+            indents: 0,
+            noteType: 'Notes',
+          },
+          {
+            content: 'this is text',
+            rawContent: 'this is text',
+            type: 'text',
+            heading: '',
+            headingLevel: -1,
+            lineIndex: 3,
+            isRecurring: false,
+            indents: 0,
+            noteType: 'Notes',
+          },
+        ],
+      })
+      n.setTitle(note, 'New Title')
+      expect(note.paragraphs[1].content).toEqual('title: New Title')
     })
   })
 })

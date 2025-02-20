@@ -4,12 +4,16 @@
 // by @jgclark, @dwertheimer
 // Last updated 2024-11-09 by @jgclark
 // ---------------------------------------------------------
-
+import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
+import {
+  hasFrontMatter
+} from '@helpers/NPFrontMatter'
+import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
 import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
-import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
+import { RE_EVENT_LINK, RE_SYNC_MARKER, formRegExForUsersOpenTasks } from '@helpers/regex'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 
 // ---------------------------------------------------------
@@ -90,6 +94,147 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
     };
 `
 }
+
+
+/**
+ * Convert a note's content to HTML and include any images as base64
+ * @param {string} content
+ * @param {TNote} Note
+ * @returns {string} HTML
+ */
+export async function getNoteContentAsHTML(content: string, note: TNote): ?string {
+  try {
+    let lines = content?.split('\n') ?? []
+
+    let hasFrontmatter = hasFrontMatter(content ?? '')
+    const RE_OPEN_TASK_FOR_USER = formRegExForUsersOpenTasks(false)
+
+    // Work on a copy of the note's content
+    // Change frontmatter for this note (if present)
+    // In particular remove trigger line
+    if (hasFrontmatter) {
+      let titleAsMD = ''
+      // look for 2nd '---' and double it, because of showdown bug
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].match(/^title:\s/)) {
+          titleAsMD = lines[i].replace('title:', '#')
+          logDebug('previewNote', `removing title line ${String(i)}`)
+          lines.splice(i, 1)
+        }
+        if (lines[i].trim() === '---') {
+          lines.splice(i, 0, '') // add a blank before second HR to stop it acting as an ATX header line
+          lines.splice(i + 2, 0, titleAsMD) // add the title (as MD)
+          break
+        }
+      }
+
+      // If we now have empty frontmatter (so, just 3 sets of '---'), then remove them all
+      if (lines[0] === '---' && lines[1] === '' && lines[2] === '---') {
+        lines.splice(0, 3)
+        hasFrontmatter = false
+      }
+    }
+
+    // Make some necessary changes before conversion to HTML
+    for (let i = 0; i < lines.length; i++) {
+      // remove any sync link markers (blockIds)
+      lines[i] = lines[i].replace(/\^[A-z0-9]{6}([^A-z0-9]|$)/g, '').trimRight()
+
+      // change open tasks to GFM-flavoured task syntax
+      const res = lines[i].match(RE_OPEN_TASK_FOR_USER)
+      if (res) {
+        lines[i] = lines[i].replace(res[0], '- [ ]')
+      }
+    }
+
+    // Make this proper Markdown -> HTML via showdown library
+    // Set some options to turn on various more advanced HTML conversions (see actual code at https://github.com/showdownjs/showdown/blob/master/src/options.js#L109):
+    const converterOptions = {
+      emoji: true,
+      footnotes: true,
+      ghCodeBlocks: true,
+      strikethrough: true,
+      tables: true,
+      tasklists: true,
+      metadata: false, // otherwise metadata is swallowed
+      requireSpaceBeforeHeadingText: true,
+      simpleLineBreaks: true // Makes this GFM style. TODO: make an option?
+    }
+    const converter = new showdown.Converter(converterOptions)
+    let body = converter.makeHtml(lines.join(`\n`))
+    body = `<style>img { max-width: 100%; max-height: 100%; }</style>${body}` // fix for bug in showdown
+    
+    const imgTagRegex = /<img src=\"(.*?)\"/g
+    const matches = [...body.matchAll(imgTagRegex)]
+    const noteDirPath = getFolderFromFilename(note.filename)
+    
+    for (const match of matches) {
+        const imagePath = match[1]
+        try {
+            // Handle both absolute and relative paths
+            const fullPath = `../../../Notes/${noteDirPath}/${decodeURI(imagePath)}`
+
+            const data = await DataStore.loadData(fullPath)
+            if (data) {
+                const base64Data = `data:image/png;base64,${data.toString('base64')}`
+                body = body.replaceAll(imagePath, base64Data)
+            }
+        } catch (err) {
+            logWarn("Failed to load image", imagePath, err)
+        }
+    }
+
+    // TODO: Ideally build a frontmatter styler extension (to use above) but for now ...
+    // Tweak body output to put frontmatter in a box if it exists
+    if (hasFrontmatter) {
+      // replace first '<hr />' with start of div
+      body = body.replace('<hr />', '<div class="frontmatter">')
+      // replace what is now the first '<hr />' with end of div
+      body = body.replace('<hr />', '</div>')
+    }
+    // logDebug(pluginJson, body)
+
+    // Make other changes to the HTML to cater for NotePlan-specific syntax
+    lines = body.split('\n')
+    const modifiedLines = []
+    for (let line of lines) {
+      const origLine = line
+
+      // Display hashtags with .hashtag style
+      line = convertHashtagsToHTML(line)
+
+      // Display mentions with .attag style
+      line = convertMentionsToHTML(line)
+
+      // Display highlights with .highlight style
+      line = convertHighlightsToHTML(line)
+
+      // Replace [[notelinks]] with just underlined notelink
+      const captures = line.match(/\[\[(.*?)\]\]/)
+      if (captures) {
+        // clo(captures, 'results from [[notelinks]] match:')
+        for (const capturedTitle of captures) {
+          line = line.replace(`[[${capturedTitle}]]`, `~${capturedTitle}~`)
+        }
+      }
+      // Display underlining with .underlined style
+      line = convertUnderlinedToHTML(line)
+
+      // Remove any blockIDs
+      line = line.replace(RE_SYNC_MARKER, '')
+
+      if (line !== origLine) {
+        logDebug('previewNote', `modified {${origLine}} -> {${line}}`)
+      }
+      modifiedLines.push(line)
+    }
+    return modifiedLines.join('\n')
+
+  } catch (error) {
+      logError('Converting To HTML', error.message)
+    }
+}
+
 
 /**
  * This function creates the webkit console.log/error handler for HTML messages to get back to NP console.log

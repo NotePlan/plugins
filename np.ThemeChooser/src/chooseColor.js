@@ -1,17 +1,23 @@
 // @flow
 
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
-import { clo, logDebug } from '@helpers/dev'
-import { setFrontMatterVars } from '@helpers/NPFrontMatter'
+import { clo, logDebug, logError } from '@helpers/dev'
+import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
 
 const windowCustomId = 'color-picker'
 
 export function setFrontmatterColor(color: string, key: string): void {
   logDebug(`setFrontmatterColor: Setting ${key} to ${color} in frontmatter for ${Editor.filename} (${Editor.title || ''})`)
-  setFrontMatterVars(Editor, {
-    [key]: color,
-  })
-  Editor.openNoteByFilename(Editor.filename)
+  // TODO: if Eduard brings frontmatterAttributes to Editor, use that instead of note.filename
+  // so the refresh will work correctly
+  if (Editor) {
+    updateFrontMatterVars(Editor, {
+      [key]: color,
+    })
+    Editor.openNoteByFilename(Editor.filename)
+  } else {
+    logError(`setFrontmatterColor: Editor is null or undefined`)
+  }
 }
 
 /**
@@ -20,7 +26,6 @@ export function setFrontmatterColor(color: string, key: string): void {
  * Uses invokePluginCommandByName to set the color after it's chosen
  */
 export function chooseColor(defaultValue?: string): void {
-  clo(NotePlan.environment, `chooseColor: NotePlan.environment`)
   const opts: HtmlWindowOptions = {
     windowTitle: 'Select a color',
     width: 400,
@@ -33,7 +38,6 @@ export function chooseColor(defaultValue?: string): void {
   }
 
   // if user has selected a color, use that for seeding the color picker
-  clo(Editor.currentTheme, `Editor.currentTheme`)
   const currentTheme = Editor.currentTheme
   const isDark = currentTheme.values.style === 'Light' ? false : true
 
@@ -225,7 +229,6 @@ export function chooseColor(defaultValue?: string): void {
     </script>
 `
   try {
-    clo(html, `chooseColor HTML`)
     showHTMLV2(html, opts)
     // HTMLView.showSheet(html, 300, 150)
   } catch (error) {
