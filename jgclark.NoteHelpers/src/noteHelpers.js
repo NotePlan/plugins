@@ -10,11 +10,13 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
 import { displayTitle } from '@helpers/general'
 // import { allNotesSortedByChanged } from '@helpers/note'
 import { convertNoteToFrontmatter, printNote } from '@helpers/NPnote' // Note: not the one in 'NPTemplating'
-import { addTrigger, noteHasFrontMatter, setFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
+import { addTrigger, noteHasFrontMatter, updateFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
 import {
   chooseFolder,
   // chooseHeading,
-  chooseOption, getInput, showMessage
+  chooseOption,
+  getInput,
+  showMessage,
 } from '@helpers/userInput'
 //-----------------------------------------------------------------
 // Settings
@@ -40,9 +42,7 @@ export async function getSettings(): Promise<any> {
     const config: noteHelpersConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
 
     if (config == null || Object.keys(config).length === 0) {
-      await showMessage(
-        `Cannot find settings for the 'NoteHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane.`,
-      )
+      await showMessage(`Cannot find settings for the 'NoteHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
     } else {
       // clo(config, `settings`)
@@ -69,8 +69,7 @@ export async function logEditorNoteDetailed(): Promise<void> {
     }
     logDebug('logEditorNoteDetailed()', `Editor: ${Editor.filename})`)
     printNote(Editor.note, true)
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
@@ -105,8 +104,7 @@ export async function moveNote(): Promise<void> {
     } else {
       logError('moveNote()', `Error trying to move note`)
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
@@ -131,8 +129,7 @@ export async function trashNote(): Promise<void> {
     if (!newFilename) {
       logError('trashNote()', `Error trying to move note to @Trash`)
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
@@ -165,8 +162,13 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
     for (const p of installedPlugins) {
       for (const pluginCommand of p.commands) {
         // Only include if this command name or description is a trigger type or contains the string 'trigger' (excluding this one!)
-        if ((pluginCommand.desc.includes("trigger") || pluginCommand.name.includes("trigger") || TRIGGER_LIST.includes(pluginCommand.name) || TRIGGER_LIST.includes(pluginCommand.desc))
-          && pluginCommand.name !== "add trigger to note") {
+        if (
+          (pluginCommand.desc.includes('trigger') ||
+            pluginCommand.name.includes('trigger') ||
+            TRIGGER_LIST.includes(pluginCommand.name) ||
+            TRIGGER_LIST.includes(pluginCommand.desc)) &&
+          pluginCommand.name !== 'add trigger to note'
+        ) {
           triggerRelatedCommands.push(pluginCommand)
           const thisTriggerString = `${pluginCommand.name} => ${p.id}.${pluginCommand.name}`
           // logDebug('addTriggerToNote', `- ${thisTriggerString}`)
@@ -198,37 +200,34 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
       const hasFMalready = noteHasFrontMatter(Editor)
       if (hasFMalready) {
         logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" already has frontmatter`)
-        const res = setFrontMatterVars(Editor, { "triggers": triggerStringArg })
-        logDebug('addTriggerToNote', `- result of setFrontMatterVars = ${String(res)}`)
+        const res = updateFrontMatterVars(Editor, { triggers: triggerStringArg })
+        logDebug('addTriggerToNote', `- result of updateFrontMatterVars = ${String(res)}`)
       } else {
         logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" doesn't already have frontmatter`)
         await convertNoteToFrontmatter(Editor, `triggers: ${triggerStringArg}`)
       }
       return
-
     } else {
-
       // Ask user to select one. Examples:
       // let trigger = "onEditorWillSave"
       // let pluginID = "jgclark.RepeatExtensions"
       // let commandName = "generate repeats"
       if (triggerRelatedCommands.length === 0) {
-        throw new Error("No triggers are supported in your installed plugins.")
+        throw new Error('No triggers are supported in your installed plugins.')
       }
       let commandOptions: Array<any> = triggerRelatedCommands.map((pco) => {
         return { label: `${pco.pluginName} '${pco.name}'`, value: pco }
       })
-      commandOptions.push({ label: `Pick from whole list of functions ...`, value: "pickFromAll" })
-      const result: PluginCommandObject | string = await chooseOption("Pick the trigger to add", commandOptions)
+      commandOptions.push({ label: `Pick from whole list of functions ...`, value: 'pickFromAll' })
+      const result: PluginCommandObject | string = await chooseOption('Pick the trigger to add', commandOptions)
       let choice: PluginCommandObject
       // If user has chosen pick from whole list, then show that full list and get selection
-      if (typeof result === "string" && result === "pickFromAll") {
+      if (typeof result === 'string' && result === 'pickFromAll') {
         commandOptions = allVisibleCommands.map((pco) => {
           return { label: `${pco.pluginName} '${pco.name}'`, value: pco }
         })
-        choice = await chooseOption("Pick the trigger to add", commandOptions)
-      }
-      else if (typeof result !== "string") {
+        choice = await chooseOption('Pick the trigger to add', commandOptions)
+      } else if (typeof result !== 'string') {
         choice = result // this check appeases flow from here on
       }
 
@@ -237,10 +236,7 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
       } else {
         // clo(choice, 'choice')
         // Get trigger type from either name or description
-        triggerName = (TRIGGER_LIST.includes(choice.name))
-          ? choice.name
-          : (TRIGGER_LIST.includes(choice.desc)) ? choice.desc
-            : 'onEditorWillSave' // default to onEditorWillSave if no trigger type is found
+        triggerName = TRIGGER_LIST.includes(choice.name) ? choice.name : TRIGGER_LIST.includes(choice.desc) ? choice.desc : 'onEditorWillSave' // default to onEditorWillSave if no trigger type is found
         triggerPluginID = choice.pluginID
         funcName = choice.name
       }
@@ -253,8 +249,7 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
     } else {
       logError('addTriggerToNote', `Trigger ${triggerName} for ${triggerPluginID} func ${funcName} WASN'T added to note ${displayTitle(Editor)}`)
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, err.message)
     await showMessage(err.message)
   }
@@ -278,8 +273,7 @@ export function convertLocalLinksToPluginLinks(): void {
   for (const para of paragraphs) {
     const content = para.content
     const newContent = content.replace(/\[(.*?)\]\(\#(.*?)\)/g, (match, label, link) => {
-      const newLink =
-        `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&arg1=${encodeURIComponent(link)}`
+      const newLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&arg1=${encodeURIComponent(link)}`
       return `[${label}](${newLink})`
     })
     if (newContent !== content) {
@@ -348,12 +342,10 @@ export async function renameNoteFile(): Promise<void> {
       // User cancelled operation
       logWarn('renameNoteFile()', `User cancelled operation`)
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
-
 }
 
 /**
@@ -380,8 +372,7 @@ export async function addFrontmatterToNote(note: TNote): Promise<void> {
     const config = await getSettings()
     const res = await convertNoteToFrontmatter(thisNote, config.defaultFMText ?? '')
     logDebug('note/convertNoteToFrontmatter', `ensureFrontmatter() returned ${String(res)}.`)
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, JSP(error))
     await showMessage(error.message)
     return

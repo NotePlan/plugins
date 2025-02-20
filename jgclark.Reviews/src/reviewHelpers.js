@@ -7,33 +7,24 @@
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
-import {
-  getActivePerspectiveDef,
-  getAllowedFoldersInCurrentPerspective,
-  getPerspectiveSettings,
-} from '../../jgclark.Dashboard/src/perspectiveHelpers'
+import { getActivePerspectiveDef, getAllowedFoldersInCurrentPerspective, getPerspectiveSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
 import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { type Progress } from './projectClass'
-import {
-  stringListOrArrayToArray,
-} from '@helpers/dataManipulation'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   calcOffsetDate,
   getDateFromUnhyphenatedDateString,
   getDateObjFromDateString,
   getJSDateStartOfToday,
-  RE_ISO_DATE, RE_YYYYMMDD_DATE,
+  RE_ISO_DATE,
+  RE_YYYYMMDD_DATE,
   toISODateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
-import {
-  findEndOfActivePartOfNote,
-} from '@helpers/paragraph'
-import {
-  showMessage
-} from '@helpers/userInput'
+import { noteHasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { showMessage } from '@helpers/userInput'
 
 //------------------------------
 // Config setup
@@ -174,7 +165,7 @@ export function getNextActionLineIndex(note: TNote, naTag: string): number {
   // logDebug('getNextActionLineIndex', `Checking for @${naTag} in ${displayTitle(note)} with ${note.paragraphs.length} paras`)
   const NAParas = note.paragraphs.filter((p) => p.content.includes(naTag)) ?? []
   logDebug('getNextActionLineIndex', `Found ${NAParas.length} matching ${naTag} paras`)
-  const result = (NAParas.length > 0) ? NAParas[0].lineIndex : NaN
+  const result = NAParas.length > 0 ? NAParas[0].lineIndex : NaN
   return result
 }
 
@@ -240,7 +231,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
       lineIndex: 1,
       percentComplete: NaN,
       date: new Date('0001-01-01'),
-      comment: '(no comment found)'
+      comment: '(no comment found)',
     }
     for (const progressPara of progressParas) {
       // const progressParaParts = progressPara.content.split(/[:@]/)
@@ -248,22 +239,20 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
       // const thisDatePart = progressParaParts[1]
       const progressLine = progressPara.content
       // logDebug('processMostRecentProgressParagraph', progressLine)
-      const thisDate: Date = (new RegExp(RE_ISO_DATE).test(progressLine))
-        // $FlowIgnore
-        ? getDateObjFromDateString(progressLine.match(RE_ISO_DATE)[0])
-        : (new RegExp(RE_YYYYMMDD_DATE).test(progressLine))
-          // $FlowIgnore
-          ? getDateFromUnhyphenatedDateString(progressLine.match(RE_YYYYMMDD_DATE)[0])
-          : new Date('0001-01-01')
+      const thisDate: Date = new RegExp(RE_ISO_DATE).test(progressLine)
+        ? // $FlowIgnore
+          getDateObjFromDateString(progressLine.match(RE_ISO_DATE)[0])
+        : new RegExp(RE_YYYYMMDD_DATE).test(progressLine)
+        ? // $FlowIgnore
+          getDateFromUnhyphenatedDateString(progressLine.match(RE_YYYYMMDD_DATE)[0])
+        : new Date('0001-01-01')
       const tempSplitParts = progressLine.split(/[:@]/)
       // logDebug('processMostRecentProgressParagraph', `tempSplitParts: ${String(tempSplitParts)}`)
       const comment = tempSplitParts[3] ?? ''
 
       const tempNumberMatches = progressLine.match(/(\d{1,2})@/)
       // logDebug('processMostRecentProgressParagraph', `tempNumberMatches: ${String(tempNumberMatches)}`)
-      const percent: number = (tempNumberMatches && tempNumberMatches.length > 0)
-        ? Number(tempNumberMatches[1])
-        : NaN
+      const percent: number = tempNumberMatches && tempNumberMatches.length > 0 ? Number(tempNumberMatches[1]) : NaN
       // logDebug('processMostRecentProgressParagraph', `-> ${String(percent)}`)
 
       if (thisDate > lastDate) {
@@ -273,7 +262,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
           lineIndex: progressPara.lineIndex,
           percentComplete: percent,
           date: thisDate,
-          comment: comment
+          comment: comment,
         }
       }
       lastDate = thisDate
@@ -289,7 +278,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
       lineIndex: 1,
       percentComplete: NaN,
       date: new Date('0001-01-01'),
-      comment: '(no comment found)'
+      comment: '(no comment found)',
     } // for completeness
   }
 }
@@ -334,8 +323,8 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
     if (Number.isNaN(lineNumber)) {
       if (noteHasFrontMatter(note)) {
         logWarn('getOrMakeMetadataLine', `I couldn't find an existing metadata line, so have added a placeholder at the top of the note. Please review it.`)
-        const res = setFrontMatterVars(note, {
-          'metadata': metadataLinePlaceholder
+        const res = updateFrontMatterVars(note, {
+          metadata: metadataLinePlaceholder,
         })
         const updatedLines = note.paragraphs?.map((s) => s.content) ?? []
         // Find which line that project field is on
@@ -398,7 +387,10 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNot
     const origLine: string = metadataPara.content
     let updatedLine = origLine
 
-    logDebug('updateMetadataInEditor', `starting for '${displayTitle(thisNote)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
+    logDebug(
+      'updateMetadataInEditor',
+      `starting for '${displayTitle(thisNote)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`,
+    )
 
     for (const item of updatedMetadataArr) {
       const mentionName = item.split('(', 1)[0]
@@ -451,7 +443,10 @@ export function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<stri
     const origLine: string = metadataPara.content
     let updatedLine = origLine
 
-    logDebug('updateMetadataInNote', `starting for '${displayTitle(note)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
+    logDebug(
+      'updateMetadataInNote',
+      `starting for '${displayTitle(note)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`,
+    )
 
     for (const item of updatedMetadataArr) {
       const mentionName = item.split('(', 1)[0]
@@ -577,7 +572,7 @@ export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteAr
  * Note: Designed to fail silently if it isn't installed, or open.
  * @author @jgclark
  */
-// eslint-disable-next-line 
+// eslint-disable-next-line
 export async function updateDashboardIfOpen(): Promise<void> {
   // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
 

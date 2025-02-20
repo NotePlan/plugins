@@ -48,7 +48,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
       test('should quote text with leading hashtag', () => {
         const result = f.quoteText('#foo')
-        expect(result).toEqual('"#foo"')
+        expect(result).toEqual('#foo')
       })
 
       test('should not quote text with hashtag in the middle', () => {
@@ -93,7 +93,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
       test('should quote text starting with @', () => {
         const result = f.quoteText('@foo')
-        expect(result).toEqual('"@foo"')
+        expect(result).toEqual('@foo')
       })
 
       test('should quote text containing >', () => {
@@ -139,6 +139,16 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should return empty string for non-string input (array)', () => {
         const result = f.quoteText(['foo', 'bar'])
         expect(result).toEqual('')
+      })
+
+      test('should quote text with leading hashtag when forcing special characters', () => {
+        const result = f.quoteText('#foo', true)
+        expect(result).toEqual('"#foo"')
+      })
+
+      test('should quote text starting with @ when forcing special characters', () => {
+        const result = f.quoteText('@foo', true)
+        expect(result).toEqual('"@foo"')
       })
     })
 
@@ -188,17 +198,17 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should change text with hashtag', () => {
         const before = `---\nfoo: #bar\n---\n`
         const result = f._fixFrontmatter(before)
-        expect(result).toEqual(`---\nfoo: "#bar"\n---\n`)
+        expect(result).toEqual(`---\nfoo: #bar\n---\n`)
       })
       test('should change text with hashtag and more text', () => {
         const before = `---\nfoo: #bar followed by text\n---\n`
         const result = f._fixFrontmatter(before)
-        expect(result).toEqual(`---\nfoo: "#bar followed by text"\n---\n`)
+        expect(result).toEqual(`---\nfoo: #bar followed by text\n---\n`)
       })
       test('should change text with mention', () => {
         const before = `---\nfoo: @bar\n---\n`
         const result = f._fixFrontmatter(before)
-        expect(result).toEqual(`---\nfoo: "@bar"\n---\n`)
+        expect(result).toEqual(`---\nfoo: @bar\n---\n`)
       })
       test('should not change text with simple URL', () => {
         const before = `---\nfoo: https://noteplan.co/\n---\n`
@@ -236,12 +246,12 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should change text with attag', () => {
         const before = `---\nfoo: @bar\n---\n`
         const result = f._sanitizeFrontmatterText(before)
-        expect(result).toEqual(`---\nfoo: "@bar"\n---\n`)
+        expect(result).toEqual(`---\nfoo: @bar\n---\n`)
       })
       test('should change text with hashtag', () => {
         const before = `---\nfoo: #bar\n---\n`
         const result = f._sanitizeFrontmatterText(before)
-        expect(result).toEqual(`---\nfoo: "#bar"\n---\n`)
+        expect(result).toEqual(`---\nfoo: #bar\n---\n`)
       })
       test('should not change comments (space after #) which will be wiped out later by fm()', () => {
         const before = `---\nfoo: # bar\n---\n`
@@ -261,13 +271,13 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should make change to sanitized @text and return legal value', () => {
         const before = `---\nfoo: @bar\n---\nbaz`
         const result = f.getSanitizedFmParts(before)
-        const expected = { attributes: { foo: '@bar' }, body: 'baz', bodyBegin: 4, frontmatter: 'foo: "@bar"' }
+        const expected = { attributes: { foo: '@bar' }, body: 'baz', bodyBegin: 4, frontmatter: 'foo: @bar' }
         expect(result).toEqual(expected)
       })
       test('should make change to sanitized #text and return legal value', () => {
         const before = `---\nfoo: #bar\n---\nbaz`
         const result = f.getSanitizedFmParts(before)
-        const expected = { attributes: { foo: '#bar' }, body: 'baz', bodyBegin: 4, frontmatter: 'foo: "#bar"' }
+        const expected = { attributes: { foo: '#bar' }, body: 'baz', bodyBegin: 4, frontmatter: 'foo: #bar' }
         expect(result).toEqual(expected)
       })
       test('should make change to MD links (which are illegal in YAML) but return legal value', () => {})

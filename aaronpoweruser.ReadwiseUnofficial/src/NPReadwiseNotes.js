@@ -1,6 +1,6 @@
 // @flow
 import pluginJson from '../plugin.json'
-import { setFrontMatterVars } from '../../helpers/NPFrontMatter'
+import { updateFrontMatterVars } from '../../helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 import { buildReadwiseFrontMatter, buildReadwiseMetadataHeading, buildReadwiseNoteTitle, removeNewlines } from './NPReadwiseHelpers'
 import { writeReadwiseSyncLogLine } from './NPReadwiseSyncLog'
@@ -49,7 +49,7 @@ export async function parseHighlightsAndWriteToNote(highlightSource: any): Promi
           outputNote?.addParagraphBelowHeadingTitle(buildReadwiseMetadataHeading(highlightSource), 'text', 'Metadata', true, true)
         }
       } else {
-        setFrontMatterVars(outputNote, buildReadwiseFrontMatter(highlightSource))
+        updateFrontMatterVars(outputNote, buildReadwiseFrontMatter(highlightSource))
       }
       if (!outputNote?.content?.includes('# Highlights')) {
         outputNote.insertHeading('Highlights', findEndOfActivePartOfNote(outputNote) + 1, 1)
