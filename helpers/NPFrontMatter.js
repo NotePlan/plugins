@@ -94,17 +94,18 @@ export function noteHasFrontMatter(note: CoreNoteFields): boolean {
       logError('NPFrontMatter/noteHasFrontMatter()', `note is null or undefined`)
       return false
     }
-    if (!note.frontmatterAttributes || typeof note.frontmatterAttributes !== 'object') {
-      logError(
+    const nfmA = note.frontmatterAttributes // Note: this was an attempt by JGC to see if continually calling the API here was causing an issue. It seems not.
+    if (!nfmA || typeof nfmA !== 'object') {
+      logWarn(
         'NPFrontMatter/noteHasFrontMatter()',
-        `note.frontmatterAttributes is ${typeof note.frontmatterAttributes === 'object' ? '' : 'not'} an object; note.frontmatterAttributes=${JSP(
-          note.frontmatterAttributes || 'null',
+        `note.frontmatterAttributes is ${typeof nfmA === 'object' ? '' : 'not'} an object; note.frontmatterAttributes=${JSP(
+          nfmA || 'null',
         )}`,
       )
       return false
     }
-    logDebug('noteHasFrontMatter', `note.frontmatterAttributes: ${Object.keys(note.frontmatterAttributes).length}`)
-    if (note?.frontmatterAttributes && Object.keys(note.frontmatterAttributes).length > 0) return true // has frontmatter attributes
+    logDebug('noteHasFrontMatter', `note.frontmatterAttributes: ${Object.keys(nfmA).length}`)
+    if (nfmA && Object.keys(nfmA).length > 0) return true // has frontmatter attributes
     logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
     if (!note || !note.paragraphs || note.paragraphs?.length < 2) return false // could not possibly have frontmatter
     // logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
@@ -823,9 +824,9 @@ export function updateFrontMatterVars(_note: TEditor | TNote, desiredAttributes:
       logError('updateFrontMatterVars', `Failed to ensure front matter for note "${note.filename || ''}".`)
       return false
     }
-    // FIXME(EduardMe): next line can return {}, which looks like an API error
+    // FIXME(EduardMe): ? next line can return {}, which looks like an API error
     const existingAttributes = getFrontMatterAttributes(note)
-    if (!existingAttributes) {
+    if (Object.keys(existingAttributes).length === 0) {
       logWarn('updateFrontMatterVars', `API call returned no frontmatterAttributes for note "${note.filename || ''}" which is unexpected.`)
       return false
     }
