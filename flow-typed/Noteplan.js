@@ -1255,6 +1255,7 @@ declare interface Paragraph {
   type: ParagraphType;
   /**
    * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
+   * Note: EM adds that "You could have the paragraph object in memory while the note was deleted in the background", which is why this is optional.
    * Note: Available from v3.5.2
    */
   +note: ?TNote;
