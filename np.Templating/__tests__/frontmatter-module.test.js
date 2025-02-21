@@ -3,7 +3,7 @@
 
 import colors from 'chalk'
 import FrontmatterModule from '../lib/support/modules/FrontmatterModule'
-import { getAttributes, getBody, getSanitizedFmParts } from '@helpers/NPFrontMatter'
+import { getAttributes, getBody } from '@helpers/NPFrontMatter'
 
 import { factory } from './testUtils'
 
