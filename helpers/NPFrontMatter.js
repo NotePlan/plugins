@@ -81,20 +81,20 @@ export function quoteText(_text: string | number | boolean, quoteSpecialCharacte
 export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] === '---' && fm.test(_sanitizeFrontmatterText(text, true))
 
 /**
- * Test whether a Note contains the requirements for frontmatter (uses NP API note.frontmatterAttributes)
- * Will pass for notes with any fields or empty frontmatter (---\n---) so that variables can be added to it
- * Regular notes will generally have a title, but not always because the title may be in the first line of the note under the fm
- * @param {CoreNoteFields} note - the note to test
+ * Test whether a Note contains the requirements for frontmatter (uses NP API note.frontmatterAttributes).
+ * Will pass for notes with any fields or empty frontmatter (---\n---) so that variables can be added to it.
+ * Regular notes will generally have a title, but not always because the title may be in the first line of the note under the fm.
+ * @param {TNote} note - the note to test (note: doesn't work for Editor; needs to be Editor.note)
  * @returns {boolean} true if the note has front matter
  */
-export function noteHasFrontMatter(note: CoreNoteFields): boolean {
+export function noteHasFrontMatter(note: TNote): boolean {
   try {
     logDebug('noteHasFrontMatter', `Checking note "${note.title || note.filename}" for frontmatter`)
     if (!note) {
       logError('NPFrontMatter/noteHasFrontMatter()', `note is null or undefined`)
       return false
     }
-    const nfmA = note.frontmatterAttributes // Note: this was an attempt by JGC to see if continually calling the API here was causing an issue. It seems not.
+    const nfmA = note.frontmatterAttributes // Note: to make it easier to read the following code
     if (!nfmA || typeof nfmA !== 'object') {
       logWarn(
         'NPFrontMatter/noteHasFrontMatter()',
@@ -121,12 +121,12 @@ export function noteHasFrontMatter(note: CoreNoteFields): boolean {
 }
 
 /**
- * get the front matter attributes from a note (uses NP API note.frontmatterAttributes) or an empty object if the note has no front matter
- * NOTE: previously this returned false if the note had no front matter, but now it returns an empty object to correspond with the behavior of the NP API
+ * Get the front matter attributes from a note (uses NP API note.frontmatterAttributes) or an empty object if the note has no frontmatter.
+ * NOTE: previously this returned false if the note had no frontmatter, but now it returns an empty object to correspond with the behavior of the NP API.
  * @param {TNote} note
- * @returns object of attributes or empty object if the note has no front matter
+ * @returns object of attributes or empty object if the note has no frontmatter
  */
-export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: string } => note.frontmatterAttributes || {}
+export const getFrontMatterAttributes = (note: TNote): { [string]: string } => note.frontmatterAttributes || {}
 // previous version using fm library
 // export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: string } | false => (hasFrontMatter(note?.content || '') ? getAttributes(note.content) : false)
 
@@ -158,9 +158,9 @@ export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators
  * Get all notes that have frontmatter attributes, optionally including template notes
  * @param {boolean} includeTemplateFolders - whether to include template notes (default: false). By default, excludes all Template folder notes.
  * @param {boolean} onlyTemplateNotes - whether to include only template notes (default: false). By default, includes all notes that have frontmatter keys.
- * @returns {Array<CoreNoteFields>} - an array of notes that have front matter (template notes are included only if includeTemplateFolders is true and the note has frontmatter keys)
+ * @returns {Array<TNote>} - an array of notes that have front matter (template notes are included only if includeTemplateFolders is true and the note has frontmatter keys)
  */
-export function getFrontMatterNotes(includeTemplateFolders: boolean = false, onlyTemplateNotes: boolean = false): Array<CoreNoteFields> {
+export function getFrontMatterNotes(includeTemplateFolders: boolean = false, onlyTemplateNotes: boolean = false): Array<TNote> {
   const start = new Date()
   const templateFolder = NotePlan.environment.templateFolder || '@Templates'
   const returnedNotes = DataStore.projectNotes.filter((note) => {
@@ -177,11 +177,11 @@ export function getFrontMatterNotes(includeTemplateFolders: boolean = false, onl
  * Remove the front matter from a note (optionally including the separators).
  * Note: this is a helper function called by setFrontMatterVars and probably won't need to be called directly.
  * @author @dwertheimer
- * @param {CoreNoteFields} note - the note
+ * @param {TNote} note - the note
  * @param {boolean} removeSeparators? - whether to include the separator lines (---) in the deletion. Default: false.
  * @returns {boolean} - whether the front matter was removed or not
  */
-export function removeFrontMatter(note: CoreNoteFields, removeSeparators: boolean = false): boolean {
+export function removeFrontMatter(note: TNote, removeSeparators: boolean = false): boolean {
   try {
     const fmParas = getFrontMatterParagraphs(note, removeSeparators)
     // clo(fmParas, 'fmParas')
@@ -200,13 +200,13 @@ export function removeFrontMatter(note: CoreNoteFields, removeSeparators: boolea
 /**
  * Remove a particular frontmatter field, or if value provided as well, delete only if both match.
  * @author @jgclark
- * @param {CoreNoteFields} note - the note
+ * @param {TNote} note - the note
  * @param {string} fieldToRemove - field name (without colon)
  * @param {string?} value - value to match on (default no matching)
  * @param {boolean?} removeSeparators - if no fields remain, whether to remove the separator lines (---) as well. Defaults to true.
  * @returns {boolean} - whether the field was removed or not
  */
-export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: string, value: string = '', removeSeparators: boolean = true): boolean {
+export function removeFrontMatterField(note: TNote, fieldToRemove: string, value: string = '', removeSeparators: boolean = true): boolean {
   try {
     const fmFields = getFrontMatterAttributes(note)
     const fmParas = getFrontMatterParagraphs(note, true)
@@ -286,14 +286,14 @@ function _objectToYaml(obj: any, indent: string = ' '): string {
  * Write the frontmatter vars to a note which already has frontmatter.
  * Will add fields for whatever attributes you send in the second argument (could be duplicates).
  * So delete the frontmatter first (using removeFrontMatter()) if you want to add/remove/change fields.
- * @param {CoreNoteFields} note
+ * @param {TNote} note
  * @param {Object} attributes - key/value pairs for frontmatter values
  * @param {boolean?} alsoEnsureTitle - ensure that the frontmatter has a title (and set it to the note title if not). Default: true.
  * @param {boolean?} quoteNonStandardYaml - quote any values that are not standard YAML (e.g. contain colons, value starts with @). Default: false.
  * @returns {boolean} was frontmatter written OK?
  * @author @dwertheimer
  */
-export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: string }, alsoEnsureTitle: boolean = true, quoteNonStandardYaml: boolean = false): boolean {
+export function writeFrontMatter(note: TNote, attributes: { [string]: string }, alsoEnsureTitle: boolean = true, quoteNonStandardYaml: boolean = false): boolean {
   if (!noteHasFrontMatter(note)) {
     logError(pluginJson, `writeFrontMatter: no frontmatter already found in note, so stopping.`)
     return false
@@ -321,12 +321,12 @@ export const hasTemplateTagsInFM = (fmText: string): boolean => fmText.includes(
  * If the key does not exist, it will be added.
  * All existing fields you do not explicitly mention in varObj will keep their previous values (including note title).
  * If the value of a key is set to null, the key will be removed from the front matter.
- * @param {CoreNoteFields} note
+ * @param {TNote} note
  * @param {{[string]:string}} varObj - an object with the key:value pairs to set in the front matter (all strings). If the value of a key is set to null, the key will be removed from the front matter.
  * @returns {boolean} - whether the front matter was set or not
  * @author @dwertheimer
  */
-export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: string }): boolean {
+export function setFrontMatterVars(note: TNote, varObj: { [string]: string }): boolean {
   try {
     logDebug(pluginJson, `setFrontMatterVars: this function is deprecated. Use updateFrontMatterVars() instead.`)
     const title = varObj.title || null
@@ -377,7 +377,7 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
  * @returns {boolean} true if front matter existed or was added, false if failed for some reason
  * @author @dwertheimer
  */
-export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean = true, title?: string | null): boolean {
+export function ensureFrontmatter(note: TNote, alsoEnsureTitle: boolean = true, title?: string | null): boolean {
   try {
     let retVal = false
     let fm = ''
@@ -537,13 +537,13 @@ export function formatTriggerString(triggerObj: { [TriggerTypes]: Array<{ plugin
 /**
  * Add a trigger to the frontmatter of a note (will create frontmatter if doesn't exist). Will append onto any existing list of trigger(s).
  * @author @dwertheimer
- * @param {CoreNoteFields} note
+ * @param {TNote} note
  * @param {string} trigger 1 from the TriggerTypes
  * @param {string} pluginID - the ID of the plugin
  * @param {string} commandName - the name (NOT THE jsFunction) of the command to run
  * @returns {boolean} - true if the trigger already existed or was added succesfully
  */
-export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: string, commandName: string): boolean {
+export function addTrigger(note: TNote, trigger: string, pluginID: string, commandName: string): boolean {
   try {
     if (!TRIGGER_LIST.includes(trigger)) {
       throw new Error(`'${trigger}' is not in the TRIGGER_LIST. Stopping.`)
@@ -698,11 +698,11 @@ export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: b
  * Sanitize the frontmatter text by quoting illegal values that need quoting (e.g. colons, strings that start with: @, #)
  * Returns frontmatter object (or empty object if none)
  * Optionally writes the sanitized (quoted) text back to the note
- * @param {*} note
- * @param {*} writeBackToNote - whether to write the sanitized text back to the note
+ * @param {TNote} note
+ * @param {boolean} writeBackToNote - whether to write the sanitized text back to the note
  * @returns {Object} - the frontmatter object (or empty null if none)
  */
-export function getSanitizedFrontmatterInNote(note: CoreNoteFields, writeBackToNote: boolean = false): FrontMatterDocumentObject | null {
+export function getSanitizedFrontmatterInNote(note: TNote, writeBackToNote: boolean = false): FrontMatterDocumentObject | null {
   const fmData = getSanitizedFmParts(note.content || '') || null
   if (writeBackToNote && fmData?.attributes) {
     if (_getFMText(note.content || '') !== `---\n${fmData.frontmatter}\n---\n`) {
@@ -810,7 +810,7 @@ export function normalizeValue(value: string): string {
  * Update existing front matter attributes based on the provided newAttributes.
  * Assumes that newAttributes is the complete desired set of attributes.
  * Adds new attributes, updates existing ones, and will delete any that are not present in newAttributes (if requested).
- * @param {CoreNoteFields} note - The note to update.
+ * @param {TEditor | TNote} note - The note to update.
  * @param {{ [string]: string }} desiredAttributes - The complete set of desired front matter attributes.
  * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in desiredAttributes (default: false)
  * @returns {boolean} - Whether the front matter was updated successfully.
@@ -818,13 +818,13 @@ export function normalizeValue(value: string): string {
 export function updateFrontMatterVars(_note: TEditor | TNote, desiredAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {
     const isEditor = _note.note ? true : false
-    const note = isEditor ? _note.note : _note
+    const note: TNote = isEditor ? _note.note : _note
     // Ensure the note has front matter
     if (!ensureFrontmatter(note)) {
       logError('updateFrontMatterVars', `Failed to ensure front matter for note "${note.filename || ''}".`)
       return false
     }
-    // FIXME(EduardMe): ? next line can return {}, which looks like an API error
+    // Note: next line will return {} if the note has no frontmatter, or empty frontmatter.
     const existingAttributes = getFrontMatterAttributes(note)
     if (Object.keys(existingAttributes).length === 0) {
       logWarn('updateFrontMatterVars', `API call returned no frontmatterAttributes for note "${note.filename || ''}" which is unexpected.`)
