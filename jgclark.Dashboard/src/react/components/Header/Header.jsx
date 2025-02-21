@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated for 2.1.0.b4
+// Last updated 2025-02-21 for 2.2.0
 // --------------------------------------------------------------------------
 
 // --------------------------------------------------------------------------
@@ -21,6 +21,7 @@ import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
 import PerspectiveSelector from './PerspectiveSelector.jsx'
+import SearchBar from './SearchBar.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
 import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
@@ -161,6 +162,15 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       sendActionToPlugin(actionType, { actionType: actionType, sectionCodes: visibleSectionCodes }, 'Refresh button clicked', true)
     }
 
+  /**
+   * Handles the search event.
+   * @param {string} query - The search query.
+   */
+  const handleSearch = (query: string): void => {
+    console.log('Search query:', query)
+    // Add your search logic here
+  }
+
   // ----------------------------------------------------------------------
   // Constants
   // ----------------------------------------------------------------------
@@ -225,21 +235,21 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
       )}
 
-      <div id="dropdowns" className="dropdownButtons">
-        {/* Feature Flags dropdown */}
-        {isDevMode && (
-          <DropdownMenu
-            onSaveChanges={handleChangesInSettings}
-            otherItems={featureFlagItems}
-            handleSwitchChange={handleLocalSwitchChange}
-            className={'feature-flags'}
-            iconClass="fa-solid fa-flag"
-            isOpen={openDropdownMenu === 'featureFlags'}
-            toggleMenu={() => handleToggleDropdownMenu('featureFlags')}
-            labelPosition="left"
-          />
-        )}
+      <SearchBar onSearch={handleSearch} />
 
+      {/* Feature Flags dropdown */}
+      {isDevMode && (
+        <DropdownMenu
+          onSaveChanges={handleChangesInSettings}
+          otherItems={featureFlagItems}
+          handleSwitchChange={handleLocalSwitchChange}
+          className={'feature-flags'}
+          iconClass="fa-solid fa-flag"
+          isOpen={openDropdownMenu === 'featureFlags'}
+          toggleMenu={() => handleToggleDropdownMenu('featureFlags')}
+          labelPosition="left"
+        />
+      )}
         {/* Render the SettingsDialog only when it is open */}
         {isDialogOpen && (
           <SettingsDialog
@@ -267,7 +277,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         <div className="dropdown">
           <i className="fa-solid fa-gear" onClick={handleToggleDialog}></i>
         </div>
-      </div>
+
     </header>
   )
 }

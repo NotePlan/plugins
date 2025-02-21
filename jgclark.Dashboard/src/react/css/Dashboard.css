@@ -97,7 +97,7 @@ dialog::backdrop {
 	padding-block-end: 0.1rem;
 }
 
-/* first part of sectionInfo. Grid to contain sectionIcon, sectionName, .addNewActionButtons */
+/* first part of sectionInfo. Grid to contain sectionIcon, sectionName, .sectionTitleLineButtons */
 .sectionInfoFirstLine {
 	display: grid;
 	grid-template-columns: auto auto;
@@ -122,7 +122,7 @@ dialog::backdrop {
 }
 
 /* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
-.addNewActionButtons {
+.sectionTitleLineButtons {
 	display: inline-flex;
 	gap: 0.4rem;
 	justify-self: end;
@@ -133,7 +133,7 @@ dialog::backdrop {
 }
 
 /* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
-.iOS .addNewActionButtons, .iPadOS .addNewActionButtons {
+.iOS .sectionTitleLineButtons, .iPadOS .sectionTitleLineButtons {
 	gap: 0.9rem !important; /* haven't tested whether !important is needed here */
 	font-size: 1.0rem !important;
 }
@@ -224,7 +224,7 @@ dialog::backdrop {
 	}
 
 	/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
-	.addNewActionButtons {
+	.sectionTitleLineButtons {
 		justify-self: start;
 		padding-top: 2px;
 	}
@@ -320,7 +320,7 @@ dialog::backdrop {
 	}
 }
 
-/* For add buttons in section info areas */
+/* For action buttons in section title areas */
 .addButton {
 	font-size: 0.95rem;
 	/* line-height: 1.2rem; */
@@ -542,6 +542,7 @@ html {
 	--fg-sidebarYearly: #efba13;
 	--fg-sidebarHashtag: var(--hashtag-color);
 	--fg-sidebarMention: var(--attag-color);
+	--fg-sidebarSearch: #9da5a8;
 }
 /* But still need these as named styles */
 .sidebarDaily {color: var(--fg-sidebarDaily);}
@@ -551,6 +552,7 @@ html {
 .sidebarYearly {color: var(--fg-sidebarYearly);}
 .sidebarHashtag {color: var(--hashtag-color);}
 .sidebarMention {color: var(--attag-color);}
+.sidebarSearch {color: var(--fg-sidebarSearch);}
 
 /* .priority, .overdue, .projects {
 	font-size: 1.0rem;

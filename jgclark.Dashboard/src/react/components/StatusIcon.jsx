@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Icon before an item
 // Called by TaskItem component.
-// Last updated for v2.1.0.a
+// Last updated for v2.2.0.a1
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
@@ -37,10 +37,12 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr
   function getClassNameFromType(itemType: string): string {
     switch (itemType) {
       case 'open':
+      case 'scheduled':
         return 'todo fa-regular fa-circle'
       case 'cancelled':
         return 'cancelled fa-regular fa-circle-xmark'
       case 'checklist':
+      case 'checklistScheduled':
         return 'todo fa-regular fa-square'
       case 'checklistCancelled':
         return 'cancelled fa-regular fa-square-xmark'

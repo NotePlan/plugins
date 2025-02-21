@@ -1,6 +1,23 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.2.0.a1] 2025-02-21
+### New
+- 'Search' section started, and integrated in all relevant search and display logic.
+- Added `externallyStartSearch` x-callback for this, with arguments: 
+  - search terms string
+  - search over 'calendar', 'project', or 'both' (optional, default is 'both')
+  - ISO start date for calendar notes (optional, default is empty)
+  - ISO end date for calendar notes (optional, default is empty)
+- Can close section when finished with
+- WIP: Start to make Search Bar in Header.
+- TODO: Add in prevent tasks under heading (from Perspective)
+- TODO: UI to set the searchTerm and search options.
+### Changed
+- improves display of non-standard scheduled items (that don't have a `<date` component)
+- TODO: prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component)
+### Fixed
+
 ## [2.1.10] 2025-02-16
 ### New
 - When you move/schedule an item from one note to another, there are two additional workflows:

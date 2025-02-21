@@ -1,10 +1,11 @@
 /* eslint-disable max-len */
 // @flow
 //-----------------------------------------------------------------------------
+// Interactive commands for SearchExtensions plugin.
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2024-10-26 for v1.4.0, @jgclark
+// Last updated 2025-02-21 for v1.4.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -108,6 +109,7 @@ export async function quickSearch(searchTermsArg?: string, paraTypeFilterArg?: s
 /**------------------------------------------------------------------------
  * Run a search over all notes, saving the results in one of several locations.
  * Works interactively (if no arguments given) or in the background (using supplied arguments).
+ * Called by interactive 'save search' commands, or by x-callback.
  * @author @jgclark
  *
  * @param {string?} searchTermsArg optional comma-separated list of search terms to search
@@ -338,5 +340,67 @@ export async function saveSearch(
   }
   catch (err) {
     logError(pluginJson, err.message)
+  }
+}
+
+export type SearchOptions = {
+  noteTypesToInclude?: Array<string>,
+  foldersToInclude?: Array<string>,
+  foldersToExclude?: Array<string>,
+  caseSensitiveSearching?: boolean,
+  fullWordSearching?: boolean,
+  paraTypesToInclude?: Array<ParagraphType>,
+  fromDateStr?: string,
+  toDateStr?: string,
+}
+
+/**
+ * WARNING: Started, but not finished or tested.
+ * Entry point for extended search where all the parameters are supplied.
+ * @param {string} searchTerms as a string with items separated by spaces, to suit taking from a search box.
+ * @param {SearchOptions} searchOptions object for various settings
+ */
+export async function extendedSearch(
+  searchTerms: string,
+  searchOptions: SearchOptions,
+): Promise<resultOutputTypeV3> {
+  try {
+    // get relevant settings
+    const config = await getSearchSettings()
+    logDebug(pluginJson, `Starting extendedSearch()`)
+    logDebug('extendedSearch', `searchTerms: '${searchTerms}'`)
+    clo(searchOptions, 'extendedSearch searchOptions:')
+
+    // Override config settings if given
+    if (searchOptions.caseSensitiveSearching != null) {
+      config.caseSensitiveSearching = searchOptions.caseSensitiveSearching
+    }
+    if (searchOptions.fullWordSearching != null) {
+      config.fullWordSearching = searchOptions.fullWordSearching
+    }
+
+    // Validate the search terms: an empty return means failure. There is error logging in the function.
+    const validatedSearchTerms = await validateAndTypeSearchTerms(searchTerms, false)
+    if (validatedSearchTerms == null || validatedSearchTerms.length === 0) {
+      throw new Error(`These search terms aren't valid. Please see Plugin Console for details.`)
+    }
+    // Now optimise the order we tackle the search terms
+    const orderedSearchTerms = optimiseOrderOfSearchTerms(validatedSearchTerms)
+
+    //---------------------------------------------------------
+    // Call main extended search function
+    // CommandBar.showLoading(true, `Searching ...`)
+    await CommandBar.onAsyncThread()
+
+    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
+    const results: resultOutputTypeV3 = await runSearchesV2(orderedSearchTerms, searchOptions.noteTypesToInclude || ['notes', 'calendar'], searchOptions.foldersToInclude || [], searchOptions.foldersToExclude || [], config, searchOptions.paraTypesToInclude || [], searchOptions.fromDateStr || '', searchOptions.toDateStr || '')
+
+    await CommandBar.onMainThread()
+
+    return results
+  }
+  catch (err) {
+    logError(pluginJson, err.message)
+    return null
   }
 }

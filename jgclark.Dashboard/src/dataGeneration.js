@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated for v2.1.10
+// Last updated 2025-02-21 for v2.2.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -23,7 +23,8 @@ import {
   makeDashboardParas,
 } from './dashboardHelpers'
 import { getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
-import { getProjectSectionData } from './dataGenerationProjects.js'
+import { getProjectSectionData } from './dataGenerationProjects'
+import { getSearchResults } from './dataGenerationSearch'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
 import { openMonthParas, refMonthParas, tagParasFromNote } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
@@ -44,6 +45,7 @@ import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
 
 /**
  * Generate data for all the sections (that the user currently wants)
+ * Note: don't forget there's also refreshClickHandlers.js::refreshAllSections().
  * @param {boolean} useDemoData? (default: false)
  * @param {boolean} useEditorWherePossible?
  * @returns {Array<TSection>} array of sections
@@ -71,6 +73,7 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
 /**
  * Generate data for some specified sections (subject to user currently wanting them as well).
  * Note: Returns all wanted sections in one go.
+ * Note: don't forget there's also refreshClickHandlers.js::incrementallyRefreshSomeSections() and refreshSomeSections()
  * @param {Array<string>} sectionCodesToGet (default: allSectionCodes)
  * @param {boolean} useDemoData (default: false)
  * @param {boolean} useEditorWherePossible?
@@ -94,12 +97,13 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
-    // out of display order, but quicker to generate
+    // moderately quick to generate
     if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) {
       const projectSection = await getProjectSectionData(config, useDemoData)
       if (projectSection) sections.push(projectSection)
     }
     // The rest can all be slow to generate
+    // TODO(later): SavedSearch goes here ... if (sectionCodesToGet.includes('SEARCH') && config.showSearchSection) sections.push(...(await getSearchResults()))
     if (sectionCodesToGet.includes('TAG') && config.tagsToShow) {
       // v1:
       // const tagSections = getTaggedSections(config, useDemoData).filter((s) => s) //get rid of any nulls

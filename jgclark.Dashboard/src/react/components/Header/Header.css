@@ -136,3 +136,32 @@
 		width: unset;
 	}
 }
+
+/* Search icon/container */
+.search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input {
+    width: 0;
+    padding: 0;
+    border: none;
+    border-bottom: 1px solid #ccc;
+    outline: none;
+    transition: width 0.3s ease, padding 0.3s ease;
+    opacity: 0;
+}
+
+.search-icon {
+    cursor: pointer;
+    font-size: 20px;
+    margin-left: 10px;
+}
+
+.search-container.active .search-input {
+    width: 150px;
+    padding: 5px;
+    opacity: 1;
+}

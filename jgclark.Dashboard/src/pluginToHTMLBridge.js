@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated for v2.1.8
+// Last updated 2025-02-21 for v2.2.0
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -345,6 +345,15 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doCommsBridgeTest(data)
         break
       }
+      case 'closeSection': {
+        result = {
+          success: true,
+          sectionCodes: ['SEARCH'],
+          actionsOnSuccess: ['CLOSE_SECTION'],
+          errorMsg: '',
+        }
+        break
+      }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
@@ -450,6 +459,21 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
           logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for non-Project: {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFromLineChange()`)
           await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para'])
         }
+      }
+
+      if (actionsOnSuccess.includes('CLOSE_SECTION')) {
+        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        // Remove the search section from the sections array
+        const sections = reactWindowData.pluginData.sections
+        logDebug('processActionOnReturn', `Starting CLOSE_SECTION with ${sections.length} sections: ${String(sections.map((s) => s.sectionCode).join(','))}.`)
+        const sectionIndex = sections.findIndex((section) => section.sectionCode === 'SEARCH')
+        logDebug('processActionOnReturn', `CLOSE_SECTION for section #${String(sectionIndex)}`)
+        sections.splice(sectionIndex, 1)
+        logDebug('processActionOnReturn', `Closed search section -> ${sections.length} sections: ${String(sections.map((s) => s.sectionCode).join(','))}.`)
+
+        // Set showSearchSection to false
+        reactWindowData.pluginData.showSearchSection = false
+        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Closed Search Section`)
       }
 
       if (actionsOnSuccess.includes('INCREMENT_DONE_COUNT')) {

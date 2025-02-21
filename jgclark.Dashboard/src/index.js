@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated for v2.2.0, 2025-02-09 by @jgclark
+// last updated for v2.2.0, 2025-02-21 by @jgclark
 // ----------------------------------------------------------------------------
 
 /**
@@ -52,6 +52,8 @@ export {
   generateTagMentionCache,
   updateTagMentionCache
 } from './tagMentionCache'
+
+export { externallyStartSearch } from './dataGenerationSearch.js'
 
 //-----------------------------------------------------------------------------
 // TODO(later): remove this for testing tag cache

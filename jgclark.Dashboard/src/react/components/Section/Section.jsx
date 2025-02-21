@@ -166,8 +166,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // const isDesktop = pluginData.platform === 'macOS'
   let numItemsToShow = itemsToShow.length
 
-  const addNewActionButtons = section.actionButtons?.filter((b) => b.actionName.startsWith('add')) // : []
-  let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add')) // : []
+  const sectionTitleLineButtons = section.actionButtons?.filter((b) => b.actionName.startsWith('add') || b.actionName.startsWith('close'))
+  let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add') && !b.actionName.startsWith('close'))
 
   // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
   if (numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {
@@ -234,7 +234,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   /**
    * Layout of sectionInfo = 4 divs:
-   * - sectionInfoFirstLine = grid of sectionName div and addNewActionButtons div
+   * - sectionInfoFirstLine = grid of sectionName div and sectionTitleLineButtons div
    * - sectionDescription
    * - sectionProcessButtons = 0 or more processActionButtons
    * On normal width screen these are a row-based grid (1x3).
@@ -258,8 +258,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
             </div>
           </TooltipOnKeyPress>
           {/* {' '} */}
-          <div className={`addNewActionButtons ${section.sectionTitleColorPart ?? ''}`}>
-            {addNewActionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="addButton" />) ?? []}
+          <div className={`sectionTitleLineButtons ${section.sectionTitleColorPart ?? ''}`}>
+            {sectionTitleLineButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="addButton" />) ?? []}
           </div>
         </div>
 

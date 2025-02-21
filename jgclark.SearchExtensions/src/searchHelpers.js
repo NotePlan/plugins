@@ -270,6 +270,7 @@ export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNe
 
 /**
 * Optimise the order to tackle search terms. Assumes these have been normalised and validated already.
+* TODO: Can this be taken into runSearchesV2() and out of the calling functions?
 * TODO: tests
 * @author @jgclark
 * @param {Array<typedSearchTerm>} inputTerms
@@ -835,6 +836,7 @@ export async function runSearchV2(
           resultParas.push(tr)
         }
       }
+      CommandBar.showLoading(false)
       logDebug('runSearchV2', `- found ${resultParas.length} open tasks to work from`)
     } else {
       resultParas = tempResult

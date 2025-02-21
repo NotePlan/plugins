@@ -5,9 +5,9 @@
   "plugin.name": "🎛 Dashboard",
   "plugin.description": "A Dashboard for NotePlan, that in one place shows\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- Similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next notes ready to review (if you use the 'Projects and Reviews' plugin).",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.1.10",
+  "plugin.version": "2.2.0.a1",
   "plugin.hidden": false,
-  "plugin.lastUpdateInfo": "2.1.10: More move-under-heading options. Bug fixes and performance improvements.\n2.1.9: performance improvements and better UI for iPhone users.\n2.1.8: various fixes and small improvements.\n2.1.7: various fixes and small improvements.\n2.1.6: allow all current timeblocks to be shown, not just the first. Add new @repeat()s if using the extended syntax from the Repeat Extensions plugin. Bug fixes.\n2.1.5: fixes to time blocks and scheduling items.\n2.1.4: fix to Interactive Processing, and Edit All Perspectives dialog now shows unsaved changes.\n2.1.3: fixes to display of timeblocks, and checklist counts being wrong. Slightly smarter task dialog.\n2.1.2: fix bug - Today section not showing up; fix settings description for max items to show.\n2.1.1: fix bug - Tomorrow section not showing up.\n2.1.0: Add Perspectives; new 'Current Time Block' section; new 'Last Week' section; and many other improvements and fixes.\n2.0.0: major new release with many new features, following major re-write.",
+  "plugin.lastUpdateInfo": "2.2.0: Add 'Search' section. Bug fixes and performance improvements.\n2.1.10: More move-under-heading options. Bug fixes and performance improvements.\n2.1.9: performance improvements and better UI for iPhone users.\n2.1.8: various fixes and small improvements.\n2.1.7: various fixes and small improvements.\n2.1.6: allow all current timeblocks to be shown, not just the first. Add new @repeat()s if using the extended syntax from the Repeat Extensions plugin. Bug fixes.\n2.1.5: fixes to time blocks and scheduling items.\n2.1.4: fix to Interactive Processing, and Edit All Perspectives dialog now shows unsaved changes.\n2.1.3: fixes to display of timeblocks, and checklist counts being wrong. Slightly smarter task dialog.\n2.1.2: fix bug - Today section not showing up; fix settings description for max items to show.\n2.1.1: fix bug - Tomorrow section not showing up.\n2.1.0: Add Perspectives; new 'Current Time Block' section; new 'Last Week' section; and many other improvements and fixes.\n2.0.0: major new release with many new features, following major re-write.",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "react.c.WebView.bundle.dev.js"
@@ -128,16 +128,10 @@
       "hidden": false
     },
     {
-      "name": "Delete all Perspective Settings",
-      "description": "Delete all Perspective Settings.",
-      "jsFunction": "deleteAllNamedPerspectiveSettings",
-      "hidden": true
-    },
-    {
+      "hidden": true,
       "name": "decideWhetherToUpdateDashboard",
       "description": "onEditorWillSave",
-      "jsFunction": "decideWhetherToUpdateDashboard",
-      "hidden": true
+      "jsFunction": "decideWhetherToUpdateDashboard"
     },
     {
       "hidden": true,
@@ -179,11 +173,22 @@
       "jsFunction": "deletePerspective"
     },
     {
-      "comment": "TODO: remove me in time",
-      "name": "log Perspective Settings",
-      "description": "log perspective settings",
-      "jsFunction": "getPerspectiveSettings",
-      "hidden": false
+      "hidden": true,
+      "name": "Delete all Perspective Settings",
+      "description": "Delete all Perspective Settings.",
+      "jsFunction": "deleteAllNamedPerspectiveSettings"
+    },
+    {
+      "hidden": true,
+      "name": "externallyStartSearch",
+      "description": "Start a new search and open its section. For use by x-callbacks or other plugins.",
+      "jsFunction": "externallyStartSearch",
+      "arguments": [
+        "search terms string",
+        "search over 'calendar', 'project', or 'both' (optional, default is 'both')",
+        "ISO start date for calendar notes (optional, default is empty)",
+        "ISO end date for calendar notes (optional, default is empty)"
+      ]
     },
     {
       "comment": "TODO: remove me in time",

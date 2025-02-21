@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated for v2.1.10
+// Last updated 2025-02-21 for v2.2.0, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -83,6 +83,7 @@ export type TDashboardSettings = {
   showPrioritySection: boolean,
   showProjectSection: boolean,
   showQuarterSection: boolean,
+  showSearchSection: boolean, // TODO: will this be needed?
   showTimeBlockSection: boolean,
   showTodaySection: boolean,
   showTomorrowSection: boolean,
@@ -113,8 +114,7 @@ export type TPerspectiveSettings = Array<TPerspectiveDef>
 //-----------------------------------------------------------------------------
 // Other types
 
-// FIXME: remove extra one later
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' | '_TB' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' | 'QSEARCH' | 'SEARCH' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 
@@ -208,6 +208,7 @@ export type TActionType =
   | 'completeTaskThen'
   | 'completeChecklist'
   | 'cancelChecklist'
+  | 'closeSection'
   | 'cyclePriorityStateUp'
   | 'cyclePriorityStateDown'
   | 'dashboardSettingsChanged'
@@ -303,15 +304,16 @@ export type MessageDataObject = {
  */
 
 export type TActionOnReturn =
-  | 'UPDATE_LINE_IN_JSON'
+  | 'CLOSE_SECTION'
+  | 'INCREMENT_DONE_COUNT'
+  | 'PERSPECTIVE_CHANGED'
   | 'REMOVE_LINE_FROM_JSON'
   | 'REFRESH_SECTION_IN_JSON'
   | 'REFRESH_ALL_SECTIONS'
-  | 'REFRESH_ALL_ENABLED_SECTIONS' // added for v2.1.0
+  | 'REFRESH_ALL_ENABLED_SECTIONS'
   | 'REFRESH_ALL_CALENDAR_SECTIONS'
   | 'START_DELAYED_REFRESH_TIMER'
-  | 'INCREMENT_DONE_COUNT'
-  | 'PERSPECTIVE_CHANGED'
+  | 'UPDATE_LINE_IN_JSON'
 
 export type TBridgeClickHandlerResult = {
   success: boolean,

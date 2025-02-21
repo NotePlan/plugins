@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated for v2.1.10
+// Last updated 2025-02-21 for v2.2.0.a1
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -78,7 +78,10 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
 
   const parsedSettings = parseSettings(pluginSettings.dashboardSettings)
 
-  // Note: Workaround for  number types getting changed to strings at some point in our Settings system.
+  // TODO: finish this
+  parsedSettings.showSearchSection = true
+
+  // Note: Workaround for number types getting changed to strings at some point in our Settings system.
   parsedSettings.newTaskSectionHeadingLevel = parseInt(parsedSettings.newTaskSectionHeadingLevel || '2')
   parsedSettings.maxItemsToShowInSection = parseInt(parsedSettings.maxItemsToShowInSection || '24')
   parsedSettings.lookBackDaysForOverdue = parseInt(parsedSettings.lookBackDaysForOverdue || '7')
@@ -157,6 +160,8 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   if (config.tagsToShow) sectionsToShow.push('TAG')
   if (config.showOverdueSection) sectionsToShow.push('OVERDUE')
   if (config.showPrioritySection) sectionsToShow.push('PRIORITY')
+  // TODO: finish this
+  /* if (config.showSearchSection) */ sectionsToShow.push('SEARCH')
   logDebug('getListOfEnabledSections', `sectionsToShow: ${String(sectionsToShow)}`)
   return sectionsToShow
 }
