@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2025-02-14 for v1.1.1, @jgclark
+// Last updated 2025-02-20 for v2.0.0.a1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -10,7 +10,8 @@
 import { getActivePerspectiveDef, getAllowedFoldersInCurrentPerspective, getPerspectiveSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
 import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { type Progress } from './projectClass'
-import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+// import { checkString } from '@helpers/checkType'
+import { stringListOrArrayToArray, } from '@helpers/dataManipulation'
 import {
   calcOffsetDate,
   getDateFromUnhyphenatedDateString,
@@ -22,14 +23,19 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { noteHasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
-import { findEndOfActivePartOfNote } from '@helpers/paragraph'
-import { showMessage } from '@helpers/userInput'
+import { getFrontMatterAttributes, noteHasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import {
+  findEndOfActivePartOfNote,
+} from '@helpers/paragraph'
+import {
+  showMessage
+} from '@helpers/userInput'
 
 //------------------------------
 // Config setup
 
 export type ReviewConfig = {
+  projectTypeTags: Array<string>,
   usePerspectives: boolean,
   perspectiveName: string,
   outputStyle: string,
@@ -37,7 +43,6 @@ export type ReviewConfig = {
   folderToStore: string,
   foldersToInclude: Array<string>,
   foldersToIgnore: Array<string>,
-  projectTypeTags: Array<string>,
   displayDates: boolean,
   displayProgress: boolean,
   displayOrder: string,
@@ -90,14 +95,15 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     // clo(config, `Review settings`)
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
-    // Note: there was an issue in builds ?1020-1030 that stopped new prefs being added.
-    DataStore.setPreference('startMentionStr', config.startMentionStr)
-    DataStore.setPreference('completedMentionStr', config.completedMentionStr)
-    DataStore.setPreference('cancelledMentionStr', config.cancelledMentionStr)
-    DataStore.setPreference('dueMentionStr', config.dueMentionStr)
-    DataStore.setPreference('reviewIntervalMentionStr', config.reviewIntervalMentionStr)
-    DataStore.setPreference('reviewedMentionStr', config.reviewedMentionStr)
-    DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
+    // Note: '@' characters are removed from the mention strings for v2
+    DataStore.setPreference('startMentionStr', config.startMentionStr.replace(/@/g, ''))
+    DataStore.setPreference('completedMentionStr', config.completedMentionStr.replace(/@/g, ''))
+    DataStore.setPreference('cancelledMentionStr', config.cancelledMentionStr.replace(/@/g, ''))
+    DataStore.setPreference('dueMentionStr', config.dueMentionStr.replace(/@/g, ''))
+    DataStore.setPreference('reviewIntervalMentionStr', config.reviewIntervalMentionStr.replace(/@/g, ''))
+    DataStore.setPreference('reviewedMentionStr', config.reviewedMentionStr.replace(/@/g, ''))
+    DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr.replace(/@/g, ''))
+    DataStore.setPreference('projectTypeTags', config.projectTypeTags)
 
     // If we want to use Perspectives, get all perspective settings
     if (config.usePerspectives) {
@@ -288,6 +294,43 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
  * - line starting 'project:' or 'medadata:'
  * - first line containing a @review() or @reviewed() mention
  * - first line starting with a hashtag.
+ * Note: there is a variation of this function below.
+ * @author @jgclark
+ *
+ * @param {TNote} note to use
+ * @returns {number} the line number for the metadata line, or NaN if not found
+ */
+export function getMetadataLine(note: TNote): number {
+  try {
+    const lines = note.paragraphs?.map((s) => s.content) ?? []
+    logDebug('getMetadataLine', `Starting with ${lines.length} lines for ${displayTitle(note)}`)
+
+    // Belt-and-Braces: deal with empty or almost-empty notes
+    if (lines.length <= 1) {
+      logInfo('getMetadataLine', `- Very short note; no metadata line possible.`)
+      return NaN
+    }
+
+    let lineNumber: number = NaN
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].match(/^(project|metadata|review|reviewed):/i) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
+        lineNumber = i
+        break
+      }
+    }
+    logDebug('getMetadataLine', `Metadata line = ${String(lineNumber)}`)
+    return lineNumber
+  } catch (error) {
+    logError('getMetadataLine', error.message)
+    return 0
+  }
+}
+
+/**
+ * Works out which line (if any) of the current note is project-style metadata line, defined as
+ * - line starting 'project:' or 'medadata:'
+ * - first line containing a @review() or @reviewed() mention
+ * - first line starting with a hashtag.
  * If these can't be found, then create a new line after the title, or in the 'metadata:' field if present in the frontmatter.
  * @author @jgclark
  *
@@ -312,13 +355,8 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
       return 1
     }
 
-    let lineNumber: number = NaN
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i].match(/^(project|metadata|review|reviewed):/i) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
-        lineNumber = i
-        break
-      }
-    }
+    let lineNumber: number = getMetadataLine(note)
+
     // If no metadataPara found, then insert one either after title, or in the frontmatter if present.
     if (Number.isNaN(lineNumber)) {
       if (noteHasFrontMatter(note)) {
@@ -340,7 +378,7 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
         lineNumber = 1
       }
     }
-    // logDebug('getOrMakeMetadataLine', `Metadata line = ${String(lineNumber)}`)
+    logDebug('getOrMakeMetadataLine', `Metadata line = ${String(lineNumber)}`)
     return lineNumber
   } catch (error) {
     logError('getOrMakeMetadataLine', error.message)
@@ -348,19 +386,8 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
   }
 }
 
-/**
- * DEPRECATED -- and now no longer used, so commented out.
- * Function to save changes to the Editor to the cache to be available elsewhere straight away.
- * Note: Now declared v3.9.3 as minimum version, so we can use API function for this.
- */
-// eslint-disable-next-line no-unused-vars
-// export async function saveEditorToCache(completed: any): Promise<void> {
-//   logDebug('saveEditorToCache', 'waiting for Editor.save ...')
-//   await Editor.save()
-//   logDebug('saveEditorToCache', '... done')
-// }
-
 //-------------------------------------------------------------------------------
+
 /**
  * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the note in the Editor.
  * It takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of it will be removed first, before that string is appended.
@@ -377,37 +404,56 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNot
     }
     const thisNote = Editor // note: not Editor.note
 
-    const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
+    // TEST: force change to use FM
+    // If are using frontmatter, or want to switch to it, then update the frontmatter ...
+    const possProjectTag = noteHasProjectFrontMatter(thisNote)
+    if (true || possProjectTag) {
+      logDebug('updateMetadataInEditor', `Note has project frontmatter. Updating that with metadata items: [${String(updatedMetadataArr)}]`)
+      const fmAttributes = {}
+      updatedMetadataArr.forEach((item) => {
+        // logDebug('updateMetadataInEditor', `- processing ${item}`)
+        const mentionName = item.split('(', 2)[0]
+        const mentionValue = item.split('(', 2)[1].replace(')', '')
+        // $FlowIgnore[prop-missing]
+        fmAttributes[mentionName] = mentionValue
+      })
+      // Make the changes in FM. Retain any attributes that aren't in the updatedMetadataArr. Note: happily, this first ensures the note has frontmatter.
+      const res = updateFrontMatterVars(thisNote, fmAttributes, false)
+      if (!res) {
+        logError('updateMetadataInEditor', `- Failed to update frontmatter for ${displayTitle(thisNote)}`)
+      }
+    }
+    // ... otherwise, update the metadata line
+    else {
+      const metadataLineIndex: number = getOrMakeMetadataLine(thisNote)
     // Re-read paragraphs, as they might have changed
-    const metadataPara = Editor.paragraphs[metadataLineIndex]
-    if (!metadataPara) {
-      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(Editor)}`)
+      const metadataPara = thisNote.paragraphs[metadataLineIndex]
+      if (!metadataPara) {
+        throw new Error(`Couldn't get or make metadataPara for ${displayTitle(thisNote)}`)
+      }
+
+      const origLine: string = metadataPara.content
+      let updatedLine = origLine
+
+      logDebug('updateMetadataInEditor', `starting for '${displayTitle(thisNote)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
+
+      for (const item of updatedMetadataArr) {
+        const mentionName = item.split('(', 1)[0]
+        // logDebug('updateMetadataInEditor', `Processing ${item} for ${mentionName}`)
+        // Start by removing all instances of this @mention
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
+        updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
+        // Then append this @mention
+        updatedLine += ` ${item}`
+        // logDebug('updateMetadataInEditor', `-> ${updatedLine}`)
+      }
+
+      // send update to Editor (removing multiple and trailing spaces)
+      metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
+      Editor.updateParagraph(metadataPara)
+      // await saveEditorToCache() // might be stopping code execution here for unknown reasons
+      logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
     }
-
-    const origLine: string = metadataPara.content
-    let updatedLine = origLine
-
-    logDebug(
-      'updateMetadataInEditor',
-      `starting for '${displayTitle(thisNote)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`,
-    )
-
-    for (const item of updatedMetadataArr) {
-      const mentionName = item.split('(', 1)[0]
-      // logDebug('updateMetadataInEditor', `Processing ${item} for ${mentionName}`)
-      // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
-      updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
-      // Then append this @mention
-      updatedLine += ` ${item}`
-      // logDebug('updateMetadataInEditor', `-> ${updatedLine}`)
-    }
-
-    // send update to Editor (removing multiple and trailing spaces)
-    metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
-    Editor.updateParagraph(metadataPara)
-    // await saveEditorToCache() // might be stopping code execution here for unknown reasons
-    logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
 
     // update this note in the review list
     return thisNote
@@ -418,51 +464,94 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNot
 }
 
 /**
- * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the given note.
- * It takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of @reviewed will be removed first, before that string is appended.
+ * Decide if the given note has project frontmatter. If so, return the project type tag, otherwise return false.
+ * @param {TNote} note
+ * @returns {string | boolean} the project type tag, or false if not found
+ */
+export function noteHasProjectFrontMatter(note: TNote): string | boolean {
+  if (!noteHasFrontMatter(note)) {
+    return false
+  }
+  // see if note's frontmatter 'types' field matches any of the configured project type tags
+  const projectTypeTags = stringListOrArrayToArray(String(DataStore.preference('projectTypeTags')), ',')
+  logInfo('noteHasProjectFrontMatter', `projectTypeTags: [${String(projectTypeTags)}]`)
+  const frontmatterTypes = note.frontmatterTypes.slice()
+  logInfo('noteHasProjectFrontMatter', `frontmatterTypes: [${String(frontmatterTypes)}]`)
+  if (frontmatterTypes.length > 0) {
+    const projectTypeTagsWithoutHashtags = projectTypeTags.map((tag) => tag.replace('#', ''))
+    logInfo('noteHasProjectFrontMatter', `projectTypeTagsWithoutHashtags: [${String(projectTypeTagsWithoutHashtags)}]`)
+    // Find a project type tag (with orwithout a hashtag) that matches the frontmatter types
+    const projectTag = projectTypeTagsWithoutHashtags.find((type) => frontmatterTypes.includes(type)) || projectTypeTags.find((type) => frontmatterTypes.includes(type))
+    return projectTag ?? false
+  }
+  return false
+}
+
+/**
+ * Update project metadata in the note's frontmatter (if being used) or @mentions in the metadata line of the given note.
+ * If frontmatter: only the FM is updated; the metadata line is left alone.
+ * If metadata line: it takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of @reviewed will be removed first, before that string is appended.
  * Note: additional complexity as '@review' starts the same as '@reviewed'
  * @author @jgclark
  * @param {TNote} noteToUse
- * @param {Array<string>} mentions to update:
+ * @param {Array<string>} mentions to update
  */
 export function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (note == null || note.type === 'Calendar' || note.paragraphs.length < 2) {
-      logWarn('updateMetadataInEditor', `- We don't have a valid Project note (and with at least 2 lines). Stopping.`)
+      logWarn('updateMetadataInNote', `- We don't have a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
 
-    const metadataLineIndex: number = getOrMakeMetadataLine(note)
-    // Re-read paragraphs, as they might have changed
-    const metadataPara = note.paragraphs[metadataLineIndex]
-    if (!metadataPara) {
-      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(note)}`)
+    // TEST: force change to use FM
+    // If are using frontmatter, or want to switch to it, then update the frontmatter ...
+    const possProjectTag = noteHasProjectFrontMatter(note)
+    if (true || possProjectTag) {
+      logDebug('updateMetadataInNote', `Note has project frontmatter. Updating that ...`)
+      const fmAttributes = {}
+      updatedMetadataArr.forEach((item) => {
+        const mentionName = item.split('(', 1)[0]
+        const mentionValue = item.split('(', 1)[1].replace(')', '')
+        // $FlowIgnore[prop-missing]
+        fmAttributes[mentionName] = mentionValue
+      })
+      // Make the changes in FM. Note: happily, this first ensures the note has frontmatter.
+      const res = updateFrontMatterVars(note, fmAttributes, false)
+      if (!res) {
+        logError('updateMetadataInNote', `- Failed to update frontmatter for ${displayTitle(note)}`)
+      }
     }
+    // ... otherwise, update the metadata line
+    else {
+      const metadataLineIndex: number = getOrMakeMetadataLine(note)
+      // Re-read paragraphs, as they might have changed
+      const metadataPara = note.paragraphs[metadataLineIndex]
+      if (!metadataPara) {
+        throw new Error(`Couldn't get or make metadataPara for ${displayTitle(note)}`)
+      }
 
-    const origLine: string = metadataPara.content
-    let updatedLine = origLine
+      const origLine: string = metadataPara.content
+      let updatedLine = origLine
 
-    logDebug(
-      'updateMetadataInNote',
-      `starting for '${displayTitle(note)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`,
-    )
+      logDebug('updateMetadataInNote', `Note doesn't have project frontmatter. Will re-write '${displayTitle(note)}' with new metadata ${String(updatedMetadataArr)} at metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
 
-    for (const item of updatedMetadataArr) {
-      const mentionName = item.split('(', 1)[0]
-      logDebug('updateMetadataInNote', `Processing ${item} for ${mentionName}`)
-      // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
-      updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
-      // Then append this @mention
-      updatedLine += ` ${item}`
-      logDebug('updateMetadataInNote', `-> ${updatedLine}`)
+      for (const item of updatedMetadataArr) {
+        const mentionName = item.split('(', 1)[0]
+        logDebug('updateMetadataInNote', `Processing ${item} for ${mentionName}`)
+        // Start by removing all instances of this @mention
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
+        updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
+        // Then append this @mention
+        updatedLine += ` ${item}`
+        logDebug('updateMetadataInNote', `-> ${updatedLine}`)
+      }
+
+      // update the note (removing multiple and trailing spaces)
+      metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
+      note.updateParagraph(metadataPara)
+      logDebug('updateMetadataInNote', `- After update ${metadataPara.content}`)
     }
-
-    // update the note (removing multiple and trailing spaces)
-    metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
-    note.updateParagraph(metadataPara)
-    logDebug('updateMetadataInNote', `- After update ${metadataPara.content}`)
 
     return
   } catch (error) {
@@ -476,93 +565,131 @@ export function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<stri
 
 /**
  * Update project metadata @mentions (e.g. @reviewed(date)) in the note in the Editor
+ * TODO: Update for FM
  * @author @jgclark
  * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
  * @returns { ?TNote } current note
  */
-export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>): ?TNote {
+export function deleteMetadataInEditor(mentionsToDeleteArr: Array<string>): ?TNote {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
-      logWarn('deleteMetadataMentionInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
+      logWarn('deleteMetadataInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
     const thisNote = Editor // note: not Editor.note
 
-    const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
-    // Re-read paragraphs, as they might have changed
-    const metadataPara = Editor.paragraphs[metadataLineIndex]
-    if (!metadataPara) {
-      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(Editor)}`)
+    const possProjectTag = noteHasProjectFrontMatter(thisNote)
+    if (true || possProjectTag) {
+      logDebug('updateMetadataInEditor', `Note has project frontmatter. Deleting metadata items: [${String(mentionsToDeleteArr)}]`)
+      const fmAttributes = getFrontMatterAttributes(thisNote)
+      mentionsToDeleteArr.forEach((item) => {
+        logDebug('deleteMetadataInEditor', `Deleting ${item} from fmAttributes`)
+        delete fmAttributes[item]
+      })
+      logDebug('deleteMetadataInEditor', `About to save fmAttributes: ${JSON.stringify(fmAttributes)}`)
+      // Make the changes in FM, by passing what should remain, and indicating others should be deleted.
+      const res = updateFrontMatterVars(thisNote, fmAttributes, true)
+      if (!res) {
+        logError('deleteMetadataInEditor', `- Failed to update frontmatter for ${displayTitle(thisNote)}`)
+      }
     }
+    // ... otherwise, update the metadata line
+    else {
+      const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
+      // Re-read paragraphs, as they might have changed
+      const metadataPara = Editor.paragraphs[metadataLineIndex]
+      if (!metadataPara) {
+        throw new Error(`Couldn't get or make metadataPara for ${displayTitle(Editor)}`)
+      }
 
-    const origLine: string = metadataPara.content
-    let newLine = origLine
+      const origLine: string = metadataPara.content
+      let newLine = origLine
 
-    logDebug('deleteMetadataMentionInEditor', `starting for '${displayTitle(Editor)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
+      logDebug('deleteMetadataInEditor', `starting for '${displayTitle(Editor)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
 
-    for (const mentionName of mentionsToDeleteArr) {
-      // logDebug('deleteMetadataMentionInEditor', `Processing ${item} for ${mentionName}`)
-      // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
-      newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
-      logDebug('deleteMetadataMentionInEditor', `-> ${newLine}`)
+      for (const mentionName of mentionsToDeleteArr) {
+        // logDebug('deleteMetadataInEditor', `Processing ${item} for ${mentionName}`)
+        // Start by removing all instances of this @mention
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+        newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
+        logDebug('deleteMetadataInEditor', `-> ${newLine}`)
+      }
+
+      // send update to Editor (removing multiple and trailing spaces)
+      metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
+      Editor.updateParagraph(metadataPara)
+      // await saveEditorToCache() // seems to stop here but without error
+      logDebug('deleteMetadataInEditor', `- After update ${metadataPara.content}`)
     }
-
-    // send update to Editor (removing multiple and trailing spaces)
-    metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
-    Editor.updateParagraph(metadataPara)
-    // await saveEditorToCache() // seems to stop here but without error
-    logDebug('deleteMetadataMentionInEditor', `- After update ${metadataPara.content}`)
-
     // update this note in the review list
     return thisNote
   } catch (error) {
-    logError('deleteMetadataMentionInEditor', `${error.message}`)
+    logError('deleteMetadataInEditor', `${error.message}`)
     return null
   }
 }
 
 /**
- * Update project metadata @mentions (e.g. @reviewed(date)) in the note in the Editor
+ * Update project metadata @mentions (e.g. @reviewed(date)) in the note in the Editor.
+ * TODO: Update for FM
  * @author @jgclark
- * @param {TNote} noteToUse
+ * @param {TNote} thisNote
  * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
  */
-export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteArr: Array<string>): void {
+export function deleteMetadataInNote(thisNote: TNote, mentionsToDeleteArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
-    if (noteToUse == null || noteToUse.type === 'Calendar' || noteToUse.paragraphs.length < 2) {
-      logWarn('deleteMetadataMentionInNote', `- We've not been passed a valid Project note (and with at least 2 lines). Stopping.`)
+    if (thisNote == null || thisNote.type === 'Calendar' || thisNote.paragraphs.length < 2) {
+      logWarn('deleteMetadataInNote', `- We've not been passed a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
 
-    const metadataLineIndex: number = getOrMakeMetadataLine(noteToUse)
-    const metadataPara = noteToUse.paragraphs[metadataLineIndex]
-    if (!metadataPara) {
-      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(noteToUse)}`)
+    const possProjectTag = noteHasProjectFrontMatter(thisNote)
+    if (true || possProjectTag) {
+      logDebug('updateMetadataInEditor', `Note has project frontmatter. Deleting metadata items: [${String(mentionsToDeleteArr)}]`)
+      const fmAttributes = getFrontMatterAttributes(thisNote)
+      mentionsToDeleteArr.forEach((item) => {
+        logDebug('deleteMetadataInEditor', `Deleting ${item} from fmAttributes`)
+        // delete the item from the fmAttributes object
+        delete fmAttributes[item]
+      })
+      logDebug('deleteMetadataInEditor', `About to save fmAttributes: ${JSON.stringify(fmAttributes)}`)
+      // Make the changes in FM, by passing what should remain, and indicating others should be deleted.
+      const res = updateFrontMatterVars(thisNote, fmAttributes, true)
+      if (!res) {
+        logError('deleteMetadataInEditor', `- Failed to update frontmatter for ${displayTitle(thisNote)}`)
+      }
     }
+    // ... otherwise, update the metadata line
+    else {
+      const metadataLineIndex: number = getOrMakeMetadataLine(thisNote)
+      const metadataPara = thisNote.paragraphs[metadataLineIndex]
+      if (!metadataPara) {
+        throw new Error(`Couldn't get or make metadataPara for ${displayTitle(thisNote)}`)
+      }
 
-    const origLine: string = metadataPara.content
-    let newLine = origLine
+      const origLine: string = metadataPara.content
+      let newLine = origLine
 
-    logDebug('deleteMetadataMentionInNote', `starting for '${displayTitle(noteToUse)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
+      logDebug('deleteMetadataInNote', `starting for '${displayTitle(thisNote)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
 
-    for (const mentionName of mentionsToDeleteArr) {
-      // logDebug('deleteMetadataMentionInNote', `Processing ${item} for ${mentionName}`)
-      // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
-      newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
-      logDebug('deleteMetadataMentionInNote', `-> ${newLine}`)
+      for (const mentionName of mentionsToDeleteArr) {
+        // logDebug('deleteMetadataInNote', `Processing ${item} for ${mentionName}`)
+        // Start by removing all instances of this @mention
+        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+        newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
+        logDebug('deleteMetadataInNote', `-> ${newLine}`)
+      }
+
+      // send update to thisNote (removing multiple and trailing spaces)
+      metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
+      thisNote.updateParagraph(metadataPara)
+      logDebug('deleteMetadataInNote', `- After update ${metadataPara.content}`)
     }
-
-    // send update to noteToUse (removing multiple and trailing spaces)
-    metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
-    noteToUse.updateParagraph(metadataPara)
-    logDebug('deleteMetadataMentionInNote', `- After update ${metadataPara.content}`)
     return
   } catch (error) {
-    logError('deleteMetadataMentionInNote', `${error.message}`)
+    logError('deleteMetadataInNote', `${error.message}`)
     return
   }
 }

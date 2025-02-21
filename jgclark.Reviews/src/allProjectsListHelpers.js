@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2025-02-14 for v1.1.0+, @jgclark
+// Last updated 2025-02-20 for v2.0.0.a1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -170,8 +170,6 @@ export async function generateAllProjectsList(configIn: any, runInForeground: bo
 
 export async function writeAllProjectsList(projectInstances: Array<Project>): Promise<void> {
   try {
-    logDebug('writeAllProjectsList', `starting`)
-
     // write summary to allProjects JSON file, using a replacer to suppress .note
     logDebug('writeAllProjectsList', `Writing ${projectInstances.length} projects to ${allProjectsListFilename}`)
     const res = DataStore.saveData(stringifyProjectObjects(projectInstances), allProjectsListFilename, true)

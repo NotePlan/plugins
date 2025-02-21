@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "1.1.1",
-  "plugin.lastUpdateInfo": "1.1.1: turn off background refresh of Dashboard plugin after every change to Project List, as it was causing problems.\n1.1.0: new option to use current 'Perspective' from the Dashboard plugin. New simpler top bar. Other small improvements and fixes.\n1.0.2: theme font size can now be overriden by user setting in NP.\n1.0.1: fix bug with 'next action' setting.\n1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)",
+  "plugin.version": "2.0.0.a1",
+  "plugin.lastUpdateInfo": "2.0.0: switch to using note frontmatter to store project metadata.\n1.1.1: turn off background refresh of Dashboard plugin after every change to Project List, as it was causing problems.\n1.1.0: new option to use current 'Perspective' from the Dashboard plugin. New simpler top bar. Other small improvements and fixes.\n1.0.2: theme font size can now be overriden by user setting in NP.\n1.0.1: fix bug with 'next action' setting.\n1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)",
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
@@ -214,37 +214,6 @@
     }
   ],
   "plugin.inactiveCommands": [
-    {
-      "hidden": true,
-      "name": "NOP",
-      "description": "no operation - testing way to stop losing plugin context",
-      "jsFunction": "NOP"
-    },
-    {
-      "name": "test:redToGreenInterpolation",
-      "description": "test red - green interpolation",
-      "jsFunction": "testRedToGreenInterpolation"
-    },
-    {
-      "name": "test:generateCSSFromTheme",
-      "description": "test generateCSSFromTheme",
-      "jsFunction": "testGenerateCSSFromTheme"
-    },
-    {
-      "name": "test:redisplayProjectListHTML",
-      "description": "test redisplay Project List HTML",
-      "jsFunction": "redisplayProjectListHTML"
-    },
-    {
-      "name": "test:fonts",
-      "description": "test font glyphs",
-      "jsFunction": "testFonts"
-    },
-    {
-      "name": "rev:test update Reviews plugin",
-      "description": "upgrade Reviews plugin settings",
-      "jsFunction": "testUpdated"
-    },
     {
       "name": "test:redisplayProjectListHTML",
       "description": "Redisplay project lists (HTML)",

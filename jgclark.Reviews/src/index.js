@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2025-02-14 for v1.1.1, @jgclark
+// Last updated 2025-02-19 for v2.0.0.a1, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -47,15 +47,7 @@ export {
   generateCSSFromTheme
 } from '@helpers/NPThemeToCSS'
 
-// Note: There are other possible exports, including:
-export { testFonts } from '../experiments/fontTests.js'
-export {
-  testGenerateCSSFromTheme,
-  testButtonTriggerCommand,
-  testButtonTriggerOpenNote,
-  testCSSCircle,
-  testRedToGreenInterpolation,
-} from './HTMLtests'
+// TODO: can this be removed?
 export { onMessageFromHTMLView } from './pluginToHTMLBridge' 
 
 const pluginID = 'jgclark.Reviews'

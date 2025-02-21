@@ -11,15 +11,15 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2025-02-14 for v1.1.1, @jgclark
+// Last updated 2025-02-19 for v2.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import {
-  deleteMetadataMentionInEditor,
-  deleteMetadataMentionInNote,
+  deleteMetadataInEditor,
+  deleteMetadataInNote,
   getNextActionLineIndex,
   getReviewSettings,
   type ReviewConfig,
@@ -373,8 +373,6 @@ export async function renderProjectLists(
     logDebug(pluginJson, `--------------------------------------------------------------`)
     logDebug('renderProjectLists', `Starting ${configIn ? 'with given config' : '*without config*'}. shouldOpen ${String(shouldOpen)} / scrollPos ${scrollPos}`)
     const config = (configIn) ? configIn : await getReviewSettings()
-    // TODO(later): remove once figured out GavinW issues
-    clo(config, 'config:')
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -1024,14 +1022,14 @@ export async function startReviews(): Promise<void> {
 
 /**
  * Finish a project review -- private core logic used by 2 functions.
- * @param (CoreNoteFields) note - The note to finish
+ * @param (TNote) note - The note to finish
  */
 async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
   try {
     const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
     // TODO(later): remove once figured out GavinW issues
-    clo(config, 'config:')
+    // clo(config, 'config:')
 
     const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
     const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
@@ -1059,12 +1057,13 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       }
     }
 
+    // Get 
     if (Editor.filename === note.filename) {
       logDebug('finishReviewCoreLogic', `- updating Editor ...`)
       // First update @review(date) on current open note
       let res: ?TNote = await updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      res = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
+      res = await deleteMetadataInEditor([config.nextReviewMentionStr])
 
       // Using Editor, update it in the cache so the latest changes can be picked up elsewhere.
       // Note: Putting the Editor.save() call here, rather than in the above functions, seems to work
@@ -1074,7 +1073,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       // First update @review(date) on the note
       await updateMetadataInNote(note, [reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      await deleteMetadataMentionInNote(note, [config.nextReviewMentionStr])
+      await deleteMetadataInNote(note, [config.nextReviewMentionStr])
     }
     logDebug('finishReviewCoreLogic', `- after metadata updates`)
 
@@ -1180,7 +1179,7 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
 /**
  * Skip a project review, moving it forward to a specified date/interval. 
  * Note: private core logic used by 2 functions.
- * @param (CoreNoteFields) note
+ * @param (TNote) note
  * @param (string?) skipIntervalOrDate (optional)
  */
 async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: string = ''): Promise<void> {

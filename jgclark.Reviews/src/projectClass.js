@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2025-02-03 for v1.1.0, @jgclark
+// Last updated 2025-02-19 for v2.0.0.a1, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -12,9 +12,11 @@ import {
   addFAIcon,
   calcNextReviewDate,
   getFieldParagraphsFromNote,
-  getOrMakeMetadataLine,
+  // getOrMakeMetadataLine,
+  getMetadataLine,
   getParamMentionFromList,
   getReviewSettings,
+  noteHasProjectFrontMatter,
   processMostRecentProgressParagraph,
 } from './reviewHelpers'
 import { checkString } from '@helpers/checkType'
@@ -33,6 +35,7 @@ import {
   makeSVGPercentRing,
   redToGreenInterpolation,
 } from '@helpers/HTMLView'
+import { noteHasFrontMatter, getFrontMatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { removeAllDueDates } from '@helpers/NPParagraph'
 import { findStartOfActivePartOfNote, simplifyRawContent } from '@helpers/paragraph'
 import { getLineMainContentPos } from '@helpers/search'
@@ -44,6 +47,17 @@ import {
 import { isDone, isOpen } from '@helpers/utils'
 
 //-----------------------------------------------------------------------------
+// CONSTANTS
+
+// const startMentionStr = checkString(DataStore.preference('startMentionStr')).replace('@', '')
+// const dueMentionStr = checkString(DataStore.preference('dueMentionStr')).replace('@', '')
+// const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr')).replace('@', '')
+// const completedMentionStr = checkString(DataStore.preference('completedMentionStr')).replace('@', '')
+// const cancelledMentionStr = checkString(DataStore.preference('cancelledMentionStr')).replace('@', '')
+// const reviewIntervalMentionStr = checkString(DataStore.preference('reviewIntervalMentionStr')).replace('@', '')
+// const nextReviewMentionStr = checkString(DataStore.preference('nextReviewMentionStr')).replace('@', '')
+
+// Types
 
 export type Progress = {
   lineIndex: number,
@@ -52,12 +66,14 @@ export type Progress = {
   comment: string
 }
 
+//-----------------------------------------------------------------------------
+
 /**
  * Define 'Project' class to use in GTD.
- * Holds title, last reviewed date, due date, review interval, completion date,
- * number of closed, open & waiting for tasks.
+ * Holds title, last reviewed date, due date, review interval, completion date, number of closed, open & waiting for tasks.
+ * TODO: v2: it will now read the project metadata from the note frontmatter or the 'metadata line'.
+ * TODO(later): automatically migrate 'metadata line' to frontmatter.
  *
- * @example To create a project instance for a note call 'const x = new Project(note, ...)'
  * @author @jgclark
  */
 export class Project {
@@ -65,7 +81,8 @@ export class Project {
   note: TNote
   filename: string
   folder: string
-  metadataParaLineIndex: number
+  metadataParaLineIndex: number // but can be NaN if not found
+  usingFrontmatter: boolean = false
   projectTag: string // #project, #area, etc.
   title: string
   startDate: ?Date
@@ -93,16 +110,37 @@ export class Project {
   nextActionsRawContent: Array<string> = []
   ID: string // required when making HTML views
 
+  /**
+   * Constructor for the Project class.
+   * @example To create a project instance for a note call 'const x = new Project(note, ...)'
+   * @param {TNote} note - the note to construct the project from
+   * @param {string} projectTypeTag - the project type tag to use, e.g. '#project'
+   * @param {boolean} checkEditor - whether to check if the note is open in the Editor
+   * @param {Array<string>} nextActionTags - the next action tag(s) to use, e.g. ['@nextAction']
+   */
   constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = []) {
     try {
+      // get various prefs for metadata
+      const startMentionStr = checkString(DataStore.preference('startMentionStr'))
+      const dueMentionStr = checkString(DataStore.preference('dueMentionStr'))
+      const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
+      const completedMentionStr = checkString(DataStore.preference('completedMentionStr'))
+      const cancelledMentionStr = checkString(DataStore.preference('cancelledMentionStr'))
+      const reviewIntervalMentionStr = checkString(DataStore.preference('reviewIntervalMentionStr'))
+      const nextReviewMentionStr = checkString(DataStore.preference('nextReviewMentionStr'))
+
       const startTime = new Date()
       if (note == null || note.title == null) {
         throw new Error('Error in constructor: invalid note passed')
       }
+
       this.title = note.title
       this.filename = note.filename
       // logDebug('Project', `Starting for type ${projectTypeTag}, ${this.filename}`)
       this.folder = getFolderFromFilename(note.filename)
+      let metadataLine = ''
+      let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
+      let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
       this.ID = String(Math.round((Math.random()) * 99999))
@@ -123,63 +161,98 @@ export class Project {
         // logDebug('Project', `- read note from datastore `)
       }
 
-      const metadataLineIndex = getOrMakeMetadataLine(note)
-      // this.metadataPara = paras[metadataLineIndex]
-      this.metadataParaLineIndex = metadataLineIndex
-      let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
-      let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
-      const metadataLine = paras[metadataLineIndex].content
-      if (mentions.length === 0) {
-        logDebug('Project', `- Grr: .mentions empty: will use metadata line instead`)
-        // Note: If necessary, fall back to getting mentions just from the metadataline
-        mentions = (`${metadataLine} `).split(' ').filter((f) => f[0] === '@')
-      }
-      if (hashtags.length === 0) {
-        hashtags = (`${metadataLine} `).split(' ').filter((f) => f[0] === '#')
+      // Get the metadata - firstly try from the frontmatter
+      const possibleProjectTag = noteHasProjectFrontMatter(note)
+      if (typeof possibleProjectTag !== 'boolean' && possibleProjectTag !== '') {
+        this.usingFrontmatter = true
+        this.projectTag = possibleProjectTag
+
+        // get the frontmatter attributes
+        const frontmatterItems = getFrontMatterAttributes(note)
+        // clo(frontmatterItems, `- frontmatter items:`)
+        // read in start date (if present)
+        this.startDate = frontmatterItems[startMentionStr] ? getDateObjFromDateString(frontmatterItems[startMentionStr]) : undefined
+        // read in due date (if present)
+        this.dueDate = frontmatterItems[dueMentionStr] ? getDateObjFromDateString(frontmatterItems[dueMentionStr]) : undefined
+        // read in reviewed date (if present)
+        this.reviewedDate = frontmatterItems[reviewedMentionStr] ? getDateObjFromDateString(frontmatterItems[reviewedMentionStr]) : undefined
+        // read in completed date (if present)
+        this.completedDate = frontmatterItems[completedMentionStr] ? getDateObjFromDateString(frontmatterItems[completedMentionStr]) : undefined
+        // read in cancelled date (if present)
+        this.cancelledDate = frontmatterItems[cancelledMentionStr] ? getDateObjFromDateString(frontmatterItems[cancelledMentionStr]) : undefined
+        // read in review interval (if present)
+        // $FlowIgnore[incompatible-type]
+        this.reviewInterval = frontmatterItems[reviewIntervalMentionStr] ? frontmatterItems[reviewIntervalMentionStr] : '1w'
+        // read in nextReview date (if present)
+        if (frontmatterItems[nextReviewMentionStr]) {
+          this.nextReviewDateStr = frontmatterItems[nextReviewMentionStr] ? getDateObjFromDateString(frontmatterItems[nextReviewMentionStr]) : undefined
+          this.nextReviewDate = moment(this.nextReviewDateStr, "YYYY-MM-DD").toDate()
+        } else {
+          this.nextReviewDateStr = undefined
+        }
+        // make project paused if #paused
+        if (frontmatterItems['paused'] === 'true') {
+          this.isPaused = true
+          this.nextReviewDays = NaN
+        }
       }
 
-      // work out projectTag:
-      // - if projectTypeTag given, then use that
-      // - else first or second hashtag in note
-      try {
-        this.projectTag = (projectTypeTag)
-          ? projectTypeTag
-          : (hashtags[0] !== '#paused')
-            ? hashtags[0]
-            : (hashtags[1])
-              ? hashtags[1]
-              : ''
-      } catch (e) {
-        this.projectTag = ''
-        logWarn('Project', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
-      }
+      // Else get the metadata from the metadata line.
+      else {
+        const metadataLineIndex = getMetadataLine(note)
+        this.metadataParaLineIndex = metadataLineIndex
+        metadataLine = paras[metadataLineIndex].content
+        if (mentions.length === 0) {
+          logDebug('Project', `- Grr: .mentions empty: will use metadata line instead`)
+          // Note: If necessary, fall back to getting mentions just from the metadataline
+          mentions = (`${metadataLine} `).split(' ').filter((f) => f[0] === '@')
+        }
+        if (hashtags.length === 0) {
+          hashtags = (`${metadataLine} `).split(' ').filter((f) => f[0] === '#')
+        }
 
-      // read in various metadata fields (if present)
-      let tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('startMentionStr')))
-      this.startDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
-      // read in due date (if present)
-      tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('dueMentionStr')))
-      this.dueDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
-      // read in reviewed date (if present)
-      // Note: doesn't pick up reviewed() if not in metadata line
-      tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('reviewedMentionStr')))
-      this.reviewedDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
-      // read in completed date (if present)
-      tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('completedMentionStr')))
-      this.completedDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
-      // read in cancelled date (if present)
-      tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('cancelledMentionStr')))
-      this.cancelledDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
-      // read in review interval (if present)
-      const tempIntervalStr = getParamMentionFromList(mentions, checkString(DataStore.preference('reviewIntervalMentionStr')))
-      // $FlowIgnore[incompatible-type]
-      this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : '1w'
-      // read in nextReview date (if present)
-      tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
-      if (tempStr !== '') {
-        // v2:
-        this.nextReviewDateStr = tempStr.slice(12, 22)
-        this.nextReviewDate = moment(this.nextReviewDateStr, "YYYY-MM-DD").toDate()
+        // work out projectTag:
+        // - if projectTypeTag given, then use that
+        // - else first or second hashtag in note
+        try {
+          this.projectTag = (projectTypeTag)
+            ? projectTypeTag
+            : (hashtags[0] !== '#paused')
+              ? hashtags[0]
+              : (hashtags[1])
+                ? hashtags[1]
+                : ''
+        } catch (e) {
+          this.projectTag = ''
+          logWarn('Project', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
+        }
+
+        // read in various metadata fields (if present)
+        let tempStr = getParamMentionFromList(mentions, `@${startMentionStr}`)
+        this.startDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+        // read in due date (if present)
+        tempStr = getParamMentionFromList(mentions, `@${dueMentionStr}`)
+        this.dueDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+        // read in reviewed date (if present)
+        // Note: doesn't pick up reviewed() if not in metadata line
+        tempStr = getParamMentionFromList(mentions, `@${reviewedMentionStr}`)
+        this.reviewedDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+        // read in completed date (if present)
+        tempStr = getParamMentionFromList(mentions, `@${completedMentionStr}`)
+        this.completedDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+        // read in cancelled date (if present)
+        tempStr = getParamMentionFromList(mentions, `@${cancelledMentionStr}`)
+        this.cancelledDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+        // read in review interval (if present)
+        const tempIntervalStr = getParamMentionFromList(mentions, `@${reviewIntervalMentionStr}`)
+        // $FlowIgnore[incompatible-type]
+        this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : '1w'
+        // read in nextReview date (if present)
+        tempStr = getParamMentionFromList(mentions, `@${nextReviewMentionStr}`)
+        if (tempStr !== '') {
+          // v2:
+          this.nextReviewDateStr = tempStr.slice(12, 22)
+          this.nextReviewDate = moment(this.nextReviewDateStr, "YYYY-MM-DD").toDate()
         // v1:
         // this.nextReviewDate = getDateObjFromDateString(tempStr)
         // if (this.nextReviewDate) {
@@ -188,6 +261,13 @@ export class Project {
         // } else {
         //   logWarn('Project', `- couldn't get valid date from  '@nextReview(${tempStr})'`)
         // }
+        }
+
+        // make project paused if #paused
+        if (getStringFromList(hashtags, '#paused') !== '') {
+          this.isPaused = true
+          this.nextReviewDays = NaN
+        }
       }
 
       // count tasks (includes both tasks and checklists)
@@ -197,19 +277,14 @@ export class Project {
       this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length
       this.futureTasks = paras.filter(isOpen).filter((p) => includesScheduledFutureDate(p.content)).length
 
-      // make project completed if @completed(date) set
+      // make project completed if completedDate set
       if (this.completedDate != null) {
         this.isCompleted = true
         this.nextReviewDays = NaN
       }
-      // make project cancelled if @cancelled(date) set
+      // make project cancelled if cancelledDate set
       if (this.cancelledDate != null) {
         this.isCancelled = true
-        this.nextReviewDays = NaN
-      }
-      // make project paused if #paused
-      if (getStringFromList(hashtags, '#paused') !== '') {
-        this.isPaused = true
         this.nextReviewDays = NaN
       }
 
@@ -247,10 +322,18 @@ export class Project {
         }
       }
 
-      if (this.title.includes('(TEST)')) {
+      if (this.usingFrontmatter || this.title.includes('(TEST)')) {
         logDebug('Project', `Constructed ${this.projectTag} ${this.filename}:`)
         logDebug('Project', `  - folder = ${this.folder}`)
-        logDebug('Project', `  - metadataLine = ${metadataLine}`)
+        logDebug('Project', `  - metadataLine = ${metadataLine ?? ''}`)
+        logDebug('Project', `  - usingFrontmatter = ${String(this.usingFrontmatter)}`)
+        logDebug('Project', `  - startDate = ${String(this.startDate)}`)
+        logDebug('Project', `  - dueDate = ${String(this.dueDate)}`)
+        logDebug('Project', `  - reviewedDate = ${String(this.reviewedDate)}`)
+        logDebug('Project', `  - completedDate = ${String(this.completedDate)}`)
+        logDebug('Project', `  - cancelledDate = ${String(this.cancelledDate)}`)
+        logDebug('Project', `  - reviewInterval = ${this.reviewInterval}`)
+        logDebug('Project', `  - nextReviewDateStr = ${this.nextReviewDateStr ?? ''}`)
         if (this.isCompleted) logDebug('Project', `  - isCompleted ✔️`)
         if (this.isCancelled) logDebug('Project', `  - isCancelled ✔️`)
         if (this.isPaused) logDebug('Project', `  - isPaused ✔️`)
@@ -262,15 +345,16 @@ export class Project {
         if (this.mostRecentProgressLineIndex >= 0) logDebug('Project', `  - progress: #${String(this.mostRecentProgressLineIndex)} = ${this.lastProgressComment}`)
         logDebug('Project', `  - completed: ${String(this.completedTasks)}`)
         logDebug('Project', `  - % complete = ${String(this.percentComplete)}`)
-        logDebug('Project', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
+        if (this.nextActionsRawContent.length > 0) logDebug('Project', `  - nextAction = {${String(this.nextActionsRawContent)}}`)
       } else {
         logTimer('Project', startTime, `Constructed ${this.projectTag} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
       }
     }
     catch (error) {
-      logError('Project', error.message)
+      logError('Project', JSP(error))
     }
   }
+
   /**
    * Is this project ready for review?
    * Return true if review is due and not archived or completed
@@ -382,6 +466,7 @@ export class Project {
    * - new % complete
    * - new comment
    * And add to the metadata area of the note
+   * TODO: v2: add to frontmatter if present
    * @param {string} prompt message, to which is added the note title
    */
   async addProgressLine(prompt: string = 'Enter comment about current progress for'): Promise<void> {
@@ -492,7 +577,7 @@ export class Project {
       metadataPara.content = newMetadataLine
       if (Editor && Editor.note && Editor.note === this.note) {
         Editor.updateParagraph(metadataPara)
-        const res = DataStore.updateCache(this.note, true)
+        DataStore.updateCache(Editor, true)
       } else {
         this.note.updateParagraph(metadataPara)
         DataStore.updateCache(this.note, true)
@@ -535,7 +620,7 @@ export class Project {
       metadataPara.content = newMetadataLine
       if (Editor && Editor.note && Editor.note === this.note) {
         Editor.updateParagraph(metadataPara)
-        DataStore.updateCache(this.note, true)
+        DataStore.updateCache(Editor, true)
       } else {
         this.note.updateParagraph(metadataPara)
         DataStore.updateCache(this.note, true)
@@ -577,7 +662,7 @@ export class Project {
       metadataPara.content = newMetadataLine
       if (Editor && Editor.note && Editor.note === this.note) {
         Editor.updateParagraph(metadataPara)
-        DataStore.updateCache(Editor.note, true)
+        DataStore.updateCache(Editor, true)
       } else {
         this.note.updateParagraph(metadataPara)
         DataStore.updateCache(this.note, true)
@@ -601,6 +686,48 @@ export class Project {
       return ''
     }
   }
+
+  /**
+   * Note: Started writing and then realised I didn't need it.
+   * Update the metadata line of the note, either by updating the frontmatter or by re-writing the metadata line.
+   * @returns {boolean} true if successful, false otherwise
+   */
+  // updateMetadata(): boolean {
+  //   try {
+  //     // TODO: v2: add to frontmatter if present
+  //     if (this.usingFrontmatter) {
+  //       const fmAttributes = {}
+  //       if (this.startDate) fmAttributes[startMentionStr] = toISODateString(this.startDate)
+  //       if (this.dueDate) fmAttributes[dueMentionStr] = toISODateString(this.dueDate)
+  //       if (this.reviewInterval) fmAttributes[reviewIntervalMentionStr] = this.reviewInterval
+  //       if (this.reviewedDate) fmAttributes[reviewedMentionStr] = toISODateString(this.reviewedDate)
+  //       if (this.completedDate) fmAttributes[completedMentionStr] = toISODateString(this.completedDate)
+  //       if (this.cancelledDate) fmAttributes[cancelledMentionStr] = toISODateString(this.cancelledDate)
+  //       return updateFrontMatterVars(this.note, fmAttributes, false)
+  //     }
+  //     else {
+  //       // re-write the note's metadata line
+  //       logDebug('updateMetadata', `Re-writing metadata line for '${this.title}' ...`)
+  //       const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
+  //       const newMetadataLine = this.generateMetadataOutputLine()
+  //       metadataPara.content = newMetadataLine
+  //       logDebug('updateMetadata', `- metadata now '${newMetadataLine}'`)
+  //       // send update to Editor (if open) or note
+  //       if (Editor && Editor.note && Editor.note === this.note) {
+  //         Editor.updateParagraph(metadataPara)
+  //         DataStore.updateCache(Editor, true)
+  //       } else {
+  //         this.note.updateParagraph(metadataPara)
+  //         DataStore.updateCache(this.note, true)
+  //       }
+  //       return true
+  //     }
+  //   }
+  //   catch (error) {
+  //     logError('Project/updateMetadata', `Error for ${this.title}: ${error.message}`)
+  //     return false
+  //   }
+  // }
 
   /**
    * Generate a one-line tab-sep summary line ready for Markdown note
