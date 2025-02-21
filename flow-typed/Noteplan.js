@@ -1366,10 +1366,33 @@ type NoteType = 'Calendar' | 'Notes'
  * particular paragraphs (a paragraph is a task for example). See more
  * paragraph editing examples under Editor. NoteObject and Editor both
  * inherit the same paragraph functions.
- * Note: All of the items here are now in CoreNoteFields.
- * TODO(@nmn): Can this now safely be removed?
  */
-declare interface Note extends CoreNoteFields {}
+declare interface Note extends CoreNoteFields {
+  // These properties are only on Note, not on Editor.
+  /**
+   * Get all types assigned to this note in the frontmatter as an array of strings.
+   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
+   * Note: Available from v3.5.0
+   */
+  +frontmatterTypes: $ReadOnlyArray<string>;
+  /**
+   * Get all attributes in the frontmatter, as an object or {} if no frontmatter stripes or if there are stripes but no attributes.
+   * Note: Added by @jgclark by inspection of real data
+   * TODO(@EduardMe): add this to the documentation.
+   */
+  +frontmatterAttributes: Object; // dbw Does not exist on Editor. Returns {} if no frontmatter stripes or if there are stripes but no attributes.
+  /**
+   * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
+   * Note: Available from v3.2.0
+   */
+  +linkedItems: $ReadOnlyArray<TParagraph>;
+  /**
+   * Get paragraphs contained in this note which contain a link to a daily note.
+   * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
+   * Note: Available from v3.2.0
+   */
+  +datedTodos: $ReadOnlyArray<TParagraph>;
+}
 
 /**
  * Ranges are used when you deal with selections or need to know where a
@@ -1689,17 +1712,6 @@ declare interface CoreNoteFields {
    */
   paragraphs: Array<TParagraph>;
   /**
-   * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
-   * Note: Available from v3.2.0
-   */
-  +linkedItems: $ReadOnlyArray<TParagraph>;
-  /**
-   * Get paragraphs contained in this note which contain a link to a daily note.
-   * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
-   * Note: Available from v3.2.0
-   */
-  +datedTodos: $ReadOnlyArray<TParagraph>;
-  /**
    * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
    * NB: Backlinks are all [[note name]] and >date links.
    * TODO(@nmn): Please include `subItems` here
@@ -1707,36 +1719,24 @@ declare interface CoreNoteFields {
    */
   +backlinks: $ReadOnlyArray<TBacklinkNoteFields>;
   /**
-   * Get all types assigned to this note in the frontmatter as an array of strings.
-   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
-   * Note: Available from v3.5.0
+   * Returns the database record ID of the published note (on CloudKit). Returns null if the note is not published yet.
+   * Use this to verify if a note has been published and to build the public link: https://noteplan.co/n/{publicRecordID}
+   * Note: Available from v3.9.1
+   * @type {String?}
    */
-  +frontmatterTypes: $ReadOnlyArray<string>;
+  +publicRecordID: ?string;
   /**
-   * Get all attributes in the frontmatter, as an object.
-   * Note: Added by @jgclark by inspection of real data
-   * TODO(@EduardMe): add this to the documentation.
+   * Publishes the note using CloudKit (inserts a record on the public database). Build the web-link to the note by using the publicRecordID.
+   * Note: Available from v3.9.1
+   * @return {Promise}
    */
-  +frontmatterAttributes: Object | null; // dbw Note: NP API docs do not say this but I have seen it null in some cases
+  publish(): Promise<void>;
   /**
-  * Returns the database record ID of the published note (on CloudKit). Returns null if the note is not published yet.
-  * Use this to verify if a note has been published and to build the public link: https://noteplan.co/n/{publicRecordID}
-  * Note: Available from v3.9.1
-  * @type {String?}
-  */
-+publicRecordID: ?string;
-/**
-* Publishes the note using CloudKit (inserts a record on the public database). Build the web-link to the note by using the publicRecordID.
-* Note: Available from v3.9.1
-* @return {Promise}
-*/
-publish(): Promise < void>;
-/**
-* Unpublishes the note from CloudKit (deletes the database entry from the public database).
-* Note: Available from v3.9.1
-* @return {Promise}
-*/
-unpublish(): Promise < void>;
+   * Unpublishes the note from CloudKit (deletes the database entry from the public database).
+   * Note: Available from v3.9.1
+   * @return {Promise}
+   */
+  unpublish(): Promise<void>;
   /**
    * Returns the conflicted version if any, including 'url' which is the path to the file. Otherwise, returns undefined.
    * Note: Available from v3.9.3
@@ -1963,7 +1963,7 @@ unpublish(): Promise < void>;
    * Note: available from v3.4 on macOS
    * @param {boolean} withBacklinksAndEvents
    */
-printNote(withBacklinksAndEvents: boolean): void;
+  printNote(withBacklinksAndEvents: boolean): void;
 
   /**
    * Resolves a conflict, if any, using the current version (which is version 1 in the conflict bar inside the UI). Once resolved you need to reload the note.
