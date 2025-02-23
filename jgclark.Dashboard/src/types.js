@@ -50,6 +50,7 @@ export type TDashboardSettings = {
   // - update the getDashboardSettings() function in dashboardHelpers.js if it is type number
   autoUpdateAfterIdleTime: number,
   dashboardTheme: string,
+  dontSearchFutureItems: boolean,
   displayDoneCounts: boolean,
   enableInteractiveProcessing: boolean,
   enableInteractiveProcessingTransitions: boolean,
@@ -234,6 +235,7 @@ export type TActionType =
   | 'showLineInEditorFromTitle'
   // | 'setSpecificDate'
   | 'startReviews'
+  | 'startSearch'
   | '(not yet set)'
   // | 'turnOffPriorityItemsFilter'
   | 'toggleType'

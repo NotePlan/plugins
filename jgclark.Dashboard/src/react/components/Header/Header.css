@@ -63,16 +63,15 @@
 	}
 }
 
-.dropdownButtons {
+.headerActionButtons {
 	/* grid-area: dropdowns; */
-	/* display: flex; */
-	/* justify-self: end; */
+	display: flex;
 	/* gap between buttons */
 	gap: 0.9rem;
 	/* Align to the right edge */
-	/* justify-self: end;
+	justify-self: end;
 	justify-content: end;
-	margin-left: 0.4rem; */
+	/* margin-left: 0.4rem; */
 	float: inline-end; /* a rare use of float! */
 	margin-inline-end: 0.5rem;
 
@@ -89,7 +88,7 @@
 }
 
 /* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
-.iOS .dropdownButtons, .iPadOS .dropdownButtons {
+.iOS .headerActionButtons, .iPadOS .headerActionButtons {
 	gap: 1.1rem !important;
 	margin-inline-end: 1.6rem !important;
 }
@@ -135,33 +134,4 @@
 	.lastFullRefresh {
 		width: unset;
 	}
-}
-
-/* Search icon/container */
-.search-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.search-input {
-    width: 0;
-    padding: 0;
-    border: none;
-    border-bottom: 1px solid #ccc;
-    outline: none;
-    transition: width 0.3s ease, padding 0.3s ease;
-    opacity: 0;
-}
-
-.search-icon {
-    cursor: pointer;
-    font-size: 20px;
-    margin-left: 10px;
-}
-
-.search-container.active .search-input {
-    width: 150px;
-    padding: 5px;
-    opacity: 1;
 }

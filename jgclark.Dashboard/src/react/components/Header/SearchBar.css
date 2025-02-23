@@ -5,15 +5,14 @@
 }
 
 .search-input {
-    border: none;
-    border: 1px solid #ccc;
+    padding: 2px;
+    border: 1px solid rgb(from var(--fg-main-color) r g b/.3);
     border-radius: 5px;
-    outline: none;
+    margin-right: 0.3rem;
+    /* outline: none; */
     transition: width 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
 }
 
 .search-icon {
     cursor: pointer;
-    font-size: 20px;
-    margin-left: 10px;
 }

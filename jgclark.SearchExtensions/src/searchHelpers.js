@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 2025-01-17 for v1.4.0, @jgclark
+// Last updated 2025-02-22 for v1.5.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -99,6 +99,7 @@ export type SearchConfig = {
   highlightResults: boolean,
   dateStyle: string,
   resultLimit: number,
+  syncOpenResultItems: boolean,
 }
 
 /**
@@ -116,6 +117,10 @@ export async function getSearchSettings(): Promise<any> {
     if (v2Config == null || Object.keys(v2Config).length === 0) {
       throw new Error(`Cannot find settings for '${pluginID}' plugin`)
     }
+    // Set syncOpenResultItems which is a special case. There's no separate setting for it (in SE), as is it is implied by resultStyle === 'NotePlan'
+    // But it can be overridden by calls from other plugins.
+    v2Config.syncOpenResultItems = v2Config.resultStyle === 'NotePlan'
+
     return v2Config
   } catch (err) {
     logError(pluginJson, `getSearchSettings(): ${err.name}: ${err.message}`)
@@ -269,9 +274,12 @@ export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNe
 }
 
 /**
-* Optimise the order to tackle search terms. Assumes these have been normalised and validated already.
-* TODO: Can this be taken into runSearchesV2() and out of the calling functions?
-* TODO: tests
+* Optimise the order to tackle search terms:
+* - 'must' terms first
+* - 'may' terms next
+* - 'not-*' terms last
+* - then by longest word
+* Note: Assumes these have been normalised and validated already.
 * @author @jgclark
 * @param {Array<typedSearchTerm>} inputTerms
 * @returns {Array<typedSearchTerm>} output
@@ -290,11 +298,15 @@ export function optimiseOrderOfSearchTerms(inputTerms: Array<typedSearchTerm>): 
       }
     })
     // clo(expandedInputTerms, 'expandedInputTerms = ')
-    const sortKeys = ['typeOrder', 'longestWordLength']
+    const sortKeys = ['typeOrder', '-longestWordLength']
     logDebug('optimiseOrderOfSearchTerms', `- Will use sortKeys: [${String(sortKeys)}]`)
     const sortedTerms: Array<typedSearchTerm> = sortListBy(expandedInputTerms, sortKeys)
     // clo(sortedTerms, 'optimiseOrderOfSearchTerms -> ')
-    return sortedTerms
+    // Now reduce the extended typedSearchTerm object to the original typedSearchTerm object
+    const reducedTerms: Array<typedSearchTerm> = sortedTerms.map((t) => {
+      return { term: t.term, type: t.type, termRep: t.termRep }
+    })
+    return reducedTerms
   } catch (err) {
     return []
   }
@@ -402,7 +414,16 @@ export function getSearchTermsRep(typedSearchTerms: Array<typedSearchTerm>): str
  * Returns the subset of results, and can optionally limit the number of results returned to the first 'resultLimit' items.
  * If fromDateStr and toDateStr are given, then it will filter out results from Project Notes or the Calendar notes from outside that date range (measured at the first date of the Calendar note's period).
  * Note: assumes the order of searchTerms has been optimised already.
- * TODO: better document the logic with negative-only searches starting with an empty 'must' term.
+ * It works by building up a consolidated set of results:
+ * - starting with the first 'must' term
+ * - then for each 'must' term, intersect the results with the consolidated set
+ * - then for each 'may' term, add its results to the consolidated set, but only if they are not already in the set.
+ * - then for each 'not' term, remove its results from the consolidated set.
+ * - then apply date filtering
+ * - then apply result limit
+ * 
+ * TODO: ? better document the logic with negative-only searches starting with an empty 'must' term.
+ * TODO: Q: Why does data filtering happen here and not in runSearchV2?
  * 
  * Called by runSearchesV2
  * @param {Array<resultObjectTypeV3>}
@@ -500,7 +521,7 @@ export function applySearchOperators(
   }
 
   // ------------------------------------------------------------
-  // Check if we can add the 'may' search results to consolidated set
+  // Add any 'may' search results to consolidated set
   let addedAny = false
   for (const r of mayResultObjects) {
     // const tempArr: Array<noteAndLine> = consolidatedNALs
@@ -682,11 +703,14 @@ export async function runSearchesV2(
     let resultCount = 0
     let outerStartTime = new Date()
     logDebug('runSearchesV2', `Starting with ${termsToMatchArr.length} search term(s) and paraTypes '${String(paraTypesToInclude)}'. ${config.caseSensitiveSearching ? 'caseSensitive ON. ' : ''}${config.fullWordSearching ? 'fullWord ON. ' : ''}(With ${(fromDateStr && toDateStr) ? fromDateStr + '-' + toDateStr : 'no'} dates.)`)
+    logDebug('runSearchesV2', `- config.syncOpenResultItems: ${String(config.syncOpenResultItems)}`)
+    // Now optimise the order we tackle the search terms
+    const orderedSearchTerms = optimiseOrderOfSearchTerms(termsToMatchArr)
 
     //------------------------------------------------------------------
     // Get results for each search term independently and save
     // let lastTermType = ''
-    for (const typedSearchTerm of termsToMatchArr) {
+    for (const typedSearchTerm of orderedSearchTerms) {
       const thisTermType = typedSearchTerm.type
       logDebug('runSearchesV2', `  - searching for term [${typedSearchTerm.termRep}] type '${thisTermType}'`)
       const innerStartTime = new Date()
@@ -707,7 +731,7 @@ export async function runSearchesV2(
       }
     }
 
-    logTimer('runSearchesV2', outerStartTime, `- ${termsToMatchArr.length} searches completed -> ${resultCount} results`)
+    logTimer('runSearchesV2', outerStartTime, `- ${orderedSearchTerms.length} searches completed -> ${resultCount} results`)
 
     //------------------------------------------------------------------
     // Work out what subset of results to return, taking into the must/may/not terms, and potentially dates too
@@ -715,9 +739,9 @@ export async function runSearchesV2(
     const consolidatedResultSet: resultOutputTypeV3 = applySearchOperators(termsResults, config.resultLimit, fromDateStr, toDateStr)
     logTimer('runSearchesV2', outerStartTime, `- Applied search logic`)
 
-    // For open tasks, add line sync with blockIDs (if we're using 'NotePlan' display style)
+    // For open tasks, add line sync with blockIDs (if wanted, and using NotePlan display style)
     // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
-    if (config.resultStyle === 'NotePlan') {
+    if (config.resultStyle === 'NotePlan' && config.syncOpenResultItems) {
       const syncdConsolidatedResultSet = await makeAnySyncs(consolidatedResultSet)
       // clo(syncdConsolidatedResultSet, 'after makeAnySyncs, syncdConsolidatedResultSet =')
       return syncdConsolidatedResultSet
@@ -730,7 +754,6 @@ export async function runSearchesV2(
     return { searchTermsRepArr: [], resultNoteAndLineArr: [], resultCount: 0, resultNoteCount: 0, fullResultCount: 0 } // for completeness
   }
 }
-
 
 /**
  * Run a search for 'searchTerm' over the set of notes determined by the parameters.
@@ -929,6 +952,12 @@ export async function runSearchV2(
   }
 }
 
+/**
+ * Create a string to display the number of results and notes: "[first N] from M results from P notes"
+ * @author @jgclark
+ * @param {resultOutputTypeV3} resultSet
+ * @returns {string}
+ */
 export function resultCounts(resultSet: resultOutputTypeV3): string {
   return (resultSet.resultCount < resultSet.fullResultCount)
     ? `(first ${resultSet.resultCount} from ${resultSet.fullResultCount} results from ${resultSet.resultNoteCount} notes)`

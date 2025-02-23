@@ -13,6 +13,7 @@ import {
   normaliseSearchTerms,
   noteAndLineIntersection,
   numberOfUniqueFilenames,
+  optimiseOrderOfSearchTerms,
   reduceNoteAndLineArray,
   validateAndTypeSearchTerms,
 } from '../src/searchHelpers'
@@ -244,6 +245,51 @@ describe('searchHelpers.js tests', () => {
     })
   })
 
+  describe('optimiseOrderOfSearchTerms()', () => {
+    test('should return same as input, from empty input', () => {
+      const result = optimiseOrderOfSearchTerms([])
+      expect(result).toEqual([])
+    })
+    test('should return same as input, when already ordered longest first', () => {
+      const inputTerms: Array<typedSearchTerm> = [
+        { term: 'longest_term', type: 'must', termRep: 'longest_term' },
+        { term: 'shorter', type: 'must', termRep: 'shorter' },
+        { term: 'short', type: 'must', termRep: 'short' },
+      ]
+      const result = optimiseOrderOfSearchTerms(inputTerms)
+      expect(result).toEqual(inputTerms)
+    })
+    test('should return longest first, changing order of input', () => {
+      const inputTerms: Array<typedSearchTerm> = [
+        { term: 'short', type: 'must', termRep: 'short' },
+        { term: 'shorter', type: 'must', termRep: 'shorter' },
+        { term: 'longest_term', type: 'must', termRep: 'longest_term' },
+      ]
+      const expectedOutput: Array<typedSearchTerm> = [
+        { term: 'longest_term', type: 'must', termRep: 'longest_term' },
+        { term: 'shorter', type: 'must', termRep: 'shorter' },
+        { term: 'short', type: 'must', termRep: 'short' },
+      ]
+      const result = optimiseOrderOfSearchTerms(inputTerms)
+      expect(result).toEqual(expectedOutput)
+    })
+    test('should return MUST before MAY before NOT then by longest word', () => {
+      const inputTerms: Array<typedSearchTerm> = [
+        { term: 'not_term', type: 'not-line', termRep: 'not_term' },
+        { term: 'short', type: 'must', termRep: 'short' },
+        { term: 'shorter', type: 'must', termRep: 'shorter' },
+        { term: 'longest_term', type: 'may', termRep: 'longest_term' },
+      ]
+      const expectedOutput: Array<typedSearchTerm> = [
+        { term: 'shorter', type: 'must', termRep: 'shorter' },
+        { term: 'short', type: 'must', termRep: 'short' },
+        { term: 'longest_term', type: 'may', termRep: 'longest_term' },
+        { term: 'not_term', type: 'not-line', termRep: 'not_term' },
+      ]
+      const result = optimiseOrderOfSearchTerms(inputTerms)
+      expect(result).toEqual(expectedOutput)
+    })
+  })
   // ----------------
 
   describe('applySearchOperators(termsResults: Array<resultObjectTypeV2>, operateOnWholeNote: boolean): resultObjectType', () => {

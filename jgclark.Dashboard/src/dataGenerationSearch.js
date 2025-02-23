@@ -18,6 +18,7 @@ import {
   mergeSections,
   setPluginData
 } from './dashboardHelpers'
+import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import { JSP, clo, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getNoteByFilename } from '@helpers/note'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -85,19 +86,21 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
     // clo(searchOptions, 'getSearchResults: searchOptions:')
     const startTime = new Date() // for timing only
 
-    // If no search terms are provided, use the default. TODO(later): remove this default.
-    const searchTermsStr = searchTermsArg || 'write upgrade'
+    // Sort out searchOptions
+    const searchTermsStr = searchTermsArg
     // extend given search terms with the current term(s) to filter out as extra -term(s)
     const currentIgnoreTermsArr = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
     const extendedSearchTerms = `${searchTermsStr} -${currentIgnoreTermsArr.join(' -')}`
-    // const searchOptions: SearchOptions = {
-    //   caseSensitiveSearching: false,
-    //   fullWordSearching: true,
-    //   paraTypesToInclude: config.ignoreChecklistItems ? ['open', 'scheduled'] : ['open', 'scheduled', 'checklist', 'checklistScheduled'],
-    //   noteTypesToInclude: ['calendar', 'project'],
-    //   foldersToInclude: config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',') : [],
-    //   foldersToExclude: config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : [],
-    // }
+
+    // If dontSearchFutureItems is true, then we need to add an end date filter (of today) to the search terms (which covers which calendar notes are included)
+    logDebug('getSearchResults', `- config.dontSearchFutureItems: ${String(config.dontSearchFutureItems)}`)
+    if (config.dontSearchFutureItems) {
+      searchOptions.toDateStr = getTodaysDateHyphenated()
+      logDebug('getSearchResults', `- searchOptions.toDateStr: ${String(searchOptions.toDateStr)}`)
+    }
+    // TODO: filter out future items from the search results, to catch items from regular notes as well as calendar notes
+    // TODO: ...
+
     // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
     const searchResultSet: resultOutputTypeV3 = await extendedSearch(extendedSearchTerms, searchOptions)
     const getSearchTermsRep = searchResultSet.searchTermsRepArr.join(' ')
@@ -111,6 +114,7 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
       const thisID = `${sectionNumStr}-${itemCount}`
       // resultNALs is an array of noteAndLine objects, not paragraphs. We need to go and find the paragraph from the noteAndLine object
       const thisParagraph = getParagraphFromSearchResult(rnal)
+
       // TODO: Now test to see if this paragraph is in a disallowed section header
       if (true) {
         const thisDashboardPara = makeDashboardParas([thisParagraph])[0]
@@ -126,13 +130,21 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
 
     logTimer('getSearchResults', startTime, `- finished search for [${getSearchTermsRep}]`)
 
+    let sectionDescription = `{count} results for [${searchTermsStr}]`
+    if (searchOptions.fromDateStr) {
+      sectionDescription += ` from ${searchOptions.fromDateStr}`
+    }
+    if (searchOptions.toDateStr) {
+      sectionDescription += ` to ${searchOptions.toDateStr}`
+    }
+
     const section: TSection = {
       ID: sectionNumStr,
       name: 'Search',
       showSettingName: 'showSearchSection', // TODO(later): This will probably change to showQuickSearchSection if we have multiple saved search sections.
       sectionCode: thisSectionCode,
-      description: `{count} results from [${searchTermsStr}]`,
-      FAIconClass: 'fa-light fa-search',
+      description: sectionDescription,
+      FAIconClass: 'fa-regular fa-search',
       sectionTitleColorPart: 'sidebarSearch',
       sectionItems: items,
       generatedDate: new Date(),
@@ -141,8 +153,8 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
           actionName: 'closeSection',
           actionPluginID: `${pluginJson['plugin.id']}`,
           tooltip: "Close this Search section",
-          display: '<i class= "fa-solid fa-xmark sidebarMonthly" ></i> ',
-          actionParam: 'SEARCH', // TODO: Will need to be smarter if we have multiple Search sections
+          display: '<i class= "fa-solid fa-circle-xmark"></i> ',
+          actionParam: 'QSEARCH', // TODO: Will need to be smarter if we have multiple Search sections
           postActionRefresh: [],
           // formFields: thisMonthFormFields,
           // submitOnEnter: true,
@@ -154,7 +166,7 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
     sections.push(section)
 
     logTimer('getSearchResults', startTime, `- found ${itemCount} items from [${getSearchTermsRep}]`)
-    clo(sections, 'sections')
+    // clo(sections, 'sections')
     return sections
   } catch (error) {
     logError('getSearchResults', `ERROR: ${error.message}`)

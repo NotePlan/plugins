@@ -545,7 +545,8 @@ html {
 	--fg-sidebarSearch: #9da5a8;
 }
 /* But still need these as named styles */
-.sidebarDaily {color: var(--fg-sidebarDaily);}
+.sidebarDaily {color: var(--fg-sidebarDaily);
+	background-color: var(--bg-sidebar-color);} /* FIXME: need to find out why this is needed */
 .sidebarWeekly {color: var(--fg-sidebarWeekly);}
 .sidebarMonthly {color: var(--fg-sidebarMonthly);}
 .sidebarQuarterly {color: var(--fg-sidebarQuarterly);}

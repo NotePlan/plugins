@@ -5,7 +5,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2025-02-21 for v1.4.0+, @jgclark
+// Last updated 2025-02-22 for v1.5.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,7 +14,6 @@ import {
   getSearchSettings,
   getSearchTermsRep,
   OPEN_PARA_TYPES,
-  optimiseOrderOfSearchTerms,
   resultCounts,
   type resultOutputTypeV3,
   runSearchesV2,
@@ -171,17 +170,16 @@ export async function saveSearch(
       await showMessage(`These search terms aren't valid. Please see Plugin Console for details.`)
       return
     }
-    // Now optimise the order we tackle the search terms
-    const orderedSearchTerms = optimiseOrderOfSearchTerms(validatedSearchTerms)
-
     // If we have a blank search term, then double-check user wants to do this
-    if (orderedSearchTerms.length === 1 && orderedSearchTerms[0].term === '') {
+    if (validatedSearchTerms.length === 1 && validatedSearchTerms[0].term === '') {
       const res = await showMessageYesNo('No search terms specified. Are you sure you want to run a potentially very long search?')
       if (res === 'No') {
         logDebug('saveSearch', 'User has cancelled search')
         return
       }
     }
+
+    // Now optimise the order we tackle the search terms. Note: now moved into runSearchesV2()
 
     // Get the paraTypes to include
     // $FlowFixMe[incompatible-type]
@@ -202,12 +200,12 @@ export async function saveSearch(
     }
 
     //---------------------------------------------------------
-    // Search using search() API available from v3.6.0
+    // Search using search() API
     CommandBar.showLoading(true, `${commandNameToDisplay} ...`)
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(orderedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude)
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude)
 
     await CommandBar.onMainThread()
 
@@ -350,6 +348,7 @@ export type SearchOptions = {
   caseSensitiveSearching?: boolean,
   fullWordSearching?: boolean,
   paraTypesToInclude?: Array<ParagraphType>,
+  syncOpenResultItems?: boolean,
   fromDateStr?: string,
   toDateStr?: string,
 }
@@ -378,22 +377,26 @@ export async function extendedSearch(
     if (searchOptions.fullWordSearching != null) {
       config.fullWordSearching = searchOptions.fullWordSearching
     }
+    // Set syncOpenResultItems to false, as we don't want to sync open result items when just passing results back to the calling function
+    config.syncOpenResultItems = false
+    logDebug('extendedSearch', `- config.syncOpenResultItems: ${String(config.syncOpenResultItems)}`)
 
     // Validate the search terms: an empty return means failure. There is error logging in the function.
     const validatedSearchTerms = await validateAndTypeSearchTerms(searchTerms, false)
     if (validatedSearchTerms == null || validatedSearchTerms.length === 0) {
       throw new Error(`These search terms aren't valid. Please see Plugin Console for details.`)
     }
-    // Now optimise the order we tackle the search terms
-    const orderedSearchTerms = optimiseOrderOfSearchTerms(validatedSearchTerms)
+    // Now optimise the order we tackle the search terms. Note: now moved into runSearchesV2()
+    // const orderedSearchTerms = optimiseOrderOfSearchTerms(validatedSearchTerms)
 
     //---------------------------------------------------------
     // Call main extended search function
     // CommandBar.showLoading(true, `Searching ...`)
     await CommandBar.onAsyncThread()
 
+    // TODO: should this switch to using an object?
     // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const results: resultOutputTypeV3 = await runSearchesV2(orderedSearchTerms, searchOptions.noteTypesToInclude || ['notes', 'calendar'], searchOptions.foldersToInclude || [], searchOptions.foldersToExclude || [], config, searchOptions.paraTypesToInclude || [], searchOptions.fromDateStr || '', searchOptions.toDateStr || '')
+    const results: resultOutputTypeV3 = await runSearchesV2(validatedSearchTerms, searchOptions.noteTypesToInclude || ['notes', 'calendar'], searchOptions.foldersToInclude || [], searchOptions.foldersToExclude || [], config, searchOptions.paraTypesToInclude || [], searchOptions.fromDateStr || '', searchOptions.toDateStr || '')
 
     await CommandBar.onMainThread()
 

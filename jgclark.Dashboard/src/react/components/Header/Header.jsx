@@ -167,8 +167,13 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
    * @param {string} query - The search query.
    */
   const handleSearch = (query: string): void => {
-    console.log('Search query:', query)
-    // Add your search logic here
+    console.log('Header: handleSearch', `Search query:${query}`) // not OK here
+    // Send request to plugin to start a search
+    const data = {
+      stringToEvaluate: query,
+      from: 'searchBar',
+    }
+    sendActionToPlugin('startSearch', data, 'Search button clicked', false)
   }
 
   // ----------------------------------------------------------------------
@@ -234,22 +239,22 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       {!(isMobile || isNarrowWidth) && (
         <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
       )}
+      <div className="headerActionButtons">
+        <SearchBar onSearch={handleSearch} />
 
-      <SearchBar onSearch={handleSearch} />
-
-      {/* Feature Flags dropdown */}
-      {isDevMode && (
-        <DropdownMenu
-          onSaveChanges={handleChangesInSettings}
-          otherItems={featureFlagItems}
-          handleSwitchChange={handleLocalSwitchChange}
-          className={'feature-flags'}
-          iconClass="fa-solid fa-flag"
-          isOpen={openDropdownMenu === 'featureFlags'}
-          toggleMenu={() => handleToggleDropdownMenu('featureFlags')}
-          labelPosition="left"
-        />
-      )}
+        {/* Feature Flags dropdown */}
+        {isDevMode && (
+          <DropdownMenu
+            onSaveChanges={handleChangesInSettings}
+            otherItems={featureFlagItems}
+            handleSwitchChange={handleLocalSwitchChange}
+            className={'feature-flags'}
+            iconClass="fa-solid fa-flag"
+            isOpen={openDropdownMenu === 'featureFlags'}
+            toggleMenu={() => handleToggleDropdownMenu('featureFlags')}
+            labelPosition="left"
+          />
+        )}
         {/* Render the SettingsDialog only when it is open */}
         {isDialogOpen && (
           <SettingsDialog
@@ -277,7 +282,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         <div className="dropdown">
           <i className="fa-solid fa-gear" onClick={handleToggleDialog}></i>
         </div>
-
+      </div>
     </header>
   )
 }

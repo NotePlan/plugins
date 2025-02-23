@@ -278,6 +278,21 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    label: 'Search section',
+  },
+  {
+    key: 'dontSearchFutureItems',
+    label: "Don't return future items?",
+    description: "When searching don't return items dated in the future, or from future calendar notes?",
+    type: 'switch',
+    default: true,
+    compactDisplay: true,
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
     label: 'Overdue Tasks section',
   },
   {

@@ -57,6 +57,7 @@ import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './move
 import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas, setPluginData } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
+import { externallyStartSearch } from './dataGenerationSearch'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
@@ -343,6 +344,18 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'commsBridgeTest': {
         result = await doCommsBridgeTest(data)
+        break
+      }
+      case 'startSearch': {
+        console.log(`pluginToHTMLBridge: startSearch: data:${JSP(data)}`)
+        // $FlowFixMe[incompatible-call] 
+        TODO: await externallyStartSearch(data.stringToEvaluate)
+        result = {
+          success: true,
+          sectionCodes: ['SEARCH'],
+          actionsOnSuccess: [],
+          errorMsg: '',
+        }
         break
       }
       case 'closeSection': {

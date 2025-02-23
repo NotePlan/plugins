@@ -15,6 +15,7 @@ const SearchBar = ({ onSearch }) => {
 
   const handleKeyPress = (event) => {
     if (event.key === 'Enter' && onSearch) {
+      console.log(`SearchBar: handleKeyPress: Enter key pressed, with query term currently '${query}'`) // OK here
       onSearch(query)
       setIsActive(false)
     }
@@ -42,7 +43,7 @@ const SearchBar = ({ onSearch }) => {
         value={query}
         onChange={handleInputChange}
         onKeyPress={handleKeyPress}
-        style={{ width: isActive ? '150px' : '0', padding: isActive ? '5px' : '0', opacity: isActive ? '1' : '0' }}
+        style={{ width: isActive ? '7rem' : '0', opacity: isActive ? '1' : '0' }}
       />
       <div className="search-icon" onClick={handleIconClick}>
         <i className="fa-regular fa-search"></i>

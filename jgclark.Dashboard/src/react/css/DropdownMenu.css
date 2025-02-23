@@ -78,11 +78,12 @@
   margin-right: 1rem; */
 }
 
-.dropdown {
+/* TEST: disable now we have headerActionButtons container */
+/* .dropdown {
   position: relative;
   display: inline-block;
   color: var(--tint-color);
-}
+} */
 
 /* Style for switch-line */
 .dropdown .switch-line {
