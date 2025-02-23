@@ -597,14 +597,14 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
 
       if (indexes.length) {
         const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
-        clo(indexes, 'updateReactWindowFLC: indexes to update') // TEST: then TODO: turn off
-        clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`) // TEST: then TODO: turn off
+        // clo(indexes, 'updateReactWindowFLC: indexes to update')
+        // clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
         if (shouldRemove) {
           logDebug('updateReactWindowFLC', `-> removed item ${ID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
           indexes.reverse().forEach((index) => {
             const { sectionIndex, itemIndex } = index
             sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-            clo(sections[sectionIndex], `updateReactWindowFLC After splicing sections[${sectionIndex}]`) // TEST: then TODO: turn off
+            // clo(sections[sectionIndex], `updateReactWindowFLC After splicing sections[${sectionIndex}]`)
           })
         } else {
           sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)
