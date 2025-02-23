@@ -10,6 +10,7 @@
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useCallback } from 'react'
 import type { TSection, TSectionItem, TActionButton } from '../../../types.js'
+import { treatSingleItemTypesAsZeroItems } from '../../../constants.js'
 import CommandButton from '../CommandButton.jsx'
 import ItemGrid from '../ItemGrid.jsx'
 import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
@@ -17,6 +18,7 @@ import { useAppContext } from '../AppContext.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
 import { logDebug, logError, logInfo, JSP, clo } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+import './Section.css'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -61,6 +63,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     }
 
     let sectionItems = section.sectionItems
+    // If the section is present, but has no items, add a suitable message/itemType
+    // TODO: should this be done in the dataGeneration* functions?  Check on later processing of zero-length sections here and in useSectionSortAndFilter()
     if (!sectionItems || sectionItems.length === 0) {
       switch (section.sectionCode) {
         case 'DT':
@@ -70,7 +74,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           logDebug('Section', `Section ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
-              ID: '0-Congrats',
+              ID: '0-Empty',
               itemType: 'itemCongrats',
             },
           ]
@@ -79,8 +83,18 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           logDebug('Section', `Section 14 (PROJ) doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
-              ID: '14-Congrats',
+              ID: '14-Empty',
               itemType: 'projectCongrats',
+            },
+          ]
+          break
+        case 'SEARCH':
+        case 'SAVEDSEARCH':
+          logDebug('Section', `Section ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
+          sectionItems = [
+            {
+              ID: `${section.sectionCode}-Empty`,
+              itemType: 'noSearchResults',
             },
           ]
           break
@@ -98,11 +112,11 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   }, [section.sectionCode, sendActionToPlugin])
 
   /**
-   * Set a timer to refresh the TB section every 1 minute.
+   * Set a timer to refresh the TB section every ~1 minute.
    * FIXME(dwertheimer): this is what Cursor added on my second attempt -- just trying to keep it all in this file. But doesn't work.
    */
   useEffect(() => {
-    const refreshInterval = 50000 // A little less than 1 minute -- don't want it to collide with the IdleTimer if possible
+    const refreshInterval = 54000 // A little less than 1 minute -- don't want it to collide with the IdleTimer if possible
     let timerId
 
     if (section.sectionCode === 'TB') {
@@ -170,7 +184,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add') && !b.actionName.startsWith('close'))
 
   // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
-  if (numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {
+  if (numItemsToShow === 1 && treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)) {
     processActionButtons = []
   }
 
@@ -178,7 +192,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') {
     numItemsToShow--
   }
-  if (numItemsToShow === 1 && (itemsToShow[0].itemType === 'itemCongrats' || itemsToShow[0].itemType === 'projectCongrats')) numItemsToShow = 0
+  if (numItemsToShow === 1 && treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)) numItemsToShow = 0
 
   // Replace {count} and {totalCount} placeholders
   let descriptionToUse = section.description
@@ -220,7 +234,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   const showIPButton =
     dashboardSettings.enableInteractiveProcessing &&
     numItemsToShow > 1 &&
-    !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) &&
+    !treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType) &&
     section.sectionCode !== 'TB' &&
     section.sectionCode !== 'PROJ'
 

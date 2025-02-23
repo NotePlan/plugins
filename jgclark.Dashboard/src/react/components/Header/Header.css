@@ -68,6 +68,8 @@
 	display: flex;
 	/* gap between buttons */
 	gap: 0.9rem;
+	/* align vertically to center */
+	align-items: center;
 	/* Align to the right edge */
 	justify-self: end;
 	justify-content: end;

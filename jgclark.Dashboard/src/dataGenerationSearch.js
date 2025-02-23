@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-02-21 for v2.2.0, @jgclark
+// Last updated 2025-02-23 for v2.2.0.a3, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -18,10 +18,11 @@ import {
   mergeSections,
   setPluginData
 } from './dashboardHelpers'
+import { getActivePerspectiveName, getPerspectiveSettings } from './perspectiveHelpers'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import { JSP, clo, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getNoteByFilename } from '@helpers/note'
-import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getGlobalSharedData } from '@helpers/HTMLView'
 
 //-----------------------------------------------------------------
@@ -77,7 +78,7 @@ export async function externallyStartSearch(
 export async function getSearchResults(searchTermsArg: string, searchOptions: SearchOptions, config: TDashboardSettings, savedSearchName: string = ''): Promise<Array<TSection>> {
   try {
     const sectionNumStr = '21' // TODO(later): This will need updating if we have saved search sections
-    const thisSectionCode = 'QSEARCH' // TODO(later): This will need updating if we have saved search sections
+    const thisSectionCode = 'SEARCH' // TODO(later): Will also have 'SAVEDSEARCH' if we have saved search sections
     const sections: Array<TSection> = []
     // const config: TDashboardSettings = await getDashboardSettings()
     // const NPSettings = getNotePlanSettings()
@@ -125,10 +126,24 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
         itemCount++
       }
     })
-    // items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
     itemCount += items.length
 
     logTimer('getSearchResults', startTime, `- finished search for [${getSearchTermsRep}]`)
+
+    // If there are no items, then we need to show a message instead of an empty section
+    if (items.length === 0) {
+      let message = `No results found for search [${searchTermsStr}]`
+      if (config.perspectivesEnabled) {
+        const perspectiveSettings = await getPerspectiveSettings()
+        const perspectiveName = getActivePerspectiveName(perspectiveSettings)
+        message += ` using '${perspectiveName}' Perspective filtering`
+      }
+      items.push({
+        ID: `${sectionNumStr}-Empty`,
+        itemType: 'noSearchResults',
+        message: message,
+      })
+    }
 
     let sectionDescription = `{count} results for [${searchTermsStr}]`
     if (searchOptions.fromDateStr) {
@@ -148,13 +163,14 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
       sectionTitleColorPart: 'sidebarSearch',
       sectionItems: items,
       generatedDate: new Date(),
+      showColoredBackground: true,
       actionButtons: isQuickSearch ? [
         {
           actionName: 'closeSection',
           actionPluginID: `${pluginJson['plugin.id']}`,
           tooltip: "Close this Search section",
           display: '<i class= "fa-solid fa-circle-xmark"></i> ',
-          actionParam: 'QSEARCH', // TODO: Will need to be smarter if we have multiple Search sections
+          actionParam: 'SEARCH', // TODO: Will need to be smarter if we have multiple 'SAVEDSEARCH' sections
           postActionRefresh: [],
           // formFields: thisMonthFormFields,
           // submitOnEnter: true,

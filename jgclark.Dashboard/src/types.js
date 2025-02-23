@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-02-21 for v2.2.0, @jgclark
+// Last updated 2025-02-23 for v2.2.0.a3, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -115,7 +115,7 @@ export type TPerspectiveSettings = Array<TPerspectiveDef>
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' | 'QSEARCH' | 'SEARCH' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 
@@ -135,9 +135,10 @@ export type TSection = {
   generatedDate?: Date, // note different from lastFullRefresh on whole project
   totalCount?: number, // for when not all possible items are passed in pluginData
   doneCounts?: TDoneCount, // number of tasks and checklists completed today etc.
+  showColoredBackground?: boolean, // whether to show a colored background for the section
 }
 
-export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'timeblock'
+export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'timeblock' | 'noSearchResults'
 
 // an item within a section, with optional TParagraphForDashboard
 export type TSectionItem = {
@@ -149,6 +150,7 @@ export type TSectionItem = {
   updated?: boolean, // used to keep deletes from confusing the dialog which is waiting for updates to the same line
   // updated will be set by the copyUpdatedSectionItemData function when content is modified
   parentID?: string, // if this is a sub-task, this holds the ID of the parent task if that is also an open item (required for displaying children properly with their parents in useSelectionSortAndFilter)
+  message?: string, // for items that don't have a para or project
 }
 
 // reduced paragraph definition

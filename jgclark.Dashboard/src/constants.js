@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 2025-02-22 for v2.2.0, @jgclark
+// Last updated 2025-02-23 for v2.2.0, @jgclark
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -27,13 +27,14 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
   { sectionCode: 'TB', sectionName: 'Current time block', showSettingName: 'showTimeBlockSection' },
   { sectionCode: 'SEARCH', sectionName: 'Search', showSettingName: 'showSearchSection' },
+  { sectionCode: 'SAVEDSEARCH', sectionName: 'Saved Search', showSettingName: 'showSavedSearchSection' },
 ]
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map((s) => s.sectionCode)
 
 export const allCalendarSectionCodes = ['TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q']
 
-export const sectionDisplayOrder = ['QSEARCH', 'SEARCH', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
+export const sectionDisplayOrder = ['SEARCH', 'SAVEDSEARCH', 'SAVEDSEARCH', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
 
 // change this order to change which duplicate gets kept - the first on the list. Should not include 'dontDedupeSectionCodes' below.
 export const sectionPriority = ['TB', 'TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'PRIORITY', 'OVERDUE']
@@ -41,4 +42,7 @@ export const sectionPriority = ['TB', 'TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'P
 // Those sections we can't or shouldn't attempt to dedupe:
 // - TB as its for info only
 // - PROJ as it isn't about paragraphs, but notes
-export const dontDedupeSectionCodes = ['PROJ', 'QSEARCH', 'SEARCH']
+export const dontDedupeSectionCodes = ['PROJ', 'SEARCH', 'SAVEDSEARCH']
+
+// Treat these itemTypes as if they are zero items, so we don't show the Interactive or other Processing buttons, and correct the count in the description
+export const treatSingleItemTypesAsZeroItems = ['itemCongrats', 'projectCongrats', 'noSearchResults']

@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
-// Last updated 2024-12-27 by @jgclark
+// Last updated 2025-02-23 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -263,6 +263,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.checked
     if (styleObj) {
+      rootSel.push(`--fg-done-color:${RGBColourConvert(styleObj.color ?? '#098308A0')}`)
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#098308A0')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       tempSel.push('line-height: var(--body-line-height)')
@@ -274,6 +275,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['checked-canceled']
     if (styleObj) {
+      rootSel.push(`--fg-canceled-color:${RGBColourConvert(styleObj.color ?? '#E04F57A0')}`)
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#E04F57A0')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       tempSel.push('line-height: var(--body-line-height)')
@@ -285,6 +287,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['checked-scheduled']
     if (styleObj) {
+      rootSel.push(`--fg-scheduled-color:${RGBColourConvert(styleObj.color ?? '#7B7C86A0')}`)
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#7B7C86A0')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       tempSel.push('line-height: var(--body-line-height)')

@@ -24,7 +24,7 @@ import {
 } from './dashboardHelpers'
 import { getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
 import { getProjectSectionData } from './dataGenerationProjects'
-import { getSearchResults } from './dataGenerationSearch'
+// import { externallyStartSearch, getSearchResults } from './dataGenerationSearch'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
 import { openMonthParas, refMonthParas, tagParasFromNote } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'

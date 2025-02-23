@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Icon before an item
 // Called by TaskItem component.
-// Last updated for v2.2.0.a1
+// Last updated for v2.2.0
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
@@ -49,6 +49,8 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr
       case 'itemCongrats':
       case 'projectCongrats':
         return 'fa-regular fa-circle-check'
+      // case 'noSearchResults':
+      //   return 'fa-regular fa-search'
       case 'deleted':
         return 'fa-regular fa-trash-xmark'
       case 'timeblock': // for non-task/checklist timeblock lines
