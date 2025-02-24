@@ -1,13 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-02-23 for v2.2.0.a3, @jgclark
+// Last updated 2025-02-24 for v2.2.0.a4, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { extendedSearch, type SearchOptions } from '../../jgclark.SearchExtensions/src/saveSearch'
 import type { noteAndLine, resultOutputTypeV3 } from '../../jgclark.SearchExtensions/src/searchHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
+import { savedSearch1 } from './demoData'
 import type { TDashboardSettings, TSection, TSectionItem } from './types'
 import {
   // createSectionOpenItemsFromParas,
@@ -24,7 +25,6 @@ import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import { JSP, clo, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getNoteByFilename } from '@helpers/note'
 import { getGlobalSharedData } from '@helpers/HTMLView'
-
 //-----------------------------------------------------------------
 
 /**
@@ -68,22 +68,21 @@ export async function externallyStartSearch(
 
 /**
  * Get search results from all items in NP (constrained by searchOptions).
- * TODO(later): Add support for saved searches.
+ * Note: this is not the same as getting saved search results -- see below for that.
  * @param {string} searchTermsArg
  * @param {SearchOptions} searchOptions
  * @param {TDashboardSettings} config
  * @param {string?} savedSearchName (optional, for FUTURE use with saved searches)
  * @returns {Array<TSection>} new section(s) for search results
  */
-export async function getSearchResults(searchTermsArg: string, searchOptions: SearchOptions, config: TDashboardSettings, savedSearchName: string = ''): Promise<Array<TSection>> {
+export async function getSearchResults(searchTermsArg: string, searchOptions: SearchOptions, config: TDashboardSettings): Promise<Array<TSection>> {
   try {
     const sectionNumStr = '21' // TODO(later): This will need updating if we have saved search sections
     const thisSectionCode = 'SEARCH' // TODO(later): Will also have 'SAVEDSEARCH' if we have saved search sections
     const sections: Array<TSection> = []
     // const config: TDashboardSettings = await getDashboardSettings()
     // const NPSettings = getNotePlanSettings()
-    const isQuickSearch = savedSearchName === ''
-    logInfo('getSearchResults', `---------- Getting ${isQuickSearch ? 'Quick' : 'Saved'} Search results for section #${String(sectionNumStr)} ------------`)
+    logInfo('getSearchResults', `---------- Getting (Live) Search results for section #${String(sectionNumStr)} ------------`)
     // clo(searchOptions, 'getSearchResults: searchOptions:')
     const startTime = new Date() // for timing only
 
@@ -104,9 +103,9 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
 
     // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
     const searchResultSet: resultOutputTypeV3 = await extendedSearch(extendedSearchTerms, searchOptions)
-    const getSearchTermsRep = searchResultSet.searchTermsRepArr.join(' ')
+    const searchTermsRep = searchResultSet.searchTermsRepArr.join(' ')
     const resultNALs: Array<noteAndLine> = searchResultSet.resultNoteAndLineArr
-    logDebug('getSearchResults', `- found ${resultNALs.length} items from [${getSearchTermsRep}]`)
+    logDebug('getSearchResults', `- found ${resultNALs.length} items from [${searchTermsRep}]`)
 
     // Iterate and write items for the section
     let itemCount = 0
@@ -128,7 +127,7 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
     })
     itemCount += items.length
 
-    logTimer('getSearchResults', startTime, `- finished search for [${getSearchTermsRep}]`)
+    logTimer('getSearchResults', startTime, `- finished search for [${searchTermsRep}]`)
 
     // If there are no items, then we need to show a message instead of an empty section
     if (items.length === 0) {
@@ -156,7 +155,7 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
     const section: TSection = {
       ID: sectionNumStr,
       name: 'Search',
-      showSettingName: 'showSearchSection', // TODO(later): This will probably change to showQuickSearchSection if we have multiple saved search sections.
+      showSettingName: 'showSearchSection', // TODO: remove this?
       sectionCode: thisSectionCode,
       description: sectionDescription,
       FAIconClass: 'fa-regular fa-search',
@@ -164,7 +163,157 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
       sectionItems: items,
       generatedDate: new Date(),
       showColoredBackground: true,
-      actionButtons: isQuickSearch ? [
+      actionButtons: [
+        {
+          actionName: 'closeSection',
+          actionPluginID: `${pluginJson['plugin.id']}`,
+          tooltip: "Close this Search section",
+          display: '<i class= "fa-solid fa-circle-xmark"></i> ',
+          actionParam: 'SEARCH',
+          postActionRefresh: [],
+          // formFields: thisMonthFormFields,
+          // submitOnEnter: true,
+          // submitButtonText: 'Add & Close',
+        },
+      ],
+      isReferenced: false,
+    }
+    sections.push(section)
+
+    logTimer('getSearchResults', startTime, `- found ${itemCount} items from [${searchTermsRep}]`)
+    // clo(sections, 'sections')
+    return sections
+  } catch (error) {
+    logError('getSearchResults', `ERROR: ${error.message}`)
+    return []
+  }
+}
+
+/**
+ * Get saved search results from all items in NP (constrained by searchOptions).
+ * @param {string} searchTermsArg // TODO: remove this?
+ * @param {SearchOptions} searchOptions // TODO: remove this?
+ * @param {TDashboardSettings} config
+ * @param {boolean} useDemoData (optional, default is false)
+ * @returns {Array<TSection>} new section(s) for search results
+ */
+export async function getSavedSearchResults(
+  // searchTermsArg: string,
+  // searchOptions: SearchOptions,
+  config: TDashboardSettings,
+  useDemoData: boolean = false,
+): Promise<Array<TSection>> {
+  try {
+    const sectionNumStr = '22'
+    const thisSectionCode = 'SAVEDSEARCH'
+    const sections: Array<TSection> = []
+    // const config: TDashboardSettings = await getDashboardSettings()
+    // const NPSettings = getNotePlanSettings()
+    logInfo('getSavedSearchResults', `---------- Getting Saved Search results for section #${String(sectionNumStr)} ${useDemoData ? 'with DEMO data ' : ''}------------`)
+    // clo(searchOptions, 'getSavedSearchResults: searchOptions:')
+    let itemCount = 0
+    const items: Array<TSectionItem> = []
+    let searchTermsStr: string = '?'
+    let searchTermsRep: string = '?'
+    const startTime = new Date() // for timing only
+
+    // TODO: rework this
+    const searchOptions: SearchOptions = {
+      noteTypesToInclude: ['notes', 'calendar'],
+      paraTypesToInclude: config.ignoreChecklistItems ? ['open', 'scheduled'] : ['open', 'scheduled', 'checklist', 'checklistScheduled'],
+      caseSensitiveSearching: false,
+      fullWordSearching: true,
+      foldersToInclude: config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',') : [],
+      foldersToExclude: config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : [],
+      fromDateStr: '',
+      toDateStr: '',
+    }
+
+    if (useDemoData) {
+      items.push(...savedSearch1.items)
+      itemCount = items.length
+      searchTermsStr = savedSearch1.name
+      searchTermsRep = savedSearch1.rep
+    } else {
+      return []
+      // // Sort out searchOptions
+      // const searchTermsStr = searchTermsArg
+      // // extend given search terms with the current term(s) to filter out as extra -term(s)
+      // const currentIgnoreTermsArr = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
+      // const extendedSearchTerms = `${searchTermsStr} -${currentIgnoreTermsArr.join(' -')}`
+
+      // // If dontSearchFutureItems is true, then we need to add an end date filter (of today) to the search terms (which covers which calendar notes are included)
+      // logDebug('getSavedSearchResults', `- config.dontSearchFutureItems: ${String(config.dontSearchFutureItems)}`)
+      // if (config.dontSearchFutureItems) {
+      //   searchOptions.toDateStr = getTodaysDateHyphenated()
+      //   logDebug('getSavedSearchResults', `- searchOptions.toDateStr: ${String(searchOptions.toDateStr)}`)
+      // }
+      // // TODO: filter out future items from the search results, to catch items from regular notes as well as calendar notes
+      // // TODO: ...
+
+      // // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
+      // const searchResultSet: resultOutputTypeV3 = await extendedSearch(extendedSearchTerms, searchOptions)
+      // const searchTermsRep = searchResultSet.searchTermsRepArr.join(' ')
+      // const resultNALs: Array<noteAndLine> = searchResultSet.resultNoteAndLineArr
+      // logDebug('getSavedSearchResults', `- found ${resultNALs.length} items from [${searchTermsRep}]`)
+
+      // // Iterate and write items for the section
+      // resultNALs.map((rnal) => {
+      //   const thisID = `${sectionNumStr}-${itemCount}`
+      //   // resultNALs is an array of noteAndLine objects, not paragraphs. We need to go and find the paragraph from the noteAndLine object
+      //   const thisParagraph = getParagraphFromSearchResult(rnal)
+
+      //   // TODO: Now test to see if this paragraph is in a disallowed section header
+      //   if (true) {
+      //     const thisDashboardPara = makeDashboardParas([thisParagraph])[0]
+      //     if (itemCount < 3) {
+      //       clo(thisDashboardPara, `para ${itemCount}:`)
+      //     }
+      //     items.push(createSectionItemObject(thisID, thisDashboardPara))
+      //     itemCount++
+      //   }
+      // })
+      // itemCount += items.length
+
+      // logTimer('getSavedSearchResults', startTime, `- finished search for [${searchTermsRep}]`)
+    }
+
+    // If there are no items, then we need to show a message instead of an empty section
+    if (items.length === 0) {
+      let message = `No results found for search [${searchTermsStr}]`
+      if (config.perspectivesEnabled) {
+        const perspectiveSettings = await getPerspectiveSettings()
+        const perspectiveName = getActivePerspectiveName(perspectiveSettings)
+        message += ` using '${perspectiveName}' Perspective filtering`
+      }
+      items.push({
+        ID: `${sectionNumStr}-Empty`,
+        itemType: 'noSearchResults',
+        message: message,
+      })
+    }
+
+    let sectionDescription = `{count} results for [${searchTermsStr}]`
+    if (searchOptions.fromDateStr) {
+      sectionDescription += ` from ${searchOptions.fromDateStr}`
+    }
+    if (searchOptions.toDateStr) {
+      sectionDescription += ` to ${searchOptions.toDateStr}`
+    }
+
+    const section: TSection = {
+      ID: sectionNumStr,
+      name: 'Saved Search',
+      showSettingName: 'showSearchSection', // TODO(later): This will probably change to showQuickSearchSection if we have multiple saved search sections.
+      sectionCode: thisSectionCode,
+      description: sectionDescription,
+      FAIconClass: 'fa-regular fa-search',
+      sectionTitleColorPart: 'sidebarSearch',
+      sectionItems: items,
+      generatedDate: new Date(),
+      isReferenced: false,
+      showColoredBackground: true,
+      actionButtons: [
         {
           actionName: 'closeSection',
           actionPluginID: `${pluginJson['plugin.id']}`,
@@ -176,16 +325,15 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
           // submitOnEnter: true,
           // submitButtonText: 'Add & Close',
         },
-      ] : [],
-      isReferenced: false,
+      ],
     }
     sections.push(section)
 
-    logTimer('getSearchResults', startTime, `- found ${itemCount} items from [${getSearchTermsRep}]`)
+    logTimer('getSavedSearchResults', startTime, `- found ${itemCount} items from [${searchTermsRep}]`)
     // clo(sections, 'sections')
     return sections
   } catch (error) {
-    logError('getSearchResults', `ERROR: ${error.message}`)
+    logError('getSavedSearchResults', `ERROR: ${error.message}`)
     return []
   }
 }

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-02-21 for v2.2.0, @jgclark
+// Last updated 2025-02-24 for v2.2.0.a4, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -24,7 +24,7 @@ import {
 } from './dashboardHelpers'
 import { getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
 import { getProjectSectionData } from './dataGenerationProjects'
-// import { externallyStartSearch, getSearchResults } from './dataGenerationSearch'
+import { getSavedSearchResults } from './dataGenerationSearch'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
 import { openMonthParas, refMonthParas, tagParasFromNote } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
@@ -103,7 +103,7 @@ export async function getSomeSectionsData(
       if (projectSection) sections.push(projectSection)
     }
     // The rest can all be slow to generate
-    // TODO(later): SavedSearch goes here ... if (sectionCodesToGet.includes('SEARCH') && config.showSearchSection) sections.push(...(await getSearchResults()))
+    if (sectionCodesToGet.includes('SAVEDSEARCH') && config.showSearchSection) sections.push(...(await getSavedSearchResults(config, useDemoData)))
     if (sectionCodesToGet.includes('TAG') && config.tagsToShow) {
       // v1:
       // const tagSections = getTaggedSections(config, useDemoData).filter((s) => s) //get rid of any nulls

@@ -8,6 +8,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: Allow ignoring future dated items found in regular and calendar notes as well.
 - TODO: add eliminateDuplicateSyncedParagraphs() to search results (for @dbw)
 
+## [2.2.0.a4] 2025-02-24
+Search:
+- Fixed colour of 'close' button
+- Added demo data for SAVEDSEARCH section
+- Started adding support for Saved Search sections -- currently only fordemo data
+
 ## [2.2.0.a3] 2025-02-23
 - Search: 
   - No search results now gives a message

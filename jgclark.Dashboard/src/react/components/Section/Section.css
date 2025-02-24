@@ -34,8 +34,10 @@
 	/* background-color: blue; */
 
 	/* Remove other background-color for buttons here */
+	/* TODO: Ideally change buttons in Dashboard.css so this isn't needed. */
 	button {
 		background-color: unset;
+		color: unset;
 	}
 }
 
