@@ -10,9 +10,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.2.0.a4] 2025-02-24
 Search:
+- New 'Apply current filtering to Search?' setting
+- Fixed very long search (where there are no ignore terms)
 - Fixed colour of 'close' button
 - Added demo data for SAVEDSEARCH section
-- Started adding support for Saved Search sections -- currently only fordemo data
+- Started adding support for Saved Search sections -- currently only for demo data
 
 ## [2.2.0.a3] 2025-02-23
 - Search: 

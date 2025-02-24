@@ -269,7 +269,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     // label: 'Show parent/child markers on items?',
     // description: 'Add a small icon on items that either have indented sub-items, or is an indented child a parent item.',
     label: 'Show parent markers on items?',
-    description: 'If set adds an ellipsis icon on items that have "children" (indented sub-items), whether they are also shown or not.',
+    description: 'If set, adds an ellipsis icon on items that have "children" (indented sub-items), whether they are also shown or not.',
     type: 'switch',
     default: true,
   },
@@ -279,6 +279,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
     label: 'Search section',
+  },
+  {
+    key: 'applyCurrentFilteringToSearch',
+    label: 'Apply current filtering to Search?',
+    description: 'If set, then the search will use the "What to Include and Exclude?" settings above to filter the search results. If not set, then the search will run over all open items.',
+    type: 'switch',
+    default: true,
+    compactDisplay: true,
   },
   {
     key: 'dontSearchFutureItems',

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-02-23 for v2.2.0.a3, @jgclark
+// Last updated 2025-02-24 for v2.2.0.a4, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -48,6 +48,7 @@ export type TDashboardSettings = {
   // Note: if you add a new setting, make sure to
   // - update the dashboardSettingsDefaults object in dashboardSettings.js
   // - update the getDashboardSettings() function in dashboardHelpers.js if it is type number
+  applyCurrentFilteringToSearch: boolean,
   autoUpdateAfterIdleTime: number,
   dashboardTheme: string,
   dontSearchFutureItems: boolean,
@@ -84,7 +85,7 @@ export type TDashboardSettings = {
   showPrioritySection: boolean,
   showProjectSection: boolean,
   showQuarterSection: boolean,
-  showSearchSection: boolean, // TODO: will this be needed?
+  showSearchSection: boolean,
   showTimeBlockSection: boolean,
   showTodaySection: boolean,
   showTomorrowSection: boolean,

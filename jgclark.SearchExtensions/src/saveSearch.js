@@ -354,7 +354,6 @@ export type SearchOptions = {
 }
 
 /**
- * WARNING: Started, but not finished or tested.
  * Entry point for extended search where all the parameters are supplied.
  * @param {string} searchTerms as a string with items separated by spaces, to suit taking from a search box.
  * @param {SearchOptions} searchOptions object for various settings
@@ -366,11 +365,10 @@ export async function extendedSearch(
   try {
     // get relevant settings
     const config = await getSearchSettings()
-    logDebug(pluginJson, `Starting extendedSearch()`)
-    logDebug('extendedSearch', `searchTerms: '${searchTerms}'`)
+    logDebug(pluginJson, `Starting extendedSearch() with searchTerms: '${searchTerms}'`)
     clo(searchOptions, 'extendedSearch searchOptions:')
 
-    // Override config settings if given
+    // Add config settings if not given
     if (searchOptions.caseSensitiveSearching != null) {
       config.caseSensitiveSearching = searchOptions.caseSensitiveSearching
     }

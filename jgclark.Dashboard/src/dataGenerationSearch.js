@@ -29,33 +29,44 @@ import { getGlobalSharedData } from '@helpers/HTMLView'
 
 /**
  * Start a new search and open its section. For use by x-callbacks or other plugins.
- * @param {string} searchTerms space-separated search terms, using the extended syntax as the search box in the Dashboard.
+ * @param {string} searchTerms space-separated search terms, using the extended syntax as if entered in a search box
  * @param {string?} noteTypesToIncludeStr (optional, default is 'notes, calendar')
  * @param {string?} fromDateStr start date for calendar notes as ISO string (optional, default is empty)
  * @param {string?} toDateStr end date for calendar notes as ISO string (optional, default is empty)
  */
 export async function externallyStartSearch(
-  searchTerms: string,
+  searchTermsArg: string,
   noteTypesToIncludeStr: string = 'notes, calendar',
   fromDateStr: string = '',
   toDateStr: string = '',
 ): Promise<void> {
   const config: TDashboardSettings = await getDashboardSettings()
+  clo(config, 'externallyStartSearch: config:')
+  logInfo('externallyStartSearch', `- starting search with searchTermsArg: "${searchTermsArg}" ${config.applyCurrentFilteringToSearch ? 'WITH' : 'WITHOUT'} Perspective filtering`)
 
+  // Compile the searchOptions object
   const noteTypesToIncludeArr: Array<string> = (noteTypesToIncludeStr === 'both') ? ['notes', 'calendar'] : stringListOrArrayToArray(noteTypesToIncludeStr, ',')
   const searchOptions: SearchOptions = {
     noteTypesToInclude: noteTypesToIncludeArr,
     paraTypesToInclude: config.ignoreChecklistItems ? ['open', 'scheduled'] : ['open', 'scheduled', 'checklist', 'checklistScheduled'],
+    foldersToInclude: config.applyCurrentFilteringToSearch && config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',') : [],
+    foldersToExclude: config.applyCurrentFilteringToSearch && config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : [],
     caseSensitiveSearching: false,
     fullWordSearching: true,
-    foldersToInclude: config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',') : [],
-    foldersToExclude: config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : [],
     fromDateStr: fromDateStr,
-    toDateStr: toDateStr,
+    toDateStr: toDateStr ? toDateStr : (config.dontSearchFutureItems) ? getTodaysDateHyphenated() : '',
   }
 
+  let searchTermsStr = searchTermsArg
+  // if we have terms to ignore, then extend given search terms with the current term(s) to filter out as extra -term(s)
+  if (config.applyCurrentFilteringToSearch) {
+    const currentIgnoreTermsArr = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
+    searchTermsStr = (currentIgnoreTermsArr.length > 0) ? `${searchTermsStr} -${currentIgnoreTermsArr.join(' -')}` : searchTermsStr
+  }
+
+
   // Start a transient search
-  const newSections = await getSearchResults(searchTerms, searchOptions, config)
+  const newSections = await getSearchResults(searchTermsStr, config, searchOptions)
 
   // Add the new sections to the existing sections
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
@@ -63,49 +74,33 @@ export async function externallyStartSearch(
   const existingSections = pluginData.sections
   const mergedSections = mergeSections(existingSections, newSections)
   const updates: TAnyObject = { sections: mergedSections }
-  await setPluginData(updates, `Finished getSearchResults for [${String(searchTerms)}]`)
+  await setPluginData(updates, `Finished getSearchResults for [${String(searchTermsStr)}]`)
 }
 
 /**
  * Get search results from all items in NP (constrained by searchOptions).
- * Note: this is not the same as getting saved search results -- see below for that.
- * @param {string} searchTermsArg
- * @param {SearchOptions} searchOptions
+ * Note: this is not quite the same as getting saved search results -- see below for that.
+ * @param {string} searchTermsStr
  * @param {TDashboardSettings} config
- * @param {string?} savedSearchName (optional, for FUTURE use with saved searches)
+ * @param {SearchOptions} searchOptionsArg
  * @returns {Array<TSection>} new section(s) for search results
  */
-export async function getSearchResults(searchTermsArg: string, searchOptions: SearchOptions, config: TDashboardSettings): Promise<Array<TSection>> {
+export async function getSearchResults(searchTermsStr: string, config: TDashboardSettings, searchOptions: SearchOptions): Promise<Array<TSection>> {
   try {
-    const sectionNumStr = '21' // TODO(later): This will need updating if we have saved search sections
-    const thisSectionCode = 'SEARCH' // TODO(later): Will also have 'SAVEDSEARCH' if we have saved search sections
+    const sectionNumStr = '21'
+    const thisSectionCode = 'SEARCH'
     const sections: Array<TSection> = []
-    // const config: TDashboardSettings = await getDashboardSettings()
-    // const NPSettings = getNotePlanSettings()
-    logInfo('getSearchResults', `---------- Getting (Live) Search results for section #${String(sectionNumStr)} ------------`)
+    logInfo('getSearchResults', `---------- Getting (non-saved) Search results for section #${String(sectionNumStr)} ------------`)
+    logInfo('getSearchResults', `- setting basic searchOptions ${config.applyCurrentFilteringToSearch ? 'WITH' : 'WITHOUT'} Perspective filtering'}`)
     // clo(searchOptions, 'getSearchResults: searchOptions:')
     const startTime = new Date() // for timing only
 
-    // Sort out searchOptions
-    const searchTermsStr = searchTermsArg
-    // extend given search terms with the current term(s) to filter out as extra -term(s)
-    const currentIgnoreTermsArr = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
-    const extendedSearchTerms = `${searchTermsStr} -${currentIgnoreTermsArr.join(' -')}`
-
-    // If dontSearchFutureItems is true, then we need to add an end date filter (of today) to the search terms (which covers which calendar notes are included)
-    logDebug('getSearchResults', `- config.dontSearchFutureItems: ${String(config.dontSearchFutureItems)}`)
-    if (config.dontSearchFutureItems) {
-      searchOptions.toDateStr = getTodaysDateHyphenated()
-      logDebug('getSearchResults', `- searchOptions.toDateStr: ${String(searchOptions.toDateStr)}`)
-    }
-    // TODO: filter out future items from the search results, to catch items from regular notes as well as calendar notes
-    // TODO: ...
-
     // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
-    const searchResultSet: resultOutputTypeV3 = await extendedSearch(extendedSearchTerms, searchOptions)
+    const searchResultSet: resultOutputTypeV3 = await extendedSearch(searchTermsStr, searchOptions)
     const searchTermsRep = searchResultSet.searchTermsRepArr.join(' ')
     const resultNALs: Array<noteAndLine> = searchResultSet.resultNoteAndLineArr
     logDebug('getSearchResults', `- found ${resultNALs.length} items from [${searchTermsRep}]`)
+    logTimer('getSearchResults', startTime, `- finished search for [${searchTermsRep}]`)
 
     // Iterate and write items for the section
     let itemCount = 0
@@ -115,19 +110,27 @@ export async function getSearchResults(searchTermsArg: string, searchOptions: Se
       // resultNALs is an array of noteAndLine objects, not paragraphs. We need to go and find the paragraph from the noteAndLine object
       const thisParagraph = getParagraphFromSearchResult(rnal)
 
-      // TODO: Now test to see if this paragraph is in a disallowed section header
-      if (true) {
-        const thisDashboardPara = makeDashboardParas([thisParagraph])[0]
-        if (itemCount < 3) {
-          clo(thisDashboardPara, `para ${itemCount}:`)
-        }
-        items.push(createSectionItemObject(thisID, thisDashboardPara))
-        itemCount++
+      // TODO: if wanted, filter out future items from the search results, to catch items from regular notes as well as calendar notes
+      if (config.dontSearchFutureItems) {
+        // TODO:
       }
+
+      // TODO: Now test to see if this paragraph is in a disallowed section header
+      if (config.ignoreItemsWithTerms !== '') {
+        // TODO:
+      }
+
+      // If we get here, then we still want this result, so make it a dashboard para and add it to the items array
+      const thisDashboardPara = makeDashboardParas([thisParagraph])[0]
+      if (itemCount < 3) {
+        clo(thisDashboardPara, `para ${itemCount}:`)
+      }
+      items.push(createSectionItemObject(thisID, thisDashboardPara))
+      itemCount++
     })
     itemCount += items.length
 
-    logTimer('getSearchResults', startTime, `- finished search for [${searchTermsRep}]`)
+    logTimer('getSearchResults', startTime, `- finished post-search processing`)
 
     // If there are no items, then we need to show a message instead of an empty section
     if (items.length === 0) {
