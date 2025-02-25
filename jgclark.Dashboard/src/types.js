@@ -31,7 +31,11 @@ export type TDashboardSettings = {
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
-  FFlag_UseTagCache?: boolean,
+  // FFlag_UseTagCache?: boolean,
+  FFlag_ShowSearchPanel?: boolean,
+
+  // TODO: add SearchPanelSettings here - not inside a perspective
+  // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings and also add the "searchSettings" object to the list of items in cleanDashboardSettings()  so that it does not get saved to any specific perspective
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
   defaultFileExtension?: string,

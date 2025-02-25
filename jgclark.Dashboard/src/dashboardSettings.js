@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated for v2.1.7
+// Last updated for v2.2.0.a5
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -46,6 +46,12 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
     description: 'Whether to stop display of open checklists that contain a time block',
   },
 ]
+
+export const searchPanelSettings: Array<TSettingItem> = [
+  // TODO: fill in
+  {}
+]
+
 
 // This section is an array that describes the order and type of the individual settings
 // The current value for each TYPE of setting (or the fallback) is set later in this file in createDashboardSettingsItems()

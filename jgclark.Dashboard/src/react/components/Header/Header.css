@@ -27,6 +27,12 @@
 	justify-content: space-between; /* aligns items to the start and end of the container, and pads out others between them */
 }
 
+:focus {
+	border-color: var(--tint-color);
+	box-shadow: 0 0 3px var(--tint-color);
+	outline: none;
+}
+
 /* MESSAGE_BANNER w3.css overrides */
 .iOS .header, .iPadOS .header {
   box-sizing: border-box; /* Ensure the padding is included in the element's total width */
@@ -67,7 +73,7 @@
 	/* grid-area: dropdowns; */
 	display: flex;
 	/* gap between buttons */
-	gap: 0.9rem;
+	gap: 0.8rem;
 	/* align vertically to center */
 	align-items: center;
 	/* Align to the right edge */

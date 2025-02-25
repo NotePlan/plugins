@@ -78,7 +78,7 @@ const SearchBar = ({ onSearch }: Props) => {
       <input
         type="text"
         className="search-input"
-        placeholder="Search..."
+        placeholder="Search terms..."
         value={query}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}

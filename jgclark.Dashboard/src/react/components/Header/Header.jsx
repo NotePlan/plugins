@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2025-02-21 for 2.2.0
+// Last updated 2025-02-25 for v2.2.0.a5
 // --------------------------------------------------------------------------
 
 // --------------------------------------------------------------------------
@@ -22,11 +22,11 @@ import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
 import PerspectiveSelector from './PerspectiveSelector.jsx'
 import SearchBar from './SearchBar.jsx'
+import SearchPanel from './SearchPanel.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
 import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
 import './Header.css'
-
 // --------------------------------------------------------------------------
 // Type Definitions
 // --------------------------------------------------------------------------
@@ -59,7 +59,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const [openDropdownMenu, setOpenDropdownMenu] = useState<string | null>(null)
   const [tempDashboardSettings, setTempDashboardSettings] = useState({ ...dashboardSettings }) // for queuing up changes from dropdown menu to be applied when it is closed
   const { isDialogOpen, handleToggleDialog } = useSettingsDialogHandler(sendActionToPlugin)
-
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   // ----------------------------------------------------------------------
   // Effects
   // ----------------------------------------------------------------------
@@ -176,6 +176,14 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     sendActionToPlugin('startSearch', data, 'Search button clicked', false)
   }
 
+  /**
+   * Handles the click event for the search2 icon.
+   */
+  const handleIconClick = () => {
+    setIsSearchOpen(!isSearchOpen)
+  }
+
+
   // ----------------------------------------------------------------------
   // Constants
   // ----------------------------------------------------------------------
@@ -192,7 +200,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const showRefreshButton = pluginData.platform !== 'iOS'
   const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
   const isMobile = pluginData.platform !== 'macOS'
-  const isNarrowWidth = window.innerWidth <= 680
+  const isNarrowWidth = window.innerWidth <= 700
+  const isSearchPanelAvailable = isDevMode && dashboardSettings?.FFlag_ShowSearchPanel
 
   // ----------------------------------------------------------------------
   // Render
@@ -200,6 +209,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(' mins', 'm').replace(' min', 'm').replace(' hours', 'h').replace(' hour', 'h')
   // logInfo('Header', `Rendering Header; isMobile:${String(isMobile)}, isNarrowWidth:${String(isNarrowWidth)}, showRefreshButton:${String(showRefreshButton)}, showHardRefreshButton:${String(showHardRefreshButton)}`)
   return (
+    <>
     <header className="header">
       {/* Perspective selector */}
       {dashboardSettings.perspectivesEnabled && (
@@ -243,6 +253,12 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         <SearchBar onSearch={handleSearch} />
 
         {/* Feature Flags dropdown */}
+          {isSearchPanelAvailable && (
+            <div id="searchPanelButton">
+              <i className="fa-solid fa-search" onClick={handleIconClick}></i>
+            </div>
+          )}
+
         {isDevMode && (
           <DropdownMenu
             onSaveChanges={handleChangesInSettings}
@@ -284,6 +300,14 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         </div>
       </div>
     </header>
+      <>
+        {isSearchOpen && (
+          <div>
+            <SearchPanel />
+          </div>
+        )}
+      </>
+    </>
   )
 }
 

@@ -1,0 +1,69 @@
+/* CSS specific to SearchPanel component in jgclark.Dashboard plugin */
+/* Last updated for v2.2.0.a5 */
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: fit-content;
+    background-color: var(--bg-alt-color);
+    width:calc(100% - 2rem);
+    margin: 0rem 1rem 0rem 1rem;
+    padding: 0.7rem 0.5rem 0.3rem 0.5rem;
+    border-left: 1px solid var(--divider-color);
+    border-right: 1px solid var(--divider-color);
+    border-bottom: 2px solid var(--divider-color);
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    /* FIXME: does this need setting height to 0 first? */
+    transition: height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+}
+
+.panel-contents {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Allow up to 3 columns of controls */
+.panel-controls {
+	column-count: 3;
+	column-width: 12rem;
+	/* column-rule: 1px solid var(--divider-color); */
+	column-fill: auto;
+  font-size: 0.95rem;
+  padding-top: 0.4rem;
+}
+
+.controlItem {
+  display: flex;
+  flex-direction: row;
+  /* Avoid bad wrapping at end of columns */
+	break-inside: avoid;
+  align-items: flex-start;
+  gap: 0.25rem;
+  font-weight: 400;
+  margin-bottom: 0.4rem;
+}
+
+.info p{
+  font-size: small;
+  margin: 0;
+  padding-bottom: 0.2rem;
+}
+
+.search-input {
+  padding: 2px 4px 0px 4px;
+  border: 1px solid rgb(from var(--fg-main-color) r g b/.3);
+  outline: none;
+  border-radius: 5px;
+  min-width: 12rem;
+  margin-right: 0.3rem;
+  font-weight: 400;
+}
+
+/* Color icons */
+i {
+  color: var(--tint-color);
+}
+
