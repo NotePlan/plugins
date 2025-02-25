@@ -14,7 +14,6 @@ It adds a 'Print (opens in system browser)' button to the preview window (on mac
 ## Limitations
 This is designed to be a temporary solution while we wait for similar functionality to get baked into the NotePlan app itself. To that end, I don't intend to be making many improvements to this.  In particular I'm aware that:
 
-- it does not render embedded images
 -  there are bugs in the rendering of frontmatter arising from one of the third-party libraries this uses.
 
 ## Automatic updating
