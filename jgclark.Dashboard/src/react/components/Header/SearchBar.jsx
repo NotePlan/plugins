@@ -18,11 +18,11 @@ const SearchBar = ({ onSearch }: Props) => {
   //Refs
   //----------------------------------------------------------------------
 
-  const searchContainerRef = useRef <? HTMLDivElement > (null)
+  const inputRef = useRef<?HTMLInputElement>(null)
 
-//----------------------------------------------------------------------
-// State
-//----------------------------------------------------------------------
+  //----------------------------------------------------------------------
+  // State
+  //----------------------------------------------------------------------
 
   const [isActive, setIsActive] = useState(false)
   const [query, setQuery] = useState('')
@@ -33,6 +33,9 @@ const SearchBar = ({ onSearch }: Props) => {
 
   const handleIconClick = () => {
     setIsActive(!isActive)
+    if (inputRef.current) {
+      inputRef.current.focus()
+    }
   }
 
   const handleInputChange = (event: SyntheticInputEvent<HTMLInputElement>) => {
@@ -43,13 +46,14 @@ const SearchBar = ({ onSearch }: Props) => {
     if (event.key === 'Enter' && onSearch) {
       console.log(`SearchBar: handleKeyPress: Enter key pressed, with query term currently '${query}'`) // OK here
       onSearch(query)
+      setQuery('')
       setIsActive(false)
     }
   }
 
   const handleClickOutside = (event: MouseEvent) => {
     const target = event.target
-    if (searchContainerRef.current && target instanceof Node && !searchContainerRef.current.contains(target)) {
+    if (inputRef.current && target instanceof Node && !inputRef.current.contains(target)) {
       setIsActive(false)
     }
   }
@@ -57,13 +61,6 @@ const SearchBar = ({ onSearch }: Props) => {
   //----------------------------------------------------------------------
   // Effects
   //----------------------------------------------------------------------
-
-  // Force the window to be focused on load so that we can capture clicks on hover
-  useEffect(() => {
-    if (searchContainerRef.current) {
-      searchContainerRef.current.focus()
-    }
-  }, [])
 
   useEffect(() => {
     document.addEventListener('mousedown', handleClickOutside)
@@ -73,7 +70,7 @@ const SearchBar = ({ onSearch }: Props) => {
   }, [])
 
   return (
-    <div className={`search-container ${isActive ? 'active' : ''}`} ref={searchContainerRef}>
+    <div className={`search-container ${isActive ? 'active' : ''}`}>
       <input
         type="text"
         className="search-input"
@@ -82,6 +79,7 @@ const SearchBar = ({ onSearch }: Props) => {
         onChange={handleInputChange}
         onKeyPress={handleKeyPress}
         style={{ width: isActive ? '7rem' : '0', opacity: isActive ? '1' : '0' }}
+        ref={inputRef}
       />
       <div className="search-icon" onClick={handleIconClick}>
         <i className="fa-regular fa-search"></i>
