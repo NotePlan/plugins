@@ -5,6 +5,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useEffect, useRef, useState } from 'react'
+import { logDebug } from '@helpers/react/reactDev'
 import './SearchBar.css'
 
 //----------------------------------------------------------------------
@@ -42,10 +43,13 @@ const SearchBar = ({ onSearch }: Props) => {
     setQuery(event.target.value)
   }
 
-  const handleKeyPress = (event: KeyboardEvent) => {
+  const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Enter' && onSearch) {
-      console.log(`SearchBar: handleKeyPress: Enter key pressed, with query term currently '${query}'`) // OK here
+      logDebug(`SearchBar: handleKeyDown: Enter key pressed, with query term currently '${query}'`) // OK here
       onSearch(query)
+      setQuery('')
+      setIsActive(false)
+    } else if (event.key === 'Escape') {
       setQuery('')
       setIsActive(false)
     }
@@ -77,7 +81,7 @@ const SearchBar = ({ onSearch }: Props) => {
         placeholder="Search..."
         value={query}
         onChange={handleInputChange}
-        onKeyPress={handleKeyPress}
+        onKeyDown={handleKeyDown}
         style={{ width: isActive ? '7rem' : '0', opacity: isActive ? '1' : '0' }}
         ref={inputRef}
       />
