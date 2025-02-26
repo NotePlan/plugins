@@ -60,6 +60,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const [tempDashboardSettings, setTempDashboardSettings] = useState({ ...dashboardSettings }) // for queuing up changes from dropdown menu to be applied when it is closed
   const { isDialogOpen, handleToggleDialog } = useSettingsDialogHandler(sendActionToPlugin)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [lastSearchPanelToggleTime, setLastSearchPanelToggleTime] = useState(0)
+  // State to track if the panel should be rendered
+  const [shouldRenderPanel, setShouldRenderPanel] = useState(false)
+
   // ----------------------------------------------------------------------
   // Effects
   // ----------------------------------------------------------------------
@@ -73,6 +77,20 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       setTempDashboardSettings({ ...dashboardSettings })
     }
   }, [dashboardSettings, openDropdownMenu])
+
+  // Effect to handle panel rendering/removal with animation
+  useEffect(() => {
+    if (isSearchOpen) {
+      // When opening, immediately render the panel
+      setShouldRenderPanel(true)
+    } else {
+      // When closing, wait for the animation to complete before removing
+      const timer = setTimeout(() => {
+        setShouldRenderPanel(false)
+      }, 500) // Match the faster closing animation duration (500ms)
+      return () => clearTimeout(timer)
+    }
+  }, [isSearchOpen])
 
   // ----------------------------------------------------------------------
   // Handlers
@@ -177,12 +195,33 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   }
 
   /**
-   * Handles the click event for the search2 icon.
+   * Handles the click event for the search icon.
+   * If the panel is open (X is showing), it will close the panel.
+   * If the panel is closed (search icon is showing), it will open the panel.
+   * @param {Object} e - The mouse event
    */
-  const handleIconClick = () => {
-    setIsSearchOpen(!isSearchOpen)
+  const handleSearchPanelIconClick = (e: any) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const now = Date.now()
+    // Prevent toggling too quickly (within 300ms)
+    if (now - lastSearchPanelToggleTime < 300) {
+      return
+    }
+
+    setLastSearchPanelToggleTime(now)
+
+    // Force the state to be the opposite of what it currently is
+    setIsSearchOpen((prevState) => !prevState)
   }
 
+  /**
+   * Closes the search panel
+   */
+  const closeSearchPanel = () => {
+    setIsSearchOpen(false)
+  }
 
   // ----------------------------------------------------------------------
   // Constants
@@ -209,105 +248,110 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(' mins', 'm').replace(' min', 'm').replace(' hours', 'h').replace(' hour', 'h')
   // logInfo('Header', `Rendering Header; isMobile:${String(isMobile)}, isNarrowWidth:${String(isNarrowWidth)}, showRefreshButton:${String(showRefreshButton)}, showHardRefreshButton:${String(showHardRefreshButton)}`)
   return (
-    <>
-    <header className="header">
-      {/* Perspective selector */}
-      {dashboardSettings.perspectivesEnabled && (
-        <div className="perspectiveName">
-          <PerspectiveSelector />
+    <div className="header-container">
+      <header className="header">
+        {/* Perspective selector */}
+        {dashboardSettings.perspectivesEnabled && (
+          <div className="perspectiveName">
+            <PerspectiveSelector />
+          </div>
+        )}
+
+        {showRefreshButton && (
+          <div className="refreshButtons">
+            <RefreshControl refreshing={pluginData.refreshing === true} firstRun={firstRun} handleRefreshClick={handleRefreshClick(false)} />
+            {showHardRefreshButton && (
+              <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton">
+                <i className={'fa-regular fa-arrows-retweet'}></i>
+                <span className="pad-left">{isNarrowWidth ? 'HR' : 'Hard Refresh'}</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {!(isMobile || isNarrowWidth) && (
+          <div className="lastRefreshInfo">
+            {/* <> */}
+            Updated: <span id="timer">{timeAgoText}</span>
+            {/* </> */}
+          </div>
+        )}
+
+        {/* TODO: use this to test out modals + tooltips. Needs a trigger button first. */}
+        {/* <div>
+          <ModalWithTooltip
+            tooltipTextNoModifier="tooltip with no extra key pressed"
+            tooltipTextCmdModifier="tooltip with ⌘ key pressed"
+          />
         </div>
-      )}
+   */}
+        {!(isMobile || isNarrowWidth) && (
+          <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
+        )}
+        <div className="headerActionButtons">
+          <SearchBar onSearch={handleSearch} />
 
-      {showRefreshButton && (
-        <div className="refreshButtons">
-          <RefreshControl refreshing={pluginData.refreshing === true} firstRun={firstRun} handleRefreshClick={handleRefreshClick(false)} />
-          {showHardRefreshButton && (
-            <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton">
-              <i className={'fa-regular fa-arrows-retweet'}></i>
-              <span className="pad-left">{isNarrowWidth ? 'HR' : 'Hard Refresh'}</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {!(isMobile || isNarrowWidth) && (
-        <div className="lastRefreshInfo">
-          {/* <> */}
-          Updated: <span id="timer">{timeAgoText}</span>
-          {/* </> */}
-        </div>
-      )}
-
-      {/* TODO: use this to test out modals + tooltips. Needs a trigger button first. */}
-      {/* <div>
-        <ModalWithTooltip
-          tooltipTextNoModifier="tooltip with no extra key pressed"
-          tooltipTextCmdModifier="tooltip with ⌘ key pressed"
-        />
-      </div>
- */}
-      {!(isMobile || isNarrowWidth) && (
-        <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
-      )}
-      <div className="headerActionButtons">
-        <SearchBar onSearch={handleSearch} />
-
-        {/* Feature Flags dropdown */}
+          {/* Feature Flags dropdown */}
           {isSearchPanelAvailable && (
             <div id="searchPanelButton">
-              <i className="fa-solid fa-search" onClick={handleIconClick}></i>
+              <i
+                className={`fa-solid ${isSearchOpen ? 'fa-xmark' : 'fa-search'}`}
+                onClick={handleSearchPanelIconClick}
+                onMouseDown={(e) => {
+                  // Prevent default to avoid any unwanted behavior
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+                title={isSearchOpen ? 'Close search panel' : 'Open search panel'}
+              ></i>
             </div>
           )}
 
-        {isDevMode && (
+          {isDevMode && (
+            <DropdownMenu
+              onSaveChanges={handleChangesInSettings}
+              otherItems={featureFlagItems}
+              handleSwitchChange={handleLocalSwitchChange}
+              className={'feature-flags'}
+              iconClass="fa-solid fa-flag"
+              isOpen={openDropdownMenu === 'featureFlags'}
+              toggleMenu={() => handleToggleDropdownMenu('featureFlags')}
+              labelPosition="left"
+            />
+          )}
+          {/* Render the SettingsDialog only when it is open */}
+          {isDialogOpen && (
+            <SettingsDialog
+              items={dashboardSettingsItems}
+              className={'dashboard-settings'}
+              isOpen={isDialogOpen}
+              toggleDialog={handleToggleDialog}
+              onSaveChanges={handleChangesInSettings}
+            />
+          )}
+          {/* Display toggles dropdown menu */}
           <DropdownMenu
             onSaveChanges={handleChangesInSettings}
-            otherItems={featureFlagItems}
+            sectionItems={dropdownSectionItems}
+            otherItems={dropdownOtherItems}
             handleSwitchChange={handleLocalSwitchChange}
-            className={'feature-flags'}
-            iconClass="fa-solid fa-flag"
-            isOpen={openDropdownMenu === 'featureFlags'}
-            toggleMenu={() => handleToggleDropdownMenu('featureFlags')}
+            handleSaveInput={handleLocalSaveInput}
+            className={'filter'}
+            iconClass="fa-solid fa-filter"
+            isOpen={openDropdownMenu === 'filter'}
+            toggleMenu={() => handleToggleDropdownMenu('filter')}
             labelPosition="left"
           />
-        )}
-        {/* Render the SettingsDialog only when it is open */}
-        {isDialogOpen && (
-          <SettingsDialog
-            items={dashboardSettingsItems}
-            className={'dashboard-settings'}
-            isOpen={isDialogOpen}
-            toggleDialog={handleToggleDialog}
-            onSaveChanges={handleChangesInSettings}
-          />
-        )}
-        {/* Display toggles dropdown menu */}
-        <DropdownMenu
-          onSaveChanges={handleChangesInSettings}
-          sectionItems={dropdownSectionItems}
-          otherItems={dropdownOtherItems}
-          handleSwitchChange={handleLocalSwitchChange}
-          handleSaveInput={handleLocalSaveInput}
-          className={'filter'}
-          iconClass="fa-solid fa-filter"
-          isOpen={openDropdownMenu === 'filter'}
-          toggleMenu={() => handleToggleDropdownMenu('filter')}
-          labelPosition="left"
-        />
-        {/* Cog Icon for opening the settings dialog */}
-        <div className="dropdown">
-          <i className="fa-solid fa-gear" onClick={handleToggleDialog}></i>
-        </div>
-      </div>
-    </header>
-      <>
-        {isSearchOpen && (
-          <div>
-            <SearchPanel />
+          {/* Cog Icon for opening the settings dialog */}
+          <div className="dropdown">
+            <i className="fa-solid fa-gear" onClick={handleToggleDialog}></i>
           </div>
-        )}
-      </>
-    </>
+        </div>
+      </header>
+
+      {/* SearchPanel container with sliding animation */}
+      <div className={`search-panel-container ${isSearchOpen ? 'open' : ''}`}>{(isSearchOpen || shouldRenderPanel) && <SearchPanel onClose={closeSearchPanel} />}</div>
+    </div>
   )
 }
 

@@ -8,7 +8,7 @@
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import React, { useEffect, useRef, useState, type Node } from 'react'
+import React, { useEffect, useRef, useState, useCallback, type Node } from 'react'
 // import type { TSettingItem } from '../../types'
 // import { renderItem } from '../support/uiElementRenderHelpers'
 import './SearchPanel.css' // Import the CSS file
@@ -24,19 +24,10 @@ import { logDebug } from '@helpers/react/reactDev.js'
 // type SwitchStateMap = { [key: string]: boolean }
 
 type SearchPanelProps = {
-  // sectionItems?: Array<TSettingItem>,
-  // otherItems: Array<TSettingItem>,
-  // handleSwitchChange?: (key: string) => (e: any) => void,
-  // handleInputChange?: (key: string, e: any) => void,
-  // handleComboChange?: (key: string, e: any) => void,
-  // handleSaveInput?: (key: string) => (newValue: string) => void,
-  // onSaveChanges: (updatedSettings?: Object) => void,
-  // iconClass?: string,
-  // className?: string,
-  // labelPosition?: 'left' | 'right',
-  // isOpen: boolean,
-  // toggleMenu: () => void,
-  // onSearch: (query: string) => void,
+  /**
+   * Callback function to close the search panel
+   */
+  onClose?: () => void,
 }
 
 //--------------------------------------------------------------------------
@@ -46,24 +37,11 @@ type SearchPanelProps = {
 /**
  * SearchPanel component to display toggles and input fields for user configuration.
  * @function
- * @param {SearchPanelProps} props
+ * @param {SearchPanelProps} props - Component props
+ * @param {Function} [props.onClose] - Callback function to close the search panel
  * @returns {Node} The rendered component.
  */
-function SearchPanel({
-  // sectionItems = [],
-  // otherItems,
-  // handleSwitchChange = (key: string) => (e: any) => { },
-  // handleInputChange = (_key, _e) => { },
-  // handleComboChange = (_key, _e) => { },
-  // handleSaveInput = (key: string) => (newValue: string) => { },
-  // onSaveChanges,
-  // iconClass = 'fa-solid fa-filter',
-  // className = '',
-  // labelPosition = 'right',
-  // isOpen,
-  // toggleMenu,
-  // onSearch,
-}: SearchPanelProps): Node {
+function SearchPanel({ onClose }: SearchPanelProps): Node {
   // ----------------------------------------------------------------------
   // Context
   // ----------------------------------------------------------------------
@@ -77,7 +55,7 @@ function SearchPanel({
   //----------------------------------------------------------------------
   // Refs
   //----------------------------------------------------------------------
-  const panelRef = useRef <? HTMLDivElement > (null)
+  const panelRef = useRef<?HTMLDivElement>(null)
 
   //----------------------------------------------------------------------
   // State
@@ -86,70 +64,25 @@ function SearchPanel({
   const [query, setQuery] = useState('')
   const [isActive, setIsActive] = useState(false)
 
-  // const [localSwitchStates, setLocalSwitchStates] = useState < SwitchStateMap > (() => {
-  //   const initialStates: SwitchStateMap = {}
-  //     ;[...otherItems, ...sectionItems].forEach((item) => {
-  //       if (item.type === 'switch' && item.key) {
-  //         initialStates[item.key] = item.checked || false
-  //       }
-  //     })
-  //   return initialStates
-  // })
-
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
-  // const handleFieldChange = (key: string, value: any) => {
-  //   logDebug('SearchPanel', `menu:"${className}" Field change detected for ${key} with value ${value}`)
-  //   setChangesMade(true)
-  //   setLocalSwitchStates((prevStates) => {
-  //     const revisedSwitchStates = {
-  //       ...prevStates,
-  //       [key]: value,
-  //     }
-  //     logDebug(`SearchPanel: handleFieldChange: ${key} changed to ${value}, revised localSwitchStates`, { revisedSwitchStates })
-  //     return revisedSwitchStates
-  //   })
-  // }
-
-  // const handleSaveChanges = useCallback(
-  //   (shouldToggleMenu: boolean = true) => {
-  //     logDebug('SearchPanel/handleSaveChanges:', `menu:"${className}"  changesMade = ${String(changesMade)}`)
-  //     if (changesMade && onSaveChanges) {
-  //       console.log('SearchPanel', `handleSaveChanges: calling onSaveChanges`, { localSwitchStates })
-  //       onSaveChanges(localSwitchStates)
-  //     }
-  //     setChangesMade(false)
-  //     if (shouldToggleMenu && isOpen) {
-  //       toggleMenu()
-  //     }
-  //   },
-  //   [changesMade, localSwitchStates, onSaveChanges, toggleMenu, isOpen],
-  // )
-
-  //   const handleClickOutside = useCallback(
-  //     (event: MouseEvent) => {
-  //       if (panelRef.current && !panelRef.current.contains((event.target: any))) {
-  //         logDebug('SearchPanel', 'Click outside detected')
-  //   handleSaveChanges()
-  // }
-  //     },
-  // [handleSaveChanges],
-  //   )
-
   const handleInputChange = (event: SyntheticInputEvent<HTMLInputElement>) => {
     setQuery(event.target.value)
   }
 
-  const handleKeyDown = (event: KeyboardEvent) => {
+  /**
+   * Handles keyboard events for the search input
+   * @param {KeyboardEvent} event - The keyboard event
+   */
+  const handleKeyDown = (event: SyntheticKeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       logDebug(`SearchBar: handleKeyDown: Enter key pressed, with query term currently '${query}'`) // OK here
       handleSearch(query)
-      setQuery('')
-      setIsActive(false)
     } else if (event.key === 'Escape') {
       setQuery('')
       setIsActive(false)
+      if (onClose) onClose()
     }
   }
 
@@ -158,6 +91,8 @@ function SearchPanel({
    * @param {string} query - The search query.
    */
   const handleSearch = (query: string): void => {
+    if (!query.trim()) return
+
     console.log('Header: handleSearch', `Search query:${query}`) // not OK here
     // Send request to plugin to start a search
     const data = {
@@ -165,57 +100,66 @@ function SearchPanel({
       from: 'searchBar',
     }
     sendActionToPlugin('startSearch', data, 'Search button clicked', false)
+
+    // Reset the query and close the panel
+    setQuery('')
+    setIsActive(false)
+    if (onClose) onClose()
   }
 
   const closeSearchPanel = () => {
     setQuery('')
     setIsActive(false)
+    if (onClose) onClose()
   }
+
+  /**
+   * Handles clicks outside the search panel
+   */
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    // Check if the click target is the search panel button or its children
+    const isSearchButton = event.target instanceof Element && event.target.closest('#searchPanelButton') !== null
+
+    // Only close if the click is outside the panel and not on the search button
+    if (panelRef.current && !panelRef.current.contains(event.target instanceof Element ? event.target : null) && !isSearchButton) {
+      closeSearchPanel()
+    }
+  }, [])
 
   //----------------------------------------------------------------------
   // Effects
   //----------------------------------------------------------------------
 
-  // Update localSwitchStates from the sectionItems or otherItems only when
-  // the menu is closed. This prevents overwriting user toggles while open.
-  // useEffect(() => {
-  //   if (!isOpen) {
-  //     const updatedStates: SwitchStateMap = {}
-  //       ;[...otherItems, ...sectionItems].forEach((item) => {
-  //         if (item.type === 'switch' && item.key) {
-  //           updatedStates[item.key] = item.checked || false
-  //         }
-  //       })
-  //     // Only update state if there is a change
-  //     setLocalSwitchStates((prevStates) => {
-  //       const hasChanged = Object.keys(updatedStates).some((key) => updatedStates[key] !== prevStates[key])
-  //       logDebug(
-  //         `SearchPanel: useEffect sectionItems or otherItems changed, updating localSwitchStates`,
-  //         {
-  //           updatedStates,
-  //         },
-  //         { prevStates },
-  //         { hasChanged },
-  //       )
-  //       return hasChanged ? updatedStates : prevStates
-  //     })
-  //   }
-  // }, [isOpen, sectionItems, otherItems])
+  // Focus the search input when the panel becomes visible
+  useEffect(() => {
+    const searchInput = document.getElementById('searchTerms')
+    // Only focus if the panel is visible and the input exists
+    if (searchInput) {
+      setTimeout(() => {
+        // Check again if the element still exists and the panel is open
+        const isVisible = document.querySelector('.search-panel-container.open') !== null
+        const inputStillExists = document.getElementById('searchTerms')
+        if (isVisible && inputStillExists) {
+          inputStillExists.focus()
+        }
+      }, 800) // Delay focus until animation completes (matching the 800ms animation)
+    }
+  }, [])
 
-  // Added useEffect to detect when isOpen changes from true to false
-  // useEffect(() => {
-  //   if (!isOpen && changesMade) {
-  //     logDebug('SearchPanel', 'Menu is closing; calling handleSaveChanges')
-  //     handleSaveChanges(false) // We pass false to avoid toggling the menu again
-  //   }
-  // }, [isOpen, changesMade, handleSaveChanges])
+  // Add click outside listener
+  useEffect(() => {
+    // Use mouseup instead of mousedown to better handle the case where the user clicks on the X
+    document.addEventListener('mouseup', handleClickOutside)
+    return () => {
+      document.removeEventListener('mouseup', handleClickOutside)
+    }
+  }, [handleClickOutside])
 
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
   return (
-    <div className="panel">
-      {/* <div className="panel-contents"> */}
+    <div className="panel" ref={panelRef}>
       <div className="dialogItem">
         {/* Search Terms */}
         <input
@@ -228,21 +172,15 @@ function SearchPanel({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           autoFocus
-          tabIndex="1" />
-        <button
-          type="submit"
-          className="mainButton HAButton"
-          tabIndex="2"
-          onClick={() => handleSearch(query)}>
+          tabIndex="1"
+        />
+        <button type="submit" className="mainButton HAButton" tabIndex="2" onClick={() => handleSearch(query)}>
           Search
         </button>
         <i className="fa-regular fa-circle-question"></i>
-        {/* TEST: does this work on iOS/iPadOS? */}
-        {/* <button type="submit" tabIndex="3"
-            onClick={() => closeSearchPanel()}
-            className="mainButton">
-            Cancel
-          </button> */}
+        <button type="button" tabIndex="3" onClick={closeSearchPanel} className="mainButton HAButton">
+          Cancel
+        </button>
       </div>
 
       <div className="panel-controls">
@@ -269,18 +207,17 @@ function SearchPanel({
 
         <div className="controlItem">
           <input className="apple-switch switch-input" type="checkbox" id="casesens" name="casesens" value="casesens" />
-          <label htmlFor="casesens" className="switch" >
+          <label htmlFor="casesens" className="switch">
             Case sensitive searching?
           </label>
         </div>
         <div className="controlItem">
           <input className="apple-switch switch-input" type="checkbox" id="fullword" name="fullword" value="fullword" />
-          <label htmlFor="fullword" className="switch" >
+          <label htmlFor="fullword" className="switch">
             Match full words only?
           </label>
         </div>
       </div>
-      {/* </div> */}
       {/* TODO: make this appear when needed. Where? */}
       {/* <div className="info">
         <p>
@@ -294,7 +231,6 @@ function SearchPanel({
         <p><a href="https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/" target="_blank" rel="noreferrer">Open full documentation</a></p>
       </div> */}
     </div>
-
   )
 }
 

@@ -1,6 +1,29 @@
 /* CSS specific to SearchPanel component in jgclark.Dashboard plugin */
 /* Last updated for v2.2.0.a5 */
 
+.search-panel-container {
+  position: absolute;
+  top: 100%; /* Position right below the header */
+  left: 0;
+  right: 0;
+  z-index: 100; /* Ensure it floats above other elements */
+  overflow: hidden;
+  max-height: 0; /* Start with 0 height */
+  pointer-events: none; /* Prevent interaction when closed */
+  transition: max-height 800ms cubic-bezier(0.33, 1, 0.68, 1); /* easeOutCubic - slower opening */
+  will-change: max-height; /* Optimize for animation */
+}
+
+.search-panel-container.open {
+  max-height: 500px; /* Large enough to accommodate the panel content */
+  pointer-events: auto; /* Allow interaction when open */
+  transition: max-height 800ms cubic-bezier(0.33, 1, 0.68, 1); /* easeOutCubic - slower opening */
+}
+
+.search-panel-container:not(.open) {
+  transition: max-height 500ms cubic-bezier(0.25, 0.1, 0.25, 1); /* easeInOutCubic - smoother closing without hesitation */
+}
+
 .panel {
     display: flex;
     flex-direction: column;
@@ -8,7 +31,7 @@
     justify-content: center;
     height: fit-content;
     background-color: var(--bg-alt-color);
-    width:calc(100% - 2rem);
+    width: calc(100% - 2rem);
     margin: 0rem 1rem 0rem 1rem;
     padding: 0.7rem 0.5rem 0.3rem 0.5rem;
     border-left: 1px solid var(--divider-color);
@@ -16,8 +39,27 @@
     border-bottom: 2px solid var(--divider-color);
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
-    /* FIXME: does this need setting height to 0 first? */
-    transition: height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add shadow for floating effect */
+    transform: translateY(0);
+    transition: transform 800ms cubic-bezier(0.33, 1, 0.68, 1); /* easeOutCubic - slower opening */
+    will-change: transform; /* Optimize for animation */
+}
+
+/* When container is not open, move the panel up */
+.search-panel-container:not(.open) .panel {
+    transform: translateY(-80px); /* Increased for more dramatic effect */
+    transition: transform 500ms cubic-bezier(0.25, 0.1, 0.25, 1); /* easeInOutCubic - smoother closing without hesitation */
+}
+
+/* Panel when container is open */
+.search-panel-container.open .panel {
+    transform: translateY(0);
+    transition: transform 800ms cubic-bezier(0.33, 1, 0.68, 1); /* easeOutCubic - slower opening */
+}
+
+/* Ensure the panel is always visible within its container */
+.search-panel-container .panel {
+    visibility: visible;
 }
 
 .panel-contents {
@@ -60,6 +102,11 @@
   min-width: 12rem;
   margin-right: 0.3rem;
   font-weight: 400;
+}
+
+/* Style the cancel button to be less prominent */
+button.mainButton.HAButton {
+  margin-left: 0.3rem;
 }
 
 /* Color icons */

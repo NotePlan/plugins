@@ -1,6 +1,13 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
 /* Last updated for v2.1.8 */
 
+/* Container for header and search panel */
+.header-container {
+	position: relative;
+	width: 100%;
+	z-index: 10;
+}
+
 /* Settings for flex-based layout */
 .header {
 	font-size: 0.95rem; /* was 0.9rem for a while */
@@ -142,4 +149,18 @@
 	.lastFullRefresh {
 		width: unset;
 	}
+}
+
+/* Style for the search panel button */
+#searchPanelButton {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+#searchPanelButton i {
+  font-size: 1.1rem;
+}
+
+#searchPanelButton:hover {
+  transform: scale(1.1);
 }
