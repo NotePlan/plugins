@@ -3,9 +3,11 @@
 
 /* Container for header and search panel */
 .header-container {
-	position: relative;
+	position: sticky;
 	width: 100%;
 	z-index: 10;
+	top: 0px;
+	background-color: var(--bg-sidebar-color);
 }
 
 /* Settings for flex-based layout */
@@ -26,10 +28,8 @@
 	background-color: var(--bg-sidebar-color);
 	/* Ensure the header uses the full width -- if contained width:Nvw set to less than 100 */
 	/* width: 100%; */
-  /* stick to top */
-	position: sticky;
+	position: relative;
 	z-index: 10;
-	top: 0px;
 	border-bottom: solid 1px var(--divider-color);
 	justify-content: space-between; /* aligns items to the start and end of the container, and pads out others between them */
 }
