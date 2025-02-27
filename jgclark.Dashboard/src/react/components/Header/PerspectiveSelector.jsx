@@ -12,7 +12,7 @@
 import React, { useReducer, useEffect, useCallback } from 'react'
 import type { TPerspectiveDef } from '../../../types.js'
 import { PERSPECTIVE_ACTIONS } from '../../reducers/actionTypes'
-import { endsWithStar, setActivePerspective } from '../../../perspectiveHelpers'
+import { cleanDashboardSettings, endsWithStar, setActivePerspective } from '../../../perspectiveHelpers'
 import {
   getDisplayListOfPerspectiveNames,
   getPerspectiveNamed,
@@ -23,6 +23,7 @@ import {
 import { useAppContext } from '../AppContext.jsx'
 import DropdownSelect /*, { type Option } */ from '@helpers/react/DynamicDialog/DropdownSelect.jsx'
 import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/react/reactDev.js'
+import { compareObjects } from '@helpers/dev.js'
 import { showDialog, showConfirmationDialog, showMessageYesNoCancel } from '@helpers/react/userInput'
 // import { compareObjects, dt } from '@helpers/dev.js'
 
@@ -341,9 +342,18 @@ const PerspectiveSelector = (): React$Node => {
       // but not if the option changed only because the plugin sent it to us (no user action)
       const apn = getActivePerspectiveName(perspectiveSettings)
       logDebug('PerspectiveSelector/handlePerspectiveChange', `selectedOption.label: "${selectedOption.label}" apn: "${apn}"`)
-      const currentPerspIsModified = perspectiveSettings.find((persp) => persp.name === apn)?.isModified || false
+      const currentPersp = getPerspectiveNamed(apn, perspectiveSettings)
+      const currentPerspIsModified = currentPersp?.isModified || false
       if (currentPerspIsModified) {
-        logDebug('PerspectiveSelector/handlePerspectiveChange', `Current perspective "${apn}" has unsaved changes. Showing confirmation dialog.`)
+        // find diff between currentPersp.dashboardSettings and dashboardSettings
+        const diff = compareObjects(currentPersp?.dashboardSettings, cleanDashboardSettings(dashboardSettings))
+        if (diff) {
+          logDebug(
+            'PerspectiveSelector/handlePerspectiveChange',
+            `Current perspective "${apn}" has unsaved changes in fields: ${Object.keys(diff).join(', ')}. Showing confirmation dialog.`,
+            { diff },
+          )
+        }
         const confirmation = await showMessageYesNoCancel(
           `Your current perspective "${activePerspectiveName}" has unsaved changes. Would you like to save these changes before switching to "${selectedOption.label}"?`,
           ['Cancel', 'Switch', 'Save+Switch'],

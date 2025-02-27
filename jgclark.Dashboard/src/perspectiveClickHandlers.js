@@ -23,6 +23,7 @@ import {
   removeInvalidTagSections,
   logPerspectiveNames,
 } from './perspectiveHelpers'
+import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 
 /****************************************************************************************************************************
@@ -122,6 +123,7 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
  * @returns {TBridgeClickHandlerResult} - the result of the switch to perspective
  */
 export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  //aka doSwitchPerspective
   const switchToName = data?.perspectiveName || ''
   if (!switchToName) {
     logError('doSwitchToPerspective', `No perspective name provided.`)
@@ -140,11 +142,25 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   const prevDSWithoutTags = removeInvalidTagSections(prevDashboardSettings)
   if (!prevDSWithoutTags) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
   // apply the new perspective's settings to the main dashboard settings
+  const dashboardFilterDefaults = dashboardFilterDefs.filter((f) => f.key !== 'includedFolders')
+  const nonFilterDefaults = dashboardSettingDefs.filter((f) => f.key)
+  const dashboardSettingsDefaults = [...dashboardFilterDefaults, ...nonFilterDefaults].reduce((acc, curr) => {
+    if (curr.default && curr.key) {
+      // $FlowIgnore
+      acc[curr.key] = curr.default
+    } else {
+      logError('doSwitchToPerspective', `doSwitchToPerspective: default value for ${String(curr.key)} is not set in dashboardSettings file defaults.`)
+    }
+    return acc
+  }, {})
+  // $FlowIgnore[prop-missing] // flow doesn't know that it will be complete
+  const cleanedDefaults = cleanDashboardSettings(dashboardSettingsDefaults)
   const newDashboardSettings = {
+    ...cleanedDefaults, // helps to add settings that may be new since this perspective was last saved
     ...prevDSWithoutTags,
     ...(activeDef.dashboardSettings || {}),
     lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
-  } // the ending "changed from plugin" is important because it keeps it from sending back
+  }
   logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
   clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
   DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }

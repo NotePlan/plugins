@@ -482,6 +482,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
       logDebug(`doSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${!Array.isArray(newSettings)}`)
       if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
         const cleanedSettings = cleanDashboardSettings(newSettings)
+        // FIXME: We may need to ensure that recently added dashboardSettings are included here (see doSwitchToPerspective)
         const diff = compareObjects(activePerspDef.dashboardSettings, cleanedSettings, ['lastModified', 'lastChange'])
         clo(diff, `doSettingsChanged: diff`)
         // if !diff or  all the diff keys start with FFlag, then return
