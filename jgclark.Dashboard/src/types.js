@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-02-24 for v2.2.0.a4, @jgclark
+// Last updated 2025-02-28 for v2.2.0.b5, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -33,8 +33,7 @@ export type TDashboardSettings = {
   applyIgnoreTermsToCalendarHeadingSections: boolean,
   // FFlag_UseTagCache?: boolean,
   FFlag_ShowSearchPanel?: boolean,
-
-  // TODO: add SearchPanelSettings here - not inside a perspective
+  // TODO: searchSettings?: TSearchSettings, // an object holding a number of settings
   // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings and also add the "searchSettings" object to the list of items in cleanDashboardSettings()  so that it does not get saved to any specific perspective
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
@@ -89,7 +88,7 @@ export type TDashboardSettings = {
   showPrioritySection: boolean,
   showProjectSection: boolean,
   showQuarterSection: boolean,
-  showSearchSection: boolean,
+  showSavedSearchSection: boolean, // Note: the SEARCH Section doesn't need a setting. This is for future use for SAVEDSEARCH section(s).
   showTimeBlockSection: boolean,
   showTodaySection: boolean,
   showTomorrowSection: boolean,

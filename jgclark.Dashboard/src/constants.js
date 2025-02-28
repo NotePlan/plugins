@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 2025-02-23 for v2.2.0, @jgclark
+// Last updated 2025-02-28 for v2.2.0.b5, @jgclark
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -26,8 +26,9 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'PRIORITY', sectionName: 'Priority', showSettingName: 'showPrioritySection' },
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
   { sectionCode: 'TB', sectionName: 'Current time block', showSettingName: 'showTimeBlockSection' },
-  { sectionCode: 'SEARCH', sectionName: 'Search', showSettingName: 'showSearchSection' },
-  { sectionCode: 'SAVEDSEARCH', sectionName: 'Saved Search', showSettingName: 'showSavedSearchSection' },
+  { sectionCode: 'SEARCH', sectionName: 'Search', showSettingName: '' },
+  // For later use:
+  // { sectionCode: 'SAVEDSEARCH', sectionName: 'Saved Search', showSettingName: 'showSavedSearchSection' },
 ]
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map((s) => s.sectionCode)

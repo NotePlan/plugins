@@ -32,14 +32,14 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
     description: "Only display one instance of each item, even if it's in multiple sections",
   },
   {
-    label: 'Exclude tasks that include time blocks?',
+    label: 'Exclude tasks that contain time blocks?',
     key: 'excludeTasksWithTimeblocks',
     type: 'switch',
     default: false,
     description: 'Whether to stop display of open tasks that contain a time block',
   },
   {
-    label: 'Exclude checklists that include time blocks?',
+    label: 'Exclude checklists that contain time blocks?',
     key: 'excludeChecklistsWithTimeblocks',
     type: 'switch',
     default: false,
@@ -289,7 +289,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: 'applyCurrentFilteringToSearch',
     label: 'Apply current filtering to Search?',
-    description: 'If set, then the search will use the "What to Include and Exclude?" settings above to filter the search results. If not set, then the search will run over all open items.',
+    description: 'If set, then the search will use the "What to Include and Exclude?" settings above to filter the search results before displaying them. If not set, then the search will run over all open items.',
     type: 'switch',
     default: true,
     compactDisplay: true,
@@ -297,7 +297,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: 'dontSearchFutureItems',
     label: "Don't return future items?",
-    description: "When searching don't return items dated in the future, or from future calendar notes?",
+    description: "If set, don't return items dated in the future, or from future calendar notes.",
     type: 'switch',
     default: true,
     compactDisplay: true,
