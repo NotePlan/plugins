@@ -1,27 +1,31 @@
 /* CSS specific to SearchPanel component in jgclark.Dashboard plugin */
 /* Last updated for v2.2.0.a5 */
+/* FIXME: Transition in is not working well yet. Not sure if that's because of this file or Header.css */
 
 .search-panel-container {
   position: absolute;
   top: 100%; /* Position right below the header */
   left: 0;
   right: 0;
-  z-index: 100; /* Ensure it floats above other elements */
-  overflow: hidden;
+  z-index: 5; /* Float above sections but under header */
+  overflow: scroll;
   max-height: 0; /* Start with 0 height */
   pointer-events: none; /* Prevent interaction when closed */
-  transition: max-height 800ms cubic-bezier(0.33, 1, 0.68, 1); /* easeOutCubic - slower opening */
-  will-change: max-height; /* Optimize for animation */
+  /* transition: max-height 800ms ease-in; */
+  will-change: transform; /* Optimize for animation */
 }
 
+/* When container is open, slide the panel down more deliberately */
 .search-panel-container.open {
-  max-height: 500px; /* Large enough to accommodate the panel content */
+  max-height: 8rem; /* Large enough to accommodate the panel content and more besides */
   pointer-events: auto; /* Allow interaction when open */
-  transition: max-height 800ms cubic-bezier(0.33, 1, 0.68, 1); /* easeOutCubic - slower opening */
+  transition: transform 500ms ease-out;
 }
 
+/* FIXME: When container is not open, move the panel up more quickly */
 .search-panel-container:not(.open) {
-  transition: max-height 500ms cubic-bezier(0.25, 0.1, 0.25, 1); /* easeInOutCubic - smoother closing without hesitation */
+  transition: transform 350ms ease-in; 
+  transform: translateY(-100%);
 }
 
 .panel {
@@ -40,21 +44,21 @@
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add shadow for floating effect */
-    transform: translateY(0);
-    transition: transform 800ms cubic-bezier(0.33, 1, 0.68, 1); /* easeOutCubic - slower opening */
     will-change: transform; /* Optimize for animation */
+    /* transform: translateY(0);
+    transition: transform 800ms ease-in; */
+}
+
+/* Panel when container is open - Slide down into view */
+.search-panel-container.open .panel {
+  transform: translateY(0);
+  transition: transform 500ms ease-out;
 }
 
 /* When container is not open, move the panel up */
 .search-panel-container:not(.open) .panel {
-    transform: translateY(-80px); /* Increased for more dramatic effect */
-    transition: transform 500ms cubic-bezier(0.25, 0.1, 0.25, 1); /* easeInOutCubic - smoother closing without hesitation */
-}
-
-/* Panel when container is open */
-.search-panel-container.open .panel {
-    transform: translateY(0);
-    transition: transform 800ms cubic-bezier(0.33, 1, 0.68, 1); /* easeOutCubic - slower opening */
+  transform: translateY(-100%);
+  transition: transform 350ms ease-in;
 }
 
 /* Ensure the panel is always visible within its container */
@@ -74,7 +78,7 @@
 	/* column-rule: 1px solid var(--divider-color); */
 	column-fill: auto;
   font-size: 0.95rem;
-  padding-top: 0.4rem;
+  padding-top: 0.6rem;
 }
 
 .controlItem {

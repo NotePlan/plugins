@@ -1,5 +1,6 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
 /* Last updated for v2.1.8 */
+/* FIXME: SearchPanel transition is not working well yet. Not sure if that's because of this file or SearchPanel.css */
 
 /* Container for header and search panel */
 .header-container {
@@ -122,6 +123,7 @@
 	margin: 2px 4px 0px 0px;
 	white-space: nowrap;
 	cursor: pointer;
+	transition: transform 0.2s ease;
 	/* Center the button vertically if it's not aligning properly */
 	align-self: center;
 
@@ -131,9 +133,11 @@
 	}
 }
 
+/* On hover, make the button a little larger and darker*/
 .HAButton:hover {
 	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this when better support in dev tooling */
 	filter: brightness(110%);
+	transform: scale(1.1);
 }
 
 /* Set this button text to clip if screen is narrow */
@@ -162,5 +166,5 @@
 }
 
 #searchPanelButton:hover {
-  transform: scale(1.1);
+	transform: scale(1.1);
 }
