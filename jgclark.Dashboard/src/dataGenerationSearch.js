@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-02-24 for v2.2.0.a4, @jgclark
+// Last updated 2025-02-28 for v2.2.0.a5, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,15 +14,16 @@ import {
   // createSectionOpenItemsFromParas,
   createSectionItemObject,
   getDashboardSettings,
-  // isLineDisallowedByExcludedTerms,
+  isLineDisallowedByExcludedTerms,
   makeDashboardParas,
   mergeSections,
   setPluginData
 } from './dashboardHelpers'
 import { getActivePerspectiveName, getPerspectiveSettings } from './perspectiveHelpers'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
-import { getTodaysDateHyphenated } from '@helpers/dateTime'
+import { filenameIsInFuture, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { JSP, clo, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { getNoteByFilename } from '@helpers/note'
 import { getGlobalSharedData } from '@helpers/HTMLView'
 //-----------------------------------------------------------------
@@ -58,11 +59,12 @@ export async function externallyStartSearch(
   }
 
   let searchTermsStr = searchTermsArg
-  // if we have terms to ignore, then extend given search terms with the current term(s) to filter out as extra -term(s)
-  if (config.applyCurrentFilteringToSearch) {
-    const currentIgnoreTermsArr = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
-    searchTermsStr = (currentIgnoreTermsArr.length > 0) ? `${searchTermsStr} -${currentIgnoreTermsArr.join(' -')}` : searchTermsStr
-  }
+  // TEST: This is now handled in the getSearchResults various filters
+  // // if we have terms to ignore, then extend given search terms with the current term(s) to filter out as extra -term(s)
+  // if (config.applyCurrentFilteringToSearch) {
+  //   const currentIgnoreTermsArr = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
+  //   searchTermsStr = (currentIgnoreTermsArr.length > 0) ? `${searchTermsStr} -${currentIgnoreTermsArr.join(' -')}` : searchTermsStr
+  // }
 
 
   // Start a transient search
@@ -102,32 +104,61 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     logDebug('getSearchResults', `- found ${resultNALs.length} items from [${searchTermsRep}]`)
     logTimer('getSearchResults', startTime, `- finished search for [${searchTermsRep}]`)
 
+    logInfo('getSearchResults', `- ignoreItemsWithTerms: [${config.ignoreItemsWithTerms}]`)
+
     // Iterate and write items for the section
     let itemCount = 0
     const items: Array<TSectionItem> = []
-    resultNALs.map((rnal) => {
+    for (const rnal of resultNALs) {
       const thisID = `${sectionNumStr}-${itemCount}`
       // resultNALs is an array of noteAndLine objects, not paragraphs. We need to go and find the paragraph from the noteAndLine object
-      const thisParagraph = getParagraphFromSearchResult(rnal)
+      const thisPara = getParagraphFromSearchResult(rnal)
+      let keepItem = true
 
-      // TODO: if wanted, filter out future items from the search results, to catch items from regular notes as well as calendar notes
-      if (config.dontSearchFutureItems) {
-        // TODO:
+      // If wanted, now apply rest of Perpsective filtering: is paragraph in a disallowed section header?
+      if (config.applyCurrentFilteringToSearch && config.applyCurrentFilteringToSearch && config.ignoreItemsWithTerms !== '') {
+        logInfo('getSearchResults', `- applying Perspective filtering to item {${thisPara.content}}`)
+        if (isLineDisallowedByExcludedTerms(thisPara.content, config.ignoreItemsWithTerms)) {
+          logInfo('getSearchResults', `- ignoring item {${thisPara.content}} as it  because it contains a disallowed term`)
+          keepItem = false
+        }
+        // Additionally apply to calendar headings in this note
+        // Now using getHeadingHierarchyForThisPara() to apply to all H4/H3/H2 headings in the hierarchy for this para
+        if (config.applyIgnoreTermsToCalendarHeadingSections) {
+          const theseHeadings = getHeadingHierarchyForThisPara(thisPara)
+          for (const thisHeading of theseHeadings) {
+            if (isLineDisallowedByExcludedTerms(thisHeading, config.ignoreItemsWithTerms)) {
+              logInfo('getSearchResults', `- ignoring item {${thisPara.content}} as it under disallowed heading '${thisHeading}'`)
+              keepItem = false
+            }
+          }
+        }
       }
 
-      // TODO: Now test to see if this paragraph is in a disallowed section header
-      if (config.ignoreItemsWithTerms !== '') {
-        // TODO:
+      // If wanted, filter out future items from the search results, to catch items from regular notes as well as calendar notes
+      if (config.dontSearchFutureItems) {
+        // First ignore items that contain a future date
+        if (includesScheduledFutureDate(thisPara.content)) {
+          // logDebug('getSearchResults', `- skipping future item {${thisPara.content}}`)
+          keepItem = false
+        }
+        // Then ignore items from future notes
+        if (filenameIsInFuture(rnal.noteFilename)) {
+          // logDebug('getSearchResults', `- skipping item {${thisPara.content}} from future note ${rnal.noteFilename}`)
+          keepItem = false
+        }
       }
 
       // If we get here, then we still want this result, so make it a dashboard para and add it to the items array
-      const thisDashboardPara = makeDashboardParas([thisParagraph])[0]
-      if (itemCount < 3) {
-        clo(thisDashboardPara, `para ${itemCount}:`)
+      if (keepItem) {
+        const thisDashboardPara = makeDashboardParas([thisPara])[0]
+        if (itemCount < 3) {
+          clo(thisDashboardPara, `para ${itemCount}:`)
+        }
+        items.push(createSectionItemObject(thisID, thisDashboardPara))
+        itemCount++
       }
-      items.push(createSectionItemObject(thisID, thisDashboardPara))
-      itemCount++
-    })
+    }
     itemCount += items.length
 
     logTimer('getSearchResults', startTime, `- finished post-search processing`)
@@ -356,6 +387,5 @@ function getParagraphFromSearchResult(rnal: noteAndLine): TParagraph {
   if (!thePara) {
     throw new Error(`getParagraphFromSearchResult: no paragraph at line index ${rnal.index} found in ${rnal.noteFilename}`)
   }
-  // const thisParagraph: TParagraphForDashboard = makeDashboardParas([thePara])[0]
   return thePara
 }

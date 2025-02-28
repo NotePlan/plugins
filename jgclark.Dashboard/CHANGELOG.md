@@ -1,21 +1,23 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-- TODO: Search: Add in prevent tasks under heading (from Perspective)
 - NOT-DO: Search: add an "Ignore Perspective" link to the message which fires off a search without the inclusion/exclusions
 - TODO: UI to set the searchTerm and search options.
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component)
-- TODO: Allow ignoring future dated items found in regular and calendar notes as well.
-- TODO: add eliminateDuplicateSyncedParagraphs() to search results (for @dbw)
 
-## [2.2.0.a5] 2025-02-25
-Search:
+## [2.2.0.a5] 2025-02-29
+Search functionality:
+- Significant speed up
+- Add in prevent tasks under heading (from Perspective filtering)
+- Allow ignoring future dated items found in regular and calendar notes as well.
+Search & Header UI:
 - (dbw) Fixed focusing in the SearchBar
 - Improved display of focus in Header bar and hover animations on icon buttons
+- make Header sticky again
+- Header shows either SearchBar or SearchPanel (iff FFlag turned on)
 - Prototyped UI for Search Panel, and made available as a FeatureFlag. Toggles not hooked up yet.
 - improved SearchPanel opening animation
-- make header sticky again
-- Header shows either SearchBar or SearchPanel (iff FFlag turned on)
+- remove 'show Search' in Filter dropdown (as it can always be used)
 
 ## [2.2.0.a4] 2025-02-24
 Search:
