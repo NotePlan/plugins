@@ -13,6 +13,85 @@
   pointer-events: none; /* Prevent interaction when closed */
   /* transition: max-height 800ms ease-in; */
   will-change: transform; /* Optimize for animation */
+
+  .panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: fit-content;
+      background-color: var(--bg-alt-color);
+      width: calc(100% - 2rem);
+      margin: 0rem 1rem 0rem 1rem;
+      padding: 0.7rem 0.5rem 0.3rem 0.5rem;
+      border-left: 1px solid var(--divider-color);
+      border-right: 1px solid var(--divider-color);
+      border-bottom: 2px solid var(--divider-color);
+      border-bottom-left-radius: 10px;
+      border-bottom-right-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add shadow for floating effect */
+      will-change: transform; /* Optimize for animation */
+      /* transform: translateY(0);
+      transition: transform 800ms ease-in; */
+  }
+
+  .panel-contents {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Allow up to 3 columns of controls */
+  .panel-controls {
+    column-count: 3;
+    column-width: 12rem;
+    /* column-rule: 1px solid var(--divider-color); */
+    column-fill: auto;
+    font-size: 0.95rem;
+    padding-top: 0.6rem;
+  }
+
+  .controlItem {
+    display: flex;
+    flex-direction: row;
+    /* Avoid bad wrapping at end of columns */
+    break-inside: avoid;
+    align-items: flex-start;
+    gap: 0.25rem;
+    font-weight: 400;
+    margin-bottom: 0.4rem;
+  }
+
+  .info p{
+    font-size: small;
+    margin: 0;
+    padding-bottom: 0.2rem;
+  }
+
+  .panel .search-input {
+    padding: 2px 4px 0px 4px;
+    border: 1px solid rgb(from var(--fg-main-color) r g b/.3);
+    outline: none;
+    border-radius: 5px;
+    min-width: 12rem;
+    margin-right: 0.3rem;
+    font-weight: 400;
+  }
+
+  /* override default as we have a different background for the Panel */
+  .panel input[type="text"], .panel button {
+    background-color: var(--bg-main-color); 
+    margin-left: 0.3rem;
+  }
+
+  /* Style the Search Panel button to be more prominent */
+  .panel .mainButton {
+    font-weight: 600;
+  }
+
+  /* Color icons */
+  i {
+    color: var(--tint-color);
+  }
 }
 
 /* When container is open, slide the panel down more deliberately */
@@ -26,27 +105,6 @@
 .search-panel-container:not(.open) {
   transition: transform 350ms ease-in; 
   transform: translateY(-100%);
-}
-
-.panel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: fit-content;
-    background-color: var(--bg-alt-color);
-    width: calc(100% - 2rem);
-    margin: 0rem 1rem 0rem 1rem;
-    padding: 0.7rem 0.5rem 0.3rem 0.5rem;
-    border-left: 1px solid var(--divider-color);
-    border-right: 1px solid var(--divider-color);
-    border-bottom: 2px solid var(--divider-color);
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add shadow for floating effect */
-    will-change: transform; /* Optimize for animation */
-    /* transform: translateY(0);
-    transition: transform 800ms ease-in; */
 }
 
 /* Panel when container is open - Slide down into view */
@@ -65,62 +123,3 @@
 .search-panel-container .panel {
     visibility: visible;
 }
-
-.panel-contents {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Allow up to 3 columns of controls */
-.panel-controls {
-	column-count: 3;
-	column-width: 12rem;
-	/* column-rule: 1px solid var(--divider-color); */
-	column-fill: auto;
-  font-size: 0.95rem;
-  padding-top: 0.6rem;
-}
-
-.controlItem {
-  display: flex;
-  flex-direction: row;
-  /* Avoid bad wrapping at end of columns */
-	break-inside: avoid;
-  align-items: flex-start;
-  gap: 0.25rem;
-  font-weight: 400;
-  margin-bottom: 0.4rem;
-}
-
-.info p{
-  font-size: small;
-  margin: 0;
-  padding-bottom: 0.2rem;
-}
-
-.panel .search-input {
-  padding: 2px 4px 0px 4px;
-  border: 1px solid rgb(from var(--fg-main-color) r g b/.3);
-  outline: none;
-  border-radius: 5px;
-  min-width: 12rem;
-  margin-right: 0.3rem;
-  font-weight: 400;
-}
-
-/* override default as we have a different background for the Panel */
-.panel input[type="text"], .panel button {
-  background-color: var(--bg-main-color); 
-  margin-left: 0.3rem;
-}
-
-/* Style the Search Panel button to be more prominent */
-.panel .mainButton {
-  font-weight: 600;
-}
-
-/* Color icons */
-i {
-  color: var(--tint-color);
-}
-

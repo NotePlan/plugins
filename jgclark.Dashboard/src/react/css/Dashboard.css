@@ -64,7 +64,7 @@ dialog::backdrop {
 /* All buttons and inputs, but at lower priority */
 @layer A {
 	button,
-	input {
+	input[type="text"] {
 		color: var(--fg-sidebar-color);
 		background-color: var(--bg-alt-color);
 		border: 1px solid rgb(from var(--fg-main-color) r g b/0.3);
@@ -345,15 +345,14 @@ input.apple-switch {
 	appearance: none;
 	vertical-align: top;
 	outline: none;
-	width: 2.0rem;
+	width: 1.9rem;
 	/* 50px; */
 	height: 1.1rem;
 	/* 30px; */
-	background-color: var(--bg-main-color); /*#EEE*/;
-	/* border: 1px solid var(--divider-color); /*#DDD*/;
-	border-radius: 2.0rem;
-	/* 50px; */
-	/* box-shadow: inset -0.8rem 0 0 0 #fff; /* -20px */
+	border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
+	border-radius: 1.9rem;
+	background-color: var(--bg-main-color);
+	box-shadow: 1px 1px 1px 0px var(--divider-color);
 	margin-top: 0px;
 	margin-right: 4px;
 }
@@ -363,14 +362,15 @@ input.apple-switch:after {
 	vertical-align: top;
 	position: absolute;
 	top: 0px;
-	left: 1px;
-	background: var(--fg-alt-color); /* #FFF; */
+	left: 0px;
+	background-color: var(--fg-alt-color);
+	border: 1px solid rgb(from var(--fg-main-color) r g b / 0.5);
 	width: 1.0rem;
 	/* 26px; */
 	height: 1.0rem;
 	/* 26px; */
 	border-radius: 50%;
-	box-shadow: 1px 0px 1px rgba(0, 0, 0, 0.3);
+	box-shadow: 0px 1px 2px var(--divider-color);
 	margin-right: 1.0rem;
 }
 
@@ -378,15 +378,14 @@ input.apple-switch:checked {
 	vertical-align: top;
 	box-shadow: inset 0.8rem 0 0 0 var(--tint-color);
 	/* 20px; */
-	border-color: var(--tint-color);
 }
 
 input.apple-switch:checked:after {
 	vertical-align: top;
 	left: 0.8rem;
 	/* 20px; */
-	box-shadow: -2px 4px 3px rgba(0, 0, 0, 0.1);
-	/* 0.05;*/
+	border: 1px solid var(--tint-color);
+	box-shadow: 0px 1px 2px var(--divider-color);
 }
 
 /* Circular progress bar for Project items */
