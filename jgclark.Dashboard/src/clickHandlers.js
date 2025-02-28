@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated for v2.1.10
+// Last updated 2025-02-27 for v2.2.0.b5
 //-----------------------------------------------------------------------------
 import moment from 'moment'
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'

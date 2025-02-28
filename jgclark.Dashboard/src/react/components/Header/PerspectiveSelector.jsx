@@ -3,7 +3,7 @@
 // Dashboard React component to select and manage perspectives
 // Refactored to use useReducer to give more visibility into what's happening
 // Prevents infinite render loops by avoiding returning null
-// Last updated for 2.1.0.b
+// Last updated 2025-02-27 for v2.2.0.b5
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
