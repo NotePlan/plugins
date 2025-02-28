@@ -10,9 +10,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.2.0.a5] 2025-02-25
 Search:
-- (dbw) Fixed focusing in the search bar
-- Improved display of focus in Header bar
+- (dbw) Fixed focusing in the SearchBar
+- Improved display of focus in Header bar and hover animations on icon buttons
 - Prototyped UI for Search Panel, and made available as a FeatureFlag. Toggles not hooked up yet.
+- improved SearchPanel opening animation
+- make header sticky again
+- Header shows either SearchBar or SearchPanel (iff FFlag turned on)
 
 ## [2.2.0.a4] 2025-02-24
 Search:

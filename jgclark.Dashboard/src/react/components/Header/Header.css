@@ -77,7 +77,8 @@
 	}
 }
 
-.headerActionButtons {
+/* For icon buttons in header area */
+.headerActionIconButtons {
 	/* grid-area: dropdowns; */
 	display: flex;
 	/* gap between buttons */
@@ -101,6 +102,10 @@
 			filter: brightness(80%);
 		}
 	}
+	transition: transform 200ms ease-in-out;
+	:hover {
+		transform: scale(1.05);
+	}
 }
 
 /* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
@@ -109,7 +114,7 @@
 	margin-inline-end: 1.6rem !important;
 }
 
-/* For buttons in header area */
+/* For text buttons in header area */
 /* TODO: Ideally rationalise this with the addButton icon-buttons in the sectionInfo area */
 .HAButton {
 	font-size: 0.9rem;
@@ -123,7 +128,6 @@
 	margin: 2px 4px 0px 0px;
 	white-space: nowrap;
 	cursor: pointer;
-	transition: transform 0.2s ease;
 	/* Center the button vertically if it's not aligning properly */
 	align-self: center;
 
@@ -133,11 +137,10 @@
 	}
 }
 
-/* On hover, make the button a little larger and darker*/
+/* On hover, make the button a little larger and darker */
 .HAButton:hover {
 	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this when better support in dev tooling */
 	filter: brightness(110%);
-	transform: scale(1.1);
 }
 
 /* Set this button text to clip if screen is narrow */
@@ -158,13 +161,8 @@
 /* Style for the search panel button */
 #searchPanelButton {
   cursor: pointer;
-  transition: transform 0.2s ease;
 }
 
 #searchPanelButton i {
   font-size: 1.1rem;
-}
-
-#searchPanelButton:hover {
-	transform: scale(1.1);
 }

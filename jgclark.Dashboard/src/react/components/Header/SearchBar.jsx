@@ -86,7 +86,7 @@ const SearchBar = ({ onSearch }: Props) => {
         ref={inputRef}
       />
       <div className="search-icon" onClick={handleIconClick}>
-        <i className="fa-regular fa-search"></i>
+        <i className="fa-solid fa-search"></i>
       </div>
     </div>
   )

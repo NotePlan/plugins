@@ -161,6 +161,7 @@ function SearchPanel({ onClose }: SearchPanelProps): Node {
   return (
     <div className="panel" ref={panelRef}>
       <div className="dialogItem">
+        <i className="fa-regular fa-circle-question"></i>
         {/* Search Terms */}
         <input
           type="text"
@@ -177,8 +178,7 @@ function SearchPanel({ onClose }: SearchPanelProps): Node {
         <button type="submit" className="mainButton HAButton" tabIndex="2" onClick={() => handleSearch(query)}>
           Search
         </button>
-        <i className="fa-regular fa-circle-question"></i>
-        <button type="button" tabIndex="3" onClick={closeSearchPanel} className="mainButton HAButton">
+        <button type="button" tabIndex="3" onClick={closeSearchPanel} className="HAButton">
           Cancel
         </button>
       </div>

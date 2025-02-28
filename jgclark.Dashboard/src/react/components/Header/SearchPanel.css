@@ -98,7 +98,7 @@
   padding-bottom: 0.2rem;
 }
 
-.search-input {
+.panel .search-input {
   padding: 2px 4px 0px 4px;
   border: 1px solid rgb(from var(--fg-main-color) r g b/.3);
   outline: none;
@@ -108,9 +108,15 @@
   font-weight: 400;
 }
 
-/* Style the cancel button to be less prominent */
-button.mainButton.HAButton {
+/* override default as we have a different background for the Panel */
+.panel input[type="text"], .panel button {
+  background-color: var(--bg-main-color); 
   margin-left: 0.3rem;
+}
+
+/* Style the Search Panel button to be more prominent */
+.panel .mainButton {
+  font-weight: 600;
 }
 
 /* Color icons */

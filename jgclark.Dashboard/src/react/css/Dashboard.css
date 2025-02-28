@@ -364,7 +364,7 @@ input.apple-switch:after {
 	position: absolute;
 	top: 0px;
 	left: 1px;
-	background: var(--fg-main-color); /* #FFF; */
+	background: var(--fg-alt-color); /* #FFF; */
 	width: 1.0rem;
 	/* 26px; */
 	height: 1.0rem;

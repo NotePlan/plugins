@@ -288,11 +288,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         {!(isMobile || isNarrowWidth) && (
           <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
         )}
-        <div className="headerActionButtons">
-          <SearchBar onSearch={handleSearch} />
+        <div className="headerActionIconButtons">
 
           {/* Feature Flags dropdown */}
-          {isSearchPanelAvailable && (
+          {isSearchPanelAvailable ? (
             <div id="searchPanelButton">
               <i
                 className={`fa-solid ${isSearchOpen ? 'fa-xmark' : 'fa-search'}`}
@@ -305,6 +304,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
                 title={isSearchOpen ? 'Close search panel' : 'Open search panel'}
               ></i>
             </div>
+          ) : (
+            <SearchBar onSearch={handleSearch} />
           )}
 
           {isDevMode && (
