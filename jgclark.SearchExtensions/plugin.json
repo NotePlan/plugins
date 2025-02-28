@@ -281,7 +281,7 @@
         "NotePlan",
         "Simplified"
       ],
-      "default": "NotePlan-style",
+      "default": "Simplified",
       "required": true
     },
     {
@@ -351,7 +351,7 @@
     {
       "key": "highlightResults",
       "title": "Highlight matching search terms?",
-      "description": "Whether to ==highlight== the matches in the result lines. (Works best when using a theme with highlighting.)",
+      "description": "Whether to ==highlight== the matches in the result lines. (Works best when using a theme that supports highlighting.)",
       "type": "bool",
       "default": true,
       "required": true

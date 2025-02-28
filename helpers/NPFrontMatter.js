@@ -818,7 +818,9 @@ export function normalizeValue(value: string): string {
 export function updateFrontMatterVars(_note: TEditor | TNote, desiredAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {
     const isEditor = _note.note ? true : false
-    const note: TNote = isEditor ? _note.note : _note
+    // $FlowIgnore[incompatible-type]
+    // $FlowIgnore[prop-missing]
+    const note: TNote = isEditor ? Editor.note : _note
     // Ensure the note has front matter
     if (!ensureFrontmatter(note)) {
       logError('updateFrontMatterVars', `Failed to ensure front matter for note "${note.filename || ''}".`)
