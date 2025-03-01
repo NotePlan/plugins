@@ -4,10 +4,14 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - NOT-DO: Search: add an "Ignore Perspective" link to the message which fires off a search without the inclusion/exclusions
 - TODO: UI to set the searchTerm and search options.
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component)
+- TODO: rationalise settings/options, and migrate some names
 
-## [2.2.0.a5] 2025-02-29
+## [2.2.0.a6] 2025-02-29
+- Changing colours for switch controls to actual Apple values for dark/light mode (other than using our 'tint').
+
+## [2.2.0.a5] 2025-02-28
 Search functionality:
-- Significant speed up
+- Significant speed up (if there are 'ignore terms' set)
 - Add in prevent tasks under heading (from Perspective filtering)
 - Allow ignoring future dated items found in regular and calendar notes as well.
 Search & Header UI:

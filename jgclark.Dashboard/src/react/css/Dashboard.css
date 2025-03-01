@@ -343,16 +343,16 @@ html {
 input.apple-switch {
 	position: relative;
 	appearance: none;
-	vertical-align: top;
+	vertical-align: baseline; /* top; */
 	outline: none;
-	width: 1.9rem;
+	width: 2.0rem;
 	/* 50px; */
-	height: 1.1rem;
+	height: 1.2rem;
 	/* 30px; */
-	border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
+	/* border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3); */
 	border-radius: 1.9rem;
-	background-color: var(--bg-main-color);
-	box-shadow: 1px 1px 1px 0px var(--divider-color);
+	background-color: var(--bg-apple-switch-color);
+	/* box-shadow: 1px 1px 1px 0px var(--divider-color); */
 	margin-top: 0px;
 	margin-right: 4px;
 }
@@ -361,31 +361,34 @@ input.apple-switch:after {
 	content: "";
 	vertical-align: top;
 	position: absolute;
-	top: 0px;
-	left: 0px;
-	background-color: var(--fg-alt-color);
-	border: 1px solid rgb(from var(--fg-main-color) r g b / 0.5);
+	top: 1px;
+	left: 1px;
+	background-color: #fff; /* var(--fg-alt-color); */
+	/* border: 1px solid rgb(from var(--fg-main-color) r g b / 0.5); */
 	width: 1.0rem;
 	/* 26px; */
 	height: 1.0rem;
 	/* 26px; */
 	border-radius: 50%;
-	box-shadow: 0px 1px 2px var(--divider-color);
+	box-shadow: 0px 0px 2px var(--divider-color);
 	margin-right: 1.0rem;
 }
 
 input.apple-switch:checked {
 	vertical-align: top;
-	box-shadow: inset 0.8rem 0 0 0 var(--tint-color);
+	background-color: var(--tint-color);
+	/* box-shadow: inset 0.8rem 0 0 0 var(--tint-color); */
 	/* 20px; */
 }
 
 input.apple-switch:checked:after {
 	vertical-align: top;
-	left: 0.8rem;
+	top: 1px;
+	left: 0.9rem;
 	/* 20px; */
-	border: 1px solid var(--tint-color);
-	box-shadow: 0px 1px 2px var(--divider-color);
+	background-color:  #fff; /* var(--fg-alt-color); */
+	/* border: 1px solid var(--tint-color); */
+	box-shadow: 0px 0px 2px var(--divider-color);
 }
 
 /* Circular progress bar for Project items */

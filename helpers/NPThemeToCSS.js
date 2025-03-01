@@ -197,35 +197,17 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     output.push(makeCSSSelector('button, input', [`font-family: "${bodyFont}"`]))
 
     // Set a few styles here that require computed light and dark settings
-    // Note: Now found a way to do this just in CSS so moved to plugins
-    // if (isLightTheme) {
-    //   output.push(makeCSSSelector('button, input', [
-    //     'color: var(--fg-main-color)',
-    //     'background-color: var(--bg-alt-color)',
-    //   ]))
-    //   output.push(
-    //     makeCSSSelector('.fake-button a', [
-    //       'color: var(--fg-main-color)',
-    //       'background-color: var(--bg-alt-color)',
-    //       'border-color: #DFE0E0',
-    //       'box-shadow: 0 1px 1px #CBCBCB',
-    //     ]),
-    //   )
-    // } else {
-    //   // dark theme
-    //   output.push(makeCSSSelector('button, input', [
-    //     'color: var(--fg-main-color)',
-    //     'background-color: var(--bg-alt-color)',
-    //   ]))
-    //   output.push(
-    //     makeCSSSelector('.fake-button a', [
-    //       'color: var(--fg-main-color)',
-    //       'background-color: var(--bg-alt-color)',
-    //       'border-color: #5E5E5E',
-    //       'box-shadow: 0 -1px 1px #6F6F6F',
-    //     ]),
-    //   )
-    // }
+    // Note: These days probably could do this just in CSS, but for clarity doing so here.
+    if (currentThemeMode === 'light') {
+      rootSel.push(`--bg-apple-input-color: #fbfbfb`)
+      rootSel.push(`--bg-apple-switch-color: #e6e5e7`)
+      rootSel.push(`--bg-apple-button-color: #fcfcfc`)
+    } else {
+      // dark theme
+      rootSel.push(`--bg-apple-input-color: #1f1d21`)
+      rootSel.push(`--bg-apple-switch-color: #323234`)
+      rootSel.push(`--bg-apple-button-color: #5c5c5f`)
+    }
 
     // Set italic text if present
     tempSel = []
