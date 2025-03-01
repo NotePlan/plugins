@@ -7,7 +7,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: rationalise settings/options, and migrate some names
 
 ## [2.2.0.a6] 2025-02-29
-- Changing colours for switch controls to actual Apple values for dark/light mode (other than using our 'tint').
+Search:
+- Changing colours for switch controls to actual Apple values for dark/light mode (other than using our 'tint'). Also added a subtle border in dark mode which Apple doesn't, as it can mandate a particular background color, whereas we use several.
+- made the search text fields type 'search' which gives slight automatic UX improvements on some platforms.
+Other Dev notes:
+- Change so we don't have to be in DEV mode (with its slew of logs) to still see FFlag items.  You will still need to go into DEV mode to see the dropdown, and therefore turn things on/off, but once they're on they stay on even if you go to (say) INFO log level.
 
 ## [2.2.0.a5] 2025-02-28
 Search functionality:

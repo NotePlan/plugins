@@ -237,10 +237,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
   const isDevMode = logSettings._logLevel === 'DEV'
   const showRefreshButton = pluginData.platform !== 'iOS'
-  const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
+  const showHardRefreshButton = /* isDevMode && */ dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
   const isMobile = pluginData.platform !== 'macOS'
   const isNarrowWidth = window.innerWidth <= 700
-  const isSearchPanelAvailable = isDevMode && dashboardSettings?.FFlag_ShowSearchPanel
+  const isSearchPanelAvailable = /* isDevMode && */ dashboardSettings?.FFlag_ShowSearchPanel
 
   // ----------------------------------------------------------------------
   // Render
@@ -290,7 +290,6 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         )}
         <div className="headerActionIconButtons">
 
-          {/* Feature Flags dropdown */}
           {isSearchPanelAvailable ? (
             <div id="searchPanelButton">
               <i
@@ -308,6 +307,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             <SearchBar onSearch={handleSearch} />
           )}
 
+          {/* Feature Flags dropdown */}
           {isDevMode && (
             <DropdownMenu
               onSaveChanges={handleChangesInSettings}
@@ -320,6 +320,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
               labelPosition="left"
             />
           )}
+
           {/* Render the SettingsDialog only when it is open */}
           {isDialogOpen && (
             <SettingsDialog
@@ -330,6 +331,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
               onSaveChanges={handleChangesInSettings}
             />
           )}
+
           {/* Display toggles dropdown menu */}
           <DropdownMenu
             onSaveChanges={handleChangesInSettings}

@@ -161,10 +161,10 @@ function SearchPanel({ onClose }: SearchPanelProps): Node {
   return (
     <div className="panel" ref={panelRef}>
       <div className="dialogItem">
-        <i className="fa-regular fa-circle-question"></i>
+        <i className="fa-regular fa-circle-question pad-right"></i>
         {/* Search Terms */}
         <input
-          type="text"
+          type="search"
           id="searchTerms"
           name="searchTerms"
           className="search-input"
