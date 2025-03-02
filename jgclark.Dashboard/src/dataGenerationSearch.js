@@ -5,8 +5,10 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { extendedSearch, type SearchOptions } from '../../jgclark.SearchExtensions/src/saveSearch'
-import type { noteAndLine, resultOutputType } from '../../jgclark.SearchExtensions/src/searchHelpers'
+import { extendedSearch, } from '../../jgclark.SearchExtensions/src/externalSearch'
+import type {
+  noteAndLine, resultOutputType, SearchOptions
+} from '../../jgclark.SearchExtensions/src/searchHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { savedSearch1 } from './demoData'
 import type { TDashboardSettings, TSection, TSectionItem } from './types'
@@ -59,18 +61,11 @@ export async function externallyStartSearch(
   }
 
   let searchTermsStr = searchTermsArg
-  // TEST: This is now handled in the getSearchResults various filters
-  // // if we have terms to ignore, then extend given search terms with the current term(s) to filter out as extra -term(s)
-  // if (config.applyCurrentFilteringToSearch) {
-  //   const currentIgnoreTermsArr = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
-  //   searchTermsStr = (currentIgnoreTermsArr.length > 0) ? `${searchTermsStr} -${currentIgnoreTermsArr.join(' -')}` : searchTermsStr
-  // }
 
-
-  // Start a transient search
+  // Start a search
   const newSections = await getSearchResults(searchTermsStr, config, searchOptions)
 
-  // Add the new sections to the existing sections
+  // Add the new section(s) to the existing sections
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const pluginData = reactWindowData.pluginData
   const existingSections = pluginData.sections
@@ -225,8 +220,6 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
 
 /**
  * Get saved search results from all items in NP (constrained by searchOptions).
- * @param {string} searchTermsArg // TODO: remove this?
- * @param {SearchOptions} searchOptions // TODO: remove this?
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData (optional, default is false)
  * @returns {Array<TSection>} new section(s) for search results

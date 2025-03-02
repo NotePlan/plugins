@@ -4,6 +4,7 @@
 
 ## [1.5.0.b2] - 2025-03-02
 Allow hashtags and mentions to work in 'full-word' matching
+Hook up other /replace commands.
 Under-the-hood changes, to support being called by other plugins:
 - write externalSearch()
 - move some functions to helpers/dataManipulation.js

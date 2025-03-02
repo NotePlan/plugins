@@ -129,17 +129,42 @@
       "comment": "Note: no arguments possible"
     },
     {
-      "name": "replace",
+      "name": "replace over all notes",
       "alias": [
-        "ss",
-        "save"
+        "repl"
+      ],
+      "description": "Search and Replace over all notes",
+      "jsFunction": "replaceOverAll",
+      "arguments": [
+        "search term(s) (separated by commas)",
+        "replace expression",
+        "paragraph types (separated by commas)"
+      ]
+    },
+    {
+      "name": "replace over Regular notes",
+      "alias": [
+        "replreg"
+      ],
+      "description": "Search and Replace over Project notes",
+      "jsFunction": "replaceOverNotes",
+      "arguments": [
+        "search term(s) (separated by commas)",
+        "replace expression",
+        "paragraph types (separated by commas)"
+      ]
+    },
+    {
+      "name": "replace over Calendar notes",
+      "alias": [
+        "replcal"
       ],
       "description": "Search and Replace over Calendar notes",
       "jsFunction": "replaceOverCalendar",
       "arguments": [
-        "search term",
+        "search term(s) (separated by commas)",
         "replace expression",
-        "paragraph types"
+        "paragraph types (separated by commas)"
       ]
     },
     {

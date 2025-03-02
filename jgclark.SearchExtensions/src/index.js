@@ -2,16 +2,15 @@
 //-----------------------------------------------------------------------------
 // More advanced searching
 // Jonathan Clark
-// Last updated 2025-01-17 for v1.4.0, @jgclark
+// Last updated 2025-03-02 for v1.5.0, @jgclark
 //-----------------------------------------------------------------------------
 
-// Note: following waiting for v1.5
-// export {
-//   replace,
-//   replaceOverAll,
-//   replaceOverNotes,
-//   replaceOverCalendar
-// } from './replace'
+export {
+  replace,
+  replaceOverAll,
+  replaceOverNotes,
+  replaceOverCalendar
+} from './replace'
 export {
   quickSearch,
   saveSearch,
