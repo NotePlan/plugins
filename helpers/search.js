@@ -133,6 +133,16 @@ export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: stri
  */
 export function fullWordMatch(searchTerm: string, textToSearch: string, caseSensitive: boolean = true): boolean {
   try {
+    // write a regex that will test whether 'searchTerm' is a whole word in 'textToSearch' but treating '#' and '@' as word characters
+    const isWholeWord = (searchTerm: string, textToSearch: string): boolean => {
+      const regex = new RegExp(`(^|[^\\w#@])${searchTerm}([^\\w#@]|$)`, 'g')
+      return regex.test(textToSearch)
+    }
+
+    // First try special case for hashtags and mentions
+    if (searchTerm.startsWith('#') || searchTerm.startsWith('@')) {
+      return isWholeWord(searchTerm, textToSearch)
+    }
     // First need to escape any special characters in the search term
     const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = caseSensitive
