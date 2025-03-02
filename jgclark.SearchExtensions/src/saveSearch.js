@@ -9,13 +9,13 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import type { resultOutputType, SearchOptions } from './searchHelpers'
 import {
   createFormattedResultLines,
   getSearchSettings,
   getSearchTermsRep,
   OPEN_PARA_TYPES,
   resultCounts,
-  type resultOutputType,
   runExtendedSearches,
   validateAndTypeSearchTerms,
   writeSearchResultsToNote,
@@ -36,7 +36,7 @@ import {
 
 //-------------------------------------------------------------------------------
 
-// New thinking on destinations
+// Destinations:
 // If we remove all options to specify note title, then simplifies
 // callback /non-Quick: arg0 fixed; 1=searchTerm; 2=dest 'refresh' ? ; arg
 // user     /non-Quick: arg0 fixed; 1=searchTerm; 2=dest 'newNote' ?
@@ -199,13 +199,22 @@ export async function saveSearch(
       config.fullWordSearching = fullWordArg
     }
 
+    // Form SearchOptions object
+    const searchOptions: SearchOptions = {
+      noteTypesToInclude: noteTypesToInclude,
+      foldersToInclude: [],
+      foldersToExclude: config.foldersToExclude,
+      paraTypesToInclude: paraTypesToInclude,
+      caseSensitiveSearching: config.caseSensitiveSearching,
+    }
+
     //---------------------------------------------------------
     // Search using search() API
     CommandBar.showLoading(true, `${commandNameToDisplay} ...`)
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const resultsProm: resultOutputType = runExtendedSearches(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude)
+    const resultsProm: resultOutputType = runExtendedSearches(validatedSearchTerms, config, searchOptions)
 
     await CommandBar.onMainThread()
 
@@ -273,6 +282,7 @@ export async function saveSearch(
           logDebug(pluginJson, resultOutputLines.length)
           resultOutputLines.unshift(xCallbackLine)
           // resultOutputLines.unshift(`at ${nowLocaleShortDateTime()}`)
+          // $FlowIgnore[prop-missing]
           replaceSection(currentNote, searchTermsRepStr, thisResultHeading, config.headingLevel, resultOutputLines.join('\n'))
         }
         break
@@ -338,70 +348,5 @@ export async function saveSearch(
   }
   catch (err) {
     logError(pluginJson, err.message)
-  }
-}
-
-export type SearchOptions = {
-  noteTypesToInclude?: Array<string>,
-  foldersToInclude?: Array<string>,
-  foldersToExclude?: Array<string>,
-  caseSensitiveSearching?: boolean,
-  fullWordSearching?: boolean,
-  paraTypesToInclude?: Array<ParagraphType>,
-  syncOpenResultItems?: boolean,
-  fromDateStr?: string,
-  toDateStr?: string,
-}
-
-/**
- * Entry point for extended search where all the parameters are supplied.
- * @param {string} searchTerms as a string with items separated by spaces, to suit taking from a search box.
- * @param {SearchOptions} searchOptions object for various settings
- */
-export async function extendedSearch(
-  searchTerms: string,
-  searchOptions: SearchOptions,
-): Promise<resultOutputType> {
-  try {
-    // get relevant settings
-    const config = await getSearchSettings()
-    logDebug(pluginJson, `Starting extendedSearch() with searchTerms: '${searchTerms}'`)
-    clo(searchOptions, 'extendedSearch searchOptions:')
-
-    // Add config settings if not given
-    if (searchOptions.caseSensitiveSearching != null) {
-      config.caseSensitiveSearching = searchOptions.caseSensitiveSearching
-    }
-    if (searchOptions.fullWordSearching != null) {
-      config.fullWordSearching = searchOptions.fullWordSearching
-    }
-    // Set syncOpenResultItems to false, as we don't want to sync open result items when just passing results back to the calling function
-    config.syncOpenResultItems = false
-    logDebug('extendedSearch', `- config.syncOpenResultItems: ${String(config.syncOpenResultItems)}`)
-
-    // Validate the search terms: an empty return means failure. There is error logging in the function.
-    const validatedSearchTerms = await validateAndTypeSearchTerms(searchTerms, false)
-    if (validatedSearchTerms == null || validatedSearchTerms.length === 0) {
-      throw new Error(`These search terms aren't valid. Please see Plugin Console for details.`)
-    }
-    // Now optimise the order we tackle the search terms. Note: now moved into runExtendedSearches()
-    // const orderedSearchTerms = optimiseOrderOfSearchTerms(validatedSearchTerms)
-
-    //---------------------------------------------------------
-    // Call main extended search function
-    // CommandBar.showLoading(true, `Searching ...`)
-    await CommandBar.onAsyncThread()
-
-    // TODO: should this switch to using an object?
-    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const results: resultOutputType = await runExtendedSearches(validatedSearchTerms, searchOptions.noteTypesToInclude || ['notes', 'calendar'], searchOptions.foldersToInclude || [], searchOptions.foldersToExclude || [], config, searchOptions.paraTypesToInclude || [], searchOptions.fromDateStr || '', searchOptions.toDateStr || '')
-
-    await CommandBar.onMainThread()
-
-    return results
-  }
-  catch (err) {
-    logError(pluginJson, err.message)
-    return null
   }
 }

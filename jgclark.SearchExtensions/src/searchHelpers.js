@@ -70,6 +70,20 @@ export type reducedFieldSet = {
   lineIndex: number;
 }
 
+// Settings for a particular search
+// Note: different from the config for the SearchExtensions plugin (below)
+export type SearchOptions = {
+  noteTypesToInclude?: Array<string>,
+  foldersToInclude?: Array<string>,
+  foldersToExclude?: Array<string>,
+  caseSensitiveSearching?: boolean,
+  fullWordSearching?: boolean,
+  paraTypesToInclude?: Array<ParagraphType>,
+  syncOpenResultItems?: boolean,
+  fromDateStr?: string,
+  toDateStr?: string,
+}
+
 //-------------------------------------------------------------------------------
 // Constants
 
@@ -77,7 +91,8 @@ export const OPEN_PARA_TYPES = ['open', 'scheduled', 'checklist', 'checklistSche
 export const SYNCABLE_PARA_TYPES = ['open', 'scheduled', 'checklist', 'checklistScheduled']
 
 //------------------------------------------------------------------------------
-// Settings
+// Config for SearchExtensions plugin
+// Note: different from the settings for a particular search (above)
 
 export type SearchConfig = {
   autoSave: boolean,
@@ -623,15 +638,23 @@ export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteA
  */
 export async function runExtendedSearches(
   termsToMatchArr: Array<typedSearchTerm>,
-  noteTypesToInclude: Array<string>,
-  foldersToInclude: Array<string>,
-  foldersToExclude: Array<string>,
   config: SearchConfig,
-  paraTypesToInclude?: Array<ParagraphType> = [],
-  fromDateStr?: string,
-  toDateStr?: string,
+  searchOptions: SearchOptions,
+  // noteTypesToInclude: Array<string>,
+  // foldersToInclude: Array<string>,
+  // foldersToExclude: Array<string>,
+  // paraTypesToInclude?: Array<ParagraphType> = [],
+  // fromDateStr?: string,
+  // toDateStr?: string,
 ): Promise<resultOutputType> {
   try {
+    const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
+    const foldersToInclude = searchOptions.foldersToInclude || []
+    const foldersToExclude = searchOptions.foldersToExclude || []
+    const paraTypesToInclude = searchOptions.paraTypesToInclude || []
+    const fromDateStr = searchOptions.fromDateStr || ''
+    const toDateStr = searchOptions.toDateStr || ''
+
     const termsResults: Array<resultObjectType> = []
     let resultCount = 0
     let outerStartTime = new Date()
@@ -650,7 +673,8 @@ export async function runExtendedSearches(
 
       // do search for this search term, using configured options
       const resultObject: resultObjectType =
-        await runExtendedSearch(typedSearchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, config, paraTypesToInclude)
+        // await runExtendedSearch(typedSearchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, config, paraTypesToInclude)
+        await runExtendedSearch(typedSearchTerm, config, searchOptions)
 
       // Save this search term and results as a new object in results array
       termsResults.push(resultObject)
@@ -667,7 +691,7 @@ export async function runExtendedSearches(
     logTimer('runExtendedSearches', outerStartTime, `- ${orderedSearchTerms.length} searches completed -> ${resultCount} results`)
 
     //------------------------------------------------------------------
-    // Work out what subset of results to return, taking into the must/may/not terms, and potentially dates too
+    // Work out what subset of results to return, taking into account the must/may/not terms, and potentially dates too
     outerStartTime = new Date()
     const consolidatedResultSet: resultOutputType = applySearchOperators(termsResults, config.resultLimit, fromDateStr, toDateStr)
     logTimer('runExtendedSearches', outerStartTime, `- Applied search logic`)
@@ -708,13 +732,21 @@ export async function runExtendedSearches(
  */
 export async function runExtendedSearch(
   typedSearchTerm: typedSearchTerm,
-  noteTypesToInclude: Array<string>,
-  foldersToInclude: Array<string>,
-  foldersToExclude: Array<string>,
+  // noteTypesToInclude: Array<string>,
+  // foldersToInclude: Array<string>,
+  // foldersToExclude: Array<string>,
   config: SearchConfig,
-  paraTypesToInclude?: Array<ParagraphType> = [],
+  // paraTypesToInclude?: Array<ParagraphType> = [],
+  searchOptions: SearchOptions,
 ): Promise<resultObjectType> {
   try {
+    const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
+    const foldersToInclude = searchOptions.foldersToInclude || []
+    const foldersToExclude = searchOptions.foldersToExclude || []
+    const paraTypesToInclude = searchOptions.paraTypesToInclude || []
+    const fromDateStr = searchOptions.fromDateStr || ''
+    const toDateStr = searchOptions.toDateStr || ''
+
     // const headingMarker = '#'.repeat(config.headingLevel)
     const fullSearchTerm = typedSearchTerm.term
     let searchTerm = fullSearchTerm

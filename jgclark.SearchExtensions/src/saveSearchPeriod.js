@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2025-01-17 for v1.4.0, @jgclark
+// Last updated 2025-03-02 for v1.5.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -11,11 +11,11 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
+import type { resultOutputType, SearchOptions } from './searchHelpers'
 import {
   createFormattedResultLines,
   getSearchSettings,
   getSearchTermsRep,
-  type resultOutputType,
   runExtendedSearches,
   validateAndTypeSearchTerms,
   writeSearchResultsToNote
@@ -156,6 +156,17 @@ export async function searchPeriod(
     const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg && paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
     logDebug(pluginJson, `arg3 -> para types: [${String(paraTypesToInclude)}]`)
 
+    // Form SearchOptions object
+    const searchOptions: SearchOptions = {
+      noteTypesToInclude: ['calendar'],
+      foldersToInclude: [],
+      foldersToExclude: [],
+      paraTypesToInclude: paraTypesToInclude,
+      caseSensitiveSearching: config.caseSensitiveSearching,
+      fromDateStr: fromDateStr,
+      toDateStr: toDateStr,
+    }
+
     //---------------------------------------------------------
     // Search using search() API available from v3.6.0.
     // The helper function now takes care of the filtering by date: it matches results only from Calendar notes from that date range (measured at the first date of the Calendar note's period).
@@ -163,7 +174,9 @@ export async function searchPeriod(
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: as no await, which gets resolved later
-    const resultsProm: resultOutputType = runExtendedSearches(validatedSearchTerms, ['calendar'], [], [], config, paraTypesToInclude, fromDateStr, toDateStr)
+    // const resultsProm: resultOutputType = runExtendedSearches(validatedSearchTerms, ['calendar'], [], [], config, paraTypesToInclude, fromDateStr, toDateStr)
+    // $FlowFixMe[incompatible-exact] Note: as no await, which gets resolved later
+    const resultsProm: resultOutputType = runExtendedSearches(validatedSearchTerms, config, searchOptions)
     await CommandBar.onMainThread()
 
     //---------------------------------------------------------

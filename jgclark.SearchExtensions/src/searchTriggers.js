@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 8.12.2023 for v1.3.0, @jgclark
+// Last updated 2025-03-02 for v1.3.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -18,21 +18,44 @@ import { searchPeriod } from './saveSearchPeriod'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 
 
+/**
+ * Parses a URL string and returns an object of key-value pairs of the URL parameters.
+ * 
+ * @param {string} query - The URL string to parse.
+ * @returns {Object<string, string>} An object containing the key-value pairs from the URL parameters.
+ */
 function getUrlParams(query: string): { [key: string]: string } {
   const search = /([^&=]+)=?([^&]*)/g
   let match
-  const decode = function (s) {
-    return decodeURIComponent(s.replace(/\+/g, // Regex for replacing addition symbol with a space
-      " "))
+  const decode = function (s: string) {
+    // Regex for replacing addition symbol with a space
+    return decodeURIComponent(s.replace(/\+/g, " "))
   }
-  const urlParams = {}
-  while (match = search.exec(query)) {
+  const urlParams: { [key: string]: string } = {}
+  while ((match = search.exec(query)) !== null) {
     urlParams[decode(match[1])] = decode(match[2])
     console.log(`Found param: ${decode(match[1])} / ${decode(match[2])}`)
   }
   clo(urlParams)
   return urlParams
 }
+
+// Note: AI suggests a cleaner way to do it:
+// function getQueryParameters(url) {
+// const urlObj = new URL(url)
+// const params = new URLSearchParams(urlObj.search)
+// const paramList = []
+// for (const [key, value] of params.entries()) {
+//   paramList.push({ key, value })
+// }
+// return paramList
+// }
+
+// Example usage
+// const url = 'https://example.com/page?name=John&age=30&city=NewYork'
+// const parameters = getQueryParameters(url)
+// console.log(parameters)
+// Output: [{ key: 'name', value: 'John' }, { key: 'age', value: '30' }, { key: 'city', value: 'NewYork' }]
 
 
 /**
