@@ -15,8 +15,8 @@ import {
   createFormattedResultLines,
   getSearchSettings,
   getSearchTermsRep,
-  type resultOutputTypeV3,
-  runSearchesV2,
+  type resultOutputType,
+  runExtendedSearches,
   validateAndTypeSearchTerms,
   writeSearchResultsToNote
 } from './searchHelpers'
@@ -163,7 +163,7 @@ export async function searchPeriod(
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: as no await, which gets resolved later
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], [], config, paraTypesToInclude, fromDateStr, toDateStr)
+    const resultsProm: resultOutputType = runExtendedSearches(validatedSearchTerms, ['calendar'], [], [], config, paraTypesToInclude, fromDateStr, toDateStr)
     await CommandBar.onMainThread()
 
     //---------------------------------------------------------

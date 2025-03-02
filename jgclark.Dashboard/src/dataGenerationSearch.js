@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-02-28 for v2.2.0.a5, @jgclark
+// Last updated 2025-03-01 for v2.2.0.a6, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { extendedSearch, type SearchOptions } from '../../jgclark.SearchExtensions/src/saveSearch'
-import type { noteAndLine, resultOutputTypeV3 } from '../../jgclark.SearchExtensions/src/searchHelpers'
+import type { noteAndLine, resultOutputType } from '../../jgclark.SearchExtensions/src/searchHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { savedSearch1 } from './demoData'
 import type { TDashboardSettings, TSection, TSectionItem } from './types'
@@ -98,7 +98,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     const startTime = new Date() // for timing only
 
     // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
-    const searchResultSet: resultOutputTypeV3 = await extendedSearch(searchTermsStr, searchOptions)
+    const searchResultSet: resultOutputType = await extendedSearch(searchTermsStr, searchOptions)
     const searchTermsRep = searchResultSet.searchTermsRepArr.join(' ')
     const resultNALs: Array<noteAndLine> = searchResultSet.resultNoteAndLineArr
     logDebug('getSearchResults', `- found ${resultNALs.length} items from [${searchTermsRep}]`)
@@ -286,7 +286,7 @@ export async function getSavedSearchResults(
       // // TODO: ...
 
       // // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
-      // const searchResultSet: resultOutputTypeV3 = await extendedSearch(extendedSearchTerms, searchOptions)
+      // const searchResultSet: resultOutputType = await extendedSearch(extendedSearchTerms, searchOptions)
       // const searchTermsRep = searchResultSet.searchTermsRepArr.join(' ')
       // const resultNALs: Array<noteAndLine> = searchResultSet.resultNoteAndLineArr
       // logDebug('getSavedSearchResults', `- found ${resultNALs.length} items from [${searchTermsRep}]`)

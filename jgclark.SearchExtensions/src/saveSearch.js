@@ -5,7 +5,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2025-02-22 for v1.5.0, @jgclark
+// Last updated 2025-03-02 for v1.5.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -15,8 +15,8 @@ import {
   getSearchTermsRep,
   OPEN_PARA_TYPES,
   resultCounts,
-  type resultOutputTypeV3,
-  runSearchesV2,
+  type resultOutputType,
+  runExtendedSearches,
   validateAndTypeSearchTerms,
   writeSearchResultsToNote,
 } from './searchHelpers'
@@ -179,7 +179,7 @@ export async function saveSearch(
       }
     }
 
-    // Now optimise the order we tackle the search terms. Note: now moved into runSearchesV2()
+    // Now optimise the order we tackle the search terms. Note: now moved into runExtendedSearches()
 
     // Get the paraTypes to include
     // $FlowFixMe[incompatible-type]
@@ -205,7 +205,7 @@ export async function saveSearch(
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude)
+    const resultsProm: resultOutputType = runExtendedSearches(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude)
 
     await CommandBar.onMainThread()
 
@@ -361,7 +361,7 @@ export type SearchOptions = {
 export async function extendedSearch(
   searchTerms: string,
   searchOptions: SearchOptions,
-): Promise<resultOutputTypeV3> {
+): Promise<resultOutputType> {
   try {
     // get relevant settings
     const config = await getSearchSettings()
@@ -384,7 +384,7 @@ export async function extendedSearch(
     if (validatedSearchTerms == null || validatedSearchTerms.length === 0) {
       throw new Error(`These search terms aren't valid. Please see Plugin Console for details.`)
     }
-    // Now optimise the order we tackle the search terms. Note: now moved into runSearchesV2()
+    // Now optimise the order we tackle the search terms. Note: now moved into runExtendedSearches()
     // const orderedSearchTerms = optimiseOrderOfSearchTerms(validatedSearchTerms)
 
     //---------------------------------------------------------
@@ -394,7 +394,7 @@ export async function extendedSearch(
 
     // TODO: should this switch to using an object?
     // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const results: resultOutputTypeV3 = await runSearchesV2(validatedSearchTerms, searchOptions.noteTypesToInclude || ['notes', 'calendar'], searchOptions.foldersToInclude || [], searchOptions.foldersToExclude || [], config, searchOptions.paraTypesToInclude || [], searchOptions.fromDateStr || '', searchOptions.toDateStr || '')
+    const results: resultOutputType = await runExtendedSearches(validatedSearchTerms, searchOptions.noteTypesToInclude || ['notes', 'calendar'], searchOptions.foldersToInclude || [], searchOptions.foldersToExclude || [], config, searchOptions.paraTypesToInclude || [], searchOptions.fromDateStr || '', searchOptions.toDateStr || '')
 
     await CommandBar.onMainThread()
 

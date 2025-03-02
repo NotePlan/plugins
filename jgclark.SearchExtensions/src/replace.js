@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands to search and replace over NP notes.
 // Jonathan Clark
-// Last updated 2024-10-26 for v1.4.0, @jgclark
+// Last updated 2025-03-02 for v1.5.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,8 +11,8 @@ import {
   getSearchSettings,
   // getSearchTermsRep,
   logBasicResultLines,
-  type resultOutputTypeV3,
-  runSearchesV2,
+  type resultOutputType,
+  runExtendedSearches,
   type typedSearchTerm,
   validateAndTypeSearchTerms,
 } from './searchHelpers'
@@ -137,7 +137,7 @@ export async function replace(
     CommandBar.showLoading(true, `${commandNameToDisplay} ...`)
     await CommandBar.onAsyncThread()
     // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const searchResultsProm: resultOutputTypeV3 = runSearchesV2([searchTerm], noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
+    const searchResultsProm: resultOutputType = runExtendedSearches([searchTerm], noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
     // TODO: regex search in this function
     await CommandBar.onMainThread()
 
@@ -214,7 +214,7 @@ export async function replace(
     logTimer('replace', startTime, `replace() finished.`)
 
     // // Confirmatory check: run search again and see if it is zero
-    // const checkResults: resultOutputTypeV3 = await runSearchesV2([searchTerm], noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
+    // const checkResults: resultOutputType = await runExtendedSearches([searchTerm], noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
     // if (checkResults.resultCount > 0) {
     //   logWarn('replace', `I've double-checked the replace, and found that there are still ${checkResults.resultCount} unchanged copies of '${searchStr}'`)
     // } else {

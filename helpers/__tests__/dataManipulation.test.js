@@ -1,8 +1,8 @@
+// @flow
 /* globals describe, expect, test, toEqual */
 
 import colors from 'chalk'
 import * as d from '../dataManipulation'
-
 const FILE = `${colors.yellow('helpers/dataManipulation')}`
 // const section = colors.blue
 
