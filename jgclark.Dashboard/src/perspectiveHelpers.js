@@ -462,7 +462,14 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
   logDebug('switchToPerspective', `Starting looking for name ${name} in ...`)
   logPerspectives(allDefs)
 
-  const newPerspectiveSettings = setActivePerspective(name, allDefs).map((p) => ({ ...p, isModified: p.name === name ? p.isModified : false }))
+  const newPerspectiveSettings = setActivePerspective(name, allDefs).map((p) => ({
+    ...p,
+    isModified: false,
+    // the following is a little bit inefficient, but given that people can change tags in numerous ways
+    // we need to clean the dashboardSettings for each perspective just to be sure
+    dashboardSettings: cleanDashboardSettings(p.dashboardSettings),
+  }))
+
   logDebug('switchToPerspective', `New perspectiveSettings:`)
   logPerspectives(newPerspectiveSettings)
   const newPerspectiveDef = getPerspectiveNamed(name, newPerspectiveSettings)
@@ -485,7 +492,7 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
   )
 
   // Send message to Reviews (if open) to re-generate the Projects list and render it (if that window is already open)
-  const res = await DataStore.invokePluginCommandByName("generateProjectListsAndRenderIfOpen", "jgclark.Reviews", [])
+  const res = await DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])
 
   return newPerspectiveSettings
 }
@@ -568,6 +575,7 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAll
  * @returns {TDashboardSettings} - settings without irrelevant tag sections
  */
 export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashboardSettings {
+  // aka validateTagSections validateTags limitTagsToShow
   const tagSectionDetails = getTagSectionDetails(settingsIn)
   const showTagSectionKeysToRemove = Object.keys(settingsIn).filter(
     (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
