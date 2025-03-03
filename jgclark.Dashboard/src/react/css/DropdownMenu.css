@@ -19,7 +19,10 @@
   opacity: 0;
   position: absolute;
   top: 2rem;
-  right: 2rem;
+  /* Fix the positioning to be right-aligned with the icon */
+  right: 0;
+  /* Remove the conflicting positioning that might cause flickering */
+  /* right: 2rem; */
 }
 
 /* Make dropdown content only 1 column wide on narrow (i.e. iOS) screens */
@@ -62,6 +65,7 @@
 .dropdown-content.show {
   display: grid;
   width: max-content;
+  /* Remove the right positioning that might cause flickering */
   /* right: -1rem; */
   opacity: 1;
   padding: 0.75rem;
@@ -78,12 +82,12 @@
   margin-right: 1rem; */
 }
 
-/* TEST: disable now we have headerActionButtons container */
-/* .dropdown {
+/* Make sure the dropdown is positioned correctly relative to its parent */
+.dropdown {
   position: relative;
   display: inline-block;
   color: var(--tint-color);
-} */
+}
 
 /* Style for switch-line */
 .dropdown .switch-line {
