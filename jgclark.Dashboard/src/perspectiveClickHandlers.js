@@ -153,12 +153,12 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
     return acc
   }, {})
   // $FlowIgnore[prop-missing] // flow doesn't know that it will be complete
-  const newDashboardSettings = cleanDashboardSettings({
+  let newDashboardSettings = {
     ...dashboardSettingsDefaults, // helps to add settings that may be new since this perspective was last saved
     ...prevDashboardSettings,
     ...(activeDef.dashboardSettings || {}),
-  })
-
+  }
+  newDashboardSettings = removeInvalidTagSections(newDashboardSettings) // just to make sure we don't have any invalid tag sections left over from previous perspectives
   newDashboardSettings.lastChange = `_Switched to perspective ${switchToName} ${dt()} changed from plugin`
   logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
   clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
