@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.11.1] 2025-03-06 @dwertheimer
+
+- Workaround for frontmatter UI and CSV strings
+
 ## [1.11.0] 2025-01-26 @dwertheimer
 
 - Add <select> and <choose> to template forms

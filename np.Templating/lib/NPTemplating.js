@@ -430,10 +430,10 @@ export default class NPTemplating {
         })
         .filter(Boolean)
 
-      let resultTemplates = []
-      let matches = []
-      let exclude = []
-      let allTypes = []
+      let resultTemplates: Array<TNote> = []
+      let matches: Array<string> = []
+      let exclude: Array<string> = []
+      let allTypes: Array<string> = []
 
       // get master list of types
       for (const template of allTemplates) {
@@ -441,11 +441,13 @@ export default class NPTemplating {
           const templateData = await this.getTemplate(template.value)
           if (templateData.length > 0) {
             const attrs = await new FrontmatterModule().attributes(templateData)
-
-            const type = attrs?.type || ''
-
-            if (type.length > 0) {
-              allTypes = allTypes.concat(type.split(',')).map((type) => type?.trim())
+            let type = attrs?.type || ''
+            if (typeof type === 'string') {
+              if (type.length > 0) {
+                allTypes = allTypes.concat(type.split(',')).map((type) => type?.trim())
+              }
+            } else if (Array.isArray(type)) {
+              allTypes = allTypes.concat(...type)
             }
           }
         }
@@ -482,7 +484,7 @@ export default class NPTemplating {
             const attrs = await new FrontmatterModule().attributes(templateData)
 
             const type = attrs?.type || ''
-            let types = (type.length > 0 && type?.split(',')) || ['*']
+            let types = (type.length > 0 && typeof type === 'string' ? type?.split(',') : type) || ['*']
             types.forEach((element, index) => {
               types[index] = element.trim() // trim element whitespace
             })
