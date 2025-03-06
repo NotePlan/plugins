@@ -4,6 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.11.3] 2025-03-06 @dwertheimer
+
+- Fix: Improve Template error message (put it in a code block)
+
+## [1.11.2] 2025-03-06 @dwertheimer
+
+- Fix: Deal with multiple templates found for title
+
 ## [1.11.1] 2025-03-06 @dwertheimer
 
 - Workaround for frontmatter UI and CSV strings

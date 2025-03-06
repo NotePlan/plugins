@@ -13,7 +13,7 @@ import { debug, helpInfo } from './helpers'
 
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
-import { clo, log, logError, logDebug } from '@helpers/dev'
+import { clo, log, logError, logDebug, logWarn, timer } from '@helpers/dev'
 import { datePicker, askDateInterval, chooseFolder } from '@helpers/userInput'
 
 /*eslint-disable */
@@ -611,7 +611,13 @@ export default class NPTemplating {
   }
 
   static async getTemplate(templateName: string = '', options: any = { showChoices: true, silent: false }): Promise<string> {
+    const startTime = new Date()
+    const isFilename = templateName.endsWith('.md') || templateName.endsWith('.txt')
+    logDebug(pluginJson, `NPTemplating.getTemplate: templateName="${templateName}" isFilename=${String(isFilename)}`)
     await this.setup()
+    if (templateName.length === 0) {
+      return ''
+    }
 
     const parts = templateName.split('/')
     const filename = parts.pop()
@@ -622,62 +628,82 @@ export default class NPTemplating {
     if (!templateName.includes(templateFolderName)) {
       templateFilename = `${templateFolderName}/${templateName}`
     }
-    let selectedTemplate = ''
-    const normalizedFilename = await this.normalizeToNotePlanFilename(filename)
-    templateFilename = templateFilename.replace(filename, normalizedFilename)
+    let selectedTemplate: TNote | void = null
 
     try {
-      templateFilename = templateFilename.replace(/.md|.txt/gi, '')
-      selectedTemplate = await DataStore.projectNoteByFilename(`${templateFilename}.md`)
-      if (!selectedTemplate) {
-        selectedTemplate = await DataStore.projectNoteByFilename(`${templateFilename}.txt`)
-      }
-      // if the template can't be found using actual filename (as it is on disk)
-      // this will occur due to an issue in NotePlan where name on disk does not match note (or template) name
-      if (!selectedTemplate) {
-        const parts = templateName.split('/')
-        if (parts.length > 0) {
-          // templateFilename = `${templateFolderName}/${templateName}`
-          templateFilename = parts.pop()
+      if (isFilename) {
+        // dbw NOTE: I don't understand why we need to do all of this rather than just use the filename directly
+        // const normalizedFilename = await this.normalizeToNotePlanFilename(filename)
+        // templateFilename = templateFilename.replace(filename, normalizedFilename)
+        // templateFilename = templateFilename.replace(/.md|.txt/gi, '')
+        // const extension = DataStore.defaultFileExtension || 'md'
+        // const fullFilename = `${templateFilename}.${extension}`
+        const fullFilename = templateFilename
+        logDebug(pluginJson, `NPTemplating.getTemplate: Searching for template "${fullFilename}"`)
+        selectedTemplate = await DataStore.projectNoteByFilename(fullFilename)
 
-          let templates = await DataStore.projectNoteByTitle(templateFilename, true, false)
-          if (templates.length > 1) {
-            let templatesSecondary = []
-            for (const template of templates) {
-              if (template && template.filename.startsWith(templateFolderName)) {
-                const parts = template.filename.split('/')
-                parts.pop()
-                // $FlowIgnore
-                templatesSecondary.push({ value: template.filename, label: `${parts.join('/')}/${template.title}`, title: template.title })
-              }
-            }
-
-            if (templatesSecondary.length > 1) {
-              // $FlowIgnore
-              let selectedItem = (await chooseOption<TNote, void>('Choose Template', templatesSecondary)) || null
-              if (selectedItem) {
-                // $FlowIgnore
-                selectedTemplate = await DataStore.projectNoteByFilename(selectedItem)
-              }
-            } else {
-              // $FlowIgnore
-              selectedTemplate = await DataStore.projectNoteByFilename(templatesSecondary[0].value)
-            }
-          } else {
-            selectedTemplate = Array.isArray(templates) && templates.length > 0 ? templates[0] : null
+        // if the template can't be found using actual filename (as it is on disk)
+        // this will occur due to an issue in NotePlan where name on disk does not match note (or template) name
+        if (!selectedTemplate) {
+          const parts = templateName.split('/')
+          if (parts.length > 0) {
+            // templateFilename = `${templateFolderName}/${templateName}`
+            templateFilename = parts.pop()
           }
         }
       }
 
+      if (!selectedTemplate) {
+        // we don't have a template yet, so we need to find one using title
+        logDebug(pluginJson, `NPTemplating.getTemplate: Searching for template by title without path "${originalFilename}"`)
+        let templates = await DataStore.projectNoteByTitle(originalFilename, true, false)
+        clo(templates, `NPTemplating.getTemplate: found templates`)
+        if (templates && templates.length > 1) {
+          logWarn(pluginJson, `NPTemplating.getTemplate: Multiple templates found for "${templateFilename || ''}"`)
+          let templatesSecondary = []
+          for (const template of templates) {
+            if (template && template.filename.startsWith(templateFolderName)) {
+              const parts = template.filename.split('/')
+              parts.pop()
+              // $FlowIgnore
+              templatesSecondary.push({ value: template.filename, label: `${parts.join('/')}/${template.title}`, title: template.title })
+            }
+          }
+
+          if (templatesSecondary.length > 1) {
+            // $FlowIgnore
+            let selectedItem = (await chooseOption<TNote, void>('Choose Template', templatesSecondary)) || null
+            if (selectedItem) {
+              // $FlowIgnore
+              selectedTemplate = await DataStore.projectNoteByFilename(selectedItem)
+            }
+          } else if (templatesSecondary.length === 1) {
+            // $FlowIgnore
+            selectedTemplate = await DataStore.projectNoteByFilename(templatesSecondary[0].value)
+          } else {
+            logError(pluginJson, `NPTemplating.getTemplate: No templates found for ${templateFilename}`)
+          }
+        } else {
+          selectedTemplate = Array.isArray(templates) && templates.length > 0 ? templates[0] : null
+        }
+      }
+
+      if (selectedTemplate) {
+        logDebug(pluginJson, `NPTemplating.getTemplate: Found template "${selectedTemplate.filename}" in ${timer(startTime)}`)
+      }
+
       // template not found
       if (!selectedTemplate && !options.silent) {
-        await CommandBar.prompt('Template Error', `Unable to locate ${originalFilename}`)
+        await CommandBar.prompt('Template Error', `Unable to locate "${originalFilename}"`)
+        logDebug(pluginJson, `NPTemplating.getTemplate: Unable to locate ${originalFilename} ${timer(startTime)}`)
+        return ''
       }
 
       let templateContent = selectedTemplate?.content || ''
 
       let isFrontmatterTemplate = templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent) : false
 
+      logDebug(pluginJson, `NPTemplating.getTemplate: isFrontmatterTemplate=${String(isFrontmatterTemplate)} ${timer(startTime)}`)
       if (isFrontmatterTemplate) {
         return templateContent || ''
       }
@@ -698,6 +724,7 @@ export default class NPTemplating {
 
       return templateContent
     } catch (error) {
+      logError(pluginJson, `NPTemplating.getTemplate: Error="${error.message}" ${timer(startTime)}`)
       return this.templateErrorMessage('NPTemplating.getTemplate', error)
     }
   }

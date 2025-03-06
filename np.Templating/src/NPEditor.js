@@ -37,7 +37,7 @@ import { chooseHeading, showMessage } from '@helpers/userInput'
  *    replaceNoteContents - if yes (true doesn't work not sure why), will replace all the content in the note (other than the title)
  */
 export async function writeNoteContents(
-  note: TNote,
+  note: CoreNoteFields,
   renderedTemplate: string,
   headingName: string,
   location: string,
@@ -65,6 +65,7 @@ export async function writeNoteContents(
       return
     } else {
       if (/<choose>/i.test(writeUnderHeading) || /<select>/i.test(writeUnderHeading)) {
+        // $FlowIgnore -- note does not exist on CoreNoteFields (only on Editor)
         writeUnderHeading = await chooseHeading(note, true)
       }
       if (writeUnderHeading) {
@@ -87,6 +88,14 @@ export async function writeNoteContents(
         if (location === 'append') {
           logDebug(pluginJson, `writeNoteContents appending "${renderedTemplate}"`)
           note.appendParagraph(renderedTemplate, 'text')
+          // $FlowIgnore -- note does not exist on CoreNoteFields (only on Editor)
+        } else if (location === 'cursor' && note.note) {
+          // we are in the Editor
+          const selection = Editor.selectedParagraphs
+          const indents = selection?.length > 0 ? selection[0].indents : 0
+          logDebug(pluginJson, `writeNoteContents inserting "${renderedTemplate}" at cursor with indents ${indents}`)
+          clo(selection, `writeNoteContents selection`)
+          Editor.insertParagraphAtCursor(renderedTemplate, 'text', indents)
         } else {
           logDebug(pluginJson, `writeNoteContents prepending "${renderedTemplate}" at index ${startIndex}`)
           note.insertParagraph(renderedTemplate, startIndex, 'text')
@@ -129,13 +138,14 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
         await CommandBar.prompt('You must supply a template title as the first argument', helpInfo('Presets'))
       }
       let failed = false
+
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
 
       if (!templateData) {
         failed = true
       }
 
-      const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
+      const isFrontmatter = failed ? false : new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (!failed && isFrontmatter) {
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
         // clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes after preRender`)
@@ -221,7 +231,7 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
           if (noteTitle === '<current>') {
             if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
               if (Editor.note) {
-                await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, options)
+                await writeNoteContents(Editor, renderedTemplate, writeUnderHeading, location, options)
               }
             } else {
               await CommandBar.prompt('You must have either Project Note or Calendar Note open when using "<current>".', '')
@@ -253,7 +263,7 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
           }
         }
       } else {
-        await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Presets'))
+        await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Self-Running Templates'))
       }
     }
   } catch (error) {
