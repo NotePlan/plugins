@@ -40,7 +40,8 @@ export async function newNote(): Promise<void> {
           }
         }
 
-        if (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note`) === 'Yes') {
+        const res = (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note`)
+        if (res === 'Yes') {
           await Editor.openNoteByFilename(filename)
         }
       } else {
@@ -83,7 +84,8 @@ export async function newNoteFromClipboard(): Promise<void> {
         const filename = (await DataStore.newNoteWithContent(content, currentFolder)) ?? ''
         logDebug(pluginJson, ` -> filename: ${filename}`)
 
-        if (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Clipboard`) === 'Yes') {
+        const res = (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Clipboard`)
+        if (res === 'Yes') {
           await Editor.openNoteByFilename(filename)
         }
       } else {
@@ -160,7 +162,8 @@ export async function newNoteFromSelection(): Promise<void> {
           if (insertBackLink) {
             newNote.appendParagraph(`^ Moved from [[${origFile}]]:`, 'text')
           }
-          if ((await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Selection`)) === 'Yes') {
+          const res2 = await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Selection`)
+          if (res2 === 'Yes') {
             await Editor.openNoteByFilename(filename)
           }
         } else {
