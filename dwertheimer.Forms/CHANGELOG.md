@@ -4,8 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
-## [x.x.x] - yyyy-mm-dd (githubUserName)
+## [1.0.2] 2025-03-06 @dwertheimer
 
+- Add validation for reserved fields (will log a warning if a reserved field is used)
+- Add validation for receivingTemplateTitle in template frontmatter
+
+## [1.0.1] 2025-03-06 @dwertheimer
+
+- Workaround for frontmatter UI and CSV strings
 ### Added
 List what has been added. If nothing has been changed, this section can be removed.
 
