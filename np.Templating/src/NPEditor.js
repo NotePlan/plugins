@@ -20,7 +20,7 @@ import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
 import pluginJson from '../plugin.json'
 import { hyphenatedDate } from '@helpers/dateTime'
-import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
+import { selectFirstNonTitleLineInEditor, getNoteFromIdentifier } from '@helpers/NPnote'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { chooseHeading, showMessage } from '@helpers/userInput'
 
@@ -132,6 +132,7 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
     if (selectedTemplate.length !== 0) {
       //TODO: call overrideSettingsWithTypedArgs() for JSON inputs from form
       const argObj = args && typeof args === 'string' && args.includes('__isJSON__') ? JSON.parse(args) : overrideSettingsWithStringArgs({}, args || '')
+      clo(argObj, `templateFileByTitleEx argObj`)
 
       // args && args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
       if (!selectedTemplate || selectedTemplate.length === 0) {
@@ -139,16 +140,21 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
       }
       let failed = false
 
-      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      // const templateData = await NPTemplating.getTemplate(selectedTemplate) -- seems to load every template in the DataStore -- I don't think it's needed
+      const theNote = await getNoteFromIdentifier(selectedTemplate)
+      let templateData = ''
 
-      if (!templateData) {
+      if (!theNote) {
         failed = true
+      } else {
+        templateData = theNote.content || ''
       }
 
       const isFrontmatter = failed ? false : new FrontmatterModule().isFrontmatterTemplate(templateData)
+      logDebug(pluginJson, `templateFileByTitleEx: "${theNote?.title || ''}": isFrontmatter:${String(isFrontmatter)}`)
       if (!failed && isFrontmatter) {
-        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
-        // clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes after preRender`)
+        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, argObj)
+        clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes after preRender`)
         let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
         if (data['newNoteTitle']) {
           // if form or template has a newNoteTitle field then we need to call templateNew
@@ -157,8 +163,8 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
           return
         }
         let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
-        // logDebug(pluginJson, `templateFileByTitleEx Template Render Complete renderedTemplate= "${renderedTemplate}"`)
-        // clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes before set`)
+        logDebug(pluginJson, `templateFileByTitleEx Template Render Complete renderedTemplate= "${renderedTemplate}"`)
+        clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes before set`)
         // Note:getNoteTitled is going to replace openNoteTitle and writeNoteTitle
         // Whether it's run silently or opened in Editor is sent in the URL
 
