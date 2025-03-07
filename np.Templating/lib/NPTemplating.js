@@ -13,7 +13,7 @@ import { debug, helpInfo } from './helpers'
 
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
-import { clo, log, logError, logDebug, logWarn, timer } from '@helpers/dev'
+import { clo, log, logError, logDebug, logWarn, timer, clof } from '@helpers/dev'
 import { datePicker, askDateInterval, chooseFolder } from '@helpers/userInput'
 
 /*eslint-disable */
@@ -657,7 +657,7 @@ export default class NPTemplating {
         // we don't have a template yet, so we need to find one using title
         logDebug(pluginJson, `NPTemplating.getTemplate: Searching for template by title without path "${originalFilename}"`)
         let templates = await DataStore.projectNoteByTitle(originalFilename, true, false)
-        clo(templates, `NPTemplating.getTemplate: found templates`)
+        clof(templates, `NPTemplating.getTemplate: found ${templates?.length || 0} templates`, ['title', 'filename'], true)
         if (templates && templates.length > 1) {
           logWarn(pluginJson, `NPTemplating.getTemplate: Multiple templates found for "${templateFilename || ''}"`)
           let templatesSecondary = []

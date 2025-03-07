@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.11.4] 2025-03-07 @dwertheimer
+
+- Fix: templateFileByTitleEx (templateRunner) was failing to process EJS tags in the frontmatter of receiving template (thx @jgclark)
+
 ## [1.11.3] 2025-03-06 @dwertheimer
 
 - Fix: Improve Template error message (put it in a code block)
