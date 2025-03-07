@@ -118,3 +118,31 @@ export const castHeadingLevelFromMixed = (val: { [string]: ?mixed }, key: string
   return val.hasOwnProperty(key) ? ((val[key]: any): headingLevelType) : 2
 }
 
+/**
+ * Recursively rename keys at any level of an object
+ * Written by cursor.ai
+ * @param {any} obj
+ * @param {string} oldKey
+ * @param {string} newKey
+ * @returns {any}
+ */
+export function renameKeys(obj: any, oldKey: string, newKey: string): any {
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map(item => renameKeys(item, oldKey, newKey))
+  }
+
+  // Handle objects
+  if (obj && typeof obj === 'object') {
+    return Object.keys(obj).reduce((acc, key) => {
+      const value = obj[key]
+      const newKeyName = key === oldKey ? newKey : key
+
+      acc[newKeyName] = renameKeys(value, oldKey, newKey)
+      return acc
+    }, {})
+  }
+
+  // Return non-object values as is
+  return obj
+}
