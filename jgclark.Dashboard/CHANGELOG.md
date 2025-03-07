@@ -2,9 +2,12 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 - NOT-DO: Search: add an "Ignore Perspective" link to the message which fires off a search without the inclusion/exclusions
-- TODO: UI to set the searchTerm and search options.
+- TODO(later): v2.3.0 UI to set the searchTerm and search options.
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component)
-- TODO: rationalise settings/options, and migrate some names
+
+## [2.2.0.a7] 2025-03-07
+- DEV: migrate some setting key names
+- DEV: move some search settings into consolidated searchSettings object
 
 ## [2.2.0.a6] 2025-02-29
 - Changing colours for switch controls to actual Apple values for dark/light mode (other than using our 'tint').

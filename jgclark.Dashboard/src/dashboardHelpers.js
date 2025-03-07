@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-02-21 for v2.2.0.a1
+// Last updated 2025-03-07 for v2.2.0
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -21,7 +21,7 @@ import type {
   TSectionCode,
   TSectionItem,
 } from './types'
-import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { renameKeys, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getAPIDateStrFromDisplayDateStr, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
@@ -75,26 +75,55 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
       } plugin: `)
     )
   }
+  // clo(pluginSettings, 'pluginSettings:') // OK
 
-  const parsedSettings = parseSettings(pluginSettings.dashboardSettings)
+  let parsedAllSettings: any = parseSettings(pluginSettings)
+  clo(parsedAllSettings, `getDashboardSettings - parsedAllSettings:`)
+  // Migrate some setting names to new names
+  // TODO(later): remove this code in v2.3.0+
+  // The obsolete setting keys will be removed in cleanDashboardSettings() any time a perspective is updated.
+  // FIXME: help, this doesn't work
+  parsedAllSettings = migratePluginSettings(parsedAllSettings)
+  // Save the settings back to the DataStore
+  DataStore.settings = parsedAllSettings
+
+  const parsedDashboardSettings: TDashboardSettings = parseSettings(parsedAllSettings.dashboardSettings)
+  clo(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings:`)
 
   // TODO: finish this
-  parsedSettings.showSearchSection = true
+  parsedDashboardSettings.showSearchSection = true
 
   // Note: Workaround for number types getting changed to strings at some point in our Settings system.
-  parsedSettings.newTaskSectionHeadingLevel = parseInt(parsedSettings.newTaskSectionHeadingLevel || '2')
-  parsedSettings.maxItemsToShowInSection = parseInt(parsedSettings.maxItemsToShowInSection || '24')
-  parsedSettings.lookBackDaysForOverdue = parseInt(parsedSettings.lookBackDaysForOverdue || '7')
-  parsedSettings.autoUpdateAfterIdleTime = parseInt(parsedSettings.autoUpdateAfterIdleTime || '10')
+  parsedDashboardSettings.newTaskSectionHeadingLevel = parseInt(parsedDashboardSettings.newTaskSectionHeadingLevel || '2')
+  parsedDashboardSettings.maxItemsToShowInSection = parseInt(parsedDashboardSettings.maxItemsToShowInSection || '24')
+  parsedDashboardSettings.lookBackDaysForOverdue = parseInt(parsedDashboardSettings.lookBackDaysForOverdue || '7')
+  parsedDashboardSettings.autoUpdateAfterIdleTime = parseInt(parsedDashboardSettings.autoUpdateAfterIdleTime || '10')
 
   // When the underlying issue is tackled, then TEST: to see whether JSON number type handling has been corrected
-  // clvt(parsedSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedSettings.newTaskSectionHeadingLevel:`)
+  // clvt(parsedDashboardSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedDashboardSettings.newTaskSectionHeadingLevel:`)
   // Warn if any of the settings are not numbers
-  // if (typeof parsedSettings.newTaskSectionHeadingLevel !== 'number') {
-  //   logWarn('getDashboardSettings', `parsedSettings.newTaskSectionHeadingLevel is not a number type: ${parsedSettings.newTaskSectionHeadingLevel}`)
+  // if (typeof parsedDashboardSettings.newTaskSectionHeadingLevel !== 'number') {
+  //   logWarn('getDashboardSettings', `parsedDashboardSettings.newTaskSectionHeadingLevel is not a number type: ${parsedDashboardSettings.newTaskSectionHeadingLevel}`)
   // }
 
-  return parsedSettings
+  return parsedDashboardSettings
+}
+
+/**
+ * Migrate some setting names to new names.
+ * FIXME: help, this doesn't work, though the new tests do.
+ * Note: can't easily be done with updateSettingData() in index.js as there can be multiple copies of these settings at different object levels.
+ * @author @jgclark
+ * @tests in dataManipulation.test.js
+ */
+export function migratePluginSettings(settingsIn: any): any {
+  // Migrate some setting names to new names
+  let migratedSettings = renameKeys(settingsIn, 'perspectivesEnabled', 'usePerspectives')
+  migratedSettings = renameKeys(migratedSettings, 'includeFolderName', 'showFolderName')
+  migratedSettings = renameKeys(migratedSettings, 'includeScheduledDates', 'showScheduledDates')
+  migratedSettings = renameKeys(migratedSettings, 'includeTaskContext', 'showTaskContext')
+  clo(migratedSettings, `migratePluginSettings - migratedSettings:`)
+  return migratedSettings
 }
 
 /**

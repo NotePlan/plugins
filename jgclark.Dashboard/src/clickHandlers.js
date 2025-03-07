@@ -438,33 +438,15 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   }
 }
 
-// Note: not currently used
-// Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
-// export async function doShowLineInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-//   // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
-//   const { title, filename, content } = validateAndFlattenMessageObject(data)
-//   const note = await Editor.openNoteByTitle(title)
-//   if (note) {
-//     const res = highlightParagraphInEditor({ filename: note.filename, content: content }, true)
-//     logDebug(
-//       'bridgeClickDashboardItem',
-//       `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`,
-//     )
-//     return handlerResult(true)
-//   } else {
-//     logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title '${title}' in Editor`)
-//     return handlerResult(false)
-//   }
-// }
-
 /**
- * Update a single key in DataStore.settings
+ * Update a single key in DataStore.settings.
+ * Note: This is specific to dashboardSettings.
+ * Note: See doPerspectiveSettingsChanged() for updating perspectiveSettings.
  * @param {MessageDataObject} data - a MDO that should have a key "settings" with the items to be set to the settingName key
  * @param {string} settingName - the single key to set to the value of data.settings
  * @returns {TBridgeClickHandlerResult}
+ * @author @dwertheimer
  */
-//TODO: simplify this function to handle only dashboardSettings (maybe with perspectiveSettings) but not perspectiveSettings alone
-// it was too confusing to handle both, so I split it out into doPerspectiveSettingsChanged()
 export async function doSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
   clo(data, `doSettingsChanged() starting with data = `)
   const newSettings = data.settings
@@ -479,7 +461,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
     if (newSettings.perspectivesEnabled) {
       // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
       const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
-      logDebug(`doSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${!Array.isArray(newSettings)}`)
+      logDebug(`doSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
       if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
         const cleanedSettings = cleanDashboardSettings(newSettings)
         // FIXME: We may need to ensure that recently added dashboardSettings are included here (see doSwitchToPerspective)
@@ -536,7 +518,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
     updatedPluginData.perspectiveSettings = perspectivesToSave
   }
   await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
-  const refreshes = settingName === 'dashboardSettings' ? ['REFRESH_ALL_ENABLED_SECTIONS'] : [] // don't refresh if we were saving just perspectiveSettings // TEST: changed from REFRESH_ALL_SECTIONS -- the last place this was used.
+  const refreshes = settingName === 'dashboardSettings' ? ['REFRESH_ALL_ENABLED_SECTIONS'] : [] // don't refresh if we were saving just perspectiveSettings
   return handlerResult(true, refreshes)
 }
 

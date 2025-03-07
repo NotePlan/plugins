@@ -162,7 +162,7 @@ export default {
             const testPassed =
               modifiedMatch &&
               Object.keys(getContext().dashboardSettings)
-                .filter((s) => s.startsWith('show'))
+                .filter((s) => s.startsWith('show') && s.endsWith('Section'))
                 .every((s) => getContext().dashboardSettings[s] === false)
             elapsed > 4000 &&
               console.log(
@@ -436,7 +436,7 @@ async function turnPerspectivesOn(getContext: () => AppContextType, allSectionsO
   await waitFor(
     (elapsed) => {
       // ensure all show vars are off
-      const showVars = Object.keys(getContext().dashboardSettings).filter((s) => s.startsWith('show'))
+      const showVars = Object.keys(getContext().dashboardSettings).filter((s) => s.startsWith('show') && s.endsWith('Section'))
       const allShowVarsOff = showVars.every((s) => getContext().dashboardSettings[s] === false)
       // ensure perspectivesEnabled is true
       const perspectivesEnabled = getContext().dashboardSettings.perspectivesEnabled

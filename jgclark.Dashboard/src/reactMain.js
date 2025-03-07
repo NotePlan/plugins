@@ -213,7 +213,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
   logDebug('updateSectionFlagsToShowOnly', `Request to show only sections '${limitToSections}'`)
   const dashboardSettings: TDashboardSettings = (await getDashboardSettings()) || {}
   // set everything off to begin with
-  const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show'))
+  const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show') && key.endsWith('Section'))
   allSectionDetails.forEach((section) => {
     const key = section.showSettingName
     // $FlowIgnore[prop-missing]

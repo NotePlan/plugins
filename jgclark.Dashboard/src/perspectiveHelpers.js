@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated for v2.1.10
+// Last updated 2025-03-07 for v2.2.0
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -530,7 +530,9 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAll
   // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
   const settingsWithoutIrrelevantTags = removeInvalidTagSections(settingsIn)
 
+  // Define other keys to remove
   const patternsToRemove = [
+    // the following shouldn't be persisted in the perspectiveSettings object
     'perspectivesEnabled',
     /FFlag_/,
     /_log/,
@@ -543,6 +545,11 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAll
     'triggerLogging',
     /separator\d/,
     /heading\d/,
+    // the following were renamed in v2.2.0 ... shouldn't be needed by 2.3.0
+    'perspectivesEnabled',
+    'includeFolderName',
+    'includeScheduledDates',
+    'includeTaskContext',
   ].map((pattern) => (typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern))
   if (deleteAllShowTagSections) {
     patternsToRemove.push(/showTagSection_/)
@@ -552,13 +559,16 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAll
     return patternsToRemove.some((pattern) => pattern.test(key))
   }
 
-  return Object.keys(settingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
+  const settingsOut = Object.keys(settingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
     if (!shouldRemoveKey(key)) {
       // $FlowIgnore[incompatible-type]
       acc[key] = settingsIn[key]
+    } else {
+      logInfo('cleanDashboardSettings', `- Removing key '${key}' from settings`)
     }
     return acc
   }, {})
+  return settingsOut
 }
 
 /**

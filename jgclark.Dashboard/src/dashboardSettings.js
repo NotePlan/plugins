@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated for v2.2.0.a5
+// Last updated 2025-03-07 for v2.2.0.a7
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -66,7 +66,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
       "A 'Perspective' is a named set of all your Dashboard settings below, including which folders to include/ignore, which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default (which can't be deleted).",
   },
   {
-    key: 'perspectivesEnabled',
+    key: 'usePerspectives', // was 'perspectivesEnabled' before v2.2.0
     label: 'Enable Perspectives',
     description: '',
     type: 'switch',
@@ -251,21 +251,21 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     label: 'Show note link for tasks?',
-    key: 'includeTaskContext',
+    key: 'showTaskContext', // was 'includeTaskContext' before v2.2.0
     type: 'switch',
     default: true,
     description: 'Whether to show the note link for an open task or checklist',
   },
   {
     label: 'Show folder name in note link?',
-    key: 'includeFolderName',
+    key: 'showFolderName', // was 'includeFolderName' before v2.2.0
     type: 'switch',
     default: true,
     description: 'Whether to include the folder name when showing a note link',
   },
   {
     label: 'Show scheduled date for tasks?',
-    key: 'includeScheduledDates',
+    key: 'showScheduledDates', // was 'includeScheduledDates' before v2.2.0
     type: 'switch',
     default: true,
     description: 'Whether to display scheduled >dates for tasks in dashboard view',

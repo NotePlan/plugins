@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-02-28 for v2.2.0.b5, @jgclark
+// Last updated 2025-03-07 for v2.2.0.a6, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -51,6 +51,7 @@ export type TDashboardSettings = {
   // Note: if you add a new setting, make sure to
   // - update the dashboardSettingsDefaults object in dashboardSettings.js
   // - update the getDashboardSettings() function in dashboardHelpers.js if it is type number
+  // - possibly update the cleanDashboardSettings() function in perspectiveHelpers.js
   applyCurrentFilteringToSearch: boolean,
   autoUpdateAfterIdleTime: number,
   dashboardTheme: string,
@@ -67,9 +68,9 @@ export type TDashboardSettings = {
   ignoreChecklistItems: boolean,
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
-  includeFolderName: boolean, // TODO(later): ideally rename to show...
-  includeScheduledDates: boolean, // TODO(later): ideally rename to show...
-  includeTaskContext: boolean, // TODO(later): ideally rename to show...
+  showFolderName: boolean, // Note: was includeFolderName before 2.2.0.
+  showScheduledDates: boolean, // Note: was includeScheduledDates before 2.2.0.rename to show...
+  showTaskContext: boolean, // Note: was includeTaskContext before 2.2.0.
   interactiveProcessingHighlightTask: boolean,
   lastModified?: string,
   lookBackDaysForOverdue: number,
@@ -82,6 +83,10 @@ export type TDashboardSettings = {
   rescheduleNotMove: boolean,
   separateSectionForReferencedNotes: boolean,
   settingsMigrated: boolean,
+  tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
+  useLiteScheduleMethod: boolean,
+  useTodayDate: boolean,
+  // the following turn on/off different sections: they must start with 'show' and end with 'Section'
   showLastWeekSection: boolean,
   showMonthSection: boolean,
   showOverdueSection: boolean,
@@ -94,9 +99,6 @@ export type TDashboardSettings = {
   showTomorrowSection: boolean,
   showWeekSection: boolean,
   showYesterdaySection: boolean,
-  tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
-  useLiteScheduleMethod: boolean,
-  useTodayDate: boolean,
 }
 
 export type TDashboardPluginSettings = {
