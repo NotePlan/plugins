@@ -2,8 +2,13 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-## [1.5.0.b2] - 2025-02-24
-Under-the-hood changes only, to support being called by other plugins.
+## [1.5.0.b2] - 2025-03-02
+Allow hashtags and mentions to work in 'full-word' matching
+Hook up other /replace commands.
+Under-the-hood changes, to support being called by other plugins:
+- write externalSearch()
+- move some functions to helpers/dataManipulation.js
+- refactor names of functions and types
 
 ## [1.5.0.b1] - 2025-01-27
 ### New

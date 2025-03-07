@@ -181,6 +181,26 @@ describe('search.js tests', () => {
       const result = s.fullWordMatch('hell', 'Hell is all too real', true)
       expect(result).toEqual(false)
     })
+    test("should match simple mention '@bob' to 'saw @bob'", () => {
+      const result = s.fullWordMatch('@bob', 'saw @bob', true)
+      expect(result).toEqual(true)
+    })
+    test("should match simple hashtag '#dogWalk' to '#dogWalk'", () => {
+      const result = s.fullWordMatch('#dogWalk', '#dogWalk', true)
+      expect(result).toEqual(true)
+    })
+    test("should match simple hashtag '#dogWalk' to 'did the #dogWalk today'", () => {
+      const result = s.fullWordMatch('#dogWalk', 'did the #dogWalk today', false)
+      expect(result).toEqual(true)
+    })
+    test("should match complex hashtag '#Phil' to 'in #Phil/3/2 it says'", () => {
+      const result = s.fullWordMatch('#Phil', 'in #Phil/3/2 it says', false)
+      expect(result).toEqual(true)
+    })
+    test("should match complex mention '@staff/Bob' to 'see @staff/Bob tomorrow'", () => {
+      const result = s.fullWordMatch('@staff/Bob', 'see @staff/Bob tomorrow', true)
+      expect(result).toEqual(true)
+    })
   })
 
   describe('getDedupedHashtagsFromList', () => {

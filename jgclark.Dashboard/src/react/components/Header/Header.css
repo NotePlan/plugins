@@ -105,10 +105,6 @@
 			filter: brightness(80%);
 		}
 	}
-	transition: transform 200ms ease-in-out;
-	&:hover {
-		transform: scale(1.07);
-	}
 }
 
 /* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */

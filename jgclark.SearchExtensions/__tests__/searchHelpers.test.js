@@ -2,14 +2,12 @@
 // @flow
 import {
   type noteAndLine,
-  type resultObjectTypeV3,
-  type resultOutputTypeV3,
+  type resultObjectType,
+  type resultOutputType,
   type SearchConfig,
   type typedSearchTerm,
   applySearchOperators,
   createFormattedResultLines,
-  differenceByPropVal,
-  differenceByObjectEquality,
   normaliseSearchTerms,
   noteAndLineIntersection,
   numberOfUniqueFilenames,
@@ -18,6 +16,7 @@ import {
   validateAndTypeSearchTerms,
 } from '../src/searchHelpers'
 import { sortListBy } from '@helpers/sorting'
+import { differenceByPropVal, differenceByObjectEquality } from '@helpers/dataManipulation'
 import { JSP, clo } from '@helpers/dev'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
 
@@ -297,8 +296,8 @@ describe('searchHelpers.js tests', () => {
 
     test('should return no results from simple no results', () => {
       // For empty results
-      const combinedResults: Array<resultObjectTypeV3> = [{ searchTerm: searchTerms[0], resultNoteAndLineArr: emptyArr, resultCount: 0 }]
-      const expectedNoteBasedOutput: resultOutputTypeV3 = {
+      const combinedResults: Array<resultObjectType> = [{ searchTerm: searchTerms[0], resultNoteAndLineArr: emptyArr, resultCount: 0 }]
+      const expectedNoteBasedOutput: resultOutputType = {
         // for no results
         searchTermsRepArr: ['TERM1'],
         resultNoteAndLineArr: [],
@@ -313,11 +312,11 @@ describe('searchHelpers.js tests', () => {
 
     test('should return no results from [TERM2 -TERM2] search', () => {
       // For empty results
-      const combinedResults: Array<resultObjectTypeV3> = [
+      const combinedResults: Array<resultObjectType> = [
         { searchTerm: searchTerms[4], resultNoteAndLineArr: notArr, resultCount: 6 },
         { searchTerm: searchTerms[1], resultNoteAndLineArr: notArr, resultCount: 6 },
       ]
-      const expectedNoteBasedOutput: resultOutputTypeV3 = {
+      const expectedNoteBasedOutput: resultOutputType = {
         // for no results
         searchTermsRepArr: ['TERM2', '-TERM2'],
         resultNoteAndLineArr: [],
@@ -331,11 +330,11 @@ describe('searchHelpers.js tests', () => {
     })
 
     test('should return few results from [+TERM1 +TERM2] search', () => {
-      const combinedResults: Array<resultObjectTypeV3> = [
+      const combinedResults: Array<resultObjectType> = [
         { searchTerm: searchTerms[5], resultNoteAndLineArr: mayArr, resultCount: 10 },
         { searchTerm: searchTerms[6], resultNoteAndLineArr: notArr, resultCount: 6 },
       ]
-      const expectedNoteBasedOutput: resultOutputTypeV3 = {
+      const expectedNoteBasedOutput: resultOutputType = {
         searchTermsRepArr: ['+TERM1', '+TERM2'],
         resultNoteAndLineArr: [
           { noteFilename: 'file1', line: '1.1 includes TERM1 and TERM2', index: 0 },
@@ -353,12 +352,12 @@ describe('searchHelpers.js tests', () => {
 
     test('should return narrower !term results', () => {
       // For TERM1, -TERM2, +TERM3
-      const combinedResults: Array<resultObjectTypeV3> = [
+      const combinedResults: Array<resultObjectType> = [
         { searchTerm: searchTerms[0], resultNoteAndLineArr: mayArr, resultCount: 1 },
         { searchTerm: searchTerms[3], resultNoteAndLineArr: notArr, resultCount: 2 }, // the !TERM2 alternative
         { searchTerm: searchTerms[2], resultNoteAndLineArr: mustArr, resultCount: 4 },
       ]
-      const expectedNoteBasedOutput: resultOutputTypeV3 = {
+      const expectedNoteBasedOutput: resultOutputType = {
         // For TERM1, -TERM2, +TERM3 matching *notes*
         // TODO: ideally figure out why this returns in an unexpected order (and so the need for a sort before comparison)
         searchTermsRepArr: ['TERM1', '!TERM2', '+TERM3'],
@@ -383,12 +382,12 @@ describe('searchHelpers.js tests', () => {
 
     test('should return wider -term results', () => {
       // For TERM1, -TERM2, +TERM3
-      const combinedResults: Array<resultObjectTypeV3> = [
+      const combinedResults: Array<resultObjectType> = [
         { searchTerm: searchTerms[0], resultNoteAndLineArr: mayArr, resultCount: 1 },
         { searchTerm: searchTerms[1], resultNoteAndLineArr: notArr, resultCount: 2 },
         { searchTerm: searchTerms[2], resultNoteAndLineArr: mustArr, resultCount: 4 },
       ]
-      const expectedLineBasedOutput: resultOutputTypeV3 = {
+      const expectedLineBasedOutput: resultOutputType = {
         // For TERM1, -TERM2, +TERM3 matching *lines*
         // TODO: ideally figure out why this returns in an unexpected order (and so the need for a sort before comparison)
         searchTermsRepArr: ['TERM1', '-TERM2', '+TERM3'],
@@ -632,7 +631,7 @@ describe('searchHelpers.js tests', () => {
   // Just a no-result test -- rest too hard to mock up
   describe('createFormattedResultLines', () => {
     test('for empty result', () => {
-      const resultSet: resultOutputTypeV3 = {
+      const resultSet: resultOutputType = {
         searchTermsRepArr: ['TERM1', '-TERM2'],
         resultNoteAndLineArr: [],
         resultCount: 0,

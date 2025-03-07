@@ -1,3 +1,4 @@
+// @flow
 /* globals describe, expect, test, toEqual */
 
 import colors from 'chalk'
@@ -59,13 +60,13 @@ describe(`${FILE}`, () => {
           }
         }
       }
-      let newObj = renameKeys(testObj, 'old', 'new')
+      const newObj = renameKeys(testObj, 'old', 'new')
       expect(newObj).toEqual(expectedObj)
     })
 
     test('if null passed, return null', () => {
       const testObj = null
-      let newObj = renameKeys(testObj, 'old', 'new')
+      const newObj = renameKeys(testObj, 'old', 'new')
       expect(newObj).toEqual(testObj)
     })
 
@@ -84,7 +85,7 @@ describe(`${FILE}`, () => {
           }
         }
       }
-      let newObj = renameKeys(testObj, 'bob', 'mary')
+      const newObj = renameKeys(testObj, 'bob', 'mary')
       expect(newObj).toEqual(newObj)
     })
 

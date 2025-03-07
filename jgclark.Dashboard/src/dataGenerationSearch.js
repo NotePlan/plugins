@@ -1,12 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-02-28 for v2.2.0.a5, @jgclark
+// Last updated 2025-03-01 for v2.2.0.a6, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { extendedSearch, type SearchOptions } from '../../jgclark.SearchExtensions/src/saveSearch'
-import type { noteAndLine, resultOutputTypeV3 } from '../../jgclark.SearchExtensions/src/searchHelpers'
+import { extendedSearch, } from '../../jgclark.SearchExtensions/src/externalSearch'
+import type {
+  noteAndLine, resultOutputType, SearchOptions
+} from '../../jgclark.SearchExtensions/src/searchHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { savedSearch1 } from './demoData'
 import type { TDashboardSettings, TSection, TSectionItem } from './types'
@@ -59,18 +61,11 @@ export async function externallyStartSearch(
   }
 
   let searchTermsStr = searchTermsArg
-  // TEST: This is now handled in the getSearchResults various filters
-  // // if we have terms to ignore, then extend given search terms with the current term(s) to filter out as extra -term(s)
-  // if (config.applyCurrentFilteringToSearch) {
-  //   const currentIgnoreTermsArr = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
-  //   searchTermsStr = (currentIgnoreTermsArr.length > 0) ? `${searchTermsStr} -${currentIgnoreTermsArr.join(' -')}` : searchTermsStr
-  // }
 
-
-  // Start a transient search
+  // Start a search
   const newSections = await getSearchResults(searchTermsStr, config, searchOptions)
 
-  // Add the new sections to the existing sections
+  // Add the new section(s) to the existing sections
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const pluginData = reactWindowData.pluginData
   const existingSections = pluginData.sections
@@ -98,7 +93,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     const startTime = new Date() // for timing only
 
     // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
-    const searchResultSet: resultOutputTypeV3 = await extendedSearch(searchTermsStr, searchOptions)
+    const searchResultSet: resultOutputType = await extendedSearch(searchTermsStr, searchOptions)
     const searchTermsRep = searchResultSet.searchTermsRepArr.join(' ')
     const resultNALs: Array<noteAndLine> = searchResultSet.resultNoteAndLineArr
     logDebug('getSearchResults', `- found ${resultNALs.length} items from [${searchTermsRep}]`)
@@ -225,8 +220,6 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
 
 /**
  * Get saved search results from all items in NP (constrained by searchOptions).
- * @param {string} searchTermsArg // TODO: remove this?
- * @param {SearchOptions} searchOptions // TODO: remove this?
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData (optional, default is false)
  * @returns {Array<TSection>} new section(s) for search results
@@ -286,7 +279,7 @@ export async function getSavedSearchResults(
       // // TODO: ...
 
       // // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
-      // const searchResultSet: resultOutputTypeV3 = await extendedSearch(extendedSearchTerms, searchOptions)
+      // const searchResultSet: resultOutputType = await extendedSearch(extendedSearchTerms, searchOptions)
       // const searchTermsRep = searchResultSet.searchTermsRepArr.join(' ')
       // const resultNALs: Array<noteAndLine> = searchResultSet.resultNoteAndLineArr
       // logDebug('getSavedSearchResults', `- found ${resultNALs.length} items from [${searchTermsRep}]`)

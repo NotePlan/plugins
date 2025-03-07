@@ -3,21 +3,13 @@
 //-----------------------------------------------------------------------------
 // Commands to search and replace over NP notes.
 // Jonathan Clark
-// Last updated 2024-10-26 for v1.4.0, @jgclark
+// Last updated 2025-03-02 for v1.5.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  getSearchSettings,
-  // getSearchTermsRep,
-  logBasicResultLines,
-  type resultOutputTypeV3,
-  runSearchesV2,
-  type typedSearchTerm,
-  validateAndTypeSearchTerms,
-} from './searchHelpers'
+import type { resultOutputType, SearchOptions, typedSearchTerm } from './searchHelpers'
+import { getSearchSettings, logBasicResultLines, runExtendedSearches, validateAndTypeSearchTerms, } from './searchHelpers'
 import { clo, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
-// import { displayTitle } from '@helpers/general'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import {
   getInput,
@@ -65,7 +57,7 @@ export async function replaceOverNotes(searchTermsArg?: string, replaceTermArg?:
 }
 
 /**------------------------------------------------------------------------
- * Run a search and replace over notes (TODO: with regex capabilities).
+ * Run a search and replace over notes.
  * Works interactively (if no arguments given) or in the background (using supplied arguments).
  * @author @jgclark
  *
@@ -85,7 +77,7 @@ export async function replace(
   try {
     // get relevant settings
     const config = await getSearchSettings()
-    const headingMarker = '#'.repeat(config.headingLevel)
+    // const headingMarker = '#'.repeat(config.headingLevel)
     logDebug(pluginJson, `arg0 -> searchTermArg ${typeof searchTermArg}`)
     logDebug(pluginJson, `arg0 -> searchTermArg '${searchTermArg ?? '(not supplied)'}'`)
 
@@ -132,13 +124,23 @@ export async function replace(
     // logDebug('replace', `arg3 -> para types '${paraTypeFilterArg ?? '(null)'}'`)
     logDebug('replace', `arg3 -> para types '${paraTypesToInclude.toString()}'`)
 
+    // Form SearchOptions object
+    const searchOptions: SearchOptions = {
+      noteTypesToInclude: noteTypesToInclude,
+      foldersToInclude: [],
+      foldersToExclude: config.foldersToExclude,
+      paraTypesToInclude: paraTypesToInclude,
+      caseSensitiveSearching: config.caseSensitiveSearching,
+    }
+
     //----------------------------------------------------------------------------
     // Search using search() API, extended to make case-sensitive
     CommandBar.showLoading(true, `${commandNameToDisplay} ...`)
     await CommandBar.onAsyncThread()
     // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const searchResultsProm: resultOutputTypeV3 = runSearchesV2([searchTerm], noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
-    // TODO: regex search in this function
+    // const searchResultsProm: resultOutputType = runExtendedSearches([searchTerm], noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
+    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
+    const searchResultsProm: resultOutputType = runExtendedSearches([searchTerm], config, searchOptions)
     await CommandBar.onMainThread()
 
     //----------------------------------------------------------------------------
@@ -161,10 +163,6 @@ export async function replace(
         replaceExpression = newTerm
         logDebug('replace', `user -> search term [${replaceExpression}]`)
       }
-    }
-    // Validate the replace term if this is a regex 
-    if (searchTerm.type === 'regex') {
-      // If this has capturing groups sections, check there are enough in the regex definition
     }
 
     //---------------------------------------------------------
@@ -214,7 +212,7 @@ export async function replace(
     logTimer('replace', startTime, `replace() finished.`)
 
     // // Confirmatory check: run search again and see if it is zero
-    // const checkResults: resultOutputTypeV3 = await runSearchesV2([searchTerm], noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
+    // const checkResults: resultOutputType = await runExtendedSearches([searchTerm], noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
     // if (checkResults.resultCount > 0) {
     //   logWarn('replace', `I've double-checked the replace, and found that there are still ${checkResults.resultCount} unchanged copies of '${searchStr}'`)
     // } else {

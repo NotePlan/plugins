@@ -76,7 +76,7 @@ const SearchBar = ({ onSearch }: Props) => {
   return (
     <div className={`search-container ${isActive ? 'active' : ''}`}>
       <input
-        type="text"
+        type="search"
         className="search-input"
         placeholder="Search terms..."
         value={query}

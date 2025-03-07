@@ -349,7 +349,7 @@ input.apple-switch {
 	/* 50px; */
 	height: 1.2rem;
 	/* 30px; */
-	/* border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3); */
+	border: 1px solid var(--divider-color); /* rgb(from var(--fg-main-color) r g b / 0.3); */
 	border-radius: 1.9rem;
 	background-color: var(--bg-apple-switch-color);
 	/* box-shadow: 1px 1px 1px 0px var(--divider-color); */
