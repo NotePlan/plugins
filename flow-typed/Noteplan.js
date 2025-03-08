@@ -989,8 +989,7 @@ declare class CommandBar {
    * Define at least one or more buttons for the user to select.
    * If you don't supply any buttons, an "OK" button will be displayed.
    * The promise returns selected button, with button index (0 - first button)
-   * Note: Available from v3.3.2
-   * WARNING: The order of the buttons is reversed on iOS compared to macOS. Issue raised 2025-02-11 for developer to fix.
+   * Note: Available from v3.3.2, and from v3.16.3 order of buttons is now same on iOS and macOS.
    * @param {string} title
    * @param {string} message
    * @param {$ReadOnlyArray<string>?} buttons
@@ -1003,8 +1002,7 @@ declare class CommandBar {
    * You can supply a default value which will be pre-filled.
    * If the user selects "OK", the promise returns users entered value
    * If the user selects "Cancel", the promise returns false.
-   * Note: Available from v3.3.2
-   * WARNING: The order of the buttons is reversed on iOS compared to macOS. Issue raised 2025-02-11 for developer to fix.
+   * Note: Available from v3.3.2, and from v3.16.3 order of buttons is now same on iOS and macOS.
    * @param {string} title
    * @param {string} message
    * @param {string?} defaultValue
@@ -2011,13 +2009,23 @@ declare class NotePlan {
    * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result.
    * Optionally send the content of notes as well to process by specifying them in the list 'filenames', which is an array. For example ["note1.md", "folder/note2.md"]. This needs to be the exact path to the note. Your note extension might differ, the default is .txt, if you haven't changed it.
    * For calendar notes, you can use YYYYMMDD.md, like 20241101.md, or 2024-W10.md for weeks, etc. Natural language input is also supported like "this week", "today", "tomorrow", "this month", "next year", etc.
+   * If you need to send a relative list of calendar notes, every note of the "last 7 days", you can use exactly this as the filename. The structure is as followed:
+   *  1. use "next" or "last",
+   *  2. define a number, like "7",
+   *  3. define one of the timeframes: "days", "weeks", "months", "quarters", "years".
+   * The timeframe also defines what kind of note is being accessed. Use "weeks" if you want to send weekly notes, "days" for daily notes etc.
+   * You can also define a folder to send all the notes inside this folder. Use the path of the folder prefixed with "/", like "/Projects/Work".
+   * To use a note titled 'this week' set useStrictFilenames = true.
+   * If you are using your own Open AI API key, you can define a model, for example "o1", or "o3-mini". By default NotePlan uses GPT-4o.
+   * More details at https://help.noteplan.co/article/233-ai-prompts-in-templates
    * Note: Available from v3.15.1
    * @param {string} prompt
    * @param {Array<string>} filenames
    * @param {boolean} useStrictFilenames
+   * @param {string} model (available from v3.16.3)
    * @returns {Promise<string>}
    */
-  static ai(prompt: string, filenames: Array<string>, useStrictFilenames: boolean): Promise<string>;
+  static ai(prompt: string, filenames: Array < string >, useStrictFilenames: boolean, model ?: string): Promise < string >;
   /**
    * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)
    * Note: available from v3.5.1
