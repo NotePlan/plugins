@@ -105,17 +105,20 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
 
 /**
  * Migrate some setting names to new names.
- * FIXME: help, this doesn't work, though the new tests do.
+ * FIXME: this works now. @jgclark needs to check and finish it
  * Note: can't easily be done with updateSettingData() in index.js as there can be multiple copies of these settings at different object levels.
  * @author @jgclark
  * @tests in dataManipulation.test.js
  */
 export function migratePluginSettings(settingsIn: any): any {
   // Migrate some setting names to new names
-  let migratedSettings = renameKeys(settingsIn, 'perspectivesEnabled', 'usePerspectives')
-  // migratedSettings = renameKeys(migratedSettings, 'includeFolderName', 'showFolderName')
-  // migratedSettings = renameKeys(migratedSettings, 'includeScheduledDates', 'showScheduledDates')
-  // migratedSettings = renameKeys(migratedSettings, 'includeTaskContext', 'showTaskContext')
+  const keysToChange = {
+    perspectivesEnabled: 'usePerspectives',
+    // 'includeFolderName': 'showFolderName',
+    // 'includeScheduledDates': 'showScheduledDates',
+    // 'includeTaskContext': 'showTaskContext'
+  }
+  const migratedSettings = renameKeys(settingsIn, keysToChange)
   clo(migratedSettings, `migratePluginSettings - migratedSettings:`)
   return migratedSettings
 }

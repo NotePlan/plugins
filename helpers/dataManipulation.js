@@ -5,46 +5,36 @@ export type headingLevelType = 1 | 2 | 3 | 4 | 5
 /**
  * Trims off matching pair of surrounding " or ' marks
  * @author @jgclark
- * 
+ *
  * @param {string} inStr the string to trim
  * @returns {string}
  */
 export function trimAnyQuotes(inStr: string): string {
-  return inStr.match(/^'.*'$/) || inStr.match(/^".*"$/)
-    ? inStr.slice(1,-1)
-    : inStr
+  return inStr.match(/^'.*'$/) || inStr.match(/^".*"$/) ? inStr.slice(1, -1) : inStr
 }
 
 /**
  * Trims a string to be be no more than maxLen long; if trimmed add '...'
  * @author @jgclark
- * 
+ *
  * @param {string} inStr the string to trim
  * @returns {string}
  */
 export function trimString(inStr: string, maxLen: number): string {
-  return inStr.length > maxLen
-    ? inStr.slice(0, maxLen) + ' ...'
-    : inStr
+  return inStr.length > maxLen ? `${inStr.slice(0, maxLen)} ...` : inStr
 }
 
 /**
- * Convert a comma-separated string, which can just have a single term, to an array.
- * Returns empty list if no input, empty or undefined input.
- * Trims whitespace from each element before returning.
- * Based on https://stackoverflow.com/a/19523289/3238281
- * @author @jgclark
- * @tests in jest file
- * @param {string | Array<string>} input
- * @param {string} separator
+ * Converts a string with dividers in it or an array into a unified array type
+ * @param {string|Array<string>|null} input - string or array to be converted
+ * @param {string} separator - separator to use to split string
  * @returns {Array<string>}
  */
-export function stringListOrArrayToArray(input: string | Array<string>, separator: string): Array<string> {
+export function stringListOrArrayToArray(input: string | Array<string> | null, separator: string): Array<string> {
   let fullArray = []
   if (!input) {
     return []
-  }
-  else if (input !== undefined && input !== '') {
+  } else if (input !== undefined && input !== '') {
     if (typeof input === 'string') {
       if (input.indexOf(separator) === -1) {
         fullArray.push(input)
@@ -103,7 +93,7 @@ export const castStringFromMixed = (val: { [string]: ?mixed }, key: string): str
  * @returns {Array<string>} casted array
  */
 export const castStringArrayFromMixed = (val: { [string]: ?mixed }, key: string): Array<string> => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): Array < string >) : []
+  return val.hasOwnProperty(key) ? ((val[key]: any): Array<string>) : []
 }
 
 /**
@@ -153,13 +143,8 @@ export function compareObjects(o1: Object, o2: Object): boolean {
  * @tests in jest file
  */
 
-export function differenceByObjectEquality<P: string, T: { +[P]: mixed }> (
-  arr: $ReadOnlyArray < T >,
-    exclude: $ReadOnlyArray < T >
-): Array < T > {
-  return arr.filter(
-    (a: T) => !exclude.find((b: T) => compareObjects(b, a))
-  )
+export function differenceByObjectEquality<P: string, T: { +[P]: mixed }>(arr: $ReadOnlyArray<T>, exclude: $ReadOnlyArray<T>): Array<T> {
+  return arr.filter((a: T) => !exclude.find((b: T) => compareObjects(b, a)))
 }
 
 /**
@@ -174,41 +159,56 @@ export function differenceByObjectEquality<P: string, T: { +[P]: mixed }> (
  * @return {Array<T>}
  * @tests in jest file
  */
-export function differenceByPropVal<P: string, T: { +[P]: mixed, ... }>
-  (arr: $ReadOnlyArray < T >,
-    exclude: $ReadOnlyArray < T >,
-      propertyName: P
-  ): Array < T > {
-  return arr.filter(
-    (a: T) => !exclude.find((b: T) => b[propertyName] === a[propertyName])
-  )
+export function differenceByPropVal<P: string, T: { +[P]: mixed, ... }>(arr: $ReadOnlyArray<T>, exclude: $ReadOnlyArray<T>, propertyName: P): Array<T> {
+  return arr.filter((a: T) => !exclude.find((b: T) => b[propertyName] === a[propertyName]))
 }
 
 /**
  * Recursively rename keys at any level of an object
  * Written by cursor.ai
- * @param {any} obj
- * @param {string} oldKey
- * @param {string} newKey
- * @returns {any}
+ * @param {any} obj - The object to modify
+ * @param {string} oldKey - The key name to replace
+ * @param {string} newKey - The new key name to use
+ * @returns {any} - The modified object
  */
-export function renameKeys(obj: any, oldKey: string, newKey: string): any {
+export function renameKey(obj: any, oldKey: string, newKey: string): any {
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(item => renameKeys(item, oldKey, newKey))
+    return obj.map((item) => renameKey(item, oldKey, newKey))
   }
 
   // Handle objects
   if (obj && typeof obj === 'object') {
-    return Object.keys(obj).reduce((acc, key) => {
+    return Object.keys(obj).reduce((acc: { [key: string]: any }, key) => {
       const value = obj[key]
       const newKeyName = key === oldKey ? newKey : key
 
-      acc[newKeyName] = renameKeys(value, oldKey, newKey)
+      acc[newKeyName] = renameKey(value, oldKey, newKey)
       return acc
     }, {})
   }
 
   // Return non-object values as is
   return obj
+}
+
+/**
+ * Rename multiple keys in an object according to a mapping
+ * @param {any} obj - The object to modify
+ * @param {Object<string, string>} keysMap - An object where keys are old key names and values are new key names
+ * @returns {any} - The modified object
+ */
+export function renameKeys(obj: any, keysMap: { [oldKey: string]: string }): any {
+  if (!obj || typeof obj !== 'object' || !keysMap || typeof keysMap !== 'object') {
+    return obj
+  }
+
+  let result = obj
+
+  // Loop through each key mapping and apply renameKey
+  Object.entries(keysMap).forEach(([oldKey, newKey]) => {
+    result = renameKey(result, oldKey, newKey)
+  })
+
+  return result
 }
