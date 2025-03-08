@@ -540,7 +540,7 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAll
   // Define other keys to remove
   const patternsToRemove = [
     // the following shouldn't be persisted in the perspectiveSettings object
-    'perspectivesEnabled',
+    'usePerspectives',
     /FFlag_/,
     /_log/,
     'pluginID',
@@ -553,7 +553,7 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAll
     /separator\d/,
     /heading\d/,
     // the following were renamed in v2.2.0 ... shouldn't be needed by 2.3.0
-    'perspectivesEnabled',
+    'usePerspectives',
     'includeFolderName',
     'includeScheduledDates',
     'includeTaskContext',

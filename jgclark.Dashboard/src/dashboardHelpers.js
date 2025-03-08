@@ -72,16 +72,18 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
   // clo(pluginSettings, 'pluginSettings:') // OK
 
   let parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
-  clof(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings:`, ['perspectivesEnabled'])
+  // clof(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings BEFORE MIGRATION:`, ['includeFolderName'])
+  let parsedPerspectiveSettings: any = parseSettings(pluginSettings.perspectiveSettings)
+  // clof(parsedPerspectiveSettings, `getDashboardSettings - parsedPerspectiveSettings BEFORE MIGRATION:`, ['includeFolderName'])
   // Migrate some setting names to new names
   // TODO(later): remove this code in v2.3.0+
-  // The obsolete setting keys will be removed in cleanDashboardSettings() any time a perspective is updated.
-  // FIXME: help, this doesn't work
+  // Note: Also any obsolete setting keys will be removed in cleanDashboardSettings(), but only when a perspective is updated.
   parsedDashboardSettings = migratePluginSettings(parsedDashboardSettings)
+  parsedPerspectiveSettings = migratePluginSettings(parsedPerspectiveSettings)
   // Save the settings back to the DataStore
-  DataStore.settings = { ...pluginSettings, dashboardSettings: parsedDashboardSettings }
-
-  clo(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings:`)
+  DataStore.settings = { ...pluginSettings, dashboardSettings: parsedDashboardSettings, perspectiveSettings: parsedPerspectiveSettings }
+  // clof(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings AFTER MIGRATION:`, ['includeFolderName'])
+  // clof(parsedPerspectiveSettings, `getDashboardSettings - parsedPerspectiveSettings AFTER MIGRATION:`, ['includeFolderName'])
 
   // TODO: finish this
   parsedDashboardSettings.showSearchSection = true
@@ -105,7 +107,6 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
 
 /**
  * Migrate some setting names to new names.
- * FIXME: this works now. @jgclark needs to check and finish it
  * Note: can't easily be done with updateSettingData() in index.js as there can be multiple copies of these settings at different object levels.
  * @author @jgclark
  * @tests in dataManipulation.test.js
@@ -113,10 +114,10 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
 export function migratePluginSettings(settingsIn: any): any {
   // Migrate some setting names to new names
   const keysToChange = {
-    perspectivesEnabled: 'usePerspectives',
-    // 'includeFolderName': 'showFolderName',
-    // 'includeScheduledDates': 'showScheduledDates',
-    // 'includeTaskContext': 'showTaskContext'
+    usePerspectives: 'usePerspectives',
+    includeFolderName: 'showFolderName',
+    includeScheduledDates: 'showScheduledDates',
+    includeTaskContext: 'showTaskContext',
   }
   const migratedSettings = renameKeys(settingsIn, keysToChange)
   clo(migratedSettings, `migratePluginSettings - migratedSettings:`)

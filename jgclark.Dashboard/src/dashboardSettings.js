@@ -66,7 +66,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
       "A 'Perspective' is a named set of all your Dashboard settings below, including which folders to include/ignore, which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default (which can't be deleted).",
   },
   {
-    key: 'usePerspectives', // was 'perspectivesEnabled' before v2.2.0
+    key: 'usePerspectives', // was 'usePerspectives' before v2.2.0
     label: 'Enable Perspectives',
     description: '',
     type: 'switch',

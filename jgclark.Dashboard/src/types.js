@@ -25,7 +25,7 @@ export type TNotePlanSettings = {
  */
 export type TDashboardSettings = {
   /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES */
-  perspectivesEnabled: boolean,
+  usePerspectives: boolean,
   FFlag_DebugPanel?: boolean, // to show debug pane
   FFlag_ShowTestingPanel?: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser

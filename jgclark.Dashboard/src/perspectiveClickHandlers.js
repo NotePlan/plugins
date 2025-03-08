@@ -217,7 +217,7 @@ export async function doPerspectiveSettingsChanged(data: MessageDataObject): Pro
   // because the tagsToShow may have been changed, so we need to clean out the showSection* vars
   const cleanedPerspSettings = newSettings.map((p) => ({ ...p, dashboardSettings: cleanDashboardSettings(p.dashboardSettings) }))
   const updatedPluginData = { perspectiveSettings: cleanedPerspSettings, dashboardSettings, serverPush: { perspectiveSettings: true, dashboardSettings: true } }
-  if (dashboardSettings.perspectivesEnabled) {
+  if (dashboardSettings.usePerspectives) {
     const currentPerspDef = getActivePerspectiveDef(cleanedPerspSettings)
     if (currentPerspDef && currentPerspDef.name !== '-') {
       dashboardSettings = { ...dashboardSettings, ...currentPerspDef.dashboardSettings }

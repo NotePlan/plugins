@@ -458,7 +458,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   if (settingName === 'dashboardSettings' && !data.perspectiveSettings) {
     let needToSetDash = false
     const perspectiveSettings = await getPerspectiveSettings()
-    if (newSettings.perspectivesEnabled) {
+    if (newSettings.usePerspectives) {
       // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
       const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
       logDebug(`doSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
@@ -468,7 +468,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
         const diff = compareObjects(activePerspDef.dashboardSettings, cleanedSettings, ['lastModified', 'lastChange'])
         clo(diff, `doSettingsChanged: diff`)
         // if !diff or  all the diff keys start with FFlag, then return
-        if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag') || d.startsWith('perspectivesEnabled'))) {
+        if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag') || d.startsWith('usePerspectives'))) {
           logDebug(`doSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
           DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) }
           return handlerResult(true)

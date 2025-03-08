@@ -251,7 +251,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     <div className="header-container">
       <header className="header">
         {/* Perspective selector */}
-        {dashboardSettings.perspectivesEnabled && (
+        {dashboardSettings.usePerspectives && (
           <div className="perspectiveName">
             <PerspectiveSelector />
           </div>

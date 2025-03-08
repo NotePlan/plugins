@@ -161,7 +161,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     // If there are no items, then we need to show a message instead of an empty section
     if (items.length === 0) {
       let message = `No results found for search [${searchTermsStr}]`
-      if (config.perspectivesEnabled) {
+      if (config.usePerspectives) {
         const perspectiveSettings = await getPerspectiveSettings()
         const perspectiveName = getActivePerspectiveName(perspectiveSettings)
         message += ` using '${perspectiveName}' Perspective filtering`
@@ -308,7 +308,7 @@ export async function getSavedSearchResults(
     // If there are no items, then we need to show a message instead of an empty section
     if (items.length === 0) {
       let message = `No results found for search [${searchTermsStr}]`
-      if (config.perspectivesEnabled) {
+      if (config.usePerspectives) {
         const perspectiveSettings = await getPerspectiveSettings()
         const perspectiveName = getActivePerspectiveName(perspectiveSettings)
         message += ` using '${perspectiveName}' Perspective filtering`
