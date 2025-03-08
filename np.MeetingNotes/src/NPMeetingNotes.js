@@ -20,7 +20,7 @@ import NPTemplating from 'NPTemplating'
  * @param {string} origFileName -> (optional) Template filename, if not set the user will be asked
  * @param {Date} dailyNoteDate -> (optional) Date of the daily note, if not set the current editor will be used
  */
-export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Date, timeframe: string): Promise<void> {
+export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Date, timeframe: string, shouldReplaceContent: boolean = false): Promise<void> {
   logDebug(pluginJson, 'insertNoteTemplate')
   const templateFilename = await chooseTemplateIfNeeded(origFileName, false)
   if (!templateFilename) {
@@ -61,7 +61,11 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
   } else {
     logDebug(pluginJson, 'apply rendered template to the current editor')
     // Editor.content = result
-    Editor.insertTextAtCursor(result)
+    if (shouldReplaceContent) {
+      Editor.content = result
+    } else {
+      Editor.insertTextAtCursor(result)
+    }
   }
 }
 
