@@ -33,14 +33,8 @@ import { isAChildPara } from '@helpers/parentsAndChildren'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import {
-  getStartTimeObjFromParaContent,
-  getTimeBlockString,
-  isActiveOrFutureTimeBlockPara,
-} from '@helpers/timeblocks'
-import {
-  isOpen, isOpenNotScheduled, removeDuplicates
-} from '@helpers/utils'
+import { getStartTimeObjFromParaContent, getTimeBlockString, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
+import { isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Settings
@@ -77,22 +71,22 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
   }
   // clo(pluginSettings, 'pluginSettings:') // OK
 
-  let parsedAllSettings: any = parseSettings(pluginSettings)
-  clo(parsedAllSettings, `getDashboardSettings - parsedAllSettings:`)
+  let parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
+  clof(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings:`, ['perspectivesEnabled'])
   // Migrate some setting names to new names
   // TODO(later): remove this code in v2.3.0+
   // The obsolete setting keys will be removed in cleanDashboardSettings() any time a perspective is updated.
   // FIXME: help, this doesn't work
-  parsedAllSettings = migratePluginSettings(parsedAllSettings)
+  parsedDashboardSettings = migratePluginSettings(parsedDashboardSettings)
   // Save the settings back to the DataStore
-  DataStore.settings = parsedAllSettings
+  DataStore.settings = { ...pluginSettings, dashboardSettings: parsedDashboardSettings }
 
-  const parsedDashboardSettings: TDashboardSettings = parseSettings(parsedAllSettings.dashboardSettings)
   clo(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings:`)
 
   // TODO: finish this
   parsedDashboardSettings.showSearchSection = true
 
+  // TODO: @jgclark: Would it be ok to move the following to the migratePluginSettings() function? Would be nice to keep this function cleaner
   // Note: Workaround for number types getting changed to strings at some point in our Settings system.
   parsedDashboardSettings.newTaskSectionHeadingLevel = parseInt(parsedDashboardSettings.newTaskSectionHeadingLevel || '2')
   parsedDashboardSettings.maxItemsToShowInSection = parseInt(parsedDashboardSettings.maxItemsToShowInSection || '24')
@@ -119,9 +113,9 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
 export function migratePluginSettings(settingsIn: any): any {
   // Migrate some setting names to new names
   let migratedSettings = renameKeys(settingsIn, 'perspectivesEnabled', 'usePerspectives')
-  migratedSettings = renameKeys(migratedSettings, 'includeFolderName', 'showFolderName')
-  migratedSettings = renameKeys(migratedSettings, 'includeScheduledDates', 'showScheduledDates')
-  migratedSettings = renameKeys(migratedSettings, 'includeTaskContext', 'showTaskContext')
+  // migratedSettings = renameKeys(migratedSettings, 'includeFolderName', 'showFolderName')
+  // migratedSettings = renameKeys(migratedSettings, 'includeScheduledDates', 'showScheduledDates')
+  // migratedSettings = renameKeys(migratedSettings, 'includeTaskContext', 'showTaskContext')
   clo(migratedSettings, `migratePluginSettings - migratedSettings:`)
   return migratedSettings
 }
@@ -318,12 +312,10 @@ export function getOpenItemParasForTimePeriod(
     const isToday = theNoteDateHyphenated === todayHyphenated
     const latestDate = todayHyphenated > theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
     // logDebug('getOpenItemPFCTP', `timeframe:${timePeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
-    
+
     // Keep only non-empty open tasks (and checklists if wanted),
     // and now add in other timeblock lines (if wanted), other than checklists (if excluded)
-    let openParas = alsoReturnTimeblockLines
-      ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
-      : parasToUse.filter((p) => isOpen(p))
+    let openParas = alsoReturnTimeblockLines ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString)) : parasToUse.filter((p) => isOpen(p))
     logDebug('getOpenItemPFCTP', `- after initial pull: ${openParas.length} para(s)`)
     if (dashboardSettings.ignoreChecklistItems) {
       openParas = openParas.filter((p) => !(p.type === 'checklist'))
