@@ -8,6 +8,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.2.0.a7] 2025-03-07
 - DEV: migrate some setting key names
 - DEV: move some search settings into consolidated searchSettings object
+- when editing the task details in the text box in the task dialog, pressing Enter now updates and closes the dialog.
 
 ## [2.2.0.a6] 2025-02-29
 Search:

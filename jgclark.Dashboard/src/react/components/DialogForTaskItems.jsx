@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-02-15 for v2.1.10
+// Last updated 2025-03-08 for v2.2.0.a7
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -308,6 +308,12 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     }
   }
 
+  // handle the Enter key press (from the editable input box) to trigger the updateItemContent button click
+  function handleEnterPress() {
+    // $FlowIgnore[incompatible-call] can't manufacture a MouseEvent, but no details are actually needed, I think.
+    handleButtonClick({}, 'updateItemContent', 'updateItemContent')
+  }
+
   function handleButtonClick(event: MouseEvent, controlStr: string, handlingFunction: string) {
     const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(event) // Indicates whether a modifier key was pressed
     // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
@@ -433,8 +439,14 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
                 respondToClicks={true}
                 onIconClick={handleIconClick}
               /> : null} */}
-              {/* $FlowIgnore - Flow doesn't like the ref */}
-              <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" useTextArea={pluginData.platform === 'iOS'} />
+              <EditableInput
+                // $FlowIgnore - Flow doesn't like the ref
+                ref={inputRef}
+                initialValue={content}
+                className="fullTextInput dialogItemContent"
+                useTextArea={pluginData.platform === 'iOS'}
+                onEnterPress={handleEnterPress}
+              />
               <button
                 className="updateItemContentButton PCButton"
                 title={'Update the content of this item'}
