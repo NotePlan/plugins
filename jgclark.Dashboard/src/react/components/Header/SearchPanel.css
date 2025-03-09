@@ -79,6 +79,7 @@
 
   /* override default as we have a different background for the Panel */
   .panel input[type="text"], .panel button {
+    color: var(--fg-main-color);
     background-color: var(--bg-apple-input-color); 
     margin-left: 0.3rem;
   }
