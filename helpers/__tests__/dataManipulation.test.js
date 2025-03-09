@@ -86,7 +86,7 @@ describe(`${FILE}`, () => {
       const testObj = {
         perspectivesEnabled: true,
         includeFolderName: true,
-        includeTaskContext: false,
+        showTaskContext: false,
         includeScheduledDates: false,
         otherSetting: 'value',
         nested: {
@@ -99,7 +99,7 @@ describe(`${FILE}`, () => {
         perspectivesEnabled: 'usePerspectives',
         includeFolderName: 'showFolderName',
         includeScheduledDates: 'showScheduledDates',
-        includeTaskContext: 'showTaskContext',
+        showTaskContext: 'showTaskContext',
       }
 
       const expectedObj = {
@@ -122,7 +122,7 @@ describe(`${FILE}`, () => {
       const testObj = {
         perspectivesEnabled: true,
         includeFolderName: true,
-        includeTaskContext: false,
+        showTaskContext: false,
         includeScheduledDates: false,
         FFlag_ShowSearchPanel: true,
         enableInteractiveProcessing: true,
@@ -149,7 +149,7 @@ describe(`${FILE}`, () => {
         perspectivesEnabled: 'usePerspectives',
         includeFolderName: 'showFolderName',
         includeScheduledDates: 'showScheduledDates',
-        includeTaskContext: 'showTaskContext',
+        showTaskContext: 'showTaskContext',
       }
 
       const newObj = renameKeys(testObj, keysMap)
@@ -270,7 +270,7 @@ describe(`${FILE}`, () => {
           applyIgnoreTermsToCalendarHeadingSections: true,
           showScheduledDates: true,
           applyCurrentFilteringToSearch: false,
-          includeTaskContext: true,
+          showTaskContext: true,
           perspectivesEnabled: true,
           showTodaySection: true,
         },
@@ -343,7 +343,7 @@ describe(`${FILE}`, () => {
         perspectivesEnabled: 'usePerspectives',
         includeFolderName: 'showFolderName',
         includeScheduledDates: 'showScheduledDates',
-        includeTaskContext: 'showTaskContext',
+        showTaskContext: 'showTaskContext',
       }
       const newObj = renameKeys(testObj, keysMap)
       clo(newObj, 'newObj:')

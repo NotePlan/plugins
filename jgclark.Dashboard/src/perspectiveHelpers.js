@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-03-07 for v2.2.0
+// Last updated 2025-03-09 for v2.2.0
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -557,6 +557,8 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAll
     'includeFolderName',
     'includeScheduledDates',
     'includeTaskContext',
+    // the following were added in v2.2.0
+    'searchOptions',
   ].map((pattern) => (typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern))
   if (deleteAllShowTagSections) {
     patternsToRemove.push(/showTagSection_/)

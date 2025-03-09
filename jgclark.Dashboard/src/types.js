@@ -1,10 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-03-07 for v2.2.0.a6, @jgclark
+// Last updated 2025-03-07 for v2.2.0.a7, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
+// import type { SearchOptions } from '../../jgclark.SearchExtensions/src/searchHelpers.js'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog' // for now because it was imported in lots of places
 
@@ -25,16 +26,17 @@ export type TNotePlanSettings = {
  */
 export type TDashboardSettings = {
   /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES */
+  // Note: add all of these to the list of items in cleanDashboardSettings() so that they do not get saved to any specific perspective
   usePerspectives: boolean,
+  applyIgnoreTermsToCalendarHeadingSections: boolean,
+  // FFlag_UseTagCache?: boolean,
+  FFlag_ShowSearchPanel?: boolean,
+  // searchSettings?: SearchOptions, // an object holding a number of settings TODO: add from 2.3.0
+  // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings
   FFlag_DebugPanel?: boolean, // to show debug pane
   FFlag_ShowTestingPanel?: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
-  applyIgnoreTermsToCalendarHeadingSections: boolean,
-  // FFlag_UseTagCache?: boolean,
-  FFlag_ShowSearchPanel?: boolean,
-  // TODO: searchSettings?: TSearchSettings, // an object holding a number of settings
-  // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings and also add the "searchSettings" object to the list of items in cleanDashboardSettings()  so that it does not get saved to any specific perspective
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
   defaultFileExtension?: string,
