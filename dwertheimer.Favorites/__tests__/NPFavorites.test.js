@@ -54,8 +54,12 @@ describe(`${PLUGIN_NAME}`, () => {
       Editor.note = new Note()
       // Set default settings favoriteIdentifier to 'Star in title'
       DataStore.settings.favoriteIdentifier = 'Star in title'
+      DataStore.settings._logLevel = 'none'
       // Default for projectNotes
       DataStore.projectNotes = []
+    })
+    afterEach(() => {
+      DataStore.settings._logLevel = 'none'
     })
 
     /**
@@ -208,6 +212,7 @@ describe(`${PLUGIN_NAME}`, () => {
           ...DataStore.settings,
           favoriteIdentifier: 'Star or Frontmatter (either)',
           favoriteKey: 'favorite',
+          _logLevel: 'none',
         }
 
         const { chooseOption } = require('../../helpers/userInput')
@@ -282,7 +287,7 @@ describe(`${PLUGIN_NAME}`, () => {
         // Set configuration to Frontmatter only using dynamic favoriteKey
         DataStore.settings.favoriteIdentifier = 'Frontmatter only'
         DataStore.settings.favoriteKey = 'favorite'
-
+        DataStore.settings._logLevel = 'none'
         // Call removeFavorite
         await f.removeFavorite()
 
@@ -303,7 +308,7 @@ describe(`${PLUGIN_NAME}`, () => {
         // Set configuration to Frontmatter only using dynamic favoriteKey
         DataStore.settings.favoriteIdentifier = 'Frontmatter only'
         DataStore.settings.favoriteKey = 'favorite'
-
+        DataStore.settings._logLevel = 'none'
         // Call setFavorite
         await f.setFavorite()
 
@@ -322,6 +327,7 @@ describe(`${PLUGIN_NAME}`, () => {
         // Set configuration to Frontmatter only using dynamic favoriteKey
         DataStore.settings.favoriteIdentifier = 'Frontmatter only'
         DataStore.settings.favoriteKey = 'favorite'
+        DataStore.settings._logLevel = 'none'
 
         // Call removeFavorite
         await f.removeFavorite()
@@ -341,6 +347,7 @@ describe(`${PLUGIN_NAME}`, () => {
           ...DataStore.settings,
           favoriteIdentifier: 'Frontmatter only',
           favoriteKey: 'fav@key',
+          _logLevel: 'none',
         }
         const config = await getConfig()
         expect(config.favoriteKey).toBe('favorite')
@@ -355,6 +362,7 @@ describe(`${PLUGIN_NAME}`, () => {
           ...DataStore.settings,
           favoriteIdentifier: 'Frontmatter only',
           favoriteKey: 'validKey',
+          _logLevel: 'none',
         }
         const config = await getConfig()
         expect(config.favoriteKey).toBe('validKey')
