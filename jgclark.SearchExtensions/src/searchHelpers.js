@@ -4,7 +4,7 @@
 // Search Extensions helpers
 // Note: some types + funcs now in @helpers/extendedSearch.js
 // Jonathan Clark
-// Last updated 2025-03-01 for v1.5.0, @jgclark
+// Last updated 2025-03-13 for v2.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -15,7 +15,7 @@ import {
   displayTitle,
   type headingLevelType,
 } from '@helpers/general'
-import { differenceByPropVal, differenceByObjectEquality } from '@helpers/dataManipulation'
+import { differenceByPropVal, differenceByObjectEquality, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   getNoteByFilename, getNoteContextAsSuffix, getOrMakeNote,
   replaceSection
@@ -72,7 +72,7 @@ export type reducedFieldSet = {
 
 // Settings for a particular search
 // Note: different from the config for the SearchExtensions plugin (below)
-export type SearchOptions = {
+export type TSearchOptions = {
   noteTypesToInclude?: Array<string>,
   foldersToInclude?: Array<string>,
   foldersToExclude?: Array<string>,
@@ -82,6 +82,9 @@ export type SearchOptions = {
   syncOpenResultItems?: boolean,
   fromDateStr?: string,
   toDateStr?: string,
+  originatorCommand?: string,
+  commandNameToDisplay?: string,
+  destinationArg?: string,// optional output desination indicator: 'current', 'newnote', 'log'
 }
 
 //-------------------------------------------------------------------------------
@@ -143,6 +146,55 @@ export async function getSearchSettings(): Promise<any> {
 
 //------------------------------------------------------------------------------
 // Functions
+
+/**
+ * Get array of paragraph types from a string
+ * @param {string} paraTypesAsStr
+ * @returns {Array<ParagraphType>}
+ */
+export function getParaTypesFromString(paraTypesAsStr: string): Array<ParagraphType> {
+  const paraTypesToInclude: Array<ParagraphType> = (Array.isArray(paraTypesAsStr))
+    ? paraTypesAsStr
+    : (typeof paraTypesAsStr === 'string')
+      // $FlowFixMe[incompatible-type]
+      ? stringListOrArrayToArray(paraTypesAsStr, ',')
+      : []
+  logDebug('getParaTypesFromString', `'${paraTypesAsStr ?? '(null)'}' -> para types [${paraTypesToInclude.toString()}]`)
+  return paraTypesToInclude
+}
+
+/**
+ * Get string representation of paragraph types
+ * @param {Array<ParagraphType>} paraTypes
+ * @returns {string}
+ */
+export function getParaTypesAsString(paraTypesAsStr: Array<ParagraphType>): string {
+  return paraTypesAsStr.join(',')
+}
+
+/**
+ * Get array of note types from a string (including 'both' option)
+ * @param {string} noteTypesAsStr
+ * @returns {Array<string>}
+ */
+export function getNoteTypesFromString(noteTypesAsStr: string): Array<string> {
+  const noteTypesToInclude: Array<string> = (noteTypesAsStr === 'both' || noteTypesAsStr === '')
+    ? ['notes', 'calendar']
+    : [noteTypesAsStr]
+  logDebug('getNoteTypesFromString', `'${noteTypesAsStr ?? '(null)'}' -> note types [${noteTypesToInclude.toString()}]`)
+  return noteTypesToInclude
+}
+
+/**
+ * Get string representation of note types, or 'both' if the array is empty or contains both 'notes' and 'calendar'
+ * @param {Array<string>} noteTypes
+ * @returns {string}
+ */
+export function getNoteTypesAsString(noteTypes: Array<string>): string {
+  return (noteTypes.length === 0 || noteTypes.length === 2)
+    ? 'both'
+    : noteTypes[0]
+}
 
 /**
  * Get string representation of multiple search terms, complete with surrounding sqaure brackets (following Google's style)
@@ -639,7 +691,7 @@ export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteA
 export async function runExtendedSearches(
   termsToMatchArr: Array<typedSearchTerm>,
   config: SearchConfig,
-  searchOptions: SearchOptions,
+  searchOptions: TSearchOptions,
   // noteTypesToInclude: Array<string>,
   // foldersToInclude: Array<string>,
   // foldersToExclude: Array<string>,
@@ -737,7 +789,7 @@ export async function runExtendedSearch(
   // foldersToExclude: Array<string>,
   config: SearchConfig,
   // paraTypesToInclude?: Array<ParagraphType> = [],
-  searchOptions: SearchOptions,
+  searchOptions: TSearchOptions,
 ): Promise<resultObjectType> {
   try {
     const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
@@ -872,9 +924,9 @@ export async function runExtendedSearch(
         logDebug('runExtendedSearch', `  - URL/path filtering removed ${String(filteredParas.length - resultFieldSets.length)} results`)
       }
 
-      // Dedupe identical synced lines (if wanted)
+      // Dedupe identical synced lines
       logDebug('runExtendedSearch', `- Before dedupe, ${resultParas.length} results for '${searchTerm}'`)
-      resultParas = eliminateDuplicateSyncedParagraphs(resultParas, 'most-recent')
+      resultParas = eliminateDuplicateSyncedParagraphs(resultParas, 'most-recent', true)
       logDebug('runExtendedSearch', `- After dedupe, ${resultParas.length} results for '${searchTerm}'`)
 
       // Look-up table for sort details
@@ -940,7 +992,7 @@ export function resultCounts(resultSet: resultOutputType): string {
  * @param {string} titleToMatch partial title to match against existing note titles
  * @param {SearchConfig} config
  * @param {string?} xCallbackURL URL to cause a 'refresh' of this command
- * @param {boolean?} justReplaceSection if set, will just replace this justReplaceSection's section, not replace the whole note
+ * @param {boolean?} justReplaceSection if set, will just replace this justReplaceSection's section, not replace the whole note (default: false)
  * @returns {string} filename of note we've written to
  */
 export async function writeSearchResultsToNote(
@@ -957,6 +1009,7 @@ export async function writeSearchResultsToNote(
     const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
     logDebug('writeSearchResultsToNote', `Starting with ${resultSet.resultCount} results for [${searchTermsRepStr}] ...`)
     const xCallbackText = (xCallbackURL !== '') ? ` [🔄 Refresh results for ${searchTermsRepStr}](${xCallbackURL})` : ''
+    logDebug('writeSearchResultsToNote', `- xCallbackText = ${xCallbackText}`)
     const timestampAndRefreshLine = `at ${nowLocaleShortDateTime()}${xCallbackText}`
 
     // Add each result line to output array
@@ -1003,7 +1056,7 @@ export async function writeSearchResultsToNote(
         outputNote.content = newContent
       }
       noteFilename = outputNote.filename ?? '<error>'
-      logDebug('writeSearchResultsToNote', `written resultSet for [${searchTermsRepStr}] to the note ${noteFilename} (${displayTitle(outputNote)})`)
+      logDebug('writeSearchResultsToNote', `written resultSet for ${searchTermsRepStr} to the note ${noteFilename} (${displayTitle(outputNote)})`)
       // logDebug('writeSearchResultsToNote', `-> ${String(outputNote.content?.length)} bytes`)
       return noteFilename
     }
@@ -1159,7 +1212,7 @@ export async function makeAnySyncs(input: resultOutputType): Promise<resultOutpu
         logDebug('makeAnySyncs', `- appended blockId to result ${thisIndex} -> '${updatedLine}'`)
       }
     } else {
-      logDebug('makeAnySyncs', `No Synced lines in result set`)
+      logDebug('makeAnySyncs', `No open task lines to sync in result set`)
     }
     return output
   }

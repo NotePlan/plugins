@@ -7,7 +7,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import type { resultOutputType, SearchOptions, typedSearchTerm } from './searchHelpers'
+import type { resultOutputType, TSearchOptions, typedSearchTerm } from './searchHelpers'
 import { getSearchSettings, logBasicResultLines, runExtendedSearches, validateAndTypeSearchTerms, } from './searchHelpers'
 import { clo, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
@@ -124,8 +124,8 @@ export async function replace(
     // logDebug('replace', `arg3 -> para types '${paraTypeFilterArg ?? '(null)'}'`)
     logDebug('replace', `arg3 -> para types '${paraTypesToInclude.toString()}'`)
 
-    // Form SearchOptions object
-    const searchOptions: SearchOptions = {
+    // Form TSearchOptions object
+    const searchOptions: TSearchOptions = {
       noteTypesToInclude: noteTypesToInclude,
       foldersToInclude: [],
       foldersToExclude: config.foldersToExclude,

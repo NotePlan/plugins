@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "1.5.0.b2",
-  "plugin.lastUpdateInfo": "1.5.0: Adds '/replace' command, which allows search and replace over calendar notes.\n1.4.0: Adds case sensitive searching. Adds full-word searching. Tweaks and fixes.\n1.3.0: Adds `*` and `?` wildcard operators. Adds auto-refresh capability. Other improvements. (Please see documentation for details.)\n1.2.4: Fix /flexiSearch issues on iOS\n1.2.3: change to allow /quickSearch from x-callback without search term.\n1.2.2: ability to run FlexiSearch without closing the Dashboard and Project list windows from other plugins.\n1.2.1: fix bug in /searchInPeriod. 1.2.0: multi-word search terms.\n1.1: New 'flexiSearch' command. Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case. Lots of other polish.\n1.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
+  "plugin.version": "2.0.0.b1",
+  "plugin.lastUpdateInfo": "2.0.0: Adds '/replace' command, which allows search and replace over calendar notes. Note: there are breaking changes to x-callback arguments.\n1.4.0: Adds case sensitive searching. Adds full-word searching. Tweaks and fixes.\n1.3.0: Adds `*` and `?` wildcard operators. Adds auto-refresh capability. Other improvements. (Please see documentation for details.)\n1.2.4: Fix /flexiSearch issues on iOS\n1.2.3: change to allow /quickSearch from x-callback without search term.\n1.2.2: ability to run FlexiSearch without closing the Dashboard and Project list windows from other plugins.\n1.2.1: fix bug in /searchInPeriod. 1.2.0: multi-word search terms.\n1.1: New 'flexiSearch' command. Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case. Lots of other polish.\n1.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -36,7 +36,8 @@
       "arguments": [
         "search term(s) (separated by commas)",
         "terms to filter by paragraph type (separated by commas)",
-        "noteTypesToInclude either 'project','calendar' or 'both'"
+        "noteTypesToInclude either 'project','calendar' or 'both'",
+        "(optional) destination: either 'current', 'newnote' or 'quick'"
       ]
     },
     {
@@ -49,7 +50,9 @@
       "jsFunction": "searchOverAll",
       "arguments": [
         "search term(s) (separated by commas)",
-        "terms to filter by paragraph type (separated by commas)"
+        "terms to filter by paragraph type (separated by commas)",
+        "ignored placeholder",
+        "(optional) destination: either 'current', 'newnote' or 'quick'"
       ]
     },
     {
@@ -63,7 +66,9 @@
       "jsFunction": "searchOpenTasks",
       "arguments": [
         "search term(s) (separated by commas)",
-        "paragraph type filter terms (optional; separated by commas)"
+        "paragraph type filter terms (optional; separated by commas)",
+        "ignored placeholder",
+        "(optional) destination: either 'current', 'newnote' or 'quick'"
       ]
     },
     {
@@ -80,9 +85,11 @@
       "jsFunction": "searchPeriod",
       "arguments": [
         "search term(s) (separated by commas)",
+        "paragraph type filter terms (optional; separated by commas)",
+        "noteTypesToInclude either 'project','calendar' or 'both'",
+        "(optional) destination: either 'current', 'newnote' or 'quick'",
         "start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago",
-        "end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today",
-        "paragraph type filter terms (optional; separated by commas)"
+        "end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today"
       ]
     },
     {
@@ -99,7 +106,9 @@
       "jsFunction": "searchOverCalendar",
       "arguments": [
         "search term(s) (separated by commas)",
-        "paragraph type filter terms (optional; separated by commas)"
+        "paragraph type filter terms (optional; separated by commas)",
+        "ignored placeholder",
+        "(optional) destination: either 'current', 'newnote' or 'quick'"
       ]
     },
     {
@@ -113,7 +122,9 @@
       "jsFunction": "searchOverNotes",
       "arguments": [
         "search term(s) (separated by commas)",
-        "paragraph type filter terms (optional; separated by commas)"
+        "paragraph type filter terms (optional; separated by commas)",
+        "ignored placeholder",
+        "(optional) destination: either 'current', 'newnote' or 'quick'"
       ]
     },
     {
@@ -269,7 +280,7 @@
     {
       "key": "autoSave",
       "title": "Automatically save",
-      "description": "If true, will save to an automatically-named note in the configured folder, starting with the search terms.",
+      "description": "If true, will save to an automatically-named note in the configured folder, starting with the search terms. \nThis always applies for /quickSearch, but can be turned off for other commands.",
       "type": "bool",
       "default": false,
       "required": true
@@ -277,7 +288,7 @@
     {
       "key": "folderToStore",
       "title": "Folder name",
-      "description": "Folder to store any output files in",
+      "description": "Folder to store output files in.",
       "type": "string",
       "default": "Saved Searches",
       "required": true
@@ -285,7 +296,7 @@
     {
       "key": "quickSearchResultsTitle",
       "title": "/quickSearch note title",
-      "description": "note title for results for command /quickSearch",
+      "description": "Note title for /quickSearch results.",
       "type": "string",
       "default": "Quick Search Results",
       "required": true
@@ -320,7 +331,7 @@
     {
       "key": "headingLevel",
       "title": "Heading level",
-      "description": "Heading level (1-5) to use when writing section headings in output",
+      "description": "Heading level (1-5) to use when writing section headings in output.",
       "type": "number",
       "default": 2,
       "required": true
@@ -328,7 +339,7 @@
     {
       "key": "searchHeading",
       "title": "Saved Search heading",
-      "description": "Text to append to headings in search results (optional)",
+      "description": "Text to append to headings in search results (optional).",
       "type": "string",
       "default": "(Search Results)",
       "required": false
@@ -336,7 +347,7 @@
     {
       "key": "sortOrder",
       "title": "Sort order for results",
-      "description": "This controls the order that the results are displayed",
+      "description": "This controls the order that the results are displayed in.",
       "type": "string",
       "choices": [
         "note title",

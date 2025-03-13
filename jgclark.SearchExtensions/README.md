@@ -18,7 +18,8 @@ Note: when /flexiSearch is run on iPhone or iPad you will need to close the dial
 - **/searchOpenTasks** searches just across **open tasks** in all notes.
 - **/searchOverNotes** searches across **all regular** (non-calendar) notes.
 - **/searchOverCalendar** searches across **all calendar**  notes.
-- **/searchInPeriod**: searches over the **calendar (daily, weekly etc.) notes of the time period you select**: ![selecting a period](period-selection.png)
+- **/searchInPeriod**: searches over the **calendar (daily, weekly etc.) notes of the time period you select**:
+  ![selecting a period](period-selection.png)
 
 ## Results Display
 The results are always **saved to a note** with the search terms as its title in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  You also are given the option of saving to the current note, or to the plugin console.  _The exception is /quickSearch, which always saves to the same "Quick Search Results" note._
@@ -53,15 +54,15 @@ From v1.3, a saved search can be **automatically refreshed when opening it**. To
 ## Extended search syntax
 - put a `+`  and `-` search operator on the front of terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must_have_me !no_way_jose`. (thanks @dwertheimer for this suggestion)
+- to search for an exact multi-word phrases, put it in double quotes (e.g. `"Holy Spirit"`)
 - like the search in NotePlan, the searches ignore case of words (i.e. `SPIRIT` will match `spirit` or `Spirit` as well as `SPIRIT`). However, from v1.4 there's a "**Case Sensitive searching**" option in settings and the FlexiSearch dialog.
 - the searches are simple ones, matching on whole or partial words (e.g. `wind` matches `Windings` and `unwind`). This is what the search in NotePlan does. However, from v1.4 there's a "**Match only on full words?**" option in settings and the FlexiSearch dialog.
-- however from v1.3.0 you can also use two **wildcard** operators:
+- you can also use two **wildcard** operators:
   -  `*` in a term means "match any number of characters (including none)" -- e.g. `pos*e` matches "possible", "posie" and "pose".
   -  `?` in a term means "match any single character" -- e.g. `poli?e` matches "polite" and "police".
-- currently, a search term must have at least two alphanumeric characters to be valid.
-- all notes in the special Trash folder are ignored.  Others can be excluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
+<!-- - normally, a search term must have at least two alphanumeric characters to be valid.  -->
 - you can use an empty search term (from v1.1), which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
-- (from v1.2) to search for an exact multi-word phrases, put it in double quotes (e.g. `"Holy Spirit"`)
+- all notes in the special Trash folder are ignored.  Others can be excluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
 - you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
 
 ## Settings
@@ -106,7 +107,7 @@ To see **highlighting** of matching terms in Simplified-style output, you'll nee
 }
 ```
 
-Note: I have reported a small layout bug with this highlighting that was introduced about v.3.9.9.
+Note: I have reported a small layout bug with this highlighting that was introduced about v3.9.9.
 
 ## Using from x-callback calls
 It's possible to call these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
@@ -119,6 +120,8 @@ Notes:
 - as with all x-callback URLs, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.
 - the available 'paragraph types' are from the API: 'open', 'done', 'scheduled', 'cancelled', 'checklist', 'checklistDone', 'checklistScheduled', 'checklistCancelled', 'title', 'quote', 'list', 'empty', 'text', 'code', 'separator'.
 - **Tip**: use the Link Creator Plugin's "/Get x-callback-url" command to do the fiddly work for you ...
+
+TODO: Update this for 1.5:
 
 | Command | x-callback start | arg0 | arg1 | arg2 | arg3 | arg4 |
 |-----|-----------|----------|----------|----------|----------|----------|
@@ -134,7 +137,7 @@ Notes:
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues). Note that it's particularly difficult to test, so please give as much context as possible.
 
-I have spent at least 3 weeks of my time off on this plugin. If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
+I have spent at least 3.5 weeks of my time off on this plugin. If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg"/>](https://www.buymeacoffee.com/revjgc)
 

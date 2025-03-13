@@ -11,7 +11,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { resultOutputType, SearchOptions } from './searchHelpers'
+import type { resultOutputType, TSearchOptions } from './searchHelpers'
 import {
   createFormattedResultLines,
   getSearchSettings,
@@ -31,7 +31,6 @@ import { clo, logDebug, logInfo, logWarn, logError, timer } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
-// import { trimAndHighlightTermInLine } from '@helpers/search'
 import { chooseOption, getInput, showMessage } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
@@ -40,6 +39,7 @@ import { chooseOption, getInput, showMessage } from '@helpers/userInput'
  * Run a search over all notes in a given period, saving the results in one of several locations.
  * Works interactively (if no arguments given) or in the background (using supplied arguments).
  * Uses 'moment' library to work out time periods.
+ * Called by /searchInPeriod command.
  * @author @jgclark
  *
  * @param {string?} searchTermsArg optional comma-separated list of search terms to search
@@ -63,11 +63,11 @@ export async function searchPeriod(
     // Get relevant settings
     const config = await getSearchSettings()
 
-    // if fullWordSearching and caseSensitiveSearching are given, need to override config. (This is because flexiSearch can set them at run-time.)
-    if (caseSensitiveSearchingArg) {
+    // if fullWordSearching and caseSensitiveSearching are given, need to override config.
+    if (caseSensitiveSearchingArg != null) {
       config.caseSensitiveSearching = caseSensitiveSearchingArg
     }
-    if (fullWordSearchingArg) {
+    if (fullWordSearchingArg != null) {
       config.fullWordSearching = fullWordSearchingArg
     }
 
@@ -156,27 +156,27 @@ export async function searchPeriod(
     const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg && paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
     logDebug(pluginJson, `arg3 -> para types: [${String(paraTypesToInclude)}]`)
 
-    // Form SearchOptions object
-    const searchOptions: SearchOptions = {
+    // Form TSearchOptions object
+    const searchOptions: TSearchOptions = {
       noteTypesToInclude: ['calendar'],
       foldersToInclude: [],
       foldersToExclude: [],
       paraTypesToInclude: paraTypesToInclude,
       caseSensitiveSearching: config.caseSensitiveSearching,
+      fullWordSearching: config.fullWordSearching,
       fromDateStr: fromDateStr,
       toDateStr: toDateStr,
     }
 
     //---------------------------------------------------------
-    // Search using search() API available from v3.6.0.
-    // The helper function now takes care of the filtering by date: it matches results only from Calendar notes from that date range (measured at the first date of the Calendar note's period).
+    // Search using search() API via JGC extended search helpers in this plugin
+    // Note: The helper function now takes care of the filtering by date: it matches results only from Calendar notes from that date range (measured at the first date of the Calendar note's period).
     CommandBar.showLoading(true, `Searching over period ${periodString} ...`)
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: as no await, which gets resolved later
-    // const resultsProm: resultOutputType = runExtendedSearches(validatedSearchTerms, ['calendar'], [], [], config, paraTypesToInclude, fromDateStr, toDateStr)
-    // $FlowFixMe[incompatible-exact] Note: as no await, which gets resolved later
     const resultsProm: resultOutputType = runExtendedSearches(validatedSearchTerms, config, searchOptions)
+
     await CommandBar.onMainThread()
 
     //---------------------------------------------------------
@@ -246,8 +246,6 @@ export async function searchPeriod(
 
         const titleToMatch = `${termsToMatchStr} ${config.searchHeading}`
         const requestedTitle = `${termsToMatchStr} ${config.searchHeading} for ${periodAndPartStr}`
-
-        // can't use 'await...' in the next line, as we're now in 'then...'
         const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, titleToMatch, config, xCallbackURL)
 
         logDebug(pluginJson, `- filename to open in split: ${noteFilename}`)

@@ -2,11 +2,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Entry point to the SearchExtensions plugin from other plugins.
-// Last updated 2025-03-02 for v1.5.0, @jgclark
+// Last updated 2025-03-13 for v2.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import type { resultOutputType, SearchOptions } from './searchHelpers'
+import type { resultOutputType, TSearchOptions } from './searchHelpers'
 import { getSearchSettings, runExtendedSearches, validateAndTypeSearchTerms } from './searchHelpers'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 
@@ -17,7 +17,7 @@ import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
  */
 export async function extendedSearch(
   searchTerms: string,
-  searchOptions: SearchOptions,
+  searchOptions: TSearchOptions,
 ): Promise<resultOutputType> {
   try {
     // get relevant settings
@@ -47,7 +47,6 @@ export async function extendedSearch(
     // CommandBar.showLoading(true, `Searching ...`)
     await CommandBar.onAsyncThread()
 
-    // const results: resultOutputType = await runExtendedSearches(validatedSearchTerms, searchOptions.noteTypesToInclude || ['notes', 'calendar'], searchOptions.foldersToInclude || [], searchOptions.foldersToExclude || [], config, searchOptions.paraTypesToInclude || [], searchOptions.fromDateStr || '', searchOptions.toDateStr || '')
     const results: resultOutputType = await runExtendedSearches(validatedSearchTerms, config, searchOptions)
 
     await CommandBar.onMainThread()

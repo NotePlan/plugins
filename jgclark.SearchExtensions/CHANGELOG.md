@@ -2,6 +2,13 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [2.0.0.b1] - 2025-03-13
+- reduce erroneous logging in eDSP()
+- refactor the calling functions and how they pass requests to saveSearch(). BREAKING CHANGE: this changes some of the arguments that can be passed in x-callbacks
+- refactor searchPeriod() into saveSearch() to ease future maintenance
+- tidy up some output
+- fix some 'refresh' anomalies
+
 ## [1.5.0.b2] - 2025-03-02
 Allow hashtags and mentions to work in 'full-word' matching
 Hook up other /replace commands.
