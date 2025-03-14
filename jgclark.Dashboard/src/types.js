@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 // Types for Settings
 
-// import type { SearchOptions } from '../../jgclark.SearchExtensions/src/searchHelpers.js'
+// import type { TSearchOptions} from '../../jgclark.SearchExtensions/src/searchHelpers.js'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog' // for now because it was imported in lots of places
 
@@ -31,7 +31,7 @@ export type TDashboardSettings = {
   applyIgnoreTermsToCalendarHeadingSections: boolean,
   // FFlag_UseTagCache?: boolean,
   FFlag_ShowSearchPanel?: boolean,
-  // searchSettings?: SearchOptions, // an object holding a number of settings TODO: add from 2.3.0
+  // searchSettings?: TSearchOptions, // an object holding a number of settings TODO: add from 2.3.0
   // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings
   FFlag_DebugPanel?: boolean, // to show debug pane
   FFlag_ShowTestingPanel?: boolean,

@@ -7,7 +7,7 @@
 import pluginJson from '../plugin.json'
 import { extendedSearch, } from '../../jgclark.SearchExtensions/src/externalSearch'
 import type {
-  noteAndLine, resultOutputType, SearchOptions
+  noteAndLine, resultOutputType, TSearchOptions
 } from '../../jgclark.SearchExtensions/src/searchHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { savedSearch1 } from './demoData'
@@ -49,7 +49,7 @@ export async function externallyStartSearch(
 
   // Compile the searchOptions object
   const noteTypesToIncludeArr: Array<string> = (noteTypesToIncludeStr === 'both') ? ['notes', 'calendar'] : stringListOrArrayToArray(noteTypesToIncludeStr, ',')
-  const searchOptions: SearchOptions = {
+  const searchOptions: TSearchOptions = {
     noteTypesToInclude: noteTypesToIncludeArr,
     paraTypesToInclude: config.ignoreChecklistItems ? ['open', 'scheduled'] : ['open', 'scheduled', 'checklist', 'checklistScheduled'],
     foldersToInclude: config.applyCurrentFilteringToSearch && config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',') : [],
@@ -82,7 +82,7 @@ export async function externallyStartSearch(
  * @param {SearchOptions} searchOptionsArg
  * @returns {Array<TSection>} new section(s) for search results
  */
-export async function getSearchResults(searchTermsStr: string, config: TDashboardSettings, searchOptions: SearchOptions): Promise<Array<TSection>> {
+export async function getSearchResults(searchTermsStr: string, config: TDashboardSettings, searchOptions: TSearchOptions): Promise<Array<TSection>> {
   try {
     const sectionNumStr = '21'
     const thisSectionCode = 'SEARCH'
@@ -226,7 +226,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
  */
 export async function getSavedSearchResults(
   // searchTermsArg: string,
-  // searchOptions: SearchOptions,
+  // searchOptions: TSearchOptions,
   config: TDashboardSettings,
   useDemoData: boolean = false,
 ): Promise<Array<TSection>> {
@@ -245,7 +245,7 @@ export async function getSavedSearchResults(
     const startTime = new Date() // for timing only
 
     // TODO: rework this
-    const searchOptions: SearchOptions = {
+    const searchOptions: TSearchOptions = {
       noteTypesToInclude: ['notes', 'calendar'],
       paraTypesToInclude: config.ignoreChecklistItems ? ['open', 'scheduled'] : ['open', 'scheduled', 'checklist', 'checklistScheduled'],
       caseSensitiveSearching: false,
