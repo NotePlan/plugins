@@ -4,9 +4,10 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-02-27 for v2.2.0.b5
+// Last updated 2025-03-14 for v2.2.0.a8, @jgclark
 //-----------------------------------------------------------------------------
 import moment from 'moment'
+import pluginJson from '../plugin.json'
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettings } from './perspectiveHelpers'
@@ -20,6 +21,12 @@ import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { processChosenHeading } from '@helpers/userInput'
+import {
+  getWindowFromCustomId,
+  getLiveWindowRectFromWin,
+  rectToString,
+  storeWindowRect,
+} from '@helpers/NPWindows'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -32,6 +39,8 @@ import { processChosenHeading } from '@helpers/userInput'
 /****************************************************************************************************************************
  *                             Data types + constants
  ****************************************************************************************************************************/
+
+const windowCustomId = `${pluginJson['plugin.id']}.main`
 
 /****************************************************************************************************************************
  *                             HANDLERS
@@ -376,16 +385,17 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
   }
 }
 
-// TODO(later): get working or remove
-// export function dowindowResized(data: MessageDataObject): TBridgeClickHandlerResult {
-//   logDebug('bCDI / windowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
-//   const thisWin = getWindowFromCustomId(windowCustomId)
-//   const rect = getLiveWindowRectFromWin(thisWin)
-//   if (rect) {
-//     // logDebug('bCDI / windowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
-//     storeWindowRect(windowCustomId)
-//   }
-// }
+// TEST:
+export function doWindowResized(): TBridgeClickHandlerResult {
+  logDebug('doWindowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
+  const thisWin = getWindowFromCustomId(windowCustomId)
+  const rect = getLiveWindowRectFromWin(thisWin)
+  if (rect) {
+    logDebug('doWindowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
+    storeWindowRect(windowCustomId)
+  }
+  return handlerResult(rect ? true : false)
+}
 
 // Handle a show note call simply by opening the note in the main Editor.
 // Note: use the showLine... variant of this (below) where possible

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2025-02-21 for v2.2.0
+// Last updated 2025-03-14 for v2.2.0.a8, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,6 +29,7 @@ import {
   // doSetSpecificDate,
   doToggleType,
   doUnscheduleItem,
+  doWindowResized,
   // turnOffPriorityItemsFilter
 } from './clickHandlers'
 import {
@@ -232,11 +233,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doEvaluateString(data)
         break
       }
-      // case 'windowResized': {
-      // TODO(later: work on this
-      // result = await doWindowResized()
-      // break
-      // }
+      case 'windowResized': {
+        result = await doWindowResized()
+        break
+      }
       case 'showNoteInEditorFromFilename': {
         result = await doShowNoteInEditorFromFilename(data)
         break
