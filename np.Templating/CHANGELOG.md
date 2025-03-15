@@ -4,6 +4,15 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.12.0] 2025-03-09 @dwertheimer
+
+- Add `Add Frontmatter/Properties to Template` command
+- Improve template getter to not load every template in the DataStore
+
+## [1.11.5] 2025-03-09 @dwertheimer
+
+- Fix: Minor improvements in getTemplate inclusion
+
 ## [1.11.4] 2025-03-07 @dwertheimer
 
 - Fix: templateFileByTitleEx (templateRunner) was failing to process EJS tags in the frontmatter of receiving template (thx @jgclark)

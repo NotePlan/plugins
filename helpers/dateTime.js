@@ -1609,3 +1609,18 @@ export function getTimeAgoString(pastDate: Date): string {
 
   return output
 }
+
+/**
+ * Converts an ISO 8601 date string (YYYY-MM-DD) to NotePlan format (YYYYMMDD)
+ * Only converts if it's a valid ISO date format
+ * @author @dwertheimer
+ * @param {string} dateStr - date string to convert
+ * @returns {string} - converted date or original string if not a valid ISO date
+ */
+export function convertISOToYYYYMMDD(dateStr: string): string {
+  const isoDateRegex = new RegExp(`^${RE_ISO_DATE}$`)
+  if (isoDateRegex.test(dateStr)) {
+    return dateStr.replace(/-/g, '')
+  }
+  return dateStr
+}

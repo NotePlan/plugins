@@ -18,6 +18,9 @@ import {
   RE_MONTHLY_NOTE_FILENAME,
   RE_QUARTERLY_NOTE_FILENAME,
   RE_YEARLY_NOTE_FILENAME,
+  isValidCalendarNoteFilename,
+  isValidCalendarNoteTitleStr,
+  convertISOToYYYYMMDD,
 } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/folders'
@@ -135,28 +138,127 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
 }
 
 /**
- * Get a note using whatever method works (open by title, filename, etc.)
- * Note: this function was used to debug/work-around API limitations. Probably not necessary anymore
- * Leaving it here for the moment in case any plugins are still using it
+ * General purpose note-getter to find a note using whatever method works (open by title, filename, etc.), optionally restricting results to a top-level path string (e.g. "@Templates")
+ * Typically, the 2nd parameter can be blank or null and the type will be inferred from the name/filename
+ * For name, you can pass:
+ * - a filename (with extension) of a regular or calendar note (full path required)
+ * - a title of a regular or calendar note (just the title, not the path -- will return the first match)
+ * - a title with a path (e.g. "myFolder/myNote")
+ * - an ISO date (YYYY-MM-DD or YYYYMMDD) of a calendar note
  * @author @dwertheimer
- * @param {string} fullPath
- * @param {string} desc
- * @param {boolean} useProjNoteByFilename (default: true)
- * @returns {any} - the note that was opened
+ * @param {string} name - The note identifier, can be:
+ *   - A filename with extension (e.g., "myNote.md" or "20240101.md")
+ *   - A title without extension (e.g., "My Note" or "January 1, 2024")
+ *   - A path and title (e.g., "folder/My Note")
+ *   - An ISO date string (e.g., "2024-01-01") which will be converted to "20240101" for lookup
+ * @param {boolean} [onlyLookInRegularNotes=false] - If true, will use projectNoteByFilename instead of noteByFilename (which will look at Calendar notes as well). This is useful if you have project notes that have titles that look like calendar notes (e.g. "2024-01-01"). If you leave this false, blank, or null, the type will be inferred from the name/filename.
+ * @param {string} [filePathStartsWith=''] - If provided, ensures that the filename of any found note starts with this path
+ *   - Use to restrict results to notes within a specific folder structure (e.g., "@Templates")
+ *   - Works with both filenames with extensions and note titles
+ *   - Example: getNote("foo", false, "@Templates") will find notes with title "foo" in @Templates folder
+ *   - Example: getNote("Snippets/Import Item", false, "@Templates") will find notes with title "Import Item" in "@Templates/Snippets/" folder
+ * @returns {Promise<?TNote>} - The note that was found, or null if no matching note exists
+ * @example
+ * // Get a note by title, ensuring it's in the @Templates folder
+ * const note = await getNote('My Note', false, '@Templates');
+ *
+ * @example
+ * // Get a calendar note using ISO date format (will convert to NotePlan format)
+ * const note = await getNote('2024-01-01');
+ *
+ * @example
+ * // Get a note with a specific path and title, ensuring it's in a specific folder
+ * const note = await getNote('Snippets/Import Item', false, '@Templates');
  */
-export async function noteOpener(fullPath: string, desc: string, useProjNoteByFilename: boolean = true): Promise<?TNote> {
-  logDebug('note/noteOpener', `  About to open filename: "${fullPath}" (${desc}) using ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'}`)
-  const newNote = useProjNoteByFilename ? await DataStore.projectNoteByFilename(fullPath) : await DataStore.noteByFilename(fullPath, 'Notes')
-  if (newNote != null) {
-    logDebug('note/noteOpener', `    Opened ${fullPath} (${desc} version) `)
-    return newNote
+export async function getNote(name: string, onlyLookInRegularNotes: boolean | null = null, filePathStartsWith: string = ''): Promise<?TNote> {
+  // formerly noteOpener
+  // Convert ISO date format (YYYY-MM-DD) to NotePlan format (YYYYMMDD) if needed
+  let noteName = name
+  const convertedName = convertISOToYYYYMMDD(noteName) // convert ISO 8601 date to NotePlan format if needed/otherwise returns original string
+  if (convertedName !== noteName) {
+    logDebug('note/getNote', `  Converting ISO date ${noteName} to NotePlan format ${convertedName}`)
+    noteName = convertedName
+  }
+
+  const hasExtension = noteName.endsWith('.md') || noteName.endsWith('.txt')
+  const hasFolder = noteName.includes('/')
+  const isCalendarNote = isValidCalendarNoteFilename(noteName) || isValidCalendarNoteTitleStr(noteName)
+  logDebug(
+    'note/getNote',
+    `  Will try to open filename: "${noteName}" using ${onlyLookInRegularNotes ? 'projectNoteByFilename' : 'noteByFilename'} ${hasExtension ? '' : ' (no extension)'} ${
+      hasFolder ? '' : ' (no folder)'
+    } ${isCalendarNote ? ' (calendar note)' : ''}`,
+  )
+  if (!noteName) {
+    logError('note/getNote', `  Empty name`)
+    return null
+  }
+  let theNote: TNote | null | void = null
+  if (hasExtension) {
+    theNote = onlyLookInRegularNotes ? await DataStore.projectNoteByFilename(noteName) : await DataStore.noteByFilename(noteName, isCalendarNote ? 'Calendar' : 'Notes')
+    if (theNote && filePathStartsWith) {
+      // Only apply the filePathStartsWith filter if the parameter was provided
+      theNote = theNote.filename.startsWith(filePathStartsWith) ? theNote : null
+    }
   } else {
-    logDebug('note/noteOpener', `    Didn't work! ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'} returned ${(newNote: any)}`)
+    // not a filename, so try to find a note by title
+    if (isCalendarNote) {
+      if (onlyLookInRegularNotes) {
+        // deal with the edge case of someone who has a project note with a title that could be a calendar note
+        const potentialNotes = DataStore.projectNoteByTitle(name)
+        if (potentialNotes && potentialNotes.length > 0) {
+          theNote = potentialNotes.find((n) => n.filename.startsWith(filePathStartsWith))
+        }
+      } else {
+        theNote = await DataStore.calendarNoteByDateString(noteName)
+      }
+    } else {
+      const pathParts = noteName.split('/')
+      const titleWithoutPath = pathParts.pop() || ''
+      const pathWithoutTitle = pathParts.join('/') || ''
+      const potentialNotes = DataStore.projectNoteByTitle(titleWithoutPath)
+      if (potentialNotes && potentialNotes.length > 0) {
+        // Apply both path filters differently depending on the use case
+        let filteredNotes = potentialNotes
+
+        // If a path exists in the noteName
+        if (pathWithoutTitle) {
+          filteredNotes = filteredNotes.filter((n) => n.filename.includes(`${pathWithoutTitle}/`))
+        }
+
+        // If filePathStartsWith is provided, apply that filter separately
+        if (filePathStartsWith) {
+          filteredNotes = filteredNotes.filter((n) => n.filename.startsWith(filePathStartsWith))
+        }
+
+        theNote = filteredNotes.length > 0 ? filteredNotes[0] : null
+
+        logDebug(
+          `  Found ${potentialNotes.length} notes by title "${noteName}"; ${
+            filteredNotes.length
+          } matched path "${pathWithoutTitle}" and filePathStartsWith "${filePathStartsWith}" (${theNote?.filename || ''}); others were: [${potentialNotes
+            .map((n) => n.filename)
+            .join(', ')}]`,
+        )
+      }
+    }
+  }
+  if (theNote != null) {
+    logDebug('note/getNote', `    Opened ${noteName}`)
+    return theNote
+  } else {
+    logDebug(
+      'note/getNote',
+      `Didn't work! for "${noteName}" ${onlyLookInRegularNotes ? 'projectNoteByFilename' : 'noteByFilename'} returned ${(theNote: any)}. hasFolder=${String(
+        hasFolder,
+      )} hasExtension=${String(hasExtension)} isCalendarNote=${String(isCalendarNote)}. Check for typos or missing folder path.`,
+    )
+    return null
   }
 }
 
 /**
- * Get a note using whatever method works (open by title, filename, etc.)
+ * Get a note using filename (will try by Notes first, then Calendar)
  * @author @jgclark, building on @dwertheimer
  * @param {string} filename of either Calendar or Notes type
  * @returns {?TNote} - the note that was opened

@@ -13,6 +13,7 @@ import { helpInfo } from '../lib/helpers'
 import { logError, logDebug, JSP, clo, overrideSettingsWithStringArgs } from '@helpers/dev'
 import { getISOWeekAndYear, getISOWeekString } from '@helpers/dateTime'
 import { getNPWeekData } from '@helpers/NPdateTime'
+import { getNote } from '@helpers/note'
 import { chooseNote } from '@helpers/userInput'
 
 import NPTemplating from 'NPTemplating'
@@ -279,6 +280,45 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
       } else {
         await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Self-Running Templates'))
       }
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Add frontmatter/properties to a template
+ * @param {string} _templateToGet - the name of the template (optional) -- Editor.note will be used if not provided
+ * @param {boolean} _openInEditor - if true, will open the note in the editor, otherwise will write silently to the note
+ */
+export async function addFrontmatterToTemplate(_templateToGet?: string = '', openInEditor?: boolean = false): Promise<void> {
+  try {
+    logDebug(pluginJson, `addFrontmatterToTemplate Starting selectedTemplate:"${_templateToGet}" openInEditor:${String(openInEditor)} `)
+    const templateToGet = _templateToGet || Editor.filename || ''
+    let theNote = null
+    if (templateToGet) {
+      theNote = await getNote(templateToGet, null, NotePlan.environment.templateFolder || '@Templates')
+    } else {
+      theNote = Editor.note || null
+    }
+    if (!theNote) {
+      await CommandBar.prompt(`Unable to locate template "${templateToGet}"`, helpInfo('Self-Running Templates'))
+      logError(pluginJson, `Unable to locate template "${_templateToGet}"`)
+      return
+    }
+    const startIndex = findStartOfActivePartOfNote(theNote)
+    const startParagraph = theNote.paragraphs.length > startIndex + 1 ? theNote.paragraphs[startIndex] : null
+    if (startParagraph) {
+      if (startParagraph.content === '--') {
+        logDebug(pluginJson, `addFrontmatterToTemplate: Found existing frontmatter section at line ${startIndex + 1}`)
+        await showMessage(`This note already has a note properties section`)
+        return
+      }
+    }
+    const noteFrontmatter = '--\nNOTE_PROPERTIES: Properties in this section will be in the frontmatter of the generated note\n--'
+    theNote.insertParagraph(noteFrontmatter, startIndex, 'text')
+    if (openInEditor) {
+      await Editor.openNoteByFilename(theNote.filename)
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

@@ -785,7 +785,7 @@ export function generateProjectOutputLine(
   if (thisProject.percentComplete != null) {
     thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
     const totalTasksStr = (thisProject.completedTasks + thisProject.openTasks).toLocaleString()
-    statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(thisProject.completedTasks + thisProject.openTasks !== 1) ? 'tasks' : 'task'})`
+    statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(thisProject.    + thisProject.openTasks !== 1) ? 'tasks' : 'task'})`
   } else {
     statsProgress = '(0 tasks)'
   }

@@ -68,6 +68,7 @@ export default class TemplatingEngine {
       lines[endBlock] = '---'
       returnedData = lines.join('\n')
     }
+    logDebug(pluginJson, `TemplateDELETME _replaceDoubleDashes: returnedData: ${returnedData}`)
     return returnedData
   }
 
