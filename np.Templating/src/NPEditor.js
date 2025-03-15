@@ -43,14 +43,22 @@ export async function writeNoteContents(
   location: string,
   options?: any = { shouldOpenInEditor: false, createMissingHeading: false, replaceNoteContents: false },
 ): Promise<void> {
+  logDebug(
+    pluginJson,
+    `NPEditor::writeNoteContents note:${note?.title || ''} headingName:${headingName} location:${location} options:${JSP(
+      options,
+    )} renderedTemplate:\n---\n${renderedTemplate}\n---`,
+  )
   let writeUnderHeading = headingName
   if (note) {
     logDebug(
       pluginJson,
-      `writeNoteContents title:"${note.title || ''}" writeUnderHeading:${writeUnderHeading} location:${location} options:${JSP(
-        options,
-      )} renderedTemplate:\n---\n${renderedTemplate}\n---`,
+      `writeNoteContents title:"${note.title || ''}" writeUnderHeading:${writeUnderHeading} location:${location} options:${JSP(options)} renderedTemplate:"${renderedTemplate}"`,
     )
+    if (renderedTemplate.trim().length === 0) {
+      logDebug(pluginJson, `NPEditor::writeNoteContents renderedTemplate is empty, skipping`)
+      return
+    }
     if (options.replaceNoteContents) {
       logDebug(pluginJson, `NPEditor::writeNoteContents replacing note contents (options.replaceNoteContents === true)`)
       const startIndex = findStartOfActivePartOfNote(note)
