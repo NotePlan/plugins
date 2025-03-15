@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.Preview/",
-  "plugin.version": "0.4.4",
-  "plugin.lastUpdateInfo": "v0.4.4: added embed images to preview, fixed some bugs",
+  "plugin.version": "0.4.5",
+  "plugin.lastUpdateInfo": "v0.4.5: updated to use Mermaid v11.\nv0.4.4: added embed images to preview, fixed some bugs",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Preview/CHANGELOG.md",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [

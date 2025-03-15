@@ -2,7 +2,7 @@
 
 //--------------------------------------------------------------
 // Main rendering function for Preview
-// by Jonathan Clark, last updated 11.8.2023 for v0.4.?
+// by Jonathan Clark, last updated 2025-03-14 for v0.4.5
 //--------------------------------------------------------------
 
 
@@ -42,7 +42,7 @@ function initMermaidScripts(mermaidTheme?: string): string {
       ? 'dark' : 'default'
   return `
 <script type="module">
-import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
 // import merm from "./mermaid@10.1.0.min.mjs";
 // var mermaid = merm.default;
 mermaid.initialize({ startOnLoad: true, theme: '${mermaidThemeToUse}' });
@@ -74,10 +74,13 @@ Button a { text-decoration: none; font-size: 0.9rem; }
  * @author @jgclark
  * @param {string?} mermaidTheme name (optional)
  */
-export async function previewNote(mermaidTheme?: string = "green"): void {
+export async function previewNote(mermaidTheme?: string = "green"): Promise<void> {
   try {
     const { note, content } = Editor
-    let lines = content?.split('\n') ?? []
+    if (!note || !content) {
+      throw new Error('No note or content found in Editor. Stopping.')
+    }
+    let lines = content.split('\n')
     lines = lines.filter(l => l !== 'triggers: onEditorWillSave => np.Preview.updatePreview')
     // Update mermaid fenced code blocks to suitable <divs>
     // Note: did try to use getCodeBlocksOfType() helper but found it wasn't architected helpfully for this use case
@@ -95,7 +98,7 @@ export async function previewNote(mermaidTheme?: string = "green"): void {
       }
     }
 
-    let body = await getNoteContentAsHTML(lines.join('\n'), note)
+    let body = await getNoteContentAsHTML(lines.join('\n'), note) ?? ''
 
     // Add mermaid script if needed
     if (includesMermaid) {
