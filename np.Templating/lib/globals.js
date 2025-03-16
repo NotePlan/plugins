@@ -22,6 +22,7 @@ import { getWeatherSummary } from './support/modules/weatherSummary'
 import { parseJSON5 } from '@helpers/general'
 import { getSetting } from '../../helpers/NPConfiguration'
 import { log, logError, clo } from '@helpers/dev'
+import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 
 export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
   const defaultConfig = config?.date ?? {}
@@ -108,7 +109,7 @@ const globals = {
 
   progressUpdate: async (params: any): Promise<string> => {
     return await invokePluginCommandByName('jgclark.Summaries', 'progressUpdate', [params])
-    // Note: Previously did JSON.stringify(params), but removing this means we can distinguish between template and callback triggers in the plugin code. 
+    // Note: Previously did JSON.stringify(params), but removing this means we can distinguish between template and callback triggers in the plugin code.
   },
 
   todayProgressFromTemplate: async (params: any): Promise<string> => {
@@ -194,6 +195,26 @@ const globals = {
 
   clo: (obj: any, preamble: string = '', space: string | number = 2): void => {
     clo(obj, preamble, space)
+  },
+
+  // get all the values in frontmatter for all notes for a given key
+  getValuesForKey: async (tag: string): Promise<string> => {
+    try {
+      // Get the values using the frontmatter helper
+      const values = await getValuesForFrontmatterTag(tag)
+
+      // Convert to string
+      const result = JSON.stringify(values).trim()
+
+      // Return the string result
+      return result
+    } catch (error) {
+      // Log the error but don't throw it - this helps with resilience
+      logError(pluginJson, `getValuesForKey error: ${error}`)
+
+      // Return an empty array string as fallback
+      return ''
+    }
   },
 }
 

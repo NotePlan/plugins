@@ -12,10 +12,10 @@
 
 import fm from 'front-matter'
 // import { showMessage } from './userInput'
+const pluginJson = 'helpers/NPFrontMatter.js'
 import { clo, clof, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { RE_MARKDOWN_LINKS_CAPTURE_G } from '@helpers/regex'
-const pluginJson = 'helpers/NPFrontMatter.js'
 
 // Note: update these for each new trigger that gets added
 export type TriggerTypes = 'onEditorWillSave' | 'onOpen'
@@ -150,6 +150,37 @@ export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators
   } catch (err) {
     logError('NPFrontMatter/getFrontMatterParagraphs()', JSP(err))
     return false
+  }
+}
+
+/**
+ * get all notes with frontmatter (specify noteType: 'Notes' | 'Calendar' | 'All')
+ * @author @dwertheimer
+ * @param {'Notes' | 'Calendar' | 'All'} noteType (optional) - The type of notes to search in
+ * @param {string} folderString (optional) - The string to match in the path
+ * @param {boolean} fullPathMatch (optional) - Whether to match the full path (default: false)
+ * @returns {Array<TNote>} - An array of notes with frontmatter
+ */
+export function getNotesWithFrontmatter(noteType: 'Notes' | 'Calendar' | 'All' = 'All', folderString?: string, fullPathMatch: boolean = false): Array<TNote> {
+  try {
+    const start = new Date()
+    logDebug(`getNotesWithFrontmatter running with noteType:${noteType}, folderString:${folderString || 'none'}, fullPathMatch:${String(fullPathMatch)}`)
+
+    const notes = noteType !== 'Calendar' ? DataStore.projectNotes : []
+    const calendarNotes = noteType !== 'Notes' ? DataStore.calendarNotes : []
+    const allNotes = [...notes, ...calendarNotes]
+
+    // First filter by frontmatter attributes
+    const notesWithFrontmatter = allNotes.filter((note) => note.frontmatterAttributes && Object.keys(note.frontmatterAttributes).length > 0)
+
+    // Then filter by folder if specified
+    const filteredNotes = filterNotesByFolder(notesWithFrontmatter, folderString, fullPathMatch)
+
+    logDebug(`getNotesWithFrontmatter: ${filteredNotes.length}/${allNotes.length} ${timer(start)}`)
+    return filteredNotes
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+    return []
   }
 }
 
@@ -933,4 +964,240 @@ export function createFrontmatterTextArray(attributes: { [string]: string }, quo
     }
   })
   return outputArr
+}
+
+/**
+ * get all notes with certain frontmatter tags
+ * @param {Array<string> | string} tags - The key (string) or array of keys to search for.
+ * @param {'Notes' | 'Calendar' | 'All'} noteType (optional) - The type of notes to search in
+ * @param {boolean} caseSensitive (optional) - Whether to perform case-sensitive matching (default: false)
+ * @param {string} folderString (optional) - The string to match in the path
+ * @param {boolean} fullPathMatch (optional) - Whether to match the full path (default: false)
+ * @returns {Array<TNote>} - An array of notes with frontmatter tags.
+ */
+export function getNotesWithFrontmatterTags(
+  _tags: Array<string> | string,
+  noteType: 'Notes' | 'Calendar' | 'All' = 'All',
+  caseSensitive: boolean = false,
+  folderString?: string,
+  fullPathMatch: boolean = false,
+): Array<TNote> {
+  const start = new Date()
+  logDebug(
+    `getNotesWithFrontmatterTags running with tags:${JSON.stringify(_tags)}, noteType:${noteType}, folderString:${folderString || 'none'}, fullPathMatch:${String(fullPathMatch)}`,
+  )
+
+  const tags: Array<string> = Array.isArray(_tags) ? _tags : [_tags]
+
+  // Get notes with frontmatter, passing folder filtering parameters
+  const notes: Array<TNote> = getNotesWithFrontmatter(noteType, folderString, fullPathMatch) || []
+
+  const notesWithFrontmatterTags = notes.filter((note) => {
+    return tags.some((tag) => {
+      if (!caseSensitive) {
+        // Case-insensitive matching (default)
+        const lowerCaseTag = tag.toLowerCase()
+        return Object.keys(note.frontmatterAttributes || {}).some((key) => key.toLowerCase() === lowerCaseTag && note.frontmatterAttributes[key])
+      }
+      // Case-sensitive matching
+      return note.frontmatterAttributes[tag]
+    })
+  })
+
+  logDebug(`getNotesWithFrontmatterTags: ${notesWithFrontmatterTags.length}/${notes.length} ${timer(start)}`)
+  return notesWithFrontmatterTags
+}
+
+/**
+ * get all notes with a certain frontmatter tag value
+ * @param {string} tag - The key to search for.
+ * @param {string} value - The value to search for.
+ * @param {'Notes' | 'Calendar' | 'All'} noteType (optional) - The type of notes to search in
+ * @param {boolean} caseSensitive (optional) - Whether to perform case-sensitive matching (default: false)
+ * @param {string} folderString (optional) - The string to match in the path
+ * @param {boolean} fullPathMatch (optional) - Whether to match the full path (default: false)
+ * @returns {Array<TNote>} - An array of notes with the frontmatter tag value.
+ */
+export function getNotesWithFrontmatterTagValue(
+  tag: string,
+  value: string,
+  noteType: 'Notes' | 'Calendar' | 'All' = 'All',
+  caseSensitive: boolean = false,
+  folderString?: string,
+  fullPathMatch: boolean = false,
+): Array<TNote> {
+  // Get notes with the tag, passing along the case sensitivity and folder filtering settings
+  const notes: Array<TNote> = getNotesWithFrontmatterTags(tag, noteType, caseSensitive, folderString, fullPathMatch) || []
+
+  const notesWithFrontmatterTagValue = notes.filter((note) => {
+    // Get the correct key based on case sensitivity
+    let matchingKey = tag
+    if (!caseSensitive) {
+      const lowerCaseTag = tag.toLowerCase()
+      matchingKey = Object.keys(note.frontmatterAttributes || {}).find((key) => key.toLowerCase() === lowerCaseTag) || tag
+    }
+
+    const tagValue = note.frontmatterAttributes[matchingKey]
+    if (!caseSensitive && typeof tagValue === 'string' && typeof value === 'string') {
+      return tagValue.toLowerCase() === value.toLowerCase()
+    }
+    return tagValue === value
+  })
+
+  return notesWithFrontmatterTagValue
+}
+
+/**
+ * get all unique values used for a specific frontmatter tag across notes
+ * @param {string} tagParam - The key to search for.
+ * @param {'Notes' | 'Calendar' | 'All'} noteType (optional) - The type of notes to search in
+ * @param {boolean} caseSensitive (optional) - Whether to perform case-sensitive matching (default: false)
+ * @param {string} folderString (optional) - The string to match in the path
+ * @param {boolean} fullPathMatch (optional) - Whether to match the full path (default: false)
+ * @returns {Promise<Array<any>>} - An array of all unique values found for the specified tag
+ */
+export async function getValuesForFrontmatterTag(
+  tagParam?: string,
+  noteType: 'Notes' | 'Calendar' | 'All' = 'All',
+  caseSensitive: boolean = false,
+  folderString?: string,
+  fullPathMatch: boolean = false,
+): Promise<Array<any>> {
+  // Use a mutable variable for the tag
+  let tagToUse: string = tagParam || ''
+
+  // If no tag is provided, prompt the user to select one
+  if (!tagToUse) {
+    logDebug('getValuesForFrontmatterTag: No tag key provided, prompting user to select one')
+
+    // Get all notes with frontmatter
+    const notesWithFrontmatter = getNotesWithFrontmatter(noteType, folderString, fullPathMatch)
+
+    // Extract all unique frontmatter keys from these notes
+    const allKeys: Set<string> = new Set()
+    notesWithFrontmatter.forEach((note) => {
+      if (note.frontmatterAttributes) {
+        Object.keys(note.frontmatterAttributes).forEach((key) => {
+          allKeys.add(key)
+        })
+      }
+    })
+
+    // Convert to array and sort alphabetically
+    const keyOptions: Array<string> = Array.from(allKeys).sort()
+
+    if (keyOptions.length === 0) {
+      logDebug('getValuesForFrontmatterTag: No frontmatter keys found in notes')
+      return []
+    }
+
+    // Prompt user to select a key
+    const message = 'Please select a key to search for:'
+
+    try {
+      // Call CommandBar to show options and get selected key
+      const response = await CommandBar.showOptions(keyOptions, message)
+
+      // Check if the user cancelled or if the returned value is valid
+      if (!response || typeof response !== 'object') {
+        logDebug('getValuesForFrontmatterTag: User cancelled key selection or invalid key returned')
+        return []
+      }
+      tagToUse = keyOptions[response.index]
+
+      logDebug(`getValuesForFrontmatterTag: User selected key "${tagToUse}"`)
+    } catch (error) {
+      logError('getValuesForFrontmatterTag', `Error showing options: ${JSP(error)}`)
+      return []
+    }
+  }
+
+  // At this point tagToUse should be a non-empty string
+  if (!tagToUse) {
+    logError('getValuesForFrontmatterTag', 'No tag provided and user did not select one')
+    return []
+  }
+
+  // Get all notes with the specified tag, passing along all filtering parameters
+  const notes = getNotesWithFrontmatterTags(tagToUse, noteType, caseSensitive, folderString, fullPathMatch)
+
+  // Create a set to store unique values
+  const uniqueValuesSet: Set<any> = new Set()
+
+  notes.forEach((note) => {
+    // Find the matching key based on case sensitivity
+    let matchingKey = tagToUse
+    if (!caseSensitive) {
+      const lowerCaseTag = tagToUse.toLowerCase()
+      matchingKey = Object.keys(note.frontmatterAttributes || {}).find((key) => key.toLowerCase() === lowerCaseTag) || tagToUse
+    }
+
+    // Get the value for this key in this note
+    const value = note.frontmatterAttributes[matchingKey]
+
+    // Handle string values with case sensitivity
+    if (!caseSensitive && typeof value === 'string') {
+      // Check if this value (case-insensitive) is already in the set
+      let found = false
+      for (const existingValue of uniqueValuesSet) {
+        if (typeof existingValue === 'string' && existingValue.toLowerCase() === value.toLowerCase()) {
+          found = true
+          break
+        }
+      }
+      if (!found) {
+        uniqueValuesSet.add(value)
+      }
+    } else {
+      // For non-string values or case-sensitive matching, just add the value
+      uniqueValuesSet.add(value)
+    }
+  })
+
+  // Convert the set to an array and return
+  logDebug(`getValuesForFrontmatterTag: Found ${uniqueValuesSet.size} unique values for tag "${tagToUse}"`)
+  return Array.from(uniqueValuesSet)
+}
+
+/**
+ * Helper function to get the folder path array from a note's filename
+ * @param {string} filename - The note's filename
+ * @returns {Array<string>} - Array of folder names in the path
+ */
+function getFolderPathFromFilename(filename: string): Array<string> {
+  if (!filename) return []
+  const parts = filename.split('/')
+  // If there's only one part, there are no folders
+  if (parts.length <= 1) return []
+  // Return all parts except the last one (which is the filename)
+  return parts.slice(0, -1)
+}
+
+/**
+ * Helper function to filter notes based on folder criteria
+ * @param {Array<TNote>} notes - The notes to filter
+ * @param {string} folderString - The string to match in the path
+ * @param {boolean} fullPathMatch - Whether to match the full path
+ * @returns {Array<TNote>} - Filtered notes
+ */
+function filterNotesByFolder(notes: Array<TNote>, folderString?: string, fullPathMatch: boolean = false): Array<TNote> {
+  // If no folderString specified, return all notes
+  if (!folderString) return notes
+
+  return notes.filter((note) => {
+    const filename = note.filename || ''
+
+    if (fullPathMatch) {
+      // For full path match, the note's path should start with the folderString
+      // and should match all the way to the filename
+      return filename.startsWith(folderString) && (filename === folderString || filename.substring(folderString.length).startsWith('/'))
+    } else {
+      // For partial path match, any folder in the path can match
+      const folders = getFolderPathFromFilename(filename)
+      // Check if any folder contains the folderString
+      if (folders.some((folder) => folder.includes(folderString))) return true
+      // Also check if the full path contains the folderString
+      return filename.includes(`/${folderString}/`) || filename.startsWith(`${folderString}/`)
+    }
+  })
 }

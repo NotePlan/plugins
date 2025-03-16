@@ -4,6 +4,13 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.12.1] 2025-03-15 @dwertheimer
+
+- Update `Add Frontmatter/Properties to Template` command name
+- add tag `getValuesForKey` to get all values for a given frontmatter tag
+- add tag `promptKey` to prompt user for a value with a lot of flexibility on which folders to search for the value etc.
+- fix promises and lack of await keyword in templat tags
+
 ## [1.12.0] 2025-03-09 @dwertheimer
 
 - Add `Add Frontmatter/Properties to Template` command
