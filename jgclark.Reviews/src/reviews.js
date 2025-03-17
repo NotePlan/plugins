@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2025-02-14 for v1.1.1, @jgclark
+// Last updated 2025-03-17 for v1.1.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -1045,7 +1045,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         const nextActionLineIndex = getNextActionLineIndex(note, naTag)
         logDebug('finishReviewCoreLogic', `nextActionLineIndex= '${String(nextActionLineIndex)}'`)
 
-        if (isNaN(nextActionLineIndex)) {
+        if (!isNaN(nextActionLineIndex)) {
           nextActionTagLineIndexes.push(nextActionLineIndex)
         }
       }
@@ -1054,6 +1054,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
           `There's no Next Action tag in '${displayTitle(note)}'. Do you wish to continue finishing this review?`,
         )
         if (res === 'No') {
+          logDebug('finishReviewCoreLogic', `- user cancelled command by clicking '${res}' button.`)
           return
         }
       }
@@ -1062,9 +1063,9 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     if (Editor.filename === note.filename) {
       logDebug('finishReviewCoreLogic', `- updating Editor ...`)
       // First update @review(date) on current open note
-      let res: ?TNote = await updateMetadataInEditor([reviewedTodayString])
+      await updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      res = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
+      await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
 
       // Using Editor, update it in the cache so the latest changes can be picked up elsewhere.
       // Note: Putting the Editor.save() call here, rather than in the above functions, seems to work
@@ -1229,7 +1230,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
     if (Editor.filename === note.filename) {
       // Update metadata in the current open note
       logDebug('skipReviewCoreLogic', `- updating Editor ...`)
-      const res = await updateMetadataInEditor([nextReviewMetadataStr])
+      await updateMetadataInEditor([nextReviewMetadataStr])
 
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
@@ -1340,7 +1341,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
     logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
-    const note: TNote = noteArg ? noteArg : Editor
+    const note: CoreNoteFields = noteArg ? noteArg : Editor
     if (!note || note.type !== 'Notes') {
       throw new Error(`Not in a Project note (at least 2 lines long)`)
     }
@@ -1363,14 +1364,14 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     if (!noteArg) {
       // Update metadata in the current open note
       logDebug('setNewReviewInterval', `- updating metadata in Editor`)
-      const res = await updateMetadataInEditor([`@review(${newIntervalStr})`])
+      await updateMetadataInEditor([`@review(${newIntervalStr})`])
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
       await Editor.save()
     } else {
       // update metadata on the note
       logDebug('setNewReviewInterval', `- updating metadata in note`)
-      const res = await updateMetadataInNote(note, [`@review(${newIntervalStr})`])
+      await updateMetadataInNote(note, [`@review(${newIntervalStr})`])
     }
 
     // Save changes to allProjects list

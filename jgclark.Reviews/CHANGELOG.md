@@ -1,6 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
+## [1.1.2] - 2025-03-17
+- Fix to Next Actions not being detected in '/finish review'.  Note: there appears to be a new bug in NP on macOS (since about 3.16.2) that means the 'Yes'/'No' dialog buttons in the confirmation dialog report the wrong way around.
+- DEV: update to use CoreNoteFields, not TNote, where possible
+
 ## [1.1.1] - 2025-02-14
 ### Changes
 - Turns off the background refresh of Dashboard plugin after every change to Project List, as it was interfering with changing Perspectives. The Dashboard will still update on its usual 'automatically update' interval without problems.
