@@ -110,6 +110,30 @@ export default class NoteModule {
     return result
   }
 
+  openTasks(): number {
+    let paragraphs = this.getCurrentNote()?.paragraphs || []
+    let openTasks = paragraphs.filter((paragraph) => paragraph.type === 'open')
+    return openTasks.length
+  }
+
+  completedTasks(): number {
+    let paragraphs = this.getCurrentNote()?.paragraphs || []
+    let completedTasks = paragraphs.filter((paragraph) => paragraph.type === 'done')
+    return completedTasks.length
+  }
+
+  openChecklists(): number {
+    let paragraphs = this.getCurrentNote()?.paragraphs || []
+    let openChecklists = paragraphs.filter((paragraph) => paragraph.type === 'checklist')
+    return openChecklists.length
+  }
+
+  completedChecklists(): number {
+    let paragraphs = this.getCurrentNote()?.paragraphs || []
+    let completedChecklists = paragraphs.filter((paragraph) => paragraph.type === 'checklistDone')
+    return completedChecklists.length
+  }
+
   backlinks(): Array<{ key: string, value: string | boolean | Array<any> }> {
     let backlinks = this.getCurrentNote()?.backlinks
 
