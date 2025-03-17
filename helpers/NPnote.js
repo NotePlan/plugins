@@ -13,12 +13,12 @@ import {
   // isScheduled, // Note: name clash. Where used this will be dt.isScheduled
   isValidCalendarNoteFilename,
   isValidCalendarNoteFilenameWithoutExtension,
+  isValidCalendarNoteTitleStr,
   RE_ISO_DATE,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
   unhyphenateString,
-}
-  from '@helpers/dateTime'
+} from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
@@ -56,13 +56,17 @@ export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): 
       const endOfActive = findEndOfActivePartOfNote(note)
       logInfo(
         'note/printNote',
-        `title: ${note.title ?? ''}\n- filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${note.paragraphs.length
-        } (endOfActive: ${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
+        `title: ${note.title ?? ''}\n- filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${
+          String(note.changedDate) ?? ''
+        }\n- paragraphs: ${note.paragraphs.length} (endOfActive: ${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${
+          note.mentions?.join(', ') ?? ''
+        }`,
       )
     } else {
       logInfo(
         'note/printNote',
-        `filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${note.paragraphs.length
+        `filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${
+          note.paragraphs.length
         }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
       )
     }
@@ -71,9 +75,7 @@ export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): 
       const done = note.paragraphs.filter((p) => isDone(p)).length
       const closed = note.paragraphs.filter((p) => isClosed(p)).length
       const scheduled = note.paragraphs.filter((p) => isScheduled(p)).length
-      console.log(
-        `- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`
-      )
+      console.log(`- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`)
       if (alsoShowParagraphs) {
         console.log(`Paragraphs`)
         note.paragraphs.map((p) => console.log(`  ${p.lineIndex}: ${p.type} ${p.rawContent}`))
@@ -221,7 +223,7 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
 export function convertNoteToFrontmatter(note: TNote, defaultFMText: string = ''): void {
   try {
     if (!note) {
-      throw new Error("NPnote/convertNoteToFrontmatter: No valid note supplied.")
+      throw new Error('NPnote/convertNoteToFrontmatter: No valid note supplied.')
     }
 
     const result = ensureFrontmatter(note)
@@ -312,7 +314,7 @@ export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
     const flatBacklinkParas: Array<TParagraph> = []
     for (const noteBacklink of noteBacklinks) {
       // const startTime = new Date() // only for timing inside this loop
-      
+
       // v1: which has the issue of getting all paras, which has gone very slow.
       // Get the note that this backlink points to
       // const thisBacklinkNote = DataStore.noteByFilename(noteBacklink.filename, noteBacklink.noteType)
@@ -370,11 +372,10 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
   // logDebug(`getReferencedParagraphs`, `found ${String(backlinkParas.length)} backlinked paras for ${displayTitle(calNote)}:`)
 
   backlinkParas.forEach((para) => {
-  // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
+    // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
     if (includeHeadings) {
       // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
-    }
-    else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
+    } else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
       // logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today`)
       wantedParas.push(para)
     } else {
@@ -643,13 +644,16 @@ export function findNotesMatchingHashtagOrMention(
       return [] // for completeness
     }
     const isHashtag = item.startsWith('#')
-    let notesToSearch = excludeSpecialFolders
-      ? DataStore.projectNotes.filter((n) => !n.filename.startsWith('@'))
-      : DataStore.projectNotes
+    let notesToSearch = excludeSpecialFolders ? DataStore.projectNotes.filter((n) => !n.filename.startsWith('@')) : DataStore.projectNotes
     if (alsoSearchCalendarNotes) {
       notesToSearch = notesToSearch.concat(DataStore.calendarNotes)
     }
-    logDebug('NPnote/findNotesMatchingHashtagOrMention', `starting with ${notesToSearch.length} notes (${notesToSearch ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${alsoSearchCalendarNotes ? '+ calendar notes)' : ')'}`)
+    logDebug(
+      'NPnote/findNotesMatchingHashtagOrMention',
+      `starting with ${notesToSearch.length} notes (${notesToSearch ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${
+        alsoSearchCalendarNotes ? '+ calendar notes)' : ')'
+      }`,
+    )
 
     // const startTime = new Date()
     let projectNotesInFolder: Array<TNote>
@@ -666,7 +670,12 @@ export function findNotesMatchingHashtagOrMention(
       // no folder specified, so grab all notes from DataStore
       projectNotesInFolder = notesToSearch.slice()
     }
-    logDebug(`NPnote/findNotesMatchingHashtagOrMention`, `item:${item} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} ItemsToExclude:${String(itemsToExclude)} for ${String(projectNotesInFolder.length)} notes`)
+    logDebug(
+      `NPnote/findNotesMatchingHashtagOrMention`,
+      `item:${item} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} ItemsToExclude:${String(itemsToExclude)} for ${String(
+        projectNotesInFolder.length,
+      )} notes`,
+    )
 
     // Filter by tag (and now mentions as well, if requested)
     // Note: now using the cut-down list of hashtags as the API returns partial duplicates
@@ -678,8 +687,8 @@ export function findNotesMatchingHashtagOrMention(
         // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
         return isHashtag
           ? caseInsensitiveIncludes(item, correctedHashtags)
-          // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-          : caseInsensitiveIncludes(item, n.mentions)
+          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+            caseInsensitiveIncludes(item, n.mentions)
       })
     } else {
       projectNotesWithItem = projectNotesInFolder.filter((n) => {
@@ -688,8 +697,8 @@ export function findNotesMatchingHashtagOrMention(
         // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
         return isHashtag
           ? caseInsensitiveIncludes(item, correctedHashtags)
-          // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-          : caseInsensitiveIncludes(item, n.mentions)
+          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+            caseInsensitiveIncludes(item, n.mentions)
       })
     }
     if (projectNotesWithItem.length > 0) {
@@ -755,7 +764,7 @@ export function findNotesMatchingHashtagOrMentionFromList(
     // If folder given (not empty) then filter using it
     if (folder && folder !== '') {
       if (includeSubfolders) {
-    // use startsWith as filter to include subfolders
+        // use startsWith as filter to include subfolders
         projectNotesInFolder = notesToSearch.slice().filter((n) => n.filename.startsWith(`${folder}/`))
       } else {
         // use match as filter to exclude subfolders
@@ -765,7 +774,12 @@ export function findNotesMatchingHashtagOrMentionFromList(
       // no folder specified, so grab all notes from DataStore
       projectNotesInFolder = notesToSearch.slice()
     }
-    logDebug(`NPnote/findNotesMatchingHashtagOrMentionFromList`, `item:${item} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} itemsToExclude:${String(itemsToExclude)} for ${String(projectNotesInFolder.length)} notes`)
+    logDebug(
+      `NPnote/findNotesMatchingHashtagOrMentionFromList`,
+      `item:${item} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} itemsToExclude:${String(itemsToExclude)} for ${String(
+        projectNotesInFolder.length,
+      )} notes`,
+    )
 
     // Filter by tag (and now mentions as well, if requested)
     // Note: now using the cut-down list of hashtags as the API returns partial duplicates
@@ -776,8 +790,8 @@ export function findNotesMatchingHashtagOrMentionFromList(
         // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         return isHashtag
           ? caseInsensitiveIncludes(item, correctedHashtags)
-          // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-          : caseInsensitiveIncludes(item, n.mentions)
+          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+            caseInsensitiveIncludes(item, n.mentions)
       })
     } else {
       projectNotesWithItem = projectNotesInFolder.filter((n) => {
@@ -785,8 +799,8 @@ export function findNotesMatchingHashtagOrMentionFromList(
         // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         return isHashtag
           ? caseInsensitiveIncludes(item, correctedHashtags)
-          // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-          : caseInsensitiveIncludes(item, n.mentions)
+          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+            caseInsensitiveIncludes(item, n.mentions)
       })
     }
     if (projectNotesWithItem.length > 0) {

@@ -833,6 +833,7 @@ export function normalizeValue(value: string): string {
  */
 export function updateFrontMatterVars(_note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {
+    clo(newAttributes, `updateFrontMatterVars: newAttributes = ${JSON.stringify(newAttributes)}`)
     const isEditor = _note.note ? true : false
     const note = isEditor ? _note.note : _note
     // Ensure the note has front matter
@@ -844,6 +845,7 @@ export function updateFrontMatterVars(_note: TEditor | TNote, newAttributes: { [
     const existingAttributes = { ...getFrontMatterAttributes(note) } || {}
     // Normalize newAttributes before comparison
     const normalizedNewAttributes = {}
+    clo(Object.keys(newAttributes), `updateFrontMatterVars: Object.keys(newAttributes) = ${JSON.stringify(Object.keys(newAttributes))}`)
     Object.keys(newAttributes).forEach((key: string) => {
       const value = newAttributes[key]
       logDebug('updateFrontMatterVars newAttributes', `key: ${key}, value: ${value}`)

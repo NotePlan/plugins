@@ -6,6 +6,9 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 - ??? Look at spinning out Index... commands to separate plugin 
 - -->
 
+## [1.1.1] - 2025-03-06
+- fix to opening new notes in **new note** commands.
+
 ## [1.1.0] - 2025-02-19
 - new **list published notes** command, that generates a list in the new 'Publlished Notes' note of all notes that have been published to published to the internet through NotePlan.
 
