@@ -7,6 +7,11 @@ const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
 
 describe(`${PLUGIN_NAME}`, () => {
+  beforeEach(() => {
+    global.DataStore = {
+      settings: { logLevel: 'none' },
+    }
+  })
   let moduleInstance
   beforeEach(() => {
     moduleInstance = new WebModule()

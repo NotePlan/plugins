@@ -13,6 +13,11 @@ const block = colors.magenta.green
 const method = colors.magenta.bold
 
 describe(`${PLUGIN_NAME}`, () => {
+  beforeEach(() => {
+    global.DataStore = {
+      settings: { logLevel: 'none' },
+    }
+  })
   describe(section('FrontmatterModule'), () => {
     it(`should return true using ${method('.isFrontmatterTemplate')}`, async () => {
       const data = await factory('frontmatter-minimal.ejs')

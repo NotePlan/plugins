@@ -93,7 +93,7 @@ beforeAll(() => {
   global.Editor = Editor
   global.NotePlan = new NotePlan()
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter)
-  DataStore.settings['_logLevel'] = 'DEBUG'
+  DataStore.settings['_logLevel'] = 'none'
 })
 
 beforeEach(() => {

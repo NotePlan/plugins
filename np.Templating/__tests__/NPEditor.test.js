@@ -101,6 +101,7 @@ global.Editor = {
 }
 
 global.DataStore = {
+  settings: { logLevel: 'none' },
   invokePluginCommandByName: jest.fn().mockResolvedValue(true),
 }
 

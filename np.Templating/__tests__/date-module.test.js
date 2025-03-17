@@ -12,6 +12,11 @@ const block = colors.magenta.green
 const method = colors.magenta.bold
 
 describe(`${PLUGIN_NAME}`, () => {
+  beforeEach(() => {
+    global.DataStore = {
+      settings: { logLevel: 'none' },
+    }
+  })
   describe(section('DateModule'), () => {
     it(`should ${method('.createDateTime')} from pivotDate`, async () => {
       const pivotDate = '2021-11-24'

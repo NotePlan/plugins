@@ -18,6 +18,7 @@ import { datePicker, askDateInterval, chooseFolder } from '@helpers/userInput'
 import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
+import { processPrompts } from './support/modules/prompts'
 
 // - if a new module has been added, make sure it has been added to this list
 const TEMPLATE_MODULES = ['calendar', 'date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
@@ -612,7 +613,6 @@ export default class NPTemplating {
   static async getTemplate(templateName: string = '', options: any = { showChoices: true, silent: false }): Promise<string> {
     const startTime = new Date()
     const isFilename = templateName.endsWith('.md') || templateName.endsWith('.txt')
-    logDebug(pluginJson, `NPTemplating.getTemplate templateName="${templateName}" isFilename=${String(isFilename)}`)
     await this.setup()
     if (templateName.length === 0) {
       return ''
@@ -1004,8 +1004,8 @@ export default class NPTemplating {
         sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
       }
 
-      // import codeblocks
-      templateData = await this.importCodeBlocks(templateData)
+      // import templates/code snippets (if there are any)
+      templateData = await this.importTemplates(templateData)
       // return templateData
 
       // process all template attribute prompts
@@ -1149,289 +1149,25 @@ export default class NPTemplating {
     return items || []
   }
 
-  static async getPromptParameters(promptTag: string = ''): mixed {
-    let tagValue = ''
-    tagValue = promptTag.replace(/\bask\b|promptKey|promptDateInterval|promptDate|prompt|[()]|<%-|<%=|<%|-%>|%>/gi, '').trim()
-    // tagValue = promptTag.replace(/ask|[()]|<%=|<%|-%>|%>/gi, '').trim()
-    let varName = ''
-    let promptMessage = ''
-    let options: string | string[] = ''
-
-    // get variable from tag (first quoted value up to comma)
-    let pos = tagValue.indexOf(',')
-    if (pos >= 0) {
-      varName = tagValue
-        .substr(0, pos - 1)
-        .replace(/'/g, '')
-        .trim()
-
-      tagValue = tagValue.substr(pos + 1)
-      pos = tagValue.indexOf(',')
-      if (pos >= 0) {
-        if (tagValue[0] !== '[') {
-          promptMessage = tagValue.substr(0, pos).replace(/'/g, '').trim()
-          tagValue = tagValue.substr(pos + 1).trim()
-        }
-
-        if (tagValue.length > 0) {
-          // check if options is an array
-          if (tagValue.includes('[')) {
-            const optionItems = tagValue.replace('[', '').replace(']', '').split(',')
-            options = optionItems.map((item) => {
-              return item.replace(/'/g, '')
-            })
-          } else {
-            options = tagValue.replace(/(^"|"$)/g, '').replace(/(^'|'$)/g, '')
-            switch (options) {
-              case '=now':
-              case '%today%':
-                options = new DateModule().now('YYYY-MM-DD')
-                break
-              case '%yesterday%':
-                options = new DateModule().yesterday('YYYY-MM-DD')
-                break
-              case '%tomorrow%':
-                options = new DateModule().tomorrow('YYYY-MM-DD')
-                break
-              case '%timestamp%':
-                options = new DateModule().timestamp('YYYY-MM-DD')
-                break
-            }
-          }
-        }
-      } else {
-        promptMessage = tagValue.replace(/'/g, '')
-      }
-    } else {
-      varName = tagValue.replace(/'/g, '')
-    }
-
-    if (promptMessage.length === 0) {
-      promptMessage = options.length > 0 ? `Select ${varName}` : `Enter ${varName}`
-    }
-    varName = varName.replace(/ /gi, '_')
-    varName = varName.replace(/\?/gi, '')
-
-    return { varName, promptMessage, options }
-  }
-
-  static async prompt(message: string, options: any = null): Promise<any> {
-    if (Array.isArray(options)) {
-      const { index } = await CommandBar.showOptions(options, message)
-      return options[index]
-    } else {
-      let value: string = ''
-      if (typeof options === 'string' && options.length > 0) {
-        const result = await CommandBar.textPrompt('', message.replace('_', ' '), options)
-        value = result !== false ? String(result) : ''
-      } else {
-        const result = await CommandBar.textPrompt('', message.replace('_', ' '), '')
-        value = result !== false ? String(result) : ''
-      }
-
-      return value
-    }
-  }
-
-  static async promptKey(
-    tag: string,
-    message: string,
-    noteType: 'Notes' | 'Calendar' | 'All' = 'All',
-    caseSensitive: boolean = false,
-    folderString?: string,
-    fullPathMatch: boolean = false,
-  ): Promise<any> {
-    logDebug(
-      `NPTemplating.promptKey: starting tag="${tag}" message="${message}" noteType="${noteType}" caseSensitive="${String(caseSensitive)}" folderString="${String(
-        folderString,
-      )}" fullPathMatch="${String(fullPathMatch)} `,
-    )
-
-    // If no tag provided, first prompt for a key
-    let tagToUse = tag // Use a mutable variable
-    if (!tagToUse) {
-      logDebug('NPTemplating.promptKey: No tag provided, will prompt user to select one')
-
-      // Get the key from user by prompting them to select from available frontmatter keys
-      const selectedKeys = await getValuesForFrontmatterTag('', noteType, caseSensitive, folderString, fullPathMatch)
-
-      if (!selectedKeys || selectedKeys.length === 0) {
-        logDebug('NPTemplating.promptKey: No key was selected')
-        const result = await this.prompt(message || 'Enter a value:')
-        return result
-      }
-
-      // Use the first key (should only be one key returned anyway)
-      const selectedKey = selectedKeys[0]
-      // Now use the selected key to get values
-      logDebug(`NPTemplating.promptKey: User selected key "${selectedKey}", now getting values for this key`)
-      tagToUse = selectedKey
-    }
-
-    // Now get all values for the tag/key
-    const tags = await getValuesForFrontmatterTag(tagToUse, noteType, caseSensitive, folderString, fullPathMatch)
-    logDebug(`NPTemplating.promptKey after getValuesForFrontmatterTag for tag="${tagToUse}": found ${tags.length} values`)
-
-    if (tags.length > 0) {
-      logDebug(`NPTemplating.promptKey: ${tags.length} values found for key "${tagToUse}"; Will ask user to select one`)
-      const options = message || `Choose a value for "${tagToUse}"`
-      const response = await CommandBar.showOptions(tags, options)
-      if (!response) {
-        logDebug(`NPTemplating.promptKey: User cancelled selection`)
-        return ''
-      }
-      const chosenTag = tags[response.index]
-      logDebug(`NPTemplating.promptKey: Returning selected tag="${chosenTag}"`)
-      return chosenTag
-    } else {
-      logDebug(
-        `NPTemplating.promptKey: No values found for tag="${tagToUse}" message="${message}" noteType="${noteType}" caseSensitive="${String(caseSensitive)}" folderString="${String(
-          folderString,
-        )}" fullPathMatch="${String(fullPathMatch)} `,
-      )
-      const result = await this.prompt(message || `No values found for "${tagToUse}". Enter a value:`)
-      logDebug(`NPTemplating.promptKey: Returning prompt hand-entered result="${result}"`)
-      return result
-    }
-  }
-
-  static async promptDate(message: string, defaultValue: string): Promise<any> {
-    return await datePicker(message)
-  }
-
-  static async promptDateInterval(message: string, defaultValue: string): Promise<any> {
-    return await askDateInterval(message)
-  }
-
+  /**
+   * Processes all prompt tags within a template.
+   * @param {string} templateData The full template content.
+   * @param {any} sessionData The session data to update.
+   * @param {string} startTag The starting tag delimiter (default: '<%')
+   * @param {string} endTag The ending tag delimiter (default: '%>')
+   * @returns {Promise<{sessionTemplateData: string, sessionData: any}>}
+   */
   static async processPrompts(templateData: string, userData: any, startTag: string = '<%', endTag: string = '%>'): Promise<any> {
-    const sessionData = { ...userData }
-    const methods = userData.hasOwnProperty('methods') ? Object.keys(userData?.methods) : []
-
+    // Prepare the template data by replacing legacy syntax
     let sessionTemplateData = templateData
-    // Define outputTag variable with a default here so it's available in all scopes
-    let outputTag = '-'
-
     sessionTemplateData = sessionTemplateData.replace(/<%@/gi, '<%- prompt')
     sessionTemplateData = sessionTemplateData.replace(/system.promptDateInterval/gi, 'promptDateInterval')
     sessionTemplateData = sessionTemplateData.replace(/system.promptDate/gi, 'promptDate')
     sessionTemplateData = sessionTemplateData.replace(/system.promptKey/gi, 'promptKey')
     sessionTemplateData = sessionTemplateData.replace(/<%=/gi, '<%-')
 
-    let tags = await this.getTags(sessionTemplateData)
-
-    for (let tag of tags) {
-      // remove comment tags and newlines if they are at the end of the tag
-      if (isCommentTag(tag)) {
-        // ignore commented out prompt tags
-        continue
-      }
-      // if tag is from module, it will contain period so we need to make sure this tag is not a module
-      let isMethod = false
-      for (const method of methods) {
-        if (tag.includes(method)) {
-          isMethod = true
-        }
-      }
-
-      const result = this.constructor.templateGlobals.some((element) => tag.includes(element))
-      if (result) {
-        isMethod = true
-      }
-
-      const doPrompt = (tag: string) => {
-        // let check = !this.isVariableTag(tag) && !this.isCode(tag) && !this.isTemplateModule(tag) && !isMethod
-        // if (!check) {
-        //   check = tag.includes('prompt')
-        // }
-        let check = /prompt(Date|Interval|Key)*\(/.test(tag)
-        return check
-      }
-
-      if (doPrompt(tag)) {
-        // $FlowIgnore
-        let { varName, options, promptMessage, tagKey, noteType, caseSensitive, folderString, fullPathMatch } = tag.includes('promptKey(')
-          ? this.parsePromptKeyParameters(tag)
-          : await this.getPromptParameters(tag)
-        logDebug(
-          `NPTemplating.processPrompts::doPrompt tag="${tag}" varName="${varName}" promptMessage="${promptMessage}" options="${options ? JSON.stringify(options) : 'undefined'}"`,
-        )
-        const varExists = (varName: string) => {
-          let result = true
-          if (!sessionData.hasOwnProperty(varName)) {
-            result = false
-            if (sessionData.hasOwnProperty('data') && sessionData.data.hasOwnProperty(varName)) {
-              result = true
-            }
-          }
-
-          return result
-        }
-
-        let response = ''
-        if (!varExists(varName)) {
-          promptMessage = promptMessage.replace('await', '').replace(/  /g, ' ')
-
-          // NOTE: Only templating prompt methods will be able to use placeholder variable
-          // NOTE: if executing a global method, the result will not be captured as variable placeholder
-          //       thus, it will be executed as many times as it is in template
-
-          if (tag.includes('promptDate(')) {
-            response = await datePicker(JSON.stringify({ question: promptMessage }), {})
-          } else if (tag.includes('promptDateInterval(')) {
-            response = await askDateInterval(JSON.stringify({ question: promptMessage }))
-          } else if (tag.includes('promptKey(')) {
-            // Use the extracted method to parse parameters
-            response = await this.promptKey(tagKey, promptMessage, noteType, caseSensitive, folderString, fullPathMatch)
-            logDebug(`NPTemplating.processPrompts: promptKey response="${response}"`)
-          } else {
-            response = await await this.prompt(promptMessage, options) // double await is correct here
-          }
-
-          if (response) {
-            if (typeof response === 'string') {
-              response = response.trim()
-            }
-            logDebug(`NPTemplating.processPrompts: varName="${varName}" prompt response="${response}"`)
-            varName ? (sessionData[varName] = response) : null
-          } else {
-            varName ? (sessionData[varName] = '') : null
-          }
-        }
-        logDebug(`NPTemplating.processPrompts: tag="${tag}" after doPrompt`)
-        if (tag.indexOf(`<%=`) >= 0 || tag.indexOf(`<%-`) >= 0 || tag.indexOf(`<%`) >= 0) {
-          // Determine the output tag type based on the start of the tag
-          outputTag = tag.startsWith('<%=') ? '=' : '-'
-          logDebug(`NPTemplating.processPrompts: tag="${tag}" after outputTag=${outputTag}`)
-          // if this is command only (starts with <%) meanining no output, remove entry
-          if (this.isVariableTag(tag)) {
-            const parts = tag.split(' ')
-            if (parts.length >= 2) {
-              varName = parts[2]
-              sessionTemplateData = sessionTemplateData.replace(`${tag}\n`, '')
-              const keys = Object.keys(sessionData)
-              for (let index = 0; index < keys.length; index++) {
-                if (keys[index].indexOf(`=_${varName}`) >= 0) {
-                  sessionData[varName] = sessionData[keys[index]]
-                }
-              }
-            }
-          }
-        }
-
-        if (!tag.startsWith('<%-')) {
-          sessionTemplateData = sessionTemplateData.replace(tag, `<% 'prompt' -%>`)
-        } else {
-          sessionTemplateData = varName ? sessionTemplateData.replace(tag, `${startTag}${outputTag} ${varName} ${endTag}`) : sessionTemplateData.replace(tag, response)
-        }
-      } else {
-        // $FlowIgnore
-        let { varName, promptMessage, options } = await this.getPromptParameters(tag)
-      }
-    }
-
-    sessionTemplateData = sessionTemplateData.replace(/<%~/gi, '<%=')
-
-    return { sessionTemplateData, sessionData }
+    // Delegate to the prompt registry system
+    return processPrompts(sessionTemplateData, userData, startTag, endTag, this.getTags.bind(this))
   }
 
   static async createTemplate(title: string = '', metaData: any, content: string = ''): Promise<mixed> {
@@ -1630,17 +1366,21 @@ export default class NPTemplating {
     return new FrontmatterModule().convertProjectNoteToFrontmatter(projectNote)
   }
 
-  static async importCodeBlocks(templateData: string = ''): Promise<string> {
+  static async importTemplates(templateData: string = ''): Promise<string> {
     let newTemplateData = templateData
     const tags = (await this.getTags(templateData)) || []
     for (let tag of tags) {
       if (!isCommentTag(tag) && tag.includes('import(')) {
+        logDebug(pluginJson, `NPTemplating.importTemplates :: ${tag}`)
         const importInfo = tag.replace('<%-', '').replace('<%', '').replace('-%>', '').replace('%>', '').replace('import', '').replace('(', '').replace(')', '')
         const parts = importInfo.split(',')
         if (parts.length > 0) {
           const noteNamePath = parts[0].replace(/['"`]/gi, '').trim()
+          logDebug(pluginJson, `NPTemplating.importTemplates :: Importing: noteNamePath :: "${noteNamePath}"`)
           const content = await this.getTemplate(noteNamePath)
+          logDebug(pluginJson, `NPTemplating.importTemplates :: Content length: ${content.length}`)
           const body = new FrontmatterModule().body(content)
+          logDebug(pluginJson, `NPTemplating.importTemplates :: Body length: ${body.length}`)
           if (body.length > 0) {
             newTemplateData = newTemplateData.replace('`' + tag + '`', body) // adjust fenced formats
             newTemplateData = newTemplateData.replace(tag, body)
@@ -1690,10 +1430,28 @@ export default class NPTemplating {
   }
 
   /**
-   * Parses parameters from a promptKey tag
-   *
-   * @param {string} tag - The template tag containing the promptKey call
-   * @returns {Object} The parsed parameters for promptKey
+   * Prompts the user to select a date.
+   * @deprecated Use PromptDateHandler.promptDate instead
+   */
+  static async promptDate(message: string, defaultValue: string): Promise<any> {
+    // This method is kept for backward compatibility
+    // Import the PromptDateHandler to use its implementation
+    return require('./support/modules/prompts/PromptDateHandler').default.promptDate(message, defaultValue)
+  }
+
+  /**
+   * Prompts the user to select a date interval.
+   * @deprecated Use PromptDateIntervalHandler.promptDateInterval instead
+   */
+  static async promptDateInterval(message: string, defaultValue: string): Promise<any> {
+    // This method is kept for backward compatibility
+    // Import the PromptDateIntervalHandler to use its implementation
+    return require('./support/modules/prompts/PromptDateIntervalHandler').default.promptDateInterval(message, defaultValue)
+  }
+
+  /**
+   * Parses parameters from a promptKey tag.
+   * @deprecated Use PromptKeyHandler.parsePromptKeyParameters instead
    */
   static parsePromptKeyParameters(tag: string = ''): {
     varName: string,
@@ -1704,45 +1462,9 @@ export default class NPTemplating {
     folderString: string,
     fullPathMatch: boolean,
   } {
-    // First extract the raw params string
-    const paramsMatch = tag.match(/promptKey\(([^)]+)\)/)
-    const paramsString = paramsMatch ? paramsMatch[1] : ''
-    logDebug(`NPTemplating.parsePromptKeyParameters: tag="${tag}" paramsMatch=${JSON.stringify(paramsMatch)} paramsString=${paramsString}`)
-
-    // Split parameters by comma, but only if the comma is not inside quotes
-    // This regex handles quotes properly
-    const params = paramsString.split(/,(?=(?:[^"']*["'][^"']*["'])*[^"']*$)/).map((p) => p.trim())
-    logDebug(`NPTemplating.parsePromptKeyParameters: params=${JSON.stringify(params)}`)
-
-    // First parameter is tagKey, no separate varName parameter
-    const tagKey = params[0]?.replace(/^["'](.*)["']$/, '$1') || ''
-    const varName = '' // no separate varName parameter so it will not be set as a variable (only used for output tag)
-
-    // Adjust remaining parameters to their correct positions
-    const promptMessage = params[1]?.replace(/^["'](.*)["']$/, '$1') || ''
-    const rawNoteType = params[2]?.replace(/^["'](.*)["']$/, '$1') || 'All'
-    // Make sure noteType is one of the allowed values
-    const noteType: 'Notes' | 'Calendar' | 'All' = rawNoteType === 'Notes' ? 'Notes' : rawNoteType === 'Calendar' ? 'Calendar' : 'All'
-
-    const caseSensitive = params[3] === 'true' || false
-    const folderString = params[4]?.replace(/^["'](.*)["']$/, '$1') || ''
-    const fullPathMatch = params[5] === 'true' || false
-
-    logDebug(
-      `NPTemplating.parsePromptKeyParameters: extracted varName="${varName}" tagKey="${tagKey}" promptMessage="${promptMessage}" noteType="${noteType}" caseSensitive=${String(
-        caseSensitive,
-      )} folderString="${folderString}" fullPathMatch=${String(fullPathMatch)}`,
-    )
-
-    return {
-      varName,
-      tagKey,
-      promptMessage,
-      noteType,
-      caseSensitive,
-      folderString,
-      fullPathMatch,
-    }
+    // This method is kept for backward compatibility
+    // Import the PromptKeyHandler to use its implementation
+    return require('./support/modules/prompts/PromptKeyHandler').default.parsePromptKeyParameters(tag)
   }
 
   static isTemplateModule(tag: string = ''): boolean {
@@ -1753,5 +1475,25 @@ export default class NPTemplating {
       return TEMPLATE_MODULES.indexOf(moduleName) >= 0
     }
     return false
+  }
+
+  /**
+   * Initializes a prompt and handles user interaction.
+   * @deprecated Use the PromptRegistry system instead
+   */
+  static async prompt(message: string, options: any = null): Promise<any> {
+    // This method is kept for backward compatibility
+    // Import the StandardPromptHandler to use its implementation
+    return require('./support/modules/prompts/StandardPromptHandler').default.prompt(message, options)
+  }
+
+  /**
+   * Process parameters for a prompt tag.
+   * @deprecated Use BasePromptHandler.getPromptParameters instead
+   */
+  static async getPromptParameters(promptTag: string = ''): mixed {
+    // This method is kept for backward compatibility
+    // Import the BasePromptHandler to use its implementation
+    return require('./support/modules/prompts/BasePromptHandler').default.getPromptParameters(promptTag)
   }
 }

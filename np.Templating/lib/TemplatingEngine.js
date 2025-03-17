@@ -201,8 +201,15 @@ export default class TemplatingEngine {
       renderData[item.name] = item.method
     })
 
+    const ouputData = () => {
+      clo(processedTemplateData, `198 np.Templating processedTemplateData`)
+      clo(renderData, `198 np.Templating renderData`)
+      clo(options, `198 np.Templating options`)
+    }
+
     try {
       // logDebug(pluginJson, `\n\nrender: BEFORE render`)
+      // ouputData()
       let result = await ejs.render(processedTemplateData, renderData, options)
       // logDebug(pluginJson, `\n\nrender: AFTER render`)
       result = (result && result?.replace(/undefined/g, '')) || ''
@@ -210,6 +217,8 @@ export default class TemplatingEngine {
       return this._replaceDoubleDashes(result)
     } catch (error) {
       logDebug(`199 np.Templating error: ${error}`)
+      clo(error, `199 np.Templating error`)
+      ouputData()
 
       const message = error.message.replace('\n', '')
 

@@ -9,6 +9,12 @@ const { describe, expect, it, test } = require('@jest/globals')
 import NPTemplating from '../lib/NPTemplating'
 
 describe('isCode', () => {
+  beforeEach(() => {
+    global.DataStore = {
+      settings: { logLevel: 'none' },
+    }
+  })
+
   it('should detect function calls with no space', () => {
     // Test cases for function calls with no space between function name and parentheses
     expect(NPTemplating.isCode('<%- weather() %>')).toBe(true)

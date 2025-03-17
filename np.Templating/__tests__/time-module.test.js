@@ -11,6 +11,11 @@ const block = colors.magenta.green
 const method = colors.magenta.bold
 
 describe(`${PLUGIN_NAME}`, () => {
+  beforeEach(() => {
+    global.DataStore = {
+      settings: { logLevel: 'none' },
+    }
+  })
   describe(section('TimeModule'), () => {
     it(`should render ${method('.now')}`, async () => {
       const result = new TimeModule().now('h:mm A')

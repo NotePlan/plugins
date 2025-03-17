@@ -13,6 +13,11 @@ import NPTemplating from '../lib/NPTemplating'
  * that function detection in isCode properly excludes promptKey calls
  */
 describe('promptKey functionality', () => {
+  beforeEach(() => {
+    global.DataStore = {
+      settings: { logLevel: 'none' },
+    }
+  })
   describe('parsePromptKeyParameters', () => {
     it('should parse a basic promptKey tag with only tagKey parameter', () => {
       const tag = "<%- promptKey('bg-color') -%>"
