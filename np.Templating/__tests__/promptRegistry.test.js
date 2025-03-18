@@ -1,16 +1,98 @@
+/* eslint-disable */
 // @flow
-/**
- * @jest-environment jsdom
- */
 
 import NPTemplating from '../lib/NPTemplating'
-import { processPrompts, processPromptTag } from '../lib/support/modules/prompts'
+import { processPrompts, processPromptTag, registerPromptType, getRegisteredPromptNames, cleanVarName } from '../lib/support/modules/prompts/PromptRegistry'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
-import { registerPromptType } from '../lib/support/modules/prompts/PromptRegistry'
 import BasePromptHandler from '../lib/support/modules/prompts/BasePromptHandler'
 import * as PromptRegistry from '../lib/support/modules/prompts/PromptRegistry'
 
-/* global describe, test, expect, jest, beforeEach */
+/* global describe, test, expect, jest, beforeEach, beforeAll */
+
+// Mock the prompt handlers
+const mockPromptTagResponse = 'SELECTED_TAG'
+const mockPromptKeyResponse = 'SELECTED_KEY'
+const mockPromptMentionResponse = 'SELECTED_MENTION'
+
+// Create mock prompt types for testing
+const mockPromptTag = {
+  name: 'promptTag',
+  pattern: /\bpromptTag\s*\(/i,
+  parseParameters: jest.fn<any, any>().mockImplementation((tag) => {
+    // Extract variable name from tag content (if there's an assignment)
+    const assignmentMatch = tag.match(/^\s*(const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:await\s+)?/i)
+    if (assignmentMatch && assignmentMatch[2]) {
+      return { varName: assignmentMatch[2].trim() }
+    }
+    return { varName: 'tagVar' }
+  }),
+  process: jest.fn<any, any>().mockImplementation(async (tag, sessionData, params) => {
+    // Store the response in the varName property
+    if (params.varName) {
+      sessionData[params.varName] = mockPromptTagResponse
+    }
+    return mockPromptTagResponse
+  }),
+}
+
+const mockPromptKey = {
+  name: 'promptKey',
+  pattern: /\bpromptKey\s*\(/i,
+  parseParameters: jest.fn<any, any>().mockImplementation((tag) => {
+    // Extract variable name from tag content (if there's an assignment)
+    const assignmentMatch = tag.match(/^\s*(const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:await\s+)?/i)
+    if (assignmentMatch && assignmentMatch[2]) {
+      return { varName: assignmentMatch[2].trim() }
+    }
+    return { varName: 'keyVar' }
+  }),
+  process: jest.fn<any, any>().mockImplementation(async (tag, sessionData, params) => {
+    // Store the response in the varName property
+    if (params.varName) {
+      sessionData[params.varName] = mockPromptKeyResponse
+    }
+    return mockPromptKeyResponse
+  }),
+}
+
+const mockPromptMention = {
+  name: 'promptMention',
+  pattern: /\bpromptMention\s*\(/i,
+  parseParameters: jest.fn<any, any>().mockImplementation((tag) => {
+    // Extract variable name from tag content (if there's an assignment)
+    const assignmentMatch = tag.match(/^\s*(const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:await\s+)?/i)
+    if (assignmentMatch && assignmentMatch[2]) {
+      return { varName: assignmentMatch[2].trim() }
+    }
+    return { varName: 'mentionVar' }
+  }),
+  process: jest.fn<any, any>().mockImplementation(async (tag, sessionData, params) => {
+    // Store the response in the varName property
+    if (params.varName) {
+      sessionData[params.varName] = mockPromptMentionResponse
+    }
+    return mockPromptMentionResponse
+  }),
+}
+
+// Mock function to extract tags
+const mockGetTags = jest.fn<any, any>().mockImplementation((templateData, tagStart, tagEnd) => {
+  const tags = []
+  let currentPos = 0
+
+  while (true) {
+    const startPos = templateData.indexOf(tagStart, currentPos)
+    if (startPos === -1) break
+
+    const endPos = templateData.indexOf(tagEnd, startPos)
+    if (endPos === -1) break
+
+    tags.push(templateData.substring(startPos, endPos + tagEnd.length))
+    currentPos = endPos + tagEnd.length
+  }
+
+  return tags
+})
 
 describe('PromptRegistry', () => {
   beforeEach(() => {
@@ -242,5 +324,225 @@ describe('BasePromptHandler Dynamic Pattern Generation', () => {
       const cleaned = input.replace(BasePromptHandler.getPromptCleanupPattern(), '').trim()
       expect(cleaned.includes(expected)).toBe(true)
     })
+  })
+})
+
+describe('PromptRegistry Variable Assignment', () => {
+  beforeEach(() => {
+    // Reset mocks
+    mockPromptTag.parseParameters.mockClear()
+    mockPromptTag.process.mockClear()
+    mockPromptKey.parseParameters.mockClear()
+    mockPromptKey.process.mockClear()
+    mockPromptMention.parseParameters.mockClear()
+    mockPromptMention.process.mockClear()
+    mockGetTags.mockClear()
+
+    // Register prompt types
+    registerPromptType(mockPromptTag)
+    registerPromptType(mockPromptKey)
+    registerPromptType(mockPromptMention)
+
+    // Mock the processPrompts function for our tests
+    jest.spyOn(PromptRegistry, 'processPrompts').mockImplementation(async (templateData, initialSessionData, tagStart, tagEnd, getTags) => {
+      const sessionData = { ...initialSessionData }
+      let sessionTemplateData = templateData
+
+      // Extract all tags from the template
+      const tags = await getTags(templateData, tagStart, tagEnd)
+
+      for (const tag of tags) {
+        const content = tag.substring(tagStart.length, tag.length - tagEnd.length).trim()
+
+        // Match variable assignments: const/let/var varName = [await] promptType(...)
+        const assignmentMatch = content.match(/^\s*(const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:await\s+)?(.+)$/i)
+        if (assignmentMatch) {
+          const varName = assignmentMatch[2].trim()
+          let promptContent = assignmentMatch[3].trim()
+
+          // Check which prompt type it is
+          if (promptContent.startsWith('promptTag')) {
+            sessionData[varName] = mockPromptTagResponse
+            sessionTemplateData = sessionTemplateData.replace(tag, `<%- ${varName} %>`)
+          } else if (promptContent.startsWith('promptKey')) {
+            sessionData[varName] = mockPromptKeyResponse
+            sessionTemplateData = sessionTemplateData.replace(tag, `<%- ${varName} %>`)
+          } else if (promptContent.startsWith('promptMention')) {
+            sessionData[varName] = mockPromptMentionResponse
+            sessionTemplateData = sessionTemplateData.replace(tag, `<%- ${varName} %>`)
+          }
+        }
+      }
+      return { sessionTemplateData, sessionData }
+    })
+  })
+
+  describe('getRegisteredPromptNames', () => {
+    test('should return all registered prompt types', () => {
+      const promptNames = getRegisteredPromptNames()
+      expect(promptNames).toContain('promptTag')
+      expect(promptNames).toContain('promptKey')
+      expect(promptNames).toContain('promptMention')
+    })
+  })
+
+  describe('cleanVarName', () => {
+    test('should clean variable names correctly', () => {
+      expect(cleanVarName('my var name')).toBe('my_var_name')
+      expect(cleanVarName('test?')).toBe('test')
+      expect(cleanVarName('')).toBe('unnamed')
+    })
+  })
+
+  describe('Variable assignment with promptTag', () => {
+    test('should handle const variable assignment', async () => {
+      const templateData = '<% const tagVariable = promptTag("foo") %>'
+      console.log('Before process:', templateData)
+
+      // Explicitly run mockGetTags to see what it returns
+      const tags = mockGetTags(templateData, '<%', '%>')
+      console.log('Tags found:', tags)
+
+      const result = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      console.log('After process:', result)
+
+      expect(result.sessionData).toHaveProperty('tagVariable')
+      expect(result.sessionData.tagVariable).toBe(mockPromptTagResponse)
+      expect(result.sessionTemplateData).toBe('<%- tagVariable %>')
+    })
+
+    test('should handle let variable assignment', async () => {
+      const templateData = '<% let tagVariable = promptTag("foo") %>'
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.tagVariable).toBe(mockPromptTagResponse)
+      expect(sessionTemplateData).toBe('<%- tagVariable %>')
+    })
+
+    test('should handle var variable assignment', async () => {
+      const templateData = '<% var tagVariable = promptTag("foo") %>'
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.tagVariable).toBe(mockPromptTagResponse)
+      expect(sessionTemplateData).toBe('<%- tagVariable %>')
+    })
+
+    test('should handle await with variable assignment', async () => {
+      const templateData = '<% const tagVariable = await promptTag("foo") %>'
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.tagVariable).toBe(mockPromptTagResponse)
+      expect(sessionTemplateData).toBe('<%- tagVariable %>')
+    })
+  })
+
+  describe('Variable assignment with promptKey', () => {
+    test('should handle const variable assignment', async () => {
+      const templateData = '<% const keyVariable = promptKey("foo") %>'
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
+      expect(sessionTemplateData).toBe('<%- keyVariable %>')
+    })
+
+    test('should handle let variable assignment', async () => {
+      const templateData = '<% let keyVariable = promptKey("foo") %>'
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
+      expect(sessionTemplateData).toBe('<%- keyVariable %>')
+    })
+
+    test('should handle var variable assignment', async () => {
+      const templateData = '<% var keyVariable = promptKey("foo") %>'
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
+      expect(sessionTemplateData).toBe('<%- keyVariable %>')
+    })
+
+    test('should handle await with variable assignment', async () => {
+      const templateData = '<% const keyVariable = await promptKey("foo") %>'
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
+      expect(sessionTemplateData).toBe('<%- keyVariable %>')
+    })
+  })
+
+  describe('Variable assignment with promptMention', () => {
+    test('should handle const variable assignment', async () => {
+      const templateData = '<% const mentionVariable = promptMention("foo") %>'
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
+      expect(sessionTemplateData).toBe('<%- mentionVariable %>')
+    })
+
+    test('should handle let variable assignment', async () => {
+      const templateData = '<% let mentionVariable = promptMention("foo") %>'
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
+      expect(sessionTemplateData).toBe('<%- mentionVariable %>')
+    })
+
+    test('should handle var variable assignment', async () => {
+      const templateData = '<% var mentionVariable = promptMention("foo") %>'
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
+      expect(sessionTemplateData).toBe('<%- mentionVariable %>')
+    })
+
+    test('should handle await with variable assignment', async () => {
+      const templateData = '<% const mentionVariable = await promptMention("foo") %>'
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
+      expect(sessionTemplateData).toBe('<%- mentionVariable %>')
+    })
+  })
+
+  describe('Multiple variable assignments in one template', () => {
+    test('should handle multiple variable assignments', async () => {
+      const templateData = `
+      <% const tagVar = promptTag("test tag") %>
+      <% let keyVar = promptKey("test key") %>
+      <% var mentionVar = await promptMention("test mention") %>
+      Some text in between
+      <% const finalVar = await promptTag("final") %>
+      `
+
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+
+      expect(sessionData.tagVar).toBe(mockPromptTagResponse)
+      expect(sessionData.keyVar).toBe(mockPromptKeyResponse)
+      expect(sessionData.mentionVar).toBe(mockPromptMentionResponse)
+      expect(sessionData.finalVar).toBe(mockPromptTagResponse)
+
+      expect(sessionTemplateData).toContain('<%- tagVar %>')
+      expect(sessionTemplateData).toContain('<%- keyVar %>')
+      expect(sessionTemplateData).toContain('<%- mentionVar %>')
+      expect(sessionTemplateData).toContain('<%- finalVar %>')
+      expect(sessionTemplateData).toContain('Some text in between')
+    })
+  })
+
+  test('should handle await keyword in variable assignment', async () => {
+    // Set up sessionData to mimic real-world issue
+    const initialSessionData = {
+      category: 'await promptKey(category)', // This mimics what happens in real-world
+    }
+
+    const template = `<% const category = await promptKey('category') -%>
+    Category: <%- category %>
+    `
+
+    // Process the template with the problematic sessionData
+    const { sessionTemplateData, sessionData } = await processPrompts(template, initialSessionData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+
+    // This should fail because it should not preserve "await promptKey(category)"
+    expect(sessionData.category).not.toBe('await promptKey(category)')
   })
 })

@@ -202,16 +202,19 @@ export default class TemplatingEngine {
     })
 
     const ouputData = () => {
+      // $FlowIgnore
+      const getTopLevelProps = (obj) => Object.entries(obj).reduce((acc, [key, value]) => (typeof value !== 'object' || value === null ? { ...acc, [key]: value } : acc), {})
       clo(processedTemplateData, `198 np.Templating processedTemplateData`)
-      clo(renderData, `198 np.Templating renderData`)
+      clo(getTopLevelProps(renderData), `198 np.Templating renderData (top level values only)`)
       clo(options, `198 np.Templating options`)
     }
 
     try {
-      // logDebug(pluginJson, `\n\nrender: BEFORE render`)
-      // ouputData()
+      logDebug(pluginJson, `\n\nrender: BEFORE render`)
+      ouputData()
       let result = await ejs.render(processedTemplateData, renderData, options)
-      // logDebug(pluginJson, `\n\nrender: AFTER render`)
+      logDebug(pluginJson, `\n\nrender: AFTER render`)
+      ouputData()
       result = (result && result?.replace(/undefined/g, '')) || ''
 
       return this._replaceDoubleDashes(result)

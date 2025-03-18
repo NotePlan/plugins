@@ -54,9 +54,9 @@ export default class PromptDateIntervalHandler {
 
     logDebug(pluginJson, `PromptDateIntervalHandler.process: Processing tag="${tag}" with varName="${varName}"`)
 
-    if (sessionData[varName]) {
-      // Value already exists in session data
-      logDebug(pluginJson, `PromptDateIntervalHandler.process: Using existing value for ${varName}`)
+    if (varName && sessionData[varName] && BasePromptHandler.isValidSessionValue(sessionData[varName], 'promptDateInterval', varName)) {
+      // Value already exists in session data and is not a function call representation
+      logDebug(pluginJson, `PromptDateIntervalHandler.process: Using existing value for ${varName}: ${sessionData[varName]}`)
       return sessionData[varName]
     }
 

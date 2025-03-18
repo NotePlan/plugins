@@ -1,8 +1,5 @@
 /* eslint-disable */
 // @flow
-/**
- * @jest-environment jsdom
- */
 
 import PromptTagHandler from '../lib/support/modules/prompts/PromptTagHandler'
 import PromptMentionHandler from '../lib/support/modules/prompts/PromptMentionHandler'
@@ -12,17 +9,9 @@ import '../lib/support/modules/prompts' // Import to register all prompt handler
 
 describe('promptTag and promptMention with single parameter', () => {
   beforeEach(() => {
-    // Suppress console logs during tests
-    // $FlowFixMe - Console properties are read-only but we're mocking for tests
-    console.log = jest.fn()
-    // $FlowFixMe - Console properties are read-only but we're mocking for tests
-    console.debug = jest.fn()
-    // $FlowFixMe - Console properties are read-only but we're mocking for tests
-    console.info = jest.fn()
-    // $FlowFixMe - Console properties are read-only but we're mocking for tests
-    console.warn = jest.fn()
-    // $FlowFixMe - Console properties are read-only but we're mocking for tests
-    console.error = jest.fn()
+    global.DataStore = {
+      settings: { logLevel: 'none' },
+    }
   })
 
   describe('promptTag with single message parameter', () => {

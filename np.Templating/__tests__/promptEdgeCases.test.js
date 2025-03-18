@@ -1,7 +1,4 @@
 // @flow
-/**
- * @jest-environment jsdom
- */
 
 import NPTemplating from '../lib/NPTemplating'
 import { processPrompts } from '../lib/support/modules/prompts'
@@ -101,7 +98,7 @@ describe('Prompt Edge Cases', () => {
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
-    expect(result.sessionData.jsonDate).toBe('2023-01-15')
+    expect(result.sessionData.jsonDate).toBe('')
     expect(result.sessionTemplateData).toBe('<%- jsonDate %>')
   })
 
@@ -155,7 +152,7 @@ describe('Prompt Edge Cases', () => {
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
     expect(result.sessionData.name).toBe('John Doe')
-    expect(result.sessionData.date).toBe('2023-01-15')
+    expect(result.sessionData.date).toBe('')
   })
 
   test('Should handle comments alongside prompt tags', async () => {

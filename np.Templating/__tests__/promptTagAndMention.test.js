@@ -1,8 +1,5 @@
 /* eslint-disable */
 // @flow
-/**
- * @jest-environment jsdom
- */
 
 import NPTemplating from '../lib/NPTemplating'
 import HashtagPromptHandler from '../lib/support/modules/prompts/PromptTagHandler'
@@ -42,18 +39,6 @@ describe('promptTag and promptMention functionality', () => {
         return Promise.resolve('Test Input')
       }),
     }
-
-    // Suppress console logs during tests
-    // $FlowFixMe - Console properties are read-only but we're mocking for tests
-    console.log = jest.fn()
-    // $FlowFixMe - Console properties are read-only but we're mocking for tests
-    console.debug = jest.fn()
-    // $FlowFixMe - Console properties are read-only but we're mocking for tests
-    console.info = jest.fn()
-    // $FlowFixMe - Console properties are read-only but we're mocking for tests
-    console.warn = jest.fn()
-    // $FlowFixMe - Console properties are read-only but we're mocking for tests
-    console.error = jest.fn()
   })
 
   describe('HashtagPromptHandler', () => {

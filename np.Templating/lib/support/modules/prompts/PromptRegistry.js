@@ -149,56 +149,222 @@ function findMatchingPromptType(tagContent: string): ?{ promptType: Object, name
  * @returns {Promise<?{response: string, promptType: string, params: any}>} The prompt response and associated info, or null if none matched.
  */
 export async function processPromptTag(tag: string, sessionData: any, tagStart: string, tagEnd: string): Promise<string> {
-  if (tag.startsWith(`${tagStart}-`) || tag.startsWith(`${tagStart}=`)) {
+  logDebug(pluginJson, `processPromptTag starting with tag: ${tag}...`)
+
+  if (tag.startsWith(`${tagStart}`) || tag.startsWith(`${tagStart}-`) || tag.startsWith(`${tagStart}=`)) {
     // Extract the content between tagStart and tagEnd
-    const content = tag.substring(tagStart.length + 1, tag.length - tagEnd.length).trim()
+    const content = tag.substring(tagStart.length, tag.length - tagEnd.length).trim()
+    logDebug(pluginJson, `Extracted content: "${content}"`)
 
-    // Check if this is an awaited operation
-    const isAwaited = content.startsWith('await ')
-    const processContent = isAwaited ? content.substring(6).trim() : content
+    // Check for variable assignment pattern (const/let/var varName = promptType(...))
+    const assignmentMatch = content.match(/^\s*(const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:await\s+)?(.+)$/i)
+    if (assignmentMatch) {
+      // This is a variable assignment with a prompt
+      const varType = assignmentMatch[1] // const, let, or var
+      const varName = assignmentMatch[2].trim() // The variable name
+      const promptCall = assignmentMatch[3].trim() // The prompt call (e.g., promptKey("category"))
 
-    // Handle simple variable references like <%- varName %>
-    const varRefMatch = /^\s*([a-zA-Z0-9_$]+)\s*$/.exec(processContent)
-    if (varRefMatch && varRefMatch[1] && sessionData.hasOwnProperty(varRefMatch[1])) {
-      // This is a reference to an existing variable, just return the original tag
-      return tag
-    }
+      logDebug(pluginJson, `Found variable assignment: type=${varType}, varName=${varName}, promptCall=${promptCall}`)
 
-    // Find the matching prompt type
-    const promptTypeInfo = findMatchingPromptType(processContent)
+      // Find the matching prompt type for the prompt call
+      const promptTypeInfo = findMatchingPromptType(promptCall)
+      if (promptTypeInfo && promptTypeInfo.promptType) {
+        const { promptType, name } = promptTypeInfo
+        logDebug(pluginJson, `Found matching prompt type within variable assignment: ${name}`)
 
-    if (promptTypeInfo && promptTypeInfo.promptType) {
-      const { promptType, name } = promptTypeInfo
-      logDebug(pluginJson, `Found matching prompt type for tag: ${name}`)
+        try {
+          // Parse the parameters for this prompt call
+          // We use a temporary tag with just the prompt call
+          // and set noVar=true to skip variable name extraction in parseParameters
+          const tempTag = `${tagStart}- ${promptCall} ${tagEnd}`
+          logDebug(pluginJson, `Created temporary tag for parsing: "${tempTag}"`)
 
-      try {
-        // Parse the parameters
-        const params = promptType.parseParameters(processContent)
-        logDebug(pluginJson, `Parsed prompt parameters: ${JSON.stringify(params)}`)
+          // Check if the parameter might be referencing a variable
+          const paramMatch = promptCall.match(/\w+\((\w+)(?!\s*["'])\)/)
+          if (paramMatch) {
+            const unquotedParam = paramMatch[1]
+            logDebug(pluginJson, `Found unquoted parameter: "${unquotedParam}". Session data keys: ${Object.keys(sessionData).join(', ')}`)
 
-        // Log the tag being processed
-        logDebug(pluginJson, `Processing tag: ${tag.substring(0, 30)}...`)
+            // Check if this parameter exists in session data
+            if (sessionData[unquotedParam]) {
+              logDebug(pluginJson, `Unquoted parameter "${unquotedParam}" found in session data with value: ${sessionData[unquotedParam]}`)
 
-        // Process the prompt
-        const response = await promptType.process(tag, sessionData, params)
+              // Replace the unquoted parameter with the value from session data, properly quoted
+              const sessionValue = sessionData[unquotedParam]
+              const quotedValue = typeof sessionValue === 'string' ? `"${sessionValue.replace(/"/g, '\\"')}"` : String(sessionValue)
 
-        // Store the response in sessionData if a variable name is provided
-        if (params.varName) {
-          // Store both the original and cleaned variable names
-          const cleanedVarName = cleanVarName(params.varName)
-          sessionData[params.varName] = response
-          sessionData[cleanedVarName] = response
+              // Replace the unquoted parameter with the quoted session value
+              const fixedPromptCall = promptCall.replace(new RegExp(`(\\w+\\()${unquotedParam}(\\))`, 'g'), `$1${quotedValue}$2`)
+              logDebug(pluginJson, `Replaced unquoted parameter with session value: "${fixedPromptCall}"`)
 
-          // Return the variable reference for the template using the cleaned name
-          return `${tagStart}- ${cleanedVarName} ${tagEnd}`
+              // Create new tag with the replaced value
+              const fixedTempTag = `${tagStart}- ${fixedPromptCall} ${tagEnd}`
+              logDebug(pluginJson, `Created fixed tag with session value: "${fixedTempTag}"`)
+
+              const params = promptType.parseParameters(fixedTempTag)
+              logDebug(pluginJson, `Parsed parameters with session value: ${JSON.stringify(params)}`)
+
+              // Rest of processing remains the same
+              params.varName = varName
+              logDebug(pluginJson, `Processing variable assignment with session value: ${varType} ${varName} = ${fixedPromptCall}`)
+
+              const response = await promptType.process(fixedTempTag, sessionData, params)
+              logDebug(pluginJson, `Prompt response with session value: "${response}"`)
+
+              // Check if response looks like it's a string representation of the prompt call
+              if (typeof response === 'string' && response.startsWith(`${name}(`) && response.endsWith(')')) {
+                logDebug(pluginJson, `Response appears to be a string representation of the function call: "${response}". Attempting to fix...`)
+
+                // Try to execute the prompt again with different parameters
+                try {
+                  // Extract the parameter from the response
+                  const paramMatch = response.match(/^\w+\(([^)]+)\)$/)
+                  const param = paramMatch ? paramMatch[1] : ''
+                  logDebug(pluginJson, `Extracted parameter: "${param}"`)
+
+                  // Create a fixed prompt call that includes quotes around the parameter
+                  const cleanedParam = param.replace(/"/g, '\\"')
+                  const fixedPromptCall = `${name}("${cleanedParam}")`
+                  logDebug(pluginJson, `Fixed prompt call: ${fixedPromptCall}`)
+
+                  const fixedTag = `${tagStart}- ${fixedPromptCall} ${tagEnd}`
+                  const fixedParams = promptType.parseParameters(fixedTag)
+                  fixedParams.varName = varName
+
+                  const fixedResponse = await promptType.process(fixedTag, sessionData, fixedParams)
+                  logDebug(pluginJson, `Fixed response: "${fixedResponse}"`)
+
+                  // Store the fixed response
+                  sessionData[varName] = fixedResponse
+
+                  // Return a reference to the variable for the template engine
+                  const result = `${tagStart}- ${varName} ${tagEnd}`
+                  logDebug(pluginJson, `Returning variable reference: "${result}"`)
+                  return result
+                } catch (fixError) {
+                  logError(pluginJson, `Error fixing prompt: ${fixError.message}`)
+                }
+              }
+
+              // Store the response in the sessionData with the assigned variable name
+              sessionData[varName] = response
+              logDebug(pluginJson, `Stored response in sessionData[${varName}] = "${response}"`)
+
+              // Return a reference to the variable for the template engine
+              const result = `${tagStart}- ${varName} ${tagEnd}`
+              logDebug(pluginJson, `Returning variable reference: "${result}"`)
+              return result
+            }
+          }
+
+          const params = promptType.parseParameters(tempTag)
+          logDebug(pluginJson, `Parsed parameters: ${JSON.stringify(params)}`)
+
+          // Override the varName with the one from the assignment
+          params.varName = varName
+          logDebug(pluginJson, `Processing variable assignment: ${varType} ${varName} = ${promptCall}`)
+
+          // Process the prompt to get the response
+          const response = await promptType.process(tempTag, sessionData, params)
+          logDebug(pluginJson, `Prompt response: "${response}"`)
+
+          // Check if response looks like it's a string representation of the prompt call
+          if (typeof response === 'string' && response.startsWith(`${name}(`) && response.endsWith(')')) {
+            logDebug(pluginJson, `Response appears to be a string representation of the function call: "${response}". Attempting to fix...`)
+
+            // Try to execute the prompt again with different parameters
+            try {
+              // Extract the parameter from the response
+              const paramMatch = response.match(/^\w+\(([^)]+)\)$/)
+              const param = paramMatch ? paramMatch[1] : ''
+              logDebug(pluginJson, `Extracted parameter: "${param}"`)
+
+              // Create a fixed prompt call that includes quotes around the parameter
+              const cleanedParam = param.replace(/"/g, '\\"')
+              const fixedPromptCall = `${name}("${cleanedParam}")`
+              logDebug(pluginJson, `Fixed prompt call: ${fixedPromptCall}`)
+
+              const fixedTag = `${tagStart}- ${fixedPromptCall} ${tagEnd}`
+              const fixedParams = promptType.parseParameters(fixedTag)
+              fixedParams.varName = varName
+
+              const fixedResponse = await promptType.process(fixedTag, sessionData, fixedParams)
+              logDebug(pluginJson, `Fixed response: "${fixedResponse}"`)
+
+              // Store the fixed response
+              sessionData[varName] = fixedResponse
+
+              // Return a reference to the variable for the template engine
+              const result = `${tagStart}- ${varName} ${tagEnd}`
+              logDebug(pluginJson, `Returning variable reference: "${result}"`)
+              return result
+            } catch (fixError) {
+              logError(pluginJson, `Error fixing prompt: ${fixError.message}`)
+            }
+          }
+
+          // Store the response in the sessionData with the assigned variable name
+          sessionData[varName] = response
+          logDebug(pluginJson, `Stored response in sessionData[${varName}] = "${response}"`)
+
+          // Return a reference to the variable for the template engine
+          const result = `${tagStart}- ${varName} ${tagEnd}`
+          logDebug(pluginJson, `Returning variable reference: "${result}"`)
+          return result
+        } catch (error) {
+          logError(pluginJson, `Error processing prompt type ${name} in variable assignment: ${error.message}`)
+          return `<!-- Error processing prompt in variable assignment: ${error.message} -->`
         }
+      }
+    } else {
+      // Standard prompt tag processing (non-assignment)
+      // Check if this is an awaited operation
+      const isAwaited = content.startsWith('await ')
+      const processContent = isAwaited ? content.substring(6).trim() : content
 
-        // If no variable name, return the response directly
-        return response
-      } catch (error) {
-        logError(pluginJson, `Error processing prompt type ${name}: ${error.message}`)
-        // Replace the problematic tag with an error comment
-        return `<!-- Error processing prompt: ${error.message} -->`
+      // Handle simple variable references like <%- varName %>
+      const varRefMatch = /^\s*([a-zA-Z0-9_$]+)\s*$/.exec(processContent)
+      if (varRefMatch && varRefMatch[1] && sessionData.hasOwnProperty(varRefMatch[1])) {
+        // This is a reference to an existing variable, just return the original tag
+        return tag
+      }
+
+      // Find the matching prompt type
+      const promptTypeInfo = findMatchingPromptType(processContent)
+
+      if (promptTypeInfo && promptTypeInfo.promptType) {
+        const { promptType, name } = promptTypeInfo
+        logDebug(pluginJson, `Found matching prompt type for tag: ${name}`)
+
+        try {
+          // Parse the parameters
+          const params = promptType.parseParameters(processContent)
+          logDebug(pluginJson, `Parsed prompt parameters: ${JSON.stringify(params)}`)
+
+          // Log the tag being processed
+          logDebug(pluginJson, `Processing tag: ${tag.substring(0, 100)}...`)
+
+          // Process the prompt
+          const response = await promptType.process(tag, sessionData, params)
+
+          // Store the response in sessionData if a variable name is provided
+          if (params.varName) {
+            // Store both the original and cleaned variable names
+            const cleanedVarName = cleanVarName(params.varName)
+            sessionData[params.varName] = response
+            sessionData[cleanedVarName] = response
+
+            // Return the variable reference for the template using the cleaned name
+            return `${tagStart}- ${cleanedVarName} ${tagEnd}`
+          }
+
+          // If no variable name, return the response directly
+          return response
+        } catch (error) {
+          logError(pluginJson, `Error processing prompt type ${name}: ${error.message}`)
+          // Replace the problematic tag with an error comment
+          return `<!-- Error processing prompt: ${error.message} -->`
+        }
       }
     }
   }

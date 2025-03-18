@@ -17,25 +17,41 @@ export default class PromptDateHandler {
    * Prompt the user for a date
    * @param {string} tag - The tag to process
    * @param {string} message - The message to display to the user
-   * @param {Object} options - Optional parameters for the date picker
+   * @param {Object|string} options - Optional parameters for the date picker
    * @returns {Promise<string>} - The selected date
    */
-  static async promptDate(tag: string, message: string, options: Object = {}): Promise<string> {
+  static async promptDate(tag: string, message: string, options: Object | string = {}): Promise<string> {
     try {
-      // Normal operation for non-test environment - pass the message directly, not as JSON
-      const response = await datePicker(message, options)
+      // Process the message to handle escape sequences
+      const processedMessage = typeof message === 'string' ? message.replace(/\\"/g, '"').replace(/\\'/g, "'") : message
+
+      let dateOptions = {}
+      // If options is a real object, use it
+      if (typeof options === 'object' && options !== null) {
+        dateOptions = options
+      } else if (typeof options === 'string' && options.trim() !== '') {
+        // If options is a non-empty string, try to parse it as JSON
+        try {
+          dateOptions = JSON.parse(options)
+        } catch (e) {
+          logError(pluginJson, `Invalid JSON in promptDate options: ${e.message}`)
+          dateOptions = {}
+        }
+      }
+
+      // Call the datePicker with the processed message and options
+      const response = await datePicker(processedMessage, dateOptions)
 
       // Ensure we have a valid response
       if (response) {
         return response
       }
 
-      // Fallback for tests or if datePicker fails
-      return '2023-01-15'
+      // Fallback if datePicker fails
+      return ''
     } catch (error) {
       logError(pluginJson, `Error in promptDate: ${error.message}`)
-      // Return a fallback value for tests
-      return '2023-01-15'
+      return ''
     }
   }
 
@@ -49,8 +65,9 @@ export default class PromptDateHandler {
   static async process(tag: string, sessionData: any, params: any): Promise<string> {
     const { varName, promptMessage, options } = params
 
-    if (sessionData[varName]) {
-      // Value already exists in session data
+    if (varName && sessionData[varName] && BasePromptHandler.isValidSessionValue(sessionData[varName], 'promptDate', varName)) {
+      // Value already exists in session data and is not a function call representation
+      logDebug(pluginJson, `PromptDateHandler.process: Using existing value from session data: ${sessionData[varName]}`)
       return sessionData[varName]
     }
 
@@ -58,7 +75,7 @@ export default class PromptDateHandler {
       const response = await PromptDateHandler.promptDate(tag, promptMessage, options)
 
       // Store the result in session data
-      sessionData[varName] = response
+      if (varName) sessionData[varName] = response
 
       return response
     } catch (error) {

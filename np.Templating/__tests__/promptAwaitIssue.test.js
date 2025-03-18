@@ -1,7 +1,4 @@
 // @flow
-/**
- * @jest-environment jsdom
- */
 
 import NPTemplating from '../lib/NPTemplating'
 import { processPrompts } from '../lib/support/modules/prompts'

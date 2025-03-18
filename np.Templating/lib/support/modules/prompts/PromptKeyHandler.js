@@ -42,10 +42,31 @@ export default class PromptKeyHandler {
     fullPathMatch: boolean,
     options: Array<string> | null,
   } {
+    logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters starting with tag: "${tag}"`)
+
     // First extract the raw params string
     const paramsMatch = tag.match(/promptKey\(([^)]+)\)/)
     const paramsString = paramsMatch ? paramsMatch[1] : ''
     logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: tag="${tag}" paramsMatch=${JSON.stringify(paramsMatch)} paramsString=${paramsString}`)
+
+    // Check if there are recursive promptKey patterns like "promptKey(promptKey(...))"
+    const recursiveMatch = paramsString.match(/promptKey\(([^)]+)\)/)
+    if (recursiveMatch) {
+      logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: Detected recursive promptKey pattern. This needs to be fixed.`)
+      // Try to extract the innermost parameter
+      const innerParam = recursiveMatch[1]
+      logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: Extracted inner parameter: "${innerParam}"`)
+      // Force quotes around it to treat it as a string literal
+      const fixedParam = innerParam.startsWith('"') || innerParam.startsWith("'") ? innerParam : `"${innerParam}"`
+      logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: Using fixed parameter: "${fixedParam}"`)
+      return PromptKeyHandler.parsePromptKeyParameters(`promptKey(${fixedParam})`)
+    }
+
+    // Check if the parameter is unquoted - might be a variable reference
+    const isUnquotedParam = /^\s*(\w+)\s*$/.test(paramsString)
+    if (isUnquotedParam) {
+      logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: Found unquoted parameter "${paramsString}" - could be a variable reference`)
+    }
 
     // Split parameters by comma, but only if the comma is not inside quotes
     // This regex handles quotes properly
@@ -53,7 +74,12 @@ export default class PromptKeyHandler {
     logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: params=${JSON.stringify(params)}`)
 
     // First parameter is tagKey, no separate varName parameter
-    const tagKey = params[0]?.replace(/^["'](.*)["']$/, '$1') || ''
+    // Ensure that unquoted parameters are treated as string literals
+    // If the parameter doesn't start with a quote, it's likely an unquoted string or variable name
+    // In a template context, we should treat it as a string literal
+    const tagKey = params[0] ? params[0].replace(/^["'](.*)["']$/, '$1') : ''
+    logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: processed tagKey="${tagKey}" (original param: "${params[0]}")`)
+
     // Set varName to empty string as expected by tests
     const varName = ''
 
@@ -219,16 +245,46 @@ export default class PromptKeyHandler {
   static async process(tag: string, sessionData: any, params: any): Promise<string> {
     const { varName, tagKey, promptMessage, noteType, caseSensitive, folderString, fullPathMatch, options } = params
 
+    logDebug(pluginJson, `PromptKeyHandler.process: Starting with tagKey="${tagKey}", promptMessage="${promptMessage}"`)
+
+    // Special handling for recursive promptKey patterns
+    const recursivePattern = /promptKey\((\w+)\)/
+    if (tag.match(recursivePattern) || (typeof tagKey === 'string' && tagKey.match(recursivePattern))) {
+      logDebug(pluginJson, `PromptKeyHandler.process: Detected recursive promptKey pattern in tag or tagKey. Fixing...`)
+
+      // Extract the actual parameter from the recursive pattern
+      const match = tag.match(recursivePattern) || tagKey.match(recursivePattern)
+      const actualParam = match ? match[1] : ''
+
+      logDebug(pluginJson, `PromptKeyHandler.process: Extracted actual parameter: "${actualParam}"`)
+
+      // Instead of returning the recursive pattern, call promptKey with the actual parameter
+      try {
+        const response = await PromptKeyHandler.promptKey(actualParam, promptMessage, noteType, caseSensitive, folderString, fullPathMatch, options)
+        logDebug(pluginJson, `PromptKeyHandler.process: Got fixed response: "${response}"`)
+        return response
+      } catch (error) {
+        logError(pluginJson, `Error processing recursive promptKey pattern: ${error.message}`)
+        // Fallback to standard processing
+      }
+    }
+
     // For promptKey, use tagKey as the variable name for storing in session data
     const sessionVarName = tagKey.replace(/ /gi, '_').replace(/\?/gi, '')
 
-    if (sessionData[sessionVarName]) {
-      // Value already exists in session data
+    // Use the common method to check if the value in session data is valid
+    if (sessionData[sessionVarName] && BasePromptHandler.isValidSessionValue(sessionData[sessionVarName], 'promptKey', sessionVarName)) {
+      // Value already exists in session data and is not a function call representation
+      logDebug(pluginJson, `PromptKeyHandler.process: Using existing value from session data: ${sessionData[sessionVarName]}`)
       return sessionData[sessionVarName]
     }
 
     try {
+      logDebug(pluginJson, `PromptKeyHandler.process: Executing promptKey with tag="${tagKey}"`)
       const response = await PromptKeyHandler.promptKey(tagKey, promptMessage, noteType, caseSensitive, folderString, fullPathMatch, options)
+
+      logDebug(pluginJson, `PromptKeyHandler.process: Got response: ${response}`)
+
       // Store response with appropriate variable name
       sessionData[sessionVarName] = response
       return response

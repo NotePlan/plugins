@@ -1,7 +1,4 @@
 // @flow
-/**
- * @jest-environment jsdom
- */
 
 import NPTemplating from '../lib/NPTemplating'
 import { processPrompts } from '../lib/support/modules/prompts'
@@ -204,7 +201,7 @@ describe('Prompt Integration Tests', () => {
     const cleanedSessionData = replaceQuotedTextPlaceholders(result.sessionData)
 
     // Check existing values were preserved
-    expect(cleanedSessionData.projectName).toBe('Text Response')
+    expect(cleanedSessionData.projectName).toBe('Existing Project')
     expect(cleanedSessionData.startDate).toBe('2023-01-01')
 
     // Check that CommandBar.textPrompt was not called for existing values

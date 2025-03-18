@@ -7,6 +7,7 @@
 import pluginJson from '../../../../plugin.json'
 import { registerPromptType } from './PromptRegistry'
 import { parsePromptParameters, filterItems, promptForItem } from './sharedPromptFunctions'
+import BasePromptHandler from './BasePromptHandler'
 import { log, logError, logDebug } from '@helpers/dev'
 
 /**
@@ -73,8 +74,20 @@ export default class PromptMentionHandler {
   static async process(tag: string, sessionData: any, params: any): Promise<string> {
     const { promptMessage, varName, includePattern, excludePattern, allowCreate } = params
 
+    // Check if variable already exists in session data and is valid
+    if (varName && sessionData[varName] && BasePromptHandler.isValidSessionValue(sessionData[varName], 'promptMention', varName)) {
+      // Value already exists in session data and is not a function call representation
+      logDebug(pluginJson, `PromptMentionHandler.process: Using existing value from session data: ${sessionData[varName]}`)
+      return sessionData[varName]
+    }
+
     try {
       const response = await PromptMentionHandler.promptMention(promptMessage || 'Choose @mention', includePattern, excludePattern, allowCreate)
+
+      // Store the result in session data if a variable name is provided
+      if (varName) {
+        sessionData[varName] = response && !response.startsWith('@') ? `@${response}` : response
+      }
 
       // Add @ prefix if not already present
       return response && !response.startsWith('@') ? `@${response}` : response

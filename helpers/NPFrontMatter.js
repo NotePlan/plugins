@@ -176,7 +176,7 @@ export function getNotesWithFrontmatter(noteType: 'Notes' | 'Calendar' | 'All' =
     // Then filter by folder if specified
     const filteredNotes = filterNotesByFolder(notesWithFrontmatter, folderString, fullPathMatch)
 
-    logDebug(`getNotesWithFrontmatter: ${filteredNotes.length}/${allNotes.length} ${timer(start)}`)
+    logDebug(`getNotesWithFrontmatter: FM notes: ${filteredNotes.length}/${allNotes.length} in ${timer(start)}`)
     return filteredNotes
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -733,9 +733,9 @@ export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: b
     fmData = fm(sanitizedText, { allowUnsafe: true })
   } catch (error) {
     // Expected to fail in certain circumstances due to limitations in fm library
-    logWarn(
-      `Frontmatter getAttributes error. fm module COULD NOT SANITIZE CONTENT: "${error.message}".\nSuggestion: Check for items in frontmatter that need to be quoted. If fm values are surrounded by double quotes, makes sure they do not contain template tags that also contain double quotes. Template tags in frontmatter will always be quoted. And so make sure your template tags in frontmatter use single quotes, not double quotes in this note:\n"${noteText}\n\nSanitizedText:\n${sanitizedText}"`,
-    )
+    // logWarn(
+    //   `Frontmatter getAttributes error. fm module COULD NOT SANITIZE CONTENT: "${error.message}".\nSuggestion: Check for items in frontmatter that need to be quoted. If fm values are surrounded by double quotes, makes sure they do not contain template tags that also contain double quotes. Template tags in frontmatter will always be quoted. And so make sure your template tags in frontmatter use single quotes, not double quotes in this note:\n"${noteText}\n\nSanitizedText:\n${sanitizedText}"`,
+    // )
     // logError(`Frontmatter getAttributes error. COULD NOT SANITIZE CONTENT: "${error.message}". Returning empty values for this note: "${JSON.stringify(noteText)}"`)
   }
   return fmData
@@ -1004,7 +1004,7 @@ export function getNotesWithFrontmatterTags(
     })
   })
 
-  logDebug(`getNotesWithFrontmatterTags: ${notesWithFrontmatterTags.length}/${notes.length} ${timer(start)}`)
+  logDebug(`getNotesWithFrontmatterTags: ${tags.toString()} ${notesWithFrontmatterTags.length}/${notes.length} in ${timer(start)}`)
   return notesWithFrontmatterTags
 }
 
@@ -1156,7 +1156,10 @@ export async function getValuesForFrontmatterTag(
   })
 
   // Convert the set to an array and return
-  logDebug(`getValuesForFrontmatterTag: Found ${uniqueValuesSet.size} unique values for tag "${tagToUse}"`)
+  logDebug(
+    `getValuesForFrontmatterTag: Found ${uniqueValuesSet.size} unique values for tag "${tagToUse}" - ` +
+      `[${[...uniqueValuesSet].slice(0, 3).join(', ')}${uniqueValuesSet.size > 3 ? ', ...' : ''}]`,
+  )
   return Array.from(uniqueValuesSet)
 }
 
