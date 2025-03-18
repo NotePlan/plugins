@@ -4,7 +4,7 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.12.1] 2025-03-15 @dwertheimer
+## [1.13.0] 2025-03-18 @dwertheimer
 
 - Update `Add Frontmatter/Properties to Template` command name
 - add tag `getValuesForKey` to get all values for a given frontmatter tag

@@ -44,27 +44,50 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
 }
 
 /**
- * Ask user to choose from a set of options (from nmn.sweep) using CommandBar
+ * Show a list of options to the user and return which option they picked (optionally with a modifier key, optionally with ability to create a new item)
  * @author @dwertheimer based on @nmn chooseOption
  *
  * @param {string} message - text to display to user
- * @param {Array<T>} options - array of label:value options to present to the user
- * @return {{ label:string, value:string, index: number, keyModifiers: Array<string> }} - the value attribute of the user-chosen item
- * keyModifiers is an array of 0+ strings, e.g. ["cmd", "opt", "shift", "ctrl"] that were pressed while selecting a result.
+ * @param {Array<Option<T>>} options - array of options to display
+ * @param {boolean} allowCreate - add an option to create a new item (default: false)
+ * @returns {Promise<{value: T, label: string, index: number, keyModifiers: Array<string>}>} - Promise resolving to the result
+ * see CommandBar.showOptions for more info
  */
-// @nmn we need some $FlowFixMe
 export async function chooseOptionWithModifiers<T, TDefault = T>(
   message: string,
   options: $ReadOnlyArray<Option<T>>,
+  allowCreate: boolean = false,
 ): Promise<{ ...TDefault, index: number, keyModifiers: Array<string> }> {
   logDebug('userInput / chooseOptionWithModifiers()', `About to showOptions with ${options.length} options & prompt:"${message}"`)
+
+  // Add the "Add new item" option if allowCreate is true
+  let displayOptions = [...options]
+  if (allowCreate) {
+    displayOptions = [{ label: '➕ Add new item', value: '__ADD_NEW__' }, ...options]
+  }
+
   // $FlowFixMe[prop-missing]
   const { index, keyModifiers } = await CommandBar.showOptions(
-    options.map((option) => option.label),
+    displayOptions.map((option) => option.label),
     message,
   )
+
+  // Check if the user selected "Add new item"
+  if (allowCreate && index === 0) {
+    const result = await getInput('Enter new item:', 'OK', 'Add New Item')
+    if (result && typeof result === 'string') {
+      // Return a custom result with the new item
+      return {
+        value: result,
+        label: result,
+        index: -1, // -1 indicates a custom entry
+        keyModifiers: keyModifiers || [],
+      }
+    }
+  }
+
   // $FlowFixMe[incompatible-return]
-  return { ...options[index], index, keyModifiers }
+  return { ...displayOptions[index], index, keyModifiers }
 }
 
 /**
@@ -212,14 +235,12 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
         folderOptionList.push({ label: NEW_FOLDER, value: NEW_FOLDER })
       } else if (f !== '/') {
         const folderParts = f.split('/')
-        const icon = (folderParts[0]==='@Archive')
-          ? `🗄️` : (folderParts[0]==='@Templates')
-            ? '📝' : '📁'
+        const icon = folderParts[0] === '@Archive' ? `🗄️` : folderParts[0] === '@Templates' ? '📝' : '📁'
         // Replace earlier parts of the path with indentation spaces
         for (let i = 0; i < folderParts.length - 1; i++) {
           folderParts[i] = '     '
         }
-        folderParts[folderParts.length - 1] =  `${ icon } ${ folderParts[folderParts.length - 1] }`
+        folderParts[folderParts.length - 1] = `${icon} ${folderParts[folderParts.length - 1]}`
         const folderLabel = folderParts.join('')
         folderOptionList.push({ label: folderLabel, value: f })
       } else {
@@ -255,8 +276,8 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
       }
     }
   }
-logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
-return folder
+  logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
+  return folder
 }
 
 /**
@@ -608,9 +629,7 @@ export async function chooseNote(
     opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
-  const noteToReturn = (opts[index] === '[New note]')
-    ? await createNewNote()
-    : sortedNoteListFiltered[index]
+  const noteToReturn = opts[index] === '[New note]' ? await createNewNote() : sortedNoteListFiltered[index]
   return noteToReturn ?? null
 }
 

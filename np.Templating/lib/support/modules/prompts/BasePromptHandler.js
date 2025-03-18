@@ -81,11 +81,48 @@ export default class BasePromptHandler {
   /**
    * Process a template tag and extract parameters for a general prompt.
    * @param {string} promptTag - The prompt tag to process.
+   * @param {boolean} noVar - If true, will set varName to empty string in return object and will assume the first parameter is not the variable name -- e.g. may be the promptMessage.
    * @returns {Object} An object with varName, promptMessage, and options.
    */
-  static getPromptParameters(promptTag: string = ''): { varName: string, promptMessage: string, options: string | string[] } {
+  static getPromptParameters(promptTag: string = '', noVar: boolean = false): { varName: string, promptMessage: string, options: string | string[] } {
+    // Log the input for debugging
+    logDebug(pluginJson, `BasePromptHandler.getPromptParameters input: "${promptTag}", noVar: ${noVar ? 'true' : 'false'}`)
+
+    // Try a direct extraction first as a reliable fallback
+    let directExtractedMessage = ''
+    try {
+      const openParenIndex = promptTag.indexOf('(')
+      const closeParenIndex = promptTag.lastIndexOf(')')
+
+      if (openParenIndex > 0 && closeParenIndex > openParenIndex) {
+        const paramsText = promptTag.substring(openParenIndex + 1, closeParenIndex).trim()
+        logDebug(pluginJson, `BasePromptHandler direct extraction: "${paramsText}"`)
+
+        // If we found content with direct extraction, check if it's a single quoted parameter
+        if (paramsText && paramsText.length > 0) {
+          const singleQuoteMatch = paramsText.match(/^(['"])(.*?)\1$/)
+          if (singleQuoteMatch && !paramsText.includes(',')) {
+            directExtractedMessage = BasePromptHandler.removeQuotes(paramsText)
+            logDebug(pluginJson, `BasePromptHandler found single parameter: "${directExtractedMessage}"`)
+
+            if (noVar) {
+              // If noVar is true, return immediately with this as the promptMessage
+              return {
+                varName: '',
+                promptMessage: directExtractedMessage,
+                options: '',
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      logError(pluginJson, `Error in direct parameter extraction: ${error.message}`)
+    }
+
     // Use the dynamic pattern to clean the tag
     const tagValue = promptTag.replace(BasePromptHandler.getPromptCleanupPattern(), '').trim()
+    logDebug(pluginJson, `BasePromptHandler cleaned tag value: "${tagValue}"`)
 
     let varName = ''
     let promptMessage = ''
@@ -95,7 +132,25 @@ export default class BasePromptHandler {
       // Add safety check - if the tag is empty or invalid, return early with defaults
       if (!tagValue) {
         logDebug(pluginJson, `Empty or invalid prompt tag: "${promptTag}"`)
-        return { varName: 'unnamed', promptMessage: 'Empty prompt', options: '' }
+
+        // Use direct extraction result if available
+        if (directExtractedMessage && noVar) {
+          return { varName: '', promptMessage: directExtractedMessage, options: '' }
+        }
+
+        return { varName: noVar ? '' : 'unnamed', promptMessage: '', options: '' }
+      }
+
+      // Check if there are any parameters at all (handle empty parentheses)
+      if (tagValue === '') {
+        logDebug(pluginJson, `No parameters in tag: "${promptTag}"`)
+
+        // Use direct extraction result if available
+        if (directExtractedMessage && noVar) {
+          return { varName: '', promptMessage: directExtractedMessage, options: '' }
+        }
+
+        return { varName: noVar ? '' : 'unnamed', promptMessage: '', options: '' }
       }
 
       // First, extract and safely store strings with quotes to avoid splitting them incorrectly
@@ -132,76 +187,151 @@ export default class BasePromptHandler {
       const parts = safeTagValue.split(',').map((part) => part.trim())
 
       if (parts.length > 0) {
-        // Extract and clean variable name from the first part
+        let originalVarName = ''
+        let firstParam = ''
+
+        // Extract and clean variable name from the first part (or use as promptMessage if noVar is true)
         let rawVarName = parts[0]
 
-        // Restore any quoted text in the variable name
+        // Restore any quoted text in the first parameter
         quotedTexts.forEach((text, index) => {
           rawVarName = rawVarName.replace(`__QUOTED_TEXT_${index}__`, text)
         })
 
-        // Clean the variable name and store both original and cleaned versions
-        const originalVarName = BasePromptHandler.removeQuotes(rawVarName)
-        varName = BasePromptHandler.cleanVarName(originalVarName)
+        // Process the first parameter
+        firstParam = BasePromptHandler.removeQuotes(rawVarName)
+
+        if (noVar) {
+          // If noVar is true, first parameter is promptMessage
+          promptMessage = firstParam
+          originalVarName = ''
+        } else {
+          // Normal case: first parameter is varName
+          originalVarName = firstParam
+        }
+
+        // Clean the variable name
+        varName = noVar ? '' : BasePromptHandler.cleanVarName(originalVarName)
 
         if (parts.length > 1) {
-          // Extract prompt message from the second part
-          let rawPromptMessage = parts[1]
+          // If noVar is true, the second parameter becomes the first option
+          // If noVar is false, process normally (second param is promptMessage)
+          if (noVar) {
+            // The second parameter becomes the first option in options array
+            if (parts.length > 1) {
+              // Process all parameters after the first as options
+              let optionsText = parts.slice(1).join(',')
 
-          // Restore any quoted text in the prompt message
-          quotedTexts.forEach((text, index) => {
-            rawPromptMessage = rawPromptMessage.replace(`__QUOTED_TEXT_${index}__`, text)
-          })
+              // Restore quoted texts
+              quotedTexts.forEach((text, index) => {
+                optionsText = optionsText.replace(`__QUOTED_TEXT_${index}__`, text)
+              })
 
-          promptMessage = BasePromptHandler.removeQuotes(rawPromptMessage)
+              // Restore array placeholders
+              if (hasArray) {
+                arrayPlaceholders.forEach(({ placeholder, value }) => {
+                  optionsText = optionsText.replace(placeholder, value)
+                })
+              }
 
-          if (parts.length > 2) {
-            // Join remaining parts and restore array placeholders
-            let optionsText = parts.slice(2).join(',')
+              // Parse options
+              if (optionsText.startsWith('[') && optionsText.endsWith(']')) {
+                try {
+                  // Parse array options
+                  const arrayContent = optionsText.substring(1, optionsText.length - 1)
+                  options = arrayContent
+                    .split(',')
+                    .map((item) => {
+                      // Restore quoted texts in each array item
+                      let processedItem = item.trim()
+                      quotedTexts.forEach((text, index) => {
+                        processedItem = processedItem.replace(`__QUOTED_TEXT_${index}__`, text)
+                      })
+                      return BasePromptHandler.removeQuotes(processedItem)
+                    })
+                    .filter(Boolean)
+                } catch (e) {
+                  logError(pluginJson, `Error parsing array options: ${e.message}`)
+                  options = []
+                }
+              } else {
+                options = BasePromptHandler.removeQuotes(optionsText)
+              }
+            }
+          } else {
+            // Normal case: Extract prompt message from the second part
+            let rawPromptMessage = parts[1]
 
-            // Restore quoted texts
+            // Restore any quoted text in the prompt message
             quotedTexts.forEach((text, index) => {
-              optionsText = optionsText.replace(`__QUOTED_TEXT_${index}__`, text)
+              rawPromptMessage = rawPromptMessage.replace(`__QUOTED_TEXT_${index}__`, text)
             })
 
-            // Restore array placeholders
-            if (hasArray) {
-              arrayPlaceholders.forEach(({ placeholder, value }) => {
-                optionsText = optionsText.replace(placeholder, value)
-              })
-            }
+            promptMessage = BasePromptHandler.removeQuotes(rawPromptMessage)
 
-            // Parse options
-            if (optionsText.startsWith('[') && optionsText.endsWith(']')) {
-              try {
-                // Parse array options
-                const arrayContent = optionsText.substring(1, optionsText.length - 1)
-                options = arrayContent
-                  .split(',')
-                  .map((item) => {
-                    // Restore quoted texts in each array item
-                    let processedItem = item.trim()
-                    quotedTexts.forEach((text, index) => {
-                      processedItem = processedItem.replace(`__QUOTED_TEXT_${index}__`, text)
-                    })
-                    return BasePromptHandler.removeQuotes(processedItem)
-                  })
-                  .filter(Boolean)
-              } catch (e) {
-                logError(pluginJson, `Error parsing array options: ${e.message}`)
-                options = []
+            if (parts.length > 2) {
+              // Join remaining parts and restore array placeholders
+              let optionsText = parts.slice(2).join(',')
+
+              // Restore quoted texts
+              quotedTexts.forEach((text, index) => {
+                optionsText = optionsText.replace(`__QUOTED_TEXT_${index}__`, text)
+              })
+
+              // Restore array placeholders
+              if (hasArray) {
+                arrayPlaceholders.forEach(({ placeholder, value }) => {
+                  optionsText = optionsText.replace(placeholder, value)
+                })
               }
-            } else {
-              options = BasePromptHandler.removeQuotes(optionsText)
+
+              // Parse options
+              if (optionsText.startsWith('[') && optionsText.endsWith(']')) {
+                try {
+                  // Parse array options
+                  const arrayContent = optionsText.substring(1, optionsText.length - 1)
+                  options = arrayContent
+                    .split(',')
+                    .map((item) => {
+                      // Restore quoted texts in each array item
+                      let processedItem = item.trim()
+                      quotedTexts.forEach((text, index) => {
+                        processedItem = processedItem.replace(`__QUOTED_TEXT_${index}__`, text)
+                      })
+                      return BasePromptHandler.removeQuotes(processedItem)
+                    })
+                    .filter(Boolean)
+                } catch (e) {
+                  logError(pluginJson, `Error parsing array options: ${e.message}`)
+                  options = []
+                }
+              } else {
+                options = BasePromptHandler.removeQuotes(optionsText)
+              }
             }
           }
         }
       }
     } catch (error) {
       logError(pluginJson, `Error parsing prompt parameters: ${error.message}`)
-      return { varName: 'unnamed', promptMessage: 'Error parsing prompt', options: '' }
+      // Use direct extraction result as fallback if available
+      if (directExtractedMessage && noVar) {
+        return { varName: '', promptMessage: directExtractedMessage, options: '' }
+      }
+      return { varName: noVar ? '' : 'unnamed', promptMessage: 'Error parsing prompt', options: '' }
     }
 
+    // Use direct extraction as a fallback if we didn't get a promptMessage but have a single parameter
+    if (promptMessage === '' && directExtractedMessage !== '' && noVar) {
+      promptMessage = directExtractedMessage
+    }
+
+    logDebug(
+      pluginJson,
+      `Parsed parameters with noVar=${noVar ? 'true' : 'false'}: varName="${varName}", promptMessage="${promptMessage}", options=${
+        typeof options === 'string' ? `"${options}"` : JSON.stringify(options)
+      }`,
+    )
     return { varName, promptMessage, options }
   }
 }

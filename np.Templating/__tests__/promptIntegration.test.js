@@ -65,6 +65,34 @@ jest.mock(
       }
       return Promise.resolve('2023-01-01 to 2023-01-31')
     }),
+    // Add mock for chooseOptionWithModifiers to handle test cases
+    chooseOptionWithModifiers: jest.fn().mockImplementation((message, options, allowCreate) => {
+      // Handle projectStatus case
+      if (message.includes('project status')) {
+        return Promise.resolve({ value: 'Active', label: 'Active', index: 0 })
+      }
+      // Handle yesNo case
+      else if (message.includes('Yes/No')) {
+        return Promise.resolve({ value: 'y', label: 'Yes', index: 0 })
+      }
+      // Handle chooseOne case
+      else if (message.includes('Choose one')) {
+        return Promise.resolve({ value: 'Option 1', label: 'Option 1', index: 0 })
+      }
+      // Default response for any other prompt
+      else if (options && options.length > 0) {
+        return Promise.resolve({ value: options[0].value, label: options[0].label, index: 0 })
+      }
+
+      return Promise.resolve({ value: 'Text Response', label: 'Text Response', index: 0 })
+    }),
+    // Make sure chooseOption is also mocked
+    chooseOption: jest.fn().mockImplementation((options, message) => {
+      if (options && options.length > 0) {
+        return Promise.resolve(0) // Return first option
+      }
+      return Promise.resolve(false)
+    }),
   }),
   { virtual: true },
 )

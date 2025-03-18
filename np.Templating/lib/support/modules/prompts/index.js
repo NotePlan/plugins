@@ -8,6 +8,8 @@ import './StandardPromptHandler'
 import './PromptKeyHandler'
 import './PromptDateHandler'
 import './PromptDateIntervalHandler'
+import './PromptTagHandler'
+import './PromptMentionHandler'
 
 export { processPrompts, processPromptTag }
 

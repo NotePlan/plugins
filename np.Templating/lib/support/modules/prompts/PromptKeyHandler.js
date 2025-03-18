@@ -8,6 +8,7 @@ import BasePromptHandler from './BasePromptHandler'
 import { registerPromptType } from './PromptRegistry'
 import { log, logError, logDebug } from '@helpers/dev'
 import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
+import { chooseOptionWithModifiers } from '@helpers/userInput'
 
 /**
  * Handler for promptKey functionality.
@@ -161,15 +162,29 @@ export default class PromptKeyHandler {
 
       if (choicesArray.length > 0) {
         logDebug(pluginJson, `PromptKeyHandler.promptKey: ${choicesArray.length} values found for key "${tagToUse}"; Will ask user to select one`)
-        const options = message || `Choose a value for "${tagToUse}"`
-        const response = await CommandBar.showOptions(choicesArray, options)
-        if (!response) {
-          logDebug(pluginJson, `PromptKeyHandler.promptKey: User cancelled selection`)
+        const promptMessage = message || `Choose a value for "${tagToUse}"`
+
+        try {
+          // Prepare options for selection
+          const optionsArray = choicesArray.map((item) => ({ label: item, value: item }))
+
+          // $FlowFixMe: Flow doesn't understand chooseOptionWithModifiers return type
+          const response = await chooseOptionWithModifiers(promptMessage, optionsArray, true)
+
+          // $FlowFixMe: Flow doesn't understand the response object structure
+          if (response && typeof response === 'object' && response.value) {
+            // $FlowFixMe: We know response.value exists
+            const chosenTag = String(response.value)
+            logDebug(pluginJson, `PromptKeyHandler.promptKey: Returning selected tag="${chosenTag}"`)
+            return chosenTag
+          }
+
+          logDebug(pluginJson, `PromptKeyHandler.promptKey: No valid response, returning empty string`)
+          return ''
+        } catch (error) {
+          logError(pluginJson, `Error in chooseOptionWithModifiers: ${error.message}`)
           return ''
         }
-        const chosenTag = choicesArray[response.index]
-        logDebug(pluginJson, `PromptKeyHandler.promptKey: Returning selected tag="${chosenTag}"`)
-        return chosenTag
       } else {
         logDebug(
           pluginJson,
@@ -178,7 +193,7 @@ export default class PromptKeyHandler {
           )}" folderString="${String(folderString)}" fullPathMatch="${String(fullPathMatch)} `,
         )
         const result = await CommandBar.textPrompt('', message || `No values found for "${tagToUse}". Enter a value:`, '')
-        logDebug(pluginJson, `PromptKeyHandler.promptKey: Returning prompt hand-entered result="${result}"`)
+        logDebug(pluginJson, `PromptKeyHandler.promptKey: Returning prompt hand-entered result="${String(result)}"`)
         return this.safeTextPromptResult(result)
       }
     } catch (error) {

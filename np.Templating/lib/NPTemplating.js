@@ -19,6 +19,7 @@ import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
 import { processPrompts } from './support/modules/prompts'
+import { getRegisteredPromptNames } from './support/modules/prompts/PromptRegistry'
 
 // - if a new module has been added, make sure it has been added to this list
 const TEMPLATE_MODULES = ['calendar', 'date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
@@ -1313,7 +1314,15 @@ export default class NPTemplating {
     }
 
     // Exclude all prompt-related calls
-    if (/prompt(Date|Key|Interval)?\s*\(/.test(tag)) {
+    // Build regex pattern from registered prompt names
+    const promptNames = getRegisteredPromptNames()
+    // Escape special regex characters in prompt names
+    const escapedNames = promptNames.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    // Join names with | for alternation in regex
+    const promptPattern = escapedNames.join('|')
+    const promptRegex = new RegExp(`(?:${promptPattern})\\s*\\(`, 'i')
+
+    if (promptRegex.test(tag)) {
       result = false
     }
 
