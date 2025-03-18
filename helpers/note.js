@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 // @flow
-//-------------------------------------------------------------------------------
 // Note-level Functions
+//-------------------------------------------------------------------------------
 import moment from 'moment/min/moment-with-locales'
 import {
   hyphenatedDate,
@@ -26,14 +26,14 @@ import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/d
 import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
+import { noteHasFrontMatter, getFrontMatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import { sortListBy } from '@helpers/sorting'
 import {
   isOpen,
   // isClosed, isDone, isScheduled
 } from '@helpers/utils'
-
-import { noteHasFrontMatter, getFrontMatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 
 /*
  * Set the title of a note whether it's a frontmatter note or a regular note
@@ -906,10 +906,10 @@ export function numberOfOpenItemsInString(content: string): number {
 
 /**
  * Return count of number of open tasks/checklists in the content.
- * @param {string} content
+ * @param {CoreNoteFields} note
  * @returns {number}
  */
-export function numberOfOpenItemsInNote(note: TNote): number {
+export function numberOfOpenItemsInNote(note: CoreNoteFields): number {
   const res = note.paragraphs.filter((p) => ['open', 'scheduled', 'checklist', 'checklistScheduled'].includes(p.type))
   return res ? res.length : 0
 }
