@@ -32,12 +32,11 @@ export { generateRepeatsFromRecentNotes } from './repeats'
 export { listStubs } from './stubs'
 export { moveTopLevelTasksInEditor } from './topLevelTasks'
 export { listPotentialDoubles } from './doubledNotes'
-
 /**
  * Other imports/exports
  */
 // eslint-disable-next-line import/order
-export { onUpdateOrInstall, init, onSettingsUpdated } from './triggers-hooks'
+export { onUpdateOrInstall, init, onSettingsUpdated, silentlyGenerateRepeatsFromRecentNotes } from './triggers-hooks'
 
 // Note: not yet written or used:
 // export { onOpen, onEditorWillSave } from './NPTriggers-Hooks'

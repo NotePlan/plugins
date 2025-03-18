@@ -4,6 +4,7 @@
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
 import { logError, logDebug, logInfo, logWarn, timer, clo } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
+import { generateRepeatsFromRecentNotes } from "./repeats"
 
 const pluginID = 'np.Tidy'
 
@@ -109,3 +110,21 @@ export async function onSettingsUpdated(): Promise<void> {
   // Placeholder only to stop error in logs
   logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated running`)
 }
+
+
+/**
+ * onEditorWillSave
+ * Respond to onEditorWillSave trigger for the currently open note. 
+ * Will fire generateRepeatsFromRecentNotes() silently for the last 4 days.
+ */
+export async function silentlyGenerateRepeatsFromRecentNotes(): Promise<void> {
+  try {
+    if (Editor.content && Editor.note) {
+      await generateRepeatsFromRecentNotes('{"numDays":4, "runSilently": true}')
+    } else {
+      throw new Error("Cannot get Editor details. Is there a note open in the Editor?")
+    }
+  } catch (error) {
+    logError(pluginJson, error.message)
+  }
+} 
