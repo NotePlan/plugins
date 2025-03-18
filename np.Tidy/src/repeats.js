@@ -58,9 +58,10 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
     const jsDateToStartLooking = momentToStartLooking.toDate()
 
     const startTime = new Date() // for timing only
-    CommandBar.showLoading(true, `Finding completed @repeats`)
-    await CommandBar.onAsyncThread()
-
+    if (!runSilently) {
+      CommandBar.showLoading(true, `Finding completed @repeats`)
+    }
+    CommandBar.onAsyncThread()
     // Find past calendar notes changed in the last numDays (or all if numDays === 0)
     // v2 method:
     const recentNotes = config.numDays > 0 ? getNotesChangedInInterval(config.numDays, ['Notes', 'Calendar']) : getAllNotesOfType(['Notes', 'Calendar'])
@@ -73,11 +74,11 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
       const num = await generateRepeats(true, thisNote)
       numGenerated += num
     }
+    
     await CommandBar.onMainThread()
-    CommandBar.showLoading(false)
-
     logInfo('generateRepeatsFromRecentNotes', `Generated ${String(numGenerated)} new @repeat(...)s from ${String(recentNotes.length)} recent notes, in ${timer(startTime)}`)
     if (!runSilently) {
+      CommandBar.showLoading(false)
       await showMessage(`Generated ${String(numGenerated)} new @repeats from ${String(recentNotes.length)} recent notes`, 'OK', 'Tidy: Generate Repeats')
     }
     return
