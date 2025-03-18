@@ -1096,8 +1096,9 @@ export async function getValuesForFrontmatterTag(
 
     try {
       // Call CommandBar to show options and get selected key
+      clo(keyOptions, `getValuesForFrontmatterTag: keyOptions=`)
       const response = await CommandBar.showOptions(keyOptions, message)
-
+      logDebug(`getValuesForFrontmatterTag: response=${JSON.stringify(response)}`)
       // Check if the user cancelled or if the returned value is valid
       if (!response || typeof response !== 'object') {
         logDebug('getValuesForFrontmatterTag: User cancelled key selection or invalid key returned')

@@ -133,28 +133,24 @@ export default class PromptKeyHandler {
 
     try {
       // If no tag provided, first prompt for a key
-      let tagToUse = tag // Use a mutable variable
+      const tagToUse = tag // Use a mutable variable
+      let valuesList: Array<string> | null = null
       if (!tagToUse) {
         logDebug(pluginJson, 'PromptKeyHandler.promptKey: No tag provided, will prompt user to select one')
 
         // Get the key from user by prompting them to select from available frontmatter keys
-        const selectedKeys = await getValuesForFrontmatterTag('', noteType, caseSensitive, folderString, fullPathMatch)
+        valuesList = await getValuesForFrontmatterTag('', noteType, caseSensitive, folderString, fullPathMatch)
+        logDebug(pluginJson, `PromptKeyHandler.promptKey: valuesForChosenTag=${JSON.stringify(valuesList)}`)
 
-        if (!selectedKeys || selectedKeys.length === 0) {
+        if (!valuesList || valuesList.length === 0) {
           logDebug(pluginJson, 'PromptKeyHandler.promptKey: No key was selected')
-          const result = await CommandBar.textPrompt('', message || 'Enter a value:', '')
+          const result = await CommandBar.textPrompt('Enter a value:', message || 'Enter a value:', '')
           return this.safeTextPromptResult(result)
         }
-
-        // Use the first key (should only be one key returned anyway)
-        const selectedKey = selectedKeys[0]
-        // Now use the selected key to get values
-        logDebug(pluginJson, `PromptKeyHandler.promptKey: User selected key "${selectedKey}", now getting values for this key`)
-        tagToUse = selectedKey
       }
 
       // Now get all values for the tag/key
-      const tags = await getValuesForFrontmatterTag(tagToUse, noteType, caseSensitive, folderString, fullPathMatch)
+      const tags = valuesList || (await getValuesForFrontmatterTag(tagToUse, noteType, caseSensitive, folderString, fullPathMatch))
       logDebug(pluginJson, `PromptKeyHandler.promptKey after getValuesForFrontmatterTag for tag="${tagToUse}": found ${tags.length} values`)
 
       // If we have explicit options provided (from the tag), use those instead of frontmatter values

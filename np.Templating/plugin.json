@@ -3,14 +3,13 @@
   "noteplan.minAppVersion": "3.9.10",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "1.12.1-not-released",
-  "plugin.lastUpdateInfo": "1.12.1: Minor improvements",
+  "plugin.version": "1.13.0",
+  "plugin.lastUpdateInfo": "1.13.0: New prompts: promptTag, promptMention, promptKey",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson ( codedungeon)",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.url.old": "https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md",
-  "plugin.url": "https://nptemplating-docs.netlify.app/docs/intro",
+  "plugin.url": "https://noteplan.co/templates/docs",
   "plugin.commands": [
     {
       "name": "Append template to end of current note",
