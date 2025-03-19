@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "1.1.2",
-  "plugin.lastUpdateInfo": "1.1.2: fix bug with 'next action' setting.\n1.1.1: turn off background refresh of Dashboard plugin after every change to Project List, as it was causing problems.\n1.1.0: new option to use current 'Perspective' from the Dashboard plugin. New simpler top bar. Other small improvements and fixes.\n1.0.2: theme font size can now be overriden by user setting in NP.\n1.0.1: fix bug with 'next action' setting.\n1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)",
+  "plugin.version": "1.2.0",
+  "plugin.lastUpdateInfo": "1.2.0: new settings that affect how plugin calculates % completion for a project.\n1.1.2: fix bug with 'next action' setting.\n1.1.1: turn off background refresh of Dashboard plugin after every change to Project List, as it was causing problems.\n1.1.0: new option to use current 'Perspective' from the Dashboard plugin. New simpler top bar. Other small improvements and fixes.\n1.0.2: theme font size can now be overriden by user setting in NP.\n1.0.1: fix bug with 'next action' setting.\n1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)",
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
@@ -309,6 +309,26 @@
     },
     {
       "type": "heading",
+      "title": "Calculating Completion"
+    },
+    {
+      "key": "numberDaysForFutureToIgnore",
+      "title": "Ignore tasks set more than these days in the future",
+      "description": "If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 0 days -- i.e. no future items are ignored).",
+      "type": "number",
+      "default": 1,
+      "required": true
+    },
+    {
+      "key": "ignoreChecklistsInProgress",
+      "title": "Ignore checklists in progress?",
+      "description": "If set, then checklists in progress will not be counted as part of the project's completion percentage.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "type": "heading",
       "title": "Display settings for 'project lists' command"
     },
     {
@@ -326,8 +346,8 @@
     },
     {
       "key": "folderToStore",
-      "title": "Folder to store (markdown) review notes",
-      "description": "Folder where review notes will be stored (will be created if necessary)",
+      "title": "Folder to store markdown-style review notes",
+      "description": "Folder where review notes will be stored (will be created if necessary). Note: this only applies to the markdown-style review notes, not the HTML-style ones.",
       "type": "string",
       "default": "Reviews",
       "required": true
@@ -347,7 +367,7 @@
     },
     {
       "key": "displayGroupedByFolder",
-      "title": "Display projects grouped by folder?",
+      "title": "Show projects grouped by folder?",
       "description": "Whether to group the projects by their folder.",
       "type": "bool",
       "default": true,
@@ -356,7 +376,7 @@
     {
       "key": "hideTopLevelFolder",
       "title": "Hide higher-level folder names in headings?",
-      "description": "If 'Display projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in headings.",
+      "description": "If 'Show projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in headings.",
       "type": "bool",
       "default": false,
       "required": true
@@ -371,24 +391,24 @@
     },
     {
       "key": "displayOnlyDue",
-      "title": "Only display projects/areas ready for review?",
-      "description": "If not ticked then it will display all project/area notes, not just ones ready for review. (Paused ones are always shown.)",
+      "title": "Only show projects/areas ready for review?",
+      "description": "If not ticked then it will show all project/area notes, not just ones ready for review. (Paused ones are always shown.)",
       "type": "bool",
       "default": false,
       "required": true
     },
     {
       "key": "displayDates",
-      "title": "Display project dates?",
-      "description": "Whether to display the project's review and due dates (where set).",
+      "title": "Show project dates?",
+      "description": "Whether to show the project's review and due dates (where set).",
       "type": "bool",
       "default": true,
       "required": true
     },
     {
       "key": "displayProgress",
-      "title": "Display project's latest progress?",
-      "description": "Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.",
+      "title": "Show project's latest progress?",
+      "description": "Whether to show the project's latest progress summary text. These are only shown where there are specific 'Progress:' field(s) in the note.",
       "type": "bool",
       "default": true,
       "required": true

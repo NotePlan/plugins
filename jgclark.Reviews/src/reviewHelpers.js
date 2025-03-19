@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2025-03-17 for v1.1.2, @jgclark
+// Last updated 2025-03-17 for v1.2.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -38,6 +38,8 @@ export type ReviewConfig = {
   foldersToInclude: Array<string>,
   foldersToIgnore: Array<string>,
   projectTypeTags: Array<string>,
+  numberDaysForFutureToIgnore: number,
+  ignoreChecklistsInProgress: boolean,
   displayDates: boolean,
   displayProgress: boolean,
   displayOrder: string,
@@ -90,7 +92,6 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     // clo(config, `Review settings`)
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
-    // Note: there was an issue in builds ?1020-1030 that stopped new prefs being added.
     DataStore.setPreference('startMentionStr', config.startMentionStr)
     DataStore.setPreference('completedMentionStr', config.completedMentionStr)
     DataStore.setPreference('cancelledMentionStr', config.cancelledMentionStr)
@@ -98,6 +99,8 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     DataStore.setPreference('reviewIntervalMentionStr', config.reviewIntervalMentionStr)
     DataStore.setPreference('reviewedMentionStr', config.reviewedMentionStr)
     DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
+    DataStore.setPreference('numberDaysForFutureToIgnore', config.numberDaysForFutureToIgnore)
+    DataStore.setPreference('ignoreChecklistsInProgress', config.ignoreChecklistsInProgress)
 
     // If we want to use Perspectives, get all perspective settings
     if (config.usePerspectives) {

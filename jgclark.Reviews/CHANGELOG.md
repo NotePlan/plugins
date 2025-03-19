@@ -1,8 +1,13 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
+## [1.2.0] - 2025-03-19
+There are 2 new settings that affect which open tasks/checklists are included in the '% completion' statistic for each project:
+- Ignore tasks set more than these days in the future: If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 0 days -- i.e. no future items are ignored).
+- Ignore checklists in progress? If set, then checklists in progress will not be counted as part of the project's completion percentage.
+
 ## [1.1.2] - 2025-03-17
-- Fix to Next Actions not being detected in '/finish review'.  Note: there appears to be a new bug in NP on macOS (since about 3.16.2) that means the 'Yes'/'No' dialog buttons in the confirmation dialog report the wrong way around.
+- Fix to Next Actions not being detected in '/finish review' (thanks, @Wook5000)
 - DEV: update to use CoreNoteFields, not TNote, where possible
 
 ## [1.1.1] - 2025-02-14
