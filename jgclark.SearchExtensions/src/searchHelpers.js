@@ -4,7 +4,7 @@
 // Search Extensions helpers
 // Note: some types + funcs now in @helpers/extendedSearch.js
 // Jonathan Clark
-// Last updated 2025-03-13 for v2.0.0, @jgclark
+// Last updated 2025-03-21 for v2.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -422,7 +422,7 @@ export function numberOfUniqueFilenames(inArray: Array<noteAndLine>): number {
 }
 
 /**
- * This is where the search logic is applied, using the must/may/not terms.
+ * Apply the search logic using the must/may/not terms.
  * Returns the subset of results, and can optionally limit the number of results returned to the first 'resultLimit' items.
  * If fromDateStr and toDateStr are given, then it will filter out results from Project Notes or the Calendar notes from outside that date range (measured at the first date of the Calendar note's period).
  * Note: assumes the order of searchTerms has been optimised already.
@@ -434,8 +434,8 @@ export function numberOfUniqueFilenames(inArray: Array<noteAndLine>): number {
  * - then apply date filtering
  * - then apply result limit
  * 
+ * Note: Checks happen in the normal calling function runExtendedSearch for multiple 'must' terms to avoid unnecessary work, and this repeats the same checks.
  * TODO: ? better document the logic with negative-only searches starting with an empty 'must' term.
- * TODO: Q: Why does data filtering happen here and not in runExtendedSearch?
  * 
  * Called by runExtendedSearches
  * @param {Array<resultObjectType>}
@@ -492,7 +492,6 @@ export function applySearchOperators(
     // Write any *subsequent* 'must' search results to consolidated set,
     // having computed the intersection with the consolidated set
     if (mustResultObjects.length > 1) {
-      // const addedAny = false
       let j = 0
       for (const r of mustResultObjects) {
         // ignore first item; we compute the intersection of the others
@@ -583,7 +582,6 @@ export function applySearchOperators(
     // clo(r.resultNoteAndLineArr, `  - not rNALs:`)
     let reducedArr: Array<noteAndLine> = []
     if (r.searchTerm.type === 'not-line') {
-      // reducedArr = differenceByInnerArrayLine(tempArr, r.resultNoteAndLineArr)
       reducedArr = differenceByObjectEquality(tempArr, r.resultNoteAndLineArr)
       // clo(tempArr, 'inArr')
       // clo(r.resultNoteAndLineArr, 'toRemove')
@@ -700,9 +698,9 @@ export async function runExtendedSearches(
   // toDateStr?: string,
 ): Promise<resultOutputType> {
   try {
-    const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
-    const foldersToInclude = searchOptions.foldersToInclude || []
-    const foldersToExclude = searchOptions.foldersToExclude || []
+    // const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
+    // const foldersToInclude = searchOptions.foldersToInclude || []
+    // const foldersToExclude = searchOptions.foldersToExclude || []
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
     const fromDateStr = searchOptions.fromDateStr || ''
     const toDateStr = searchOptions.toDateStr || ''
@@ -717,7 +715,8 @@ export async function runExtendedSearches(
 
     //------------------------------------------------------------------
     // Get results for each search term independently and save
-    // let lastTermType = ''
+    let termIndex = 0
+    let consolidatedNALs: Array<noteAndLine> = []
     for (const typedSearchTerm of orderedSearchTerms) {
       const thisTermType = typedSearchTerm.type
       logDebug('runExtendedSearches', `  - searching for term [${typedSearchTerm.termRep}] type '${thisTermType}'`)
@@ -734,10 +733,33 @@ export async function runExtendedSearches(
       logTimer('runExtendedSearches', innerStartTime, `  -> ${resultObject.resultCount} results for '${typedSearchTerm.termRep}'`)
 
       // If we have no results from previous 'must' term, then return early
-      if (thisTermType === 'must' && resultCount === 0) {
-        logInfo('runExtendedSearches', `- no results from 'must' term [${typedSearchTerm.termRep}], so not doing further searches.`)
-        break
+      if (thisTermType === 'must') {
+        if (resultCount === 0) {
+          logInfo('runExtendedSearches', `- no results from 'must' term [${typedSearchTerm.termRep}], so not doing further searches.`)
+          break
+        }
+        // If this is the first 'must' term, then save the results for next iteration
+        if (termIndex === 0) {
+          consolidatedNALs = resultObject.resultNoteAndLineArr
+          consolidatedNALs = reduceNoteAndLineArray(consolidatedNALs)
+          // logDebug('runExtendedSearches', `- this is first 'must' term;  consolidatedNALs.length ${String(consolidatedNALs.length)}`)
+        }
       }
+      // Also check if this is a subsequent 'must' term, and that the joint result set is empty
+      if (thisTermType === 'must' && termIndex > 0) {
+        // logDebug('runExtendedSearches', `- this is a subsequent 'must' term, so will test to see if the joint result set is empty ... [index ${String(termIndex)} / consolidatedNALs.length ${String(consolidatedNALs.length)}]`)
+        const intersectionNALArray = noteAndLineIntersection(consolidatedNALs, resultObject.resultNoteAndLineArr)
+        // logDebug('runExtendedSearches', `- must: intersection of ${resultObject.searchTerm.termRep} -> ${intersectionNALArray.length} results`)
+        if (intersectionNALArray.length === 0) {
+          logInfo('runExtendedSearches', `- no results in joint result set from 'must' terms 1-${termIndex + 1}, so not doing further searches.`)
+          break
+        } else {
+          // Save for next iteration
+          consolidatedNALs = intersectionNALArray
+          consolidatedNALs = reduceNoteAndLineArray(consolidatedNALs)
+        }
+      }
+      termIndex++
     }
 
     logTimer('runExtendedSearches', outerStartTime, `- ${orderedSearchTerms.length} searches completed -> ${resultCount} results`)
@@ -988,25 +1010,29 @@ export function resultCounts(resultSet: resultOutputType): string {
  * @author @jgclark
  *
  * @param {resultOutputType} resultSet object
+ * @param {string} searchTermsRepStr string of search terms to display [passed, because sometimes fewer terms are actually searched for than specified]
  * @param {string} requestedTitle requested note title to use/make
  * @param {string} titleToMatch partial title to match against existing note titles
  * @param {SearchConfig} config
  * @param {string?} xCallbackURL URL to cause a 'refresh' of this command
  * @param {boolean?} justReplaceSection if set, will just replace this justReplaceSection's section, not replace the whole note (default: false)
+ * @param {boolean?} createNoteIfNoResults if set, will create a note even if there are no results
  * @returns {string} filename of note we've written to
  */
 export async function writeSearchResultsToNote(
   resultSet: resultOutputType,
+  searchTermsRepStr: string,
   requestedTitle: string,
   titleToMatch: string,
   config: SearchConfig,
   xCallbackURL: string = '',
   justReplaceSection: boolean = false,
+  createNoteIfNoResults: boolean = false,
 ): Promise<string> {
   try {
     let noteFilename = ''
     const headingMarker = '#'.repeat(config.headingLevel)
-    const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
+    // const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
     logDebug('writeSearchResultsToNote', `Starting with ${resultSet.resultCount} results for [${searchTermsRepStr}] ...`)
     const xCallbackText = (xCallbackURL !== '') ? ` [🔄 Refresh results for ${searchTermsRepStr}](${xCallbackURL})` : ''
     logDebug('writeSearchResultsToNote', `- xCallbackText = ${xCallbackText}`)
@@ -1026,14 +1052,22 @@ export async function writeSearchResultsToNote(
     else {
       // No results
       headingLine = `${searchTermsRepStr}`
-      resultsContent = "(no matches)"
+      resultsContent = "\n(no matches)"
     }
     // Prepend the results part with the timestamp+refresh line
     resultsContent = `${timestampAndRefreshLine}${resultsContent}`
     // logDebug('writeSearchResultsToNote', `resultsContent is ${resultsContent.length} bytes`)
 
+    // If there are no results, and we would be creating a note, then stop
+    const possExistingNotes = DataStore.projectNoteByTitle(requestedTitle)
+    if (resultSet.resultCount === 0 && !createNoteIfNoResults && (!possExistingNotes || possExistingNotes.length === 0)) {
+      logDebug('writeSearchResultsToNote', `- no results, and no existing results note '${requestedTitle}', so stopping.`)
+      return ''
+    }
+
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
     const outputNote = await getOrMakeNote(requestedTitle, config.folderToStore, titleToMatch)
+
     if (outputNote) {
       // If the relevant note has more than just a title line, decide whether to replace all contents, or just replace a given heading section
       if (justReplaceSection && outputNote.paragraphs.length > 1) {

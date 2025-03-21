@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands to search and replace over NP notes.
 // Jonathan Clark
-// Last updated 2025-03-02 for v1.5.0, @jgclark
+// Last updated 2025-03-14 for v2.0.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -179,7 +179,7 @@ export async function replace(
     } else {
       logBasicResultLines(searchResults, config)
 
-      const res = await showMessageYesNo(`There are ${searchResults.resultCount} matches in ${searchResults.resultNoteCount} notes (see log for the details).\nAre you sure you want to continue and replace with '${replaceExpression}'?\n\nNote: This is no way to easily undo this.`)
+      const res = await showMessageYesNo(`There are ${searchResults.resultCount} matches in ${searchResults.resultNoteCount} notes (see plugin log for the details).\nAre you sure you want to continue and replace with '${replaceExpression}'?\n\nNote: This is no way to easily undo this.`, ['Yes', 'Cancel'], 'Confirm Replace', false)
       if (res === 'No') {
         logDebug('replace', `User has cancelled operation.`)
         return
@@ -204,7 +204,12 @@ export async function replace(
         logWarn('replace', `Couldn't find paragraph {${nal.line}} in ${thisFilename} to update`)
         continue
       }
-      const replacedContent = nal.line.replaceAll(searchStr, replaceExpression)
+      // JS .replaceAll() is always case-sensitive with simple strings. So we need to use it via a regex.
+      const replaceRegex = (searchOptions.caseSensitiveSearching)
+        ? new RegExp(searchStr, 'g')
+        : new RegExp(searchStr, 'gi')
+      logDebug('replace', `replaceRegex = ${replaceRegex.toString()} with caseSensitiveSearching = ${String(searchOptions.caseSensitiveSearching)}`)
+      const replacedContent = nal.line.replaceAll(replaceRegex, replaceExpression)
       thisPara.content = replacedContent
       logDebug('replace', `#${String(c)} in ${thisFilename} -> ${replacedContent}`)
       thisNote.updateParagraph(thisPara)

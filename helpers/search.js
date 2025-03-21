@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 // import { trimString } from '@helpers/dataManipulation'
-import { clo, logDebug, logError } from '@helpers/dev'
+import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { RE_SYNC_MARKER } from '@helpers/regex'
 
 /**
@@ -364,18 +364,23 @@ export function trimAndHighlightTermInLine(
         // logDebug('trimAndHighlight', `- maxChars = ${String(maxChars)}, LRSplit = ${String(LRSplit)}, mainPart.length = ${String(mainPart.length)}`)
 
         // regex: find occurrences of search terms and the text around them
-        const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}(${termsForRE}).{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
-        // logDebug('trimAndHighlight', `- RE: ${RE_FIND_TEXT_AROUND_THE_TERMS}`)
+        const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}(${termsForRE}).{0,${String(maxChars - LRSplit)}})\\b(?:\\w+|$)`, "gi")
+        // logDebug('trimAndHighlight', `- RE: ${String(RE_FIND_TEXT_AROUND_THE_TERMS)}`)
         const matches = mainPart.match(RE_FIND_TEXT_AROUND_THE_TERMS) ?? [] // multiple matches
+        // logDebug('trimAndHighlight', `- matches = ${String(matches)}`)
         if (matches.length > 0) {
           // If we have more than 1 match in the line, join the results together with '...'
           output = matches.join(' ...')
           // If starts with a non-word character, then (it's approximately right that) we have landed in the middle of sentence, so prepend '...'
-          if (output.match(/^\W/)) {
-            output = `...${output}`
+          // if (output.match(/^\W/)) {
+          const RE_TEST_FOR_START_OF_LINE = new RegExp(`^[\\s!]*${termsForRE}`)
+          if (!RE_TEST_FOR_START_OF_LINE.test(output)) {
+            // logDebug('trimAndHighlight', `- have shortened line`)
+            output = `... ${output}`
           }
-          // If we now have a shortened string, then (it's approximately right that) we have trimmed off the end, so append '...'
-          if (output.length < mainPart.length) {
+          // If we now have a shortened string, then append '...' unless search term is at the end of the line
+          const RE_TEST_FOR_END_OF_LINE = new RegExp(`${termsForRE}\\s*$`)
+          if (!RE_TEST_FOR_END_OF_LINE.test(output)) {
             // logDebug('trimAndHighlight', `- have shortened line`)
             output = `${output} ...`
           }
@@ -406,7 +411,7 @@ export function trimAndHighlightTermInLine(
     if (addHighlight && nonEmptyTerms && terms.length > 0 && (simplifyLine || !this_RE.test(output))) {
       // regex: find any of the match terms in all the text
       const RE_HIGHLIGHT_MATCH = new RegExp(`(?:[^=](${termsForRE})(?=$|[^=]))`, "gi")
-      // logDebug('trimAndHighlight', `- /${RE_HIGHLIGHT_MATCH}/`)
+      // logDebug('trimAndHighlight', `- /${String(RE_HIGHLIGHT_MATCH)}/`)
       const termMatches = output.matchAll(RE_HIGHLIGHT_MATCH)
       let offset = 0
       for (const tm of termMatches) {

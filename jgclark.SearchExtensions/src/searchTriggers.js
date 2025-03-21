@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2025-03-02 for v1.3.0+, @jgclark
+// Last updated 2025-03-21 for v2.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,8 +13,9 @@ import {
   searchOverCalendar,
   searchOverNotes,
   searchOpenTasks,
+  searchPeriod
 } from './saveSearch'
-import { searchPeriod } from './saveSearchPeriod'
+// import { searchPeriod } from './saveSearchPeriod'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 
 
@@ -102,38 +103,33 @@ export async function refreshSavedSearch(): Promise<void> {
     const arg2 = params.arg2 ?? ''
     const arg3 = params.arg3 ?? ''
     const arg4 = params.arg4 ?? ''
+    const arg5 = params.arg5 ?? ''
 
     await CommandBar.showLoading(true, 'Refreshing search results ...')
     await CommandBar.onAsyncThread()
     switch (cmdName) {
-      case "searchOverCalendar": {
-        // Put up a progress indicator first, though
-        searchOverCalendar(arg0, arg1)
-        break
-      }
       case "search": { // -> searchOverAll()
-        // Put up a progress indicator first, though
-        searchOverAll(arg0, arg1)
+        searchOverAll(arg0, arg1, arg2, arg3)
         break
       }
-      case "searchOpenTasks": {
-        // Put up a progress indicator first, though
-        searchOpenTasks(arg0, arg1)
+      case "searchOverCalendar": {
+        searchOverCalendar(arg0, arg1, arg2, arg3)
         break
       }
       case "searchOverNotes": {
-        // Put up a progress indicator first, though
-        searchOverNotes(arg0, arg1)
+        searchOverNotes(arg0, arg1, arg2, arg3)
         break
       }
-      case "quickSearch": {
-        // Put up a progress indicator first, though
-        quickSearch(arg0, arg1, arg2)
+      case "searchOpenTasks": {
+        searchOpenTasks(arg0, arg1, arg2)
         break
       }
       case "searchInPeriod": { // -> searchPeriod()
-        // Put up a progress indicator first, though
-        searchPeriod(arg0, arg1, arg2, arg3, arg4)
+        searchPeriod(arg0, arg1, arg2, arg3, arg4, arg5)
+        break
+      }
+      case "quickSearch": {
+        quickSearch(arg0, arg1, arg2, arg3)
         break
       }
     }

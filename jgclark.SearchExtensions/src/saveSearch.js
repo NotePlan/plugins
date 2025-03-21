@@ -5,7 +5,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2025-03-13 for v1.5.0, @jgclark
+// Last updated 2025-03-21 for v2.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -61,8 +61,8 @@ import {
  */
 export async function searchOverAll(
   searchTermsArg?: string,
-  paraTypesAsStr?: string = '',
   _noteTypesAsStr?: string = '', // Note: value ignored, but here to make the x-callback system work
+  paraTypesAsStr?: string = '',
   destinationArg?: string = 'newnote',
 ): Promise<void> {
   // await saveSearch(
@@ -91,8 +91,8 @@ export async function searchOverAll(
  */
 export async function searchOverCalendar(
   searchTermsArg?: string,
-  paraTypesAsStr?: string = '',
   _noteTypesAsStr?: string = '', // Note: value ignored, but here to make the x-callback system work
+  paraTypesAsStr?: string = '',
   destinationArg?: string = 'newnote',
 ): Promise<void> {
   // await saveSearch(
@@ -119,8 +119,8 @@ export async function searchOverCalendar(
  */
 export async function searchOverNotes(
   searchTermsArg?: string,
-  paraTypesAsStr?: string = '',
   _noteTypesAsStr?: string = '', // Note: value ignored, but here to make the x-callback system work
+  paraTypesAsStr?: string = '',
   destinationArg?: string = 'newnote'): Promise<void> {
   // await saveSearch(
   //   searchTermsArg,
@@ -144,7 +144,11 @@ export async function searchOverNotes(
 /**
  * Call the main function, searching over all open tasks, and sync (set block IDs) the results.
  */
-export async function searchOpenTasks(searchTermsArg?: string): Promise<void> {
+export async function searchOpenTasks(searchTermsArg?: string,
+  noteTypesAsStr?: string = 'both',
+  _paraTypesAsStr?: string = '', // Note: value ignored, but here to make the x-callback system work
+  destinationArg?: string = 'newnote'): Promise<void> {
+
   // await saveSearch(
   //   searchTermsArg,
   //   'both',
@@ -153,7 +157,7 @@ export async function searchOpenTasks(searchTermsArg?: string): Promise<void> {
   //   'Searching open tasks')
 
   const searchOptions: TSearchOptions = {
-    noteTypesToInclude: ['notes', 'calendar'],
+    noteTypesToInclude: getNoteTypesFromString(noteTypesAsStr),
     foldersToInclude: [],
     paraTypesToInclude: OPEN_PARA_TYPES,
     originatorCommand: 'searchOpenTasks',
@@ -161,7 +165,8 @@ export async function searchOpenTasks(searchTermsArg?: string): Promise<void> {
   }
   await saveSearch(
     searchOptions,
-    searchTermsArg) // Note: destinationArg not needed for this command
+    searchTermsArg,
+    destinationArg)
 }
 
 /**
@@ -169,9 +174,9 @@ export async function searchOpenTasks(searchTermsArg?: string): Promise<void> {
  */
 export async function quickSearch(
   searchTermsArg?: string,
-  paraTypesAsStr?: string = '',
   noteTypesAsStr?: string = 'both',
-  destinationArg?: string = 'newnote',
+  paraTypesAsStr?: string = '',
+  destinationArg?: string = 'quick',
 ): Promise<void> {
   logDebug('quickSearch', `starting with searchTermsArg=${searchTermsArg ?? ''}, paraTypesAsStr=${paraTypesAsStr ?? ''}, noteTypesAsStr=${noteTypesAsStr ?? ''}`)
   // await saveSearch(
@@ -268,10 +273,6 @@ export async function saveSearch(
 
     logDebug(pluginJson, `Starting saveSearch() with searchTermsArg '${searchTermsArg ?? '(not supplied)'}'`)
 
-    // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
-    const calledNonInteractively = (searchTermsArg !== undefined)
-    logDebug('saveSearch', `- called ${calledNonInteractively ? 'NON-' : ''}interactively`)
-
     // destructure the searchOptions object, the long way    
     const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
@@ -288,13 +289,17 @@ export async function saveSearch(
       searchOptions.fullWordSearching = config.fullWordSearching
     }
     if (!('originatorCommand' in searchOptions)) {
-      searchOptions.originatorCommand = '(not supplied)'
+      searchOptions.originatorCommand = ''
     }
-    const originatorCommand = searchOptions.originatorCommand ?? '(not supplied)'
+    const originatorCommand = searchOptions.originatorCommand ?? ''
     if (!('commandNameToDisplay' in searchOptions)) {
       searchOptions.commandNameToDisplay = 'Searching'
     }
     const commandNameToDisplay = searchOptions.commandNameToDisplay ?? 'Searching'
+
+    // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
+    const calledNonInteractively = (originatorCommand === '')
+    logDebug('saveSearch', `- called ${calledNonInteractively ? 'NON-' : ''}interactively`)
 
     // Get the noteTypes to include
     // const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both' || noteTypesToIncludeArg === '') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
@@ -336,29 +341,12 @@ export async function saveSearch(
         return
       }
     }
+    const searchTermsRepStr = `'${validatedSearchTerms.map(term => term.termRep).join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
 
     // Now optimise the order we tackle the search terms. Note: now moved into runExtendedSearches()
 
     // Get the paraTypes to include. Can take string (which needs turning into an array), or array (which is fine).
-    // $FlowFixMe[incompatible-type]
-    // const paraTypesToInclude: Array<ParagraphType> = (Array.isArray(paraTypesAsStr))
-    //   ? paraTypesAsStr
-    //   : (typeof paraTypesAsStr === 'string')
-    //     ? getArrayFromString(paraTypesAsStr)
-    //     : []
-    // logDebug('saveSearch', `- arg3 -> para types '${typeof paraTypesAsStr}'`)
     logDebug('saveSearch', `- arg3 -> para types '${paraTypesToInclude.toString()}'`)
-
-    // if caseSensitive and fullWord params are given, then override config.
-    // (This is because flexiSearch can set them at run-time.)
-    // logDebug('saveSearch', `- arg5 [${typeof caseSensitiveSearchingArg}] -> caseSensitiveSearchingArg '${caseSensitiveSearchingArg !== undefined ? String(caseSensitiveSearchingArg) : '(not supplied)'}'`)
-    // if (caseSensitiveSearchingArg != null) {
-    //   config.caseSensitiveSearching = caseSensitiveSearchingArg
-    // }
-    // logDebug('saveSearch', `- arg6 [${typeof fullWordSearchingArg}]  -> fullWordSearchingArg '${fullWordSearchingArg !== undefined ? String(fullWordSearchingArg) : '(not supplied)'}'`)
-    // if (fullWordSearchingArg != null) {
-    //   config.fullWordSearching = fullWordSearchingArg
-    // }
 
     // Work out time period to cover (if wanted)
     let periodString = ''
@@ -448,10 +436,10 @@ export async function saveSearch(
     }
     else {
       // else ask user
-      const labelString = `🖊 Create/update note ${termsToMatchStr} ${config.searchHeading} ${periodString ? `'${periodString}' ` : ' '}in folder '${config.folderToStore}'`
+      const labelString = `🖊 Create/update note ${searchTermsRepStr} ${config.searchHeading} ${periodString ? `'${periodString}' ` : ' '}in folder '${config.folderToStore}'`
       // destination = await chooseOption(
       destination = await chooseOption(
-        `Where should I save the [${termsToMatchStr}] search results${periodString ? ` for ${periodString}` : ''}?`,
+        `Where should I save the [${searchTermsRepStr}] search results${periodString ? ` for ${periodString}` : ''}?`,
         [
           { label: labelString, value: 'newnote' },
           { label: '🖊 Append/update your current note', value: 'current' },
@@ -471,55 +459,58 @@ export async function saveSearch(
 
     if (resultSet.resultCount === 0) {
       logDebug('saveSearch', `No results found for search ${getSearchTermsRep(validatedSearchTerms)}`)
-      await showMessage(`No results found for search ${getSearchTermsRep(validatedSearchTerms)} with your current settings.`)
-      return
+      if (!calledNonInteractively) {
+        await showMessage(`No results found for search ${getSearchTermsRep(validatedSearchTerms)} with your current settings.`)
+      }
     }
 
     //---------------------------------------------------------
     // Do output
     // logDebug('saveSearch', 'reached do output stage')
-    const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
+    // const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
 
     // Create the x-callback URL for the refresh action
     const xCallbackURL = (originatorCommand === 'searchPeriod')
       ? createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [
         termsToMatchStr,
-        getParaTypesAsString(paraTypesToInclude),
         getNoteTypesAsString(noteTypesToInclude),
+        getParaTypesAsString(paraTypesToInclude),
         destinationArg,
         fromDateStr,
         toDateStr,
       ])
       : createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [
         termsToMatchStr,
-        getParaTypesAsString(paraTypesToInclude),
         getNoteTypesAsString(noteTypesToInclude),
+        getParaTypesAsString(paraTypesToInclude),
         destinationArg,
       ])
 
     switch (destination) {
       case 'current': {
-        // We won't write an overarching title, but will add a section heading.
-        // For each search term result set, replace the search term's block (if already present) or append.
-        // Note: won't add a refresh button, as that requires seeing what the current filename is when called from the x-callback
-        const currentNote = Editor
-        if (currentNote == null) {
-          throw new Error(`No note is open to save search results to.`)
+        if (resultSet.resultCount > 0) {
+          // We won't write an overarching title, but will add a section heading.
+          // For each search term result set, replace the search term's block (if already present) or append.
+          // Note: won't add a refresh button, as that requires seeing what the current filename is when called from the x-callback
+          const currentNote = Editor
+          if (currentNote == null) {
+            throw new Error(`No note is open to save search results to.`)
+          }
+
+          const resultCountsStr = resultCounts(resultSet)
+          const thisResultHeading = `${searchTermsRepStr} ${config.searchHeading} ${resultCountsStr}`
+          logDebug('saveSearch', `Will write update/append section '${thisResultHeading}' to current note (${currentNote.filename ?? ''})`)
+
+          const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
+          // logDebug('saveSearch', resultOutputLines.length)
+          const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Refresh results for ${searchTermsRepStr}](${xCallbackURL})` : ''
+          resultOutputLines.unshift(xCallbackLine)
+
+          // $FlowIgnore[prop-missing]
+          replaceSection(currentNote, searchTermsRepStr, thisResultHeading, config.headingLevel, resultOutputLines.join('\n'))
+
+          logDebug('saveSearch', `saveSearch() finished writing to current note.`)
         }
-
-        const resultCountsStr = resultCounts(resultSet)
-        const thisResultHeading = `${searchTermsRepStr} ${config.searchHeading} ${resultCountsStr}`
-        logDebug('saveSearch', `Will write update/append section '${thisResultHeading}' to current note (${currentNote.filename ?? ''})`)
-
-        const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
-        // logDebug('saveSearch', resultOutputLines.length)
-        const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Refresh results for ${searchTermsRepStr}](${xCallbackURL})` : ''
-        resultOutputLines.unshift(xCallbackLine)
-
-        // $FlowIgnore[prop-missing]
-        replaceSection(currentNote, searchTermsRepStr, thisResultHeading, config.headingLevel, resultOutputLines.join('\n'))
-
-        logDebug('saveSearch', `saveSearch() finished writing to current note.`)
         break
       }
 
@@ -527,10 +518,12 @@ export async function saveSearch(
         // We will write an overarching title, as we need an identifying title for the note.
         // As this is likely to be a note just used for this set of search terms, just delete the whole note contents and re-write each search term's block.
         // Note: Does need to include a subhead with search term + result count
-        const requestedTitle = `${termsToMatchStr} ${config.searchHeading}${periodAndPartStr ? ` for ${periodAndPartStr}` : ''}`
+        // Note: If no results, and the search results note hasn't already been created, then don't create it just for empty results. But do update it if it already exists.
+        // Note: in theory could now use the 'content' parameter on Editor.openNoteByFilename() via NPNote/openNoteByFilename() helper to update the note, if we changed writeSearchResultsToNote() to use it.
+        const requestedTitle = `${searchTermsRepStr} ${config.searchHeading}${periodAndPartStr ? ` for ${periodAndPartStr}` : ''}`
 
         // Get/make note, and then replace the search term's block (if already present) or append.
-        const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackURL, true)
+        const noteFilename = await writeSearchResultsToNote(resultSet, searchTermsRepStr, requestedTitle, requestedTitle, config, xCallbackURL, true, false)
 
         logDebug('saveSearch', `- filename to write to (and potentially show in split): '${noteFilename}'`)
         if (!calledNonInteractively) {
@@ -541,6 +534,7 @@ export async function saveSearch(
             logDebug('saveSearch', `- opening note ${noteFilename} in a split window`)
             await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
           }
+
         }
         break
       }
@@ -549,15 +543,9 @@ export async function saveSearch(
         // Write to the same 'Quick Search Results' note (or whatever the user's setting is)
         // Delete the note's contents and re-write each time.
         // *Does* need to include a subhead with search term + result count, as title is fixed.
+        // Note: in theory could now use the 'content' parameter on Editor.openNoteByFilename() via NPNote/openNoteByFilename() helper to update the note, if we changed writeSearchResultsToNote() to use it.
         const requestedTitle = config.quickSearchResultsTitle
-        // const xCallbackURL = createRunPluginCallbackUrl('jgclark.SearchExtensions', 'quickSearch', [
-        //   termsToMatchStr,
-        //   getParaTypesAsString(paraTypesToInclude),
-        //   getNoteTypesAsString(noteTypesToInclude)
-        // ])
-        // const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Refresh results for ${searchTermsRepStr}](${xCallbackURL})` : ''
-
-        const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackURL, false)
+        const noteFilename = await writeSearchResultsToNote(resultSet, searchTermsRepStr, requestedTitle, requestedTitle, config, xCallbackURL, false)
 
         logDebug('saveSearch', `- filename to open in split: ${noteFilename}`)
         // if (!calledNonInteractively) {
