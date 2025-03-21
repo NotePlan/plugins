@@ -33,7 +33,7 @@ The result will be pasted in your Editor at the cursor location.
 
 ### Template Tags for Running Plugin Commands
 
-Sometimes you don't want to have to click a link, but rather, you want a certain plugin command to run when you insert/append/invoke a Template (using [np.Templating](https://nptemplating-docs.netlify.app/docs/intro/)). You can also use the wizard to create a template tag for running the plugin. Simply go through the same X-Callback flow, and at the very end, you will be given the choice to paste the link optionally as a Templating tag, like this:
+Sometimes you don't want to have to click a link, but rather, you want a certain plugin command to run when you insert/append/invoke a Template (using [np.Templating](https://noteplan.co/templates/docsdocs/intro/)). You can also use the wizard to create a template tag for running the plugin. Simply go through the same X-Callback flow, and at the very end, you will be given the choice to paste the link optionally as a Templating tag, like this:
 `<% await DataStore.invokePluginCommandByName("Remove All Previous Time Blocks in Calendar Notes Written by this Plugin","dwertheimer.EventAutomations",["no"])  -%>`
 
 ### X-Callback Types
