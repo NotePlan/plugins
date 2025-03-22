@@ -237,8 +237,8 @@ export default class NPTemplating {
     // result = result.replace(/(?:https?|ftp):\/\/[\n\S]+/g, 'HTTP_REMOVED')
     result = result.replace('https://github.com/RyanZim/EJS-Lint', 'HTTP_REMOVED')
     if (result.includes('HTTP_REMOVED')) {
-      result += 'For more information on proper template syntax, refer to:\n'
-      result += 'https://nptemplating-docs.netlify.app/'
+      result += '\nFor more information on proper template syntax, refer to:\n'
+      result += 'https://noteplan.co/templates/docs\n'
       result = result.replace('HTTP_REMOVED', '')
     }
     // result = result.replace('\n\n', '\n')
@@ -672,7 +672,6 @@ export default class NPTemplating {
             templates = templates.filter((template) => template.filename.startsWith(path)) || []
           }
         }
-        clof(templates, `NPTemplating.getTemplate: found ${templates?.length || 0} templates`, ['title', 'filename'], true)
         if (templates && templates.length > 1) {
           logWarn(pluginJson, `NPTemplating.getTemplate: Multiple templates found for "${templateFilename || ''}"`)
           let templatesSecondary = []
@@ -826,19 +825,28 @@ export default class NPTemplating {
     return ''
   }
 
-  static async preProcess(templateData: string, sessionData?: {}): Promise<mixed> {
+  static async preProcess(templateData: string, sessionData?: {} = {}): Promise<mixed> {
+    // Initialize variables
+    let jsonErrors = []
+    let criticalError = false
     let newTemplateData = templateData
     let newSettingData = { ...sessionData }
     let override: { [key: string]: string } = {}
 
-    const tags = (await this.getTags(templateData)) || []
+    // Handle null/undefined gracefully - return the input as is
+    if (newTemplateData === null || newTemplateData === undefined) {
+      return { newTemplateData, newSettingData, jsonErrors, criticalError }
+    }
 
-    // process include, template, calendar, and note separately
+    // Process tags
+    const tags = (await this.getTags(templateData)) || []
     for (let tag of tags) {
+      logDebug(pluginJson, `preProcess tag: ${tag}`)
       if (isCommentTag(tag)) {
         const regex = new RegExp(`${tag}[\\s\\r\\n]*`, 'g')
         newTemplateData = newTemplateData.replace(regex, '')
         tag = '' // clear tag as it has been removed from process
+        continue
       }
 
       if (tag.includes('note(')) {
@@ -856,7 +864,7 @@ export default class NPTemplating {
           keywords.forEach((x, i) => (includeInfo = includeInfo.replace(/[{()}]/g, '').replace(new RegExp(x, 'g'), '')))
           const parts = includeInfo.split(',')
           if (parts.length > 0) {
-            const templateName = parts[0].replace(/'\s/gi, '').replace(/'/gi, '').trim()
+            const templateName = parts[0].replace(/['"`]/gi, '').trim()
             const templateData = parts.length >= 1 ? parts[1] : {}
 
             const templateContent = await this.getTemplate(templateName, { silent: true })
@@ -864,6 +872,7 @@ export default class NPTemplating {
             if (isTemplate) {
               const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateContent, newSettingData)
               newSettingData = { ...frontmatterAttributes }
+              logDebug(pluginJson, `preProcess tag: ${tag} frontmatterAttributes: ${JSON.stringify(frontmatterAttributes, null, 2)}`)
               const renderedTemplate = await this.render(frontmatterBody, newSettingData)
 
               // if variable assignment, extract var name
@@ -896,7 +905,7 @@ export default class NPTemplating {
       }
     }
 
-    // process remaining
+    // Process remaining
     for (const tag of tags) {
       if (!tag.includes('await') && this.isCode(tag) && tag.includes('(') && !tag.includes('prompt(')) {
         let tempTag = tag.replace('<%-', '<%- await')
@@ -943,7 +952,31 @@ export default class NPTemplating {
     }
 
     newSettingData = { ...newSettingData, ...override }
-    return { newTemplateData, newSettingData }
+
+    // Fix single-quoted JSON in DataStore.invokePluginCommandByName calls
+    // This pattern handles the specific format like: ['{'numDays':14, 'sectionHeading':'Test Section'}']
+    newTemplateData = newTemplateData.replace(/\[\'\{([^\}]*)\}\'\]/g, (match, p1) => {
+      try {
+        // Convert single-quoted property names to double-quoted
+        const fixedJson = p1.replace(/'([^']+)':/g, '"$1":')
+        return `[{${fixedJson}}]`
+      } catch (e) {
+        jsonErrors.push(`Error processing JSON: ${e.message}`)
+        return match
+      }
+    })
+
+    // Handle other single-quoted JSON formats that may appear in the template
+    newTemplateData = newTemplateData.replace(/'(\{[^}]*\})'/g, (match, p1) => {
+      try {
+        return p1.replace(/'/g, '"')
+      } catch (e) {
+        jsonErrors.push(`Error processing JSON: ${e.message}`)
+        return match
+      }
+    })
+
+    return { newTemplateData, newSettingData, jsonErrors, criticalError }
   }
 
   static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
@@ -954,7 +987,7 @@ export default class NPTemplating {
       const templateData = await this.getTemplate(templateName)
       const { frontmatterBody, frontmatterAttributes } = await this.preRender(templateData)
       const data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes }, ...userData }
-
+      logDebug(pluginJson, `renderTemplate calling render`)
       const renderedData = await this.render(templateData, data, userOptions)
 
       return this._filterTemplateResult(renderedData)
@@ -964,7 +997,7 @@ export default class NPTemplating {
     }
   }
 
-  static async render(inTemplateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  static async render(inTemplateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
     const usePrompts = false
 
     try {
@@ -1018,10 +1051,22 @@ export default class NPTemplating {
           const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
           frontMatterValue = promptData.sessionTemplateData
 
+          logDebug(pluginJson, `render calling preProcess ${key}: ${frontMatterValue}`)
           // $FlowIgnore
-          const { newTemplateData, newSettingData } = await this.preProcess(frontMatterValue, sessionData)
-          sessionData = { ...sessionData, ...newSettingData }
+          const { newTemplateData, newSettingData, jsonErrors, criticalError } = await this.preProcess(frontMatterValue, sessionData)
 
+          // If critical JSON errors are found, return an error message instead of rendering
+          if (criticalError) {
+            const errorLines = jsonErrors
+              .filter((err) => err.critical)
+              .map((err) => `**Critical JSON Error at line ${err.lineNumber}:** ${err.error}`)
+              .join('\n\n')
+
+            return `**Template has critical JSON errors that must be fixed before rendering:**\n\n${errorLines}\n\nPlease check the console log for more details.`
+          }
+
+          sessionData = { ...sessionData, ...newSettingData }
+          logDebug(pluginJson, `render calling render`)
           const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(newTemplateData, promptData.sessionData, userOptions)
 
           // $FlowIgnore
@@ -1035,7 +1080,18 @@ export default class NPTemplating {
       templateData = convertJavaScriptBlocksToTags(templateData)
 
       // $FlowIgnore
-      const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
+      const { newTemplateData, newSettingData, jsonErrors, criticalError } = await this.preProcess(templateData, sessionData)
+
+      // If critical JSON errors are found, return an error message instead of rendering
+      if (criticalError) {
+        const errorLines = jsonErrors
+          .filter((err) => err.critical)
+          .map((err) => `**Critical JSON Error at line ${err.lineNumber}:** ${err.error}`)
+          .join('\n\n')
+
+        return `**Template has critical JSON errors that must be fixed before rendering:**\n\n${errorLines}\n\nPlease check the console log for more details.`
+      }
+
       sessionData = { ...newSettingData }
 
       // perform all prompt operations in template body
@@ -1054,6 +1110,8 @@ export default class NPTemplating {
 
       // template ready for final rendering, this is where most of the magic happens
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
+
+      logDebug(pluginJson, `>> renderedData after rendering:\n\t[PRE-RENDER]:${templateData}\n\t[RENDERED]: ${renderedData}`)
 
       let final = this._filterTemplateResult(renderedData)
 
@@ -1113,8 +1171,7 @@ export default class NPTemplating {
 
     for (const item of attributeKeys) {
       let value = frontmatterAttributes[item]
-
-      let attributeValue = typeof value === 'string' ? await this.render(value, sectionData) : value
+      let attributeValue = typeof value === 'string' && value.includes('<%') ? await this.render(value, sectionData) : value
       sectionData[item] = attributeValue
       frontmatterAttributes[item] = attributeValue
     }
@@ -1143,10 +1200,9 @@ export default class NPTemplating {
   }
 
   static async getTags(templateData: string = '', startTag: string = '<%', endTag: string = '%>'): Promise<any> {
-    const TAGS_PATTERN = /\<%.*?\%>/gi
-
+    if (!templateData) return []
+    const TAGS_PATTERN = /<%.*?%>/gi
     const items = templateData.match(TAGS_PATTERN)
-
     return items || []
   }
 
@@ -1387,9 +1443,8 @@ export default class NPTemplating {
           const noteNamePath = parts[0].replace(/['"`]/gi, '').trim()
           logDebug(pluginJson, `NPTemplating.importTemplates :: Importing: noteNamePath :: "${noteNamePath}"`)
           const content = await this.getTemplate(noteNamePath)
-          logDebug(pluginJson, `NPTemplating.importTemplates :: Content length: ${content.length}`)
           const body = new FrontmatterModule().body(content)
-          logDebug(pluginJson, `NPTemplating.importTemplates :: Body length: ${body.length}`)
+          logDebug(pluginJson, `NPTemplating.importTemplates :: Content length: ${content.length} | Body length: ${body.length}`)
           if (body.length > 0) {
             newTemplateData = newTemplateData.replace('`' + tag + '`', body) // adjust fenced formats
             newTemplateData = newTemplateData.replace(tag, body)
@@ -1415,9 +1470,11 @@ export default class NPTemplating {
           let result = ''
 
           if (executeCodeBlock.includes('<%')) {
+            logDebug(pluginJson, `executeCodeBlock using EJS renderer: ${executeCodeBlock}`)
             result = await new TemplatingEngine(this.constructor.templateConfig).render(executeCodeBlock, processedSessionData)
             processedTemplateData = processedTemplateData.replace(codeBlock, result)
           } else {
+            logDebug(pluginJson, `executeCodeBlock using Function.apply (does not include <%): ${executeCodeBlock}`)
             const fn = Function.apply(null, ['params', executeCodeBlock])
             result = fn(processedSessionData)
 
@@ -1429,7 +1486,7 @@ export default class NPTemplating {
             }
           }
         } catch (error) {
-          logError(pluginJson, error)
+          logError(pluginJson, `TemplatingEngine.execute error:${error}`)
         }
       }
     })
@@ -1438,30 +1495,18 @@ export default class NPTemplating {
     return { processedTemplateData, processedSessionData }
   }
 
-  /**
-   * Prompts the user to select a date.
-   * @deprecated Use PromptDateHandler.promptDate instead
-   */
   static async promptDate(message: string, defaultValue: string): Promise<any> {
     // This method is kept for backward compatibility
     // Import the PromptDateHandler to use its implementation
     return require('./support/modules/prompts/PromptDateHandler').default.promptDate(message, defaultValue)
   }
 
-  /**
-   * Prompts the user to select a date interval.
-   * @deprecated Use PromptDateIntervalHandler.promptDateInterval instead
-   */
   static async promptDateInterval(message: string, defaultValue: string): Promise<any> {
     // This method is kept for backward compatibility
     // Import the PromptDateIntervalHandler to use its implementation
     return require('./support/modules/prompts/PromptDateIntervalHandler').default.promptDateInterval(message, defaultValue)
   }
 
-  /**
-   * Parses parameters from a promptKey tag.
-   * @deprecated Use PromptKeyHandler.parsePromptKeyParameters instead
-   */
   static parsePromptKeyParameters(tag: string = ''): {
     varName: string,
     tagKey: string,
@@ -1476,6 +1521,18 @@ export default class NPTemplating {
     return require('./support/modules/prompts/PromptKeyHandler').default.parsePromptKeyParameters(tag)
   }
 
+  static async prompt(message: string, options: any = null): Promise<any> {
+    // This method is kept for backward compatibility
+    // Import the StandardPromptHandler to use its implementation
+    return require('./support/modules/prompts/StandardPromptHandler').default.prompt(message, options)
+  }
+
+  static async getPromptParameters(promptTag: string = ''): mixed {
+    // This method is kept for backward compatibility
+    // Import the BasePromptHandler to use its implementation
+    return require('./support/modules/prompts/BasePromptHandler').default.getPromptParameters(promptTag)
+  }
+
   static isTemplateModule(tag: string = ''): boolean {
     const tagValue = tag.replace('<%=', '').replace('<%-', '').replace('%>', '').trim()
     const pos = tagValue.indexOf('.')
@@ -1484,25 +1541,5 @@ export default class NPTemplating {
       return TEMPLATE_MODULES.indexOf(moduleName) >= 0
     }
     return false
-  }
-
-  /**
-   * Initializes a prompt and handles user interaction.
-   * @deprecated Use the PromptRegistry system instead
-   */
-  static async prompt(message: string, options: any = null): Promise<any> {
-    // This method is kept for backward compatibility
-    // Import the StandardPromptHandler to use its implementation
-    return require('./support/modules/prompts/StandardPromptHandler').default.prompt(message, options)
-  }
-
-  /**
-   * Process parameters for a prompt tag.
-   * @deprecated Use BasePromptHandler.getPromptParameters instead
-   */
-  static async getPromptParameters(promptTag: string = ''): mixed {
-    // This method is kept for backward compatibility
-    // Import the BasePromptHandler to use its implementation
-    return require('./support/modules/prompts/BasePromptHandler').default.getPromptParameters(promptTag)
   }
 }
