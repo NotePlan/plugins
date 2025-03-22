@@ -2,9 +2,36 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-## [1.5.0.b1] - 2025-01-???
+## [2.0.0] - 2025-03-21
 ### New
 - Adds a number of **replace** commands, that first search and then offer to replace with some new text. It always shows the number of occurrences found, and checks that you wish to proceed. **Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation**. You would have to use the Versions menu item in each note to roll it back.
+### Changed
+- tidy up some output
+- if an existing saved search is repeated and produces no results, the existing note is now updated
+- improved output when lines are trimmed
+- if called from a callback, and there are no results found, the dialog box with a message to the user about this is suppressed.
+- some optimisations
+### Fixed
+- allow hashtags and mentions to work in 'full-word' matching mode
+- fix some 'refresh' anomalies
+<!-- - ### Dev notes
+- reduce erroneous logging in eDSP()
+- refactor the calling functions and how they pass requests to saveSearch(). BREAKING CHANGE: this changes some of the arguments that can be passed in x-callbacks
+- refactor searchPeriod() into saveSearch() to ease future maintenance -->
+
+<!-- ## [1.5.0.b2] - 2025-03-02 (unreleased)
+Allow hashtags and mentions to work in 'full-word' matching
+Hook up other /replace commands.
+Under-the-hood changes, to support being called by other plugins:
+- write externalSearch()
+- move some functions to helpers/dataManipulation.js
+- refactor names of functions and types
+-->
+
+<!-- ## [1.5.0.b1] - 2025-01-27 (unreleased)
+### New
+- Adds a number of **replace** commands, that first search and then offer to replace with some new text. It always shows the number of occurrences found, and checks that you wish to proceed. **Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation**. You would have to use the Versions menu item in each note to roll it back.
+-->
 
 ## [1.4.0] - 2025-01-18
 ### New

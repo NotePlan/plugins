@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2025-02-03 for v1.1.0, @jgclark
+// Last updated 2025-03-17 for v1.2.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -17,11 +17,11 @@ import {
   getReviewSettings,
   processMostRecentProgressParagraph,
 } from './reviewHelpers'
-import { checkString } from '@helpers/checkType'
+import { checkBoolean, checkNumber, checkString } from '@helpers/checkType'
 import {
   daysBetween,
   getDateObjFromDateString,
-  includesScheduledFutureDate,
+  includesScheduledFurtherFutureDate,
   todaysDateISOString,
   toISODateString,
 } from '@helpers/dateTime'
@@ -41,7 +41,7 @@ import {
   getInputTrimmed,
   inputIntegerBounded,
 } from '@helpers/userInput'
-import { isDone, isOpen } from '@helpers/utils'
+import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
 
 //-----------------------------------------------------------------------------
 
@@ -80,10 +80,11 @@ export class Project {
   completedDuration: ?string // string description of time to completion, or how long ago completed
   cancelledDate: ?Date
   cancelledDuration: ?string // string description of time to cancellation, or how long ago cancelled
-  openTasks: number
-  completedTasks: number
-  waitingTasks: number
-  futureTasks: number
+  numOpenItems: number
+  numCompletedItems: number
+  numTotalItems: number
+  numWaitingItems: number
+  numFutureItems: number
   isCompleted: boolean = false
   isCancelled: boolean = false
   isPaused: boolean = false
@@ -191,11 +192,22 @@ export class Project {
       }
 
       // count tasks (includes both tasks and checklists)
-      // Note: excludes future tasks
-      this.openTasks = paras.filter(isOpen).length
-      this.completedTasks = paras.filter(isDone).length
-      this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length
-      this.futureTasks = paras.filter(isOpen).filter((p) => includesScheduledFutureDate(p.content)).length
+      const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
+      const numberDaysForFutureToIgnore = checkNumber(DataStore.preference('numberDaysForFutureToIgnore')) || 0
+      this.numOpenItems = ignoreChecklistsInProgress
+        ? paras.filter(isOpenTask).length
+        : paras.filter(isOpen).length
+      this.numCompletedItems = (ignoreChecklistsInProgress)
+        ? paras.filter(isClosedTask).length
+        : paras.filter(isClosed).length
+      this.numWaitingItems = (ignoreChecklistsInProgress
+        ? paras.filter(isOpenTask)
+        : paras.filter(isOpen)).filter((p) => p.content.match('#waiting')).length
+      // count future tasks. Note: if 'numberDaysForFutureToIgnore' is set to 0, then this will count all future tasks.
+      this.numFutureItems = (ignoreChecklistsInProgress
+        ? paras.filter(isOpenTask)
+        : paras.filter(isOpen))
+        .filter((p) => includesScheduledFurtherFutureDate(p.content, numberDaysForFutureToIgnore)).length
 
       // make project completed if @completed(date) set
       if (this.completedDate != null) {
@@ -225,10 +237,12 @@ export class Project {
 
       // If percentComplete not set via progress line, then calculate
       if (this.lastProgressComment === '') {
-        const totalTasks = this.completedTasks + this.openTasks - this.futureTasks
-        if (totalTasks > 0) {
+        this.numTotalItems = (numberDaysForFutureToIgnore > 0)
+          ? this.numCompletedItems + this.numOpenItems - this.numFutureItems
+          : this.numCompletedItems + this.numOpenItems
+        if (this.numTotalItems > 0) {
           // use 'floor' not 'round' to ensure we don't get to 100% unless really everything is done
-          this.percentComplete = Math.floor((this.completedTasks / totalTasks) * 100)
+          this.percentComplete = Math.floor((this.numCompletedItems / this.numTotalItems) * 100)
         } else {
           this.percentComplete = NaN
         }
@@ -247,7 +261,7 @@ export class Project {
         }
       }
 
-      if (this.title.includes('(TEST)')) {
+      if (this.title.includes('TEST')) {
         logDebug('Project', `Constructed ${this.projectTag} ${this.filename}:`)
         logDebug('Project', `  - folder = ${this.folder}`)
         logDebug('Project', `  - metadataLine = ${metadataLine}`)
@@ -258,9 +272,9 @@ export class Project {
         // logDebug('Project', `  - altMentions: ${String(altMentions)}`)
         logDebug('Project', `  - hashtags: ${String(hashtags)}`)
         // logDebug('Project', `  - altHashtags: ${String(altHashtags)}`)
-        logDebug('Project', `  - open: ${String(this.openTasks)}`)
+        logDebug('Project', `  - ${String(this.numTotalItems)} items: open:${String(this.numOpenItems)} completed:${String(this.numCompletedItems)} waiting:${String(this.numWaitingItems)} future:${String(this.numFutureItems)}`)
+        logDebug('Project', `  - completed: ${String(this.numCompletedItems)}`)
         if (this.mostRecentProgressLineIndex >= 0) logDebug('Project', `  - progress: #${String(this.mostRecentProgressLineIndex)} = ${this.lastProgressComment}`)
-        logDebug('Project', `  - completed: ${String(this.completedTasks)}`)
         logDebug('Project', `  - % complete = ${String(this.percentComplete)}`)
         logDebug('Project', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
       } else {
@@ -425,6 +439,7 @@ export class Project {
         logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to Editor at ${String(insertionIndex)}`)
         Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
         // Also updateCache to make changes more quickly available elsewhere
+        // $FlowIgnore[prop-missing]
         await DataStore.updateCache(Editor, true)
       }
       // ... or the project's note
@@ -577,7 +592,8 @@ export class Project {
       metadataPara.content = newMetadataLine
       if (Editor && Editor.note && Editor.note === this.note) {
         Editor.updateParagraph(metadataPara)
-        DataStore.updateCache(Editor.note, true)
+        // $FlowIgnore[prop-missing]
+        DataStore.updateCache(Editor, true)
       } else {
         this.note.updateParagraph(metadataPara)
         DataStore.updateCache(this.note, true)
@@ -668,7 +684,7 @@ export class Project {
  * @param {Project} thisProject
  * @returns {Project}
 */
-export function calcDurationsForProject(thisProjectIn: Project): $Shape<Project> {
+export function calcDurationsForProject(thisProjectIn: Project): Partial<Project> {
   try {
     const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
     const thisProject = { ...thisProjectIn }
@@ -710,6 +726,7 @@ export function calcDurationsForProject(thisProjectIn: Project): $Shape<Project>
         // Nothing to do
         logDebug('calcDurations', `No completed or cancelled dates.`)
       }
+      // $FlowFixMe[incompatible-return] changed from $Shape<Project> to Partial<Project>, but I don't understand why this doesn't work now
       return thisProject
     }
   } catch (error) {
@@ -719,7 +736,7 @@ export function calcDurationsForProject(thisProjectIn: Project): $Shape<Project>
   }
 }
 
-export function calcReviewFieldsForProject(thisProjectIn: Project): $Shape<Project> {
+export function calcReviewFieldsForProject(thisProjectIn: Project): Partial<Project> {
   try {
     // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
     const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
@@ -732,6 +749,7 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): $Shape<Proje
         thisProject.nextReviewDate = thisProject.startDate
         thisProject.nextReviewDays = daysBetween(now, momTSD.toDate())
         logDebug('calcNextReviewDate', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(thisProject.nextReviewDays)} interval`)
+        // $FlowFixMe[incompatible-return] changed from $Shape<Project> to Partial<Project>, but I don't understand why this doesn't work now
         return thisProject
       }
     }
@@ -758,6 +776,7 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): $Shape<Proje
       }
     }
     // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisProject.reviewedDate)} / nextReviewDate = ${String(thisProject.nextReviewDate)} / nextReviewDays = ${String(thisProject.nextReviewDays)}`)
+    // $FlowFixMe[incompatible-return] changed from $Shape<Project> to Partial<Project>, but I don't understand why this doesn't work now
     return thisProject
   } catch (error) {
     logError('calcNextReviewDate', error.message)
@@ -779,13 +798,18 @@ export function generateProjectOutputLine(
   config: any,
   style: string,
 ): string {
+  const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
   let output = ''
   let statsProgress = ''
   let thisPercent = ''
   if (thisProject.percentComplete != null) {
     thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
-    const totalTasksStr = (thisProject.completedTasks + thisProject.openTasks).toLocaleString()
-    statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(thisProject.    + thisProject.openTasks !== 1) ? 'tasks' : 'task'})`
+    const totalItemsStr = (isNaN(thisProject.numTotalItems)) ? '0' : thisProject.numTotalItems.toLocaleString()
+    if (ignoreChecklistsInProgress) {
+      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${(thisProject.numCompletedItems + thisProject.numOpenItems !== 1) ? 'tasks' : 'task'})`
+    } else {
+      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${(thisProject.numCompletedItems + thisProject.numOpenItems !== 1) ? 'items' : 'item'})`
+    }
   } else {
     statsProgress = '(0 tasks)'
   }
@@ -821,7 +845,8 @@ export function generateProjectOutputLine(
     }
     else if (thisProject.percentComplete === 0 || isNaN(thisProject.percentComplete)) {
       output += `<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
-    } else {
+    }
+    else {
       output += `\n\t\t\t<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
     }
 
@@ -851,7 +876,8 @@ export function generateProjectOutputLine(
         output += `</td>`
       } else {
         // write progress in next cell instead
-        output += `</td>\n\t\t\t<td>`
+        output += `</td>\n`
+        output += `\t\t\t<td>`
         if (config.displayProgress) {
           if (thisProject.lastProgressComment !== '') {
             output += `<i class="fa-solid fa-info-circle fa-sm pad-right"></i> ${thisProject.lastProgressComment}`
@@ -859,10 +885,10 @@ export function generateProjectOutputLine(
             output += `${statsProgress}`
           }
         }
-        // FIXME:
-        if (config.displayNextActions && nextActionContent !== '') {
-          if (config.displayProgress) output += '<br />'
-          output += `<i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+        if (config.displayNextActions && nextActionsContent.length > 0) {
+          for (const nextActionContent of nextActionsContent) {
+            output += `\n\t\t\t<br /><i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+          }
         }
         output += `</td>`
       }

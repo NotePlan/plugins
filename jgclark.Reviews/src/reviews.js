@@ -591,13 +591,14 @@ export async function renderProjectListsHTML(
       const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
 
       // Write out all relevant HTML
+      const headingContent = `<span class="h3 folder-name">${thisTag}</span> (${noteCount} notes, ${due} ready for review${config.numberDaysForFutureToIgnore > 0 ? ', with future items ignored' : ''})`
       // If there are multiple projectTypeTags, then use details/summary HTML tags to open/close the section
       if (config.projectTypeTags.length > 1) {
         outputArray.push(`  <details open>`) // start it open
         // Had tried adding: <i class="fa-solid fa-chevron-down"></i>
-        outputArray.push(`   <summary class="folder-header"><span class="h3 folder-name">${thisTag} </span>(${noteCount} notes, ${due} ready for review)</summary>`)
+        outputArray.push(`   <summary class="folder-header">${headingContent}</summary>`)
       } else {
-        outputArray.push(`  <div class="folder-header"><span class="h3 folder-name">${thisTag} </span>(${noteCount} notes, ${due} ready for review)</div>`)
+        outputArray.push(`  <div class="folder-header">${headingContent}</div>`)
       }
       outputArray.push('\n<div class="details-content">')
 

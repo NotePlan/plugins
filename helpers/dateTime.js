@@ -1350,6 +1350,33 @@ export function includesScheduledFutureDate(line: string, fromDateStr?: string):
 }
 
 /**
+ * Does this line include a scheduled date more than or equal to 'futureStartsInDays' days into the future?
+ * (Should work even with >date in brackets or with non-white-space before it.)
+ * Only works on lines with scheduled dates (>YYYY-MM-DD).
+ * Tested manually.
+ * @author @jgclark
+ *
+ * @param {string} line to search in
+ * @param {number} futureStartsInDays - number of days into the future to regard as being 'the future'. If set to 0, then no future items are ignored.
+ * @return {boolean}
+ */
+export function includesScheduledFurtherFutureDate(line: string, futureStartsInDays: number): boolean {
+  if (futureStartsInDays < 0) {
+    return false
+  }
+  // Test for days
+  const m = line.match(RE_SCHEDULED_ISO_DATE) ?? []
+  if (m.length > 0) {
+    const futureMoment = moment().add(futureStartsInDays, 'days')
+    const futureMomentStr = futureMoment.format('YYYY-MM-DD')
+    const ISODateFromMatch = m[0].slice(1) // need to remove leading '>'
+    logDebug(`includesScheduledFurtherFutureDate`, `match: ${ISODateFromMatch} >= futureStart:${futureMomentStr} = ${String(ISODateFromMatch >= futureMomentStr)}`)
+    return ISODateFromMatch >= futureMomentStr
+  }
+  return false
+}
+
+/**
  * Checks if the given filename is in a future note.
  *
  * @param {string} filename - The filename to check.
