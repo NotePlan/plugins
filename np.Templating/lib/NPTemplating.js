@@ -825,158 +825,447 @@ export default class NPTemplating {
     return ''
   }
 
+  /**
+   * Process a template string and prepare it for rendering
+   * @param {string} templateData - The template string to process
+   * @param {Object} sessionData - Data available during processing
+   * @returns {Object} - Processed template data, updated session data, and any errors
+   */
   static async preProcess(templateData: string, sessionData?: {} = {}): Promise<mixed> {
-    // Initialize variables
-    let jsonErrors = []
-    let criticalError = false
-    let newTemplateData = templateData
-    let newSettingData = { ...sessionData }
-    let override: { [key: string]: string } = {}
-
-    // Handle null/undefined gracefully - return the input as is
-    if (newTemplateData === null || newTemplateData === undefined) {
-      return { newTemplateData, newSettingData, jsonErrors, criticalError }
+    // Initialize the processing context
+    const context = {
+      templateData: templateData || '',
+      sessionData: { ...sessionData },
+      jsonErrors: [],
+      criticalError: false,
+      override: {},
     }
 
-    // Process tags
-    const tags = (await this.getTags(templateData)) || []
-    for (let tag of tags) {
+    // Handle null/undefined gracefully
+    if (context.templateData === null || context.templateData === undefined) {
+      return {
+        newTemplateData: context.templateData,
+        newSettingData: context.sessionData,
+        jsonErrors: context.jsonErrors,
+        criticalError: context.criticalError,
+      }
+    }
+
+    // Get all template tags
+    const tags = (await this.getTags(context.templateData)) || []
+
+    // Process each tag in a single pass
+    for (const tag of tags) {
       logDebug(pluginJson, `preProcess tag: ${tag}`)
+
+      // Process different tag types
       if (isCommentTag(tag)) {
-        const regex = new RegExp(`${tag}[\\s\\r\\n]*`, 'g')
-        newTemplateData = newTemplateData.replace(regex, '')
-        tag = '' // clear tag as it has been removed from process
+        await this._processCommentTag(tag, context)
         continue
       }
 
       if (tag.includes('note(')) {
-        newTemplateData = newTemplateData.replace(tag, await this.preProcessNote(tag))
+        await this._processNoteTag(tag, context)
+        continue
       }
 
       if (tag.includes('calendar(')) {
-        newTemplateData = newTemplateData.replace(tag, await this.preProcessCalendar(tag))
+        await this._processCalendarTag(tag, context)
+        continue
       }
 
       if (tag.includes('include(') || tag.includes('template(')) {
-        if (!isCommentTag(tag)) {
-          let includeInfo = tag
-          const keywords = ['<%=', '<%-', '<%', '_%>', '-%>', '%>', 'include', 'template']
-          keywords.forEach((x, i) => (includeInfo = includeInfo.replace(/[{()}]/g, '').replace(new RegExp(x, 'g'), '')))
-          const parts = includeInfo.split(',')
-          if (parts.length > 0) {
-            const templateName = parts[0].replace(/['"`]/gi, '').trim()
-            const templateData = parts.length >= 1 ? parts[1] : {}
-
-            const templateContent = await this.getTemplate(templateName, { silent: true })
-            const isTemplate = new FrontmatterModule().isFrontmatterTemplate(templateContent)
-            if (isTemplate) {
-              const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateContent, newSettingData)
-              newSettingData = { ...frontmatterAttributes }
-              logDebug(pluginJson, `preProcess tag: ${tag} frontmatterAttributes: ${JSON.stringify(frontmatterAttributes, null, 2)}`)
-              const renderedTemplate = await this.render(frontmatterBody, newSettingData)
-
-              // if variable assignment, extract var name
-              if (tag.includes('const') || tag.includes('let')) {
-                const pos = tag.indexOf('=')
-                if (pos > 0) {
-                  let temp = tag
-                    .substring(0, pos - 1)
-                    .replace('<%', '')
-                    .trim()
-                  let varParts = temp.split(' ')
-                  override[varParts[1]] = renderedTemplate
-                  newTemplateData = newTemplateData.replace(tag, '')
-                }
-              } else {
-                newTemplateData = newTemplateData.replace(tag, renderedTemplate)
-              }
-            } else {
-              if (templateName.length === 8 && /^\d+$/.test(templateName)) {
-                const calendarData = await this.preProcessCalendar(templateName)
-                newTemplateData = newTemplateData.replace(tag, calendarData)
-              } else {
-                newTemplateData = newTemplateData.replace(tag, await this.preProcessNote(templateName))
-              }
-            }
-          } else {
-            newTemplateData = newTemplateData.replace(tag, '**Unable to parse include**')
-          }
-        }
-      }
-    }
-
-    // Process remaining
-    for (const tag of tags) {
-      if (!tag.includes('await') && this.isCode(tag) && tag.includes('(') && !tag.includes('prompt(')) {
-        let tempTag = tag.replace('<%-', '<%- await')
-        newTemplateData = newTemplateData.replace(tag, tempTag)
+        await this._processIncludeTag(tag, context)
+        continue
       }
 
-      if (tag.toLowerCase().includes(':return:') || tag.toLowerCase().includes(':cr:')) {
-        newTemplateData = newTemplateData.replace(tag, '')
+      if (tag.includes(':return:') || tag.toLowerCase().includes(':cr:')) {
+        await this._processReturnTag(tag, context)
+        continue
       }
 
-      const getType = (value: any) => {
-        if (value.includes('[')) {
-          return 'array'
-        }
-
-        if (value.includes('{')) {
-          return 'object'
-        }
-
-        return 'string'
+      // Process code tags that need await prefixing
+      if (this.isCode(tag) && tag.includes('(')) {
+        await this._processCodeTag(tag, context)
+        continue
       }
 
-      // extract variables
+      // Extract variables
       if (tag.includes('const') || tag.includes('let') || tag.includes('var')) {
-        if (sessionData) {
-          const tempTag = tag.replace('const', '').replace('let', '').trimLeft().replace('<%', '').replace('-%>', '').replace('%>', '')
-          let pos = tempTag.indexOf('=')
-          if (pos > 0) {
-            let varName = tempTag.substring(0, pos - 1).trim()
-            let value = tempTag.substring(pos + 1)
-
-            if (getType(value) === 'string') {
-              value = value.replace(/['"]+/g, '').trim()
-            }
-
-            if (getType(value) === 'array' || getType(value) === 'object') {
-              value = value.replace('" ', '').replace(' "', '').trim()
-            }
-
-            newSettingData[varName] = value
-          }
-        }
+        await this._processVariableTag(tag, context)
+        continue
       }
     }
 
-    newSettingData = { ...newSettingData, ...override }
+    // Merge override variables into session data
+    context.sessionData = { ...context.sessionData, ...context.override }
 
-    // Fix single-quoted JSON in DataStore.invokePluginCommandByName calls
-    // This pattern handles the specific format like: ['{'numDays':14, 'sectionHeading':'Test Section'}']
-    newTemplateData = newTemplateData.replace(/\[\'\{([^\}]*)\}\'\]/g, (match, p1) => {
-      try {
-        // Convert single-quoted property names to double-quoted
-        const fixedJson = p1.replace(/'([^']+)':/g, '"$1":')
-        return `[{${fixedJson}}]`
-      } catch (e) {
-        jsonErrors.push(`Error processing JSON: ${e.message}`)
-        return match
+    // Fix JSON in DataStore.invokePluginCommandByName calls
+    await this._processJsonInDataStoreCalls(context)
+
+    // Return the processed data
+    return {
+      newTemplateData: context.templateData,
+      newSettingData: context.sessionData,
+      jsonErrors: context.jsonErrors,
+      criticalError: context.criticalError,
+    }
+  }
+
+  /**
+   * Process comment tags by removing them from the template
+   * @private
+   */
+  static async _processCommentTag(
+    tag: string,
+    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
+  ): Promise<void> {
+    const regex = new RegExp(`${tag}[\\s\\r\\n]*`, 'g')
+    context.templateData = context.templateData.replace(regex, '')
+  }
+
+  /**
+   * Process note tags by replacing them with the note content
+   * @private
+   */
+  static async _processNoteTag(
+    tag: string,
+    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
+  ): Promise<void> {
+    context.templateData = context.templateData.replace(tag, await this.preProcessNote(tag))
+  }
+
+  /**
+   * Process calendar tags by replacing them with the calendar note content
+   * @private
+   */
+  static async _processCalendarTag(
+    tag: string,
+    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
+  ): Promise<void> {
+    context.templateData = context.templateData.replace(tag, await this.preProcessCalendar(tag))
+  }
+
+  /**
+   * Process return/carriage return tags by removing them
+   * @private
+   */
+  static async _processReturnTag(
+    tag: string,
+    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
+  ): Promise<void> {
+    context.templateData = context.templateData.replace(tag, '')
+  }
+
+  /**
+   * Process code tags by adding await prefix to function calls
+   * @private
+   */
+  static async _processCodeTag(
+    tag: string,
+    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
+  ): Promise<void> {
+    // Extract the code content from inside the tag
+    const startDelim = tag.startsWith('<%=') ? '<%=' : tag.startsWith('<%-') ? '<%-' : '<%'
+    const endDelim = tag.endsWith('-%>') ? '-%>' : '%>'
+    const codeContent = tag.substring(startDelim.length, tag.length - endDelim.length).trim()
+
+    // Split by lines to process each line individually
+    const lines = codeContent.split('\n')
+    const processedLines: Array<string> = []
+
+    // Process each line
+    for (let line of lines) {
+      line = line.trim()
+      if (line.length === 0) {
+        processedLines.push(line)
+        continue
       }
-    })
 
-    // Handle other single-quoted JSON formats that may appear in the template
-    newTemplateData = newTemplateData.replace(/'(\{[^}]*\})'/g, (match, p1) => {
-      try {
-        return p1.replace(/'/g, '"')
-      } catch (e) {
-        jsonErrors.push(`Error processing JSON: ${e.message}`)
-        return match
+      // Handle semicolon-separated statements on one line
+      if (line.includes(';')) {
+        const statements = line
+          .split(';')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
+        const processedStatements: Array<string> = []
+
+        for (let statement of statements) {
+          // Process each statement individually
+          processedStatements.push(processStatementForAwait(statement))
+        }
+
+        // Keep statements on the same line with semicolons between them
+        processedLines.push(processedStatements.join('; '))
+      } else {
+        // Process single statement
+        processedLines.push(processStatementForAwait(line))
       }
-    })
+    }
 
-    return { newTemplateData, newSettingData, jsonErrors, criticalError }
+    // Helper function to process a single statement
+    function processStatementForAwait(statement: string): string {
+      // Skip if already has await
+      if (statement.includes('await ')) {
+        return statement
+      }
+
+      // Process variable declarations with function calls
+      // Regex: matches start of line with 'const', 'let', or 'var' followed by one or more word characters,
+      // optional whitespace, an equals sign, and optional whitespace
+      const varDeclRegex = /^(const|let|var)\s+\w+\s*=\s*/
+      if (varDeclRegex.test(statement)) {
+        const match = statement.match(varDeclRegex)
+        if (match) {
+          const declarationPart = match[0] // e.g., "const result = "
+          const restOfStatement = statement.substring(declarationPart.length)
+
+          // Check if the right side contains a function call
+          // Regex to handle object methods with dot notation
+          // Matches patterns like DataStore.invoke(...) or just invoke(...)
+          // \w+(?:\.\w+)* captures: word chars followed by optional dot-separated word chars
+          // \s* matches any whitespace
+          // \([^)]*\) matches opening paren, any chars except closing paren, then closing paren
+          const correctedFunctionCallRegex = /^\s*(\w+(?:\.\w+)*)\s*\([^)]*\)/
+
+          if (correctedFunctionCallRegex.test(restOfStatement)) {
+            // Insert await before the function call portion, not the entire statement
+            return declarationPart + 'await ' + restOfStatement
+          }
+        }
+        return statement
+      }
+
+      // Skip any prompt-related function calls (they are processed separately)
+      // This regex matches any prompt functions: prompt, promptDate, promptDateInterval, etc.
+      // \w*prompt\w* matches any word containing "prompt"
+      // \s* matches optional whitespace
+      // \( matches the opening parenthesis
+      if (statement.match(/\w*prompt\w*\s*\(/i)) {
+        return statement
+      }
+
+      // Add await to function calls for other statements
+      // Matches one or more word characters, optional dot notation segments,
+      // optional whitespace, open paren, any chars except close paren, close paren
+      // This regex handles both simple function calls and object method calls (with dots)
+      const generalFunctionCallRegex = /(\w+(?:\.\w+)*)\s*\([^)]*\)/
+      if (statement.match(generalFunctionCallRegex)) {
+        return `await ${statement}`
+      }
+
+      return statement
+    }
+
+    // Rebuild the tag with processed lines
+    const newCodeContent = processedLines.join('\n')
+    const newTag = `${startDelim} ${newCodeContent} ${endDelim}`
+
+    // Replace the original tag with the new one
+    context.templateData = context.templateData.replace(tag, newTag)
+  }
+
+  /**
+   * Process include/template tags by replacing them with the included template content
+   * @private
+   */
+  static async _processIncludeTag(
+    tag: string,
+    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
+  ): Promise<void> {
+    if (isCommentTag(tag)) return
+
+    let includeInfo = tag
+    const keywords = ['<%=', '<%-', '<%', '_%>', '-%>', '%>', 'include', 'template']
+    keywords.forEach((x) => (includeInfo = includeInfo.replace(/[{()}]/g, '').replace(new RegExp(x, 'g'), '')))
+
+    const parts = includeInfo.split(',')
+    if (parts.length === 0) {
+      context.templateData = context.templateData.replace(tag, '**Unable to parse include**')
+      return
+    }
+
+    const templateName = parts[0].replace(/['"`]/gi, '').trim()
+    const templateData = parts.length >= 1 ? parts[1] : {}
+
+    const templateContent = await this.getTemplate(templateName, { silent: true })
+    const isTemplate = new FrontmatterModule().isFrontmatterTemplate(templateContent)
+
+    if (isTemplate) {
+      const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateContent, context.sessionData)
+      context.sessionData = { ...frontmatterAttributes }
+      logDebug(pluginJson, `preProcess tag: ${tag} frontmatterAttributes: ${JSON.stringify(frontmatterAttributes, null, 2)}`)
+      const renderedTemplate = await this.render(frontmatterBody, context.sessionData)
+
+      // Handle variable assignment
+      if (tag.includes('const') || tag.includes('let')) {
+        const pos = tag.indexOf('=')
+        if (pos > 0) {
+          let temp = tag
+            .substring(0, pos - 1)
+            .replace('<%', '')
+            .trim()
+          let varParts = temp.split(' ')
+          context.override[varParts[1]] = renderedTemplate
+          context.templateData = context.templateData.replace(tag, '')
+        }
+      } else {
+        context.templateData = context.templateData.replace(tag, renderedTemplate)
+      }
+    } else {
+      // Handle special case for calendar data
+      if (templateName.length === 8 && /^\d+$/.test(templateName)) {
+        const calendarData = await this.preProcessCalendar(templateName)
+        context.templateData = context.templateData.replace(tag, calendarData)
+      } else {
+        context.templateData = context.templateData.replace(tag, await this.preProcessNote(templateName))
+      }
+    }
+  }
+
+  /**
+   * Process variable declaration tags
+   * @private
+   */
+  static async _processVariableTag(
+    tag: string,
+    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
+  ): Promise<void> {
+    if (!context.sessionData) return
+
+    const tempTag = tag.replace('const', '').replace('let', '').trimLeft().replace('<%', '').replace('-%>', '').replace('%>', '')
+    const pos = tempTag.indexOf('=')
+    if (pos <= 0) return
+
+    let varName = tempTag.substring(0, pos - 1).trim()
+    let value = tempTag.substring(pos + 1).trim()
+
+    // Determine value type and process accordingly
+    if (this._getValueType(value) === 'string') {
+      value = value.replace(/^["'](.*)["']$/, '$1').trim() // Remove outer quotes only
+    } else if (this._getValueType(value) === 'array' || this._getValueType(value) === 'object') {
+      // For objects and arrays, preserve the exact structure including quotes
+      // Just clean up any extra quotes that might be around the entire object/array
+      value = value.replace(/^["'](.*)["']$/, '$1').trim()
+    }
+
+    context.sessionData[varName] = value
+  }
+
+  /**
+   * Helper method to determine the type of a value
+   * @private
+   */
+  static _getValueType(value: string): string {
+    if (value.includes('[')) {
+      return 'array'
+    }
+
+    if (value.includes('{')) {
+      return 'object'
+    }
+
+    return 'string'
+  }
+
+  /**
+   * Process and fix JSON in DataStore.invokePluginCommandByName calls
+   * @private
+   */
+  static async _processJsonInDataStoreCalls(context: {
+    templateData: string,
+    sessionData: Object,
+    jsonErrors: Array<any>,
+    criticalError: boolean,
+    override: Object,
+  }): Promise<void> {
+    try {
+      // Fix single-quoted JSON in DataStore.invokePluginCommandByName calls
+      // This pattern handles the specific format like: ['{'numDays':14, 'sectionHeading':'Test Section'}']
+      context.templateData = context.templateData.replace(/\[\'\{([^\}]*)\}\'\]/g, (match, p1) => {
+        try {
+          // Convert single-quoted property names to double-quoted
+          const fixedJson = p1.replace(/'([^']+)':/g, '"$1":')
+          return `[{${fixedJson}}]`
+        } catch (e) {
+          context.jsonErrors.push({
+            error: `Error processing JSON: ${e.message}`,
+            lineNumber: this._getLineNumberForMatch(context.templateData, match),
+            critical: true,
+          })
+          context.criticalError = true
+          return match
+        }
+      })
+
+      // Handle other single-quoted JSON formats that may appear in the template
+      context.templateData = context.templateData.replace(/'(\{[^}]*\})'/g, (match, p1) => {
+        try {
+          return p1.replace(/'/g, '"')
+        } catch (e) {
+          context.jsonErrors.push({
+            error: `Error processing JSON: ${e.message}`,
+            lineNumber: this._getLineNumberForMatch(context.templateData, match),
+            critical: true,
+          })
+          context.criticalError = true
+          return match
+        }
+      })
+
+      // Detect missing closing braces in JSON objects - look for patterns like: {"property":"value"
+      // or {"property":14, "another":"value"
+      const unclosedBracesPattern = /\{\s*"[^"]+"\s*:\s*("[^"]*"|[0-9]+)(\s*,\s*"[^"]+"\s*:\s*("[^"]*"|[0-9]+))*(?!\s*\})/g
+      const unclosedBraces = context.templateData.match(unclosedBracesPattern)
+      if (unclosedBraces) {
+        context.jsonErrors.push({
+          error: `Unclosed JSON object detected. Check for missing closing braces.`,
+          lineNumber: this._getLineNumberForMatch(context.templateData, unclosedBraces[0]),
+          critical: true,
+        })
+        context.criticalError = true
+      }
+
+      // Detect mixed quotes in JSON objects (both ' and " used as property delimiters)
+      const mixedQuotePattern = /\{[^}]*(['"][^'"]*['"])\s*:\s*[^,}]*[,}]/g
+      const mixedQuotes = context.templateData.match(mixedQuotePattern)
+      if (mixedQuotes) {
+        context.jsonErrors.push({
+          error: `Mixed quote styles detected in JSON. Stick to one quote style, preferably double quotes.`,
+          lineNumber: this._getLineNumberForMatch(context.templateData, mixedQuotes[0]),
+          critical: true,
+        })
+        context.criticalError = true
+      }
+
+      // Detect unescaped quotes in JSON strings
+      const unescapedQuotesPattern = /"[^"\\]*"[^"\\]*"/g
+      const unescapedQuotes = context.templateData.match(unescapedQuotesPattern)
+      if (unescapedQuotes) {
+        context.jsonErrors.push({
+          error: `Unescaped quotes in JSON string detected. Use backslash to escape quotes.`,
+          lineNumber: this._getLineNumberForMatch(context.templateData, unescapedQuotes[0]),
+          critical: true,
+        })
+        context.criticalError = true
+      }
+    } catch (error) {
+      logError(pluginJson, `Error in _processJsonInDataStoreCalls: ${error.message}`)
+    }
+  }
+
+  /**
+   * Helper method to get the line number for a match
+   * @private
+   */
+  static _getLineNumberForMatch(templateData: string, match: string): number {
+    const lines = templateData.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes(match)) {
+        return i + 1
+      }
+    }
+    return 0
   }
 
   static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
