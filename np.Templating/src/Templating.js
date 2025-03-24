@@ -35,7 +35,7 @@ import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
 
 // Editor
-import { templateFileByTitleEx } from './NPEditor'
+import { templateRunnerExecute } from './NPEditor'
 import { getNoteByFilename } from '../../helpers/note'
 
 export async function init(): Promise<void> {
@@ -555,7 +555,7 @@ export async function templateQuote(): Promise<string> {
 export async function templateRunner(...args: Array<string>) {
   try {
     if (args.length > 0) {
-      templateFileByTitle(args[0], args[1] === 'true', args.length > 2 ? args[2] : '')
+      templateFileByTitle(args[0], args[1] === 'true' || args[1] === true, args.length > 2 ? args[2] : '')
     } else {
       await CommandBar.prompt(`No arguments (with template name) were given to the templateRunner."`, helpInfo('Presets'))
     }
@@ -698,5 +698,5 @@ export async function renderTemplate(templateName: string = '', userData: any = 
 }
 
 export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = '') {
-  await templateFileByTitleEx(selectedTemplate, openInEditor, args)
+  await templateRunnerExecute(selectedTemplate, openInEditor, args)
 }

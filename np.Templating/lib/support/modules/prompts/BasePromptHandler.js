@@ -28,13 +28,8 @@ export default class BasePromptHandler {
 
     // Ensure it starts with a letter, underscore, or Unicode letter
     if (!/^[\p{L}_$]/u.test(cleaned)) {
-      if (/^\d/.test(cleaned)) {
-        // If it starts with a number, prefix with 'var_'
-        cleaned = `var_${cleaned}`
-      } else {
-        // For other invalid starting characters, just prepend underscore
-        cleaned = `_${cleaned}`
-      }
+      // Add prefix for invalid starting characters
+      cleaned = `var_${cleaned}`
     }
 
     // Handle reserved keywords by prefixing with 'var_'
@@ -272,92 +267,6 @@ export default class BasePromptHandler {
 
     logDebug(pluginJson, `BasePromptHandler parseParameters with tagValue: "${tagValue}", noVar: ${String(noVar)}`)
 
-    // Special case for test format with array literals in the string: "'myVar', 'Choose an option:', ['Option 1', 'Option 2']"
-    if (tagValue.includes('[') && tagValue.includes(']')) {
-      const arrayMatch = tagValue.match(/\[['"](.+?)['"](,\s*['"].+?['"])*\]/)
-      if (arrayMatch) {
-        // Test case with array options
-        const parts = tagValue.split(',')
-
-        // Extract everything up to the array start
-        const beforeArray = parts
-          .slice(
-            0,
-            parts.findIndex((p) => p.includes('[')),
-          )
-          .join(',')
-        const beforeParams = BasePromptHandler.extractQuotedStrings(beforeArray)
-
-        // Extract array portion
-        const arrayStart = tagValue.indexOf('[')
-        const arrayEnd = tagValue.lastIndexOf(']') + 1
-        const arrayPortion = tagValue.substring(arrayStart, arrayEnd)
-
-        // Convert the array string to actual array
-        const arrayOptions = BasePromptHandler.convertToArrayIfNeeded(arrayPortion)
-
-        if (noVar) {
-          return {
-            varName: '',
-            promptMessage: beforeParams[0] || '',
-            options: arrayOptions,
-          }
-        } else {
-          return {
-            varName: BasePromptHandler.cleanVarName(beforeParams[0] || 'unnamed'),
-            promptMessage: beforeParams.length > 1 ? beforeParams[1] : '',
-            options: arrayOptions,
-          }
-        }
-      }
-    }
-
-    // For simple comma-separated parameters without parentheses (direct parameter string)
-    if (!tagValue.includes('(') && (tagValue.includes(',') || tagValue.includes("'") || tagValue.includes('"'))) {
-      // This format is used in test cases like "'myVar', 'Enter a value:'"
-      const params = BasePromptHandler.extractQuotedStrings(tagValue)
-
-      if (params.length > 0) {
-        if (noVar) {
-          // Handle array options for noVar case
-          let options: string | Array<string> = params.length > 1 ? params.slice(1).join(', ') : ''
-
-          // Check if options looks like an array
-          if (typeof options === 'string' && options.includes('[') && options.includes(']')) {
-            const arrayMatch = options.match(/\[(.*)\]/)
-            if (arrayMatch && arrayMatch[1]) {
-              options = BasePromptHandler.convertToArrayIfNeeded(`[${arrayMatch[1]}]`)
-            }
-          }
-
-          const result = {
-            varName: '',
-            promptMessage: params[0] || '',
-            options: options,
-          }
-          return result
-        } else {
-          // Handle array options for normal case
-          let options: string | Array<string> = params.length > 2 ? params.slice(2).join(', ') : ''
-
-          // Check if options looks like an array
-          if (typeof options === 'string' && options.includes('[') && options.includes(']')) {
-            const arrayMatch = options.match(/\[(.*)\]/)
-            if (arrayMatch && arrayMatch[1]) {
-              options = BasePromptHandler.convertToArrayIfNeeded(`[${arrayMatch[1]}]`)
-            }
-          }
-
-          const result = {
-            varName: BasePromptHandler.cleanVarName(params[0] || 'unnamed'),
-            promptMessage: params.length > 1 ? params[1] : '',
-            options: options,
-          }
-          return result
-        }
-      }
-    }
-
     // Extract directly from parentheses
     const directParams = BasePromptHandler.extractDirectParameters(tagValue)
     if (directParams && directParams.message) {
@@ -388,20 +297,20 @@ export default class BasePromptHandler {
 
       // Replace quoted strings with placeholders to avoid issues with commas in quotes
       const quotedTexts: Array<string> = []
-      let processedContent = paramsContent.replace(/(['"`])(.*?)\1/g, (match, quote, content) => {
+      let processedContent = paramsContent.replace(/(['"])(.*?)\1/g, (match, quote, content) => {
         quotedTexts.push(match)
         return `__QUOTED_TEXT_${quotedTexts.length - 1}__`
       })
 
       // Handle array placeholders by replacing them with special tokens
       const arrayPlaceholders: Array<{ placeholder: string, value: string }> = []
-      const arrayRegex = /(\[[^\]]*\])/g
+      const arrayRegex = /\[[^\]]*\]/g
       let arrayMatch
       let index = 0
 
       while ((arrayMatch = arrayRegex.exec(processedContent)) !== null) {
-        if (arrayMatch && arrayMatch[1]) {
-          const arrayValue = arrayMatch[1]
+        if (arrayMatch && arrayMatch[0]) {
+          const arrayValue = arrayMatch[0]
           const placeholder = `__ARRAY_${index}__`
           arrayPlaceholders.push({ placeholder, value: arrayValue })
           processedContent = processedContent.replace(arrayValue, placeholder)
@@ -413,7 +322,7 @@ export default class BasePromptHandler {
       const params = processedContent.split(/\s*,\s*/)
       logDebug(pluginJson, `BasePromptHandler params split: ${JSON.stringify(params)}`)
 
-      // Process parameters based on whether noVar is true or false
+      // Validate and assign parameters based on noVar flag
       if (noVar) {
         const promptMessage = params[0] ? BasePromptHandler.parseOptions(params[0], quotedTexts, arrayPlaceholders) : ''
         let options: string | Array<string> = params.length > 1 ? BasePromptHandler.parseOptions(params[1], quotedTexts, arrayPlaceholders) : ''
@@ -421,7 +330,6 @@ export default class BasePromptHandler {
         // Convert string array representations to actual arrays
         if (typeof options === 'string' && options.startsWith('[') && options.endsWith(']')) {
           try {
-            // Handle array options with proper conversion
             options = BasePromptHandler.convertToArrayIfNeeded(options)
           } catch (e) {
             logDebug(pluginJson, `Error parsing array options: ${e.message}, keeping as string`)
@@ -463,39 +371,17 @@ export default class BasePromptHandler {
         // Convert string array representations to actual arrays
         if (typeof options === 'string' && options.startsWith('[') && options.endsWith(']')) {
           try {
-            // Handle array options with proper conversion
             options = BasePromptHandler.convertToArrayIfNeeded(options)
           } catch (e) {
             logDebug(pluginJson, `Error parsing array options: ${e.message}, keeping as string`)
           }
         }
 
-        // Include the rest of the parameters
-        const remainingParams: { [key: string]: string } = {}
-        for (let i = 3; i < params.length; i++) {
-          const paramValue = params[i] ? BasePromptHandler.parseOptions(params[i], quotedTexts, arrayPlaceholders) : ''
-          if (typeof paramValue === 'string') {
-            remainingParams[`param${i - 2}`] = paramValue
-          }
-        }
-
-        const result: {
-          varName: string,
-          promptMessage: any,
-          options: any,
-          [key: string]: any,
-        } = {
+        return {
           varName,
           promptMessage,
           options,
         }
-
-        // Add remaining parameters individually
-        Object.keys(remainingParams).forEach((key) => {
-          result[key] = remainingParams[key]
-        })
-
-        return result
       }
     } catch (error) {
       logError(pluginJson, `Error in parseParameters: ${error.message}`)

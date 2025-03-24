@@ -1,0 +1,21 @@
+<%
+// Template with a syntax error in JavaScript
+function dayNumber(date) {
+  numDays = date.getDate() // First error: missing 'const' or 'let'
+  return numDays this is an obvious syntax error // Second error: missing semicolon and invalid tokens
+}
+
+const today = new Date()
+const dayNum = dayNumber(today)
+%>
+
+Today is day <%= dayNum %> of the month.
+
+<% /* This is a proper way to use await in EJS: put the await in an async IIFE */ %>
+<% (async function() {
+  // Test proper JSON formatting
+  await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',[{"numDays":14, "sectionHeading":"Test Section", "runSilently": true}]);
+})(); -%>
+
+Hello World!
+Day number: <%= dayNum %> 

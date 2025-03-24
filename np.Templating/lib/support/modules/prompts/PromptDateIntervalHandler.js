@@ -25,19 +25,6 @@ export default class PromptDateIntervalHandler {
       return await askDateInterval(message)
     } catch (error) {
       logError(pluginJson, `Error in promptDateInterval: ${error.message}`)
-
-      // In test environment, if CommandBar.showInput is not available, return test data
-      if (error.message && error.message.includes('showInput is not a function')) {
-        // Check if it's the test for availableTimes specifically in integration test
-        if (message.includes('availability')) {
-          return 'Mon-Fri, 9am-5pm'
-        } else if (message.includes('date range')) {
-          return '2023-01-01 to 2023-01-31'
-        }
-        // Default fallback for other date interval tests
-        return '2023-01-01 to 2023-01-31'
-      }
-
       return ''
     }
   }

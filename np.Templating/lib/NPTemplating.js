@@ -19,7 +19,7 @@ import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
 import { processPrompts } from './support/modules/prompts'
-import { getRegisteredPromptNames } from './support/modules/prompts/PromptRegistry'
+import { getRegisteredPromptNames, isPromptTag } from './support/modules/prompts/PromptRegistry'
 
 // - if a new module has been added, make sure it has been added to this list
 const TEMPLATE_MODULES = ['calendar', 'date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
@@ -826,7 +826,7 @@ export default class NPTemplating {
   }
 
   /**
-   * Process a template string and prepare it for rendering
+   * Validate template strings for errors before rendering
    * @param {string} templateData - The template string to process
    * @param {Object} sessionData - Data available during processing
    * @returns {Object} - Processed template data, updated session data, and any errors
@@ -896,6 +896,11 @@ export default class NPTemplating {
         continue
       }
     }
+
+    logDebug(pluginJson, `preProcessed tags: ${tags.length}`)
+    clo(context.sessionData, `preProcessed sessionData`)
+    clo(context.override, `preProcessed override`)
+    logDebug(pluginJson, `preProcess templateData: ${context.templateData}`)
 
     // Merge override variables into session data
     context.sessionData = { ...context.sessionData, ...context.override }
@@ -1010,47 +1015,66 @@ export default class NPTemplating {
         return statement
       }
 
-      // Process variable declarations with function calls
-      // Regex: matches start of line with 'const', 'let', or 'var' followed by one or more word characters,
-      // optional whitespace, an equals sign, and optional whitespace
-      const varDeclRegex = /^(const|let|var)\s+\w+\s*=\s*/
-      if (varDeclRegex.test(statement)) {
-        const match = statement.match(varDeclRegex)
-        if (match) {
-          const declarationPart = match[0] // e.g., "const result = "
-          const restOfStatement = statement.substring(declarationPart.length)
+      // Skip control structures that use parentheses but are not function calls
+      const controlStructures = ['if', 'else if', 'for', 'while', 'switch', 'catch']
 
-          // Check if the right side contains a function call
-          // Regex to handle object methods with dot notation
-          // Matches patterns like DataStore.invoke(...) or just invoke(...)
-          // \w+(?:\.\w+)* captures: word chars followed by optional dot-separated word chars
-          // \s* matches any whitespace
-          // \([^)]*\) matches opening paren, any chars except closing paren, then closing paren
-          const correctedFunctionCallRegex = /^\s*(\w+(?:\.\w+)*)\s*\([^)]*\)/
+      // Check for control structures at the beginning of the statement
+      const trimmedStatement = statement.trim()
+      for (const structure of controlStructures) {
+        if (trimmedStatement.startsWith(structure + ' ')) {
+          return statement
+        }
 
-          if (correctedFunctionCallRegex.test(restOfStatement)) {
-            // Insert await before the function call portion, not the entire statement
-            return declarationPart + 'await ' + restOfStatement
+        // Also handle fragments like "} else if" that start with a brace
+        if (trimmedStatement.includes('} ' + structure + ' ') || trimmedStatement.startsWith('} ' + structure + ' ')) {
+          return statement
+        }
+      }
+
+      // Skip 'else' without the 'if' (simple else statements)
+      if (trimmedStatement.startsWith('else ') || trimmedStatement.includes('} else ') || trimmedStatement === 'else' || trimmedStatement.startsWith('} else{')) {
+        return statement
+      }
+
+      // Skip 'do' statements (part of do-while loop)
+      if (trimmedStatement === 'do' || trimmedStatement.startsWith('do {')) {
+        return statement
+      }
+
+      // Skip try statements
+      if (trimmedStatement.startsWith('try ') || trimmedStatement === 'try' || trimmedStatement.startsWith('try{')) {
+        return statement
+      }
+
+      // Skip parenthesized expressions that don't look like function calls
+      if (trimmedStatement.startsWith('(') && !trimmedStatement.match(/^\([^)]*\)\s*\(/)) {
+        return statement
+      }
+
+      // Handle variable declarations separately
+      const varTypes = ['const ', 'let ', 'var ']
+      for (const varType of varTypes) {
+        if (trimmedStatement.startsWith(varType)) {
+          const pos = statement.indexOf('=')
+          if (pos > 0) {
+            const varDecl = statement.substring(0, pos + 1)
+            let value = statement.substring(pos + 1).trim()
+
+            // Only add await if the value part looks like a function call
+            if (value.includes('(') && value.includes(')') && !value.startsWith('(')) {
+              // Skip if it's a prompt function which doesn't need await
+              if (value.trim().startsWith('prompt(')) {
+                return statement
+              }
+              return `${varDecl} await ${value}`
+            }
+            return statement
           }
         }
-        return statement
       }
 
-      // Skip any prompt-related function calls (they are processed separately)
-      // This regex matches any prompt functions: prompt, promptDate, promptDateInterval, etc.
-      // \w*prompt\w* matches any word containing "prompt"
-      // \s* matches optional whitespace
-      // \( matches the opening parenthesis
-      if (statement.match(/\w*prompt\w*\s*\(/i)) {
-        return statement
-      }
-
-      // Add await to function calls for other statements
-      // Matches one or more word characters, optional dot notation segments,
-      // optional whitespace, open paren, any chars except close paren, close paren
-      // This regex handles both simple function calls and object method calls (with dots)
-      const generalFunctionCallRegex = /(\w+(?:\.\w+)*)\s*\([^)]*\)/
-      if (statement.match(generalFunctionCallRegex)) {
+      // For other statements that have parentheses and look like function calls
+      if (statement.includes('(') && statement.includes(')') && !statement.trim().startsWith('prompt(')) {
         return `await ${statement}`
       }
 
@@ -1169,6 +1193,47 @@ export default class NPTemplating {
   }
 
   /**
+   * Provides context around errors by showing the surrounding lines of code
+   * @private
+   */
+  static _getErrorContextString(templateData: string, matchStr: string, originalLineNumber: number): string {
+    const lines = templateData.split('\n')
+
+    // Ensure the line number is valid
+    let lineNumber = originalLineNumber
+    if (!lineNumber || lineNumber < 1 || lineNumber > lines.length) {
+      // Try to find the line containing the match
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes(matchStr)) {
+          lineNumber = i + 1
+          break
+        }
+      }
+    }
+
+    // If we still don't have a valid line number, default to line 1
+    if (!lineNumber || lineNumber < 1 || lineNumber > lines.length) {
+      lineNumber = 1
+    }
+
+    // Show 3 lines before and after for context
+    const start = Math.max(lineNumber - 3, 0)
+    const end = Math.min(lines.length, lineNumber + 3)
+
+    // Build context with line numbers and a pointer to the error line
+    const context = lines
+      .slice(start, end)
+      .map((line, i) => {
+        const currLineNum = i + start + 1
+        // Add a '>> ' indicator for the error line
+        return (currLineNum === lineNumber ? ' >> ' : '    ') + currLineNum + '| ' + line
+      })
+      .join('\n')
+
+    return context
+  }
+
+  /**
    * Process and fix JSON in DataStore.invokePluginCommandByName calls
    * @private
    */
@@ -1180,74 +1245,83 @@ export default class NPTemplating {
     override: Object,
   }): Promise<void> {
     try {
-      // Fix single-quoted JSON in DataStore.invokePluginCommandByName calls
-      // This pattern handles the specific format like: ['{'numDays':14, 'sectionHeading':'Test Section'}']
-      context.templateData = context.templateData.replace(/\[\'\{([^\}]*)\}\'\]/g, (match, p1) => {
+      // Look for valid JS code blocks with DataStore.invokePluginCommandByName first
+      // These blocks contain valid JavaScript object literals, not JSON errors
+      const validCodeBlockPattern = /<%.*?DataStore\.invokePluginCommandByName.*?%>/gs
+      const validCodeBlocks = context.templateData.match(validCodeBlockPattern) || []
+
+      // If we find valid code blocks that should be excluded from JSON validation,
+      // we'll temporarily replace them with placeholder markers
+      let processedTemplateData = context.templateData
+      const placeholders = []
+
+      // Replace valid code blocks with placeholders
+      validCodeBlocks.forEach((block, index) => {
+        const placeholder = `__VALID_JS_OBJECT_${index}__`
+        placeholders.push({ placeholder, original: block })
+        processedTemplateData = processedTemplateData.replace(block, placeholder)
+      })
+
+      // Now process JSON issues on the modified template data (excluding valid JS objects)
+
+      // Fix single-quoted JSON objects: ['{'key':'value'}']
+      processedTemplateData = processedTemplateData.replace(/\[\'\{([^\}]*)\}\'\]/g, (match, p1) => {
         try {
-          // Convert single-quoted property names to double-quoted
-          const fixedJson = p1.replace(/'([^']+)':/g, '"$1":')
+          // Fix property names and values
+          const fixedJson = p1.replace(/'([^']+)':/g, '"$1":').replace(/:\s*'([^']*)'/g, ': "$1"')
           return `[{${fixedJson}}]`
         } catch (e) {
-          context.jsonErrors.push({
-            error: `Error processing JSON: ${e.message}`,
-            lineNumber: this._getLineNumberForMatch(context.templateData, match),
-            critical: true,
-          })
-          context.criticalError = true
+          this._addJsonError(context, match, `Error processing JSON: ${e.message}`, true)
           return match
         }
       })
 
-      // Handle other single-quoted JSON formats that may appear in the template
-      context.templateData = context.templateData.replace(/'(\{[^}]*\})'/g, (match, p1) => {
+      // Fix other single-quoted JSON: '{"key":"value"}'
+      processedTemplateData = processedTemplateData.replace(/'(\{[^}]*\})'/g, (match, p1) => {
         try {
-          return p1.replace(/'/g, '"')
+          // Fix property names and values
+          let fixedJson = p1.replace(/'([^']+)':/g, '"$1":').replace(/:\s*'([^']*)'/g, ': "$1"')
+          return `{${fixedJson}}`
         } catch (e) {
-          context.jsonErrors.push({
-            error: `Error processing JSON: ${e.message}`,
-            lineNumber: this._getLineNumberForMatch(context.templateData, match),
-            critical: true,
-          })
-          context.criticalError = true
+          this._addJsonError(context, match, `Error processing JSON: ${e.message}`, true)
           return match
         }
       })
 
-      // Detect missing closing braces in JSON objects - look for patterns like: {"property":"value"
-      // or {"property":14, "another":"value"
+      // Check for common JSON errors
+
+      // 1. Unclosed braces
       const unclosedBracesPattern = /\{\s*"[^"]+"\s*:\s*("[^"]*"|[0-9]+)(\s*,\s*"[^"]+"\s*:\s*("[^"]*"|[0-9]+))*(?!\s*\})/g
-      const unclosedBraces = context.templateData.match(unclosedBracesPattern)
-      if (unclosedBraces) {
-        context.jsonErrors.push({
-          error: `Unclosed JSON object detected. Check for missing closing braces.`,
-          lineNumber: this._getLineNumberForMatch(context.templateData, unclosedBraces[0]),
-          critical: true,
-        })
-        context.criticalError = true
+      const unclosedBraces = processedTemplateData.match(unclosedBracesPattern)
+      if (unclosedBraces && unclosedBraces.length > 0) {
+        this._addJsonError(context, unclosedBraces[0], `Unclosed JSON object detected. Check for missing closing braces.`, true)
       }
 
-      // Detect mixed quotes in JSON objects (both ' and " used as property delimiters)
+      // 2. Mixed quotes in property names
       const mixedQuotePattern = /\{[^}]*(['"][^'"]*['"])\s*:\s*[^,}]*[,}]/g
-      const mixedQuotes = context.templateData.match(mixedQuotePattern)
-      if (mixedQuotes) {
-        context.jsonErrors.push({
-          error: `Mixed quote styles detected in JSON. Stick to one quote style, preferably double quotes.`,
-          lineNumber: this._getLineNumberForMatch(context.templateData, mixedQuotes[0]),
-          critical: true,
-        })
-        context.criticalError = true
+      const mixedQuotes = processedTemplateData.match(mixedQuotePattern)
+      if (mixedQuotes && mixedQuotes.length > 0) {
+        this._addJsonError(context, mixedQuotes[0], `Mixed quote styles detected in JSON. Stick to one quote style, preferably double quotes.`, true)
       }
 
-      // Detect unescaped quotes in JSON strings
+      // 3. Unescaped quotes in strings
       const unescapedQuotesPattern = /"[^"\\]*"[^"\\]*"/g
-      const unescapedQuotes = context.templateData.match(unescapedQuotesPattern)
-      if (unescapedQuotes) {
-        context.jsonErrors.push({
-          error: `Unescaped quotes in JSON string detected. Use backslash to escape quotes.`,
-          lineNumber: this._getLineNumberForMatch(context.templateData, unescapedQuotes[0]),
-          critical: true,
-        })
-        context.criticalError = true
+      const unescapedQuotes = processedTemplateData.match(unescapedQuotesPattern)
+      if (unescapedQuotes && unescapedQuotes.length > 0) {
+        this._addJsonError(context, unescapedQuotes[0], `Unescaped quotes in JSON string detected. Use backslash to escape quotes.`, true)
+      }
+
+      // Restore the original valid code blocks from placeholders
+      placeholders.forEach(({ placeholder, original }) => {
+        processedTemplateData = processedTemplateData.replace(placeholder, original)
+      })
+
+      // Update the template data with our fixed version
+      context.templateData = processedTemplateData
+
+      // Log a summary if multiple errors are found
+      if (context.jsonErrors.length > 0) {
+        logError(pluginJson, `Template contains JSON errors: ${context.jsonErrors.length} issues detected`)
       }
     } catch (error) {
       logError(pluginJson, `Error in _processJsonInDataStoreCalls: ${error.message}`)
@@ -1255,7 +1329,58 @@ export default class NPTemplating {
   }
 
   /**
+   * Add a JSON error to the context's error collection
+   * Tracks errors by line to avoid duplicate contexts
+   * @param {Object} context - The template processing context
+   * @param {string} match - The text match that triggered the error
+   * @param {string} errorMessage - The error message to display
+   * @param {boolean} isCritical - Whether this is a critical error
+   * @private
+   */
+  static _addJsonError(context /*: Object */, match /*: string */, errorMessage /*: string */, isCritical /*: boolean */ = false) /*: void */ {
+    const lineNumber = this._getLineNumberForMatch(context.templateData, match)
+
+    // Find existing error for this line or create a new one
+    let existingError = context.jsonErrors.find((err) => err.lineNumber === lineNumber)
+
+    if (existingError) {
+      // Add this message to the existing error's list of messages
+      if (!existingError.messages) {
+        existingError.messages = [existingError.error]
+        delete existingError.error
+      }
+      existingError.messages.push(errorMessage)
+
+      // Update critical flag if needed
+      if (isCritical) {
+        existingError.critical = true
+        context.criticalError = true
+      }
+    } else {
+      // Create a new error entry with context
+      const errorContext = this._getErrorContextString(context.templateData, match, lineNumber)
+
+      context.jsonErrors.push({
+        lineNumber,
+        messages: [errorMessage],
+        context: errorContext,
+        critical: isCritical,
+      })
+
+      if (isCritical) {
+        context.criticalError = true
+      }
+
+      // Log the error for developers
+      logError(pluginJson, `JSON error at line ${lineNumber}: ${errorMessage}\n${errorContext}`)
+    }
+  }
+
+  /**
    * Helper method to get the line number for a match
+   * @param {string} templateData - The template text
+   * @param {string} match - The text to find
+   * @returns {number} - The line number (1-based)
    * @private
    */
   static _getLineNumberForMatch(templateData: string, match: string): number {
@@ -1346,12 +1471,7 @@ export default class NPTemplating {
 
           // If critical JSON errors are found, return an error message instead of rendering
           if (criticalError) {
-            const errorLines = jsonErrors
-              .filter((err) => err.critical)
-              .map((err) => `**Critical JSON Error at line ${err.lineNumber}:** ${err.error}`)
-              .join('\n\n')
-
-            return `**Template has critical JSON errors that must be fixed before rendering:**\n\n${errorLines}\n\nPlease check the console log for more details.`
+            return this._formatCriticalErrors(jsonErrors)
           }
 
           sessionData = { ...sessionData, ...newSettingData }
@@ -1373,12 +1493,7 @@ export default class NPTemplating {
 
       // If critical JSON errors are found, return an error message instead of rendering
       if (criticalError) {
-        const errorLines = jsonErrors
-          .filter((err) => err.critical)
-          .map((err) => `**Critical JSON Error at line ${err.lineNumber}:** ${err.error}`)
-          .join('\n\n')
-
-        return `**Template has critical JSON errors that must be fixed before rendering:**\n\n${errorLines}\n\nPlease check the console log for more details.`
+        return this._formatCriticalErrors(jsonErrors)
       }
 
       sessionData = { ...newSettingData }
@@ -1504,7 +1619,7 @@ export default class NPTemplating {
    * @returns {Promise<{sessionTemplateData: string, sessionData: any}>}
    */
   static async processPrompts(templateData: string, userData: any, startTag: string = '<%', endTag: string = '%>'): Promise<any> {
-    // Prepare the template data by replacing legacy syntax
+    // Prepare the template data by replacing legacy shorthand syntax
     let sessionTemplateData = templateData
     sessionTemplateData = sessionTemplateData.replace(/<%@/gi, '<%- prompt')
     sessionTemplateData = sessionTemplateData.replace(/system.promptDateInterval/gi, 'promptDateInterval')
@@ -1525,7 +1640,7 @@ export default class NPTemplating {
       const folder = (await getTemplateFolder()) + '/' + parts.join('/')
       const templateFilename = (await getTemplateFolder()) + '/' + title
       if (!(await this.templateExists(templateFilename))) {
-        const filename: any = await DataStore.newNote(noteName, folder)
+        const filename: any = await DataStore.newNote(noteName || '', folder)
         const note = DataStore.projectNoteByFilename(filename)
 
         let metaTagData = []
@@ -1533,7 +1648,7 @@ export default class NPTemplating {
           // $FlowIgnore
           metaTagData.push(`${key}: ${value}`)
         }
-        let templateContent = `---\ntitle: ${noteName}\n${metaTagData.join('\n')}\n---\n`
+        let templateContent = `---\ntitle: ${noteName || ''}\n${metaTagData.join('\n')}\n---\n`
         templateContent += content
         // $FlowIgnore
         note.content = templateContent
@@ -1555,7 +1670,7 @@ export default class NPTemplating {
     let templateFilename = (await getTemplateFolder()) + title.replace(/@Templates/gi, '').replace(/\/\//, '/')
     templateFilename = await NPTemplating.normalizeToNotePlanFilename(templateFilename)
     try {
-      let note: TNote | null | undefined = undefined
+      let note: TNote | null | void = undefined
       note = await DataStore.projectNoteByFilename(`${templateFilename}.md`)
 
       if (typeof note === 'undefined') {
@@ -1658,16 +1773,8 @@ export default class NPTemplating {
       }
     }
 
-    // Exclude all prompt-related calls
-    // Build regex pattern from registered prompt names
-    const promptNames = getRegisteredPromptNames()
-    // Escape special regex characters in prompt names
-    const escapedNames = promptNames.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    // Join names with | for alternation in regex
-    const promptPattern = escapedNames.join('|')
-    const promptRegex = new RegExp(`(?:${promptPattern})\\s*\\(`, 'i')
-
-    if (promptRegex.test(tag)) {
+    // Prompts have their own processing, so don't process them as code
+    if (isPromptTag(tag)) {
       result = false
     }
 
@@ -1830,5 +1937,44 @@ export default class NPTemplating {
       return TEMPLATE_MODULES.indexOf(moduleName) >= 0
     }
     return false
+  }
+
+  /**
+   * Format critical errors into a readable message with context
+   * @param {Array<any>} jsonErrors - The array of JSON errors
+   * @returns {string} - Formatted error message
+   * @private
+   */
+  static _formatCriticalErrors(jsonErrors: Array<any>): string {
+    // Group errors by line number
+    const errorsByLine = {}
+    jsonErrors
+      .filter((err) => err.critical)
+      .forEach((err) => {
+        if (!errorsByLine[err.lineNumber]) {
+          errorsByLine[err.lineNumber] = {
+            messages: err.messages || [err.error],
+            context: err.context,
+          }
+        } else {
+          // Append messages if this line already has errors
+          const messages = err.messages || [err.error]
+          errorsByLine[err.lineNumber].messages = [...errorsByLine[err.lineNumber].messages, ...messages]
+        }
+      })
+
+    // Convert to array and sort by line number
+    const errorLines = Object.keys(errorsByLine)
+      .sort((a, b) => parseInt(a) - parseInt(b))
+      .map((lineNum) => {
+        const { messages, context } = errorsByLine[lineNum]
+        const messagesText = messages.map((m: string) => `- ${m}`).join('\n')
+        const msg = `Critical JSON Error at line ${lineNum}:`.toUpperCase()
+        const errorMessage = `${msg}\n${messagesText}\n${context || ''}`
+        return `${errorMessage}\n`
+      })
+      .join('\n\n')
+
+    return `==Template has critical JSON errors that must be fixed before rendering==\n\`\`\`Template Error\n${errorLines}\nPlease check the console log for more details.\n\`\`\`\n`
   }
 }

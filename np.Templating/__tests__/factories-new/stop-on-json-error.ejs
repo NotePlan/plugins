@@ -1,0 +1,20 @@
+<%# Template that should stop execution if JSON errors are detected %>
+
+<%# Start with a counter to track execution %>
+<% let executionCounter = 0; %>
+<% executionCounter++; // 1 %>
+
+<%# First, a malformed JSON in DataStore call %>
+<% await DataStore.invokePluginCommandByName('Test','plugin.id',['{"numDays":14, 'sectionHeading':"Test"}']) %>
+<% executionCounter++; // 2 - this should not execute if template halts on JSON error %>
+
+<%# Critical error with incomplete JSON %>
+<% await DataStore.invokePluginCommandByName('Test','plugin.id',['{"incomplete":true,']) %>
+<% executionCounter++; // 3 - this should not execute %>
+
+<%# Another DataStore call that should never be reached %>
+<% await DataStore.invokePluginCommandByName('Final','plugin.id',['{"reached":false}']) %>
+<% executionCounter++; // 4 - this should not execute %>
+
+<%# Output the counter to verify how far execution progressed %>
+Execution reached: <%= executionCounter %> 

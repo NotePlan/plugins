@@ -40,7 +40,6 @@ export default class PromptKeyHandler {
     caseSensitive: boolean,
     folderString: string,
     fullPathMatch: boolean,
-    options: Array<string> | null,
   } {
     logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters starting with tag: "${tag}"`)
 
@@ -80,28 +79,11 @@ export default class PromptKeyHandler {
     const tagKey = params[0] ? params[0].replace(/^["'](.*)["']$/, '$1') : ''
     logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: processed tagKey="${tagKey}" (original param: "${params[0]}")`)
 
-    // Set varName to empty string as expected by tests
+    // Set varName
     const varName = ''
 
     // Adjust remaining parameters to their correct positions
     const promptMessage = params[1]?.replace(/^["'](.*)["']$/, '$1') || ''
-
-    // Check if we have an array of options in the parameters
-    let options = null
-    // Look for array syntax like ['option1', 'option2']
-    const arrayParamIndex = paramsString.indexOf('[')
-    if (arrayParamIndex !== -1) {
-      // Extract the array part and parse it
-      try {
-        const arrayPart = paramsString.substring(arrayParamIndex)
-        // Simple parsing for arrays like ['option1', 'option2']
-        // This regex extracts the items inside single quotes
-        const matches = arrayPart.match(/'([^']+)'/g) || []
-        options = matches.map((item) => item.replace(/^'|'$/g, ''))
-      } catch (error) {
-        logError(pluginJson, `Error parsing options array: ${error.message}`)
-      }
-    }
 
     const rawNoteType = params[2]?.replace(/^["'](.*)["']$/, '$1') || 'All'
     // Make sure noteType is one of the allowed values
@@ -126,7 +108,6 @@ export default class PromptKeyHandler {
       caseSensitive,
       folderString,
       fullPathMatch,
-      options,
     }
   }
 
@@ -138,7 +119,6 @@ export default class PromptKeyHandler {
    * @param {boolean} caseSensitive - Whether to perform case sensitive search.
    * @param {string} folderString - Folder to limit search to.
    * @param {boolean} fullPathMatch - Whether to match full path.
-   * @param {Array<string>|null} options - Array of options for test environment
    * @returns {Promise<string>} The selected key value.
    */
   static async promptKey(
@@ -148,7 +128,6 @@ export default class PromptKeyHandler {
     caseSensitive: boolean = false,
     folderString?: string,
     fullPathMatch: boolean = false,
-    options: Array<string> | null = null,
   ): Promise<string> {
     logDebug(
       pluginJson,
@@ -179,16 +158,13 @@ export default class PromptKeyHandler {
       const tags = valuesList || (await getValuesForFrontmatterTag(tagToUse, noteType, caseSensitive, folderString, fullPathMatch))
       logDebug(pluginJson, `PromptKeyHandler.promptKey after getValuesForFrontmatterTag for tag="${tagToUse}": found ${tags.length} values`)
 
-      // If we have explicit options provided (from the tag), use those instead of frontmatter values
-      const choicesArray = options && options.length > 0 ? options : tags
-
-      if (choicesArray.length > 0) {
-        logDebug(pluginJson, `PromptKeyHandler.promptKey: ${choicesArray.length} values found for key "${tagToUse}"; Will ask user to select one`)
+      if (tags.length > 0) {
+        logDebug(pluginJson, `PromptKeyHandler.promptKey: ${tags.length} values found for key "${tagToUse}"; Will ask user to select one`)
         const promptMessage = message || `Choose a value for "${tagToUse}"`
 
         try {
           // Prepare options for selection
-          const optionsArray = choicesArray.map((item) => ({ label: item, value: item }))
+          const optionsArray = tags.map((item) => ({ label: item, value: item }))
 
           // $FlowFixMe: Flow doesn't understand chooseOptionWithModifiers return type
           const response = await chooseOptionWithModifiers(promptMessage, optionsArray, true)
@@ -219,19 +195,8 @@ export default class PromptKeyHandler {
         return this.safeTextPromptResult(result)
       }
     } catch (error) {
-      // If DataStore is not available in test environment, just return the mock value
       logError(pluginJson, `Error in promptKey: ${error.message}`)
-
-      // Handle specific test cases in the catch block as well
-      if (tag === 'projectStatus') {
-        return 'Active'
-      } else if (tag === 'yesNo' && options && options.length) {
-        return options[0] // Return y for yes/no
-      } else if (options && options.length) {
-        return options[0] // Return first option from the array
-      }
-
-      return 'Text Response'
+      return ''
     }
   }
 
@@ -243,31 +208,9 @@ export default class PromptKeyHandler {
    * @returns {Promise<string>} The processed prompt result.
    */
   static async process(tag: string, sessionData: any, params: any): Promise<string> {
-    const { varName, tagKey, promptMessage, noteType, caseSensitive, folderString, fullPathMatch, options } = params
+    const { varName, tagKey, promptMessage, noteType, caseSensitive, folderString, fullPathMatch } = params
 
     logDebug(pluginJson, `PromptKeyHandler.process: Starting with tagKey="${tagKey}", promptMessage="${promptMessage}"`)
-
-    // Special handling for recursive promptKey patterns
-    const recursivePattern = /promptKey\((\w+)\)/
-    if (tag.match(recursivePattern) || (typeof tagKey === 'string' && tagKey.match(recursivePattern))) {
-      logDebug(pluginJson, `PromptKeyHandler.process: Detected recursive promptKey pattern in tag or tagKey. Fixing...`)
-
-      // Extract the actual parameter from the recursive pattern
-      const match = tag.match(recursivePattern) || tagKey.match(recursivePattern)
-      const actualParam = match ? match[1] : ''
-
-      logDebug(pluginJson, `PromptKeyHandler.process: Extracted actual parameter: "${actualParam}"`)
-
-      // Instead of returning the recursive pattern, call promptKey with the actual parameter
-      try {
-        const response = await PromptKeyHandler.promptKey(actualParam, promptMessage, noteType, caseSensitive, folderString, fullPathMatch, options)
-        logDebug(pluginJson, `PromptKeyHandler.process: Got fixed response: "${response}"`)
-        return response
-      } catch (error) {
-        logError(pluginJson, `Error processing recursive promptKey pattern: ${error.message}`)
-        // Fallback to standard processing
-      }
-    }
 
     // For promptKey, use tagKey as the variable name for storing in session data
     const sessionVarName = tagKey.replace(/ /gi, '_').replace(/\?/gi, '')
@@ -281,7 +224,7 @@ export default class PromptKeyHandler {
 
     try {
       logDebug(pluginJson, `PromptKeyHandler.process: Executing promptKey with tag="${tagKey}"`)
-      const response = await PromptKeyHandler.promptKey(tagKey, promptMessage, noteType, caseSensitive, folderString, fullPathMatch, options)
+      const response = await PromptKeyHandler.promptKey(tagKey, promptMessage, noteType, caseSensitive, folderString, fullPathMatch)
 
       logDebug(pluginJson, `PromptKeyHandler.process: Got response: ${response}`)
 

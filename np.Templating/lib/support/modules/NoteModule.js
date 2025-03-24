@@ -10,7 +10,10 @@ import FrontMatterModule from '@templatingModules/FrontmatterModule'
 import { getAllPropertyNames } from '@helpers/dev'
 import moment from 'moment/min/moment-with-locales'
 import FrontmatterModule from './FrontmatterModule'
-
+import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { replaceContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
+import { removeSection } from '@helpers/note'
+import { getFlatListOfBacklinks } from '@helpers/NPnote'
 export default class NoteModule {
   constructor(config: any) {
     // $FlowFixMe
@@ -110,28 +113,55 @@ export default class NoteModule {
     return result
   }
 
-  openTasks(): number {
-    let paragraphs = this.getCurrentNote()?.paragraphs || []
+  // return the array of tasks
+  openTasks(): Array<TParagraph> {
+    const note = this.getCurrentNote()
+    let inTodaysNote = note?.paragraphs || []
+    const scheduledForToday = note?.type === 'Calendar' ? getFlatListOfBacklinks(note) : []
+    const paragraphs = [...inTodaysNote, ...scheduledForToday].filter((p) => p.type === 'open')
     let openTasks = paragraphs.filter((paragraph) => paragraph.type === 'open')
-    return openTasks.length
+    return openTasks
   }
 
-  completedTasks(): number {
-    let paragraphs = this.getCurrentNote()?.paragraphs || []
+  openTaskCount(): number {
+    const openTasks = this.openTasks()
+    return openTasks.length || 0
+  }
+
+  completedTasks(): Array<TParagraph> {
+    const note = this.getCurrentNote()
+    let inTodaysNote = note?.paragraphs || []
+    const scheduledForToday = note?.type === 'Calendar' ? getFlatListOfBacklinks(note) : []
+    const paragraphs = [...inTodaysNote, ...scheduledForToday].filter((p) => p.type === 'done')
     let completedTasks = paragraphs.filter((paragraph) => paragraph.type === 'done')
-    return completedTasks.length
+    return completedTasks
   }
 
-  openChecklists(): number {
+  completedTaskCount(): number {
+    const completedTasks = this.completedTasks()
+    return completedTasks.length || 0
+  }
+
+  openChecklists(): Array<TParagraph> {
     let paragraphs = this.getCurrentNote()?.paragraphs || []
     let openChecklists = paragraphs.filter((paragraph) => paragraph.type === 'checklist')
-    return openChecklists.length
+    return openChecklists
   }
 
-  completedChecklists(): number {
+  completedChecklists(): Array<TParagraph> {
     let paragraphs = this.getCurrentNote()?.paragraphs || []
     let completedChecklists = paragraphs.filter((paragraph) => paragraph.type === 'checklistDone')
-    return completedChecklists.length
+    return completedChecklists
+  }
+
+  completedChecklistCount(): number {
+    const completedChecklists = this.completedChecklists()
+    return completedChecklists.length || 0
+  }
+
+  openChecklistCount(): number {
+    const openChecklists = this.openChecklists()
+    return openChecklists.length || 0
   }
 
   backlinks(): Array<{ key: string, value: string | boolean | Array<any> }> {
@@ -207,4 +237,49 @@ export default class NoteModule {
 
     return result
   }
+
+  // Works out where the first 'active' line of the note is, following the first paragraph of type 'title', or frontmatter (if present).
+  // returns the line number of the first non-frontmatter paragraph (0 if no frontmatter, -1 if no note can be found)
+  contentStartIndex(): number {
+    const note = this.getCurrentNote()
+    return note ? findStartOfActivePartOfNote(note) : -1
+  }
+
+  // Works out the index to insert paragraphs before any ## Done or ## Cancelled section starts, if present, and returns the paragraph before that. Works with folded Done or Cancelled sections. If the result is a separator, use the line before that instead If neither Done or Cancelled present, return the last non-empty lineIndex.
+  contentEndIndex(): number {
+    const note = this.getCurrentNote()
+    return note ? findEndOfActivePartOfNote(note) : -1
+  }
+
+  /**
+   * Remove paragraphs in a section (under a title/heading) of the current note.
+   * BEWARE: This is a dangerous function. It removes all paragraphs in the section of the active note, given:
+   * and can remove more than you expect if you don't have a title of equal or lower headingLevel beneath it.
+   * - Section heading line to look for (needs to match from start of line but not necessarily the end)
+   * A section is defined (here at least) as all the lines between the heading,
+   * and the next heading of that same or higher level (lower headingLevel), or the end of the file if that's sooner. *
+   * @param {string} headingOfSectionToRemove
+   * @return {void}
+   */
+  removeSection(headingOfSectionToRemove: string): void {
+    return 'Not implemented yet'
+    const note = this.getCurrentNote()
+    note ? removeSection(note, headingOfSectionToRemove) : null
+  }
+
+  /**
+   * Replace content under a given heading in the current note.
+   * See getParagraphBlock below for definition of what constitutes a block an definition of includeFromStartOfSection.
+   * @param {string} heading
+   * @param {string} newContentText - text to insert (multiple lines, separated by newlines)
+   * @param {boolean} includeFromStartOfSection
+   * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
+   */
+  async replaceContentUnderHeading(heading: string, newContentText: string, includeFromStartOfSection: boolean = false, headingLevel: number = 2): void {
+    return 'Not implemented yet'
+    const note = this.getCurrentNote()
+    note ? await replaceContentUnderHeading(note, heading, newContentText, includeFromStartOfSection, headingLevel) : null
+  }
 }
+
+// TODO: insertContentUnderHeading and new createHeading which is just insertContentUnderHeading with no text to add?

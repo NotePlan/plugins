@@ -1,0 +1,10 @@
+<% const dayNum = date.dayNumber(`${date.format('YYYY-MM-DD',Editor.note.title)}`)
+const isWeekday = dayNum >= 1 && dayNum <= 5
+const isWeekend = !isWeekday
+ -%>
+### <%- await date.format('dddd, YYYY-MM-DD',Editor.note.title) %> 
+<% await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',['{'numDays':14, 'sectionHeading':'Blocks 🕑', 'runSilently': true}']) -%>
+<% await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',['{'numDays':14, 'sectionHeading':'Thoughts For the Day', 'runSilently': true}']) -%>
+<% if (dayNum == 6) { // saturday task -%>
+* Review bits box @home
+<% } -%> 

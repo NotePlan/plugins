@@ -119,7 +119,6 @@ function generatePromptPattern(promptName: string): RegExp {
  * @param {PromptType} promptType The prompt type to register.
  */
 export function registerPromptType(promptType: PromptType): void {
-  logDebug(pluginJson, `Registering prompt type: ${promptType.name}`)
   // If no pattern is provided, generate one from the name
   if (!promptType.pattern) {
     promptType.pattern = generatePromptPattern(promptType.name)
@@ -149,13 +148,20 @@ function findMatchingPromptType(tagContent: string): ?{ promptType: Object, name
  * @returns {Promise<?{response: string, promptType: string, params: any}>} The prompt response and associated info, or null if none matched.
  */
 export async function processPromptTag(tag: string, sessionData: any, tagStart: string, tagEnd: string): Promise<string> {
-  logDebug(pluginJson, `processPromptTag starting with tag: ${tag}...`)
+  ;/prompt/i.test(tag) && logDebug(pluginJson, `processPromptTag starting with tag: ${tag}...`)
+  let content = ''
+  if (tag.startsWith(`${tagStart}-`)) {
+    // Extract the content between tagStart and tagEnd, excluding the '-'
+    content = tag.substring(tagStart.length + 1, tag.length - tagEnd.length).trim()
+  } else if (tag.startsWith(`${tagStart}=`)) {
+    // Extract the content between tagStart and tagEnd, excluding the '='
+    content = tag.substring(tagStart.length + 1, tag.length - tagEnd.length).trim()
+  } else if (tag.startsWith(`${tagStart}`)) {
+    // Extract the content between tagStart and tagEnd
+    content = tag.substring(tagStart.length, tag.length - tagEnd.length).trim()
+  }
 
   if (tag.startsWith(`${tagStart}`) || tag.startsWith(`${tagStart}-`) || tag.startsWith(`${tagStart}=`)) {
-    // Extract the content between tagStart and tagEnd
-    const content = tag.substring(tagStart.length, tag.length - tagEnd.length).trim()
-    logDebug(pluginJson, `Extracted content: "${content}"`)
-
     // Check for variable assignment pattern (const/let/var varName = promptType(...))
     const assignmentMatch = content.match(/^\s*(const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:await\s+)?(.+)$/i)
     if (assignmentMatch) {
@@ -334,7 +340,7 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
 
       if (promptTypeInfo && promptTypeInfo.promptType) {
         const { promptType, name } = promptTypeInfo
-        logDebug(pluginJson, `Found matching prompt type for tag: ${name}`)
+        logDebug(pluginJson, `Found matching prompt type for tag "${tag.substring(0, 30)}...}": "${name}"`)
 
         try {
           // Parse the parameters
@@ -426,4 +432,20 @@ export function getRegisteredPromptNames(): Array<string> {
     .filter((name) => name !== 'prompt')
     .concat('prompt')
   return promptNames
+}
+
+/**
+ * Checks if a tag is a prompt*() tag
+ * @param {string} tag - The tag to check
+ * @returns {boolean} True if the tag is a prompt tag, false otherwise
+ */
+export function isPromptTag(tag: string): boolean {
+  // Build regex pattern from registered prompt names
+  const promptNames = getRegisteredPromptNames()
+  // Escape special regex characters in prompt names
+  const escapedNames = promptNames.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  // Join names with | for alternation in regex
+  const promptPattern = escapedNames.join('|')
+  const promptRegex = new RegExp(`(?:${promptPattern})\\s*\\(`, 'i')
+  return promptRegex.test(tag)
 }

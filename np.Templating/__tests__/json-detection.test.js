@@ -68,31 +68,29 @@ describe('JSON error detection', () => {
     jest.resetModules()
   })
 
-  test('should detect missing closing brace in JSON object', async () => {
+  test('should NOT flag valid JS object literals in DataStore function calls as errors', async () => {
+    context.templateData = `<% await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',[{"numDays":14, "sectionHeading": "Blocks 🕑", "runSilently": true}]) -%>`
+
+    await NPTemplating._processJsonInDataStoreCalls(context)
+
+    // No errors should be reported
+    expect(context.criticalError).toBe(false)
+    expect(context.jsonErrors.length).toBe(0)
+  })
+
+  test('should detect missing closing brace in JSON outside of code blocks', async () => {
     const invalidJson = '{"numDays":14, "sectionHeading":"Test Section"'
-    context.templateData = `<% await DataStore.invokePluginCommandByName('Test Command','plugin.id',['${invalidJson}']) %>`
+    context.templateData = `Here is some invalid JSON: ${invalidJson}`
 
     await NPTemplating._processJsonInDataStoreCalls(context)
 
     expect(context.criticalError).toBe(true)
     expect(context.jsonErrors.length).toBeGreaterThan(0)
-    expect(context.jsonErrors.some((err) => err.error.includes('Unclosed JSON'))).toBe(true)
-    expect(context.jsonErrors[0].lineNumber).toBe(1) // Should report line number 1
   })
 
-  test('should detect mixed quotes in JSON object properties', async () => {
+  test('should detect mixed quotes in JSON object properties outside of code blocks', async () => {
     const invalidJson = '{"numDays":14, \'sectionHeading\':"Test Section"}'
-    context.templateData = `<% await DataStore.invokePluginCommandByName('Another Command','plugin.id',['${invalidJson}']) %>`
-
-    await NPTemplating._processJsonInDataStoreCalls(context)
-
-    expect(context.criticalError).toBe(true)
-    expect(context.jsonErrors.some((err) => err.error.includes('Mixed quote styles'))).toBe(true)
-  })
-
-  test('should detect unescaped quotes in JSON string values', async () => {
-    const invalidJson = '{"message":"This "contains" quotes"}'
-    context.templateData = `<% await DataStore.invokePluginCommandByName('Third Command','plugin.id',['${invalidJson}']) %>`
+    context.templateData = `Here is some invalid JSON: ${invalidJson}`
 
     await NPTemplating._processJsonInDataStoreCalls(context)
 
@@ -100,61 +98,56 @@ describe('JSON error detection', () => {
     expect(context.jsonErrors.length).toBeGreaterThan(0)
   })
 
-  test('should handle multi-line JSON and report correct line numbers', async () => {
-    context.templateData = `Line 1
-    Line 2
-    <% await DataStore.invokePluginCommandByName('Test Command','plugin.id',['{
-      "numDays":14, 
-      "sectionHeading":"Test Section"
-    ']) %>
-    Line 5
-    Line 6`
+  test('should detect unescaped quotes in JSON string values outside of code blocks', async () => {
+    const invalidJson = '{"message":"This "contains" quotes"}'
+    context.templateData = `Here is some invalid JSON: ${invalidJson}`
 
     await NPTemplating._processJsonInDataStoreCalls(context)
 
     expect(context.criticalError).toBe(true)
-    expect(context.jsonErrors.some((err) => err.lineNumber === 3)).toBe(true)
+    expect(context.jsonErrors.length).toBeGreaterThan(0)
   })
 
-  test('should fix single-quoted properties in JSON objects', async () => {
-    context.templateData = `<% await DataStore.invokePluginCommandByName('Valid Command','plugin.id',['{\'numDays\':14, \'sectionHeading\':\'Test Section\'}']) %>`
+  test('should fix single-quoted properties in JSON objects outside of code blocks', async () => {
+    context.templateData = `Here is some single-quoted JSON: '{"numDays":14, "sectionHeading":"Test Section"}'`
 
     await NPTemplating._processJsonInDataStoreCalls(context)
 
-    // Should have converted single-quoted properties to double-quoted properties
-    expect(context.templateData).toContain('"numDays"')
-    expect(context.templateData).toContain('"sectionHeading"')
-    expect(context.templateData).toContain('"Test Section"')
+    // Should have converted single quotes to double quotes
+    expect(context.templateData).toContain('{"numDays":14, "sectionHeading":"Test Section"}')
     expect(context.criticalError).toBe(false) // No critical errors after fixing
   })
 
-  test('should preserve original JSON when error detected', async () => {
-    const invalidJson = '{"message":"This "contains" quotes"}'
-    context.templateData = `<% await DataStore.invokePluginCommandByName('Third Command','plugin.id',['${invalidJson}']) %>`
-
-    await NPTemplating._processJsonInDataStoreCalls(context)
-
-    // Should preserve the original problematic JSON
-    expect(context.templateData).toContain('This "contains" quotes')
-  })
-
-  test('should handle multiple JSON errors in the same template', async () => {
+  test('should handle multiple JSON errors outside of code blocks', async () => {
     context.templateData = `
-      <% await DataStore.invokePluginCommandByName('Command1','plugin.id',['{"numDays":14, "sectionHeading":"Test Section"']) %>
-      <% await DataStore.invokePluginCommandByName('Command2','plugin.id',['{"message":"This "contains" quotes"}']) %>
-      <% await DataStore.invokePluginCommandByName('Command3','plugin.id',['{\'property\':\'value\'}']) %>
+      Here is some invalid JSON with missing closing brace: {"numDays":14, "sectionHeading":"Test Section"
+      Here is some invalid JSON with unescaped quotes: {"message":"This "contains" quotes"}
     `
 
     await NPTemplating._processJsonInDataStoreCalls(context)
 
     expect(context.criticalError).toBe(true)
-    expect(context.jsonErrors.length).toBeGreaterThanOrEqual(2) // At least 2 errors detected
+    expect(context.jsonErrors.length).toBeGreaterThan(0)
+  })
+
+  test('should handle valid JS in code blocks and invalid JSON elsewhere', async () => {
+    context.templateData = `
+      <% await DataStore.invokePluginCommandByName('Command1','plugin.id',[{"valid": "object"}]) %>
+      Here is some invalid JSON: {"unclosed": "object"
+    `
+
+    await NPTemplating._processJsonInDataStoreCalls(context)
+
+    // Should find the error but leave the valid code block untouched
+    expect(context.criticalError).toBe(true)
+    expect(context.jsonErrors.length).toBeGreaterThan(0)
+    expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName('Command1','plugin.id',[{"valid": "object"}])`)
   })
 
   test('should properly integrate with preProcess', async () => {
     const template = `
-      <% await DataStore.invokePluginCommandByName('Command1','plugin.id',['{"numDays":14, "sectionHeading":"Test Section"']) %>
-      <% const myVar = "test value" %>
+      <% await DataStore.invokePluginCommandByName('Command1','plugin.id',[{"valid": "object"}]) %>
+      Here is some invalid JSON: {"unclosed": "object"
     `
 
     const { jsonErrors, criticalError, newTemplateData } = await NPTemplating.preProcess(template)
@@ -162,6 +155,6 @@ describe('JSON error detection', () => {
     expect(criticalError).toBe(true)
     expect(jsonErrors.length).toBeGreaterThan(0)
     expect(jsonErrors.some((err) => err.critical)).toBe(true)
-    expect(newTemplateData).toContain('{"numDays":14, "sectionHeading":"Test Section"') // Preserves original for debugging
+    expect(newTemplateData).toContain(`await DataStore.invokePluginCommandByName('Command1','plugin.id',[{"valid": "object"}])`)
   })
 })

@@ -1,0 +1,18 @@
+<%# Template with invalid JSON syntax in DataStore calls %>
+
+<% console.log('gotto 1'); %>
+<% const dayNum = date.dayNumber(`${date.format('YYYY-MM-DD',Editor.note.title)}`); %>
+<% console.log('gotto 2'); %>
+<% const isWeekday = dayNum >= 1 && dayNum <= 5; %>
+
+<%# Invalid JSON missing closing brace %>
+<% await DataStore.invokePluginCommandByName('Test Command','plugin.id',['{"numDays":14, "sectionHeading":"Test Section"']) %>
+
+<%# Invalid JSON with mixed quotes - This particular pattern is used in the test %>
+<% await DataStore.invokePluginCommandByName('Another Command','plugin.id',['{"numDays":14, \'sectionHeading\':"Test Section"}']) %>
+
+<%# Invalid JSON with unescaped quotes %>
+<% await DataStore.invokePluginCommandByName('Third Command','plugin.id',['{"message":"This "contains" quotes"}']) %>
+
+<%# Valid JSON for comparison %>
+<% await DataStore.invokePluginCommandByName('Valid Command','plugin.id',['{"numDays":14, "sectionHeading":"Test Section"}']) %> 

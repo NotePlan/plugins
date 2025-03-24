@@ -1,16 +1,20 @@
-# np.Templating Changelog
+# Templating Changelog
 
-## About np.Templating Plugin
+## About Templating Plugin
 
-See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
+See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
 ## [1.13.0] 2025-03-18 @dwertheimer
 
 - Update `Add Frontmatter/Properties to Template` command name
 - add tag `getValuesForKey` to get all values for a given frontmatter tag
 - add tag `promptKey` to prompt user for a value with a lot of flexibility on which folders to search for the value etc.
-- fix promises and lack of await keyword in templat tags
+- fix promises and lack of await keyword in template tags
 - add openTasks, completedTasks, openChecklists, completedChecklists to NoteModule
+- Change documentation links to point to new documentation site
+- Fix the long-standing bug where template errors did not show proper line number, esp. when longer code blocks
+- Improve templating error handling/making suggestions for how to fix on JS code execution errors
+- Add detection/messaging of template function calls called without parentheses
 
 ## [1.12.0] 2025-03-09 @dwertheimer
 
@@ -23,7 +27,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 
 ## [1.11.4] 2025-03-07 @dwertheimer
 
-- Fix: templateFileByTitleEx (templateRunner) was failing to process EJS tags in the frontmatter of receiving template (thx @jgclark)
+- Fix: templateRunnerExecute (templateRunner) was failing to process EJS tags in the frontmatter of receiving template (thx @jgclark)
 
 ## [1.11.3] 2025-03-06 @dwertheimer
 

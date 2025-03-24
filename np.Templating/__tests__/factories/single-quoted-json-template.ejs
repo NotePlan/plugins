@@ -1,0 +1,9 @@
+<% 
+// Template with single-quoted JSON in DataStore.invokePluginCommandByName
+(async function() { 
+  await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',['{'numDays':14, 'sectionHeading':'Test Section', 'runSilently': true}'])
+  
+  // Another problematic format
+  await DataStore.invokePluginCommandByName('Weather forecast','np.Weather', ['{'days':5, 'location':'San Francisco', 'format':'brief'}'])
+})(); 
+%> 

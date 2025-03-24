@@ -494,5 +494,21 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(renderedData).toContain(book.AUTHOR)
       })
     })
+    describe(section('Multiple Imports Tests'), () => {
+      it(`Should render multiple imports with tag that has one line return`, async () => {
+        const templateData = await factory('multiple-imports.ejs')
+
+        let renderedData = await templateInstance.render(templateData, {}, { extended: true })
+
+        expect(renderedData).toContain('text with a return\n')
+      })
+      it(`Should render multiple imports with tag that has one line return`, async () => {
+        const templateData = await factory('multiple-imports-one-line-return.ejs')
+
+        let renderedData = await templateInstance.render(templateData, {}, { extended: true })
+
+        expect(renderedData).toContain('should return just the text no return')
+      })
+    })
   })
 })

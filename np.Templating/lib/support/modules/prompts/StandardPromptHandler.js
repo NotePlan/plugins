@@ -66,7 +66,7 @@ export default class StandardPromptHandler {
    * @param {any} options - The options to show in a dropdown or default value in a text prompt
    * @returns {Promise<string>} - The user's response
    */
-  static async prompt(tag: string, message: string, options: any = ''): Promise<string> {
+  static async prompt(tag: string, message: string, options: any = ''): Promise<string | false> {
     try {
       // Process message to handle escaped quotes properly
       let processedMessage = message
@@ -91,7 +91,7 @@ export default class StandardPromptHandler {
         // Handle object options (could be for future extensions)
         logDebug(pluginJson, `Showing text prompt with object options: ${JSON.stringify(options)}`)
         const textResponse = await CommandBar.textPrompt('', processedMessage, '')
-        return textResponse || ''
+        return textResponse
       } else {
         // String options are treated as default values
         const defaultValue: string = typeof processedOptions === 'string' ? processedOptions : ''
@@ -123,6 +123,15 @@ export default class StandardPromptHandler {
         // Pass the array directly to showOptions without conversion
         const result = await CommandBar.showOptions(options, message || 'Choose an option:')
 
+        // Add logging about result to help diagnose escape key issues
+        if (result === null) {
+          logDebug(pluginJson, `StandardPromptHandler.getResponse: Result is null - likely cancelled with Escape`)
+        } else if (result === undefined) {
+          logDebug(pluginJson, `StandardPromptHandler.getResponse: Result is undefined - likely cancelled with Escape`)
+        } else {
+          logDebug(pluginJson, `StandardPromptHandler.getResponse: Result type: ${typeof result}`)
+        }
+
         // Handle the result - it may be an object with a value property or a direct value
         if (result) {
           if (typeof result === 'object' && result.value !== undefined) {
@@ -132,6 +141,8 @@ export default class StandardPromptHandler {
           }
           return String(result)
         }
+
+        logDebug(pluginJson, `StandardPromptHandler.getResponse: Empty result - user likely cancelled with Escape`)
         return ''
       } else {
         // For string options or no options, use textPrompt
@@ -139,6 +150,17 @@ export default class StandardPromptHandler {
         logDebug(pluginJson, `StandardPromptHandler.getResponse: Using CommandBar.textPrompt with default="${defaultText}"`)
 
         const promptResult = await CommandBar.textPrompt('', message || 'Enter a value:', defaultText)
+
+        // Add logging about result to help diagnose escape key issues
+        if (promptResult === null) {
+          logDebug(pluginJson, `StandardPromptHandler.getResponse: TextPrompt result is null - likely cancelled with Escape`)
+        } else if (promptResult === undefined) {
+          logDebug(pluginJson, `StandardPromptHandler.getResponse: TextPrompt result is undefined - likely cancelled with Escape`)
+        } else if (promptResult === false) {
+          logDebug(pluginJson, `StandardPromptHandler.getResponse: TextPrompt result is false - likely cancelled with Escape`)
+        } else {
+          logDebug(pluginJson, `StandardPromptHandler.getResponse: TextPrompt result type: ${typeof promptResult}`)
+        }
 
         if (promptResult === false || promptResult == null) {
           return ''
@@ -181,10 +203,8 @@ export default class StandardPromptHandler {
     // Check if this is a variable assignment with await
     const hasAwait = tag.includes('await prompt')
 
-    // Check if forcePrompt is set or if this is a redefinition case in tests
-    const isRedefinition = varName === 'redefined' && promptMessage && promptMessage.includes('Redefine variable')
-    const shouldForcePrompt = forcePrompt === true || isRedefinition
-    const isTagRedefined = tag.includes('redefined')
+    // Check if forcePrompt is set
+    const shouldForcePrompt = forcePrompt === true
 
     // Function to check if a value looks like a function call text
     const isFunctionCallText = (value: any): boolean => {
@@ -198,9 +218,8 @@ export default class StandardPromptHandler {
       return pattern.test(value)
     }
 
-    // For StandardPromptHandler (the "prompt" type), we always want to execute the prompt
-    // when the tag includes "await prompt" to handle the await variable assignment test cases
-    let shouldExecutePrompt = shouldForcePrompt || isTagRedefined || hasAwait
+    // For StandardPromptHandler (the "prompt" type), always execute when forcePrompt is true or has await
+    let shouldExecutePrompt = shouldForcePrompt || hasAwait
     let existingValue = null
 
     // Check for function call text values in session data which need to be replaced
@@ -209,10 +228,14 @@ export default class StandardPromptHandler {
         // Force prompt execution to replace function call text
         shouldExecutePrompt = true
         logDebug(pluginJson, `StandardPromptHandler.process: Found function call text in session data[${varName}]: "${sessionData[varName]}", will execute prompt`)
-      } else if (BasePromptHandler.isValidSessionValue(sessionData[varName], 'prompt', varName) && !shouldExecutePrompt) {
-        // Only use existing value if it's valid and we don't need to force execution
+      } else if (BasePromptHandler.isValidSessionValue(sessionData[varName], 'prompt', varName) && !shouldExecutePrompt && sessionData[varName] !== '') {
+        // Only use existing value if it's valid, non-empty, and we don't need to force execution
         existingValue = sessionData[varName]
         logDebug(pluginJson, `StandardPromptHandler.process: Using valid existing value from session data[${varName}]: "${existingValue}"`)
+      } else if (sessionData[varName] === '') {
+        // Treat empty strings as a reason to show the prompt
+        shouldExecutePrompt = true
+        logDebug(pluginJson, `StandardPromptHandler.process: Found empty string in session data[${varName}], will execute prompt`)
       }
     }
 
@@ -228,14 +251,17 @@ export default class StandardPromptHandler {
           pluginJson,
           `StandardPromptHandler.process: Found function call text in session data[${firstParamVarName}]: "${sessionData[firstParamVarName]}", will execute prompt`,
         )
-      } else if (BasePromptHandler.isValidSessionValue(sessionData[firstParamVarName], 'prompt', firstParamVarName)) {
+      } else if (BasePromptHandler.isValidSessionValue(sessionData[firstParamVarName], 'prompt', firstParamVarName) && sessionData[firstParamVarName] !== '') {
         existingValue = sessionData[firstParamVarName]
         logDebug(pluginJson, `StandardPromptHandler.process: Using valid existing value from session data[${firstParamVarName}]: "${existingValue}"`)
+      } else if (sessionData[firstParamVarName] === '') {
+        // Treat empty strings as a reason to show the prompt
+        shouldExecutePrompt = true
+        logDebug(pluginJson, `StandardPromptHandler.process: Found empty string in session data[${firstParamVarName}], will execute prompt`)
       }
     }
 
     // Special case for "prompt" function: always execute if value matches exact function call pattern
-    // This ensures that tests for "await prompt()" will pass
     if (
       varName &&
       sessionData[varName] &&
@@ -269,43 +295,9 @@ export default class StandardPromptHandler {
     try {
       let response: string = ''
 
-      // Special case handling for complex symbol test
-      if (varName === 'complex' && promptMessage && promptMessage.includes('@#$%^&*_+{}[]|\\:;"<>,.?/~`')) {
-        // Directly use textPrompt for the complex symbols test
-        const textResponse = await CommandBar.textPrompt('', promptMessage, 'Default with symbols: !@#$%^&*')
-        response = typeof textResponse === 'string' ? textResponse : ''
-      }
-      // Ensure we're not passing a string representation of the prompt call
-      else if (promptMessage && promptMessage.startsWith('prompt') && /prompt\w*\([^)]*\)/.test(promptMessage)) {
-        logDebug(pluginJson, `StandardPromptHandler.process: Detected issue with prompt message containing prompt call: ${promptMessage}`)
-        // Extract just the message part
-        const messageMatch = promptMessage.match(/prompt\w*\(['"]([^'"]+)['"]/)
-        if (messageMatch && messageMatch[1]) {
-          logDebug(pluginJson, `StandardPromptHandler.process: Extracted actual message: ${messageMatch[1]}`)
-          // Use the prompt method for compatibility with tests
-          const promptResponse = await StandardPromptHandler.prompt(tag, messageMatch[1], options)
-          response = typeof promptResponse === 'string' ? promptResponse : ''
-        } else {
-          // Fallback if we can't extract the message
-          const fallbackResponse = await StandardPromptHandler.getResponse('Enter a value:', options || '')
-          response = typeof fallbackResponse === 'string' ? fallbackResponse : ''
-        }
-      } else {
-        // Standard case - use the getResponse method
-        const standardResponse = await StandardPromptHandler.getResponse(promptMessage, options)
-        response = typeof standardResponse === 'string' ? standardResponse : ''
-      }
-
-      // Process value for special cases
-      if (isRedefinition) {
-        response = 'New Definition'
-      }
-
-      // For testing, if no response was provided but we're in a test case, use "Work" as default
-      if (!response && (hasAwait || shouldForcePrompt)) {
-        response = 'Work'
-        logDebug(pluginJson, `StandardPromptHandler.process: Using default test response "Work" due to no user input`)
-      }
+      // Standard case - use the getResponse method
+      const standardResponse = await StandardPromptHandler.getResponse(promptMessage, options)
+      response = typeof standardResponse === 'string' ? standardResponse : ''
 
       // Store the result in the appropriate places in sessionData
       // Always store in the variable assignment from the template if it exists
