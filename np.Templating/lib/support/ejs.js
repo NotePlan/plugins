@@ -591,7 +591,7 @@
                 // We only set this if we haven't already set a more specific error context above
                 errorContext = `Unexpected identifier on line ${updatedLineNo}.`
                 suggestedFix = `Check for incorrect or unbalanced quotation marks, incorrect JSON parameters, or missing operators, semicolons, or commas.`
-
+                console.log(`EJS ERRROR LIENEE: updatedLineNo: ${updatedLineNo}`)
                 // Look for common mistakes like missing semicolons or operators
                 if (updatedLineNo > 0 && updatedLineNo <= lines.length) {
                   const matches = lines[updatedLineNo - 1].match(/(\w+)(\s+)(\w+)/g)
@@ -715,7 +715,7 @@
             // If this is a syntax error, try to find a more accurate line number
             if (err instanceof SyntaxError || err.name === 'SyntaxError') {
               // Try to extract line info from stack trace if available
-              const errorAnalysis = analyzeJavaScriptError(err, str, lineno || 1, {
+              const errorAnalysis = analyzeJavaScriptError(err, str, lineno || 0, {
                 source: opts.source,
               })
 
@@ -765,7 +765,7 @@
             }
 
             // Always ensure lineno is at least 1 to provide context
-            lineno = Math.max(lineno || 1, 1)
+            lineno = Math.max(lineno || 0, 0)
 
             // Check for mismatch between error message content and identified line
             if (err.message && lineno > 0 && lineno <= lines.length) {
@@ -874,68 +874,9 @@
            * @public
            */
 
-          /**
-           * Try to detect and fix common JSON formatting issues
-           * @param {String} str - The string that might contain JSON
-           * @returns {String} The fixed string if possible
-           */
-          function detectAndFixJSON(str) {
-            // Don't try to process empty strings
-            if (!str || typeof str !== 'string') return str
-
-            // Look for DataStore.invokePluginCommandByName calls with potential JSON
-            const dataStoreRegex = /DataStore\.invokePluginCommandByName\s*\(\s*'[^']*'\s*,\s*'[^']*'\s*,\s*\[\s*(['"])((?:(?!\1).)*)\1\s*\]\s*\)/g
-
-            return str.replace(dataStoreRegex, (match, quoteType, jsonContent) => {
-              try {
-                // Check if this looks like JSON
-                if (jsonContent.trim().startsWith('{') && jsonContent.trim().endsWith('}')) {
-                  // Try to fix common JSON issues
-                  let fixed = jsonContent
-
-                  // Fix property names with single quotes
-                  fixed = fixed.replace(/'([^']+)':/g, '"$1":')
-
-                  // Fix string values with single quotes
-                  fixed = fixed.replace(/:\s*'([^']*?)'/g, ': "$1"')
-
-                  // Try to parse the fixed JSON to verify it's valid
-                  try {
-                    JSON.parse(fixed)
-
-                    // If we got here, the fixed JSON is valid
-                    const prefix = match.substring(0, match.lastIndexOf('[') + 2)
-                    const suffix = match.substring(match.lastIndexOf(quoteType) + 1)
-
-                    return `${prefix}${fixed}${suffix}`
-                  } catch (e) {
-                    // If we can't parse it, return the original match
-                    return match
-                  }
-                }
-              } catch (e) {
-                // If any error occurs, just return the original match
-                return match
-              }
-
-              return match
-            })
-          }
-
           exports.compile = function compile(template, opts) {
             var templ
             var preProcessedTemplate = template
-
-            // opts is the definitive options object
-            // Preprocess template if validateJSON option is enabled
-            if (opts && opts.validateJSON) {
-              try {
-                preProcessedTemplate = detectAndFixJSON(template)
-              } catch (e) {
-                // If preprocessing fails, just use the original template
-                console.error('Error preprocessing template JSON:', e)
-              }
-            }
 
             // v1 compat
             // 'scope' is 'context'
@@ -1253,6 +1194,7 @@
                   if (!templateLineNo && src) {
                     // Find the line in the source that's causing the error
                     const errorLine = e.line || e.lineNumber
+                    console.log(`EJS ERRROR LIENEE: src: ${e.line} ${e.lineNumber}`)
 
                     if (errorLine) {
                       // Get a few lines around the error
@@ -1276,7 +1218,7 @@
 
                 // Now, enhance the error with our analysis
                 try {
-                  const errorAnalysis = analyzeJavaScriptError(e, this.templateText, templateLineNo || e.line || e.lineno || 1, {
+                  const errorAnalysis = analyzeJavaScriptError(e, this.templateText, templateLineNo || e.line || e.lineno || 0, {
                     source: this.source,
                   })
 
@@ -1296,7 +1238,7 @@
                 }
 
                 // Use the template line number if we found it, otherwise fall back to original behavior
-                rethrow(e, this.templateText, opts.filename, templateLineNo || 1, escapeFn, { source: this.source })
+                rethrow(e, this.templateText, opts.filename, templateLineNo || 0, escapeFn, { source: this.source })
               }
 
               // Return a callable function which will execute the function

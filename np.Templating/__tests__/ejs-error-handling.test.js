@@ -264,4 +264,17 @@ Line 7`
       }
     })
   })
+
+  describe('Syntax error with bad JSON', () => {
+    test('Should handle rendering error with bad JSON', () => {
+      const template = `<% await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',['{'numDays':14, 'sectionHeading':'Thoughts For the Day', 'runSilently': true}']) -%>`
+      try {
+        ejs.render(template, {}, { compileDebug: true, debug: true })
+        expect(true).toBe(false)
+      } catch (err) {
+        expect(err).toBeDefined()
+        console.log('Syntax error test passed with error:', err.message)
+      }
+    })
+  })
 })

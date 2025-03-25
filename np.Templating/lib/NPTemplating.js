@@ -79,8 +79,11 @@ const convertJavaScriptBlocksToTags = (templateData: string = '') => {
     if (!codeBlockHasComment(codeBlock) && blockIsJavaScript(codeBlock)) {
       if (!codeBlock.includes('<%')) {
         let newBlock = codeBlock.replace('```templatejs\n', '').replace('```', '')
-        // newBlock = '```javascript\n' + `<% ${newBlock} %>` + '\n```'
-        newBlock = `<% ${newBlock} -%>`
+        // newBlock = `<% ${newBlock} -%>`
+        newBlock = newBlock
+          .split('\n')
+          .map((line) => `<% ${line} -%>`)
+          .join('\n')
         result = result.replace(codeBlock, newBlock)
       }
     }
@@ -906,7 +909,7 @@ export default class NPTemplating {
     context.sessionData = { ...context.sessionData, ...context.override }
 
     // Fix JSON in DataStore.invokePluginCommandByName calls
-    await this._processJsonInDataStoreCalls(context)
+    // await this._processJsonInDataStoreCalls(context) // Too many false positives
 
     // Return the processed data
     return {
@@ -1234,6 +1237,7 @@ export default class NPTemplating {
   }
 
   /**
+   * FIXME: dbw note: this caused more problems than it solved; the call to it was removed in 2025-03-26
    * Process and fix JSON in DataStore.invokePluginCommandByName calls
    * @private
    */
@@ -1513,7 +1517,8 @@ export default class NPTemplating {
       }
 
       // template ready for final rendering, this is where most of the magic happens
-      const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
+      // FIXME: DBW: MAYBE CHANGE THIS BACK TO RENDER ?
+      const renderedData = await new TemplatingEngine(this.constructor.templateConfig).incrementalRender(templateData, sessionData, userOptions)
 
       logDebug(pluginJson, `>> renderedData after rendering:\n\t[PRE-RENDER]:${templateData}\n\t[RENDERED]: ${renderedData}`)
 
@@ -1877,7 +1882,9 @@ export default class NPTemplating {
             if (typeof result === 'object') {
               processedTemplateData = processedTemplateData.replace(codeBlock, 'OBJECT').replace('OBJECT\n', '')
               processedSessionData = { ...processedSessionData, ...result }
+              logDebug(pluginJson, `templatejs executeCodeBlock using Function.apply (result was an object):${executeCodeBlock}`)
             } else {
+              logDebug(pluginJson, `templatejs executeCodeBlock using Function.apply (result was a string):\n${result}`)
               processedTemplateData = processedTemplateData.replace(codeBlock, typeof result === 'string' ? result : '')
             }
           }

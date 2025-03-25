@@ -78,6 +78,20 @@ describe('JSON error detection', () => {
     expect(context.jsonErrors.length).toBe(0)
   })
 
+  // FIXME: this one is a real-world use case that is being erroneously rewritten
+  test('should NOT flag valid JS object literals in DataStore function calls as errors', async () => {
+    context.templateData = `<% await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',['{"numDays":14, "sectionHeading": "Blocks 🕑", "runSilently": true}']) -%>`
+
+    await NPTemplating._processJsonInDataStoreCalls(context)
+
+    // No errors should be reported
+    expect(context.templateData).toContain(
+      `await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',['{"numDays":14, "sectionHeading": "Blocks 🕑", "runSilently": true}'])`,
+    )
+    expect(context.criticalError).toBe(false)
+    expect(context.jsonErrors.length).toBe(0)
+  })
+
   test('should detect missing closing brace in JSON outside of code blocks', async () => {
     const invalidJson = '{"numDays":14, "sectionHeading":"Test Section"'
     context.templateData = `Here is some invalid JSON: ${invalidJson}`

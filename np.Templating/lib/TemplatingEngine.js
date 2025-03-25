@@ -89,6 +89,221 @@ export default class TemplatingEngine {
     return templateData.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateData.substring(1)) : false
   }
 
+  // Helper method to split template but keep EJS tags intact
+  static splitTemplatePreservingTags(templateData: string): string[] {
+    // If empty, return empty array
+    if (!templateData) return []
+
+    const lines = templateData.split('\n')
+    const chunks = []
+    let currentChunk = ''
+    let openTags = 0
+    let inConditional = false
+    let bracketDepth = 0
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      const hasOpeningTag = line.includes('<%')
+      const hasClosingTag = line.includes('%>')
+
+      // Count opening and closing brackets to track code blocks
+      const openBrackets = (line.match(/\{/g) || []).length
+      const closeBrackets = (line.match(/\}/g) || []).length
+
+      // Update bracket depth tracking
+      if (hasOpeningTag) {
+        // Check for conditional statements
+        if (line.match(/<%\s*(if|for|while|switch|else|else\s+if|try|catch|function)/)) {
+          inConditional = true
+        }
+
+        // Count opening tags not immediately closed
+        if (!hasClosingTag || line.indexOf('<%', line.indexOf('%>') + 2) !== -1) {
+          openTags++
+        }
+      }
+
+      // Update bracket counting
+      bracketDepth += openBrackets - closeBrackets
+
+      // Add the line to current chunk
+      currentChunk += (currentChunk ? '\n' : '') + line
+
+      // Check if we can complete this chunk
+      const tagsClosed = hasClosingTag && (line.match(/%>/g) || []).length >= openTags
+      const conditionalClosed = !inConditional || (inConditional && bracketDepth <= 0)
+
+      // Check if we have a complete standalone line with no open tags
+      if ((!hasOpeningTag && !hasClosingTag && openTags === 0 && bracketDepth === 0) || (tagsClosed && conditionalClosed && bracketDepth === 0)) {
+        // Reset tag tracking if we closed all tags
+        if (tagsClosed) {
+          openTags = 0
+          if (bracketDepth <= 0) {
+            inConditional = false
+          }
+        }
+
+        // Add chunk and reset
+        chunks.push(currentChunk)
+        currentChunk = ''
+      }
+    }
+
+    // Add any remaining content as the final chunk
+    if (currentChunk) {
+      chunks.push(currentChunk)
+    }
+
+    // Special case handling - scan all chunks for related conditional blocks
+    const finalChunks = []
+    let conditionalBlock = ''
+    let inIfBlock = false
+
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i]
+
+      // Check for conditional starts (if, etc.)
+      if (chunk.match(/<%\s*(if|for|while|switch|try|function)/)) {
+        inIfBlock = true
+        conditionalBlock = chunk
+      }
+      // Check for conditional continuations (else, else if, catch)
+      else if (inIfBlock && chunk.match(/<%\s*(else|else\s+if|catch)/)) {
+        conditionalBlock += '\n' + chunk
+      }
+      // Check for conditional ends
+      else if (inIfBlock && chunk.includes('<%') && chunk.includes('}') && chunk.includes('%>')) {
+        conditionalBlock += '\n' + chunk
+        finalChunks.push(conditionalBlock)
+        conditionalBlock = ''
+        inIfBlock = false
+      }
+      // Add to conditional block if we're in one
+      else if (inIfBlock) {
+        conditionalBlock += '\n' + chunk
+      }
+      // Otherwise just add the chunk
+      else {
+        finalChunks.push(chunk)
+      }
+    }
+
+    // Add any remaining conditional block
+    if (conditionalBlock) {
+      finalChunks.push(conditionalBlock)
+    }
+
+    return finalChunks
+  }
+
+  /**
+   * Try to render the full template normally and if it fails, try to render it line by line to find the error
+   * @param {string} templateData - The template to render
+   * @param {Object} userData - The user data to pass to the template
+   * @param {Object} userOptions - The user options to pass to the template
+   * @returns {Promise<string>} The rendered template
+   */
+  async incrementalRender(templateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
+    // Split template by lines but preserve EJS tags
+    const templateLines = TemplatingEngine.splitTemplatePreservingTags(templateData)
+
+    let successfulRender = ''
+    let linesBuildingUp = ''
+    let lastSuccessfulRender = ''
+    let errorLine = 0
+    let errorDetails = ''
+
+    try {
+      // First try rendering the entire template to see if it works
+      const fullRender = await this.render(templateData, userData, userOptions)
+      const failed = fullRender.includes('An error occurred rendering template')
+      logDebug(`incrementalRender fullRender: failed:[${String(failed)}]`, fullRender)
+      if (!failed) {
+        return fullRender
+      }
+    } catch (error) {
+      // If it fails, proceed with incremental rendering
+      logDebug(pluginJson, `Full template rendering failed. Starting incremental rendering to find the error.`)
+    }
+
+    let isErroneousLine1 = false
+    // Attempt to render the template piece by piece
+    for (let i = 0; i < templateLines.length; i++) {
+      try {
+        // Try rendering just this chunk to isolate issues
+        await this.render(templateLines[i], userData, userOptions)
+
+        // If that succeeded, add to our building template
+        linesBuildingUp += (linesBuildingUp ? '\n' : '') + templateLines[i]
+        logDebug(`incrementalRender adding line: [${i}]`, templateLines[i])
+
+        try {
+          // Then try rendering everything up to this point
+          lastSuccessfulRender = await this.render(linesBuildingUp, userData, userOptions)
+          logDebug(`incrementalRender lastSuccessfulRender: [${i}]`, lastSuccessfulRender)
+          if (lastSuccessfulRender.includes('ejs error encountered') || lastSuccessfulRender.includes('An error occurred rendering template')) {
+            throw new Error(lastSuccessfulRender)
+          }
+        } catch (error) {
+          // If combining fails, we have context issue between chunks
+          errorLine = i + 1
+          errorDetails = `${error.message || 'Unknown error'}`
+          if (error.line) errorDetails += ` at line ${error.line}, column ${error.column}`
+          logError(`!!! Failed line: [${i}]"`, templateLines[i])
+          logDebug(pluginJson, `Error combining chunks at chunk ${i + 1}: ${errorDetails}`)
+          isErroneousLine1 = errorDetails.includes('>> 1|') && i > 0
+          break
+        }
+      } catch (error) {
+        // This specific chunk has a problem
+        errorLine = i + 1
+        errorDetails = `Error in line ${i + 1}: ${error.message || 'Unknown error'}`
+        if (error.line) errorDetails += ` at line ${error.line}, column ${error.column}`
+        isErroneousLine1 = errorDetails.includes('>> 1|') && i > 0
+        logDebug(pluginJson, `Error in chunk ${errorLine}: ${errorDetails}`)
+        break
+      }
+    }
+
+    if (isErroneousLine1) errorDetails = '' // override EJS which is wrong about where the error is
+
+    // Format detailed error report
+    let report = ''
+
+    if (errorLine > 0) {
+      report = `## Template Rendering Error\n`
+      report += `==Rendering failed at line ${errorLine} of ${templateLines.length}==\n`
+      report += errorDetails ? `### Template Processor Result:\n${errorDetails}\n` : ''
+
+      // Show context (previous and next chunks)
+      if (errorLine > 1) {
+        report += `### Line Before Error (Line ${errorLine - 1}):\n\`\`\`\n${templateLines[errorLine - 2]}\n\`\`\`\n`
+      }
+
+      // Show the problematic chunk
+      report += `### Problematic Code (Line ${errorLine}):\n\`\`\`\n${templateLines[errorLine - 1]}\n\`\`\`\n`
+
+      if (errorLine < templateLines.length) {
+        report += `### Next Line (Line ${errorLine + 1}):\n\`\`\`\n${templateLines[errorLine] || ''}\n\`\`\`\n`
+      }
+
+      // Show what rendered successfully
+      logDebug(`lastSuccessfulRender: "${lastSuccessfulRender}"`)
+      if (lastSuccessfulRender && lastSuccessfulRender.trim().length > 0) {
+        report += `### Last Successful Rendered Content:\n${
+          successfulRender.length < 500
+            ? successfulRender
+            : successfulRender.substring(0, 250) + '\n... (truncated) ...\n' + successfulRender.substring(successfulRender.length - 250)
+        }\n`
+      }
+    } else {
+      // This might happen if the template is empty or there's a setup issue
+      report = `Unable to identify error location. Check template structure and data context.`
+    }
+
+    return report
+  }
+
   async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     const options = { ...{ async: true, rmWhitespace: false }, ...userOptions }
 
@@ -212,7 +427,6 @@ export default class TemplatingEngine {
     try {
       logDebug(pluginJson, `\n\nrender: BEFORE render`)
       ouputData('before render top level renderData')
-      clo(renderData, `Full renderData before render`)
 
       let result = await ejs.render(processedTemplateData, renderData, options)
       logDebug(pluginJson, `\n\nrender: AFTER render`)
