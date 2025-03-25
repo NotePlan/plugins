@@ -163,6 +163,7 @@ export async function saveWindowSet(): Promise<void> {
     // const firstWindow = editorWinDetails[0]
     for (const ew of editorWinDetails) {
       // clo(ew, String(ewCount))
+      // TODO(later): Try to support open folder as well as note. As of v3.16.3 it requires EM to add support for this in the API.
       let tempFilename = ew.filename
       const thisNote = DataStore.projectNoteByFilename(tempFilename)
       let tempTitle = ''
@@ -242,9 +243,8 @@ export async function saveWindowSet(): Promise<void> {
     }
     clo(thisWSToSave, `saveWindowSet: thisWSToSave after EWs and HWs (${isNewSet ? 'new set' : 'updated'})`)
 
-    // If we're on NP 3.9.9+ then split window Rects are reported differently than before, so take account of this.
-    // As of NP 3.9.9 (b1119), main width = width of whole window (including sidebars which is a bummer). The splits all have x=0/y=0, but width/height are accurate.
-    if (NotePlan.environment.buildVersion >= 1121) {
+    // Note: As of NP 3.9.9 (b1119), main width = width of whole window (including sidebars which is a bummer). The splits all have x=0/y=0, but width/height are accurate.
+
       // Go through main + splits, summing as we go
       const mainX = thisWSToSave.editorWindows[0].x
       const mainY = thisWSToSave.editorWindows[0].y
@@ -270,7 +270,7 @@ export async function saveWindowSet(): Promise<void> {
         }
       }
       clo(thisWSToSave, `saveWindowSet: thisWSToSave after dealing with EW splits`)
-    }
+
 
     // Check window bounds make sense
     thisWSToSave = wsh.checkWindowSetBounds(thisWSToSave)
@@ -452,6 +452,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
     logDebug('openWindowSet', `Attempting to open ${String(thisWS.editorWindows.length)} note window(s)`)
     let mainRect: Rect // to save whatever the 'main' Editor is in this WS
     for (const ew of thisWS.editorWindows) {
+      // TODO(later): Try to support open folder as well as note. As of v3.16.3 it requires EM to add support for this in the API.
       if (ew.filename === '') {
         logWarn('openWindowSet', `- WS '${thisWS.name}' has an empty Editor filename: ignoring. Please check the definitions in the Window Set note.`)
         continue

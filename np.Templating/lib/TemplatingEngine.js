@@ -62,7 +62,6 @@ export default class TemplatingEngine {
     const lines = templateData.split('\n')
     const startBlock = lines.indexOf('--')
     const endBlock = startBlock === 0 ? lines.indexOf('--', startBlock + 1) : -1
-    // clo(lines, `_replaceDoubleDashes: templateData: ${templateData}`)
     if (startBlock >= 0 && endBlock > 0) {
       lines[startBlock] = '---'
       lines[endBlock] = '---'
@@ -214,7 +213,7 @@ export default class TemplatingEngine {
 
       const message = error.message.replace('\n', '')
 
-      let block = ''
+      let block = '' // NOTE: not using block for now because it's quite inconsistent and often wrong
       if (error?.line) {
         block = `\nline: ${error.line - 7}\n`
 
@@ -223,8 +222,11 @@ export default class TemplatingEngine {
         }
         block += '\n'
       }
-      let result =
-        '**An error occurred rendering template:**\n\n' + message.replace(/ejs:/gi, 'template line: ').replace('list.', 'list').replace('while compiling ejs', '') + block
+      const m = message
+        .replace(/ejs:\d+/gi, '')
+        .replace('list.', 'list')
+        .replace('while compiling ejs', '')
+      let result = '\n==An error occurred rendering template:==\n' + `\`\`\`\n${m}\n\`\`\``
 
       return result
     }

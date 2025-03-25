@@ -14,7 +14,6 @@ It adds a 'Print (opens in system browser)' button to the preview window (on mac
 ## Limitations
 This is designed to be a temporary solution while we wait for similar functionality to get baked into the NotePlan app itself. To that end, I don't intend to be making many improvements to this.  In particular I'm aware that:
 
-- it does not render embedded images
 -  there are bugs in the rendering of frontmatter arising from one of the third-party libraries this uses.
 
 ## Automatic updating
@@ -26,7 +25,7 @@ triggers: onEditorWillSave => np.Preview.updatePreview
 It deliberately updates the Preview window without giving it focus, so that you can continue editing.
 
 ## Mermaid charts
-The markdown-ish definition of these charts is done in one or more fenced code blocks:
+Mermaid is a third-party library that makes a wide variety of diagrams (including Flowcharts, Gantt, Kanban, state transition etc.) and some simple charts, using markdown-ish definitions. These definitions are placed in one or more fenced code blocks, like this:
 
 ```
 ``` mermaid
@@ -36,7 +35,13 @@ lines  ...
 ```
 (Please ignore the closing period; it's just there to make this render in HTML.)
 
-You might want to read these [Mermaid Tutorials](https://mermaid.js.org/config/Tutorials.html).
+Please see [Mermaid's own Tutorials](https://mermaid.js.org/config/Tutorials.html).
+
+Note: The current version of Mermaid it uses is v11.x, and is loaded each time from the CDN that Mermaid uses.  _It may therefore not work if you are offline._
+
+Note: If and when Mermaid releases v12, you can search the plugin's `script.js` file, and modify the line that includes
+`"https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs"`
+to be whatever the new URL is.
 
 ### Theming Mermaid
 The plugin automatically sets the Mermaid chart to use their 'default' or 'dark' theme according to the type of the current NotePlan theme. But you can [override the theme](https://mermaid.js.org/config/theming.html) for individual diagrams by including the following directive at the start of a Mermaid definition:

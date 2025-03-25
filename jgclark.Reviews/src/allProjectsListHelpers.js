@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2025-02-14 for v1.1.0+, @jgclark
+// Last updated 2025-03-25 for v1.2.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -77,7 +77,7 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
   const config = configIn ? configIn : await getReviewSettings() // get config from passed config if possible
   if (!config) throw new Error('No config found. Stopping.')
 
-  logDebug('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
+  logInfo('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
   const startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
   // Get list of folders, excluding @specials and our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore.
@@ -173,7 +173,7 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
     logDebug('writeAllProjectsList', `starting`)
 
     // write summary to allProjects JSON file, using a replacer to suppress .note
-    logDebug('writeAllProjectsList', `Writing ${projectInstances.length} projects to ${allProjectsListFilename}`)
+    logInfo('writeAllProjectsList', `Writing ${projectInstances.length} projects to ${allProjectsListFilename}`)
     const res = DataStore.saveData(stringifyProjectObjects(projectInstances), allProjectsListFilename, true)
 
     // If this appears to have worked:

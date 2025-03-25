@@ -2,7 +2,7 @@
 
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
-import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { log, logError, logDebug, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { showMessage } from '@helpers/userInput'
@@ -36,6 +36,25 @@ export type PassedData = {
  */
 function validateFormFields(formFields: Array<Object>): boolean {
   let i = 0
+  const reservedWords = [
+    '__isJSON__',
+    'submit',
+    'location',
+    'writeUnderHeading',
+    'openNoteTitle',
+    'writeNoteTitle',
+    'getNoteTitled',
+    'replaceNoteContents',
+    'createMissingHeading',
+    'receivingTemplateTitle',
+    'windowTitle',
+    'formTitle',
+    'width',
+    'height',
+    'hideDependentItems',
+    'allowEmptySubmit',
+    'title',
+  ]
   for (const field of formFields) {
     i++
     // check that each field has a type, and if not use showMessage to alert the user
@@ -47,6 +66,16 @@ function validateFormFields(formFields: Array<Object>): boolean {
     if (field.type !== 'separator' && field.type !== 'heading' && !field.key) {
       showMessage(`Field "${field.label || ''}" (index ${i}) does not have a key. Please set a key for every field.`)
       return false
+    }
+    // check that the key is not a reserved word
+    if (reservedWords.includes(field.key)) {
+      // Just warn the user in the log, don't fail the form
+      logInfo(
+        pluginJson,
+        `Field "${field.label || ''}" has a key ("${field.key}") that is a reserved word in the forms processor. Generally speaking, you will want to use a key other than "${
+          field.key
+        }". Continuing for now in case it was intentional.`,
+      )
     }
   }
   return true
@@ -76,6 +105,17 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
     if (selectedTemplate) {
       const note = await getNoteByFilename(selectedTemplate)
       if (note) {
+        const fm = note.frontmatterAttributes
+        clo(fm, `getTemplateFormData fm=`)
+        const receiver = fm && (fm.receivingTemplateTitle || fm.receivingtemplatetitle) // NP has a bug where it sometimes lowercases the frontmatter keys
+        if (!receiver) {
+          await showMessage(
+            `Template "${
+              note.title || ''
+            }" does not have a "receivingTemplateTitle" set in frontmatter. Please set the "receivingTemplateTitle" field in your template frontmatter first.`,
+          )
+          return
+        }
         const codeBlocks = getCodeBlocksOfType(note, 'formfields')
         if (codeBlocks.length > 0) {
           const formFieldsString = codeBlocks[0].code
@@ -108,10 +148,12 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
     }
     const templateData = await NPTemplating.getTemplate(selectedTemplate)
     const templateFrontmatterAttributes = await NPTemplating.getTemplateAttributes(templateData)
+    clo(templateData, `getTemplateFormData templateData=`)
+    clo(templateFrontmatterAttributes, `getTemplateFormData templateFrontmatterAttributes=`)
 
     if (!templateFrontmatterAttributes?.receivingTemplateTitle) {
       logError(pluginJson, 'Template does not have a receivingTemplateTitle set')
-      await showMessage('Template does not have a receivingTemplateTitle set. Please set the receivingTemplateTitle in your template frontmatter first.')
+      await showMessage('Template Form does not have a "receivingTemplateTitle" field set. Please set the "receivingTemplateTitle" field in your template frontmatter first.')
       return
     }
 

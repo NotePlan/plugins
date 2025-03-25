@@ -21,7 +21,7 @@ export async function getConfig(): Promise<FavoritesConfig> {
     if (!config.favoriteKey || [' ', '\t', '#', '@'].some((char) => config.favoriteKey.includes(char))) {
       const originalKey = config.favoriteKey
       config.favoriteKey = 'favorite'
-      DataStore.settings = config
+      DataStore.settings = { ...DataStore.settings, ...config }
       await showMessage(
         `Your Favorite key is set to "${originalKey}". The favorite key cannot include spaces, tabs, or special characters (e.g. #, @ etc.) in the key name. Resetting to default 'favorite'.`,
       )

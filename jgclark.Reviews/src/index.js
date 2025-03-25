@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2025-02-14 for v1.1.1, @jgclark
+// Last updated 2025-03-25 for v1.2.1, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -20,7 +20,8 @@ import { isHTMLWindowOpen } from '@helpers/NPWindows'
 export {
   finishReview,
   finishReviewAndStartNextReview,
-  makeProjectLists, // TODO: rename to displayProjectLists
+  generateProjectListsAndRenderIfOpen,
+  displayProjectLists,
   redisplayProjectListHTML,
   renderProjectLists,
   setNewReviewInterval,

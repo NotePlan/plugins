@@ -66,7 +66,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       test.skip('should complain about improper config', () => {
         //skipping for console noise
         const oldSettings = { ...DataStore.settings }
-        DataStore.settings = { improper: 'key', __logLevel: 'DEBUG' }
+        DataStore.settings = { improper: 'key', _logLevel: 'DEBUG' }
         const spy = jest.spyOn(console, 'log')
         timeBlockingShared.getConfig()
         expect(mockWasCalledWithString(spy, /Running with default settings/)).toBe(true)
@@ -75,7 +75,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       })
       test('should return a proper config', () => {
         const oldSettings = DataStore.settings
-        DataStore.settings = configFile.getTimeBlockingDefaults()
+        DataStore.settings = { ...oldSettings, ...configFile.getTimeBlockingDefaults() }
         const c = timeBlockingShared.getConfig()
         expect(c).toEqual(DataStore.settings)
         DataStore.settings = oldSettings

@@ -1,13 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin (to/from HTML window)
-// Last updated 2024-10-01 for v1.0.0.b1 by @jgclark
+// Last updated 2025-03-25 for v1.2.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
   finishReviewForNote,
-  makeProjectLists,
+  displayProjectLists,
   setNewReviewInterval,
   skipReviewForNote,
   toggleDisplayOnlyDue,
@@ -64,7 +64,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
         await bridgeChangeCheckbox(data)
         break
       case 'refresh':
-        await makeProjectLists()
+        await displayProjectLists()
         break
       case 'runPluginCommand':
         await runPluginCommand(data)

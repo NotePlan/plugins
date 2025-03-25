@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2025-02-14 for v1.1.1, @jgclark
+// Last updated 2025-03-25 for v1.2.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -312,13 +312,13 @@ const addToggleEvents: string = `
  * @param {string? | null} argsIn as JSON (optional)
  * @param {number?} scrollPos in pixels (optional, for HTML only)
  */
-export async function makeProjectLists(argsIn?: string | null = null, scrollPos: number = 0): Promise<void> {
+export async function displayProjectLists(argsIn?: string | null = null, scrollPos: number = 0): Promise<void> {
   try {
     let config = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     const args = argsIn?.toString() || ''
-    logDebug(pluginJson, `makeProjectLists: starting with JSON args <${args}> and scrollPos ${String(scrollPos)}`)
+    logDebug(pluginJson, `displayProjectLists: starting with JSON args <${args}> and scrollPos ${String(scrollPos)}`)
     if (args !== '') {
       config = overrideSettingsWithEncodedTypedArgs(config, args)
       // clo(config, 'Review settings updated with args:')
@@ -332,7 +332,7 @@ export async function makeProjectLists(argsIn?: string | null = null, scrollPos:
     // Call the relevant rendering function with the updated config
     await renderProjectLists(config, true, scrollPos)
   } catch (error) {
-    logError('makeProjectLists', JSP(error))
+    logError('displayProjectLists', JSP(error))
   }
 }
 
@@ -353,7 +353,7 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
     // Call the relevant rendering function, but only continue if relevant window is open
     await renderProjectLists(config, false, scrollPos)
   } catch (error) {
-    logError('makeProjectLists', JSP(error))
+    logError('displayProjectLists', JSP(error))
   }
 }
 
@@ -591,13 +591,14 @@ export async function renderProjectListsHTML(
       const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
 
       // Write out all relevant HTML
+      const headingContent = `<span class="h3 folder-name">${thisTag}</span> (${noteCount} notes, ${due} ready for review${config.numberDaysForFutureToIgnore > 0 ? ', with future items ignored' : ''})`
       // If there are multiple projectTypeTags, then use details/summary HTML tags to open/close the section
       if (config.projectTypeTags.length > 1) {
         outputArray.push(`  <details open>`) // start it open
         // Had tried adding: <i class="fa-solid fa-chevron-down"></i>
-        outputArray.push(`   <summary class="folder-header"><span class="h3 folder-name">${thisTag} </span>(${noteCount} notes, ${due} ready for review)</summary>`)
+        outputArray.push(`   <summary class="folder-header">${headingContent}</summary>`)
       } else {
-        outputArray.push(`  <div class="folder-header"><span class="h3 folder-name">${thisTag} </span>(${noteCount} notes, ${due} ready for review)</div>`)
+        outputArray.push(`  <div class="folder-header">${headingContent}</div>`)
       }
       outputArray.push('\n<div class="details-content">')
 
@@ -1045,7 +1046,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         const nextActionLineIndex = getNextActionLineIndex(note, naTag)
         logDebug('finishReviewCoreLogic', `nextActionLineIndex= '${String(nextActionLineIndex)}'`)
 
-        if (isNaN(nextActionLineIndex)) {
+        if (!isNaN(nextActionLineIndex)) {
           nextActionTagLineIndexes.push(nextActionLineIndex)
         }
       }
@@ -1054,6 +1055,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
           `There's no Next Action tag in '${displayTitle(note)}'. Do you wish to continue finishing this review?`,
         )
         if (res === 'No') {
+          logDebug('finishReviewCoreLogic', `- user cancelled command by clicking '${res}' button.`)
           return
         }
       }
@@ -1062,9 +1064,9 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     if (Editor.filename === note.filename) {
       logDebug('finishReviewCoreLogic', `- updating Editor ...`)
       // First update @review(date) on current open note
-      let res: ?TNote = await updateMetadataInEditor([reviewedTodayString])
+      await updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      res = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
+      await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
 
       // Using Editor, update it in the cache so the latest changes can be picked up elsewhere.
       // Note: Putting the Editor.save() call here, rather than in the above functions, seems to work
@@ -1229,7 +1231,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
     if (Editor.filename === note.filename) {
       // Update metadata in the current open note
       logDebug('skipReviewCoreLogic', `- updating Editor ...`)
-      const res = await updateMetadataInEditor([nextReviewMetadataStr])
+      await updateMetadataInEditor([nextReviewMetadataStr])
 
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
@@ -1340,7 +1342,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
     logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
-    const note: TNote = noteArg ? noteArg : Editor
+    const note: CoreNoteFields = noteArg ? noteArg : Editor
     if (!note || note.type !== 'Notes') {
       throw new Error(`Not in a Project note (at least 2 lines long)`)
     }
@@ -1363,14 +1365,14 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     if (!noteArg) {
       // Update metadata in the current open note
       logDebug('setNewReviewInterval', `- updating metadata in Editor`)
-      const res = await updateMetadataInEditor([`@review(${newIntervalStr})`])
+      await updateMetadataInEditor([`@review(${newIntervalStr})`])
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
       await Editor.save()
     } else {
       // update metadata on the note
       logDebug('setNewReviewInterval', `- updating metadata in note`)
-      const res = await updateMetadataInNote(note, [`@review(${newIntervalStr})`])
+      await updateMetadataInNote(note, [`@review(${newIntervalStr})`])
     }
 
     // Save changes to allProjects list

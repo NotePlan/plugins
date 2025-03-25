@@ -162,7 +162,7 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
     }
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
-    body = `<style>img { max-width: 100%; max-height: 100%; }</style>${body}` // fix for bug in showdown
+    body = `<style>img { background: white; max-width: 100%; max-height: 100%; }</style>${body}` // fix for bug in showdown
     
     const imgTagRegex = /<img src=\"(.*?)\"/g
     const matches = [...body.matchAll(imgTagRegex)]
@@ -172,8 +172,10 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       const imagePath = match[1]
       try {
         // Handle both absolute and relative paths
-        const fullPath = `../../../Notes/${noteDirPath}/${decodeURI(imagePath)}`
-
+        let fullPath = `../../../Notes/${noteDirPath}/${decodeURI(imagePath)}`
+        if(fullPath.endsWith('.drawing')) {
+          fullPath = fullPath.replace('.drawing', '.png')
+        }
         const data = await DataStore.loadData(fullPath, false)
         if (data) {
           const base64Data = `data:image/png;base64,${data.toString('base64')}`

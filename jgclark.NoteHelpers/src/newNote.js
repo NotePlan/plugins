@@ -11,7 +11,7 @@ import pluginJson from '../plugin.json'
 import { addFrontmatterToNote, getSettings } from './noteHelpers'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { getUniqueNoteTitle, noteOpener } from '@helpers/note'
+import { getUniqueNoteTitle, getNote } from '@helpers/note'
 import { chooseFolder, getInput, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 /**
@@ -40,7 +40,8 @@ export async function newNote(): Promise<void> {
           }
         }
 
-        if (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note`) === 'Yes') {
+        const res = (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note`)
+        if (res === 'Yes') {
           await Editor.openNoteByFilename(filename)
         }
       } else {
@@ -83,7 +84,8 @@ export async function newNoteFromClipboard(): Promise<void> {
         const filename = (await DataStore.newNoteWithContent(content, currentFolder)) ?? ''
         logDebug(pluginJson, ` -> filename: ${filename}`)
 
-        if (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Clipboard`) === 'Yes') {
+        const res = (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Clipboard`)
+        if (res === 'Yes') {
           await Editor.openNoteByFilename(filename)
         }
       } else {
@@ -136,11 +138,11 @@ export async function newNoteFromSelection(): Promise<void> {
         const filename = (await DataStore.newNote(title, currentFolder)) ?? ''
         logDebug(pluginJson, `- newNote() -> filename: ${filename}`)
 
-        // This question needs to be here after newNote and before noteOpener to force a cache refresh after newNote.
+        // This question needs to be here after newNote and before getNote to force a cache refresh after newNote.
         // Note: This API bug has probably now been fixed.
         const res = await CommandBar.showOptions(['Yes', 'No'], 'Insert link to new file where selection was?')
 
-        const newNote = await noteOpener(filename, 'using filename')
+        const newNote = await getNote(filename, true)
 
         if (newNote) {
           logDebug(pluginJson, `- newNote's title: ${String(newNote.title)}`)
@@ -160,7 +162,8 @@ export async function newNoteFromSelection(): Promise<void> {
           if (insertBackLink) {
             newNote.appendParagraph(`^ Moved from [[${origFile}]]:`, 'text')
           }
-          if ((await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Selection`)) === 'Yes') {
+          const res2 = await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Selection`)
+          if (res2 === 'Yes') {
             await Editor.openNoteByFilename(filename)
           }
         } else {
