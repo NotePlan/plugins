@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2025-03-17 for v1.1.2, @jgclark
+// Last updated 2025-03-25 for v1.2.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -312,13 +312,13 @@ const addToggleEvents: string = `
  * @param {string? | null} argsIn as JSON (optional)
  * @param {number?} scrollPos in pixels (optional, for HTML only)
  */
-export async function makeProjectLists(argsIn?: string | null = null, scrollPos: number = 0): Promise<void> {
+export async function displayProjectLists(argsIn?: string | null = null, scrollPos: number = 0): Promise<void> {
   try {
     let config = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     const args = argsIn?.toString() || ''
-    logDebug(pluginJson, `makeProjectLists: starting with JSON args <${args}> and scrollPos ${String(scrollPos)}`)
+    logDebug(pluginJson, `displayProjectLists: starting with JSON args <${args}> and scrollPos ${String(scrollPos)}`)
     if (args !== '') {
       config = overrideSettingsWithEncodedTypedArgs(config, args)
       // clo(config, 'Review settings updated with args:')
@@ -332,7 +332,7 @@ export async function makeProjectLists(argsIn?: string | null = null, scrollPos:
     // Call the relevant rendering function with the updated config
     await renderProjectLists(config, true, scrollPos)
   } catch (error) {
-    logError('makeProjectLists', JSP(error))
+    logError('displayProjectLists', JSP(error))
   }
 }
 
@@ -353,7 +353,7 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
     // Call the relevant rendering function, but only continue if relevant window is open
     await renderProjectLists(config, false, scrollPos)
   } catch (error) {
-    logError('makeProjectLists', JSP(error))
+    logError('displayProjectLists', JSP(error))
   }
 }
 

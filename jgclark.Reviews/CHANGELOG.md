@@ -1,5 +1,8 @@
 # What's changed in 🔬 Projects + Reviews plugin?
-See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
+See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
+
+## [1.2.1] - 2025-03-25 (not yet released)
+Under-the-hood changes to suit shared settings with Dashboard plugin.
 
 ## [1.2.0] - 2025-03-19
 There are 2 new settings that affect which open tasks/checklists are included in the '% completion' statistic for each project:
