@@ -1427,7 +1427,7 @@ export default class NPTemplating {
       if (inTemplateData?.replace) {
         // front-matter doesn't always return strings (e.g. "true" is turned into a boolean)
         // work around an issue when creating templates references on iOS (Smart Quotes Enabled)
-        templateData = inTemplateData.replace(/'/g, `'`).replace(/'/g, `'`).replace(/"/g, `'`).replace(/"/g, `'`)
+        templateData = inTemplateData.replace(/'/g, `'`).replace(/'/g, `'`).replace(/"/g, `"`).replace(/"/g, `"`)
       }
 
       // small edge case, likey never hit
