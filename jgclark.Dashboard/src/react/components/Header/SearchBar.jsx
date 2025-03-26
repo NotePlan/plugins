@@ -78,11 +78,11 @@ const SearchBar = ({ onSearch }: Props) => {
       <input
         type="search"
         className="search-input"
-        placeholder="Search terms..."
+        placeholder="Search terms"
         value={query}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        style={{ width: isActive ? '7rem' : '0', opacity: isActive ? '1' : '0' }}
+        style={{ width: isActive ? '15ch' : '0', opacity: isActive ? '1' : '0' }}
         ref={inputRef}
       />
       <div className="search-icon" onClick={handleIconClick}>

@@ -26,7 +26,7 @@ export function parseSettings(settingsStr: string): any {
             throw new Error('Undefined settingsStr passed')
         }
         if (typeof settingsStr === 'object') {
-            logInfo(`shared / parseSettings()`, `settingsStr is already an object, so returning it as is`)
+            logDebug(`shared / parseSettings()`, `settingsStr is already an object, so returning it as is`)
             return settingsStr
         }
         return JSON.parse(settingsStr)

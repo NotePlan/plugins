@@ -138,16 +138,15 @@ export async function getSettings(pluginId: string = '', defaultValue?: any = {}
 
 /**
  * Save given settings to the given plugin's settings.json file.
- * TODO(@dwertheimer): why can value be unspecified?
  * @author @dwertheimer, updated by @jgclark
- * @param {string?} pluginId
- * @param {any?} value
- * @param {boolean?} triggerUpdateMechanism
+ * @param {string} pluginId
+ * @param {any} value
+ * @param {boolean?} triggerUpdateMechanism? (defaults to true)
  * @returns {any} ?
  */
-export async function saveSettings(pluginId: string = '', value?: any = {}, triggerUpdateMechanism: boolean = true): any | null {
+export async function saveSettings(pluginId: string, value: any, triggerUpdateMechanism: boolean = true): Promise<boolean> {
   // logDebug('NPConfiguration/saveSettings', `starting to ${pluginId}/plugin.json with triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
-  if (NotePlan.environment.buildVersion < 1045 || triggerUpdateMechanism) {
+  if (triggerUpdateMechanism) {
     // save, and can't or don't want to turn off triggering onUpdateSettings
     return await DataStore.saveJSON(value, `../../data/${pluginId}/settings.json`)
   } else {

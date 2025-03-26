@@ -1,5 +1,5 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated for v2.1.8 */
+/* Last updated for v2.2.0.a8 */
 /* FIXME: SearchPanel transition is not working well yet. Not sure if that's because of this file or SearchPanel.css */
 
 /* Container for header and search panel */
@@ -13,31 +13,27 @@
 
 /* Settings for flex-based layout */
 .header {
-	font-size: 0.95rem; /* was 0.9rem for a while */
-	/* Define grid-template-areas for better control */
-	/* display: grid; */
 	display: flex;
-	/* Allocate space for each area */
-	/* grid-template-areas: "perspective refresh lastUpdated empty1 counts empty2 dropdowns";
-	grid-template-columns: max-content max-content max-content 1fr max-content 2fr min-content; */
-	/* Vertical alignment */
-	align-items: baseline;
+	position: relative;
+	flex-wrap: nowrap; /* Prevent wrapping */
+	/* align items to the start and end of the container, and pad out others between them */
+	justify-content: space-between; 
 	/* Space between next-level items */
 	gap: 0.6rem;
+	font-size: 0.95rem; /* was 0.9rem for a while */
+	align-items: center;
 	/* Padding around the header content */
-	padding: 0.4rem 1rem 0.1rem 0.5rem;
+	padding: 4px 1.0rem 3px 0.5rem;
+	border-bottom: solid 1px var(--divider-color);
 	background-color: var(--bg-sidebar-color);
 	/* Ensure the header uses the full width -- if contained width:Nvw set to less than 100 */
 	/* width: 100%; */
-	position: relative;
 	z-index: 10;
-	border-bottom: solid 1px var(--divider-color);
-	justify-content: space-between; /* aligns items to the start and end of the container, and pads out others between them */
 }
 
 :focus {
 	border-color: var(--tint-color);
-	box-shadow: 0 0 3px var(--tint-color);
+	box-shadow: 0 0 2px var(--tint-color);
 	outline: none;
 }
 
@@ -48,39 +44,59 @@
   padding-right: 2.2rem; 
 }
 
+/* Define minimum widths for the header elements first, and later then decide to hide them based on screen size */
+.perspectiveName {
+	min-width: auto;
+}
+
 /* Refresh button(s) area */
 .refreshButtons {
 	/* allow for 2 buttons at times */
 	display: inline-flex;
-	gap: 0.2rem;
+	/* ensure it doesn't take more space than it needs */
+	min-width: fit-content;
+	gap: 0.6rem;
 	/* to allow us to control clipping of hardRefreshButton */
-	max-width:28%;
+	/* max-width:28%; */
 }
 
-/* Refresh time-ago text */
-.lastRefreshInfo {
-	/* Assign the area */
-	/* grid-area: lastUpdated; */
-	/* This ensures that the content of these divs is also centered */
-	flex-grow: 1;
-	align-items: center;
-}
-
-.totalCounts {
-	/* Assign the area */
-	/* grid-area: counts; */
-	flex-grow: 1;
-
-	/* Make sure totalCounts only shows when necessary */
-	@media screen and (max-width: 600px) {
-		display: none;
-	}
-}
-
-/* For icon buttons in header area -- that should cascade to child elements */
-.headerActionIconButtons {
-	/* grid-area: dropdowns; */
+/* This is the space between the perspective control and the action buttons, to use for low-priority items if there is space */
+.lowerPrioritySpace {
 	display: flex;
+	flex-direction: row;
+	flex-grow: 1; /* grow to take up to 100% of the remaining space */
+	justify-content: space-between; 
+	margin-inline-start: 0rem; /* make 'lastRefreshInfo' start at the left edge of this section */
+	margin-inline-end: 1rem; /* but leave a gap at the right edge */
+	padding-top: 2px; /* nudge down a bit, for optical alignment */
+	gap: 1rem;
+	/* min-width: 0.6rem; */
+	/* width: auto; */
+	align-items: baseline;
+	/* background-color: lightblue; */
+	container-type: inline-size;
+	container-name: lowerPrioritySpace;
+}
+
+/* Refresh time-ago text; low-priority to display */
+.lastRefreshInfo {
+	/* flex-grow: 1; */
+	/* align-items: left; */
+	min-width: fit-content;
+}
+
+/* Completed task count; low-priority to display */
+.totalCounts {
+	/* flex-grow: 1; */
+	/* align-items: center; */
+	min-width: fit-content;
+}
+
+/* For important icon buttons in header area -- that should cascade to child elements */
+.headerActionIconButtons {
+	/* background-color: lightgreen; */
+	display: flex;
+	min-width: fit-content;
 	/* gap between buttons */
 	gap: 0.8rem;
 	/* align vertically to center */
@@ -88,9 +104,9 @@
 	/* Align to the right edge */
 	justify-self: end;
 	justify-content: end;
-	/* margin-left: 0.4rem; */
+	padding-top:1px; /* nudge down a bit */
 	float: inline-end; /* a rare use of float! */
-	margin-inline-end: 0.5rem;
+	/* margin-inline-end: 0.5rem; */
 }
 
 /* For icon buttons in header area -- without cascading to child elements */
@@ -113,6 +129,23 @@
 	margin-inline-end: 1.6rem !important;
 }
 
+/* On narrow screens drop the lower priority items */
+/* First turn off the total counts */
+@container lowerPrioritySpace (max-width: 25rch) {
+	.totalCounts {
+		display: none;
+	}
+}
+
+/* Then turn off the last refresh info */
+@container lowerPrioritySpace (max-width: 15rch) {
+	.lastRefreshInfo {
+		display: none;
+	}
+}
+
+/* -------------------------------------------------------- */
+
 /* For text buttons in header area */
 /* TODO: Ideally rationalise this with the addButton icon-buttons in the sectionInfo area */
 .HAButton {
@@ -122,9 +155,9 @@
 	border-width: 1px;
 	border-radius: 4px;
 	/* a little internal padding to right */
-	padding: 2px 3px 0px 3px;
+	padding: 1px 3px 0px 3px;
 	/* a little external margin */
-	margin: 2px 4px 0px 0px;
+	margin: 0px;
 	white-space: nowrap;
 	cursor: pointer;
 	/* Center the button vertically if it's not aligning properly */
@@ -143,19 +176,11 @@
 }
 
 /* Set this button text to clip if screen is narrow */
-.hardRefreshButton {
+/* .hardRefreshButton {
 	overflow-x: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-/* On narrow screens push the refresh and */
-@media screen and (max-width: 600px) {
-	/* Turn fixed width off on narrow screens */
-	.lastFullRefresh {
-		width: unset;
-	}
-}
+} */
 
 /* Style for the search panel button */
 /* #searchPanelButton {

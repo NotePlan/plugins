@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-02-27 for v2.2.0.b5
+// Last updated 2025-03-25 for v2.2.0.a8
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
@@ -112,9 +112,13 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
   if (!existingDef) return handlerResult(false, [], { errorMsg: `can't get definition for perspective ${origName}` })
   const revisedDefs = renamePerspective(origName, newName, perspectiveSettings)
   if (!revisedDefs) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
-  await savePerspectiveSettings(revisedDefs)
+  const res = await savePerspectiveSettings(revisedDefs)
   await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${newName}`)
-  return handlerResult(true, [])
+  if (!res) {
+    return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
+  } else {
+    return handlerResult(true, [])
+  }
 }
 
 /**

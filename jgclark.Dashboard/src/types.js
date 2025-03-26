@@ -27,7 +27,7 @@ export type TNotePlanSettings = {
 export type TDashboardSettings = {
   /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES */
   // Note: add all of these to the list of items in cleanDashboardSettings() so that they do not get saved to any specific perspective
-  usePerspectives: boolean,
+  perspectivesEnabled: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
   // FFlag_UseTagCache?: boolean,
   FFlag_ShowSearchPanel?: boolean,

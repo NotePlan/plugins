@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-03-07 for v2.2.0
+// Last updated 2025-03-25 for v2.2.0.a8
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -49,60 +49,67 @@ const pluginID = pluginJson['plugin.id']
  * These can potentially be changed by setSetting(s) calls.
  */
 export async function getDashboardSettings(): Promise<TDashboardSettings> {
-  // Note: We think following (newer API call) is unreliable.
-  let pluginSettings = DataStore.settings
-  if (!pluginSettings || !pluginSettings.dashboardSettings) {
-    clo(
-      pluginSettings,
-      `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `,
-    )
+  try {
+    // Note: We think following (newer API call) is unreliable.
+    let pluginSettings = DataStore.settings
+    if (!pluginSettings || !pluginSettings.dashboardSettings) {
+      clo(
+        pluginSettings,
+        `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `,
+      )
 
-    // Fall back to the older way:
-    pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
+      // Fall back to the older way:
+      pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+      clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
+    }
+    if (!pluginSettings.dashboardSettings) {
+      throw (
+        (pluginSettings,
+          `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${pluginSettings.pluginID || ''
+          } plugin: `)
+      )
+    }
+    // clo(pluginSettings, 'pluginSettings:') // OK
+
+    let parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
+
+    // Migrate some setting names to new names
+    // TODO(later): remove this code in v2.3.0+
+    // // clof(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings BEFORE MIGRATION:`, ['includeFolderName'])
+    // let parsedPerspectiveSettings: any = parseSettings(pluginSettings.perspectiveSettings)
+    // // clof(parsedPerspectiveSettings, `getDashboardSettings - parsedPerspectiveSettings BEFORE MIGRATION:`, ['includeFolderName'])
+    // Note: Also any obsolete setting keys will be removed in cleanDashboardSettings(), but only when a perspective is updated.
+    // parsedDashboardSettings = migratePluginSettings(parsedDashboardSettings)
+    // parsedPerspectiveSettings = migratePluginSettings(parsedPerspectiveSettings)
+    // // Save the settings back to the DataStore
+    // // DataStore.settings = { ...pluginSettings, dashboardSettings: parsedDashboardSettings, perspectiveSettings: parsedPerspectiveSettings }
+    // const res = await saveSettings(pluginID, {...pluginSettings, dashboardSettings: JSON.stringify(parsedDashboardSettings), perspectiveSettings: JSON.stringify(parsedPerspectiveSettings) })
+    // clof(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings AFTER MIGRATION:`, ['includeFolderName'])
+    // clof(parsedPerspectiveSettings, `getDashboardSettings - parsedPerspectiveSettings AFTER MIGRATION:`, ['includeFolderName'])
+
+    // TODO: finish this
+    parsedDashboardSettings.showSearchSection = true
+
+    // TODO: @jgclark: Would it be ok to move the following to the migratePluginSettings() function? Would be nice to keep this function cleaner
+    // Note: Workaround for number types getting changed to strings at some point in our Settings system.
+    parsedDashboardSettings.newTaskSectionHeadingLevel = parseInt(parsedDashboardSettings.newTaskSectionHeadingLevel || '2')
+    parsedDashboardSettings.maxItemsToShowInSection = parseInt(parsedDashboardSettings.maxItemsToShowInSection || '24')
+    parsedDashboardSettings.lookBackDaysForOverdue = parseInt(parsedDashboardSettings.lookBackDaysForOverdue || '7')
+    parsedDashboardSettings.autoUpdateAfterIdleTime = parseInt(parsedDashboardSettings.autoUpdateAfterIdleTime || '10')
+
+    // When the underlying issue is tackled, then TEST: to see whether JSON number type handling has been corrected
+    // clvt(parsedDashboardSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedDashboardSettings.newTaskSectionHeadingLevel:`)
+    // Warn if any of the settings are not numbers
+    // if (typeof parsedDashboardSettings.newTaskSectionHeadingLevel !== 'number') {
+    //   logWarn('getDashboardSettings', `parsedDashboardSettings.newTaskSectionHeadingLevel is not a number type: ${parsedDashboardSettings.newTaskSectionHeadingLevel}`)
+    // }
+
+    return parsedDashboardSettings
+  } catch (err) {
+    logError('getDashboardSettings', `${err.name}: ${err.message}`)
+    // $FlowFixMe[incompatible-return]
+    return
   }
-  if (!pluginSettings.dashboardSettings) {
-    throw (
-      (pluginSettings,
-      `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${
-        pluginSettings.pluginID || ''
-      } plugin: `)
-    )
-  }
-  // clo(pluginSettings, 'pluginSettings:') // OK
-
-  let parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
-  // clof(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings BEFORE MIGRATION:`, ['includeFolderName'])
-  let parsedPerspectiveSettings: any = parseSettings(pluginSettings.perspectiveSettings)
-  // clof(parsedPerspectiveSettings, `getDashboardSettings - parsedPerspectiveSettings BEFORE MIGRATION:`, ['includeFolderName'])
-  // Migrate some setting names to new names
-  // TODO(later): remove this code in v2.3.0+
-  // Note: Also any obsolete setting keys will be removed in cleanDashboardSettings(), but only when a perspective is updated.
-  parsedDashboardSettings = migratePluginSettings(parsedDashboardSettings)
-  parsedPerspectiveSettings = migratePluginSettings(parsedPerspectiveSettings)
-  // Save the settings back to the DataStore
-  DataStore.settings = { ...pluginSettings, dashboardSettings: parsedDashboardSettings, perspectiveSettings: parsedPerspectiveSettings }
-  // clof(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings AFTER MIGRATION:`, ['includeFolderName'])
-  // clof(parsedPerspectiveSettings, `getDashboardSettings - parsedPerspectiveSettings AFTER MIGRATION:`, ['includeFolderName'])
-
-  // TODO: finish this
-  parsedDashboardSettings.showSearchSection = true
-
-  // TODO: @jgclark: Would it be ok to move the following to the migratePluginSettings() function? Would be nice to keep this function cleaner
-  // Note: Workaround for number types getting changed to strings at some point in our Settings system.
-  parsedDashboardSettings.newTaskSectionHeadingLevel = parseInt(parsedDashboardSettings.newTaskSectionHeadingLevel || '2')
-  parsedDashboardSettings.maxItemsToShowInSection = parseInt(parsedDashboardSettings.maxItemsToShowInSection || '24')
-  parsedDashboardSettings.lookBackDaysForOverdue = parseInt(parsedDashboardSettings.lookBackDaysForOverdue || '7')
-  parsedDashboardSettings.autoUpdateAfterIdleTime = parseInt(parsedDashboardSettings.autoUpdateAfterIdleTime || '10')
-
-  // When the underlying issue is tackled, then TEST: to see whether JSON number type handling has been corrected
-  // clvt(parsedDashboardSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedDashboardSettings.newTaskSectionHeadingLevel:`)
-  // Warn if any of the settings are not numbers
-  // if (typeof parsedDashboardSettings.newTaskSectionHeadingLevel !== 'number') {
-  //   logWarn('getDashboardSettings', `parsedDashboardSettings.newTaskSectionHeadingLevel is not a number type: ${parsedDashboardSettings.newTaskSectionHeadingLevel}`)
-  // }
-
-  return parsedDashboardSettings
 }
 
 /**

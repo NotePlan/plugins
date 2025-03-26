@@ -1,9 +1,16 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-- NOT-DO: Search: add an "Ignore Perspective" link to the message which fires off a search without the inclusion/exclusions
+<!-- - NOT-DO: Search: add an "Ignore Perspective" link to the message which fires off a search without the inclusion/exclusions
 - TODO(later): v2.3.0 UI to set the searchTerm and search options.
-- TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component)
+- TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component) -->
+
+## [2.2.0.a8] 2025-03-26
+- Dashboard Header now works better on whatever the window width is.
+- DEV: Re-write Header to use @content queries not @media queries, to provide cleaner and more responsive experience on whatever the window width is.
+- DEV: Fix (hopefully) to Dashboard's settings agetting written into the middle of `data/np.Templating/settings.json`, and `todaysChangedNoteList.json` into the same folder.
+- DEV: moved renaming of keys to onUpdateOrInstall(), which can be run via x-callback to test.
+- DEV: turn doWindowResized back on, for testing
 
 ## [2.2.0.a7] 2025-03-07
 - DEV: migrate some setting key names

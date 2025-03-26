@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2025-02-25 for v2.2.0.a5
+// Last updated 2025-03-24 for v2.2.0.a8
 // --------------------------------------------------------------------------
 
 // --------------------------------------------------------------------------
@@ -25,7 +25,7 @@ import SearchBar from './SearchBar.jsx'
 import SearchPanel from './SearchPanel.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
-import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
+// import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
 import './Header.css'
 // --------------------------------------------------------------------------
 // Type Definitions
@@ -263,34 +263,28 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             {showHardRefreshButton && (
               <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton">
                 <i className={'fa-regular fa-arrows-retweet'}></i>
-                <span className="pad-left">{isNarrowWidth ? 'HR' : 'Hard Refresh'}</span>
+                <span className="pad-left">HR</span>
               </button>
             )}
           </div>
         )}
 
-        {!(isMobile || isNarrowWidth) && (
+        <div className="lowerPrioritySpace">
+          {/* {!(isMobile || isNarrowWidth) && ( */}
           <div className="lastRefreshInfo">
             {/* <> */}
             Updated: <span id="timer">{timeAgoText}</span>
             {/* </> */}
           </div>
-        )}
+          {/* )} */}
 
-        {/* TODO: use this to test out modals + tooltips. Needs a trigger button first. */}
-        {/* <div>
-          <ModalWithTooltip
-            tooltipTextNoModifier="tooltip with no extra key pressed"
-            tooltipTextCmdModifier="tooltip with ⌘ key pressed"
-          />
-        </div>
-   */}
-        {!(isMobile || isNarrowWidth) && (
+          {/* {!(isMobile || isNarrowWidth) && ( */}
           <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
-        )}
-        <div className="headerActionIconButtons">
+          {/* )} */}
+        </div>
 
-          {isSearchPanelAvailable ? (
+        <div className="headerActionIconButtons">
+          {/* {isSearchPanelAvailable ? (
             <div id="searchPanelButton">
               <i
                 className={`fa-solid ${isSearchOpen ? 'fa-xmark' : 'fa-search'}`}
@@ -303,9 +297,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
                 title={isSearchOpen ? 'Close search panel' : 'Open search panel'}
               ></i>
             </div>
-          ) : (
+          ) : ( */}
             <SearchBar onSearch={handleSearch} />
-          )}
+          {/* )} */}
 
           {/* Feature Flags dropdown */}
           {isDevMode && (

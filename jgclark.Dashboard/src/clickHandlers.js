@@ -14,6 +14,7 @@ import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettings
 import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TBridgeClickHandlerResult } from './types'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
+import { saveSettings } from '@helpers/NPConfiguration'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename, highlightParagraphInEditor } from '@helpers/NPParagraph'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { openNoteByFilename } from '@helpers/NPnote'
@@ -40,7 +41,8 @@ import {
  *                             Data types + constants
  ****************************************************************************************************************************/
 
-const windowCustomId = `${pluginJson['plugin.id']}.main`
+const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
+const windowCustomId = `${pluginID}.main`
 
 /****************************************************************************************************************************
  *                             HANDLERS
@@ -474,14 +476,16 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
       logDebug(`doSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
       if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
         const cleanedSettings = cleanDashboardSettings(newSettings)
-        // FIXME: We may need to ensure that recently added dashboardSettings are included here (see doSwitchToPerspective)
+        // TODO: We may need to ensure that recently added dashboardSettings are included here (see doSwitchToPerspective)
         const diff = compareObjects(activePerspDef.dashboardSettings, cleanedSettings, ['lastModified', 'lastChange'])
         clo(diff, `doSettingsChanged: diff`)
         // if !diff or  all the diff keys start with FFlag, then return
+        // FIXME(@dwertheimer): this line doesn't agree with its comment above.
         if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag') || d.startsWith('usePerspectives'))) {
           logDebug(`doSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
-          DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) }
-          return handlerResult(true)
+          // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) }
+          const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) })
+          return handlerResult(res)
         } else {
           clo(diff, `doSettingsChanged: Setting perspective.isModified because of changes to settings:`)
         }
@@ -520,7 +524,8 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
     combinedUpdatedSettings.perspectiveSettings = JSON.stringify(perspectivesToSave)
   }
 
-  DataStore.settings = combinedUpdatedSettings
+  // DataStore.settings = combinedUpdatedSettings
+  const res = await saveSettings(pluginID, combinedUpdatedSettings)
   const updatedPluginData = { [settingName]: newSettings } // was also: serverPush: { [settingName]: true }
   if (perspectivesToSave) {
     // updatedPluginData.serverPush ? updatedPluginData.serverPush.perspectiveSettings = true
@@ -529,7 +534,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   }
   await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
   const refreshes = settingName === 'dashboardSettings' ? ['REFRESH_ALL_ENABLED_SECTIONS'] : [] // don't refresh if we were saving just perspectiveSettings
-  return handlerResult(true, refreshes)
+  return handlerResult(res, refreshes)
 }
 
 export async function doCommsBridgeTest(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {

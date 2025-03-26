@@ -437,6 +437,7 @@ const PerspectiveSelector = (): React$Node => {
     },
     label: {
       fontWeight: 'unset', // i.e. default for text = 400
+      margin: 'unset'
     },
   }
 

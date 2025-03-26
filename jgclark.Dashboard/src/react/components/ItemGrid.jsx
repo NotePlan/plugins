@@ -35,7 +35,7 @@ function ItemGrid({ items, thisSection }: Props): React$Node {
       : (thisSection.showColoredBackground && thisSection.sectionTitleColorPart)
         ? `color-mix(in srgb, var(--bg-main-color), var(--fg-${thisSection.sectionTitleColorPart}) 4%)`
       : 'var(--bg-main-color)'
-  if (sectionBackgroundColor !== 'var(--bg-main-color)') logInfo('ItemGrid', `sectionBackgroundColor: ${sectionBackgroundColor} from ${String(items.length)} items`)
+  if (sectionBackgroundColor !== 'var(--bg-main-color)') logDebug('ItemGrid', `sectionBackgroundColor: ${sectionBackgroundColor} from ${String(items.length)} items`)
 
   return (
     <div className="sectionItemsGrid" id={`${thisSection.ID}-Section`} style={{ backgroundColor: sectionBackgroundColor }}>

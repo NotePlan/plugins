@@ -1,7 +1,3 @@
-.search-icon {
-    cursor: pointer;
-}
-
 .search-container {
     position: relative;
     display: flex;
@@ -14,8 +10,12 @@
         border: 1px solid rgb(from var(--fg-main-color) r g b/.3);
         border-radius: 5px;
         margin-right: 0.3rem;
-        min-width: 9rem;
+        /* min-width: 15ch; */
         /* outline: none; */
         transition: width 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
     }
+}
+
+.search-icon {
+    cursor: pointer;
 }
