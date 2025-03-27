@@ -1,8 +1,8 @@
-/* eslint-disable require-await */
+
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-03-25 for v2.2.0.a8
+// Last updated 2025-03-28 for v2.2.0.a9
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -333,9 +333,6 @@ export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): 
 
     // TEST: use helper to save settings from now on
     // DataStore.settings = pluginSettings
-    if (pluginID !== 'jgclark.Dashboard') {
-      logError('savePerspectiveSettings', `Trying to save settings for plugin '${pluginID}' but this is not the Dashboard plugin.`)
-    }
     const res = await saveSettings(pluginID, pluginSettings)
     logDebug('savePerspectiveSettings', `Apparently saved with result ${String(res)}. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
     return res
@@ -466,43 +463,53 @@ export async function logPerspectiveFiltering(filenameArg?: string): Promise<voi
  * @returns {boolean}
  */
 export async function switchToPerspective(name: string, allDefs: Array<TPerspectiveDef>): Promise<Array<TPerspectiveDef> | false> {
-  // Check if perspective exists
-  logDebug('switchToPerspective', `Starting looking for name ${name} in ...`)
-  logPerspectives(allDefs)
+  try {
+    // Check if perspective exists
+    logDebug('switchToPerspective', `Starting looking for name ${name} in ...`)
+    logPerspectives(allDefs)
 
-  const newPerspectiveSettings = setActivePerspective(name, allDefs).map((p) => ({
-    ...p,
-    isModified: false,
-    // the following is a little bit inefficient, but given that people can change tags in numerous ways
-    // we need to clean the dashboardSettings for each perspective just to be sure
-    dashboardSettings: cleanDashboardSettings(p.dashboardSettings),
-  }))
+    const newPerspectiveSettings = setActivePerspective(name, allDefs).map((p) => ({
+      ...p,
+      isModified: false,
+      // the following is a little bit inefficient, but given that people can change tags in numerous ways
+      // we need to clean the dashboardSettings for each perspective just to be sure
+      dashboardSettings: cleanDashboardSettings(p.dashboardSettings),
+    }))
 
-  logDebug('switchToPerspective', `New perspectiveSettings:`)
-  logPerspectives(newPerspectiveSettings)
-  const newPerspectiveDef = getPerspectiveNamed(name, newPerspectiveSettings)
-  if (!newPerspectiveDef) {
-    logError('switchToPerspective', `Couldn't find definition for perspective "${name}"`)
+    logDebug('switchToPerspective', `New perspectiveSettings:`)
+    logPerspectives(newPerspectiveSettings)
+    const newPerspectiveDef = getPerspectiveNamed(name, newPerspectiveSettings)
+    if (!newPerspectiveDef) {
+      logError('switchToPerspective', `Couldn't find definition for perspective "${name}"`)
+      return false
+    }
+    logDebug(
+      'switchToPerspective',
+      `Found "${name}" Will save new perspectiveSettings: ${newPerspectiveDef.name} isModified=${String(newPerspectiveDef.isModified)} isActive=${String(
+        newPerspectiveDef.isActive,
+      )}`,
+    )
+
+    // SAVE IT!
+    // TEST: use helper to save settings from now on
+    // DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) }
+    let res = await saveSettings(pluginID, { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) })
+    if (!res) {
+      throw new Error(`saveSettings failed for perspective ${name}`)
+    }
+    clo(
+      newPerspectiveSettings.map((p) => ({ name: p.name, isModified: p.isModified })),
+      'switchToPerspective: newPerspectiveSettings saved to DataStore.settings',
+    )
+
+    // Send message to Reviews (if open) to re-generate the Projects list and render it (if that window is already open)
+    res = await DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])
+
+    return newPerspectiveSettings
+  } catch (error) {
+    logError('switchToPerspective', `Error: ${error.message}`)
     return false
   }
-  logDebug(
-    'switchToPerspective',
-    `Found "${name}" Will save new perspectiveSettings: ${newPerspectiveDef.name} isModified=${String(newPerspectiveDef.isModified)} isActive=${String(
-      newPerspectiveDef.isActive,
-    )}`,
-  )
-
-  // SAVE IT!
-  DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) }
-  clo(
-    newPerspectiveSettings.map((p) => ({ name: p.name, isModified: p.isModified })),
-    'switchToPerspective: newPerspectiveSettings saved to DataStore.settings',
-  )
-
-  // Send message to Reviews (if open) to re-generate the Projects list and render it (if that window is already open)
-  const res = await DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])
-
-  return newPerspectiveSettings
 }
 
 /**
@@ -537,7 +544,7 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
 /**
  * Clean a Dashboard settings object of properties we don't want to use
  * (we only want things in the perspectiveSettings object that could be set in dashboard settings or filters).
- * Note: index.js::onUpdateOrInstall() should be renamed keys in the settings object.
+ * Note: index.js::onUpdateOrInstall() should do the renaming of keys in the settings object.
  * @param {TDashboardPluginSettings} settingsIn
  * @param {boolean} deleteAllShowTagSections - also clean out showTag_* settings
  * @returns {TDashboardPluginSettings}

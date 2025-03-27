@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-03-01 for v2.2.0.a6, @jgclark
+// Last updated 2025-03-27 for v2.2.0.a9, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -48,22 +48,22 @@ export async function externallyStartSearch(
   logInfo('externallyStartSearch', `- starting search with searchTermsArg: "${searchTermsArg}" ${config.applyCurrentFilteringToSearch ? 'WITH' : 'WITHOUT'} Perspective filtering`)
 
   // Compile the searchOptions object
+  const foldersToExcludePlusArchive = config.applyCurrentFilteringToSearch && config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
+  foldersToExcludePlusArchive.push('@Archive')
   const noteTypesToIncludeArr: Array<string> = (noteTypesToIncludeStr === 'both') ? ['notes', 'calendar'] : stringListOrArrayToArray(noteTypesToIncludeStr, ',')
   const searchOptions: TSearchOptions = {
     noteTypesToInclude: noteTypesToIncludeArr,
     paraTypesToInclude: config.ignoreChecklistItems ? ['open', 'scheduled'] : ['open', 'scheduled', 'checklist', 'checklistScheduled'],
     foldersToInclude: config.applyCurrentFilteringToSearch && config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',') : [],
-    foldersToExclude: config.applyCurrentFilteringToSearch && config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : [],
+    foldersToExclude: foldersToExcludePlusArchive,
     caseSensitiveSearching: false,
     fullWordSearching: true,
     fromDateStr: fromDateStr,
     toDateStr: toDateStr ? toDateStr : (config.dontSearchFutureItems) ? getTodaysDateHyphenated() : '',
   }
 
-  let searchTermsStr = searchTermsArg
-
   // Start a search
-  const newSections = await getSearchResults(searchTermsStr, config, searchOptions)
+  const newSections = await getSearchResults(searchTermsArg, config, searchOptions)
 
   // Add the new section(s) to the existing sections
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
@@ -71,7 +71,7 @@ export async function externallyStartSearch(
   const existingSections = pluginData.sections
   const mergedSections = mergeSections(existingSections, newSections)
   const updates: TAnyObject = { sections: mergedSections }
-  await setPluginData(updates, `Finished getSearchResults for [${String(searchTermsStr)}]`)
+  await setPluginData(updates, `Finished getSearchResults for [${String(searchTermsArg)}]`)
 }
 
 /**

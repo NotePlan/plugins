@@ -5,11 +5,15 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO(later): v2.3.0 UI to set the searchTerm and search options.
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component) -->
 
+## [2.2.0.a9] 2025-03-???
+- ignore notes in @Archive when looking for search results
+- DEV: finished (hopefully) changing all the places dashboardSettings get written out, to use the saveSettings() helper instead.
+
 ## [2.2.0.a8] 2025-03-26
 - Dashboard Header now works better on whatever the window width is.
-- DEV: Re-write Header to use @content queries not @media queries, to provide cleaner and more responsive experience on whatever the window width is.
-- DEV: Fix (hopefully) to Dashboard's settings agetting written into the middle of `data/np.Templating/settings.json`, and `todaysChangedNoteList.json` into the same folder.
+- DEV: Re-write Header component to use @content queries not @media queries, to provide cleaner and more responsive experience on whatever the window width is.
 - DEV: moved renaming of keys to onUpdateOrInstall(), which can be run via x-callback to test.
+- DEV: Started to shift the writing of Dashboard's settings to use saveSettings() helper, to avoid the middle of `data/np.Templating/settings.json`, and `todaysChangedNoteList.json` into the same folder.
 - DEV: turn doWindowResized back on, for testing
 
 ## [2.2.0.a7] 2025-03-07

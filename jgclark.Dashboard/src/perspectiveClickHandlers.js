@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-03-25 for v2.2.0.a8
+// Last updated 2025-03-28 for v2.2.0.a9
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
@@ -25,6 +25,7 @@ import {
 } from './perspectiveHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { saveSettings } from '@helpers/NPConfiguration'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -38,6 +39,7 @@ import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@h
  *                             Data types + constants
  ****************************************************************************************************************************/
 
+const pluginID = 'jgclark.Dashboard'
 /****************************************************************************************************************************
  *                             HANDLERS
  ****************************************************************************************************************************/
@@ -166,7 +168,14 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   newDashboardSettings.lastChange = `_Switched to perspective ${switchToName} ${dt()} changed from plugin`
   logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
   clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
-  DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }
+
+  // TEST: use helper to save settings from now on
+  // DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }
+  const res = await saveSettings(pluginID, { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) })
+  if (!res) {
+    return handlerResult(false, [], { errorMsg: `saveSettings failed` })
+  }
+
   const afterPerspSettings = await getPerspectiveSettings(true)
   logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Persp settings reading back from DataStore.settings:')
   // TODO: @jgclark resetting sections to [] on perspective switch forces a refresh of all enabled sections
@@ -230,7 +239,12 @@ export async function doPerspectiveSettingsChanged(data: MessageDataObject): Pro
   }
   const combinedUpdatedSettings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(cleanedPerspSettings), dashboardSettings: JSON.stringify(dashboardSettings) }
 
-  DataStore.settings = combinedUpdatedSettings
+  // TEST: use helper to save settings from now on
+  // DataStore.settings = combinedUpdatedSettings
+  const res = await saveSettings(pluginID, combinedUpdatedSettings)
+  if (!res) {
+    return handlerResult(false, [], { errorMsg: `saveSettings failed` })
+  }
   await setPluginData(updatedPluginData, `_Updated perspectiveSettings in global pluginData`)
   return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'])
 }

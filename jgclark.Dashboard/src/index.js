@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated for v2.2.0, 2025-02-21 by @jgclark
+// last updated for v2.2.0.a9, 2025-03-27 by @jgclark
 // ----------------------------------------------------------------------------
 
 /**
@@ -65,7 +65,6 @@ export { externallyStartSearch } from './dataGenerationSearch.js'
 
 //-----------------------------------------------------------------------------
 
-import { cleanDashboardSettings } from './perspectiveHelpers'
 import { renameKeys } from '@helpers/dataManipulation'
 import { saveSettings } from '@helpers/NPConfiguration'
 

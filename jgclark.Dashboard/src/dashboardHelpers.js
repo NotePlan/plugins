@@ -71,23 +71,9 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     }
     // clo(pluginSettings, 'pluginSettings:') // OK
 
-    let parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
+    const parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
 
-    // Migrate some setting names to new names
-    // TODO(later): remove this code in v2.3.0+
-    // // clof(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings BEFORE MIGRATION:`, ['includeFolderName'])
-    // let parsedPerspectiveSettings: any = parseSettings(pluginSettings.perspectiveSettings)
-    // // clof(parsedPerspectiveSettings, `getDashboardSettings - parsedPerspectiveSettings BEFORE MIGRATION:`, ['includeFolderName'])
-    // Note: Also any obsolete setting keys will be removed in cleanDashboardSettings(), but only when a perspective is updated.
-    // parsedDashboardSettings = migratePluginSettings(parsedDashboardSettings)
-    // parsedPerspectiveSettings = migratePluginSettings(parsedPerspectiveSettings)
-    // // Save the settings back to the DataStore
-    // // DataStore.settings = { ...pluginSettings, dashboardSettings: parsedDashboardSettings, perspectiveSettings: parsedPerspectiveSettings }
-    // const res = await saveSettings(pluginID, {...pluginSettings, dashboardSettings: JSON.stringify(parsedDashboardSettings), perspectiveSettings: JSON.stringify(parsedPerspectiveSettings) })
-    // clof(parsedDashboardSettings, `getDashboardSettings - parsedDashboardSettings AFTER MIGRATION:`, ['includeFolderName'])
-    // clof(parsedPerspectiveSettings, `getDashboardSettings - parsedPerspectiveSettings AFTER MIGRATION:`, ['includeFolderName'])
-
-    // TODO: finish this
+    // additional setting that always starts as true
     parsedDashboardSettings.showSearchSection = true
 
     // TODO: @jgclark: Would it be ok to move the following to the migratePluginSettings() function? Would be nice to keep this function cleaner

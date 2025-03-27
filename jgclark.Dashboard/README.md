@@ -9,9 +9,10 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 - all overdue tasks
 - all open items with an added priority
 - the next Project notes ready to review (if you have the "Projects and Reviews" plugin installed)
-- and at the start it shows any currently-active time block you've set.
+- it shows any currently-active time block you've set
+- (and from v2.2) you can now 'Search' to show all open items that match a search. 
 
-... and then gives you many controls, mostly in an "edit dialog", that let you quickly complete, cancel or move items to different time periods.
+... and then gives you many controls, mostly in an "edit dialog", that let you quickly edit, complete, cancel or move any of these items to be due on different days/week/months etc.
 
 Here's a [great video from user George Crump](https://youtu.be/_lj8osSOvQc) that shows v2.0 in action, and how he lives in the Dashboard throughout his day:
 
@@ -124,6 +125,15 @@ The display will **automatically refresh** in the background if you set the "Aut
 <img src="timeblock-section-2.1.0.png" width="740px" margin="8px" border="1px solid grey" alt="current timeblock display" />
 
 It always shows the time range first, minus any 'Text must contain' string that you have set in NP's 'Todo' settings pane. Where a time block is defined on a heading or list item, then the calendar+clock icon is shown in place of the task/checklist icon.
+
+## Search section
+TODO: screenshots / GIF
+
+Click on the search icon and a small search bar opens up in the Header. This uses the extended syntax from my separate [Search Extensions plugin]() to allow more complex searches than NotePlan natively allows. The search is suitable for the Dashboard, so ignores items which aren't open tasks or checklists, and doesn't look in the Archive or Trash.
+
+The Search Section stays until either you manually refresh the dashboard, or you click the close `[x]` button. This means you can edit the items like any other section contents, and also use Interactive Processing.
+
+_I plan to introduce more search options in later releases._
 
 ### #tag/@mention sections
 The "#tag/@mention Section" will show all open tasks/checklists that include this #tag or @mention. This is a good way of showing all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.
