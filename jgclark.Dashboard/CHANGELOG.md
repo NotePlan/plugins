@@ -5,7 +5,21 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO(later): v2.3.0 UI to set the searchTerm and search options.
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component) -->
 
-## [2.2.0.a9] 2025-03-???
+## [2.2.0.a10] 2025-03-28
+### DEV Changes
+- Changed `= DataStore.settings` to "go the long way around" as well as the setters.
+- Added memoization to reduce re-renders:
+  1. Memoizing the `PerspectiveSelector` and `RefreshControl` components so they only re-render when their props actually change
+  2. Optimizing the `useLastFullRefresh` hook to only update the state when the display text would actually change
+  3. Using useCallback to memoize the update function in `useLastFullRefresh`
+  The remaining timer in `Section.jsx` that refreshes the TB section every 54 seconds is actually necessary for keeping the timeblock data up to date, so we should keep that one.
+  The components will only re-render when:
+  1. Their props actually change
+  2. The time display needs to update (every minute or so)
+  3. The timeblock data needs to refresh (every 54 seconds)
+- Turned down some logging
+
+## [2.2.0.a9] 2025-03-27
 - ignore notes in @Archive when looking for search results
 - DEV: finished (hopefully) changing all the places dashboardSettings get written out, to use the saveSettings() helper instead.
 

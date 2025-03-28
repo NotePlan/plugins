@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated for v2.2.0.a9, 2025-03-27 by @jgclark
+// last updated for v2.2.0.a10, 2025-03-28 by @jgclark
 // ----------------------------------------------------------------------------
 
 /**
@@ -73,7 +73,10 @@ import { saveSettings } from '@helpers/NPConfiguration'
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logInfo(pluginJson, `onUpdateOrInstall() starting ...`)
-    const initialSettings = DataStore.settings
+    // v1
+    // const initialSettings = DataStore.settings
+    // v2
+    const initialSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     // clo(initialSettings, `onUpdateOrInstall - initialSettings:`)
 
     // Migrate some setting names to new names

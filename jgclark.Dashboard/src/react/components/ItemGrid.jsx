@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // A grid layout for items within a section.
 // Called by ItemGrid component.
-// Last updated 2025-02-23 for v2.2.0.a3
+// Last updated 2025-03-28 for v2.2.0.a10
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -35,7 +35,7 @@ function ItemGrid({ items, thisSection }: Props): React$Node {
       : (thisSection.showColoredBackground && thisSection.sectionTitleColorPart)
         ? `color-mix(in srgb, var(--bg-main-color), var(--fg-${thisSection.sectionTitleColorPart}) 4%)`
       : 'var(--bg-main-color)'
-  if (sectionBackgroundColor !== 'var(--bg-main-color)') logDebug('ItemGrid', `sectionBackgroundColor: ${sectionBackgroundColor} from ${String(items.length)} items`)
+  // if (sectionBackgroundColor !== 'var(--bg-main-color)') logDebug('ItemGrid', `sectionBackgroundColor: ${sectionBackgroundColor} from ${String(items.length)} items`)
 
   return (
     <div className="sectionItemsGrid" id={`${thisSection.ID}-Section`} style={{ backgroundColor: sectionBackgroundColor }}>

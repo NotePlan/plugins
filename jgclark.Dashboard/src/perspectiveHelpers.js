@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-03-28 for v2.2.0.a9
+// Last updated 2025-03-28 for v2.2.0.a10
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -181,15 +181,15 @@ function ensureDefaultPerspectiveExists(perspectiveSettings: Array<TPerspectiveD
 export async function getPerspectiveSettings(logAllKeys: boolean = false): Promise<Array<TPerspectiveDef>> {
   try {
     // Note: we think following (newer API call) is unreliable.
-    let pluginSettings = DataStore.settings
-    let perspectiveSettingsStr: string = pluginSettings?.perspectiveSettings
+    // let pluginSettings = DataStore.settings
+    // let perspectiveSettingsStr: string = pluginSettings?.perspectiveSettings
     let perspectiveSettings: Array<TPerspectiveDef>
-    if (!perspectiveSettingsStr) {
+    // if (!perspectiveSettingsStr) {
       // Fall back to the older way:
       logDebug('getPerspectiveSettings', `No perspectiveSettings found in DataStore.settings. Falling back to the older way.`)
-      pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-      perspectiveSettingsStr = pluginSettings?.perspectiveSettings
-    }
+    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    const perspectiveSettingsStr = pluginSettings?.perspectiveSettings
+    // }
 
     if (perspectiveSettingsStr && perspectiveSettingsStr !== '[]') {
       // must parse it because it is stringified JSON (an array of TPerspectiveDef)
@@ -328,7 +328,10 @@ export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): 
   try {
     logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
     const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ''
-    const pluginSettings = DataStore.settings
+    // v1:
+    // const pluginSettings = DataStore.settings
+    // v2:
+    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     pluginSettings.perspectiveSettings = perspectiveSettingsStr
 
     // TEST: use helper to save settings from now on

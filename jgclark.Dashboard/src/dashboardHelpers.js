@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-03-25 for v2.2.0.a8
+// Last updated 2025-03-28 for v2.2.0.a10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -39,7 +39,7 @@ import { isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 //-----------------------------------------------------------------
 // Settings
 
-const pluginID = pluginJson['plugin.id']
+const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
 
 /**
  * Return an Object that includes settings:
@@ -51,17 +51,17 @@ const pluginID = pluginJson['plugin.id']
 export async function getDashboardSettings(): Promise<TDashboardSettings> {
   try {
     // Note: We think following (newer API call) is unreliable.
-    let pluginSettings = DataStore.settings
-    if (!pluginSettings || !pluginSettings.dashboardSettings) {
-      clo(
-        pluginSettings,
-        `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `,
-      )
+    // let pluginSettings = DataStore.settings
+    // if (!pluginSettings || !pluginSettings.dashboardSettings) {
+    //   clo(
+    //     pluginSettings,
+    //     `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `,
+    //   )
 
       // Fall back to the older way:
-      pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-      clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
-    }
+    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    // clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
+    // }
     if (!pluginSettings.dashboardSettings) {
       throw (
         (pluginSettings,
@@ -247,7 +247,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       }
     })
     // $FlowIgnore[unsafe-arithmetic]
-    logTimer('makeDashboardParas', timer, `- done for ${origParas.length} paras (i.e. average ${String((new Date() - timer) / origParas.length).toFixed(1)}ms/para)`)
+    logTimer('makeDashboardParas', timer, `- done for ${origParas.length} paras (i.e. average ${((new Date() - timer) / origParas.length).toFixed(1)}ms/para)`)
     return dashboardParas
   } catch (error) {
     logError('makeDashboardParas', error.message)
