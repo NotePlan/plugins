@@ -78,7 +78,7 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     // Migrate some setting names to new names
     const keysToChange = {
-      usePerspectives: 'perspectivesEnabled',
+      perspectivesEnabled: 'usePerspectives',
       includeFolderName: 'showFolderName',
       includeScheduledDates: 'showScheduledDates',
       includeTaskContext: 'showTaskContext',

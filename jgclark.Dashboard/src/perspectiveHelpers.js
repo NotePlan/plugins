@@ -554,7 +554,7 @@ export function cleanDashboardSettings(settingsIn: TDashboardPluginSettings, del
   // Define keys to remove
   const patternsToRemove = [
     // the following shouldn't be persisted in the perspectiveSettings object, but only in the top-level dashboardSettings object
-    'usePerspectives',
+    'perspectivesEnabled',
     /FFlag_/,
     /_log/,
     'pluginID',

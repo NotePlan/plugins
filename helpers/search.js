@@ -95,8 +95,8 @@ export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: 
 }
 
 /**
- * Returns true if A is a strict subset of B, starting from the beginning.
- * i.e. won't match if A===B
+ * Returns true if A is a subset of B, starting from the beginning.
+ * If strictSubset is true it won't match if A===B
  * @author @jgclark
  * @param {string} searchTerm
  * @param {string} textToSearch
@@ -115,6 +115,29 @@ export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: stri
   }
   catch (error) {
     logError('search/caseInsensitiveStartsWith', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
+    return false
+  }
+}
+
+/**
+ * Returns true if A is a strict subset of B, starting from the end.
+ * If strictSubset is true it won't match if A===B
+ * @author @jgclark
+ * @param {string} searchTerm
+ * @param {string} textToSearch
+ * @param {boolean} strictSubset? (default: true)
+ * @returns {boolean} matches?
+ */
+export function caseInsensitiveEndsWith(searchTerm: string, textToSearch: string, strictSubset: boolean = true): boolean {
+  try {
+    const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = strictSubset
+      ? new RegExp(`${escapedSearchTerm}.+$`, "i") // = case insensitive 'ends with' Regex
+      : new RegExp(`${escapedSearchTerm}$`, "i") // = case insensitive 'ends with' Regex
+    return re.test(textToSearch)
+  }
+  catch (error) {
+    logError('search/caseInsensitiveEndsWith', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
     return false
   }
 }
@@ -366,22 +389,19 @@ export function trimAndHighlightTermInLine(
         // regex: find occurrences of search terms and the text around them
         const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}(${termsForRE}).{0,${String(maxChars - LRSplit)}})\\b(?:\\w+|$)`, "gi")
         // logDebug('trimAndHighlight', `- RE: ${String(RE_FIND_TEXT_AROUND_THE_TERMS)}`)
-        const matches = mainPart.match(RE_FIND_TEXT_AROUND_THE_TERMS) ?? [] // multiple matches
-        // logDebug('trimAndHighlight', `- matches = ${String(matches)}`)
-        if (matches.length > 0) {
+        const textAroundTerms = mainPart.match(RE_FIND_TEXT_AROUND_THE_TERMS) ?? [] // multiple matches
+        logDebug('trimAndHighlight', `- textAroundTerms = ${String(textAroundTerms)}`)
+        if (textAroundTerms.length > 0) {
           // If we have more than 1 match in the line, join the results together with '...'
-          output = matches.join(' ...')
-          // If starts with a non-word character, then (it's approximately right that) we have landed in the middle of sentence, so prepend '...'
-          // if (output.match(/^\W/)) {
-          const RE_TEST_FOR_START_OF_LINE = new RegExp(`^[\\s!]*${termsForRE}`)
-          if (!RE_TEST_FOR_START_OF_LINE.test(output)) {
-            // logDebug('trimAndHighlight', `- have shortened line`)
+          output = textAroundTerms.join(' ...')
+          // If the output doesn't start with the mainPart, then we have chopped the start of a sentence, so prepend '...'
+          if (!caseInsensitiveStartsWith(output, mainPart, false)) {
+            logDebug('trimAndHighlight', `- have shortened start of line`)
             output = `... ${output}`
           }
           // If we now have a shortened string, then append '...' unless search term is at the end of the line
-          const RE_TEST_FOR_END_OF_LINE = new RegExp(`${termsForRE}\\s*$`)
-          if (!RE_TEST_FOR_END_OF_LINE.test(output)) {
-            // logDebug('trimAndHighlight', `- have shortened line`)
+          if (!caseInsensitiveEndsWith(output, mainPart, false)) {
+            logDebug('trimAndHighlight', `- have shortened end of line`)
             output = `${output} ...`
           }
           //
@@ -390,6 +410,8 @@ export function trimAndHighlightTermInLine(
           // logDebug('trimAndHighlight', `- could not find a match in the line, so using the first part of the line`)
           output = (output.length >= maxChars) ? output.slice(0, maxChars) : output
         }
+        // Replace multiple spaces with a single space
+        output = output.replace(/\s{2,}/g, ' ')
       } else {
         output = mainPart
       }
