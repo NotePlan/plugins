@@ -65,8 +65,9 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     if (!pluginSettings.dashboardSettings) {
       throw (
         (pluginSettings,
-          `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${pluginSettings.pluginID || ''
-          } plugin: `)
+        `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${
+          pluginSettings.pluginID || ''
+        } plugin: `)
       )
     }
     // clo(pluginSettings, 'pluginSettings:') // OK
@@ -246,7 +247,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       }
     })
     // $FlowIgnore[unsafe-arithmetic]
-    logTimer('makeDashboardParas', timer, `- done for ${origParas.length} paras (i.e. average ${String((new Date() - timer) / origParas.length)}/para)`)
+    logTimer('makeDashboardParas', timer, `- done for ${origParas.length} paras (i.e. average ${String((new Date() - timer) / origParas.length).toFixed(1)}ms/para)`)
     return dashboardParas
   } catch (error) {
     logError('makeDashboardParas', error.message)

@@ -437,7 +437,7 @@ const PerspectiveSelector = (): React$Node => {
     },
     label: {
       fontWeight: 'unset', // i.e. default for text = 400
-      margin: 'unset'
+      margin: 'unset',
     },
   }
 
@@ -461,4 +461,4 @@ const PerspectiveSelector = (): React$Node => {
   )
 }
 
-export default PerspectiveSelector
+export default React.memo(PerspectiveSelector)
