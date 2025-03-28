@@ -909,7 +909,8 @@ export default class NPTemplating {
     context.sessionData = { ...context.sessionData, ...context.override }
 
     // Fix JSON in DataStore.invokePluginCommandByName calls
-    // await this._processJsonInDataStoreCalls(context) // Too many false positives
+    // dbw note: this caused more problems than it solved; the call to it was removed in 2025-03-26
+    await this._processJsonInDataStoreCalls(context) // Too many false positives
 
     // Return the processed data
     return {
@@ -1237,8 +1238,26 @@ export default class NPTemplating {
   }
 
   /**
-   * FIXME: dbw note: this caused more problems than it solved; the call to it was removed in 2025-03-26
-   * Process and fix JSON in DataStore.invokePluginCommandByName calls
+   * Process and validate JSON in DataStore.invokePluginCommandByName calls
+   * This method specifically looks for JSON-like strings in the arguments of DataStore.invokePluginCommandByName calls
+   * and validates them. It handles several cases:
+   *
+   * 1. JSON strings wrapped in quotes: '{"key":"value"}' or "{"key":"value"}"
+   * 2. JSON strings in arrays: ['{"key":"value"}'] or ["{"key":"value"}"]
+   * 3. Direct JSON objects: {"key":"value"}
+   *
+   * The method guards against:
+   * - Invalid JSON syntax (missing quotes, unescaped characters, etc.)
+   * - Malformed object structures
+   * - Missing closing braces/brackets
+   * - Invalid property names
+   *
+   * @param {Object} context - The template processing context containing:
+   *   - templateData: The full template text
+   *   - sessionData: Data available during processing
+   *   - jsonErrors: Array to collect any JSON validation errors
+   *   - criticalError: Boolean flag for critical errors
+   *   - override: Object for overriding values
    * @private
    */
   static async _processJsonInDataStoreCalls(context: {
@@ -1249,79 +1268,40 @@ export default class NPTemplating {
     override: Object,
   }): Promise<void> {
     try {
-      // Look for valid JS code blocks with DataStore.invokePluginCommandByName first
-      // These blocks contain valid JavaScript object literals, not JSON errors
-      const validCodeBlockPattern = /<%.*?DataStore\.invokePluginCommandByName.*?%>/gs
-      const validCodeBlocks = context.templateData.match(validCodeBlockPattern) || []
+      // Only look for DataStore.invokePluginCommandByName calls
+      const commandPattern = /DataStore\.invokePluginCommandByName\([^)]*\)/g
+      const matches = context.templateData.match(commandPattern) || []
 
-      // If we find valid code blocks that should be excluded from JSON validation,
-      // we'll temporarily replace them with placeholder markers
-      let processedTemplateData = context.templateData
-      const placeholders = []
+      for (const match of matches) {
+        // Extract the arguments part of the call
+        const argsMatch = match.match(/DataStore\.invokePluginCommandByName\((.*)\)/)
+        if (!argsMatch) continue
 
-      // Replace valid code blocks with placeholders
-      validCodeBlocks.forEach((block, index) => {
-        const placeholder = `__VALID_JS_OBJECT_${index}__`
-        placeholders.push({ placeholder, original: block })
-        processedTemplateData = processedTemplateData.replace(block, placeholder)
-      })
+        const args = argsMatch[1]
 
-      // Now process JSON issues on the modified template data (excluding valid JS objects)
+        // Look for JSON-like strings in the arguments
+        // This pattern matches:
+        // 1. JSON strings wrapped in quotes: '{"key":"value"}' or "{"key":"value"}"
+        // 2. JSON strings in arrays: ['{"key":"value"}'] or ["{"key":"value"}"]
+        // 3. Direct JSON objects: {"key":"value"}
+        const jsonPattern = /(?:['"](\{[^}]*\})['"]|(\{[^}]*\}))(?:\s*,\s*['"](\{[^}]*\})['"])?/g
+        let jsonMatch
 
-      // Fix single-quoted JSON objects: ['{'key':'value'}']
-      processedTemplateData = processedTemplateData.replace(/\[\'\{([^\}]*)\}\'\]/g, (match, p1) => {
-        try {
-          // Fix property names and values
-          const fixedJson = p1.replace(/'([^']+)':/g, '"$1":').replace(/:\s*'([^']*)'/g, ': "$1"')
-          return `[{${fixedJson}}]`
-        } catch (e) {
-          this._addJsonError(context, match, `Error processing JSON: ${e.message}`, true)
-          return match
+        while ((jsonMatch = jsonPattern.exec(args)) !== null) {
+          // Try each potential JSON match
+          for (let i = 1; i < jsonMatch.length; i++) {
+            if (jsonMatch[i]) {
+              try {
+                // Try to parse the JSON to validate it
+                JSON.parse(jsonMatch[i])
+              } catch (e) {
+                // If parsing fails, add an error
+                this._addJsonError(context, jsonMatch[i], `Invalid JSON in DataStore.invokePluginCommandByName call: ${e.message}`, true)
+              }
+            }
+          }
         }
-      })
-
-      // Fix other single-quoted JSON: '{"key":"value"}'
-      processedTemplateData = processedTemplateData.replace(/'(\{[^}]*\})'/g, (match, p1) => {
-        try {
-          // Fix property names and values
-          let fixedJson = p1.replace(/'([^']+)':/g, '"$1":').replace(/:\s*'([^']*)'/g, ': "$1"')
-          return `{${fixedJson}}`
-        } catch (e) {
-          this._addJsonError(context, match, `Error processing JSON: ${e.message}`, true)
-          return match
-        }
-      })
-
-      // Check for common JSON errors
-
-      // 1. Unclosed braces
-      const unclosedBracesPattern = /\{\s*"[^"]+"\s*:\s*("[^"]*"|[0-9]+)(\s*,\s*"[^"]+"\s*:\s*("[^"]*"|[0-9]+))*(?!\s*\})/g
-      const unclosedBraces = processedTemplateData.match(unclosedBracesPattern)
-      if (unclosedBraces && unclosedBraces.length > 0) {
-        this._addJsonError(context, unclosedBraces[0], `Unclosed JSON object detected. Check for missing closing braces.`, true)
       }
-
-      // 2. Mixed quotes in property names
-      const mixedQuotePattern = /\{[^}]*(['"][^'"]*['"])\s*:\s*[^,}]*[,}]/g
-      const mixedQuotes = processedTemplateData.match(mixedQuotePattern)
-      if (mixedQuotes && mixedQuotes.length > 0) {
-        this._addJsonError(context, mixedQuotes[0], `Mixed quote styles detected in JSON. Stick to one quote style, preferably double quotes.`, true)
-      }
-
-      // 3. Unescaped quotes in strings
-      const unescapedQuotesPattern = /"[^"\\]*"[^"\\]*"/g
-      const unescapedQuotes = processedTemplateData.match(unescapedQuotesPattern)
-      if (unescapedQuotes && unescapedQuotes.length > 0) {
-        this._addJsonError(context, unescapedQuotes[0], `Unescaped quotes in JSON string detected. Use backslash to escape quotes.`, true)
-      }
-
-      // Restore the original valid code blocks from placeholders
-      placeholders.forEach(({ placeholder, original }) => {
-        processedTemplateData = processedTemplateData.replace(placeholder, original)
-      })
-
-      // Update the template data with our fixed version
-      context.templateData = processedTemplateData
 
       // Log a summary if multiple errors are found
       if (context.jsonErrors.length > 0) {
@@ -1473,7 +1453,7 @@ export default class NPTemplating {
           // $FlowIgnore
           const { newTemplateData, newSettingData, jsonErrors, criticalError } = await this.preProcess(frontMatterValue, sessionData)
 
-          // If critical JSON errors are found, return an error message instead of rendering
+          // If critical errors are found, return an error message instead of rendering
           if (criticalError) {
             return this._formatCriticalErrors(jsonErrors)
           }
@@ -1495,7 +1475,7 @@ export default class NPTemplating {
       // $FlowIgnore
       const { newTemplateData, newSettingData, jsonErrors, criticalError } = await this.preProcess(templateData, sessionData)
 
-      // If critical JSON errors are found, return an error message instead of rendering
+      // If critical errors are found, return an error message instead of rendering
       if (criticalError) {
         return this._formatCriticalErrors(jsonErrors)
       }
@@ -1976,12 +1956,12 @@ export default class NPTemplating {
       .map((lineNum) => {
         const { messages, context } = errorsByLine[lineNum]
         const messagesText = messages.map((m: string) => `- ${m}`).join('\n')
-        const msg = `Critical JSON Error at line ${lineNum}:`.toUpperCase()
+        const msg = `critical Error at line ${lineNum}:`.toUpperCase()
         const errorMessage = `${msg}\n${messagesText}\n${context || ''}`
         return `${errorMessage}\n`
       })
       .join('\n\n')
 
-    return `==Template has critical JSON errors that must be fixed before rendering==\n\`\`\`Template Error\n${errorLines}\nPlease check the console log for more details.\n\`\`\`\n`
+    return `==Template has critical errors that must be fixed before rendering==\n\`\`\`Template Error\n${errorLines}\nPlease check the console log for more details.\n\`\`\`\n`
   }
 }

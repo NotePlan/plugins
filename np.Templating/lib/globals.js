@@ -23,7 +23,7 @@ import { parseJSON5 } from '@helpers/general'
 import { getSetting } from '../../helpers/NPConfiguration'
 import { log, logError, clo } from '@helpers/dev'
 import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
-
+import { getNote } from '@helpers/note'
 export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
   const defaultConfig = config?.date ?? {}
   const dateParamsTrimmed = dateParams?.trim() || ''
@@ -215,6 +215,11 @@ const globals = {
       // Return an empty array string as fallback
       return ''
     }
+  },
+
+  // general purpose getNote helper
+  getNote: async (...params: any): Promise<TNote | null> => {
+    return (await getNote(...params)) || null
   },
 }
 

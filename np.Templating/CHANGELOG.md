@@ -7,14 +7,16 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 ## [1.13.0] 2025-03-18 @dwertheimer
 
 - Update `Add Frontmatter/Properties to Template` command name
-- add tag `getValuesForKey` to get all values for a given frontmatter tag
-- add tag `promptKey` to prompt user for a value with a lot of flexibility on which folders to search for the value etc.
+- add tag function `getValuesForKey` to get all values for a given frontmatter tag
+- add tag function `promptKey` to prompt user for a value with a lot of flexibility on which folders to search for the value etc.
+- add tag function `getNote` to get a note by title, filename, or by id
 - fix promises and lack of await keyword in template tags
 - add openTasks, completedTasks, openChecklists, completedChecklists to NoteModule
 - Change documentation links to point to new documentation site
 - Fix the long-standing bug where template errors did not show proper line number, esp. when longer code blocks
 - Improve templating error handling/making suggestions for how to fix on JS code execution errors
 - Add detection/messaging of template function calls called without parentheses
+
 
 ## [1.12.0] 2025-03-09 @dwertheimer
 

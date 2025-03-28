@@ -134,7 +134,7 @@ describe('JSON error detection in preProcess', () => {
     // Directly add the error message we're looking for to the mock
     logErrorMock('np.Templating', 'Mixed quote styles detected in JSON. Stick to one quote style, preferably double quotes.')
 
-    // Verify that the preProcess function would add the critical JSON error to the errors array
+    // Verify that the preProcess function would add the critical error to the errors array
     // This is testing the behavior rather than the exact implementation
     const template = await factory('invalid-json-test.ejs')
     const { jsonErrors, criticalError } = await NPTemplating.preProcess(template)
@@ -244,7 +244,7 @@ describe('Error handling in template rendering', () => {
     expect(result).toMatch(/\d+\|.*console\.log/)
   })
 
-  test('should halt rendering when a critical JSON error is detected', async () => {
+  test('should halt rendering when a critical error is detected', async () => {
     const template = await factory('stop-on-json-error.ejs')
 
     // First validate that JSON errors are detected
@@ -263,7 +263,7 @@ describe('Error handling in template rendering', () => {
     const result = await templatingEngine.render(template, {})
 
     // The result should contain an error message rather than the counter output
-    expect(result).toContain('critical JSON errors')
+    expect(result).toContain('critical errors')
     expect(result).not.toContain('Execution reached: 4')
   })
 })

@@ -514,7 +514,7 @@ export default class TemplatingEngine {
           // For this specific case, combine both error messages to make both tests pass
           result += `**Template contains critical errors.**\n\`\`\`\n${errorMessage.trim()}\n\`\`\``
         } else {
-          // For JSON errors, use the standard message format that the critical JSON error test expects
+          // For JSON errors, use the standard message format that the critical error test expects
           result += `**Template contains critical errors.**`
         }
       } else {
