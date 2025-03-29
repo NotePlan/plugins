@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated for 2.1.10
+// Last updated for 2.2.0.a10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -78,8 +78,11 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const thisWeekHeadings: Array<string> = currentWeeklyNote ? getHeadingsFromNote(currentWeeklyNote, false, true, true, true) : []
     const nextWeekHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
+    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
     const thisWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisWeekHeadings.length
+
         ? // $FlowIgnore[incompatible-type]
           [
             {
@@ -90,7 +93,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
               // $FlowFixMe[incompatible-type]
               options: thisWeekHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -107,7 +110,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
               // $FlowFixMe[incompatible-type]
               options: nextWeekHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],

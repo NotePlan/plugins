@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-02-24 for v2.2.0.a4, @jgclark
+// Last updated 2025-03-29 for v2.2.0.a10, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -203,6 +203,8 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const thisMonthHeadings: Array<string> = currentMonthlyNote ? getHeadingsFromNote(currentMonthlyNote, false, true, true, true) : []
     const nextMonthHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
+    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
     const thisMonthFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisMonthHeadings.length
         ? // $FlowIgnore[incompatible-type]
@@ -215,7 +217,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
               // $FlowFixMe[incompatible-type]
               options: thisMonthHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -232,7 +234,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
               // $FlowFixMe[incompatible-type]
               options: nextMonthHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -406,6 +408,8 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const thisQuarterHeadings: Array<string> = currentQuarterlyNote ? getHeadingsFromNote(currentQuarterlyNote, false, true, true, true) : []
     const nextQuarterHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
+    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
     const thisQuarterFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisQuarterHeadings.length
         ? // $FlowIgnore[incompatible-type]
@@ -418,7 +422,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
               // $FlowFixMe[incompatible-type]
               options: thisQuarterHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -435,7 +439,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
               // $FlowFixMe[incompatible-type]
               options: nextQuarterHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],

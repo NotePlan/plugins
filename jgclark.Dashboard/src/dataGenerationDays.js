@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated for 2.1.10
+// Last updated for 2.2.0.a10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -97,10 +97,12 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const todayHeadings: Array<string> = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, false) : []
     const tomorrowHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, false) : []
+    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
+    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
     const todayFormFields: Array<TSettingItem> = formFieldsBase.concat(
       todayHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: todayHeadings, noWrapOptions: true, value: defaultHeadingToAddTo }]
         : [],
     )
     const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
@@ -115,7 +117,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
               // $FlowIgnore[incompatible-type]
               options: tomorrowHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -502,10 +504,12 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const tomorrowHeadings: Array<string> = tomorrowsNote ? getHeadingsFromNote(tomorrowsNote, false, true, true, false) : []
+    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
+    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
     const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
       tomorrowHeadings.length
         ? // $FlowIgnore[incompatible-type]
-        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: tomorrowHeadings, noWrapOptions: true, value: defaultHeadingToAddTo }]
         : [],
     )
 

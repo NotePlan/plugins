@@ -6,6 +6,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component) -->
 
 ## [2.2.0.a10] 2025-03-28
+### Fixed
+- removed '<<carry forward>>' as a possible heading from the 'add a new task/checklist' dialog
+
 ### DEV Changes
 - Changed `= DataStore.settings` to "go the long way around" as well as the setters.
 - Added memoization to reduce re-renders:
