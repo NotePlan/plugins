@@ -180,7 +180,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // const isDesktop = pluginData.platform === 'macOS'
   let numItemsToShow = itemsToShow.length
 
-  const sectionTitleLineButtons = section.actionButtons?.filter((b) => b.actionName.startsWith('add') || b.actionName.startsWith('close'))
+  const buttonsWithoutBordersOrBackground = section.actionButtons?.filter((b) => b.actionName.startsWith('add') || b.actionName.startsWith('close'))
   let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add') && !b.actionName.startsWith('close'))
 
   // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
@@ -248,7 +248,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   /**
    * Layout of sectionInfo = 4 divs:
-   * - sectionInfoFirstLine = grid of sectionName div and sectionTitleLineButtons div
+   * - sectionInfoFirstLine = grid of sectionName div and buttonsWithoutBordersOrBackground div
    * - sectionDescription
    * - sectionProcessButtons = 0 or more processActionButtons
    * On normal width screen these are a row-based grid (1x3).
@@ -272,8 +272,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
             </div>
           </TooltipOnKeyPress>
           {/* {' '} */}
-          <div className={`sectionTitleLineButtons ${section.sectionTitleColorPart ?? ''}`}>
-            {sectionTitleLineButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="addButton" />) ?? []}
+          <div className={`buttonsWithoutBordersOrBackground ${section.sectionTitleColorPart ?? ''}`}>
+            {buttonsWithoutBordersOrBackground?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="addButton" />) ?? []}
           </div>
         </div>
 

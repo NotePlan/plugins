@@ -216,6 +216,34 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     setIsSearchOpen((prevState) => !prevState)
   }
 
+  function handleButtonClick(_event: MouseEvent, controlStr: string, handlingFunction: string) {
+    // const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(_event) // Indicates whether a modifier key was pressed
+    // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
+    // const currentContent = para.content
+    logDebug(
+      `Header handleButtonClick`,
+      `Button clicked on controlStr: ${controlStr}, handlingFunction: ${handlingFunction}`,
+    )
+    // $FlowIgnore[prop-missing]
+    // const updatedContent = inputRef?.current?.getValue() || ''
+    // if (controlStr === 'update') {
+    //   logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
+    // }
+    // let handlingFunctionToUse = handlingFunction
+    // const actionType = (noteType === 'Calendar' && !resched) ? 'moveFromCalToCal' : 'rescheduleItem'
+    // logDebug(`DialogForTaskItems`, `handleButtonClick - actionType calculated:'${actionType}', resched?:${String(resched)}`)
+
+    const dataToSend = {
+      // ...detailsMessageObject,
+      actionType: handlingFunction,
+      controlStr: controlStr,
+      // updatedContent: currentContent !== updatedContent ? updatedContent : '',
+      // sectionCodes: sectionCodes,
+    }
+
+    sendActionToPlugin(handlingFunction, dataToSend, `Header requesting call to ${handlingFunction}`, true)
+  }
+
   /**
    * Closes the search panel
    */
@@ -300,6 +328,15 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           ) : ( */}
             <SearchBar onSearch={handleSearch} />
           {/* )} */}
+
+          {/* TODO(later): see if we can get a better DynamicDialog for this */}
+          <button
+            className="buttonsWithoutBordersOrBackground"
+            title="Add new task"
+            onClick={(e) => handleButtonClick(e, 'qath', 'addTaskAnywhere')}
+          >
+            <i className="fa-regular fa-hexagon-plus"></i>
+          </button>
 
           {/* Feature Flags dropdown */}
           {isDevMode && (

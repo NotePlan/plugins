@@ -103,7 +103,7 @@ export async function getSomeSectionsData(
       if (projectSection) sections.push(projectSection)
     }
     // The rest can all be slow to generate
-    if (sectionCodesToGet.includes('SAVEDSEARCH') && config.showSearchSection) sections.push(...(await getSavedSearchResults(config, useDemoData)))
+    if (sectionCodesToGet.includes('SAVEDSEARCH')) sections.push(...(await getSavedSearchResults(config, useDemoData)))
     if (sectionCodesToGet.includes('TAG') && config.tagsToShow) {
       // v1:
       // const tagSections = getTaggedSections(config, useDemoData).filter((s) => s) //get rid of any nulls
@@ -742,7 +742,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
   }
 
   // Return section details, even if no items found
-  const tagSectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
+  const tagSectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}${config?.FFlag_UseTagCache ? ', using tag cache' : ''}` // TODO(later): remove note about the tag cache
   const section: TSection = {
     ID: sectionNumStr,
     name: sectionDetail.sectionName,

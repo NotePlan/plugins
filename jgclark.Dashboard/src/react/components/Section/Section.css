@@ -1,5 +1,5 @@
 /* CSS specific to Section components and their children.
-/* Last updated 2025-02-23 for v2.2.0.a3, @jgclark */
+/* Last updated 2025-03-30 for v2.2.0.a10, @jgclark */
 
 /* The main grid for a section: sectionInfo then sectionGrid. */
 .section {
@@ -26,7 +26,7 @@
 	border-right: 1px solid var(--divider-color);
 }
 
-/* first part of sectionInfo. Grid to contain sectionIcon, sectionName, .sectionTitleLineButtons */
+/* first part of sectionInfo. Grid to contain sectionIcon, sectionName, .buttonsWithoutBordersOrBackground */
 .sectionInfoFirstLine {
 	display: grid;
 	grid-template-columns: auto auto;
@@ -59,18 +59,21 @@
 }
 
 /* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
-.sectionTitleLineButtons {
+.buttonsWithoutBordersOrBackground {
 	display: inline-flex;
 	gap: 0.4rem;
 	justify-self: end;
-	align-self: flex-start;
+	/* align-self: flex-start; /* Doesn't seem to be needed */
 	border: 0px none;
 	box-shadow: none;
 	padding-top: 1px;
+	padding-left: unset;
+	padding-right: unset;
+	background-color: unset;
 }
 
 /* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
-.iOS .sectionTitleLineButtons, .iPadOS .sectionTitleLineButtons {
+.iOS .buttonsWithoutBordersOrBackground, .iPadOS .buttonsWithoutBordersOrBackground {
 	gap: 0.9rem !important; /* haven't tested whether !important is needed here */
 	font-size: 1.0rem !important;
 }
@@ -174,7 +177,7 @@
 	}
 
 	/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
-	.sectionTitleLineButtons {
+	.buttonsWithoutBordersOrBackground {
 		justify-self: start;
 		padding-top: 2px;
 	}

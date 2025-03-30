@@ -5,11 +5,15 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO(later): v2.3.0 UI to set the searchTerm and search options.
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component) -->
 
-## [2.2.0.a10] 2025-03-28
+## [2.2.0.a10] 2025-03-30
+### Changed
+- added 'You can turn off Perspective filtering in the Dashboard settings.' help text if you get 0 search results. Also fixed '... using 'X' Perspective filtering' message appearing when it shouldn't.
 ### Fixed
 - removed '<<carry forward>>' as a possible heading from the 'add a new task/checklist' dialog
+- Made workaround for `undefined` value of NP timeblockTextMustContainString preference
 
 ### DEV Changes
+- Re-enabled tagCache feature flag back in, and relevant commands '/generateTagMentionCache', '/updateTagMentionCache' and '/testTagCache'.
 - Changed `= DataStore.settings` to "go the long way around" as well as the setters.
 - Added memoization to reduce re-renders:
   1. Memoizing the `PerspectiveSelector` and `RefreshControl` components so they only re-render when their props actually change

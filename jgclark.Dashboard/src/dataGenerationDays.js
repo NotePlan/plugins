@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated for 2.2.0.a10
+// Last updated 2025-03-30 for 2.2.0.a10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -182,17 +182,17 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           submitOnEnter: true,
           submitButtonText: 'Add & Close',
         },
-        {
-          actionName: 'addTaskToFuture',
-          actionParam: thisFilename,
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-calendar-plus sidebarDaily" ></i> ',
-          tooltip: 'Add a new task to future note',
-          postActionRefresh: [], // Note: very likely to go to a note that isn't going to be shown in the dashboard, but can't be guaranteed
-          formFields: anyDayFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
+        // {
+        //   actionName: 'addTaskToFuture',
+        //   actionParam: thisFilename,
+        //   actionPluginID: `${pluginJson['plugin.id']}`,
+        //   display: '<i class= "fa-regular fa-calendar-plus sidebarDaily" ></i> ',
+        //   tooltip: 'Add a new task to future note',
+        //   postActionRefresh: [], // Note: very likely to go to a note that isn't going to be shown in the dashboard, but can't be guaranteed
+        //   formFields: anyDayFormFields,
+        //   submitOnEnter: true,
+        //   submitButtonText: 'Add & Close',
+        // },
         {
           actionName: 'moveAllTodayToTomorrow',
           actionPluginID: `${pluginJson['plugin.id']}`,
