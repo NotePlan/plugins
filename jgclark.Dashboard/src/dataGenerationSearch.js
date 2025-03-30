@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-03-27 for v2.2.0.a9, @jgclark
+// Last updated 2025-03-30 for v2.2.0.a10, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -161,10 +161,10 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     // If there are no items, then we need to show a message instead of an empty section
     if (items.length === 0) {
       let message = `No results found for search [${searchTermsStr}]`
-      if (config.usePerspectives) {
+      if (config.usePerspectives && config.applyCurrentFilteringToSearch) {
         const perspectiveSettings = await getPerspectiveSettings()
         const perspectiveName = getActivePerspectiveName(perspectiveSettings)
-        message += ` using '${perspectiveName}' Perspective filtering`
+        message += ` using '${perspectiveName}' Perspective filtering. You can turn off Perspective filtering in the Dashboard settings.`
       }
       items.push({
         ID: `${sectionNumStr}-Empty`,
@@ -308,11 +308,12 @@ export async function getSavedSearchResults(
     // If there are no items, then we need to show a message instead of an empty section
     if (items.length === 0) {
       let message = `No results found for search [${searchTermsStr}]`
-      if (config.usePerspectives) {
+      if (config.usePerspectives && config.applyCurrentFilteringToSearch) {
         const perspectiveSettings = await getPerspectiveSettings()
         const perspectiveName = getActivePerspectiveName(perspectiveSettings)
-        message += ` using '${perspectiveName}' Perspective filtering`
+        message += ` using '${perspectiveName}' Perspective filtering. You can turn off Perspective filtering in the Dashboard settings.`
       }
+      // TODO: add a link to the section offering to open settings
       items.push({
         ID: `${sectionNumStr}-Empty`,
         itemType: 'noSearchResults',
