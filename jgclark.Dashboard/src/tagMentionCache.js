@@ -4,8 +4,11 @@
 // last updated for v2.1.10, 2025-02-14 by @jgclark
 //-----------------------------------------------------------------------------
 
+// TODO:
+// - Add a new function to get the list of all hashtags and mentions listed in all perspectives, and use that to populate the wantedTagMentionsList.json file.
+
 /**
- * WARNING: In a weird development (literally), I found that a refactor of the original findNotesWithMatchingHashtag() suddenly made it now as fast, if not faster, as this new Cache.
+ * Note: In a weird development (literally), I (JGC) found that a refactor of the original findNotesWithMatchingHashtag() suddenly made it now as fast, if not faster, as this new Cache.
  * I didn't take out any code, so I'm mystified. 
  * But not complaining, particularly as this still had some work required.
  */
@@ -98,11 +101,11 @@ export async function getNotesWithTagOrMention(tagOrMentions: Array<string>, fir
     const calNoteItems = parsedCache.calendarNotes
     const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
 
-    // From Cache get from calendar notes first
+    // Get from Calendar notes using Cache
     let outputList = calNoteItems.filter((item) => item.tags.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename)
     outputList = outputList.concat(calNoteItems.filter((item) => item.mentions.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename))
 
-    // From Cache then get from regular notes
+    // Get from Regular notes using Cache
     outputList = outputList.concat(regularNoteItems.filter((item) => item.tags.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename))
     outputList = outputList.concat(regularNoteItems.filter((item) => item.mentions.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename))
     logTimer('getNotesWithTagMention', startTime, `- ${String(outputList.length)} notes found with wanted tag/mention [${String(tagOrMentions)}]:`, 400)
@@ -189,7 +192,7 @@ export async function updateTagMentionCache(): Promise<void> {
     // Note: can't get a timestamp from plugin files, so need to use a separate preference
     logDebug('updateTagMentionCache', `About to read ${tagMentionCacheFile} ...`)
     if (!DataStore.fileExists(tagMentionCacheFile)) {
-      logDebug('updateTagMentionCache', `${tagMentionCacheFile} file does not exist, so re-generating the cache from scratch.`)
+      logWarn('updateTagMentionCache', `${tagMentionCacheFile} file does not exist, so re-generating the cache from scratch.`)
       await generateTagMentionCache()
       return
     }
@@ -214,7 +217,7 @@ export async function updateTagMentionCache(): Promise<void> {
     const momPrevious = moment(previousJSDate)
     const momNow = moment()
     const fileAgeMins = momNow.diff(momPrevious, 'minutes')
-    logDebug('updateTagMentionCache', `Last updated ${fileAgeMins} mins ago (previous time: ${momPrevious.format()} / now time: ${momNow.format()})`)
+    logDebug('updateTagMentionCache', `Last updated ${fileAgeMins.toFixed(3)} mins ago (previous time: ${momPrevious.format()} / now time: ${momNow.format()})`)
 
     // Find all notes updated since the last time this was run
     const jsdateToStartLooking = momPrevious.toDate()
