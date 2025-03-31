@@ -315,7 +315,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'addTaskAnywhere': {
         // Note: calls Quick Capture plugin /qath command which doesn't return anything
-        await doAddTaskAnywhere()
+        result = await doAddTaskAnywhere()
         break
       }
       case 'addTaskToFuture': {

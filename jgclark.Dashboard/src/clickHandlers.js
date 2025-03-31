@@ -22,12 +22,7 @@ import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { processChosenHeading } from '@helpers/userInput'
-import {
-  getWindowFromCustomId,
-  getLiveWindowRectFromWin,
-  rectToString,
-  storeWindowRect,
-} from '@helpers/NPWindows'
+import { getWindowFromCustomId, getLiveWindowRectFromWin, rectToString, storeWindowRect } from '@helpers/NPWindows'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -129,9 +124,11 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
  * @param {MessageDataObject} {date: .data.data.data, text: .data.data.}
  * @returns {TBridgeClickHandlerResult} result to be used by click result handler
  */
-export async function doAddTaskAnywhere(): Promise<void> {
+export async function doAddTaskAnywhere(): Promise<TBridgeClickHandlerResult> {
   logDebug('doAddTaskAnywhere', `starting. Just calling addTaskToNoteHeading().`)
   const res = await DataStore.invokePluginCommandByName('quick add task under heading', 'jgclark.QuickCapture') // with no args, this will prompt for the note, heading and text
+  // we don't get a return value from the command, so we just return true
+  return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'], {})
 }
 
 /**
