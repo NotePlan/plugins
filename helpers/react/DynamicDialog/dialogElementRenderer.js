@@ -199,6 +199,7 @@ export function renderItem({
             inputRef={inputRef}
             compactDisplay={item.compactDisplay || false}
             noWrapOptions={item.noWrapOptions || true}
+            isEditable={item.isEditable || false}
           />
         )
       case 'text':
