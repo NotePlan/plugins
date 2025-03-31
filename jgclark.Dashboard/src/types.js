@@ -159,6 +159,7 @@ export type TSectionItem = {
   // updated will be set by the copyUpdatedSectionItemData function when content is modified
   parentID?: string, // if this is a sub-task, this holds the ID of the parent task if that is also an open item (required for displaying children properly with their parents in useSelectionSortAndFilter)
   message?: string, // for items that don't have a para or project
+  settingsDialogAnchor?: string, // scroll to this element when the gear icon is clicked
 }
 
 // reduced paragraph definition
@@ -352,6 +353,10 @@ export type TReactSettings = {
   dialogData?: TDialogData,
   interactiveProcessing?: TInteractiveProcessing,
   perspectivesTableVisible?: boolean,
+  settingsDialog?: {
+    isOpen: boolean,
+    scrollTarget?: string,
+  },
 }
 
 export type TPluginData = {

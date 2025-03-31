@@ -33,18 +33,17 @@ function ItemRow({ item, thisSection }: Props): Node {
       {itemType === 'project' ? (
         <ProjectItem item={item} />
       ) : itemType === 'projectCongrats' ? (
-          <MessageOnlyItem message={"No Projects need reviewing: take a break"} contentClassName="projectCongrats" closingFAIconClassName="fa-solid fa-mug" />
-        ) : itemType === 'noSearchResults' ? (
-          <MessageOnlyItem message={item?.message ?? ""} contentClassName="noSearchResults" />
+        <MessageOnlyItem message={'No Projects need reviewing: take a break'} contentClassName="projectCongrats" closingFAIconClassName="fa-solid fa-mug" />
+      ) : itemType === 'noSearchResults' ? (
+        <MessageOnlyItem message={item?.message ?? ''} contentClassName="noSearchResults" settingsDialogAnchor={item?.settingsDialogAnchor ?? ''} />
       ) : itemType === 'filterIndicator' ? (
         <TasksFiltered item={item} />
-            ) : itemType === 'itemCongrats' ? (
-                // <NoTasks />
-                <MessageOnlyItem message={"Nothing left on this list"} contentClassName="itemCongrats" closingFAIconClassName="fa-light fa-champagne-glasses pad-left" />
-
-              // ) : itemType === 'timeblock' ? (
-              //   <TimeBlockInfo item={item} thisSection={thisSection} />
+      ) : itemType === 'itemCongrats' ? (
+        // <NoTasks />
+        <MessageOnlyItem message={'Nothing left on this list'} contentClassName="itemCongrats" closingFAIconClassName="fa-light fa-champagne-glasses pad-left" />
       ) : (
+        // ) : itemType === 'timeblock' ? (
+        //   <TimeBlockInfo item={item} thisSection={thisSection} />
         <TaskItem item={item} thisSection={thisSection} />
       )}
     </>

@@ -5,10 +5,8 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { extendedSearch, } from '../../jgclark.SearchExtensions/src/externalSearch'
-import type {
-  noteAndLine, resultOutputType, TSearchOptions
-} from '../../jgclark.SearchExtensions/src/searchHelpers'
+import { extendedSearch } from '../../jgclark.SearchExtensions/src/externalSearch'
+import type { noteAndLine, resultOutputType, TSearchOptions } from '../../jgclark.SearchExtensions/src/searchHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { savedSearch1 } from './demoData'
 import type { TDashboardSettings, TSection, TSectionItem } from './types'
@@ -19,7 +17,7 @@ import {
   isLineDisallowedByExcludedTerms,
   makeDashboardParas,
   mergeSections,
-  setPluginData
+  setPluginData,
 } from './dashboardHelpers'
 import { getActivePerspectiveName, getPerspectiveSettings } from './perspectiveHelpers'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -50,7 +48,7 @@ export async function externallyStartSearch(
   // Compile the searchOptions object
   const foldersToExcludePlusArchive = config.applyCurrentFilteringToSearch && config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
   foldersToExcludePlusArchive.push('@Archive')
-  const noteTypesToIncludeArr: Array<string> = (noteTypesToIncludeStr === 'both') ? ['notes', 'calendar'] : stringListOrArrayToArray(noteTypesToIncludeStr, ',')
+  const noteTypesToIncludeArr: Array<string> = noteTypesToIncludeStr === 'both' ? ['notes', 'calendar'] : stringListOrArrayToArray(noteTypesToIncludeStr, ',')
   const searchOptions: TSearchOptions = {
     noteTypesToInclude: noteTypesToIncludeArr,
     paraTypesToInclude: config.ignoreChecklistItems ? ['open', 'scheduled'] : ['open', 'scheduled', 'checklist', 'checklistScheduled'],
@@ -59,7 +57,7 @@ export async function externallyStartSearch(
     caseSensitiveSearching: false,
     fullWordSearching: true,
     fromDateStr: fromDateStr,
-    toDateStr: toDateStr ? toDateStr : (config.dontSearchFutureItems) ? getTodaysDateHyphenated() : '',
+    toDateStr: toDateStr ? toDateStr : config.dontSearchFutureItems ? getTodaysDateHyphenated() : '',
   }
 
   // Start a search
@@ -161,15 +159,18 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     // If there are no items, then we need to show a message instead of an empty section
     if (items.length === 0) {
       let message = `No results found for search [${searchTermsStr}]`
+      let settingsDialogAnchor = ''
       if (config.usePerspectives && config.applyCurrentFilteringToSearch) {
         const perspectiveSettings = await getPerspectiveSettings()
         const perspectiveName = getActivePerspectiveName(perspectiveSettings)
         message += ` using '${perspectiveName}' Perspective filtering. You can turn off Perspective filtering in the Dashboard settings.`
+        settingsDialogAnchor = 'searchSection'
       }
       items.push({
         ID: `${sectionNumStr}-Empty`,
         itemType: 'noSearchResults',
         message: message,
+        settingsDialogAnchor: settingsDialogAnchor,
       })
     }
 
@@ -196,7 +197,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
         {
           actionName: 'closeSection',
           actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Close this Search section",
+          tooltip: 'Close this Search section',
           display: '<i class= "fa-solid fa-circle-xmark"></i> ',
           actionParam: 'SEARCH',
           postActionRefresh: [],
@@ -345,7 +346,7 @@ export async function getSavedSearchResults(
         {
           actionName: 'closeSection',
           actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Close this Search section",
+          tooltip: 'Close this Search section',
           display: '<i class= "fa-solid fa-circle-xmark"></i> ',
           actionParam: 'SEARCH', // TODO: Will need to be smarter if we have multiple 'SAVEDSEARCH' sections
           postActionRefresh: [],

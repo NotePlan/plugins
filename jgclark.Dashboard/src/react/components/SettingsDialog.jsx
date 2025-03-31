@@ -31,8 +31,6 @@ type SettingsDialogProps = {
   onSaveChanges?: (updatedSettings: { [key: string]: any }) => void,
   className?: string,
   labelPosition?: 'left' | 'right',
-  isOpen: boolean,
-  toggleDialog: () => void,
   style?: Object, // Add style prop
 }
 
@@ -41,18 +39,16 @@ type SettingsDialogProps = {
 //--------------------------------------------------------------------------
 
 const SettingsDialog = ({
-  items, // won't chaange unless its parent changes it
+  items, // won't change unless its parent changes it
   onSaveChanges = () => {}, // optional in case Header wants to do something else
   className,
   labelPosition = 'right',
-  isOpen,
-  toggleDialog,
   style, // Destructure style prop
 }: SettingsDialogProps): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, pluginData, sendActionToPlugin } = useAppContext()
+  const { dashboardSettings, pluginData, sendActionToPlugin, reactSettings, setReactSettings } = useAppContext()
 
   const pluginDisplayVersion = `v${pluginData?.version || ''}`
 
@@ -97,7 +93,13 @@ const SettingsDialog = ({
   const handleEscapeKey = (event: KeyboardEvent) => {
     // logDebug('SettingsDialog', `Event.key: ${event.key}`)
     if (event.key === 'Escape') {
-      toggleDialog()
+      setReactSettings((prev) => ({
+        ...prev,
+        settingsDialog: {
+          ...prev?.settingsDialog,
+          isOpen: false,
+        },
+      }))
     }
   }
 
@@ -129,7 +131,13 @@ const SettingsDialog = ({
       }
       onSaveChanges(newSettings)
     }
-    toggleDialog()
+    setReactSettings((prev) => ({
+      ...prev,
+      settingsDialog: {
+        ...prev?.settingsDialog,
+        isOpen: false,
+      },
+    }))
   }
 
   // const handleDropdownOpen = () => {
@@ -144,17 +152,30 @@ const SettingsDialog = ({
   // Effects
   //----------------------------------------------------------------------
 
+  // Effect to handle scrolling to target when dialog opens
   useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscapeKey)
-    } else if (dialogRef.current instanceof HTMLDialogElement) {
-      dialogRef.current.close()
-      document.removeEventListener('keydown', handleEscapeKey)
+    if (reactSettings?.settingsDialog?.scrollTarget) {
+      // Wait for dialog to be fully rendered
+      setTimeout(() => {
+        const targetElement = reactSettings?.settingsDialog?.scrollTarget ? document.querySelector(`[data-settings-key="${reactSettings?.settingsDialog.scrollTarget}"]`) : null
+        if (targetElement) {
+          logDebug('SettingsDialog/useEffect', `Scrolling to element [${reactSettings?.settingsDialog.scrollTarget}]`)
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        } else {
+          logDebug('SettingsDialog/useEffect', `No target element found for scrollTarget=${reactSettings?.settingsDialog.scrollTarget}`)
+          return
+        }
+        // Clear the scroll target after scrolling
+        setReactSettings((prev) => ({
+          ...prev,
+          settingsDialog: {
+            ...prev?.settingsDialog,
+            scrollTarget: null,
+          },
+        }))
+      }, 100)
     }
-    return () => {
-      document.removeEventListener('keydown', handleEscapeKey)
-    }
-  }, [isOpen])
+  }, [reactSettings?.settingsDialog?.scrollTarget])
 
   // useEffect(() => {
   //   const dropdown = dropdownRef.current
@@ -190,12 +211,29 @@ const SettingsDialog = ({
   return (
     <Modal
       onClose={() => {
-        toggleDialog()
+        setReactSettings((prev) => ({
+          ...prev,
+          settingsDialog: {
+            ...prev?.settingsDialog,
+            isOpen: false,
+          },
+        }))
       }}
     >
       <div ref={dialogRef} className={`settings-dialog ${className || ''}`} style={style} onClick={(e) => e.stopPropagation()}>
         <div className="settings-dialog-header">
-          <button className="PCButton cancel-button" onClick={toggleDialog}>
+          <button
+            className="PCButton cancel-button"
+            onClick={() => {
+              setReactSettings((prev) => ({
+                ...prev,
+                settingsDialog: {
+                  ...prev?.settingsDialog,
+                  isOpen: false,
+                },
+              }))
+            }}
+          >
             Cancel
           </button>
           <span className="settings-dialog-title">Dashboard Settings</span>
@@ -210,7 +248,7 @@ const SettingsDialog = ({
         <div className="settings-dialog-content">
           {/* Iterate over all the settings */}
           {items.map((item, index) => (
-            <div key={`sdc${index}`}>
+            <div key={`sdc${index}`} data-settings-key={item.key}>
               {renderItem({
                 index,
                 item: {

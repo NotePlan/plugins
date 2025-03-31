@@ -49,9 +49,8 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 
 export const searchPanelSettings: Array<TSettingItem> = [
   // TODO: fill in
-  {}
+  {},
 ]
-
 
 // This section is an array that describes the order and type of the individual settings
 // The current value for each TYPE of setting (or the fallback) is set later in this file in createDashboardSettingsItems()
@@ -115,7 +114,8 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: 'applyIgnoreTermsToCalendarHeadingSections',
     label: 'Apply to sections under headings in Calendar notes?',
-    description: 'If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored. (This applies to the preceding headings all the way up the H5->H1 hierarchy of section headings for that line.)',
+    description:
+      'If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored. (This applies to the preceding headings all the way up the H5->H1 hierarchy of section headings for that line.)',
     type: 'switch',
     default: false,
     compactDisplay: true,
@@ -173,7 +173,8 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: 'newTaskSectionHeadingLevel',
     label: 'Heading level for new Headings',
-    description: 'Heading level (1-5) to use when adding new headings in notes. Note: you can also set this to 0 which means add task under the heading, but only if it already exists.',
+    description:
+      'Heading level (1-5) to use when adding new headings in notes. Note: you can also set this to 0 which means add task under the heading, but only if it already exists.',
     type: 'number',
     default: 2,
     compactDisplay: true,
@@ -285,11 +286,13 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
     label: 'Search section',
+    key: 'searchSection',
   },
   {
     key: 'applyCurrentFilteringToSearch',
     label: 'Apply current filtering to Search?',
-    description: 'If set, then the search will use the "What to Include and Exclude?" settings above to filter the search results before displaying them. If not set, then the search will run over all open items.',
+    description:
+      'If set, then the search will use the "What to Include and Exclude?" settings above to filter the search results before displaying them. If not set, then the search will run over all open items.',
     type: 'switch',
     default: true,
     compactDisplay: true,
@@ -378,12 +381,14 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
       case 'separator':
         return {
           type: 'separator',
+          key: thisKey,
         }
       case 'heading':
         return {
           type: 'heading',
           label: setting.label || '',
           description: setting.description || '',
+          key: thisKey,
         }
       // $FlowIgnore[incompatible-type] don't understand the error
       case 'header': // Note: deliberately the same as 'heading' above.
@@ -391,6 +396,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'heading',
           label: setting.label || '',
           description: setting.description || '',
+          key: thisKey,
         }
       case 'switch':
         return {

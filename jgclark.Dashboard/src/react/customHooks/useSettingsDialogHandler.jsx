@@ -1,30 +1,47 @@
 /* eslint-disable no-unused-vars */
 // @flow
 //--------------------------------------------------------------------------
-// Custom hook to handle the SettingsDialog in the Header component.
-// Last updated 25.5.2024 for v2.0.0 by @jgclark
+// Custom hook to handle the SettingsDialog state through reactSettings context.
+// Last updated 2024-03-27 for v2.2.0 by @jgclark
 //--------------------------------------------------------------------------
 
-import { useEffect, useState } from 'react'
+import { useAppContext } from '../components/AppContext.jsx'
+import type { TReactSettings } from '../../types.js'
 
 type SettingsDialogHandlerReturnType = {
   isDialogOpen: boolean,
-  handleToggleDialog: () => void,
-};
+  openDialog: (scrollTarget?: ?string) => void,
+  closeDialog: () => void,
+}
 
-export const useSettingsDialogHandler = (sendActionToPlugin:Function): SettingsDialogHandlerReturnType => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+export const useSettingsDialogHandler = (): SettingsDialogHandlerReturnType => {
+  const { reactSettings, setReactSettings } = useAppContext()
 
-  const handleToggleDialog = () => {
-    setIsDialogOpen(!isDialogOpen)
+  const openDialog = (scrollTarget?: ?string): void => {
+    setReactSettings((prev: TReactSettings) => ({
+      ...prev,
+      settingsDialog: {
+        ...prev?.settingsDialog,
+        isOpen: true,
+        scrollTarget,
+      },
+    }))
   }
 
-  useEffect(() => {
-    // Add any necessary effect logic here
-  }, [isDialogOpen])
+  const closeDialog = (): void => {
+    setReactSettings((prev: TReactSettings) => ({
+      ...prev,
+      settingsDialog: {
+        ...prev?.settingsDialog,
+        isOpen: false,
+        scrollTarget: null,
+      },
+    }))
+  }
 
   return {
-    isDialogOpen,
-    handleToggleDialog,
+    isDialogOpen: reactSettings?.settingsDialog?.isOpen ?? false,
+    openDialog,
+    closeDialog,
   }
 }

@@ -46,7 +46,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // ----------------------------------------------------------------------
   // Context
   // ----------------------------------------------------------------------
-  const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData } = useAppContext()
+  const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData, reactSettings, setReactSettings } = useAppContext()
+  const { isDialogOpen, openDialog, closeDialog } = useSettingsDialogHandler()
 
   // ----------------------------------------------------------------------
   // Hooks
@@ -58,7 +59,6 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // ----------------------------------------------------------------------
   const [openDropdownMenu, setOpenDropdownMenu] = useState<string | null>(null)
   const [tempDashboardSettings, setTempDashboardSettings] = useState({ ...dashboardSettings }) // for queuing up changes from dropdown menu to be applied when it is closed
-  const { isDialogOpen, handleToggleDialog } = useSettingsDialogHandler(sendActionToPlugin)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [lastSearchPanelToggleTime, setLastSearchPanelToggleTime] = useState(0)
   // State to track if the panel should be rendered
@@ -220,10 +220,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     // const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(_event) // Indicates whether a modifier key was pressed
     // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
     // const currentContent = para.content
-    logDebug(
-      `Header handleButtonClick`,
-      `Button clicked on controlStr: ${controlStr}, handlingFunction: ${handlingFunction}`,
-    )
+    logDebug(`Header handleButtonClick`, `Button clicked on controlStr: ${controlStr}, handlingFunction: ${handlingFunction}`)
     // $FlowIgnore[prop-missing]
     // const updatedContent = inputRef?.current?.getValue() || ''
     // if (controlStr === 'update') {
@@ -326,15 +323,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
               ></i>
             </div>
           ) : ( */}
-            <SearchBar onSearch={handleSearch} />
+          <SearchBar onSearch={handleSearch} />
           {/* )} */}
 
           {/* TODO(later): see if we can get a better DynamicDialog for this */}
-          <button
-            className="buttonsWithoutBordersOrBackground"
-            title="Add new task"
-            onClick={(e) => handleButtonClick(e, 'qath', 'addTaskAnywhere')}
-          >
+          <button className="buttonsWithoutBordersOrBackground" title="Add new task" onClick={(e) => handleButtonClick(e, 'qath', 'addTaskAnywhere')}>
             <i className="fa-regular fa-hexagon-plus"></i>
           </button>
 
@@ -353,15 +346,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           )}
 
           {/* Render the SettingsDialog only when it is open */}
-          {isDialogOpen && (
-            <SettingsDialog
-              items={dashboardSettingsItems}
-              className={'dashboard-settings'}
-              isOpen={isDialogOpen}
-              toggleDialog={handleToggleDialog}
-              onSaveChanges={handleChangesInSettings}
-            />
-          )}
+          {isDialogOpen && <SettingsDialog items={dashboardSettingsItems} className={'dashboard-settings'} onSaveChanges={handleChangesInSettings} />}
 
           {/* Display toggles dropdown menu */}
           <DropdownMenu
@@ -378,7 +363,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           />
           {/* Cog Icon for opening the settings dialog */}
           <div className="dropdown">
-            <i className="fa-solid fa-gear" onClick={handleToggleDialog}></i>
+            <i className="fa-solid fa-gear" onClick={() => openDialog()}></i>
           </div>
         </div>
       </header>
