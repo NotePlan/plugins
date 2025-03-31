@@ -17,13 +17,14 @@ import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
 import RefreshControl from '../RefreshControl.jsx'
 import { DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
+import CommandButton from '../CommandButton.jsx'
 import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
 import PerspectiveSelector from './PerspectiveSelector.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
-import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
+// import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
 import './Header.css'
 
 // --------------------------------------------------------------------------
@@ -161,6 +162,74 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       sendActionToPlugin(actionType, { actionType: actionType, sectionCodes: visibleSectionCodes }, 'Refresh button clicked', true)
     }
 
+  /**
+   * Handles the search event.
+   * @param {string} query - The search query.
+   */
+  const handleSearch = (query: string): void => {
+    console.log('Header: handleSearch', `Search query:${query}`) // not OK here
+    // Send request to plugin to start a search
+    const data = {
+      stringToEvaluate: query,
+      from: 'searchBar',
+    }
+    sendActionToPlugin('startSearch', data, 'Search button clicked', false)
+  }
+
+  /**
+   * Handles the click event for the search icon.
+   * If the panel is open (X is showing), it will close the panel.
+   * If the panel is closed (search icon is showing), it will open the panel.
+   * @param {Object} e - The mouse event
+   */
+  const handleSearchPanelIconClick = (e: any) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const now = Date.now()
+    // Prevent toggling too quickly (within 300ms)
+    if (now - lastSearchPanelToggleTime < 300) {
+      return
+    }
+
+    setLastSearchPanelToggleTime(now)
+
+    // Force the state to be the opposite of what it currently is
+    setIsSearchOpen((prevState) => !prevState)
+  }
+
+  function handleButtonClick(_event: MouseEvent, controlStr: string, handlingFunction: string) {
+    // const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(_event) // Indicates whether a modifier key was pressed
+    // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
+    // const currentContent = para.content
+    logDebug(`Header handleButtonClick`, `Button clicked on controlStr: ${controlStr}, handlingFunction: ${handlingFunction}`)
+    // $FlowIgnore[prop-missing]
+    // const updatedContent = inputRef?.current?.getValue() || ''
+    // if (controlStr === 'update') {
+    //   logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
+    // }
+    // let handlingFunctionToUse = handlingFunction
+    // const actionType = (noteType === 'Calendar' && !resched) ? 'moveFromCalToCal' : 'rescheduleItem'
+    // logDebug(`DialogForTaskItems`, `handleButtonClick - actionType calculated:'${actionType}', resched?:${String(resched)}`)
+
+    const dataToSend = {
+      // ...detailsMessageObject,
+      actionType: handlingFunction,
+      controlStr: controlStr,
+      // updatedContent: currentContent !== updatedContent ? updatedContent : '',
+      // sectionCodes: sectionCodes,
+    }
+
+    sendActionToPlugin(handlingFunction, dataToSend, `Header requesting call to ${handlingFunction}`, true)
+  }
+
+  /**
+   * Closes the search panel
+   */
+  const closeSearchPanel = () => {
+    setIsSearchOpen(false)
+  }
+
   // ----------------------------------------------------------------------
   // Constants
   // ----------------------------------------------------------------------
@@ -177,7 +246,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const showRefreshButton = pluginData.platform !== 'iOS'
   const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
   const isMobile = pluginData.platform !== 'macOS'
-  const isNarrowWidth = window.innerWidth <= 680
+  const isNarrowWidth = window.innerWidth <= 700
+  const isSearchPanelAvailable = /* isDevMode && */ dashboardSettings?.FFlag_ShowSearchPanel
 
   // ----------------------------------------------------------------------
   // Render
@@ -205,27 +275,43 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         </div>
       )}
 
-      {!(isMobile || isNarrowWidth) && (
+      <div className="lowerPrioritySpace">
+        {/* {!(isMobile || isNarrowWidth) && ( */}
         <div className="lastRefreshInfo">
           {/* <> */}
           Updated: <span id="timer">{timeAgoText}</span>
           {/* </> */}
         </div>
-      )}
+        {/* )} */}
 
-      {/* TODO: use this to test out modals + tooltips. Needs a trigger button first. */}
-      {/* <div>
-        <ModalWithTooltip
-          tooltipTextNoModifier="tooltip with no extra key pressed"
-          tooltipTextCmdModifier="tooltip with ⌘ key pressed"
-        />
-      </div>
- */}
-      {!(isMobile || isNarrowWidth) && (
+        {/* {!(isMobile || isNarrowWidth) && ( */}
         <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
-      )}
+        {/* )} */}
+      </div>
 
-      <div id="dropdowns" className="dropdownButtons">
+      <div className="headerActionIconButtons">
+        {/* {isSearchPanelAvailable ? (
+            <div id="searchPanelButton">
+              <i
+                className={`fa-solid ${isSearchOpen ? 'fa-xmark' : 'fa-search'}`}
+                onClick={handleSearchPanelIconClick}
+                onMouseDown={(e) => {
+                  // Prevent default to avoid any unwanted behavior
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+                title={isSearchOpen ? 'Close search panel' : 'Open search panel'}
+              ></i>
+            </div>
+          ) : ( */}
+        <SearchBar onSearch={handleSearch} />
+        {/* )} */}
+
+        {/* TODO(later): see if we can get a better DynamicDialog for this */}
+        <button className="buttonsWithoutBordersOrBackground" title="Add new task" onClick={(e) => handleButtonClick(e, 'qath', 'addTaskAnywhere')}>
+          <i className="fa-regular fa-hexagon-plus"></i>
+        </button>
+
         {/* Feature Flags dropdown */}
         {isDevMode && (
           <DropdownMenu

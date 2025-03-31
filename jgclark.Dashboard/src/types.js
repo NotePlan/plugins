@@ -184,6 +184,7 @@ export type TProjectForDashboard = {
 
 // details for a UI button
 export type TActionButton = {
+  style?: Object, // for the dialog style - overriding height etc
   display: string,
   actionPluginID: string,
   actionName: TActionType,

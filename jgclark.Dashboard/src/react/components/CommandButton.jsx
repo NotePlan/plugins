@@ -14,11 +14,12 @@ type ButtonProps = {
   onClick: (button: TActionButton) => void, // send this button info back up
   className: string,
   // param: string,
+  children: React$Node,
 }
 
 function CommandButton(inputObj: ButtonProps): React$Node {
   const { sendActionToPlugin } = useAppContext()
-  const { button, onClick, className } = inputObj
+  const { button, onClick, className, children } = inputObj
 
   // Note: For adding icons to button display, tried this approach but decided it's not flexible enough:
   // const possIconBefore = (button.iconBefore !== '') ? <i className={`${button.iconBefore} padRight`}></i> : ''
@@ -40,6 +41,7 @@ function CommandButton(inputObj: ButtonProps): React$Node {
     if (button.formFields) {
       // show dialog to get user input if formFields are defined
       userInputObj = await showDialog({
+        style: button.style,
         items: button.formFields,
         title: button.tooltip,
         submitOnEnter: button.submitOnEnter,
@@ -55,7 +57,13 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   return (
     <>
       {/* {' '} */}
-      <button className={`${className} tooltip`} data-tooltip={button.tooltip} onClick={handleButtonClick} dangerouslySetInnerHTML={{ __html: button.display }}></button>
+      {children ? (
+        <button className={`${className} tooltip`} data-tooltip={button.tooltip} onClick={handleButtonClick}>
+          {children}
+        </button>
+      ) : (
+        <button className={`${className} tooltip`} data-tooltip={button.tooltip} onClick={handleButtonClick} dangerouslySetInnerHTML={{ __html: button.display }}></button>
+      )}
     </>
   )
 }
