@@ -149,20 +149,21 @@ const DropdownSelect = ({
   const optionsRef = useRef<?ElementRef<'div'>>(null)
 
   // Calculate the width based on the longest option if fixedWidth is not provided
+  // v2 calculates in `ch` units; v1 did it in `px` units.
   const calculateWidth = () => {
     if (fixedWidth) return fixedWidth
     const longestOption = normalizedOptions.reduce((max, option) => {
       return option.label.length > max.length ? option.label : max
     }, '')
-    const canvas = document.createElement('canvas')
-    const context = canvas.getContext('2d')
-    if (context && dropdownRef.current) {
-      const computedStyle = window.getComputedStyle(dropdownRef.current)
-      context.font = computedStyle.font || '16px Arial' // Use computed font from CSS
-      const textWidth = context.measureText(longestOption).width
-      return textWidth + 40 // Add extra space for padding and dropdown arrow
-    }
-    return 200 // Fallback width
+    // const canvas = document.createElement('canvas')
+    // const context = canvas.getContext('2d')
+    // if (context && dropdownRef.current) {
+    //   const computedStyle = window.getComputedStyle(dropdownRef.current)
+    //   context.font = computedStyle.font || '16px Arial' // Use computed font from CSS
+    //   const textWidth = context.measureText(longestOption).width
+    //   return textWidth + 40 // Add extra space for padding and dropdown arrow
+    // }
+    return longestOption.length // No need in practice to add extra space for padding and dropdown arrow
   }
 
   useLayoutEffect(() => {
@@ -234,16 +235,16 @@ const DropdownSelect = ({
   }
 
   const findScrollableAncestor = (el: HTMLElement): ?HTMLElement => {
-    let currentEl: ?Element = el
-    while (currentEl && currentEl.parentElement) {
-      currentEl = currentEl.parentElement
-      if (currentEl instanceof HTMLElement) {
-        const style = window.getComputedStyle(currentEl)
+    let currentElement: ?Element = el
+    while (currentElement && currentElement.parentElement) {
+      currentElement = currentElement.parentElement
+      if (currentElement instanceof HTMLElement) {
+        const style = window.getComputedStyle(currentElement)
         const overflowY = style.overflowY
-        const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && currentEl.scrollHeight > currentEl.clientHeight
+        const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && currentElement.scrollHeight > currentElement.clientHeight
         if (isScrollable) {
-          logDebug(`Found scrollable ancestor: `, currentEl)
-          return currentEl
+          logDebug(`Found scrollable ancestor: `, currentElement.tagName)
+          return currentElement
         }
       }
     }
@@ -364,7 +365,7 @@ const DropdownSelect = ({
       <label className="dropdown-select-label" style={mergeStyles({}, styles.label)}>
         {label}
       </label>
-      <div className="dropdown-select-wrapper" style={mergeStyles({ width: `${calculatedWidth}px` }, styles.wrapper)} onClick={disabled ? undefined : toggleDropdown}>
+      <div className="dropdown-select-wrapper" style={mergeStyles({ width: `${calculatedWidth}ch` }, styles.wrapper)} onClick={disabled ? undefined : toggleDropdown}>
         <div
           className="dropdown-select-input-container"
           style={mergeStyles(
@@ -372,7 +373,7 @@ const DropdownSelect = ({
               display: 'flex',
               alignItems: 'center',
               position: 'relative',
-              width: `${calculatedWidth}px`,
+              width: `${calculatedWidth}ch`,
             },
             styles.inputContainer || {},
           )}
@@ -394,7 +395,7 @@ const DropdownSelect = ({
           </span>
         </div>
         {isOpen && (
-          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}px`, maxHeight: '80vh', overflowY: 'auto' }, styles.dropdown)}>
+          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}ch`, maxHeight: '80vh', overflowY: 'auto' }, styles.dropdown)}>
             {filteredOptions.map((option: Option, i) => {
               if (option.type === 'separator') {
                 return <div key={option.value} style={styles.separator}></div>
