@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-03-30 for v2.2.0.a10, @jgclark
+// Last updated 2025-03-31 for v2.2.0.a10
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -163,7 +163,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
       if (config.usePerspectives && config.applyCurrentFilteringToSearch) {
         const perspectiveSettings = await getPerspectiveSettings()
         const perspectiveName = getActivePerspectiveName(perspectiveSettings)
-        message += ` using '${perspectiveName}' Perspective filtering. You can turn off Perspective filtering in the Dashboard settings.`
+        message += ` using '${perspectiveName}' Perspective filtering. You can turn off Perspective filtering in the Dashboard settings:`
         settingsDialogAnchor = 'searchSection'
       }
       items.push({
@@ -221,6 +221,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
 
 /**
  * Get saved search results from all items in NP (constrained by searchOptions).
+ * TODO: This is not yet complete or used, but the structure is for future expansion.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData (optional, default is false)
  * @returns {Array<TSection>} new section(s) for search results
@@ -245,7 +246,7 @@ export async function getSavedSearchResults(
     let searchTermsRep: string = '?'
     const startTime = new Date() // for timing only
 
-    // TODO: rework this
+    // TODO: rework this, as with function above.
     const searchOptions: TSearchOptions = {
       noteTypesToInclude: ['notes', 'calendar'],
       paraTypesToInclude: config.ignoreChecklistItems ? ['open', 'scheduled'] : ['open', 'scheduled', 'checklist', 'checklistScheduled'],
@@ -258,12 +259,15 @@ export async function getSavedSearchResults(
     }
 
     if (useDemoData) {
+      // $FlowFixMe[prop-missing]
       items.push(...savedSearch1.items)
       itemCount = items.length
       searchTermsStr = savedSearch1.name
       searchTermsRep = savedSearch1.rep
     } else {
+      // TODO: This is not yet complete or used, but the structure is for future expansion.
       return []
+
       // // Sort out searchOptions
       // const searchTermsStr = searchTermsArg
       // // extend given search terms with the current term(s) to filter out as extra -term(s)
@@ -276,7 +280,7 @@ export async function getSavedSearchResults(
       //   searchOptions.toDateStr = getTodaysDateHyphenated()
       //   logDebug('getSavedSearchResults', `- searchOptions.toDateStr: ${String(searchOptions.toDateStr)}`)
       // }
-      // // TODO: filter out future items from the search results, to catch items from regular notes as well as calendar notes
+      // // Filter out future items from the search results, to catch items from regular notes as well as calendar notes
       // // TODO: ...
 
       // // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
@@ -309,16 +313,20 @@ export async function getSavedSearchResults(
     // If there are no items, then we need to show a message instead of an empty section
     if (items.length === 0) {
       let message = `No results found for search [${searchTermsStr}]`
+      let settingsDialogAnchor = ''
       if (config.usePerspectives && config.applyCurrentFilteringToSearch) {
         const perspectiveSettings = await getPerspectiveSettings()
         const perspectiveName = getActivePerspectiveName(perspectiveSettings)
-        message += ` using '${perspectiveName}' Perspective filtering. You can turn off Perspective filtering in the Dashboard settings.`
+        message += ` using '${perspectiveName}' Perspective filtering. You can turn off Perspective filtering in the Dashboard settings:`
+        settingsDialogAnchor = 'searchSection'
+
       }
-      // TODO: add a link to the section offering to open settings
+      // Add a link to the section offering to open settings
       items.push({
         ID: `${sectionNumStr}-Empty`,
         itemType: 'noSearchResults',
         message: message,
+        settingsDialogAnchor: settingsDialogAnchor,
       })
     }
 
