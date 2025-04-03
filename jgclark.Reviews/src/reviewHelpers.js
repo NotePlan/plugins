@@ -360,7 +360,7 @@ export function getOrMakeMetadataLine(note: CoreNoteFields, metadataLinePlacehol
 // eslint-disable-next-line no-unused-vars
 // export async function saveEditorToCache(completed: any): Promise<void> {
 //   logDebug('saveEditorToCache', 'waiting for Editor.save ...')
-//   await Editor.save()
+//   await saveEditorIfNecessary()
 //   logDebug('saveEditorToCache', '... done')
 // }
 
@@ -513,7 +513,7 @@ export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>
     metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
     Editor.updateParagraph(metadataPara)
     // await saveEditorToCache() // seems to stop here but without error
-    logDebug('deleteMetadataMentionInEditor', `- After update ${metadataPara.content}`)
+    logDebug('deleteMetadataMentionInEditor', `- Finished`)
   } catch (error) {
     logError('deleteMetadataMentionInEditor', `${error.message}`)
   }
@@ -555,7 +555,7 @@ export function deleteMetadataMentionInNote(noteToUse: CoreNoteFields, mentionsT
     // send update to noteToUse (removing multiple and trailing spaces)
     metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
     noteToUse.updateParagraph(metadataPara)
-    logDebug('deleteMetadataMentionInNote', `- After update ${metadataPara.content}`)
+    logDebug('deleteMetadataMentionInNote', `- Finished`)
   } catch (error) {
     logError('deleteMetadataMentionInNote', `${error.message}`)
   }

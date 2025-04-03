@@ -291,6 +291,7 @@ declare interface TEditor extends CoreNoteFields {
   /**
    * Save content of Editor to file. This can be used before updateCache() to ensure latest changes are available quickly.
    * Warning: beware possiblity of this causing an infinite loop, particularly if used in a function call be an onEditorWillSave trigger.
+   * WARNING: from @jgclark and @dwertheimer: use helper editor.js function saveEditorIfNecessary() instead, as too often this silently fails, and stops plugins from running.
    * Note: Available from 3.9.3
    */
   save(): Promise<void>;
