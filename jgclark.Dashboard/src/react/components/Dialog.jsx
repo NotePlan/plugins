@@ -11,7 +11,7 @@ import DialogForTaskItems from './DialogForTaskItems.jsx'
 import { useAppContext } from './AppContext.jsx'
 import Modal from './Modal'
 import { clo, JSP, logDebug } from '@helpers/react/reactDev.js'
-import '../css/DashboardDialog.css'
+import '../css/dashboardDialog.css'
 
 type RefType<T> = {| current: null | T |}
 
@@ -48,7 +48,6 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
         const dialogHeight = dialog.offsetHeight
         setPositionForDialog(thisOS, dialogWidth, dialogHeight, dialog, clickPosition)
       }
-
     }
   }
 
@@ -71,22 +70,13 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
   return isOpen ? (
     <Modal onClose={() => onDialogClose(true)}>
       {isTask ? (
-        <DialogForTaskItems 
-          onClose={onDialogClose} 
-          details={details} 
-          positionDialog={positionDialog} 
-        />
+        <DialogForTaskItems onClose={onDialogClose} details={details} positionDialog={positionDialog} />
       ) : (
-        <DialogForProjectItems 
-          onClose={onDialogClose} 
-          details={details} 
-          positionDialog={positionDialog} 
-        />
+        <DialogForProjectItems onClose={onDialogClose} details={details} positionDialog={positionDialog} />
       )}
     </Modal>
   ) : null
 }
-
 
 /**
  * @jgclark's original function but fixed to take into account where you are in the scroll
@@ -125,11 +115,10 @@ function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight:
     // x = mousex - Math.round(dialogWidth / 3) + scrollX
     x = mousex - Math.round(dialogWidth / 3)
     // if (x + dialogWidth > winWidth + scrollX) {
-    if (x + dialogWidth > (winWidth - fudgeFactor)) {
+    if (x + dialogWidth > winWidth - fudgeFactor) {
       // x = winWidth - fudgeFactor - dialogWidth + scrollX
       x = winWidth - fudgeFactor - dialogWidth
       logDebug('setPositionForDialog', `- moved x left to be in viewport -> x=${String(x)}`)
-
     }
     // if (x < fudgeFactor + scrollX) {
     if (x < fudgeFactor) {
