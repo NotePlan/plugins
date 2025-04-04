@@ -20,10 +20,10 @@
 	justify-content: space-between; 
 	/* Space between next-level items */
 	gap: 0.6rem;
-	font-size: 0.95rem; /* was 0.9rem for a while */
+	font-size: 0.95rem;
 	align-items: center;
 	/* Padding around the header content */
-	padding: 4px 1.0rem 3px 0.5rem;
+	padding: 5px 1.0rem 4px 0.5rem;
 	border-bottom: solid 1px var(--divider-color);
 	background-color: var(--bg-sidebar-color);
 	/* Ensure the header uses the full width -- if contained width:Nvw set to less than 100 */
@@ -31,11 +31,11 @@
 	z-index: 10;
 }
 
-:focus {
+/* :focus {
 	border-color: var(--tint-color);
 	box-shadow: 0 0 2px var(--tint-color);
 	outline: none;
-}
+} */
 
 /* MESSAGE_BANNER w3.css overrides */
 .iOS .header, .iPadOS .header {
