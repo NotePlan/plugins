@@ -5,12 +5,14 @@
 //
 // Includes logic to either disable focus when isEditable=false,
 // and logic to only scroll if needed, plus an optional prop to disable scrolling altogether.
+// Last updated 2025-04-05 by @jgclark
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, useMemo, type ElementRef, useLayoutEffect } from 'react'
 import './DropdownSelect.css'
-import { clo, logDebug } from '@helpers/react/reactDev'
+import { clo, logDebug, logInfo } from '@helpers/react/reactDev'
 
 declare var NP_THEME: any
+const maxChars = 50 // to show in dropdown
 
 export type Option = {
   label: string,
@@ -155,15 +157,9 @@ const DropdownSelect = ({
     const longestOption = normalizedOptions.reduce((max, option) => {
       return option.label.length > max.length ? option.label : max
     }, '')
-    // const canvas = document.createElement('canvas')
-    // const context = canvas.getContext('2d')
-    // if (context && dropdownRef.current) {
-    //   const computedStyle = window.getComputedStyle(dropdownRef.current)
-    //   context.font = computedStyle.font || '16px Arial' // Use computed font from CSS
-    //   const textWidth = context.measureText(longestOption).width
-    //   return textWidth + 40 // Add extra space for padding and dropdown arrow
-    // }
-    return longestOption.length // No need in practice to add extra space for padding and dropdown arrow
+    // We can still get some ridiculously long options if there are URLs in a heading, so limit to maxChars characters
+    // logDebug(`DropdownSelect::calculateWidth`, `longestOption.length: ${longestOption.length} / maxChars: ${maxChars}`)
+    return Math.min(longestOption.length, maxChars) // No need in practice to add extra space for padding and dropdown arrow
   }
 
   useLayoutEffect(() => {
@@ -365,7 +361,11 @@ const DropdownSelect = ({
       <label className="dropdown-select-label" style={mergeStyles({}, styles.label)}>
         {label}
       </label>
-      <div className="dropdown-select-wrapper" style={mergeStyles({ width: `${calculatedWidth}ch` }, styles.wrapper)} onClick={disabled ? undefined : toggleDropdown}>
+      <div className="dropdown-select-wrapper"
+        style={mergeStyles({
+          // width: `max(${calculatedWidth}ch, 90%)`
+        }, styles.wrapper)}
+        onClick={disabled ? undefined : toggleDropdown}>
         <div
           className="dropdown-select-input-container"
           style={mergeStyles(
@@ -373,7 +373,8 @@ const DropdownSelect = ({
               display: 'flex',
               alignItems: 'center',
               position: 'relative',
-              width: `${calculatedWidth}ch`,
+              width: `max(${calculatedWidth}ch, 98%)`,
+              // width: '100%',
             },
             styles.inputContainer || {},
           )}
@@ -395,7 +396,11 @@ const DropdownSelect = ({
           </span>
         </div>
         {isOpen && (
-          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}ch`, maxHeight: '80vh', overflowY: 'auto' }, styles.dropdown)}>
+          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({
+            // width: `max(${calculatedWidth}ch, 98%)`,
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }, styles.dropdown)}>
             {filteredOptions.map((option: Option, i) => {
               if (option.type === 'separator') {
                 return <div key={option.value} style={styles.separator}></div>
@@ -416,7 +421,8 @@ const DropdownSelect = ({
                   )}
                 >
                   {showIndicator && <span style={dot(option[showIndicatorOptionProp] === true, styles.indicator || {})} />}
-                  <span className="option-label" style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
+                  <span className="option-label"
+                    style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
                     {option.label}
                   </span>
                 </div>

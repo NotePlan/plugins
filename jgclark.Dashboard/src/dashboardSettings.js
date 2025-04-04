@@ -321,7 +321,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     options: ['priority', 'earliest', 'most recent'],
     default: 'priority',
     compactDisplay: true,
-    fixedWidth: 150,
+    // fixedWidth: 150,
   },
   {
     key: 'lookBackDaysForOverdue',
