@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2025-03-14 for v2.2.0.a8, @jgclark
+// Last updated 2025-03-31 for v2.2.0.a10
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -56,7 +56,7 @@ import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickH
 import { scheduleAllOverdueOpenToToday, scheduleAllTodayTomorrow, scheduleAllYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
 import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas, setPluginData } from './dashboardHelpers'
-// import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
+// import { showDashboardReact } from './reactMain' // Note: fixed circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
@@ -102,7 +102,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const filename = data.item?.para?.filename ?? '<no filename found>'
     let content = data.item?.para?.content ?? '<no content found>'
     const updatedContent = data.updatedContent ?? ''
-    let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
+    // set default return value for each call; mostly overridden below with success
+    let result: TBridgeClickHandlerResult = { success: false }
 
     logDebug(`************* bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} *************`)
     // clo(data, 'bridgeClickDashboardItem received data object; data=')
@@ -147,8 +148,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'windowReload': {
         // Used by 'Hard Refresh' button for devs
         const useDemoData = false
-        // await showDashboardReact('full', useDemoData) // Note: cause of circular dependency, so ...
-        // TEST: trying Plugin command invocation instead
+        // Using Plugin command invocation rather than `await showDashboardReact('full', useDemoData)` to avoid circular dependency
         DataStore.invokePluginCommandByName('Show Dashboard', 'jgclark.Dashboard', ['full', useDemoData])
         result = { success: true }
         return
@@ -249,10 +249,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doShowLineInEditorFromFilename(data)
         break
       }
-      // case 'showLineInEditorFromTitle': {
-      //   result = await doShowLineInEditorFromTitle(data)
-      //   break
-      // }
       case 'moveToNote': {
         result = await doMoveToNote(data)
         break
@@ -315,7 +311,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'addTaskAnywhere': {
         // Note: calls Quick Capture plugin /qath command which doesn't return anything
-        result = await doAddTaskAnywhere()
+        await doAddTaskAnywhere()
+        result = { success: true }
         break
       }
       case 'addTaskToFuture': {
@@ -348,8 +345,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'startSearch': {
         console.log(`pluginToHTMLBridge: startSearch: data:${JSP(data)}`)
-        // $FlowFixMe[incompatible-call] 
-        TODO: await externallyStartSearch(data.stringToEvaluate)
+        await externallyStartSearch(data.stringToEvaluate ?? '')
         result = {
           success: true,
           sectionCodes: ['SEARCH'],
@@ -374,7 +370,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     logTimer('bridgeClickDashboardItem', startTime, `for bridgeClickDashboardItem: "${data.actionType}" before processActionOnReturn()`, 1000)
     if (result) {
       await processActionOnReturn(result, data) // process all actions based on result of handler
-      // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', {msg:"Action processed\n\n\n\n\nYASSSSS" })
     } else {
       logWarn('bCDI', `false result from call`)
     }

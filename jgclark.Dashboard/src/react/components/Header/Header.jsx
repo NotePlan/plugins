@@ -326,9 +326,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           <SearchBar onSearch={handleSearch} />
           {/* )} */}
 
-          {/* TODO(later): see if we can get a better DynamicDialog for this */}
-          <button className="buttonsWithoutBordersOrBackground" title="Add new task" onClick={(e) => handleButtonClick(e, 'qath', 'addTaskAnywhere')}>
-            <i className="fa-regular fa-hexagon-plus"></i>
+          {/* addItem button. TODO(later): see if we can get a better DynamicDialog for this */}
+          <button accessKey="a" className="buttonsWithoutBordersOrBackground" title="Add new task/checklist" onClick={(e) => handleButtonClick(e, 'qath', 'addTaskAnywhere')}>
+            <i className="fa-solid fa-hexagon-plus"></i>
           </button>
 
           {/* Feature Flags dropdown */}
@@ -348,8 +348,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           {/* Render the SettingsDialog only when it is open */}
           {isDialogOpen && <SettingsDialog items={dashboardSettingsItems} className={'dashboard-settings'} onSaveChanges={handleChangesInSettings} />}
 
-          {/* Display toggles dropdown menu */}
+          {/* Display Filters dropdown menu */}
           <DropdownMenu
+            accessKey="f"
             onSaveChanges={handleChangesInSettings}
             sectionItems={dropdownSectionItems}
             otherItems={dropdownOtherItems}
@@ -362,9 +363,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             labelPosition="left"
           />
           {/* Cog Icon for opening the settings dialog */}
-          <div className="dropdown">
-            <i className="fa-solid fa-gear" onClick={() => openDialog()}></i>
-          </div>
+          <button accessKey="," className="dropdown buttonsWithoutBordersOrBackground" onClick={() => openDialog()} title="Open Dashboard Settings dialog">
+            <i className="fa-solid fa-gear"></i>
+          </button>
         </div>
       </header>
 

@@ -39,6 +39,7 @@ type DropdownMenuProps = {
   labelPosition?: 'left' | 'right',
   isOpen: boolean,
   toggleMenu: () => void,
+  accessKey?: string,
 }
 
 //--------------------------------------------------------------------------
@@ -64,6 +65,7 @@ function DropdownMenu({
   labelPosition = 'right',
   isOpen,
   toggleMenu,
+  accessKey = '',
 }: DropdownMenuProps): Node {
   //----------------------------------------------------------------------
   // Refs
@@ -195,7 +197,7 @@ function DropdownMenu({
   // Render
   //----------------------------------------------------------------------
   return (
-    <div className={`dropdown ${className}`} ref={dropdownRef}>
+    <div accessKey={accessKey} className={`dropdown ${className}`} ref={dropdownRef}>
       <i className={iconClass} onClick={toggleMenu}></i>
       <div className={`dropdown-content  ${isOpen ? 'show' : ''}`}>
         <div className="changes-pending">{changesMade ? `Changes pending. Will be applied when you close the menu.` : ''}</div>
