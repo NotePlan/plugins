@@ -16,6 +16,7 @@ import DropdownSelect from './DropdownSelect.jsx'
 import TextComponent from './TextComponent.jsx'
 import ThemedSelect from './ThemedSelect.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
+import ContextAwareSelect from './ContextAwareSelect.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import type { Option } from './DropdownSelect.jsx'
 import { Button, ButtonGroup } from './ButtonComponents.jsx'
@@ -191,6 +192,32 @@ export function renderItem({
             value={item.value || ''}
             onChange={(selectedOption: Option | null) => {
               if (selectedOption && typeof selectedOption.value === 'string') {
+                const value = selectedOption.value
+                item.key && handleFieldChange(item.key, value)
+                item.key && handleComboChange(item.key, value)
+              }
+            }}
+            inputRef={inputRef}
+            compactDisplay={item.compactDisplay || false}
+            noWrapOptions={item.noWrapOptions || true}
+          />
+        )
+      case 'context-aware-select':
+        return (
+          <ContextAwareSelect
+            disabled={disabled}
+            key={`ctxsel${index}`}
+            label={thisLabel}
+            getContextOptions={item.getContextOptions}
+            initialOptions={item.initialOptions || []}
+            defaultValue={item.defaultValue}
+            onNewOptions={(newOptions) => {
+              if (item.onNewOptions) {
+                item.onNewOptions(newOptions)
+              }
+            }}
+            onChange={(selectedOption) => {
+              if (selectedOption) {
                 const value = selectedOption.value
                 item.key && handleFieldChange(item.key, value)
                 item.key && handleComboChange(item.key, value)
