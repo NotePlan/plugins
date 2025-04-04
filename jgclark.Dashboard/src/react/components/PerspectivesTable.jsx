@@ -49,7 +49,7 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
   const [changesMade, setChangesMade] = useState(false) // Manage changesMade state here
 
   // Filter out some settingDefs that are not relevant to the PerspectivesTable
-  const settingDefsForTable = settingDefs.filter((settingDef) => settingDef.key !== 'perspectivesEnabled' && settingDef.label !== 'Perspectives' && settingDef.label !== 'Logging' && settingDef.label !== '' && settingDef.type !== "separator")
+  const settingDefsForTable = settingDefs.filter((settingDef) => settingDef.key !== 'usePerspectives' && settingDef.label !== 'Perspectives' && settingDef.label !== 'Logging' && settingDef.label !== '' && settingDef.type !== "separator")
 
   // Handler for field changes
   const handleFieldChange = (perspectiveIndex: number, key: string, value: any) => {
@@ -185,7 +185,7 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
           </thead>
           <tbody>
             {settingDefsForTable.map((settingDef, settingIndex) => {
-            // .filter((settingDef) => settingDef.key !== 'perspectivesEnabled' && settingDef.label !== 'Perspectives' && settingDef.label !== 'Logging')
+              // .filter((settingDef) => settingDef.key !== 'usePerspectives' && settingDef.label !== 'Perspectives' && settingDef.label !== 'Logging')
             // .map((settingDef, settingIndex) => {
             //   if (settingDef.type === 'separator') {
             //     // Note: Removed by JGC 26.1.2025, as it doesn't seem to be used

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated for v2.1.8
+// Last updated 2025-03-14 for v2.2.0.a8, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,6 +29,7 @@ import {
   // doSetSpecificDate,
   doToggleType,
   doUnscheduleItem,
+  doWindowResized,
   // turnOffPriorityItemsFilter
 } from './clickHandlers'
 import {
@@ -57,6 +58,7 @@ import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './move
 import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas, setPluginData } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
+import { externallyStartSearch } from './dataGenerationSearch'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
@@ -231,11 +233,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doEvaluateString(data)
         break
       }
-      // case 'windowResized': {
-      // TODO(later: work on this
-      // result = await doWindowResized()
-      // break
-      // }
+      case 'windowResized': {
+        result = await doWindowResized()
+        break
+      }
       case 'showNoteInEditorFromFilename': {
         result = await doShowNoteInEditorFromFilename(data)
         break
@@ -314,7 +315,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'addTaskAnywhere': {
         // Note: calls Quick Capture plugin /qath command which doesn't return anything
-        await doAddTaskAnywhere()
+        result = await doAddTaskAnywhere()
         break
       }
       case 'addTaskToFuture': {
@@ -343,6 +344,27 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'commsBridgeTest': {
         result = await doCommsBridgeTest(data)
+        break
+      }
+      case 'startSearch': {
+        console.log(`pluginToHTMLBridge: startSearch: data:${JSP(data)}`)
+        // $FlowFixMe[incompatible-call] 
+        TODO: await externallyStartSearch(data.stringToEvaluate)
+        result = {
+          success: true,
+          sectionCodes: ['SEARCH'],
+          actionsOnSuccess: [],
+          errorMsg: '',
+        }
+        break
+      }
+      case 'closeSection': {
+        result = {
+          success: true,
+          sectionCodes: ['SEARCH'],
+          actionsOnSuccess: ['CLOSE_SECTION'],
+          errorMsg: '',
+        }
         break
       }
       default: {
@@ -450,6 +472,21 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
           logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for non-Project: {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFromLineChange()`)
           await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para'])
         }
+      }
+
+      if (actionsOnSuccess.includes('CLOSE_SECTION')) {
+        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        // Remove the search section from the sections array
+        const sections = reactWindowData.pluginData.sections
+        logDebug('processActionOnReturn', `Starting CLOSE_SECTION with ${sections.length} sections: ${String(sections.map((s) => s.sectionCode).join(','))}.`)
+        const sectionIndex = sections.findIndex((section) => section.sectionCode === 'SEARCH')
+        logDebug('processActionOnReturn', `CLOSE_SECTION for section #${String(sectionIndex)}`)
+        sections.splice(sectionIndex, 1)
+        logDebug('processActionOnReturn', `Closed search section -> ${sections.length} sections: ${String(sections.map((s) => s.sectionCode).join(','))}.`)
+
+        // Set showSearchSection to false
+        reactWindowData.pluginData.showSearchSection = false
+        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Closed Search Section`)
       }
 
       if (actionsOnSuccess.includes('INCREMENT_DONE_COUNT')) {
@@ -560,14 +597,14 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
 
       if (indexes.length) {
         const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
-        clo(indexes, 'updateReactWindowFLC: indexes to update') // TEST: then TODO: turn off
-        clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`) // TEST: then TODO: turn off
+        // clo(indexes, 'updateReactWindowFLC: indexes to update')
+        // clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
         if (shouldRemove) {
           logDebug('updateReactWindowFLC', `-> removed item ${ID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
           indexes.reverse().forEach((index) => {
             const { sectionIndex, itemIndex } = index
             sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-            clo(sections[sectionIndex], `updateReactWindowFLC After splicing sections[${sectionIndex}]`) // TEST: then TODO: turn off
+            // clo(sections[sectionIndex], `updateReactWindowFLC After splicing sections[${sectionIndex}]`)
           })
         } else {
           sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)

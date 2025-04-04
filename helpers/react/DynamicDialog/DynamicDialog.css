@@ -35,7 +35,7 @@
     padding: 0.75rem 0.6rem;
     border-radius: 8px;
     overflow-y: auto; 
-    max-height: 80vh;
+    max-height: 90vh;
     font-size: 95%;
 }
 
@@ -127,6 +127,12 @@
         cursor: pointer;
     }
 
+    /* --------------------------------------------------------------- */
+    /* For fancy toggle as checkbox */
+    /* from [Pure CSS3 iOS switch checkbox by Pedro M. S. Duarte | codeburst](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb)
+    */
+    /* TODO: should this be in a separate css file as it is useful beyond just the dynamic dialog? */
+
     /* Apple Switch styling */
     input.apple-switch {
         position: relative;
@@ -135,8 +141,8 @@
         outline: none;
         width: 2.0rem;
         height: 1.1rem;
-        background-color: #EEE;
-        border: 1px solid #DDD;
+	    background-color: var(--bg-main-color); /*#EEE*/;
+    	/* border: 1px solid var(--divider-color); /*#DDD*/;
         border-radius: 2.0rem;
         margin-top: 0px;
         margin-right: 4px;
@@ -148,7 +154,7 @@
         position: absolute;
         top: 0px;
         left: 1px;
-        background: #FFF;
+        background: var(--fg-main-color); /* #FFF; */
         width: 1.0rem;
         height: 1.0rem;
         border-radius: 50%;

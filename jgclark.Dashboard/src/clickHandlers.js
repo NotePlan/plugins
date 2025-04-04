@@ -4,15 +4,17 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated for v2.1.10
+// Last updated 2025-03-14 for v2.2.0.a8, @jgclark
 //-----------------------------------------------------------------------------
 import moment from 'moment'
+import pluginJson from '../plugin.json'
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettings } from './perspectiveHelpers'
 import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TBridgeClickHandlerResult } from './types'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
+import { saveSettings } from '@helpers/NPConfiguration'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename, highlightParagraphInEditor } from '@helpers/NPParagraph'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { openNoteByFilename } from '@helpers/NPnote'
@@ -20,6 +22,7 @@ import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { processChosenHeading } from '@helpers/userInput'
+import { getWindowFromCustomId, getLiveWindowRectFromWin, rectToString, storeWindowRect } from '@helpers/NPWindows'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -32,6 +35,9 @@ import { processChosenHeading } from '@helpers/userInput'
 /****************************************************************************************************************************
  *                             Data types + constants
  ****************************************************************************************************************************/
+
+const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
+const windowCustomId = `${pluginID}.main`
 
 /****************************************************************************************************************************
  *                             HANDLERS
@@ -118,9 +124,11 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
  * @param {MessageDataObject} {date: .data.data.data, text: .data.data.}
  * @returns {TBridgeClickHandlerResult} result to be used by click result handler
  */
-export async function doAddTaskAnywhere(): Promise<void> {
+export async function doAddTaskAnywhere(): Promise<TBridgeClickHandlerResult> {
   logDebug('doAddTaskAnywhere', `starting. Just calling addTaskToNoteHeading().`)
   const res = await DataStore.invokePluginCommandByName('quick add task under heading', 'jgclark.QuickCapture') // with no args, this will prompt for the note, heading and text
+  // we don't get a return value from the command, so we just return true
+  return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'], {})
 }
 
 /**
@@ -376,16 +384,17 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
   }
 }
 
-// TODO(later): get working or remove
-// export function dowindowResized(data: MessageDataObject): TBridgeClickHandlerResult {
-//   logDebug('bCDI / windowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
-//   const thisWin = getWindowFromCustomId(windowCustomId)
-//   const rect = getLiveWindowRectFromWin(thisWin)
-//   if (rect) {
-//     // logDebug('bCDI / windowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
-//     storeWindowRect(windowCustomId)
-//   }
-// }
+// TEST:
+export function doWindowResized(): TBridgeClickHandlerResult {
+  logDebug('doWindowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
+  const thisWin = getWindowFromCustomId(windowCustomId)
+  const rect = getLiveWindowRectFromWin(thisWin)
+  if (rect) {
+    logDebug('doWindowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
+    storeWindowRect(windowCustomId)
+  }
+  return handlerResult(rect ? true : false)
+}
 
 // Handle a show note call simply by opening the note in the main Editor.
 // Note: use the showLine... variant of this (below) where possible
@@ -438,33 +447,15 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   }
 }
 
-// Note: not currently used
-// Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
-// export async function doShowLineInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-//   // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
-//   const { title, filename, content } = validateAndFlattenMessageObject(data)
-//   const note = await Editor.openNoteByTitle(title)
-//   if (note) {
-//     const res = highlightParagraphInEditor({ filename: note.filename, content: content }, true)
-//     logDebug(
-//       'bridgeClickDashboardItem',
-//       `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`,
-//     )
-//     return handlerResult(true)
-//   } else {
-//     logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title '${title}' in Editor`)
-//     return handlerResult(false)
-//   }
-// }
-
 /**
- * Update a single key in DataStore.settings
+ * Update a single key in DataStore.settings.
+ * Note: This is specific to dashboardSettings.
+ * Note: See doPerspectiveSettingsChanged() for updating perspectiveSettings.
  * @param {MessageDataObject} data - a MDO that should have a key "settings" with the items to be set to the settingName key
  * @param {string} settingName - the single key to set to the value of data.settings
  * @returns {TBridgeClickHandlerResult}
+ * @author @dwertheimer
  */
-//TODO: simplify this function to handle only dashboardSettings (maybe with perspectiveSettings) but not perspectiveSettings alone
-// it was too confusing to handle both, so I split it out into doPerspectiveSettingsChanged()
 export async function doSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
   clo(data, `doSettingsChanged() starting with data = `)
   const newSettings = data.settings
@@ -476,19 +467,22 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   if (settingName === 'dashboardSettings' && !data.perspectiveSettings) {
     let needToSetDash = false
     const perspectiveSettings = await getPerspectiveSettings()
-    if (newSettings.perspectivesEnabled) {
+    if (newSettings.usePerspectives) {
       // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
       const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
-      logDebug(`doSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${!Array.isArray(newSettings)}`)
+      logDebug(`doSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
       if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
         const cleanedSettings = cleanDashboardSettings(newSettings)
+        // TODO: We may need to ensure that recently added dashboardSettings are included here (see doSwitchToPerspective)
         const diff = compareObjects(activePerspDef.dashboardSettings, cleanedSettings, ['lastModified', 'lastChange'])
         clo(diff, `doSettingsChanged: diff`)
         // if !diff or  all the diff keys start with FFlag, then return
-        if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag') || d.startsWith('perspectivesEnabled'))) {
+        // FIXME(@dwertheimer): this line doesn't agree with its comment above.
+        if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag') || d.startsWith('usePerspectives'))) {
           logDebug(`doSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
-          DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) }
-          return handlerResult(true)
+          // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) }
+          const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) })
+          return handlerResult(res)
         } else {
           clo(diff, `doSettingsChanged: Setting perspective.isModified because of changes to settings:`)
         }
@@ -527,7 +521,8 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
     combinedUpdatedSettings.perspectiveSettings = JSON.stringify(perspectivesToSave)
   }
 
-  DataStore.settings = combinedUpdatedSettings
+  // DataStore.settings = combinedUpdatedSettings
+  const res = await saveSettings(pluginID, combinedUpdatedSettings)
   const updatedPluginData = { [settingName]: newSettings } // was also: serverPush: { [settingName]: true }
   if (perspectivesToSave) {
     // updatedPluginData.serverPush ? updatedPluginData.serverPush.perspectiveSettings = true
@@ -535,8 +530,8 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
     updatedPluginData.perspectiveSettings = perspectivesToSave
   }
   await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
-  const refreshes = settingName === 'dashboardSettings' ? ['REFRESH_ALL_ENABLED_SECTIONS'] : [] // don't refresh if we were saving just perspectiveSettings // TEST: changed from REFRESH_ALL_SECTIONS -- the last place this was used.
-  return handlerResult(true, refreshes)
+  const refreshes = settingName === 'dashboardSettings' ? ['REFRESH_ALL_ENABLED_SECTIONS'] : [] // don't refresh if we were saving just perspectiveSettings
+  return handlerResult(res, refreshes)
 }
 
 export async function doCommsBridgeTest(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {

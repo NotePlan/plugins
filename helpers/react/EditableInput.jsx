@@ -1,5 +1,10 @@
 // @flow
+//--------------------------------------------------------------------------
+// React component to show an editable input box
+//--------------------------------------------------------------------------
+
 import * as React from 'react'
+import { logInfo } from './reactDev'
 
 type Props = {
   /** The initial value for the input box, defaults to an empty string if not provided. */
@@ -10,6 +15,7 @@ type Props = {
   onChange?: (value: string) => void,
   useTextArea?: boolean,
   placeholder?: string,
+  onEnterPress?: () => void,
 }
 
 type RefType = {
@@ -25,6 +31,7 @@ type RefType = {
  * - `initialValue`: Optional. The text to display initially in the input field. Defaults to an empty string.
  * - `className`: Optional. A CSS class for styling the component.
  * - `onChange`: Optional. A function that is called whenever the input value changes.
+ * - `onEnterPress`: Optional. A function that is called when Enter key is pressed (without shift key).
  *
  * Ref Methods:
  * - `getValue`: Returns the current text value of the input.
@@ -55,6 +62,15 @@ const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardR
     }
   }
 
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      if (props.onEnterPress) {
+        props.onEnterPress()
+      }
+    }
+  }
+
   const handleBlur = () => {
     if (divRef.current && !divRef.current.textContent) {
       divRef.current.innerHTML = `<span class="placeholder">${props.placeholder || ''}</span>`
@@ -82,9 +98,21 @@ const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardR
   }, [inputValue, useTextArea, props.placeholder])
 
   return useTextArea ? (
-    <div ref={divRef} contentEditable className={`${props.className || ''} fullTextArea`} onInput={handleDivInput} onBlur={handleBlur} onFocus={handleFocus} />
+    <div ref={divRef}
+      contentEditable
+      className={`${props.className || ''} fullTextArea`}
+      onInput={handleDivInput}
+      onBlur={handleBlur}
+      onFocus={handleFocus}
+      onKeyDown={onKeyDown}
+    />
   ) : (
-    <input type="text" className={props.className || ''} value={inputValue} onChange={handleChange} />
+      <input type="text"
+        className={props.className || ''}
+        value={inputValue}
+        onChange={handleChange}
+        onKeyDown={onKeyDown}
+      />
   )
 })
 

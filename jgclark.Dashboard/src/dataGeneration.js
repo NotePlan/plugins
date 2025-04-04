@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated for v2.1.10
+// Last updated 2025-03-29 for v2.2.0.a10, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -23,7 +23,8 @@ import {
   makeDashboardParas,
 } from './dashboardHelpers'
 import { getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
-import { getProjectSectionData } from './dataGenerationProjects.js'
+import { getProjectSectionData } from './dataGenerationProjects'
+import { getSavedSearchResults } from './dataGenerationSearch'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
 import { openMonthParas, refMonthParas, tagParasFromNote } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
@@ -44,6 +45,7 @@ import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
 
 /**
  * Generate data for all the sections (that the user currently wants)
+ * Note: don't forget there's also refreshClickHandlers.js::refreshAllSections().
  * @param {boolean} useDemoData? (default: false)
  * @param {boolean} useEditorWherePossible?
  * @returns {Array<TSection>} array of sections
@@ -71,6 +73,7 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
 /**
  * Generate data for some specified sections (subject to user currently wanting them as well).
  * Note: Returns all wanted sections in one go.
+ * Note: don't forget there's also refreshClickHandlers.js::incrementallyRefreshSomeSections() and refreshSomeSections()
  * @param {Array<string>} sectionCodesToGet (default: allSectionCodes)
  * @param {boolean} useDemoData (default: false)
  * @param {boolean} useEditorWherePossible?
@@ -94,12 +97,13 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
-    // out of display order, but quicker to generate
+    // moderately quick to generate
     if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) {
       const projectSection = await getProjectSectionData(config, useDemoData)
       if (projectSection) sections.push(projectSection)
     }
     // The rest can all be slow to generate
+    if (sectionCodesToGet.includes('SAVEDSEARCH')) sections.push(...(await getSavedSearchResults(config, useDemoData)))
     if (sectionCodesToGet.includes('TAG') && config.tagsToShow) {
       // v1:
       // const tagSections = getTaggedSections(config, useDemoData).filter((s) => s) //get rid of any nulls
@@ -199,6 +203,8 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const thisMonthHeadings: Array<string> = currentMonthlyNote ? getHeadingsFromNote(currentMonthlyNote, false, true, true, true) : []
     const nextMonthHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
+    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
     const thisMonthFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisMonthHeadings.length
         ? // $FlowIgnore[incompatible-type]
@@ -211,7 +217,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
               // $FlowFixMe[incompatible-type]
               options: thisMonthHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -228,7 +234,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
               // $FlowFixMe[incompatible-type]
               options: nextMonthHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -402,6 +408,8 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const thisQuarterHeadings: Array<string> = currentQuarterlyNote ? getHeadingsFromNote(currentQuarterlyNote, false, true, true, true) : []
     const nextQuarterHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
+    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
     const thisQuarterFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisQuarterHeadings.length
         ? // $FlowIgnore[incompatible-type]
@@ -414,7 +422,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
               // $FlowFixMe[incompatible-type]
               options: thisQuarterHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -431,7 +439,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
               // $FlowFixMe[incompatible-type]
               options: nextQuarterHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -734,7 +742,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
   }
 
   // Return section details, even if no items found
-  const tagSectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
+  const tagSectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}${config?.FFlag_UseTagCache ? ', using tag cache' : ''}` // TODO(later): remove note about the tag cache
   const section: TSection = {
     ID: sectionNumStr,
     name: sectionDetail.sectionName,

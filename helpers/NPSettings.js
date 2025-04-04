@@ -282,8 +282,9 @@ export async function appendStringToSettingArray(pluginId: string, key: string, 
       if (newValArray != null) {
         currentSettings[key] = newValArray
         // DataStore.settings = currentSettings
-        await saveSettings(pluginId, currentSettings, triggerSettingsUpdate)
-        return true
+        const res = await saveSettings(pluginId, currentSettings, triggerSettingsUpdate)
+        logDebug('appendStringToSettingArray', `-> saveSettings returned ${String(res)}`)
+        return res
       } else {
         logDebug('appendStringToSettingArray', `-> nothing to update`)
       }

@@ -10,7 +10,7 @@
   grid-template-columns: unset;
   grid-template-areas: "justTheOne";
   color: var(--fg-main-color);
-  background-color: var(--bg-alt-color);
+  background-color: var(--bg-main-color); /* was var(--bg-alt-color) but that doesn't work so well with apple's own switch colouring */
   /* box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); */
   box-shadow: 0px 1px 1px 1px rgb(from var(--fg-main-color) r g b / 0.5);
   overflow: hidden;
@@ -19,7 +19,10 @@
   opacity: 0;
   position: absolute;
   top: 2rem;
-  right:-1.8rem;
+  /* Fix the positioning to be right-aligned with the icon */
+  right: 0;
+  /* Remove the conflicting positioning that might cause flickering */
+  /* right: 2rem; */
 }
 
 /* Make dropdown content only 1 column wide on narrow (i.e. iOS) screens */
@@ -62,9 +65,10 @@
 .dropdown-content.show {
   display: grid;
   width: max-content;
+  /* Remove the right positioning that might cause flickering */
   /* right: -1rem; */
   opacity: 1;
-  padding: 0.5rem;
+  padding: 0.75rem;
   animation: unfurl 0.2s ease-out forwards, showScrollbar 0s 0.2s forwards;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
@@ -78,6 +82,7 @@
   margin-right: 1rem; */
 }
 
+/* Make sure the dropdown is positioned correctly relative to its parent */
 .dropdown {
   position: relative;
   display: inline-block;

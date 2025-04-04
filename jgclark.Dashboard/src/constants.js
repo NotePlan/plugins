@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 2024-11-20 for v2.1.0.a
+// Last updated 2025-02-28 for v2.2.0.b5, @jgclark
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -12,7 +12,6 @@ import type { TSectionDetails, TSectionCode } from './types'
 export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 
 export const allSectionDetails: Array<TSectionDetails> = [
-  { sectionCode: 'TB', sectionName: 'Current time block', showSettingName: 'showTimeBlockSection' },
   { sectionCode: 'DT', sectionName: 'Today', showSettingName: 'showTodaySection' },
   { sectionCode: 'DY', sectionName: 'Yesterday', showSettingName: 'showYesterdaySection' },
   { sectionCode: 'DO', sectionName: 'Tomorrow', showSettingName: 'showTomorrowSection' },
@@ -24,16 +23,19 @@ export const allSectionDetails: Array<TSectionDetails> = [
   // Use getTagSectionDetails() to get them
   { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` }, // sectionName set later to reflect the tagsToShow setting
   { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
-  // these at the end becasue they take the longest to load
   { sectionCode: 'PRIORITY', sectionName: 'Priority', showSettingName: 'showPrioritySection' },
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
+  { sectionCode: 'TB', sectionName: 'Current time block', showSettingName: 'showTimeBlockSection' },
+  { sectionCode: 'SEARCH', sectionName: 'Search', showSettingName: '' },
+  // For later use:
+  // { sectionCode: 'SAVEDSEARCH', sectionName: 'Saved Search', showSettingName: 'showSavedSearchSection' },
 ]
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map((s) => s.sectionCode)
 
 export const allCalendarSectionCodes = ['TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q']
 
-export const sectionDisplayOrder = ['TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
+export const sectionDisplayOrder = ['SEARCH', 'SAVEDSEARCH', 'SAVEDSEARCH', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
 
 // change this order to change which duplicate gets kept - the first on the list. Should not include 'dontDedupeSectionCodes' below.
 export const sectionPriority = ['TB', 'TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'PRIORITY', 'OVERDUE']
@@ -41,4 +43,7 @@ export const sectionPriority = ['TB', 'TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'P
 // Those sections we can't or shouldn't attempt to dedupe:
 // - TB as its for info only
 // - PROJ as it isn't about paragraphs, but notes
-export const dontDedupeSectionCodes = ['PROJ']
+export const dontDedupeSectionCodes = ['PROJ', 'SEARCH', 'SAVEDSEARCH']
+
+// Treat these itemTypes as if they are zero items, so we don't show the Interactive or other Processing buttons, and correct the count in the description
+export const treatSingleItemTypesAsZeroItems = ['itemCongrats', 'projectCongrats', 'noSearchResults']

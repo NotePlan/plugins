@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated v2.1.0.b
+// Last updated 2025-03-09 for v2.2.0.a7
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -58,7 +58,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140)
 
   // get rid of arrowDates if desired by user
-  if (mainContent && !dashboardSettings.includeScheduledDates) mainContent = replaceArrowDatesInString(mainContent, '')
+  if (mainContent && !dashboardSettings.showScheduledDates) mainContent = replaceArrowDatesInString(mainContent, '')
 
   // get rid of priority markers if desired by user (maincontent starts with <span> etc.)
   const shouldRemove = dashboardSettings && dashboardSettings.hidePriorityMarkers === true
@@ -122,7 +122,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
       <a className="dialogTriggerIcon">
         <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenDialog}></i>
       </a>
-      {dashboardSettings?.includeTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
+      {dashboardSettings?.showTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
     </div>
   )
 }

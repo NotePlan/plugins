@@ -1,8 +1,8 @@
-/* eslint-disable require-await */
+
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated for v2.1.10
+// Last updated 2025-03-28 for v2.2.0.a10
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,12 +12,13 @@ import { getTagSectionDetails, showSectionSettingItems } from './react/component
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings.js'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
-import type { TDashboardSettings, TPerspectiveDef } from './types'
+import type { TDashboardSettings, TDashboardPluginSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { getNoteByFilename } from '@helpers/note'
+import { saveSettings } from '@helpers/NPConfiguration'
 import { chooseNote, chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
@@ -61,7 +62,7 @@ Named perspectives
 
 -----------------------------------------------------------------------------*/
 
-const pluginID = pluginJson['plugin.id']
+const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
 
 const standardSettings = cleanDashboardSettings(
   // $FlowIgnore[incompatible-call]
@@ -179,15 +180,16 @@ function ensureDefaultPerspectiveExists(perspectiveSettings: Array<TPerspectiveD
  */
 export async function getPerspectiveSettings(logAllKeys: boolean = false): Promise<Array<TPerspectiveDef>> {
   try {
-    // Note: (in an earlier place this code was used) we think following (newer API call) is unreliable.
-    let pluginSettings = DataStore.settings
-    let perspectiveSettingsStr: string = pluginSettings?.perspectiveSettings
+    // Note: we think following (newer API call) is unreliable.
+    // let pluginSettings = DataStore.settings
+    // let perspectiveSettingsStr: string = pluginSettings?.perspectiveSettings
     let perspectiveSettings: Array<TPerspectiveDef>
-    if (!perspectiveSettingsStr) {
+    // if (!perspectiveSettingsStr) {
       // Fall back to the older way:
-      pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-      perspectiveSettingsStr = pluginSettings?.perspectiveSettings
-    }
+      logDebug('getPerspectiveSettings', `No perspectiveSettings found in DataStore.settings. Falling back to the older way.`)
+    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    const perspectiveSettingsStr = pluginSettings?.perspectiveSettings
+    // }
 
     if (perspectiveSettingsStr && perspectiveSettingsStr !== '[]') {
       // must parse it because it is stringified JSON (an array of TPerspectiveDef)
@@ -195,7 +197,7 @@ export async function getPerspectiveSettings(logAllKeys: boolean = false): Promi
       // logPerspectives(perspectiveSettings, logAllKeys)
     } else {
       // No settings found, so will need to set from the defaults instead
-      logWarn('getPerspectiveSettings', `None found: will load in the defaults:`)
+      logWarn('getPerspectiveSettings', `No settings found: will load in the defaults:`)
       perspectiveSettings = await getPerspectiveSettingDefaults()
       const defaultPersp = getPerspectiveNamed('-', perspectiveSettings)
       if (!defaultPersp) {
@@ -210,7 +212,7 @@ export async function getPerspectiveSettings(logAllKeys: boolean = false): Promi
     // clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
     const perspSettings = ensureDefaultPerspectiveExists(perspectiveSettings)
     // logDebug('getPerspectiveSettings', `After ensureDefaultPerspectiveExists():`)
-    // logPerspectives(perspectiveSettings, logAllKeys)
+    logPerspectives(perspectiveSettings, logAllKeys)
     return perspSettings
   } catch (error) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
@@ -322,15 +324,21 @@ export function getPerspectiveNamed(name: string, perspectiveSettings: ?Array<TP
  * @param {Array<TPerspectiveDef>} allDefs perspective definitions
  * @return {boolean} true if successful
  */
-export function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): boolean {
+export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): Promise<boolean> {
   try {
     logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
     const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ''
-    const pluginSettings = DataStore.settings
+    // v1:
+    // const pluginSettings = DataStore.settings
+    // v2:
+    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     pluginSettings.perspectiveSettings = perspectiveSettingsStr
-    DataStore.settings = pluginSettings
-    logDebug('savePerspectiveSettings', `Apparently saved OK. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
-    return true
+
+    // TEST: use helper to save settings from now on
+    // DataStore.settings = pluginSettings
+    const res = await saveSettings(pluginID, pluginSettings)
+    logDebug('savePerspectiveSettings', `Apparently saved with result ${String(res)}. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
+    return res
   } catch (error) {
     logError('savePerspectiveSettings', `Error: ${error.message}`)
     return false
@@ -458,36 +466,53 @@ export async function logPerspectiveFiltering(filenameArg?: string): Promise<voi
  * @returns {boolean}
  */
 export async function switchToPerspective(name: string, allDefs: Array<TPerspectiveDef>): Promise<Array<TPerspectiveDef> | false> {
-  // Check if perspective exists
-  logDebug('switchToPerspective', `Starting looking for name ${name} in ...`)
-  logPerspectives(allDefs)
+  try {
+    // Check if perspective exists
+    logDebug('switchToPerspective', `Starting looking for name ${name} in ...`)
+    logPerspectives(allDefs)
 
-  const newPerspectiveSettings = setActivePerspective(name, allDefs).map((p) => ({ ...p, isModified: p.name === name ? p.isModified : false }))
-  logDebug('switchToPerspective', `New perspectiveSettings:`)
-  logPerspectives(newPerspectiveSettings)
-  const newPerspectiveDef = getPerspectiveNamed(name, newPerspectiveSettings)
-  if (!newPerspectiveDef) {
-    logError('switchToPerspective', `Couldn't find definition for perspective "${name}"`)
+    const newPerspectiveSettings = setActivePerspective(name, allDefs).map((p) => ({
+      ...p,
+      isModified: false,
+      // the following is a little bit inefficient, but given that people can change tags in numerous ways
+      // we need to clean the dashboardSettings for each perspective just to be sure
+      dashboardSettings: cleanDashboardSettings(p.dashboardSettings),
+    }))
+
+    logDebug('switchToPerspective', `New perspectiveSettings:`)
+    logPerspectives(newPerspectiveSettings)
+    const newPerspectiveDef = getPerspectiveNamed(name, newPerspectiveSettings)
+    if (!newPerspectiveDef) {
+      logError('switchToPerspective', `Couldn't find definition for perspective "${name}"`)
+      return false
+    }
+    logDebug(
+      'switchToPerspective',
+      `Found "${name}" Will save new perspectiveSettings: ${newPerspectiveDef.name} isModified=${String(newPerspectiveDef.isModified)} isActive=${String(
+        newPerspectiveDef.isActive,
+      )}`,
+    )
+
+    // SAVE IT!
+    // TEST: use helper to save settings from now on
+    // DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) }
+    let res = await saveSettings(pluginID, { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) })
+    if (!res) {
+      throw new Error(`saveSettings failed for perspective ${name}`)
+    }
+    clo(
+      newPerspectiveSettings.map((p) => ({ name: p.name, isModified: p.isModified })),
+      'switchToPerspective: newPerspectiveSettings saved to DataStore.settings',
+    )
+
+    // Send message to Reviews (if open) to re-generate the Projects list and render it (if that window is already open)
+    res = await DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])
+
+    return newPerspectiveSettings
+  } catch (error) {
+    logError('switchToPerspective', `Error: ${error.message}`)
     return false
   }
-  logDebug(
-    'switchToPerspective',
-    `Found "${name}" Will save new perspectiveSettings: ${newPerspectiveDef.name} isModified=${String(newPerspectiveDef.isModified)} isActive=${String(
-      newPerspectiveDef.isActive,
-    )}`,
-  )
-
-  // SAVE IT!
-  DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) }
-  clo(
-    newPerspectiveSettings.map((p) => ({ name: p.name, isModified: p.isModified })),
-    'switchToPerspective: newPerspectiveSettings saved to DataStore.settings',
-  )
-
-  // Send message to Reviews (if open) to re-generate the Projects list and render it (if that window is already open)
-  const res = await DataStore.invokePluginCommandByName("generateProjectListsAndRenderIfOpen", "jgclark.Reviews", [])
-
-  return newPerspectiveSettings
 }
 
 /**
@@ -511,8 +536,8 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
     activeDef.dashboardSettings = dSet
     const newDefs = replacePerspectiveDef(allDefs, activeDef)
     logDebug('updateCurrentPerspectiveDef', `Will update def '${activeDef.name}'`)
-    const res = savePerspectiveSettings(newDefs)
-    return true
+    const res = await savePerspectiveSettings(newDefs)
+    return res
   } catch (error) {
     logError('updateCurrentPerspectiveDef', `Error: ${error.message}`)
     return false
@@ -521,16 +546,17 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
 
 /**
  * Clean a Dashboard settings object of properties we don't want to use
- * (we only want things in the perspectiveSettings object that could be set in dashboard settings or filters)
- * @param {TDashboardSettings} settingsIn
+ * (we only want things in the perspectiveSettings object that could be set in dashboard settings or filters).
+ * Note: index.js::onUpdateOrInstall() should do the renaming of keys in the settings object.
+ * @param {TDashboardPluginSettings} settingsIn
  * @param {boolean} deleteAllShowTagSections - also clean out showTag_* settings
- * @returns {TDashboardSettings}
+ * @returns {TDashboardPluginSettings}
  */
-export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAllShowTagSections?: boolean): Partial<TDashboardSettings> {
-  // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
-  const settingsWithoutIrrelevantTags = removeInvalidTagSections(settingsIn)
+export function cleanDashboardSettings(settingsIn: TDashboardPluginSettings, deleteAllShowTagSections?: boolean): Partial<TDashboardPluginSettings> {
 
+  // Define keys to remove
   const patternsToRemove = [
+    // the following shouldn't be persisted in the perspectiveSettings object, but only in the top-level dashboardSettings object
     'perspectivesEnabled',
     /FFlag_/,
     /_log/,
@@ -543,6 +569,8 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAll
     'triggerLogging',
     /separator\d/,
     /heading\d/,
+    // the following were added in v2.2.0
+    'searchOptions',
   ].map((pattern) => (typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern))
   if (deleteAllShowTagSections) {
     patternsToRemove.push(/showTagSection_/)
@@ -552,13 +580,27 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAll
     return patternsToRemove.some((pattern) => pattern.test(key))
   }
 
-  return Object.keys(settingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
-    if (!shouldRemoveKey(key)) {
-      // $FlowIgnore[incompatible-type]
-      acc[key] = settingsIn[key]
+  try {
+    if (!settingsIn || settingsIn === {}) {
+      throw new Error(`No settingsIn found`)
     }
-    return acc
-  }, {})
+
+    // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
+    const perspSettingsWithoutIrrelevantTags = removeInvalidTagSections(settingsIn) // OK
+
+    const settingsOut = Object.keys(perspSettingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
+      if (!shouldRemoveKey(key)) {
+        acc[key] = settingsIn[key]
+      } else {
+        logInfo('cleanDashboardSettings', `- Removing key '${key}' from settings`)
+      }
+      return acc
+    }, {})
+    return settingsOut
+  } catch (error) {
+    logError('cleanDashboardSettings', `Error: ${error.message}`)
+    return {}
+  }
 }
 
 /**
@@ -568,6 +610,7 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAll
  * @returns {TDashboardSettings} - settings without irrelevant tag sections
  */
 export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashboardSettings {
+  // aka validateTagSections validateTags limitTagsToShow
   const tagSectionDetails = getTagSectionDetails(settingsIn)
   const showTagSectionKeysToRemove = Object.keys(settingsIn).filter(
     (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
@@ -638,8 +681,8 @@ export async function addNewPerspective(nameArg?: string): Promise<void> {
   const updatedPerspectives = addPerspectiveDef(allDefs, newDef)
 
   // saves the perspective settings to DataStore.settings
-  const res = savePerspectiveSettings(updatedPerspectives)
-  logDebug('addPerspectiveSetting', `- Saved '${name}': now ${String(updatedPerspectives.length)} perspectives (with the new one (${name}) active)`)
+  const res = await savePerspectiveSettings(updatedPerspectives)
+  logDebug('addPerspectiveSetting', `- Saved '${name}': now ${String(updatedPerspectives.length)} perspectives (with the new one (${name}) active). Result: ${String(res)}`)
 
   const perspectiveNames = updatedPerspectives.map((p) => p.name).join(', ')
   // NOTE: make sure to use _ in front of the lastUpdate key to keep it from looping back thinking the setting had been updated by the user
@@ -724,14 +767,14 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
       // delete and then switch
       logDebug('deletePerspective', `Deleting active perspective, so will need to switch to default Perspective ("-")`)
       const updatedDefs = deletePerspectiveDef(existingDefs, nameToUse)
-      savePerspectiveSettings(updatedDefs)
+      const res = await savePerspectiveSettings(updatedDefs)
       await switchToPerspective('-', updatedDefs)
       // update/refresh PerspectiveSelector component
       await setPluginData({ perspectiveSettings: updatedDefs }, `after deleting Perspective ${nameToUse}.`)
     } else {
       // just delete
       const updatedDefs = deletePerspectiveDef(existingDefs, nameToUse)
-      savePerspectiveSettings(updatedDefs)
+      const res = await savePerspectiveSettings(updatedDefs)
       // update/refresh PerspectiveSelector component
       await setPluginData({ perspectiveSettings: updatedDefs }, `after deleting Perspective ${nameToUse}.`)
     }
@@ -765,11 +808,11 @@ export const endsWithStar = (input: string): boolean => /\*$/.test(input)
 /**
  * Set (in React) perspectiveSettings if it has changed via the JSON editor in the Dashboard Settings panel
  * Return the updated settings object without the perspectiveSettings to be saved as dashboardSettings
- * @param {*} updatedSettings
- * @param {*} dashboardSettings
- * @param {*} dispatchPerspectiveSettings
- * @param {*} logMessage
- * @returns
+ * @param {TDashboardSettings} updatedSettings
+ * @param {TDashboardSettings} dashboardSettings
+ * @param {Function} sendActionToPlugin
+ * @param {string} logMessage
+ * @returns {TDashboardSettings}
  */
 export function setPerspectivesIfJSONChanged(
   updatedSettings: any /*TDashboardSettings*/, // TODO: improve type - can be partial settings object
@@ -781,6 +824,7 @@ export function setPerspectivesIfJSONChanged(
   const settingsToSave = { ...dashboardSettings, ...updatedSettings }
   if (settingsToSave.perspectiveSettings) {
     // this should only be true if we are coming from the settings panel with the JSON editor
+    // TODO(dwertheimer): I don't understand this log comment
     logDebug(pluginJson, `BEWARE: adjustSettingsAndSave perspectiveSettings was set. this should only be true if we are coming from the settings panel with the JSON editor!`)
     sendActionToPlugin(
       'perspectiveSettingsChanged',

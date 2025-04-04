@@ -1,6 +1,107 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+<!-- - NOT-DO: Search: add an "Ignore Perspective" link to the message which fires off a search without the inclusion/exclusions
+- TODO(later): v2.3.0 UI to set the searchTerm and search options.
+- TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component) -->
+
+## [2.2.0.a10] 2025-03-30
+### Changed
+- added 'You can turn off Perspective filtering in the Dashboard settings.' help text if you get 0 search results. Also fixed '... using 'X' Perspective filtering' message appearing when it shouldn't.
+### Fixed
+- removed '<<carry forward>>' as a possible heading from the 'add a new task/checklist' dialog
+- Made workaround for `undefined` value of NP timeblockTextMustContainString preference
+
+### DEV Changes
+- Re-enabled tagCache feature flag back in, and relevant commands '/generateTagMentionCache', '/updateTagMentionCache' and '/testTagCache'.
+- Changed `= DataStore.settings` to "go the long way around" as well as the setters.
+- Added memoization to reduce re-renders:
+  1. Memoizing the `PerspectiveSelector` and `RefreshControl` components so they only re-render when their props actually change
+  2. Optimizing the `useLastFullRefresh` hook to only update the state when the display text would actually change
+  3. Using useCallback to memoize the update function in `useLastFullRefresh`
+  The remaining timer in `Section.jsx` that refreshes the TB section every 54 seconds is actually necessary for keeping the timeblock data up to date, so we should keep that one.
+  The components will only re-render when:
+  1. Their props actually change
+  2. The time display needs to update (every minute or so)
+  3. The timeblock data needs to refresh (every 54 seconds)
+- Turned down some logging
+
+## [2.2.0.a9] 2025-03-27
+- ignore notes in @Archive when looking for search results
+- DEV: finished (hopefully) changing all the places dashboardSettings get written out, to use the saveSettings() helper instead.
+
+## [2.2.0.a8] 2025-03-26
+- Dashboard Header now works better on whatever the window width is.
+- DEV: Re-write Header component to use @content queries not @media queries, to provide cleaner and more responsive experience on whatever the window width is.
+- DEV: moved renaming of keys to onUpdateOrInstall(), which can be run via x-callback to test.
+- DEV: Started to shift the writing of Dashboard's settings to use saveSettings() helper, to avoid the middle of `data/np.Templating/settings.json`, and `todaysChangedNoteList.json` into the same folder.
+- DEV: turn doWindowResized back on, for testing
+
+## [2.2.0.a7] 2025-03-07
+- DEV: migrate some setting key names
+- DEV: move some search settings into consolidated searchSettings object
+- when editing the task details in the text box in the task dialog, pressing Enter now updates and closes the dialog.
+
+## [2.2.0.a6] 2025-02-29
+Search:
+- Changing colours for switch controls to actual Apple values for dark/light mode (other than using our 'tint'). Also added a subtle border in dark mode which Apple doesn't, as it can mandate a particular background color, whereas we use several.
+- made the search text fields type 'search' which gives slight automatic UX improvements on some platforms.
+Other Dev notes:
+- Change so we don't have to be in DEV mode (with its slew of logs) to still see FFlag items.  You will still need to go into DEV mode to see the dropdown, and therefore turn things on/off, but once they're on they stay on even if you go to (say) INFO log level.
+
+## [2.2.0.a5] 2025-02-28
+Search functionality:
+- Significant speed up (if there are 'ignore terms' set)
+- Add in prevent tasks under heading (from Perspective filtering)
+- Allow ignoring future dated items found in regular and calendar notes as well.
+Search & Header UI:
+- (dbw) Fixed focusing in the SearchBar
+- Improved display of focus in Header bar and hover animations on icon buttons
+- make Header sticky again
+- Header shows either SearchBar or SearchPanel (iff FFlag turned on)
+- Prototyped UI for Search Panel, and made available as a FeatureFlag. Toggles not hooked up yet.
+- improved SearchPanel opening animation
+- remove 'show Search' in Filter dropdown (as it can always be used)
+
+## [2.2.0.a4] 2025-02-24
+Search:
+- New 'Apply current filtering to Search?' setting
+- Fixed very long search (where there are no ignore terms)
+- Fixed colour of 'close' button
+- Added demo data for SAVEDSEARCH section
+- Started adding support for Saved Search sections -- currently only for demo data
+
+## [2.2.0.a3] 2025-02-23
+- Search: 
+  - No search results now gives a message
+  - Update background colour slightly
+  - Fixed Header dropdown button positioning after adding search bar
+- Fixed backgrounds of icons in Section header
+### Dev notes
+- Moved some Dashboard.css to new Sections..css
+- Added 'SAVEDSEARCH' sectionCode for future use
+
+## [2.2.0.a2] 2025-02-22
+- basic Search Bar in Header is working
+- Improved some icons and their colouring
+- Search section will not sync items even if set to do so in SearchExtensions.
+- Fixed ordering of Search section
+- Added setting to turn off future tasks. _Currently only works on items in future calendar notes._
+
+## [2.2.0.a1] 2025-02-21
+### New
+- 'Search' section started, and integrated in all relevant search and display logic.
+- Added `externallyStartSearch` x-callback for this, with arguments: 
+  - search terms string
+  - search over 'calendar', 'project', or 'both' (optional, default is 'both')
+  - ISO start date for calendar notes (optional, default is empty)
+  - ISO end date for calendar notes (optional, default is empty)
+- Can close section when finished with
+- WIP: Start to make Search Bar in Header.
+### Changed
+- improves display of non-standard scheduled items (that don't have a `<date` component)
+### Fixed
+
 ## [2.1.10] 2025-02-16
 ### New
 - When you move/schedule an item from one note to another, there are two additional workflows:

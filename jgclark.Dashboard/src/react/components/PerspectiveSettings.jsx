@@ -50,7 +50,7 @@ const PerspectiveSettings = ({ handleFieldChange, className = '' }: PerspectiveS
     //----------------------------------------------------------------------
     const { dashboardSettings, perspectiveSettings } = useAppContext()
     // only continue if we have Perspectives turned on
-    if (!dashboardSettings.perspectivesEnabled) return
+    if (!dashboardSettings.usePerspectives) return
 
     //----------------------------------------------------------------------
     // State

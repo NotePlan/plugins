@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated for v2.1.3
+// Last updated 2025-03-28 for v2.2.0.a9
 //-----------------------------------------------------------------------------
 
 import { getGlobalSharedData, sendToHTMLWindow } from '../../helpers/HTMLView'
@@ -19,11 +19,20 @@ import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSett
 import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
+import { saveSettings } from '@helpers/NPConfiguration'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 // import { getWindowFromId } from '@helpers/NPWindows'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
+//------------------------------------------------------------------------------
+// Constants
+//------------------------------------------------------------------------------
+const pluginID = 'jgclark.Dashboard'
+
+//------------------------------------------------------------------------------
+// Types
+//------------------------------------------------------------------------------
 export type PassedData = {
   pluginData: TPluginData /* Your plugin's data to pass on first launch (or edited later) */,
   returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
@@ -86,7 +95,12 @@ export async function setSetting(key: string, value: string): Promise<void> {
       // $FlowFixMe[prop-missing]
       dashboardSettings[key] = setTo
       // logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo} / ${thisSettingType})`)
-      DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
+      // TEST: use helper to save settings from now on
+      // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
+      const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) })
+      if (!res) {
+        throw new Error(`saveSettings failed for setting '${key}:${value}'`)
+      }
       await showDashboardReact('full', '', false)
     } else {
       throw new Error(`Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
@@ -123,7 +137,12 @@ export async function setSettings(paramsIn: string): Promise<void> {
       }
     }
     logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)
-    DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
+    // TEST: use helper to save settings from now on
+    // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
+    const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) })
+    if (!res) {
+      throw new Error(`saveSettings failed for params: '${paramsIn}'`)
+    }
     await showDashboardReact('full', '', false)
   } catch (error) {
     logError('setSettings', error.message)
@@ -209,38 +228,47 @@ export async function showSections(sectionCodeList: string = ''): Promise<void> 
  * @param {string} limitToSections e.g. "TD,TY,#work"
  */
 async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
-  if (!limitToSections) return
-  logDebug('updateSectionFlagsToShowOnly', `Request to show only sections '${limitToSections}'`)
-  const dashboardSettings: TDashboardSettings = (await getDashboardSettings()) || {}
-  // set everything off to begin with
-  const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show'))
-  allSectionDetails.forEach((section) => {
-    const key = section.showSettingName
-    // $FlowIgnore[prop-missing]
-    if (key) dashboardSettings[key] = false
-  })
+  try {
+    if (!limitToSections) return
+    logDebug('updateSectionFlagsToShowOnly', `Request to show only sections '${limitToSections}'`)
+    const dashboardSettings: TDashboardSettings = (await getDashboardSettings()) || {}
+    // set everything off to begin with
+    const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show') && key.endsWith('Section'))
+    allSectionDetails.forEach((section) => {
+      const key = section.showSettingName
+      // $FlowIgnore[prop-missing]
+      if (key) dashboardSettings[key] = false
+    })
 
-  // also turn off the specific tag sections (e.g. "showTagSection_@home")
-  // $FlowIgnore[incompatible-type]
-  keys.forEach((key) => (dashboardSettings[key] = false))
-  const sectionsToShow = limitToSections.split(',')
-  sectionsToShow.forEach((sectionCode) => {
-    const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
-    if (showSectionKey) {
-      // $FlowIgnore
-      dashboardSettings[showSectionKey] = true
-    } else {
-      if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
+    // also turn off the specific tag sections (e.g. "showTagSection_@home")
+    // $FlowIgnore[incompatible-type]
+    keys.forEach((key) => (dashboardSettings[key] = false))
+    const sectionsToShow = limitToSections.split(',')
+    sectionsToShow.forEach((sectionCode) => {
+      const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
+      if (showSectionKey) {
         // $FlowIgnore
-        dashboardSettings[`showTagSection_${sectionCode}`] = true
+        dashboardSettings[showSectionKey] = true
       } else {
-        logWarn(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails. Continuing with others.`)
+        if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
+          // $FlowIgnore
+          dashboardSettings[`showTagSection_${sectionCode}`] = true
+        } else {
+          logWarn(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails. Continuing with others.`)
+        }
       }
-    }
-  })
-  DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
-}
+    })
 
+    // TEST: use helper to save settings from now on
+    // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
+    const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) })
+    if (!res) {
+      throw new Error(`saveSettings failed for sections '${limitToSections}'`)
+    }
+  } catch (error) {
+    logError('updateSectionFlagsToShowOnly', error.message)
+  }
+}
 /**
  * Plugin Entry Point for "Show Dashboard"
  * @author @dwertheimer
@@ -339,17 +367,29 @@ export async function reactWindowInitialised(): Promise<void> {
  * @returns {TDashboardSettings}
  */
 async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspectiveSettings): Promise<TDashboardSettings> {
-  const activeDef = getActivePerspectiveDef(perspectiveSettings)
-  if (!activeDef) throw new Error(`getDashboardSettingsFromPerspective: getActivePerspectiveDef failed`)
-  const prevDashboardSettings = await getDashboardSettings()
-  if (!prevDashboardSettings) throw new Error(`getDashboardSettingsFromPerspective: getDashboardSettings failed`)
-  // apply the new perspective's settings to the main dashboard settings
-  const newDashboardSettings = {
-    ...prevDashboardSettings,
-    ...(activeDef.dashboardSettings || {}),
+  try {
+    const activeDef = getActivePerspectiveDef(perspectiveSettings)
+    if (!activeDef) throw new Error(`getDashboardSettingsFromPerspective: getActivePerspectiveDef failed`)
+    const prevDashboardSettings = await getDashboardSettings()
+    if (!prevDashboardSettings) throw new Error(`getDashboardSettingsFromPerspective: getDashboardSettings failed`)
+    // apply the new perspective's settings to the main dashboard settings
+    const newDashboardSettings = {
+      ...prevDashboardSettings,
+      ...(activeDef.dashboardSettings || {}),
+    }
+
+    // TEST: use helper to save settings from now on
+    // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(newDashboardSettings) }
+    const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(newDashboardSettings) })
+    if (!res) {
+      throw new Error(`saveSettings failed`)
+    }
+    return newDashboardSettings
+  } catch (error) {
+    logError('getDashboardSettingsFromPerspective', error.message)
+    // $FlowFixMe[prop-missing]
+    return {}
   }
-  DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(newDashboardSettings) }
-  return newDashboardSettings
 }
 
 /**

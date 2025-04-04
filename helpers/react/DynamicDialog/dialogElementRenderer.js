@@ -359,8 +359,9 @@ export function renderItem({
   if (indent) classNameToUse += ' indent'
   if (disabled) classNameToUse += ' disabled'
 
+  // TODO: data-settings-key can be used by the Dynamic Dialog to scroll to the element when the gear icon is clicked (see Dashboard/SettingsDialog)
   return (
-    <div className={`ui-item ${classNameToUse}`} key={`item${index}`} title={item.description || ''}>
+    <div className={`ui-item ${classNameToUse}`} key={`item${index}`} title={item.description || ''} data-settings-key={item.key || ''}>
       {element()}
     </div>
   )
