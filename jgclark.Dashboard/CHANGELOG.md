@@ -4,15 +4,23 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 <!-- - NOT-DO: Search: add an "Ignore Perspective" link to the message which fires off a search without the inclusion/exclusions
 - TODO(later): v2.3.0 UI to set the searchTerm and search options.
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component) -->
+- TODO: improve defaults for SearchOptions
 
 ## [2.2.0.a10] 2025-03-30
 ### Changed
-- added 'You can turn off Perspective filtering in the Dashboard settings.' help text if you get 0 search results. Also fixed '... using 'X' Perspective filtering' message appearing when it shouldn't.
+- improved responsive layout for dialog box titles and dropdown-selectors
+- improved keyboard navigation by adding focus indicators. TODO: finish header buttons
+- added 'You can turn off Perspective filtering in the Dashboard settings.' help text if you get 0 search results, and quick link to Settings dialog section.
 ### Fixed
+- Black text in number fields in dark mode is now white
+- Fixed '... using 'X' Perspective filtering' message sometimes appearing when it shouldn't.
 - removed '<<carry forward>>' as a possible heading from the 'add a new task/checklist' dialog
 - Made workaround for `undefined` value of NP timeblockTextMustContainString preference
 
 ### DEV Changes
+- removed `fixedWidth` on add task/checklist dialogs
+- changed DropdownSelector to have width in `ch` not `px` units -- the more natural units, and easier to easier calculate
+- changed to use fixed-width task & checklist icons in main window, to make layout slightly easier
 - Re-enabled tagCache feature flag back in, and relevant commands '/generateTagMentionCache', '/updateTagMentionCache' and '/testTagCache'.
 - Changed `= DataStore.settings` to "go the long way around" as well as the setters.
 - Added memoization to reduce re-renders:

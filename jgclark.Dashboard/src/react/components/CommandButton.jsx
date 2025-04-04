@@ -44,7 +44,11 @@ function CommandButton(inputObj: ButtonProps): React$Node {
         title: button.tooltip,
         submitOnEnter: button.submitOnEnter,
         submitButtonText: button.submitButtonText,
-        className: `dashboard-command-button ${className || ''}`,
+        // className: `dashboard-command-button ${className || ''}`,
+        style: {
+          top: '40%',
+        },
+
       })
       userInputObj ? sendButtonAction(button, userInputObj) : null
     } else {

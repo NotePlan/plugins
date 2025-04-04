@@ -1,9 +1,9 @@
-.search-container {
+search {
     position: relative;
     display: flex;
     align-items: center;
 
-    .search-input {
+    input {
         color: var(--fg-main-color);
         background-color: var(--bg-apple-input-color);
         padding: 2px 4px 0px 4px;
@@ -14,8 +14,4 @@
         /* outline: none; */
         transition: width 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
     }
-}
-
-.search-icon {
-    cursor: pointer;
 }

@@ -4,12 +4,8 @@
 /* The main grid for a section: sectionInfo then sectionGrid. */
 .section {
 	display: grid;
-	grid-template-columns: [info] /* 12rem */ 13.5rem [items] auto;
+	grid-template-columns: [info] /* 12rem */ 12.5rem [items] auto;
 	grid-template-rows: min-content;
-	/* grid-auto-flow: column; */
-	/* a little extra gap between first 2 cols */
-	/* a little spacing at top and bottom of section */
-	/* padding: 2px 2px; */
 	/* turn on top border (from theme CSS) */
 	border-bottom: 1px solid var(--divider-color);
 }
@@ -58,26 +54,6 @@
 	justify-self: start;
 }
 
-/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
-.buttonsWithoutBordersOrBackground {
-	display: inline-flex;
-	gap: 0.4rem;
-	justify-self: end;
-	/* align-self: flex-start; /* Doesn't seem to be needed */
-	border: 0px none;
-	box-shadow: none;
-	padding-top: 1px;
-	padding-left: unset;
-	padding-right: unset;
-	background-color: unset;
-}
-
-/* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
-.iOS .buttonsWithoutBordersOrBackground, .iPadOS .buttonsWithoutBordersOrBackground {
-	gap: 0.9rem !important; /* haven't tested whether !important is needed here */
-	font-size: 1.0rem !important;
-}
-
 /* Next part of sectionInfo. */
 .sectionDescription {
 	/* a bit smaller */
@@ -109,22 +85,11 @@
 .sectionItemRow {
 	/* The important trick to avoiding bad wrapping at end of columns */
 	break-inside: avoid;
-	/* display: grid; */
-	/* grid-template-columns: [icon] 1.1rem [item-details] auto; */
 	display: flex;
-	
 	/* trying margin not padding now */
-	/* no bottom padding */
-	/* padding: 0px 4px 3px 0px; */
-	margin: 0px 4px 3px 0px; 
-	
+	margin: 0px 4px 3px 0px; 	
 	border: 0px none;
 	column-gap: 3px;
-	/* vertical in containing block */
-	/* align-self: start; */
-	/* horizontal in containing block */
-	/* justify-self: right; */
-	/* border-collapse: collapse; */
 	/* vertical for all items this contains */
 	align-items: baseline; /* start; */
 	/* horizontal for all items this contains */
@@ -154,17 +119,16 @@
 	}
 
 	.sectionInfo {
-		border-top: solid 0.5px var(--tint-color);
-		border-bottom: solid 1px var(--divider-color);
-		display: grid;
 		/* now make this area grid column-based not row-based */
+		display: grid;
+		/* put all items essentially on a baseline */
+		align-items: baseline;
 		grid-template-columns: max-content max-content auto;
 		grid-column-gap: 1.0rem;
+		border-top: solid 0.5px var(--tint-color);
+		border-bottom: solid 1px var(--divider-color);
 		padding-top: 0.2rem;
-		padding-bottom: 0.2rem;
-		/* put all items essentially on a baseline */
-		/* align-items: end; */
-		align-items: center;
+		padding-bottom: 0.1rem;
 	}
 
 	.sectionName {
@@ -206,10 +170,14 @@
 	cursor: pointer;
 }
 
+/* Override what FA adds, which is a fixed width for fixed-with	icons of 1.25rem */
+.fa-fw {
+	width: 1.0rem;
+}
+
 /* Make square-based icons a touch larger, as they're optically smaller than the circle equivalents. Advanced stuff! */
 .fa-square, .fa-square-plus, .fa-square-arrow-right {
-	font-size: 103%; /*110%;*/
-	padding-left: 1px;
+	font-size: 106%; /* 110%; */
 }
 
 /* Override the theme definition of a completed task a little */

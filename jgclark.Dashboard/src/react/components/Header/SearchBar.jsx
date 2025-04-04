@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show a search bar in the Header.
-// Last updated for v2.2.0.a4
+// Last updated 2025-03-31 for v2.2.0.a10
 //--------------------------------------------------------------------------
 
 import React, { useEffect, useRef, useState } from 'react'
@@ -14,7 +14,7 @@ type Props = {
   onSearch: (query: string) => void,
 }
 
-const SearchBar = ({ onSearch }: Props) => {
+const SearchBar = ({ onSearch }: Props): React$Node => {
   //----------------------------------------------------------------------
   //Refs
   //----------------------------------------------------------------------
@@ -45,7 +45,7 @@ const SearchBar = ({ onSearch }: Props) => {
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Enter' && onSearch) {
-      logDebug(`SearchBar: handleKeyDown: Enter key pressed, with query term currently '${query}'`) // OK here
+      // logDebug(`SearchBar: handleKeyDown: Enter key pressed, with query term currently '${query}'`)
       onSearch(query)
       setQuery('')
       setIsActive(false)
@@ -74,7 +74,7 @@ const SearchBar = ({ onSearch }: Props) => {
   }, [])
 
   return (
-    <div className={`search-container ${isActive ? 'active' : ''}`}>
+    <search className={`${isActive ? 'active' : ''}`}>
       <input
         type="search"
         className="search-input"
@@ -85,10 +85,10 @@ const SearchBar = ({ onSearch }: Props) => {
         style={{ width: isActive ? '15ch' : '0', opacity: isActive ? '1' : '0' }}
         ref={inputRef}
       />
-      <div className="search-icon" onClick={handleIconClick}>
+      <button className="buttonsWithoutBordersOrBackground" onClick={handleIconClick} title="Search">
         <i className="fa-solid fa-search"></i>
-      </div>
-    </div>
+      </button>
+    </search>
   )
 }
 
