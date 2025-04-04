@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2025-03-30 for 2.2.0.a10
+// Last updated 2025-04-01 for 2.2.0.a10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -102,7 +102,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     const todayFormFields: Array<TSettingItem> = formFieldsBase.concat(
       todayHeadings.length
         ? // $FlowIgnore[incompatible-type]
-        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: todayHeadings, noWrapOptions: true, value: defaultHeadingToAddTo }]
+        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', options: todayHeadings, noWrapOptions: true, value: defaultHeadingToAddTo }]
         : [],
     )
     const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
@@ -113,7 +113,6 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
               type: 'dropdown-select',
               label: 'Under Heading:',
               key: 'heading',
-              fixedWidth: 300,
               // $FlowIgnore[incompatible-type]
               options: tomorrowHeadings,
               noWrapOptions: true,
@@ -510,7 +509,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
       tomorrowHeadings.length
         ? // $FlowIgnore[incompatible-type]
-        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: tomorrowHeadings, noWrapOptions: true, value: defaultHeadingToAddTo }]
+        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', options: tomorrowHeadings, noWrapOptions: true, value: defaultHeadingToAddTo }]
         : [],
     )
 

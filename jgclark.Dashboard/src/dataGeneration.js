@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-03-29 for v2.2.0.a10, @jgclark
+// Last updated 2025-04-01 for v2.2.0.a10, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -213,7 +213,6 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
               type: 'dropdown-select',
               label: 'Under Heading:',
               key: 'heading',
-              fixedWidth: 300,
               // $FlowFixMe[incompatible-type]
               options: thisMonthHeadings,
               noWrapOptions: true,
@@ -230,7 +229,6 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
               type: 'dropdown-select',
               label: 'Under Heading:',
               key: 'heading',
-              fixedWidth: 300,
               // $FlowFixMe[incompatible-type]
               options: nextMonthHeadings,
               noWrapOptions: true,
@@ -418,7 +416,6 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
               type: 'dropdown-select',
               label: 'Under Heading:',
               key: 'heading',
-              fixedWidth: 300,
               // $FlowFixMe[incompatible-type]
               options: thisQuarterHeadings,
               noWrapOptions: true,
@@ -435,7 +432,6 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
               type: 'dropdown-select',
               label: 'Under Heading:',
               key: 'heading',
-              fixedWidth: 300,
               // $FlowFixMe[incompatible-type]
               options: nextQuarterHeadings,
               noWrapOptions: true,

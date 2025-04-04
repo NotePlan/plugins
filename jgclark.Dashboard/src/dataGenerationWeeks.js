@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated for 2.2.0.a10
+// Last updated 2025-04-01 for 2.2.0.a10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -89,7 +89,6 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
               type: 'dropdown-select',
               label: 'Under Heading:',
               key: 'heading',
-              fixedWidth: 300,
               // $FlowFixMe[incompatible-type]
               options: thisWeekHeadings,
               noWrapOptions: true,
@@ -106,7 +105,6 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
               type: 'dropdown-select',
               label: 'Under Heading:',
               key: 'heading',
-              fixedWidth: 300,
               // $FlowFixMe[incompatible-type]
               options: nextWeekHeadings,
               noWrapOptions: true,

@@ -9,9 +9,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    min-width: 25rem;
-    max-width: 80%;
-    width: fit-content;
+    min-width: 30ch;
+    max-width: 50ch;
     border: none;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     /* z-index: 1000; */
@@ -34,9 +33,10 @@
     background-color: var(--bg-mid-color);
     padding: 0.75rem 0.6rem;
     border-radius: 8px;
-    overflow-y: auto; 
     max-height: 90vh;
     font-size: 95%;
+    /* overflow-y: auto; */
+    overflow-y: visible;
 }
 
 /* Show the settings dialog with transition */
@@ -49,7 +49,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     font-weight: 600;
     gap: 0.5rem;
     background-color: var(--bg-alt-color);
@@ -64,11 +64,12 @@
 }
 
 /* Style for the centered header */
-/* TODO: This is getting added to from somewhere but I can't find where */
+/* Note: this uses clamp() and container-query width units (cqw) to set the font size based on the width of the dialog. */
+/* https://adrianroselli.com/2019/12/responsive-type-and-zoom.html warns about how this can interfere with zooming, but JGC doesn't think it will be an issue here. */
 .dynamic-dialog-title {
     flex-grow: 1;
     text-align: center;
-    line-height: 1.2rem;
+    font-size: clamp(0.6rem, calc(0.5rem + 1cqw), 1.2rem);
 }
 
 .dynamic-dialog {
@@ -80,8 +81,8 @@
         margin: 2px 4px 2px 0px;
         white-space: nowrap;
         cursor: pointer;
-        font-size: 0.85rem;
-        line-height: 1.2rem;
+        font-size:smaller;
+        line-height: 1.1rem;
         align-self: center;
         font-family: system-ui;
         border: none;

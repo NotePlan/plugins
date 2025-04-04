@@ -296,11 +296,11 @@ const DynamicDialog = ({
   }
 
   const dialogStyle = {
-    minWidth: '50%', // defaults which can be overridden by the style prop
+    // minWidth: '50%', // defaults which can be overridden by the style prop
     ...style,
   }
   const dialogContents = (
-    <div ref={dialogRef} className={`dynamic-dialog ${className || ''}`} style={dialogStyle} onClick={(e) => e.stopPropagation()}>
+    <dialog ref={dialogRef} className={`dynamic-dialog ${className || ''}`} style={dialogStyle} onClick={(e) => e.stopPropagation()}>
       <div className={`dynamic-dialog-header ${hideHeaderButtons ? 'title-only' : 'title-with-buttons'}`}>
         {!hideHeaderButtons && (
           <button className="PCButton cancel-button" onClick={onCancel}>
@@ -342,7 +342,7 @@ const DynamicDialog = ({
           </div>
         ))}
       </div>
-    </div>
+    </dialog>
   )
   return isModal ? (
     <Modal
