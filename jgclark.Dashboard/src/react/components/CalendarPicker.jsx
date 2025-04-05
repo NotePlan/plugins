@@ -2,7 +2,7 @@
 //----------------------------------------------------------
 // Calendar Picker component.
 // Used in DialogFor*Items components.
-// Last updated 2024-08-14 for v2.1.0.a7 by @dbw
+// Last updated 2025-04-05 for v2.2.0.a11
 //----------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import { DayPicker } from 'react-day-picker'
@@ -16,12 +16,13 @@ type Props = {
   numberOfMonths?: number, // Number of months to show in the calendar
   startingSelectedDate?: Date, // Date to start with selected
   positionFunction?: () => {}, // Function to call to reposition the dialog because it will be taller when calendar is open
-  reset?: boolean, // Whether the calendar is open/shown or not
+  resetDateToDefault?: boolean,
+  shouldStartOpen?: boolean, // Default is false, so the calendar is closed when it is first rendered
 }
 
-const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction, reset }: Props): React$Node => {
+const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction, resetDateToDefault, shouldStartOpen = false }: Props): React$Node => {
   const [selectedDate, setSelectedDate] = useState(startingSelectedDate)
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(shouldStartOpen)
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date)
@@ -35,12 +36,12 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
     setIsOpen(!isOpen)
   }
 
-  // Reset selectedDate when reset prop changes
+  // Reset selectedDate when resetDateToDefault prop changes
   useEffect(() => {
-    if (reset) {
+    if (resetDateToDefault) {
       setSelectedDate(null) // or any default value
     }
-  }, [reset])
+  }, [resetDateToDefault])
 
   //     '--rdp-cell-size': '20px', // Size down the calendar cells (default is 40px)
 

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-03-08 for v2.2.0.a7
+// Last updated 2025-04-05 for v2.2.0.a11
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -40,13 +40,18 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const dialogRef: React$RefObject<?HTMLDivElement> = useRef<?HTMLDivElement>(null)
 
   clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
-  const { ID, itemType, para, filename, title, content, noteType, sectionCodes } = validateAndFlattenMessageObject(detailsMessageObject)
+  const { ID, itemType, para, filename, title, content, noteType, sectionCodes, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
 
   const { sendActionToPlugin, reactSettings, setReactSettings, dashboardSettings, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
 
   const resched = dashboardSettings?.rescheduleNotMove || pluginData?.dashboardSettings.rescheduleNotMove || false
   // logDebug('DialogForTaskItems', `- rescheduleNotMove: dashboardSettings = ${String(dashboardSettings?.rescheduleNotMove)} / settings = ${String(pluginData?.dashboardSettings.rescheduleNotMove)}`)
+
+  // We want to open the calendar picker if the meta key was pressed as this was dialog was being triggered.
+  const shouldStartCalendarOpen = modifierKey // = boolean for whether metaKey pressed
+  logDebug('DialogForTaskItems',
+    `shouldStartCalendarOpen=${String(shouldStartCalendarOpen)}`)
 
   // Deduce the action to take when this is a date-changed button
   // - Item in calendar note & move to new calendar note for that picked date: use moveFromCalToCal()
@@ -198,10 +203,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const scheduleClose = (delay: number, forceClose: boolean = false) => {
     logDebug(`DialogForTaskItems`, `scheduleClose() ${String(delay)}ms delay, forceClose=${String(forceClose)}`)
     setTimeout(() => {
-      logDebug('DialogForTaskItems scheduleClose() after timeout reactSettings; looking for interactiveProcessing', reactSettings)
-      // $FlowIgnore
-      // logDebug('DialogForTaskItems', `scheduleClose calling handleIPItemProcessed`)
-      // reactSettings?.interactiveProcessing ? handleIPItemProcessed(false) : null
+      logDebug('DialogForTaskItems', `scheduleClose() after timeout reactSettings; looking for interactiveProcessing: ${JSP(reactSettings)}`)
       setReactSettings((prevSettings) => ({
         ...prevSettings,
         dialogData: { isOpen: false, isTask: true },
@@ -329,9 +331,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     if (controlStr === 'update') {
       logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
     }
-    // let handlingFunctionToUse = handlingFunction
-    // const actionType = (noteType === 'Calendar' && !resched) ? 'moveFromCalToCal' : 'rescheduleItem'
-    // logDebug(`DialogForTaskItems`, `handleButtonClick - actionType calculated:'${actionType}', resched?:${String(resched)}`)
 
     const dataToSend = {
       ...detailsMessageObject,
@@ -433,12 +432,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             {/* Item content line ---------------- */}
             <div className="preText">For:</div>
             <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-              {/* {detailsMessageObject?.item ? <StatusIcon
-                location={"dialog"}
-                item={detailsMessageObject?.item}
-                respondToClicks={true}
-                onIconClick={handleIconClick}
-              /> : null} */}
               <EditableInput
                 // $FlowIgnore - Flow doesn't like the ref
                 ref={inputRef}
@@ -456,9 +449,9 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
               </button>
             </div>
 
+            {/* Child indicator line */}
             {para.hasChild ? (
               <>
-                {/* Child indicator line */}
                 <div></div>
                 <div className="childDetails">(Has children)</div>
               </>
@@ -473,11 +466,16 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
                 </button>
               ))}
               {/* $FlowIgnore */}
-              <CalendarPicker onSelectDate={handleDateSelect} positionFunction={() => positionDialog(dialogRef)} reset={resetCalendar} startingSelectedDate={null} />{' '}
+              <CalendarPicker
+                onSelectDate={handleDateSelect}
+                positionFunction={() => positionDialog(dialogRef)}
+                resetDateToDefault={resetCalendar}
+                startingSelectedDate={null}
+                shouldStartOpen={shouldStartCalendarOpen}
+              />{' '}
               {/* FIXME: this positioning doesn't work */}
               {/* TODO: when this does work, it needs copying to DialogForProjectItems as well */}
             </div>
-            {/* </div> */}
 
             {/* Other actions line ---------------- */}
             <div className="preText">Other actions:</div>

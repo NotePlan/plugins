@@ -5,8 +5,19 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO(later): v2.3.0 UI to set the searchTerm and search options.
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component) -->
 - TODO: improve defaults for SearchOptions
+- TODO: ^⌥s triggers the search bar
 
-## [2.2.0.a10] 2025-03-30
+## [2.2.0.a11] 2025-04-???
+- add easier x-callback 'showDashboard' command alias
+- allow CalendarPicker to be opened when ⌘-clicking the task edit icon
+- changed DynamicDialog to be a `<dialog .../>` not a `<div .../>`. So far I don't think it looks or behaves any differently. But you will want to be on the lookout as well, as it's a shared component. I didn't have to change anything else for it, so it would be easy to change back if necessary.
+
+## [2.2.0.a10] 2025-04-04
+### Added
+New keyboard shortcuts to trigger certain actions (once the window has focus):
+- ^⌥a start the add new item function
+- ^⌥, opens the settings window
+ 
 ### Changed
 - improved responsive layout for dialog box titles and dropdown-selectors
 - improved keyboard navigation by adding focus indicators. TODO: finish header buttons
