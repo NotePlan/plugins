@@ -43,23 +43,9 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
     }
   }, [resetDateToDefault])
 
-  //     '--rdp-cell-size': '20px', // Size down the calendar cells (default is 40px)
-
-  // TODO: looks like these could all move to CalendarPicker.css?
-  /* note: the non-color styles are set in CalendarPicker.css */
-  // const calendarStyles = {
-  //   container: { border: '1px solid #ccc', marginTop: '0px', paddingTop: '0px' },
-  //   caption: { color: 'var(--tint-color)' },
-  //   navButtonPrev: { color: 'var(--tint-color)' },
-  //   navButtonNext: { color: 'var(--tint-color)' },
-  //   weekdays: { backgroundColor: 'var(--bg-main-color)' },
-  //   weekday: { fontWeight: 'bold' },
-  //   weekend: { backgroundColor: 'var(--bg-alt-color)' },
-  //   week: { color: '#333' },
-  //   day: { color: 'var(--fg-main-color)' },
-  //   today: { color: 'var(--hashtag-color)', backgroundColor: 'var(--bg-alt-color)' },
-  //   selected: { color: 'var(--tint-color)', backgroundColor: 'var(--bg-alt-color)' },
-  // }
+  //----------------------------------------------------------
+  // Render
+  //----------------------------------------------------------
 
   return (
     <>

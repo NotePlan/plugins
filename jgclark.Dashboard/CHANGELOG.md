@@ -7,10 +7,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: improve defaults for SearchOptions
 - TODO: ^⌥s triggers the search bar
 
-## [2.2.0.a11] 2025-04-???
+## [2.2.0.a11] 2025-04-06
 - add easier x-callback 'showDashboard' command alias
-- allow CalendarPicker to be opened when ⌘-clicking the task edit icon
+- allow CalendarPicker to be opened when ⌘-clicking the task edit or project edit icon
 - changed DynamicDialog to be a `<dialog .../>` not a `<div .../>`. So far I don't think it looks or behaves any differently. But you will want to be on the lookout as well, as it's a shared component. I didn't have to change anything else for it, so it would be easy to change back if necessary.
+- fixed layout of CalendarPicker, and improve its CSS
+- only show 1 CalendarPicker in dialogs when run on iPhone
 
 ## [2.2.0.a10] 2025-04-04
 ### Added

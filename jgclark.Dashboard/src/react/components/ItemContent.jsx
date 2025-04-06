@@ -105,7 +105,6 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   const handleClickToOpenEditDialog = (event: MouseEvent): void => {
     const clickPosition = { clientY: event.clientY, clientX: event.clientX }
     const { metaKey } = extractModifierKeys(event)
-    clo(event, 'event:')
     logDebug('ItemContent/handleClickToOpenEditDialog', `- metaKey=${String(metaKey)}`)
     messageObject.modifierKey = metaKey // boolean
     const dialogData = { isOpen: true, isTask: true, details: messageObject, clickPosition }

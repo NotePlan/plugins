@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-04-05 for v2.2.0.a11
+// Last updated 2025-04-06 for v2.2.0.a11
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -36,22 +36,22 @@ type DialogButtonProps = {
 const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
   const [resetCalendar, setResetCalendar] = useState(false) // used to reset the calendar during IP processing if the date picker is open
-  const inputRef: React$RefObject<?HTMLInputElement> = useRef<?HTMLInputElement>(null)
-  const dialogRef: React$RefObject<?HTMLDivElement> = useRef<?HTMLDivElement>(null)
+  const inputRef: React$RefObject<?HTMLInputElement> = useRef <? HTMLInputElement > (null)
+  const dialogRef: React$RefObject<?HTMLDivElement> = useRef <? HTMLDivElement > (null)
 
-  clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
+  // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
   const { ID, itemType, para, filename, title, content, noteType, sectionCodes, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
 
   const { sendActionToPlugin, reactSettings, setReactSettings, dashboardSettings, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
+  const monthsToShow = (pluginData.platform === 'iOS') ? 1 : 2
 
   const resched = dashboardSettings?.rescheduleNotMove || pluginData?.dashboardSettings.rescheduleNotMove || false
   // logDebug('DialogForTaskItems', `- rescheduleNotMove: dashboardSettings = ${String(dashboardSettings?.rescheduleNotMove)} / settings = ${String(pluginData?.dashboardSettings.rescheduleNotMove)}`)
 
   // We want to open the calendar picker if the meta key was pressed as this was dialog was being triggered.
   const shouldStartCalendarOpen = modifierKey // = boolean for whether metaKey pressed
-  logDebug('DialogForTaskItems',
-    `shouldStartCalendarOpen=${String(shouldStartCalendarOpen)}`)
+  logDebug('DialogForTaskItems', `shouldStartCalendarOpen=${String(shouldStartCalendarOpen)}`)
 
   // Deduce the action to take when this is a date-changed button
   // - Item in calendar note & move to new calendar note for that picked date: use moveFromCalToCal()
@@ -155,11 +155,12 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     {
       label: 'New Task',
       controlStr: 'qath',
-      description: 'New task',
+      description: 'Add new task',
       handlingFunction: 'addTaskAnywhere',
-      icons: [{ className: 'fa-regular fa-hexagon-plus', position: 'left' }],
+      icons: [{ className: 'fa-regular fa-square-plus', position: 'left' }],
     },
   ]
+
   // Now apply the filter with an explicit return type
   const otherControlButtons: Array<DialogButtonProps> = initialOtherControlButtons.filter((button): boolean => (isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)))
 
@@ -221,7 +222,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       if (visibleItems && typeof currentIPIndex === 'number') {
         visibleItems[currentIPIndex].processed = false
         if (visibleItems[currentIPIndex].para !== para) {
-          clo(para, 'handleSkipClick para had changed and is being updated to')
+          // clo(para, 'handleSkipClick para had changed and is being updated to')
           visibleItems[currentIPIndex].para = para // update content in case it has changed but not submitted (e.g. priority change)
         }
         const interactiveProcessingToSave = { ...reactSettings.interactiveProcessing, visibleItems }
@@ -269,7 +270,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // handle a single item (and its children) being processed in interactive processing
   const handleIPItemProcessed = (skippedItem?: boolean = false, skipForward?: boolean = true) => {
-    clo(reactSettings, `DialogForTaskItems: 🥸 handleIPItemProcessed calling handleIPItemProcessed; reactSettings=`)
+    logDebug(`DialogForTaskItems`, ` 🥸 handleIPItemProcessed calling handleIPItemProcessed`)
+    // clo(reactSettings, `DialogForTaskItems: 🥸 handleIPItemProcessed calling handleIPItemProcessed; reactSettings=`)
     const { visibleItems, currentIPIndex } = reactSettings?.interactiveProcessing || {}
     if (!visibleItems) return
     if (typeof currentIPIndex !== 'number') return
@@ -469,11 +471,11 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
               <CalendarPicker
                 onSelectDate={handleDateSelect}
                 positionFunction={() => positionDialog(dialogRef)}
+                numberOfMonths={monthsToShow}
                 resetDateToDefault={resetCalendar}
                 startingSelectedDate={null}
                 shouldStartOpen={shouldStartCalendarOpen}
               />{' '}
-              {/* FIXME: this positioning doesn't work */}
               {/* TODO: when this does work, it needs copying to DialogForProjectItems as well */}
             </div>
 

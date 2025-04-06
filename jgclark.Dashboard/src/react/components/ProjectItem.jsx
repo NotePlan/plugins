@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by ItemRow component
-// Last updated 2024-08-26 for v2.0.6 by @jgclark
+// Last updated 2025-04-06 for v2.2.0.a12 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
@@ -62,15 +62,20 @@ function ProjectItem({ item }: Props): Node {
     sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Project Title clicked in Dialog', true)
   }
 
-  const handleClickToOpenDialog = (e: MouseEvent): void => {
+  const handleClickToOpenDialog = (event: MouseEvent): void => {
     // clo(dataObjectToPassToControlDialog, 'ProjectItem: handleClickToOpenDialog - setting dataObjectToPassToControlDialog to: ')
-    const clickPosition = { clientY: e.clientY, clientX: e.clientX }
+    const { metaKey } = extractModifierKeys(event)
+    logDebug('ProjectItem/handleClickToOpenDialog', `- metaKey=${String(metaKey)}`)
+    dataObjectToPassToControlDialog.modifierKey = metaKey // boolean
+    const clickPosition = { clientY: event.clientY, clientX: event.clientX }
     setReactSettings((prev) => ({
       ...prev,
       lastChange: `_Dashboard-ProjectDialogOpen`,
       dialogData: { isOpen: true, isTask: false, details: dataObjectToPassToControlDialog, clickPosition }
     }))
   }
+
+  //----- RENDER ------------------------------------------
 
   return (
     <div className="sectionItemRow" id={item.ID}>
