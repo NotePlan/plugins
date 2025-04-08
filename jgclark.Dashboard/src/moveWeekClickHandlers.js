@@ -1,11 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for 'move all' actions for Weeks.
+// Last updated 2025-04-08 for v2.2.0.a12
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import { WEBVIEW_WINDOW_ID } from './constants'
-import { getOpenItemParasForTimePeriod, getDashboardSettings, handlerResult } from './dashboardHelpers'
+import { getOpenItemParasForTimePeriod, getDashboardSettings } from './dashboardHelpers'
 import { type MessageDataObject, type TBridgeClickHandlerResult } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer } from '@helpers/dev'
 import {
@@ -33,7 +34,7 @@ const checkThreshold = 20 // number beyond which to check with user whether to p
  * @param {MessageDataObject} data
  * @returns {TBridgeClickHandlerResult}
  */
-export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function scheduleAllThisWeekNextWeek(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     let numberScheduled = 0
     const config = await getDashboardSettings()
@@ -42,6 +43,10 @@ export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Pro
     const thisStartTime = new Date()
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+
+    // If called with modifierKey 'meta', then toggle from usual config.rescheduleNotMove behaviour to the opposite
+    const rescheduleNotMove = data.modifierKey === 'meta' ? !config.rescheduleNotMove : config.rescheduleNotMove
+    if (config.rescheduleNotMove !== rescheduleNotMove) logDebug('scheduleAllThisWeekNextWeek', `starting with rescheduleNotMove setting overridden toggled to ${rescheduleNotMove}`)
 
     // Get paras for all open items in yesterday's note
     // TODO: get this from reactWindowData.pluginData instead
@@ -57,12 +62,13 @@ export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Pro
     }
     logDebug('scheduleAllThisWeekNextWeek', `Starting with this week's note ${thisWeekDateStr} -> ${nextWeekDateStr}`)
 
-    //   Get list of open tasks/checklists from this calendar note
+    // Get list of open tasks/checklists from this calendar note
     const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod('week', thisWeekNote, config)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
 
-    // If there are lots, then double check whether to proceed
-    // TODO: get this from newer settings instead
+    // TODO: remove child items from combinedSortedParas
+
+    // If there are lots, then double check whether to proceed.
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
     if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
       const res = await showMessageYesNo(
@@ -166,7 +172,7 @@ export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Pro
  * @param {MessageDataObject} data
  * @returns {TBridgeClickHandlerResult}
  */
-export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function scheduleAllLastWeekThisWeek(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     let numberScheduled = 0
     const config = await getDashboardSettings()
@@ -176,8 +182,11 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
 
+    // If called with modifierKey 'meta', then toggle from usual config.rescheduleNotMove behaviour to the opposite
+    const rescheduleNotMove = data.modifierKey === 'meta' ? !config.rescheduleNotMove : config.rescheduleNotMove
+    if (config.rescheduleNotMove !== rescheduleNotMove) logDebug('scheduleAllLastWeekThisWeek', `starting with rescheduleNotMove setting overridden toggled to ${rescheduleNotMove}`)
+
     // Get paras for all open items in yesterday's note
-    // TODO: get this from reactWindowData.pluginData instead
     const thisWeekDateStr = getNPWeekStr(today)
     const thisWeekNote = DataStore.calendarNoteByDate(today, 'week')
     const lastWeekDateStr = calcOffsetDateStr(thisWeekDateStr, '-1w')
@@ -193,8 +202,9 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
     const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod('week', lastWeekNote, config)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
 
-    // If there are lots, then double check whether to proceed
-    // TODO: get environment from newer settings instead
+    // TODO: remove child items from combinedSortedParas
+
+    // If there are lots, then double check whether to proceed.
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
     if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
       const res = await showMessageYesNo(

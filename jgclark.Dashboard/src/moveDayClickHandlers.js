@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions to move items from one day to another
-// Last updated for v2.1.10
+// Last updated 2025-04-08 for v2.2.0.a12
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -10,9 +10,7 @@ import { getOpenItemParasForTimePeriod, getRelevantOverdueTasks, getDashboardSet
 import { type MessageDataObject, type TBridgeClickHandlerResult } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer } from '@helpers/dev'
 import {
-  // calcOffsetDateStr,
   getDateStringFromCalendarFilename,
-  // getNPWeekStr,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
   replaceArrowDatesInString,
@@ -35,7 +33,7 @@ const checkThreshold = 20 // number beyond which to check with user whether to p
  * @param {MessageDataObject} data
  * @returns {TBridgeClickHandlerResult}
  */
-export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function scheduleAllYesterdayOpenToToday(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     let numberScheduled = 0
     const config: any = await getDashboardSettings()
@@ -43,7 +41,10 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
     const reactWindowData: any = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-    // clo(reactWindowData)
+
+    // If called with modifierKey 'meta', then toggle from usual config.rescheduleNotMove behaviour to the opposite
+    const rescheduleNotMove = data.modifierKey === 'meta' ? !config.rescheduleNotMove : config.rescheduleNotMove
+    if (config.rescheduleNotMove !== config.rescheduleNotMove) logDebug('scheduleAllYesterdayOpenToToday', `starting with rescheduleNotMove setting overridden toggled to ${rescheduleNotMove}`)
 
     // Get paras for all open items in yesterday's note
     // Note: this could be taken from pluginData's DY section data, but it's very quick to generate, and guarantees that we're using fresh data
@@ -59,17 +60,19 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
 
     // Get list of open tasks/checklists from this calendar note
     const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod('day', yesterdaysNote, config)
+
+    // TODO: remove child items from combinedSortedParas
+
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
     // if (totalToMove !== prevTotalToMove) {
     //   logDebug('scheduleAllTodayTomorrow', `- Excluding children reduced total to move from ${prevTotalToMove} to ${totalToMove}`)
     // }
 
-    // If there are lots, then double check whether to proceed
-    // TODO: get this from pluginData instead
+    // If there are lots, then double check whether to proceed.
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS, so don't try.
     if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
       const res = await showMessageYesNo(
-        `Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to today?`,
+        `Are you sure you want to ${rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to today?`,
         ['Yes', 'No'],
         'Move Yesterday to Today',
         false,
@@ -85,7 +88,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
       reactWindowData.pluginData.refreshing = ['DT', 'DY']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(['DT', 'DY'])}`)
 
-      if (config.rescheduleNotMove) {
+      if (rescheduleNotMove) {
         // Determine if we need to use 'today' or schedule to the specific date.
         logDebug('scheduleAllYesterdayOpenToToday', `useTodayDate setting is ${config.useTodayDate}`)
         const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
@@ -181,7 +184,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
  * @param {MessageDataObject} data
  * @returns {TBridgeClickHandlerResult}
  */
-export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function scheduleAllTodayTomorrow(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     let numberScheduled = 0
     const config = await getDashboardSettings()
@@ -189,6 +192,10 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+
+    // If called with modifierKey 'meta', then toggle from usual config.rescheduleNotMove behaviour to the opposite
+    const rescheduleNotMove = data.modifierKey === 'meta' ? !config.rescheduleNotMove : config.rescheduleNotMove
+    if (config.rescheduleNotMove !== config.rescheduleNotMove) logDebug('scheduleAllYesterdayOpenToToday', `starting with rescheduleNotMove setting overridden toggled to ${rescheduleNotMove}`)
 
     // Get paras for all open items in today's note
     // Note: this could be taken from pluginData's DT section data, but it's very quick to generate, and guarantees that we're using fresh data
@@ -207,7 +214,9 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod('day', todaysNote, config)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
 
-    // TODO: get this from newer settings instead
+    // TODO: remove child items from combinedSortedParas
+
+    // If there are lots, then double check whether to proceed.
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
     if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
       const res = await showMessageYesNo(

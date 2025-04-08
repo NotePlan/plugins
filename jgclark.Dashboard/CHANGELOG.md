@@ -6,6 +6,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component) -->
 - TODO: improve defaults for SearchOptions
 - TODO: ^⌥s triggers the search bar
+## [2.2.0.a12] 2025-04-???
+- code tidy
+- add ⌘-click option to 'All → Tomorrow' and similar buttons which temporarily toggles between 'move' and 'schedule' modes. 
+- The tooltip on the 'All → Tomorrow' and similar buttons now says whether you are going to (re)schedule or move the items.
 
 ## [2.2.0.a11] 2025-04-06
 - add easier x-callback 'showDashboard' command alias

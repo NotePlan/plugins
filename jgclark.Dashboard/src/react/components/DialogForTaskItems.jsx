@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-04-06 for v2.2.0.a11
+// Last updated 2025-04-08 for v2.2.0.a12
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -34,10 +34,23 @@ type DialogButtonProps = {
 }
 
 const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
-  const [animationClass, setAnimationClass] = useState('')
-  const [resetCalendar, setResetCalendar] = useState(false) // used to reset the calendar during IP processing if the date picker is open
+  //----------------------------------------------------------------------
+  // Refs
+  //----------------------------------------------------------------------
+
   const inputRef: React$RefObject<?HTMLInputElement> = useRef <? HTMLInputElement > (null)
   const dialogRef: React$RefObject<?HTMLDivElement> = useRef <? HTMLDivElement > (null)
+
+  //----------------------------------------------------------------------
+  // State
+  //----------------------------------------------------------------------
+
+  const [animationClass, setAnimationClass] = useState('')
+  const [resetCalendar, setResetCalendar] = useState(false) // used to reset the calendar during IP processing if the date picker is open
+
+  //----------------------------------------------------------------------
+  // Constants
+  //----------------------------------------------------------------------
 
   // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
   const { ID, itemType, para, filename, title, content, noteType, sectionCodes, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
@@ -164,94 +177,10 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // Now apply the filter with an explicit return type
   const otherControlButtons: Array<DialogButtonProps> = initialOtherControlButtons.filter((button): boolean => (isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)))
 
-  useEffect(() => {
-    // logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
-    // $FlowIgnore[incompatible-call]
-    positionDialog(dialogRef)
-    // logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
-  }, [])
-
-  function handleTitleClick(e: MouseEvent) {
-    // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties
-    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
-    detailsMessageObject.actionType = 'showLineInEditorFromFilename'
-    detailsMessageObject.modifierKey = modifierName
-    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
-  }
-
-  // Handle the close -- start an animation and then schedule the actual close at the end of the animation
-  // will eventually call onClose() from Dialog.jsx (does nothing special)
-  // and will pass it on to Dashboard::handleDialogClose which (may) refresh the page
-  const closeDialog = (forceClose: boolean = false) => {
-    logDebug(`DialogForTaskItems closeDialog(${String(forceClose)}) reactSettings; looking for interactiveProcessing`)
-    if (reactSettings?.interactiveProcessing) {
-      if (forceClose) {
-        setReactSettings((prevSettings) => ({
-          ...prevSettings,
-          interactiveProcessing: null,
-          dialogData: { isOpen: false, isTask: true },
-        }))
-      } else {
-        handleIPItemProcessed(false)
-        return
-      }
-    }
-    // logDebug('DialogForTaskItems closeDialog() calling setAnimationClass')
-    showAnimations ? setAnimationClass('zoom-out') : null
-    scheduleClose(showAnimations ? 300 : 0, forceClose) // Match the duration of the animation
-  }
-
-  const scheduleClose = (delay: number, forceClose: boolean = false) => {
-    logDebug(`DialogForTaskItems`, `scheduleClose() ${String(delay)}ms delay, forceClose=${String(forceClose)}`)
-    setTimeout(() => {
-      logDebug('DialogForTaskItems', `scheduleClose() after timeout reactSettings; looking for interactiveProcessing: ${JSP(reactSettings)}`)
-      setReactSettings((prevSettings) => ({
-        ...prevSettings,
-        dialogData: { isOpen: false, isTask: true },
-      }))
-      onClose(forceClose)
-    }, delay)
-  }
-
-  // during overduecycle, user wants to skip this item (leave it overdue)
-  const handleSkipClick = (skipForward: boolean) => {
-    // closeDialog()
-    logDebug('DialogForTaskItems', `handleSkipClick calling handleIPItemProcessed`)
-    if (reactSettings?.interactiveProcessing) {
-      const { visibleItems, currentIPIndex } = reactSettings?.interactiveProcessing
-      if (visibleItems && typeof currentIPIndex === 'number') {
-        visibleItems[currentIPIndex].processed = false
-        if (visibleItems[currentIPIndex].para !== para) {
-          // clo(para, 'handleSkipClick para had changed and is being updated to')
-          visibleItems[currentIPIndex].para = para // update content in case it has changed but not submitted (e.g. priority change)
-        }
-        const interactiveProcessingToSave = { ...reactSettings.interactiveProcessing, visibleItems }
-        setReactSettings((prevSettings) => ({
-          ...prevSettings,
-          interactiveProcessing: interactiveProcessingToSave,
-        }))
-      }
-    }
-    reactSettings?.interactiveProcessing ? handleIPItemProcessed(true, skipForward) : null
-  }
-
-  // Handle the date selected from CalendarPicker
-  const handleDateSelect = (date: Date) => {
-    if (!date) return
-    // turn into 8601 format
-    // const isoDateStr = date.toISOString().split('T')[0]
-    const isoDateStr = hyphenatedDateString(date) // to avoid TZ issues
-    sendActionToPlugin(
-      dateChangeFunctionToUse,
-      { ...detailsMessageObject, actionType: dateChangeFunctionToUse, controlStr: isoDateStr },
-      `${isoDateStr} selected in date picker`,
-      true,
-    )
-    // reset the calendar picker after some time or in the next render cycle so it forgets the last selected date
-    setResetCalendar(true)
-    setTimeout(() => setResetCalendar(false), 0)
-    closeDialog()
-  }
+  // dbw note 2024-10-08: Trying to keep an eye out for an edge case where changing priority then skipping an item
+  // might cause hasChild to be set to true, which seems to make no sense. no idea where it's coming from.
+  // but might be the intermittent cache update issue returning children with the para when there are none
+  para.hasChild ? clo(para, `DialogForTaskItems hasChild ${para.hasChild} para=`) : null
 
   // get the next index in the visibleItems array to process (default going forward) or go backwards (goBackwards = true)
   const getNextIPIndex = (goBackwards: boolean = false) => {
@@ -267,6 +196,39 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
     return -1
   }
+
+  //----------------------------------------------------------------------
+  // Effects
+  //----------------------------------------------------------------------
+
+  useEffect(() => {
+    // logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
+    // $FlowIgnore[incompatible-call]
+    positionDialog(dialogRef)
+    // logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
+  }, [])
+
+  // Force the window to be focused on load so that we can capture clicks on hover
+  useEffect(() => {
+    if (dialogRef?.current) {
+      // dialogRef.current.style.cssText = `${dialogRef.current.style.cssText} outline: none;`
+      dialogRef.current.focus()
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    // Trigger the 'effect when the component mounts
+    showAnimations ? setAnimationClass('zoom-in') : null
+
+    // run before the component unmounts
+    return () => {
+      showAnimations ? setAnimationClass('zoom-out') : null
+    }
+  }, [])
+
+  //----------------------------------------------------------------------
+  // Handlers
+  //----------------------------------------------------------------------
 
   // handle a single item (and its children) being processed in interactive processing
   const handleIPItemProcessed = (skippedItem?: boolean = false, skipForward?: boolean = true) => {
@@ -368,21 +330,91 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     }
     return result
   }
+  function handleTitleClick(e: MouseEvent) {
+    // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties
+    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
+    detailsMessageObject.actionType = 'showLineInEditorFromFilename'
+    detailsMessageObject.modifierKey = modifierName
+    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
+  }
 
-  useLayoutEffect(() => {
-    // Trigger the 'effect when the component mounts
-    showAnimations ? setAnimationClass('zoom-in') : null
-
-    // run before the component unmounts
-    return () => {
-      showAnimations ? setAnimationClass('zoom-out') : null
+  // Handle the close -- start an animation and then schedule the actual close at the end of the animation
+  // will eventually call onClose() from Dialog.jsx (does nothing special)
+  // and will pass it on to Dashboard::handleDialogClose which (may) refresh the page
+  const closeDialog = (forceClose: boolean = false) => {
+    logDebug(`DialogForTaskItems closeDialog(${String(forceClose)}) reactSettings; looking for interactiveProcessing`)
+    if (reactSettings?.interactiveProcessing) {
+      if (forceClose) {
+        setReactSettings((prevSettings) => ({
+          ...prevSettings,
+          interactiveProcessing: null,
+          dialogData: { isOpen: false, isTask: true },
+        }))
+      } else {
+        handleIPItemProcessed(false)
+        return
+      }
     }
-  }, [])
+    // logDebug('DialogForTaskItems closeDialog() calling setAnimationClass')
+    showAnimations ? setAnimationClass('zoom-out') : null
+    scheduleClose(showAnimations ? 300 : 0, forceClose) // Match the duration of the animation
+  }
 
-  // dbw note 2024-10-08: Trying to keep an eye out for an edge case where changing priority then skipping an item
-  // might cause hasChild to be set to true, which seems to make no sense. no idea where it's coming from.
-  // but might be the intermittent cache update issue returning children with the para when there are none
-  para.hasChild ? clo(para, `DialogForTaskItems hasChild ${para.hasChild} para=`) : null
+  const scheduleClose = (delay: number, forceClose: boolean = false) => {
+    logDebug(`DialogForTaskItems`, `scheduleClose() ${String(delay)}ms delay, forceClose=${String(forceClose)}`)
+    setTimeout(() => {
+      logDebug('DialogForTaskItems', `scheduleClose() after timeout reactSettings; looking for interactiveProcessing: ${JSP(reactSettings)}`)
+      setReactSettings((prevSettings) => ({
+        ...prevSettings,
+        dialogData: { isOpen: false, isTask: true },
+      }))
+      onClose(forceClose)
+    }, delay)
+  }
+
+  // during overduecycle, user wants to skip this item (leave it overdue)
+  const handleSkipClick = (skipForward: boolean) => {
+    // closeDialog()
+    logDebug('DialogForTaskItems', `handleSkipClick calling handleIPItemProcessed`)
+    if (reactSettings?.interactiveProcessing) {
+      const { visibleItems, currentIPIndex } = reactSettings?.interactiveProcessing
+      if (visibleItems && typeof currentIPIndex === 'number') {
+        visibleItems[currentIPIndex].processed = false
+        if (visibleItems[currentIPIndex].para !== para) {
+          // clo(para, 'handleSkipClick para had changed and is being updated to')
+          visibleItems[currentIPIndex].para = para // update content in case it has changed but not submitted (e.g. priority change)
+        }
+        const interactiveProcessingToSave = { ...reactSettings.interactiveProcessing, visibleItems }
+        setReactSettings((prevSettings) => ({
+          ...prevSettings,
+          interactiveProcessing: interactiveProcessingToSave,
+        }))
+      }
+    }
+    reactSettings?.interactiveProcessing ? handleIPItemProcessed(true, skipForward) : null
+  }
+
+  // Handle the date selected from CalendarPicker
+  const handleDateSelect = (date: Date) => {
+    if (!date) return
+    // turn into 8601 format
+    // const isoDateStr = date.toISOString().split('T')[0]
+    const isoDateStr = hyphenatedDateString(date) // to avoid TZ issues
+    sendActionToPlugin(
+      dateChangeFunctionToUse,
+      { ...detailsMessageObject, actionType: dateChangeFunctionToUse, controlStr: isoDateStr },
+      `${isoDateStr} selected in date picker`,
+      true,
+    )
+    // reset the calendar picker after some time or in the next render cycle so it forgets the last selected date
+    setResetCalendar(true)
+    setTimeout(() => setResetCalendar(false), 0)
+    closeDialog()
+  }
+
+  //----------------------------------------------------------------------
+  // Render
+  //----------------------------------------------------------------------
 
   return (
     <>
@@ -434,6 +466,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             {/* Item content line ---------------- */}
             <div className="preText">For:</div>
             <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              {/* TEST: put an 'autofocus' attribute in here */}
               <EditableInput
                 // $FlowIgnore - Flow doesn't like the ref
                 ref={inputRef}
@@ -441,6 +474,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
                 className="fullTextInput dialogItemContent"
                 useTextArea={pluginData.platform === 'iOS'}
                 onEnterPress={handleEnterPress}
+                autofocusMe={true}
               />
               <button
                 className="updateItemContentButton PCButton"

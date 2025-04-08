@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated for v2.1.10
+// Last updated 2025-04-06 for v2.2.0.a11
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -64,7 +64,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
     let sectionItems = section.sectionItems
     // If the section is present, but has no items, add a suitable message/itemType
-    // TODO: should this be done in the dataGeneration* functions?  Check on later processing of zero-length sections here and in useSectionSortAndFilter()
+    // Note: done here, rather than in the dataGeneration* functions, as items can be removed in the front-end, before the back-end is told to refresh.
     if (!sectionItems || sectionItems.length === 0) {
       switch (section.sectionCode) {
         case 'DT':
@@ -246,6 +246,10 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     hideSection = true
   }
 
+  //----------------------------------------------------------------------
+  // Render
+  //----------------------------------------------------------------------
+
   /**
    * Layout of sectionInfo = 4 divs:
    * - sectionInfoFirstLine = grid of sectionName div and buttonsWithoutBordersOrBackground div
@@ -278,6 +282,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         </div>
 
         {descriptionDiv}
+
         <div className="sectionProcessButtons">
           {processActionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="PCButton" />) ?? []}
           {showIPButton && (

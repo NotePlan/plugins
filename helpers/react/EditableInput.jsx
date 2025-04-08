@@ -1,6 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // React component to show an editable input box
+// Last updated 2025-04-08 for v2.2.0.a12
 //--------------------------------------------------------------------------
 
 import * as React from 'react'
@@ -16,6 +17,8 @@ type Props = {
   useTextArea?: boolean,
   placeholder?: string,
   onEnterPress?: () => void,
+  /** Optional boolean to automatically focus the input when mounted */
+  autofocusMe?: boolean,
 }
 
 type RefType = {
@@ -32,6 +35,7 @@ type RefType = {
  * - `className`: Optional. A CSS class for styling the component.
  * - `onChange`: Optional. A function that is called whenever the input value changes.
  * - `onEnterPress`: Optional. A function that is called when Enter key is pressed (without shift key).
+ * - `autofocusMe`: Optional. A boolean to automatically focus the input when mounted.
  *
  * Ref Methods:
  * - `getValue`: Returns the current text value of the input.
@@ -40,11 +44,23 @@ const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardR
   const [inputValue, setInputValue] = React.useState(props.initialValue || '')
   const useTextArea = props.useTextArea || false
   const divRef = React.useRef<HTMLDivElement | null>(null)
+  const inputRef = React.useRef < HTMLInputElement | null > (null)
 
   // Effect to update state if initialValue prop changes
   React.useEffect(() => {
     setInputValue(props.initialValue || '')
   }, [props.initialValue])
+
+  // Effect to handle autofocus
+  React.useEffect(() => {
+    if (props.autofocusMe) {
+      if (useTextArea && divRef.current) {
+        divRef.current.focus()
+      } else if (inputRef.current) {
+        inputRef.current.focus()
+      }
+    }
+  }, [props.autofocusMe, useTextArea])
 
   const handleChange = (event: SyntheticInputEvent<HTMLInputElement>) => {
     const newValue = event.target.value
@@ -107,7 +123,9 @@ const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardR
       onKeyDown={onKeyDown}
     />
   ) : (
-      <input type="text"
+      <input
+        ref={inputRef}
+        type="text"
         className={props.className || ''}
         value={inputValue}
         onChange={handleChange}

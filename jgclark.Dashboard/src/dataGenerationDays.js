@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2025-04-01 for 2.2.0.a10
+// Last updated 2025-04-08 for v2.2.0.a12
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -197,7 +197,9 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           actionName: 'moveAllTodayToTomorrow',
           actionPluginID: `${pluginJson['plugin.id']}`,
           display: 'All <i class="fa-solid fa-right-long"></i> Tomorrow',
-          tooltip: 'Move or schedule all remaining open items to tomorrow',
+          tooltip: config.rescheduleNotMove
+            ? '(Re)Schedule all open items from today to tomorrow. (Press ⌘-click to move instead.)'
+            : 'Move all open items from today to tomorrow. (Press ⌘-click to (re)schedule instead.)',
           actionParam: 'true' /* refresh afterwards */,
           postActionRefresh: ['DT', 'DO'], // refresh 2 sections afterwards
         },
@@ -382,7 +384,9 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         {
           actionName: 'moveAllYesterdayToToday',
           actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: 'Move or schedule all open items from yesteday to today',
+          tooltip: config.rescheduleNotMove
+            ? '(Re)Schedule all open items from yesterday to today. (Press ⌘-click to move instead.)'
+            : 'Move all open items from yesterday to today. (Press ⌘-click to (re)schedule instead.)',
           display: 'All <i class="fa-solid fa-right-long"></i> Today',
           actionParam: 'true' /* refresh afterwards */,
           postActionRefresh: ['DT', 'DY'], // refresh 2 sections afterwards
