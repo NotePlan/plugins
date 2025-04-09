@@ -40,7 +40,7 @@ function CommandButton(inputObj: ButtonProps): React$Node {
 
   const handleButtonClick = async (event: MouseEvent) => {
     const { modifierName } = extractModifierKeys(event)
-    logDebug('CommandButton', `🔸 handleButtonClick: ${button.tooltip}, modifierName=${modifierName ? modifierName : '-'}`)
+    // logDebug('CommandButton', `🔸 handleButtonClick: ${button.tooltip}, modifierName=${modifierName ? modifierName : '-'}`)
     let userInputObj: TAnyObject | null
     if (button.formFields) {
       // show dialog to get user input if formFields are defined
@@ -49,7 +49,7 @@ function CommandButton(inputObj: ButtonProps): React$Node {
         title: button.tooltip,
         submitOnEnter: button.submitOnEnter,
         submitButtonText: button.submitButtonText,
-        // className: `dashboard-command-button ${className || ''}`,
+        // TODO: can this be removed or refactored?
         style: {
           top: '40%',
         },
