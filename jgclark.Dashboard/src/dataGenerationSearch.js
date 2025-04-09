@@ -1,17 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-03-31 for v2.2.0.a10
+// Last updated 2025-04-09 for v2.2.0.a12
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { extendedSearch } from '../../jgclark.SearchExtensions/src/externalSearch'
+import { getSearchSettings } from '../../jgclark.SearchExtensions/src/searchHelpers'
 import type { noteAndLine, resultOutputType, TSearchOptions } from '../../jgclark.SearchExtensions/src/searchHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { savedSearch1 } from './demoData'
 import type { TDashboardSettings, TSection, TSectionItem } from './types'
 import {
-  // createSectionOpenItemsFromParas,
   createSectionItemObject,
   getDashboardSettings,
   isLineDisallowedByExcludedTerms,
@@ -49,13 +49,18 @@ export async function externallyStartSearch(
   const foldersToExcludePlusArchive = config.applyCurrentFilteringToSearch && config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
   foldersToExcludePlusArchive.push('@Archive')
   const noteTypesToIncludeArr: Array<string> = noteTypesToIncludeStr === 'both' ? ['notes', 'calendar'] : stringListOrArrayToArray(noteTypesToIncludeStr, ',')
+  // In v2.2 we need to get 2 remaining options from the SearchExtensions plugin (if loaded). If not, then use defaults from how NP operates
+  const SEConfig = await getSearchSettings()
+  const caseSensitiveSearching = SEConfig?.caseSensitiveSearching ?? false
+  const fullWordSearching = SEConfig?.fullWordSearching ?? false
+  logInfo('externallyStartSearch', `- from SearchExtensions config: caseSensitiveSearching: ${String(caseSensitiveSearching)}, fullWordSearching: ${String(fullWordSearching)}`)
   const searchOptions: TSearchOptions = {
     noteTypesToInclude: noteTypesToIncludeArr,
     paraTypesToInclude: config.ignoreChecklistItems ? ['open', 'scheduled'] : ['open', 'scheduled', 'checklist', 'checklistScheduled'],
     foldersToInclude: config.applyCurrentFilteringToSearch && config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',') : [],
     foldersToExclude: foldersToExcludePlusArchive,
-    caseSensitiveSearching: false,
-    fullWordSearching: true,
+    caseSensitiveSearching: caseSensitiveSearching,
+    fullWordSearching: fullWordSearching,
     fromDateStr: fromDateStr,
     toDateStr: toDateStr ? toDateStr : config.dontSearchFutureItems ? getTodaysDateHyphenated() : '',
   }

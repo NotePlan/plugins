@@ -4,10 +4,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 <!-- - NOT-DO: Search: add an "Ignore Perspective" link to the message which fires off a search without the inclusion/exclusions
 - TODO(later): v2.3.0 UI to set the searchTerm and search options.
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component)
-- TODO: improve defaults for SearchOptions
 - TODO: ^⌥s triggers the search bar
  -->
 ## [2.2.0.a12] 2025-04-09
+- use settings for case sensitive and full word search options from SearchExtensions plugin (if installed)
 - when using 'All → Tomorrow' and similar buttons, stop trying to move child tasks, which raises errors, as they've already been moved with their parents
 - code tidy
 - add ⌘-click option to 'All → Tomorrow' and similar buttons which temporarily toggles between 'move' and 'schedule' modes. 
