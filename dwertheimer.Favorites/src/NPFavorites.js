@@ -3,7 +3,7 @@ import { chooseOption, showMessage } from '../../helpers/userInput'
 import { favoriteNotes, getFaveOptionsArray, getFavoriteDefault, getFavoritedTitle, noteIsFavorite, removeFavoriteFromTitle, type FavoritesConfig } from './favorites'
 import { setTitle } from '@helpers/note'
 import { logDebug, clo, logError, JSP } from '@helpers/dev'
-import { getFrontMatterAttributes, getFrontMatterNotes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { getFrontMatterAttributes, getFrontMatterNotes, updateFrontMatterVars, ensureFrontmatter } from '@helpers/NPFrontMatter'
 
 export async function getConfig(): Promise<FavoritesConfig> {
   const settings = DataStore.settings
@@ -38,7 +38,7 @@ export async function getConfig(): Promise<FavoritesConfig> {
 export async function setFavorite(): Promise<void> {
   const config = await getConfig()
   const { favoriteKey } = config
-  const note = Editor?.note
+  const note = Editor
   if (note && note.title && note.type === 'Notes') {
     const isFavorite = noteIsFavorite(note, config)
     if (isFavorite) {
@@ -53,6 +53,9 @@ export async function setFavorite(): Promise<void> {
       }
       if (config.favoriteIdentifier.includes('Frontmatter')) {
         logDebug('NPFavorites', `[${config.favoriteIdentifier}] Setting frontmatter ${favoriteKey} to true`)
+        ensureFrontmatter(note)
+        // In case frontmatter was just added, we need to re-open the note to properly see the frontmatter in the properties and the Editor.frontmatterAttributes
+        await Editor.openNoteByFilename(Editor.filename)
         const fm = getFrontMatterAttributes(note)
         if (typeof fm === 'object' && fm !== null) {
           fm[favoriteKey] = 'true'
@@ -92,7 +95,7 @@ export async function removeFavorite(): Promise<void> {
   try {
     const config = await getConfig()
     const { favoriteKey } = config
-    const note = Editor.note
+    const note = Editor
     logDebug('NPFavorites', `Removing favorite from note "${note?.title || ''}" ${note?.type || ''}`)
     if (note && note.title && note.type === 'Notes') {
       const isFavorite = noteIsFavorite(note, config)
