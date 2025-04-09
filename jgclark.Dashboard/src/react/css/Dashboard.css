@@ -188,7 +188,7 @@ button,
 	.tooltip {
 		position: relative;
 		/* float above everything, including the header */
-		/* z-index: 20; */
+		z-index: 20;
 	}
 
 	.tooltip::before,

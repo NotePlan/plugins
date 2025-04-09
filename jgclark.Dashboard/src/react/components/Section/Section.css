@@ -230,8 +230,7 @@
 /* ------------------------------------------------------------------ */
 /* Other things in Items */
 
-/* The marker for parent/child projects, designed to mimic what EM introduced in 3.15.1 */
-/* Note: no longer using childMarker */
+/* The marker for parent items, designed to mimic what EM introduced in 3.15.1 */
 .parentMarker {
 	font-size: 70%;
 	color: var(--fg-main-color);
@@ -241,5 +240,5 @@
 	opacity: 0.7;
 	padding: 0px 4px;
 	vertical-align: middle;
-	transform: scale(1.15,1);
+	transform: scale(1.25,0.9);
 }
