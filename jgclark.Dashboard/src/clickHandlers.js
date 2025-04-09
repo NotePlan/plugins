@@ -10,7 +10,7 @@ import moment from 'moment'
 // import pluginJson from '../plugin.json'
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
-import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettings } from './perspectiveHelpers'
+import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettingsInAPerspective } from './perspectiveHelpers'
 import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings } from './types'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
@@ -473,15 +473,12 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
       const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
       logDebug(`doSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
       if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
-        const cleanedSettings = cleanDashboardSettings(newSettings)
-        // TODO: We may need to ensure that recently added dashboardSettings are included here (see doSwitchToPerspective)
+        const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettings)
         const diff = compareObjects(activePerspDef.dashboardSettings, cleanedSettings, ['lastModified', 'lastChange'])
         clo(diff, `doSettingsChanged: diff`)
         // if !diff or  all the diff keys start with FFlag, then return
-        // FIXME(@dwertheimer): this line doesn't agree with its comment above.
-        if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag') || d.startsWith('usePerspectives'))) {
+        if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
           logDebug(`doSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
-          // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) }
           const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) })
           return handlerResult(res)
         } else {

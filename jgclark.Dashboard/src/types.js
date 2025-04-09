@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-03-30 for v2.2.0.a10, @jgclark
+// Last updated 2025-04-09 for v2.2.0.a12, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -26,7 +26,7 @@ export type TNotePlanSettings = {
  */
 export type TDashboardSettings = {
   /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES */
-  // Note: add all of these to the list of items in cleanDashboardSettings() so that they do not get saved to any specific perspective
+  // Note: add all of these to the list of items in cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
   usePerspectives: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
   FFlag_UseTagCache?: boolean,
@@ -53,7 +53,11 @@ export type TDashboardSettings = {
   // Note: if you add a new setting, make sure to
   // - update the dashboardSettingsDefaults object in dashboardSettings.js
   // - update the getDashboardSettings() function in dashboardHelpers.js if it is type number
-  // - possibly update the cleanDashboardSettings() function in perspectiveHelpers.js
+  // - possibly update the cleanDashboardSettingsInAPerspective() function in perspectiveHelpers.js
+  // Note: if you change a setting name, make sure to update the following:
+  // - the onUpdateOrInstall() function in index.js to handle most of the migration
+  // - the dashboardSettingsDefaults object in dashboardSettings.js
+  // - the cleanDashboardSettingsInAPerspective() function in perspectiveHelpers.js
   applyCurrentFilteringToSearch: boolean,
   autoUpdateAfterIdleTime: number,
   dashboardTheme: string,

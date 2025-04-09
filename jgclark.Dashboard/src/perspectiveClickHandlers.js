@@ -10,7 +10,7 @@ import { getDashboardSettings, handlerResult, setPluginData } from './dashboardH
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
 import {
   addNewPerspective,
-  cleanDashboardSettings,
+  cleanDashboardSettingsInAPerspective,
   deletePerspective,
   getActivePerspectiveDef,
   getPerspectiveNamed,
@@ -93,7 +93,7 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   if (activeDef.name === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" is not allowed to be saved.` })
   const dashboardSettings = await getDashboardSettings()
   if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
-  const newDef = { ...activeDef, dashboardSettings: cleanDashboardSettings(dashboardSettings), isModified: false }
+  const newDef = { ...activeDef, dashboardSettings: cleanDashboardSettingsInAPerspective(dashboardSettings), isModified: false }
   const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
   const result = await savePerspectiveSettings(revisedDefs)
   if (!result) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
@@ -125,6 +125,7 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
 
 /**
  * Switch to a perspective and save the new perspective settings and dashboard settings
+ * TODO: Add default dashboardSettings to the perspectiveDefs if they are missing.
  * @param {MessageDataObject} data - the data object containing the perspective name
  * @returns {TBridgeClickHandlerResult} - the result of the switch to perspective
  */
@@ -208,7 +209,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
  */
 export function setDashPerspectiveSettings(newDashboardSettings: TDashboardSettings, perspectiveSettings: TPerspectiveSettings): TPerspectiveSettings {
   logDebug(`doSettingsChanged`, `Saving new Dashboard settings to "-" perspective, setting isModified and isActive to false for all other perspectives`)
-  const dashDef = { name: '-', isActive: true, dashboardSettings: cleanDashboardSettings(newDashboardSettings), isModified: false }
+  const dashDef = { name: '-', isActive: true, dashboardSettings: cleanDashboardSettingsInAPerspective(newDashboardSettings), isModified: false }
   return replacePerspectiveDef(perspectiveSettings, dashDef).map((p) => (p.name === '-' ? p : { ...p, isModified: false, isActive: false }))
 }
 
@@ -228,7 +229,7 @@ export async function doPerspectiveSettingsChanged(data: MessageDataObject): Pro
   if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
   // after (potential) multi-editing in the PerspectivesTable, we need to clean the dashboardSettings for each perspective
   // because the tagsToShow may have been changed, so we need to clean out the showSection* vars
-  const cleanedPerspSettings = newSettings.map((p) => ({ ...p, dashboardSettings: cleanDashboardSettings(p.dashboardSettings) }))
+  const cleanedPerspSettings = newSettings.map((p) => ({ ...p, dashboardSettings: cleanDashboardSettingsInAPerspective(p.dashboardSettings) }))
   const updatedPluginData = { perspectiveSettings: cleanedPerspSettings, dashboardSettings, serverPush: { perspectiveSettings: true, dashboardSettings: true } }
   if (dashboardSettings.usePerspectives) {
     const currentPerspDef = getActivePerspectiveDef(cleanedPerspSettings)

@@ -12,7 +12,7 @@
 import React, { useReducer, useEffect, useCallback } from 'react'
 import type { TPerspectiveDef } from '../../../types.js'
 import { PERSPECTIVE_ACTIONS } from '../../reducers/actionTypes'
-import { cleanDashboardSettings, endsWithStar, setActivePerspective } from '../../../perspectiveHelpers'
+import { cleanDashboardSettingsInAPerspective, endsWithStar, setActivePerspective } from '../../../perspectiveHelpers'
 import {
   getDisplayListOfPerspectiveNames,
   getPerspectiveNamed,
@@ -346,7 +346,7 @@ const PerspectiveSelector = (): React$Node => {
       const currentPerspIsModified = currentPersp?.isModified || false
       if (currentPerspIsModified) {
         // find diff between currentPersp.dashboardSettings and dashboardSettings
-        const diff = compareObjects(currentPersp?.dashboardSettings, cleanDashboardSettings(dashboardSettings))
+        const diff = compareObjects(currentPersp?.dashboardSettings, cleanDashboardSettingsInAPerspective(dashboardSettings))
         if (diff) {
           logDebug(
             'PerspectiveSelector/handlePerspectiveChange',

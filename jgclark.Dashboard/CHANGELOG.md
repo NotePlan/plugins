@@ -8,6 +8,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fixed long-standing layout bug where some tooltips were getting clipped
  -->
 ## [2.2.0.a12] 2025-04-09
+- renamed cleanDashboardSettings() to cleanDashboardSettingsInAPerspective(), and added 'usePerspectives' to the items to clean. Fixed rogue 'searchSection' term appearing.
+- WIP: stop further perspectiveSettings changes that shouldn't be happening.
 - use settings for case sensitive and full word search options from SearchExtensions plugin (if installed)
 - when using 'All → Tomorrow' and similar buttons, stop trying to move child tasks, which raises errors, as they've already been moved with their parents
 - code tidy

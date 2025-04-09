@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2025-03-27 for v2.2.0.a9
+// Last updated 2025-04-09 for v2.2.0.a12
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -286,7 +286,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
     label: 'Search section',
-    key: 'searchSection',
   },
   {
     key: 'applyCurrentFilteringToSearch',
