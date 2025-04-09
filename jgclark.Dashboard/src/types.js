@@ -103,12 +103,7 @@ export type TDashboardSettings = {
   showYesterdaySection: boolean,
 }
 
-export type TDashboardPluginSettings = {
-  ...TDashboardLoggingConfig,
-  pluginID: string,
-  dashboardSettings: string,
-  perspectiveSettings: string,
-}
+export type TPerspectiveSettings = Array<TPerspectiveDef>
 
 export type TPerspectiveDef = {
   name: string,
@@ -118,7 +113,12 @@ export type TPerspectiveDef = {
   lastModified?: number,
 }
 
-export type TPerspectiveSettings = Array<TPerspectiveDef>
+export type TDashboardPluginSettings = {
+  ...TDashboardLoggingConfig,
+  pluginID: string,
+  dashboardSettings: Partial<TDashboardSettings>,
+  perspectiveSettings: TPerspectiveSettings,
+}
 
 //-----------------------------------------------------------------------------
 // Other types

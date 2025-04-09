@@ -5,9 +5,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO(later): v2.3.0 UI to set the searchTerm and search options.
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component)
 - TODO: ^⌥s triggers the search bar
+- TODO: fixed long-standing layout bug where some tooltips were getting clipped
  -->
 ## [2.2.0.a12] 2025-04-09
-- fixed long-standing layout bug where some tooltips were getting clipped
 - use settings for case sensitive and full word search options from SearchExtensions plugin (if installed)
 - when using 'All → Tomorrow' and similar buttons, stop trying to move child tasks, which raises errors, as they've already been moved with their parents
 - code tidy

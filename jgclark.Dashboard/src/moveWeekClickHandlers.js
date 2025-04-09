@@ -44,7 +44,7 @@ export async function scheduleAllThisWeekNextWeek(data: MessageDataObject): Prom
 
     // If called with modifierKey 'meta', then toggle from usual config.rescheduleNotMove behaviour to the opposite
     const rescheduleNotMove = data.modifierKey === 'meta' ? !config.rescheduleNotMove : config.rescheduleNotMove
-    if (config.rescheduleNotMove !== rescheduleNotMove) logDebug('scheduleAllThisWeekNextWeek', `starting with rescheduleNotMove setting overridden toggled to ${rescheduleNotMove}`)
+    if (config.rescheduleNotMove !== rescheduleNotMove) logDebug('scheduleAllThisWeekNextWeek', `starting with rescheduleNotMove setting overridden toggled to ${String(rescheduleNotMove)}`)
 
     // Get paras for all open items in yesterday's note
     const thisWeekDateStr = getNPWeekStr(today)
@@ -102,8 +102,11 @@ export async function scheduleAllThisWeekNextWeek(data: MessageDataObject): Prom
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
             p.content = replaceArrowDatesInString(p.content, `>${nextWeekDateStr}`)
-            p.note?.updateParagraph(p)
-            DataStore.updateCache(p.note, false)
+            if (p.note) {
+              p.note.updateParagraph(p)
+              // $FlowIgnore[incompatible-call] test above is still valid
+              DataStore.updateCache(p.note, false)
+            }
             numberScheduled++
           }
         }
@@ -185,16 +188,19 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject): Prom
 
     // If called with modifierKey 'meta', then toggle from usual config.rescheduleNotMove behaviour to the opposite
     const rescheduleNotMove = data.modifierKey === 'meta' ? !config.rescheduleNotMove : config.rescheduleNotMove
-    if (config.rescheduleNotMove !== rescheduleNotMove) logDebug('scheduleAllLastWeekThisWeek', `starting with rescheduleNotMove setting overridden toggled to ${rescheduleNotMove}`)
+    if (config.rescheduleNotMove !== rescheduleNotMove) logDebug('scheduleAllLastWeekThisWeek', `starting with rescheduleNotMove setting overridden toggled to ${String(rescheduleNotMove)}`)
 
     // Get paras for all open items in yesterday's note
     const thisWeekDateStr = getNPWeekStr(today)
     const thisWeekNote = DataStore.calendarNoteByDate(today, 'week')
     const lastWeekDateStr = calcOffsetDateStr(thisWeekDateStr, '-1w')
     const lastWeekNote = DataStore.calendarNoteByDateString(lastWeekDateStr)
-
     if (!lastWeekNote) {
-      logWarn('scheduleAllLastWeekThisWeek', `Oddly I can't find a weekly note for today (${lastWeekDateStr})`)
+      logWarn('scheduleAllLastWeekThisWeek', `Oddly I can't find last week's weekly note for today (${lastWeekDateStr})`)
+      return { success: false }
+    }
+    if (!thisWeekNote) {
+      logWarn('scheduleAllLastWeekThisWeek', `I can't find this week's weekly note for today (${thisWeekDateStr})`)
       return { success: false }
     }
     logDebug('scheduleAllLastWeekThisWeek', `Starting for last week's note ${lastWeekDateStr} -> ${thisWeekDateStr}`)
@@ -242,8 +248,11 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject): Prom
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
             p.content = replaceArrowDatesInString(p.content, `>${thisWeekDateStr}`)
-            p.note?.updateParagraph(p)
-            DataStore.updateCache(p.note, false)
+            if (p.note) {
+              p.note.updateParagraph(p)
+              // $FlowIgnore[incompatible-call] test above is still valid
+              DataStore.updateCache(p.note, false)
+            }
             numberScheduled++
           }
         }

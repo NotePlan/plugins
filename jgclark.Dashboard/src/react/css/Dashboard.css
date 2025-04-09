@@ -188,7 +188,8 @@ button,
 	.tooltip {
 		position: relative;
 		/* float above everything, including the header */
-		z-index: 20;
+		/* FIXME: this is not working as expected. It then makes the Perspective dropdown sit under the buttons. */
+		/* z-index: 12; */
 	}
 
 	.tooltip::before,

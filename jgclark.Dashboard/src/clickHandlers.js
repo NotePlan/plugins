@@ -4,15 +4,15 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-03-14 for v2.2.0.a8, @jgclark
+// Last updated 2025-04-09 for v2.2.0.a12, @jgclark
 //-----------------------------------------------------------------------------
 import moment from 'moment'
-import pluginJson from '../plugin.json'
+// import pluginJson from '../plugin.json'
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettings } from './perspectiveHelpers'
 import { validateAndFlattenMessageObject } from './shared'
-import type { MessageDataObject, TBridgeClickHandlerResult } from './types'
+import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings } from './types'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { saveSettings } from '@helpers/NPConfiguration'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename, highlightParagraphInEditor } from '@helpers/NPParagraph'
@@ -458,7 +458,8 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
  */
 export async function doSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
   clo(data, `doSettingsChanged() starting with data = `)
-  const newSettings = data.settings
+  // $FlowFixMe[incompatible-type]
+  const newSettings: Partial<TDashboardSettings> = data.settings
   if (!DataStore.settings || !newSettings) {
     return handlerResult(false, [], { errorMsg: `doSettingsChanged: newSettings is null or undefined.` })
   }
