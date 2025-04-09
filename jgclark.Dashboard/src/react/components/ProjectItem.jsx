@@ -24,7 +24,7 @@ function ProjectItem({ item }: Props): Node {
 
   const itemFilename = item.project?.filename ?? '<no filename>'
   const noteTitle = item.project?.title ?? '<no title>'
-  const folderNamePart = dashboardSettings?.includeFolderName && getFolderFromFilename(itemFilename) !== '/' ? `${getFolderFromFilename(itemFilename)} / ` : ''
+  const folderNamePart = dashboardSettings?.showFolderName && getFolderFromFilename(itemFilename) !== '/' ? `${getFolderFromFilename(itemFilename)} / ` : ''
   // logInfo(`ProjectItem`, `for ${itemFilename} folder='${getFolderFromFilename(itemFilename)}' (${folderNamePart} / ${noteTitle})`)
   // const percentComplete = item.project?.percentComplete ?? 0
   // const percentCompleteStr = isNaN(percentComplete) ? '' : ` ${String(percentComplete)}%`
