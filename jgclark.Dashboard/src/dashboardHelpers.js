@@ -58,7 +58,7 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     //     `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `,
     //   )
 
-      // Fall back to the older way:
+    // Fall back to the older way:
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     // clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
     // }
@@ -148,7 +148,9 @@ export function getNotePlanSettings(): TNotePlanSettings {
     // Extend settings with value we might want to use when DataStore isn't available etc.
     return {
       // Note: this is a workaround for a bug in NotePlan where the timeblockTextMustContainString preference is sometimes undefined.
-      timeblockMustContainString: String(DataStore.preference('timeblockTextMustContainString') && DataStore.preference('timeblockTextMustContainString') !== 'undefined') ? String(DataStore.preference('timeblockTextMustContainString')) : '',
+      timeblockMustContainString: String(DataStore.preference('timeblockTextMustContainString') && DataStore.preference('timeblockTextMustContainString') !== 'undefined')
+        ? String(DataStore.preference('timeblockTextMustContainString'))
+        : '',
       defaultFileExtension: DataStore.defaultFileExtension,
       doneDatesAvailable: !!DataStore.preference('isAppendCompletionLinks'),
     }
@@ -203,7 +205,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       if (note) {
         // Note: seems to be a quick operation (1ms), but leaving a timer for now to indicate if >10ms
         const anyChildren = p.children()
-        const hasChild = anyChildren.length > 0
+        const hasChild = anyChildren && anyChildren.length > 0
         const isAChild = isAChildPara(p, note)
 
         // Note: debugging why sometimes hasChild is wrong
