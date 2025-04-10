@@ -52,7 +52,6 @@ import {
   doSetNextReviewDate,
   doStartReviews,
 } from './projectClickHandlers'
-import { getNotes, getHeadings } from './dynamicDataClickHandlers'
 import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickHandlers'
 import { scheduleAllOverdueOpenToToday, scheduleAllTodayTomorrow, scheduleAllYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
@@ -312,7 +311,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'addTaskAnywhere': {
         // Note: calls Quick Capture plugin /qath command which doesn't return anything
-        result = await doAddTaskAnywhere(data)
+        await doAddTaskAnywhere()
+        result = { success: true }
         break
       }
       case 'addTaskToFuture': {
@@ -337,14 +337,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'moveAllThisWeekNextWeek': {
         result = await scheduleAllThisWeekNextWeek(data)
-        break
-      }
-      case 'getNotes': {
-        result = await getNotes(data)
-        break
-      }
-      case 'getHeadings': {
-        result = await getHeadings(data)
         break
       }
       case 'commsBridgeTest': {
@@ -373,7 +365,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
-        clo(data, `bridgeClickDashboardItem received MBO:`)
       }
     }
     logTimer('bridgeClickDashboardItem', startTime, `for bridgeClickDashboardItem: "${data.actionType}" before processActionOnReturn()`, 1000)

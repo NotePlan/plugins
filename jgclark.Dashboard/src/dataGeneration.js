@@ -616,7 +616,6 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       let cacheLookupTime = 0
       const notesWithTagFromCache: Array<TNote> = []
       if (config?.FFlag_UseTagCache) {
-        logDebug('getTaggedSectionData', `(FFlag_UseTagCache) - Using tag cache for ${sectionDetail.sectionName}`)
         const cachedOperationStartTime = new Date()
         const filenamesWithTagFromCache = await getNotesWithTagOrMention([sectionDetail.sectionName], true)
         filenamesWithTagFromCache.forEach((filename) => {

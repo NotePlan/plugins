@@ -25,7 +25,7 @@ import SearchBar from './SearchBar.jsx'
 import SearchPanel from './SearchPanel.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
-import TaskCreatorDialog from '@helpers/react/DynamicDialog/TaskCreatorDialog'
+// import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
 import './Header.css'
 // --------------------------------------------------------------------------
 // Type Definitions
@@ -63,27 +63,6 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const [lastSearchPanelToggleTime, setLastSearchPanelToggleTime] = useState(0)
   // State to track if the panel should be rendered
   const [shouldRenderPanel, setShouldRenderPanel] = useState(false)
-  // State for the task creator dialog
-  const [isTaskCreatorOpen, setIsTaskCreatorOpen] = useState(false)
-
-  // ----------------------------------------------------------------------
-  // Constants
-  // ----------------------------------------------------------------------
-  const { sections, logSettings, firstRun } = pluginData
-
-  const visibleSectionCodes = getVisibleSectionCodes(dashboardSettings, sections)
-
-  // Memoized dropdown items that update when tempDashboardSettings changes
-  const [dropdownSectionItems, dropdownOtherItems] = useMemo(() => createFilterDropdownItems(tempDashboardSettings), [tempDashboardSettings])
-  const dashboardSettingsItems = useMemo(() => createDashboardSettingsItems(tempDashboardSettings), [tempDashboardSettings])
-  const featureFlagItems = useMemo(() => createFeatureFlagItems(tempDashboardSettings), [tempDashboardSettings])
-
-  const isDevMode = logSettings._logLevel === 'DEV'
-  const showRefreshButton = pluginData.platform !== 'iOS'
-  const showHardRefreshButton = /* isDevMode && */ dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
-  const isMobile = pluginData.platform !== 'macOS'
-  const isNarrowWidth = window.innerWidth <= 700
-  const isSearchPanelAvailable = /* isDevMode && */ dashboardSettings?.FFlag_ShowSearchPanel
 
   // ----------------------------------------------------------------------
   // Effects
@@ -238,17 +217,25 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   }
 
   function handleButtonClick(_event: MouseEvent, controlStr: string, handlingFunction: string) {
+    // const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(_event) // Indicates whether a modifier key was pressed
+    // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
+    // const currentContent = para.content
     logDebug(`Header handleButtonClick`, `Button clicked on controlStr: ${controlStr}, handlingFunction: ${handlingFunction}`)
-
-    // Open the task creator dialog when the add task button is clicked
-    if (handlingFunction === 'addTaskAnywhere') {
-      setIsTaskCreatorOpen(true)
-      return
-    }
+    // $FlowIgnore[prop-missing]
+    // const updatedContent = inputRef?.current?.getValue() || ''
+    // if (controlStr === 'update') {
+    //   logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
+    // }
+    // let handlingFunctionToUse = handlingFunction
+    // const actionType = (noteType === 'Calendar' && !resched) ? 'moveFromCalToCal' : 'rescheduleItem'
+    // logDebug(`DialogForTaskItems`, `handleButtonClick - actionType calculated:'${actionType}', resched?:${String(resched)}`)
 
     const dataToSend = {
+      // ...detailsMessageObject,
       actionType: handlingFunction,
       controlStr: controlStr,
+      // updatedContent: currentContent !== updatedContent ? updatedContent : '',
+      // sectionCodes: sectionCodes,
     }
 
     sendActionToPlugin(handlingFunction, dataToSend, `Header requesting call to ${handlingFunction}`, true)
@@ -261,27 +248,30 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     setIsSearchOpen(false)
   }
 
-  /**
-   * Handles task submission from the TaskCreatorDialog
-   * @param {Object} userInputObj - The task data from the dialog
-   */
-  const handleTaskSubmit = (userInputObj: { taskText: string, type: string, status: string, noteFilename: ?string, headingContent: ?string }) => {
-    logDebug('Header', 'Task submitted:', userInputObj)
-    sendActionToPlugin('addTaskAnywhere', userInputObj, 'Creating new task from dialog', true)
-    setIsTaskCreatorOpen(false)
-  }
+  // ----------------------------------------------------------------------
+  // Constants
+  // ----------------------------------------------------------------------
+  const { sections, logSettings, firstRun } = pluginData
 
-  /**
-   * Handles cancellation of the TaskCreatorDialog
-   */
-  const handleTaskCancel = () => {
-    setIsTaskCreatorOpen(false)
-  }
+  const visibleSectionCodes = getVisibleSectionCodes(dashboardSettings, sections)
+
+  // Memoized dropdown items that update when tempDashboardSettings changes
+  const [dropdownSectionItems, dropdownOtherItems] = useMemo(() => createFilterDropdownItems(tempDashboardSettings), [tempDashboardSettings])
+  const dashboardSettingsItems = useMemo(() => createDashboardSettingsItems(tempDashboardSettings), [tempDashboardSettings])
+  const featureFlagItems = useMemo(() => createFeatureFlagItems(tempDashboardSettings), [tempDashboardSettings])
+
+  const isDevMode = logSettings._logLevel === 'DEV'
+  const showRefreshButton = pluginData.platform !== 'iOS'
+  const showHardRefreshButton = /* isDevMode && */ dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
+  const isMobile = pluginData.platform !== 'macOS'
+  const isNarrowWidth = window.innerWidth <= 700
+  const isSearchPanelAvailable = /* isDevMode && */ dashboardSettings?.FFlag_ShowSearchPanel
 
   // ----------------------------------------------------------------------
   // Render
   // ----------------------------------------------------------------------
   const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(' mins', 'm').replace(' min', 'm').replace(' hours', 'h').replace(' hour', 'h')
+  // logInfo('Header', `Rendering Header; isMobile:${String(isMobile)}, isNarrowWidth:${String(isNarrowWidth)}, showRefreshButton:${String(showRefreshButton)}, showHardRefreshButton:${String(showHardRefreshButton)}`)
   return (
     <div className="header-container">
       <header className="header">
@@ -320,19 +310,19 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
         <div className="headerActionIconButtons">
           {/* {isSearchPanelAvailable ? (
-             <div id="searchPanelButton">
-               <i
-                 className={`fa-solid ${isSearchOpen ? 'fa-xmark' : 'fa-search'}`}
-                 onClick={handleSearchPanelIconClick}
-                 onMouseDown={(e) => {
-                   // Prevent default to avoid any unwanted behavior
-                   e.preventDefault()
-                   e.stopPropagation()
-                 }}
-                 title={isSearchOpen ? 'Close search panel' : 'Open search panel'}
-               ></i>
-             </div>
-           ) : ( */}
+            <div id="searchPanelButton">
+              <i
+                className={`fa-solid ${isSearchOpen ? 'fa-xmark' : 'fa-search'}`}
+                onClick={handleSearchPanelIconClick}
+                onMouseDown={(e) => {
+                  // Prevent default to avoid any unwanted behavior
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+                title={isSearchOpen ? 'Close search panel' : 'Open search panel'}
+              ></i>
+            </div>
+          ) : ( */}
           <SearchBar onSearch={handleSearch} />
           {/* )} */}
 
@@ -381,21 +371,6 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
       {/* SearchPanel container with sliding animation */}
       <div className={`search-panel-container ${isSearchOpen ? 'open' : ''}`}>{(isSearchOpen || shouldRenderPanel) && <SearchPanel onClose={closeSearchPanel} />}</div>
-
-      {/* Task Creator Dialog */}
-      {isTaskCreatorOpen && (
-        <dialog open className="modal-dialog">
-          <TaskCreatorDialog
-            title="Create a New Task"
-            onSubmit={handleTaskSubmit}
-            onCancel={handleTaskCancel}
-            sendActionToPlugin={sendActionToPlugin}
-            dynamicData={pluginData?.dynamicData || {}}
-            className="task-dialog"
-            style={{ maxWidth: '500px' }}
-          />
-        </dialog>
-      )}
     </div>
   )
 }

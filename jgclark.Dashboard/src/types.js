@@ -271,8 +271,6 @@ export type TActionType =
   | 'savePerspectiveAs'
   | 'switchToPerspective'
   | 'evaluateString'
-  | 'getNotes'
-  | 'getHeadings'
 
 export type TControlString =
   | 't'
@@ -385,10 +383,6 @@ export type TPluginData = {
   demoMode: boolean /* use fake content for demo/test purposes */,
   totalDoneCount?: number,
   startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands*/,
-  dynamicData?: {
-    getNotesResults?: Array<{ label: string, value: string }>,
-    getHeadingsResults?: Array<{ label: string, value: string }>,
-  },
 }
 
 /**

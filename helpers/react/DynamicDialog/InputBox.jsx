@@ -12,7 +12,6 @@ type InputBoxProps = {
   value: string,
   onChange: (e: any) => void,
   onSave?: (newValue: string) => void,
-  onKeyDown?: (e: any) => void,
   readOnly?: boolean,
   inputType?: string,
   showSaveButton?: boolean,
@@ -23,7 +22,6 @@ type InputBoxProps = {
   step?: number, // Add step prop
   required?: boolean,
   validationType?: 'email' | 'number' | 'date-interval',
-  inputRef?: any, // Use a more permissive type to handle various ref types
 }
 
 const InputBox = ({
@@ -33,7 +31,6 @@ const InputBox = ({
   readOnly,
   onChange,
   onSave,
-  onKeyDown,
   inputType,
   showSaveButton = true,
   compactDisplay,
@@ -42,17 +39,13 @@ const InputBox = ({
   step,
   required,
   validationType,
-  inputRef: externalInputRef,
 }: InputBoxProps): React$Node => {
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
   const [wasFocused, setWasFocused] = useState(false)
   const isNumberType = inputType === 'number'
-  const internalInputRef = useRef<?HTMLInputElement>(null) // Create a ref for the input element
+  const inputRef = useRef<?HTMLInputElement>(null) // Create a ref for the input element
   const [validationError, setValidationError] = useState<string | null>(null) // Add state for validation error message
-
-  // Use the external ref if provided, otherwise use the internal one
-  const inputRefToUse = externalInputRef || internalInputRef
 
   const validateInput = (value: string): string | null => {
     if (required && value.trim() === '') {
@@ -82,9 +75,9 @@ const InputBox = ({
   }, [inputValue, value])
 
   useEffect(() => {
-    if (focus && !wasFocused && internalInputRef.current) {
-      internalInputRef.current.focus() // Focus the input if focus is true
-      internalInputRef.current?.setSelectionRange(inputValue.length, inputValue.length) // Move cursor to the end
+    if (focus && !wasFocused && inputRef.current) {
+      inputRef.current.focus() // Focus the input if focus is true
+      inputRef.current?.setSelectionRange(inputValue.length, inputValue.length) // Move cursor to the end
       setWasFocused(true)
     }
   }, [focus, inputValue])
@@ -108,25 +101,18 @@ const InputBox = ({
     }
   }
 
-  const handleKeyDown = (e: any) => {
-    if (onKeyDown) {
-      onKeyDown(e)
-    }
-  }
-
   return (
     <>
       <div className={`${disabled ? 'disabled' : ''} ${className} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'}`}>
         <label className="input-box-label">{label}</label>
         <div className="input-box-wrapper">
           <input
-            ref={inputRefToUse} // Use the appropriate ref
+            ref={inputRef} // Attach the ref to the input element
             type={inputType}
             readOnly={readOnly}
             className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''} ${isNumberType && (step === undefined || step === 0) ? 'hide-step-buttons' : ''}`}
             value={inputValue}
             onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
             disabled={disabled}
             step={isNumberType && step !== undefined && step > 0 ? step : undefined} // Conditionally use step attribute
             min="0" // works for 'number' type; ignored for rest.
