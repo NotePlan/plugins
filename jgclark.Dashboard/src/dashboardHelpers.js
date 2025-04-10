@@ -148,7 +148,9 @@ export function getNotePlanSettings(): TNotePlanSettings {
     // Extend settings with value we might want to use when DataStore isn't available etc.
     return {
       // Note: this is a workaround for a bug in NotePlan where the timeblockTextMustContainString preference is sometimes undefined.
-      timeblockMustContainString: String(DataStore.preference('timeblockTextMustContainString') && DataStore.preference('timeblockTextMustContainString') !== 'undefined') ? String(DataStore.preference('timeblockTextMustContainString')) : '',
+      timeblockMustContainString: String(DataStore.preference('timeblockTextMustContainString') && DataStore.preference('timeblockTextMustContainString') !== 'undefined')
+        ? String(DataStore.preference('timeblockTextMustContainString'))
+        : '',
       defaultFileExtension: DataStore.defaultFileExtension,
       doneDatesAvailable: !!DataStore.preference('isAppendCompletionLinks'),
     }
