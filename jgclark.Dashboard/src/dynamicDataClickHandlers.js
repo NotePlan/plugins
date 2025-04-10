@@ -14,7 +14,7 @@ import { getHeadingsFromNote } from '@helpers/NPnote'
  * @returns {Promise<TBridgeClickHandlerResult>} - The result of the handler
  */
 export async function getNotes(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const notes = DataStore.projectNotes
+  const notes = [...DataStore.projectNotes, ...DataStore.calendarNotes]
   const options = notes.map((note) => ({
     label: note.title || note.filename,
     value: note.filename,
