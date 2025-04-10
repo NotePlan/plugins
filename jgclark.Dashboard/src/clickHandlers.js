@@ -448,20 +448,19 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
 }
 
 /**
- * Update a single key in DataStore.settings.
- * Note: This is specific to dashboardSettings.
+ * Update a single key in Dashboard part of DataStore.settings.
  * Note: See doPerspectiveSettingsChanged() for updating perspectiveSettings.
  * @param {MessageDataObject} data - a MDO that should have a key "settings" with the items to be set to the settingName key
  * @param {string} settingName - the single key to set to the value of data.settings
  * @returns {TBridgeClickHandlerResult}
  * @author @dwertheimer
  */
-export async function doSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
-  clo(data, `doSettingsChanged() starting with data = `)
+export async function doDashboardSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
+  clo(data, `doDashboardSettingsChanged() starting with data = `)
   // $FlowFixMe[incompatible-type]
   const newSettings: Partial<TDashboardSettings> = data.settings
   if (!DataStore.settings || !newSettings) {
-    return handlerResult(false, [], { errorMsg: `doSettingsChanged: newSettings is null or undefined.` })
+    return handlerResult(false, [], { errorMsg: `doDashboardSettingsChanged: newSettings is null or undefined.` })
   }
   // If we are saving the dashboardSettings, and the perspectiveSettings are not being sent, then we need to save the active perspective settings
   let perspectivesToSave = settingName === 'dashboardSettings' ? data.perspectiveSettings : Array.isArray(newSettings) ? newSettings : []
@@ -471,22 +470,23 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
     if (newSettings.usePerspectives) {
       // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
       const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
-      logDebug(`doSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
+      logDebug(`doDashboardSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
       if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
+        // Clean up the settings before then comparing them with the active perspective settings
         const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettings)
         const diff = compareObjects(activePerspDef.dashboardSettings, cleanedSettings, ['lastModified', 'lastChange'])
-        clo(diff, `doSettingsChanged: diff`)
+        clo(diff, `doDashboardSettingsChanged: diff`)
         // if !diff or  all the diff keys start with FFlag, then return
         if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
-          logDebug(`doSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
+          logDebug(`doDashboardSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
           const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) })
           return handlerResult(res)
         } else {
-          clo(diff, `doSettingsChanged: Setting perspective.isModified because of changes to settings:`)
+          clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings:`)
         }
         // ignore dashboard changes in the perspective definition until it is saved explicitly
         // but we need to set the isModified flag on the perspective
-        logDebug(`doSettingsChanged`, `Setting isModified to true for perspective ${activePerspDef.name}`)
+        logDebug(`doDashboardSettingsChanged`, `Setting isModified to true for perspective ${activePerspDef.name}`)
         perspectivesToSave = perspectiveSettings.map((p) => (p.name === activePerspDef.name ? { ...p, isModified: true } : { ...p, isModified: false }))
       } else {
         needToSetDash = true
@@ -498,7 +498,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
       if (typeof newSettings === 'object' && newSettings !== null && !Array.isArray(newSettings)) {
         perspectivesToSave = setDashPerspectiveSettings(newSettings, perspectiveSettings)
       } else {
-        logError(`doSettingsChanged`, `newSettings is not an object: ${JSP(newSettings)}`)
+        logError(`doDashboardSettingsChanged`, `newSettings is not an object: ${JSP(newSettings)}`)
       }
     }
   }
@@ -514,7 +514,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
           }`,
       )
       .join(`\n\t`)
-    logDebug(`doSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
+    logDebug(`doDashboardSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
 
     combinedUpdatedSettings.perspectiveSettings = JSON.stringify(perspectivesToSave)
   }

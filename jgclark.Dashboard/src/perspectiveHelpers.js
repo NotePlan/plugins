@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-03-28 for v2.2.0.a10
+// Last updated 2025-04-10 for v2.2.0.a13
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -45,6 +45,7 @@ Named perspectives
 - Applied: through calling function switchToPerspective()
   > JGC new thought: Before changing to any other perspective, I think we should check whether current one isModified, and if it is offer to update/save it first. DBW agrees.
   > dbw says: it sure would be nice if we had a dialog that opened up inside the window. It's kind of jarring to have the NP main window pop up on you. Are you up for trying to create a dialog?
+
   * [ ] #jgcDR ask user whether to update a modified Perspective before changing to a new one -- but try to use a native dialog not NP main window
 
 - Altered: by setting changes(s) made by user or callback.  
@@ -222,6 +223,19 @@ export async function getPerspectiveSettings(logAllKeys: boolean = false): Promi
 }
 
 /**
+ * Get named Perspective definition
+ * @param {string} name to find
+ * @param {TDashboardSettings} perspectiveSettings
+ * @returns {TPerspectiveDef | false}
+ */
+export function getPerspectiveNamed(name: string, perspectiveSettings: ?Array<TPerspectiveDef>): TPerspectiveDef | null {
+  if (!perspectiveSettings) {
+    return null
+  }
+  return perspectiveSettings.find((s) => s.name === name) ?? null
+}
+
+/**
  * Get active Perspective definition
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @returns {TPerspectiveDef | null}
@@ -262,6 +276,9 @@ export function replacePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef
   }
   logDebug('replacePerspectiveDef', `Found perspective to update: ${newDef.name}. List is now:`)
   logPerspectives(perspectiveSettings)
+
+  // TODO: Update tagCache definition list json
+
   return perspectiveSettings.map((s) => (s.name === newDef.name ? newDef : s))
 }
 
@@ -287,36 +304,23 @@ export function renamePerspective(oldName: string, newName: string, perspectiveS
 }
 
 /**
- *
+ * Private function to add a new Perspective definition to the array
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @param {TPerspectiveDef} newDef
  * @returns {Array<TPerspectiveDef>}
  */
-export function addPerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, newDef: TPerspectiveDef): Array<TPerspectiveDef> {
+function addPerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, newDef: TPerspectiveDef): Array<TPerspectiveDef> {
   return [...perspectiveSettings, newDef]
 }
 
 /**
- * Delete a Perspective definition from the array
+ * Private function to delete a Perspective definition from the array
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @param {string} name
  * @returns {Array<TPerspectiveDef>}
  */
-export function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, name: string): Array<TPerspectiveDef> {
+function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, name: string): Array<TPerspectiveDef> {
   return perspectiveSettings.filter((s) => s.name !== name)
-}
-
-/**
- * Get named Perspective definition
- * @param {string} name to find
- * @param {TDashboardSettings} perspectiveSettings
- * @returns {TPerspectiveDef | false}
- */
-export function getPerspectiveNamed(name: string, perspectiveSettings: ?Array<TPerspectiveDef>): TPerspectiveDef | null {
-  if (!perspectiveSettings) {
-    return null
-  }
-  return perspectiveSettings.find((s) => s.name === name) ?? null
 }
 
 /**
@@ -546,9 +550,11 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
 }
 
 /**
- * Clean a Dashboard settings object of properties we don't want to use
+ * Clean a Dashboard settings object of properties we don't want to use or see
  * (we only want things in the perspectiveSettings object that could be set in dashboard settings or filters).
- * Note: index.js::onUpdateOrInstall() should do the renaming of keys in the settings object.
+ * TODO: Is it true that sometimes this will be called with a partial object, and sometimes with a full object?
+ * It can be called before doing a comparison with the active perspective settings.
+ * Note: index.js::onUpdateOrInstall() does the renaming of keys in the settings object.
  * @param {TDashboardPluginSettings} settingsIn
  * @param {boolean} deleteAllShowTagSections - also clean out showTag_* settings
  * @returns {TDashboardPluginSettings}
@@ -722,9 +728,12 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   allDefs = await getPerspectiveSettings()
   const updatedListOfPerspectives = getDisplayListOfPerspectiveNames(allDefs)
   logDebug('deleteAllNamedPerspectiveSettings', `New default list of available perspectives: [${String(updatedListOfPerspectives ?? [])}]`)
+
   // Set current perspective to default ("-")
   const newPerspectiveSettings = await switchToPerspective('-', allDefs)
   await setPluginData({ perspectiveSettings: newPerspectiveSettings }, `_Deleted all named perspectives`)
+
+  // TODO: Update tagCache definition list json
   logDebug('deleteAllNamedPerspectiveSettings', `Result of switchToPerspective("-"): ${String(newPerspectiveSettings)}`)
 }
 
@@ -781,6 +790,8 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
       // update/refresh PerspectiveSelector component
       await setPluginData({ perspectiveSettings: updatedDefs }, `after deleting Perspective ${nameToUse}.`)
     }
+
+    // TODO: Update tagCache definition list json
 
     clof(DataStore.settings, `deletePerspective at end DataStore.settings =`, ['name', 'isActive'], true) // ✅
   } catch (error) {

@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-03-28 for v2.2.0.a9
+// Last updated 2025-04-10 for v2.2.0.a13
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
@@ -170,8 +170,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
   clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
 
-  // TEST: use helper to save settings from now on
-  // DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }
+  // Use helper to save settings from now on, not unreliable `DataStore.settings = {...}`
   const res = await saveSettings(pluginID, { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) })
   if (!res) {
     return handlerResult(false, [], { errorMsg: `saveSettings failed` })
@@ -208,7 +207,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
  * @returns {TPerspectiveSettings}
  */
 export function setDashPerspectiveSettings(newDashboardSettings: TDashboardSettings, perspectiveSettings: TPerspectiveSettings): TPerspectiveSettings {
-  logDebug(`doSettingsChanged`, `Saving new Dashboard settings to "-" perspective, setting isModified and isActive to false for all other perspectives`)
+  logDebug(`setDashPerspectiveSettings`, `Saving new Dashboard settings to "-" perspective, setting isModified and isActive to false for all other perspectives`)
   const dashDef = { name: '-', isActive: true, dashboardSettings: cleanDashboardSettingsInAPerspective(newDashboardSettings), isModified: false }
   return replacePerspectiveDef(perspectiveSettings, dashDef).map((p) => (p.name === '-' ? p : { ...p, isModified: false, isActive: false }))
 }
@@ -240,8 +239,7 @@ export async function doPerspectiveSettingsChanged(data: MessageDataObject): Pro
   }
   const combinedUpdatedSettings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(cleanedPerspSettings), dashboardSettings: JSON.stringify(dashboardSettings) }
 
-  // TEST: use helper to save settings from now on
-  // DataStore.settings = combinedUpdatedSettings
+  // Note: Use helper to save settings from now on, not unreliable `DataStore.settings = combinedUpdatedSettings`
   const res = await saveSettings(pluginID, combinedUpdatedSettings)
   if (!res) {
     return handlerResult(false, [], { errorMsg: `saveSettings failed` })

@@ -1332,9 +1332,10 @@ declare interface Paragraph {
    * So a task that has a child task that has a child task will have 2 children (and the first child will have one).
    * Note: Available from v3.3
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
+   * WARNING: appears to be unreliable on iOS.
    * @return {[TParagraph]}
    */
-  children(): $ReadOnlyArray<TParagraph>;
+children(): $ReadOnlyArray < TParagraph > | void;
   /**
    * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
    * Note: Available from v3.5.2

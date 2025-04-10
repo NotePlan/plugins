@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-03-28 for v2.2.0.a10
+// Last updated 2025-04-10 for v2.2.0.a13
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -58,7 +58,7 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     //     `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `,
     //   )
 
-      // Fall back to the older way:
+    // Fall back to the older way:
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     // clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
     // }
@@ -182,8 +182,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   if (config.tagsToShow) sectionsToShow.push('TAG')
   if (config.showOverdueSection) sectionsToShow.push('OVERDUE')
   if (config.showPrioritySection) sectionsToShow.push('PRIORITY')
-  // TODO: finish this
-  /* if (config.showSearchSection) */ sectionsToShow.push('SEARCH')
+  sectionsToShow.push('SEARCH')
   logDebug('getListOfEnabledSections', `sectionsToShow: ${String(sectionsToShow)}`)
   return sectionsToShow
 }
@@ -203,7 +202,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       if (note) {
         // Note: seems to be a quick operation (1ms), but leaving a timer for now to indicate if >10ms
         const anyChildren = p.children()
-        const hasChild = anyChildren.length > 0
+        const hasChild = anyChildren && anyChildren.length > 0
         const isAChild = isAChildPara(p, note)
 
         // Note: debugging why sometimes hasChild is wrong

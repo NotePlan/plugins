@@ -1,7 +1,7 @@
-// @flow
+
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2025-03-31 for v2.2.0.a10
+// Last updated 2025-04-10 for v2.2.0.a13
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -21,7 +21,7 @@ import {
   doCyclePriorityStateUp,
   doDeleteItem,
   doEvaluateString,
-  doSettingsChanged,
+  doDashboardSettingsChanged,
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
@@ -262,7 +262,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'dashboardSettingsChanged': {
-        result = await doSettingsChanged(data, 'dashboardSettings')
+        result = await doDashboardSettingsChanged(data, 'dashboardSettings')
         break
       }
       case 'perspectiveSettingsChanged': {

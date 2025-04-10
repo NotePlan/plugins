@@ -7,6 +7,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: ^⌥s triggers the search bar
 - TODO: fixed long-standing layout bug where some tooltips were getting clipped
  -->
+## [2.2.0.a12] 2025-04-10
+- workaround to children() being unreliable on iOS
+- renamed doSettingsChanged() to doDashboardSettingsChanged() for clarity
+
 ## [2.2.0.a12] 2025-04-09
 - renamed cleanDashboardSettings() to cleanDashboardSettingsInAPerspective(), and added 'usePerspectives' to the items to clean. Fixed rogue 'searchSection' term appearing.
 - WIP: stop further perspectiveSettings changes that shouldn't be happening.
