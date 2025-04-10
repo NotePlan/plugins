@@ -23,6 +23,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compar
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { processChosenHeading } from '@helpers/userInput'
 import { getWindowFromCustomId, getLiveWindowRectFromWin, rectToString, storeWindowRect } from '@helpers/NPWindows'
+import { getNote } from '@helpers/note'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -124,11 +125,23 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
  * @param {MessageDataObject} {date: .data.data.data, text: .data.data.}
  * @returns {TBridgeClickHandlerResult} result to be used by click result handler
  */
-export async function doAddTaskAnywhere(): Promise<TBridgeClickHandlerResult> {
+export async function doAddTaskAnywhere(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   logDebug('doAddTaskAnywhere', `starting. Just calling addTaskToNoteHeading().`)
-  const res = await DataStore.invokePluginCommandByName('quick add task under heading', 'jgclark.QuickCapture') // with no args, this will prompt for the note, heading and text
-  // we don't get a return value from the command, so we just return true
-  return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'], {})
+  clo(data, `doAddTaskAnywhere starting with data`)
+  const { filename, heading, content, type } = data
+  if (!filename) return handlerResult(false, [], { errorMsg: `No filename was provided` })
+  if (!content) return handlerResult(false, [], { errorMsg: `No content was provided` })
+  if (!type) return handlerResult(false, [], { errorMsg: `No type was provided` })
+  const destNote = await getNote(filename)
+  if (!destNote) return handlerResult(false, [], { errorMsg: `Could not get note for filename ${filename}` })
+
+  // TODO: @jgclark - please implement the task creation logic here under heading
+  // temporarily return reminder error message
+  return handlerResult(false, [], { errorMsg: `doAddTaskAnywhere needs some help from @jgclark :). check log for MBO` })
+
+  // const res = await DataStore.invokePluginCommandByName('quick add task under heading', 'jgclark.QuickCapture') // with no args, this will prompt for the note, heading and text
+  // // we don't get a return value from the command, so we just return true
+  // return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'], {})
 }
 
 /**

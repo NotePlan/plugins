@@ -7,12 +7,14 @@ type ButtonProps = {
   isDefault?: boolean,
   disabled?: boolean,
   onClick: (value: string) => void,
+  className?: string,
+  style?: any,
 }
 
-export const Button = ({ label, value, isDefault, disabled, onClick }: ButtonProps): React$Node => {
-  const buttonClass = isDefault ? 'ui-button default-button' : 'ui-button'
+export const Button = ({ label, value, isDefault, disabled, onClick, className, style }: ButtonProps): React$Node => {
+  const buttonClass = (isDefault ? 'ui-button default-button' : 'ui-button') + (className ? ` ${className}` : '')
   return (
-    <button className={buttonClass} disabled={disabled} onClick={() => onClick(value)}>
+    <button className={buttonClass} disabled={disabled} onClick={() => onClick(value)} style={style}>
       {label}
     </button>
   )
