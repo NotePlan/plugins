@@ -5,8 +5,29 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO(later): v2.3.0 UI to set the searchTerm and search options.
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component)
 - TODO: ^⌥s triggers the search bar
-- TODO: fixed long-standing layout bug where some tooltips were getting clipped
+- TODO: fix long-standing layout bug where some tooltips were getting clipped
  -->
+## [2.2.0] 2025-04-11
+### New
+- Search section. Click on the new icon in the header and a small search bar opens up, where you can type a term to search for open tasks and checklists in regular or calendar notes. This uses the extended syntax from my separate [Search Extensions plugin](https://noteplan.co/plugins/jgclark.SearchExtensions/) to allow more complex searches than NotePlan natively allows.  The Search Section stays until either you manually refresh the dashboard, or you click the close `[x]` button. This means you can edit the items like any other section contents, and also use Interactive Processing.
+- new `externallyStartSearch` x-callback for this, with arguments: 
+  - search terms string
+  - search over 'calendar', 'project', or 'both' (optional, default is 'both')
+  - ISO start date for calendar notes (optional, default is empty)
+  - ISO end date for calendar notes (optional, default is empty)
+- add easier x-callback 'showDashboard' command alias
+- allow CalendarPicker to be opened when ⌘-clicking the task edit or project edit icon
+- add ⌘-click option to 'All → Tomorrow' and similar buttons which temporarily toggles between what is your normal set mode ('move' or 'schedule').
+### Changed
+- the 'add task to any date' button in the Today section area has moved to the Header bar and is now an 'add task to any (calendar or regular) note'.
+- many small improvements to display, layout and tooltips
+- removed '<<carry forward>>' as a possible heading from the 'add a new task/checklist' dialog
+### Fixed
+- when using 'All → Tomorrow' and similar buttons, stop trying to move child tasks, which raises errors, as they've already been moved with their parents
+- workaround for child tasks not behaving correctly on iOS
+- Made workaround for `undefined` value of NP timeblockTextMustContainString preference
+
+<!--
 ## [2.2.0.a12] 2025-04-10
 - workaround to children() being unreliable on iOS
 - renamed doSettingsChanged() to doDashboardSettingsChanged() for clarity
@@ -134,7 +155,7 @@ Search:
 - WIP: Start to make Search Bar in Header.
 ### Changed
 - improves display of non-standard scheduled items (that don't have a `<date` component)
-### Fixed
+-->
 
 ## [2.1.10] 2025-02-16
 ### New

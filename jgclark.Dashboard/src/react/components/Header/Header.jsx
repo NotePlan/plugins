@@ -350,7 +350,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
           {/* Display Filters dropdown menu */}
           <DropdownMenu
-            accessKey="f"
+            accessKey="f" // FIXME: this is not working
             onSaveChanges={handleChangesInSettings}
             sectionItems={dropdownSectionItems}
             otherItems={dropdownOtherItems}

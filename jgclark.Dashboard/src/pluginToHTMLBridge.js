@@ -1,4 +1,4 @@
-
+// @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
 // Last updated 2025-04-10 for v2.2.0.a13

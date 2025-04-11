@@ -259,9 +259,6 @@ export type TActionType =
   | 'unscheduleItem'
   | 'updateItemContent'
   | 'rescheduleItem'
-  | 'windowWasResized'
-  | 'windowReload' // Used by 'Hard Refresh' button for devs
-  | 'windowResized'
   | 'addNewPerspective'
   | 'commsBridgeTest'
   | 'copyPerspective'
@@ -271,6 +268,8 @@ export type TActionType =
   | 'savePerspectiveAs'
   | 'switchToPerspective'
   | 'evaluateString'
+  | 'windowReload' // Used by 'Hard Refresh' button for devs
+  | 'windowResized'
 
 export type TControlString =
   | 't'
