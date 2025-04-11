@@ -133,11 +133,14 @@ export function getFlatArrayOfParentsAndChildren(topLevelParas: Array<Paragraph>
     }
 
     // Iterate over children and add them if they are not already included
-    p.children().forEach((c: TParagraph) => {
-      if (!acc.find((pp) => pp.lineIndex === c.lineIndex)) {
-        acc.push(c)
-      }
-    })
+    // $FlowFixMe[method-unbinding] I (JGC) don't understand this error
+    if (p.children && p.children.length) {
+      p.children.forEach((c: TParagraph) => {
+        if (!acc.find((pp) => pp.lineIndex === c.lineIndex)) {
+          acc.push(c)
+        }
+      })
+    }
 
     return acc
   }, [])

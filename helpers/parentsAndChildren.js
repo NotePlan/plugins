@@ -48,11 +48,15 @@ export function removeParentsWhoAreChildren(everyParaIsAParent: Array<ParentPara
   for (let i = 0; i < everyParaIsAParent.length; i++) {
     const p = everyParaIsAParent[i]
     if (childrenSeen.includes(p.parent)) {
-      p.children.length ? childrenSeen.push(...p.children) : null
+      if (p.children && p.children.length) {
+        childrenSeen.push(...p.children)
+      }
       continue // do not list this as a parent, because another para has it as a child
     }
     // concat all p.children to the childrenSeen array (we know they are unique, so no need to check)
-    p.children.length ? childrenSeen.push(...p.children) : null
+    if (p.children && p.children.length) {
+      childrenSeen.push(...p.children)
+    }
     parentsOnlyAtTop.push(p)
   }
   return parentsOnlyAtTop
@@ -70,7 +74,7 @@ export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>): 
   const allChildren = para.children()
   const indentedChildren = getIndentedNonTaskLinesUnderPara(para, paragraphs)
   // concatenate the two arrays, but remove any duplicates that have the same lineIndex
-  const allChildrenWithDupes = allChildren.concat(indentedChildren)
+  const allChildrenWithDupes = allChildren ? allChildren.concat(indentedChildren) : indentedChildren
   const allChildrenNoDupes = allChildrenWithDupes.filter((p, index) => allChildrenWithDupes.findIndex((p2) => p2.lineIndex === p.lineIndex) === index)
 
   if (!allChildrenNoDupes.length) {
