@@ -9,9 +9,10 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 - all overdue tasks
 - all open items with an added priority
 - the next Project notes ready to review (if you have the "Projects and Reviews" plugin installed)
-- and at the start it shows any currently-active time block you've set.
+- it shows any currently-active time block you've set
+- (and from v2.2) you can now 'Search' to show all open items that match a search. 
 
-... and then gives you many controls, mostly in an "edit dialog", that let you quickly complete, cancel or move items to different time periods.
+... and then gives you many controls, mostly in an "edit dialog", that let you quickly edit, complete, cancel or move any of these items to be due on different days/week/months etc.
 
 Here's a [great video from user George Crump](https://youtu.be/_lj8osSOvQc) that shows v2.0 in action, and how he lives in the Dashboard throughout his day:
 
@@ -19,27 +20,34 @@ Here's a [great video from user George Crump](https://youtu.be/_lj8osSOvQc) that
 
 To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It automatically picks up the Theme from NotePlan and mimics it as far as possible (you're welcome).
 
-At the top right there are 2 important menus:
-- a **Filter menu** that allows quick access to what sections are shown, and some other display toggles:
-    
-    <img width="300px" src="filter-menu-2.1.0.png" border="1pt solid" margin="8px" alt=""/>
-
-- a **Settings menu** -- see [Settings](#settings) for more details about these more complex settings.
-
-_This Plugin requires the separate 'Shared Resources' plugin to be installed. It will offer to install it for you if necessary._
-
 [<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
-## Perspectives (new in v2.1)
+## Header bar Controls
+<img src="header-bar-2.2.0.png" width="500px" border="1pt solid" margin="8px" alt="Top right buttons"/>
+
+From left to right these are:
+- the **Perspective menu**, showing the currently-active Perspective. See [Search section](#search-section) below for more details.
+- the **Refresh** button, which re-generates the whole display. If you [configure the setting](#configuration-settings) "Automatic Update interval" to any number > 0 minutes, then this should rarely be needed.
+- a **Search** button that opens up a Search bar. See [Search section](#search-section) below for more details.
+- an **Add new task** button, which then opens the NotePlan command bar to ask for task text to add, and then to which note and section within than note to add it to.  (Shortcut key: <kbd>^⌥a</kbd>)
+- a **Filter menu** that allows quick access to what sections are shown, and some other display toggles:
+    
+    <img width="300px" src="filter-menu-2.1.0.png" border="1pt solid" margin="8px" alt="Filter menu"/>
+
+- a **Settings menu** where you configure what subsets of tasks and checklists you want to see, and how they're displayed. See [Settings](#settings) below for more details. (Shortcut key: <kbd>^⌥,</kbd>)
+
+<!-- _This Plugin requires the separate 'Shared Resources' plugin to be installed. It will offer to install it for you if necessary._ -->
+
+## Perspectives
 A **Perspective** is a named set of all your Dashboard settings, including which folders to include/ignore, and which sections to show. Each 'Perspective' has a name, and can be updated and deleted. 
 
 To change between the various Perspectives click on this dropdown menu:
 
-<img src="perspectives-selector-2.1.0.png" width="240px" margin="8px" alt="perspectives selector" />
+<img src="perspectives-selector-2.1.0.png" width="240px" border="1px" margin="8px" alt="perspectives selector" />
 
 Use the Settings dialog to change your settings for the current perspective. When it notices you've changed something, it adds a `*` to the end of the perspective name. To update the definition of this perspective, select 'Save Perspective' from the dropdown menu.
 
-The '-' Perspective is a default, which can't be deleted.
+The '-' Perspective is a default, which doesn't do any filtering. This can't be deleted.
 
 ## Updating items from the Dashboard
 All tasks and checklists shown in the Dashboard view can be marked as **complete** by clicking in its usual open circle or square.  The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by pressing **⌘ (command)** button when clicking on the open circle or square.
@@ -96,12 +104,13 @@ Note:
 - there are 3 settings that control aspects of this in the Dashboard Settings dialog.
 
 ### Add Task/Checklist items
-<img src="add-buttons-2.1.0.png" margin="8px" width="200px" alt="add buttons" />
-
+<img src="add-buttons-2.2.0.png" border="1px" margin="8px" width="200px" alt="add buttons" align="left"/>
 On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month. In the 'Today' section only is an extra button to allow you to add a task directly to any existing note.
 
 ### 'All → ...' Move buttons
-Some sections have "All →  ..." buttons. They move all the items in that section to the destination (e.g. from Today to Tomorrow's daily note), including any hidden as lower-priority items. If there are more than 20 items to move, then (on macOS) it will first check whether you want to proceed.
+Some sections have "All →  ..." buttons. They move or schedule all the items in that section to the destination (e.g. from Today to Tomorrow's daily note), including any hidden as lower-priority items. If there are more than 20 items to move, then (on macOS) it will first check whether you want to proceed.
+
+The 'Move not (re)schedule?' setting controls whether it will move or (re)schedule the items. However if you want to use the other action on a particular set of items, you can ⌘-click the button, and it will for this time only use the other action.
 
 Note: _Please be careful with this_: NotePlan doesn't provide a proper Undo/Redo mechanism for plugins, and so these Move operations can't easily be undone. If you do need to do so, then you'll need to use the 'Versions' feature on all the notes the tasks were moved from and to.
 
@@ -124,6 +133,19 @@ The display will **automatically refresh** in the background if you set the "Aut
 <img src="timeblock-section-2.1.0.png" width="740px" margin="8px" border="1px solid grey" alt="current timeblock display" />
 
 It always shows the time range first, minus any 'Text must contain' string that you have set in NP's 'Todo' settings pane. Where a time block is defined on a heading or list item, then the calendar+clock icon is shown in place of the task/checklist icon.
+
+## Search section
+<img src="search-bar-2.2.0.gif" margin="8px" border="1px solid grey" alt="using Dashboard search" />
+
+Click on the search icon and a small search bar opens up in the Header, where you can type a term to search for open tasks and checklists in regular or calendar notes. This uses the extended syntax from my separate [Search Extensions plugin](https://noteplan.co/plugins/jgclark.SearchExtensions/) to allow more complex searches than NotePlan natively allows.
+
+The Search Section stays until either you manually refresh the dashboard, or you click the close `[x]` button. This means you can edit the items like any other section contents, and also use Interactive Processing.
+
+There are 2 specific settings for this section:
+- Apply current filtering to Search? If set, then the search will use the "What to Include and Exclude?" settings above to filter the search results before displaying them. If not set, then the search will run over all open items.
+- Don't return future items? If set, don't return items dated in the future, or from future calendar notes.
+
+_I plan to introduce more search options in later releases. In this release the searches are case-insensitive and match on part-words, which is the same as the NotePlan app. Unless, that is, you have the Search Extensions plugin installed, in which case it will use those settings._
 
 ### #tag/@mention sections
 The "#tag/@mention Section" will show all open tasks/checklists that include this #tag or @mention. This is a good way of showing all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.
@@ -150,12 +172,12 @@ This finds open items with a schedule date (e.g. `>2025-01-22`) in the past. Thi
 You can set the "Sort order for Tag/Mention and Overdue items": 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.
 
 ### Priority section
-Note: this is likely to be very slow to generate, as it can't use any of NotePlan's internal caches, and doesn't have a natural way to limit it, like the Overdue section.
+This finds all open items with a priority set (with `>>`, `!!!`, `!!` and `!` markers). Note: _this is likely to be very slow to generate, as it can't use any of NotePlan's internal caches, and doesn't have a natural way to limit it, like the Overdue section._
 
 David's advice is: "Priority tasks float to the tops of their individual sections already. And I go through all overdue tasks and handle them so that section stays small after you bite the bullet and do it once."
 
 ## Configuration Settings
-Dashboard v2 provides a quicker-to-access Settings window, accessed from the cog wheel at the top right of the dashboard window. (This replaces the normal method of going to the NotePlan Preference Pane, and finding the right Plugin.)  It is broken up in to a number of different sections.
+Dashboard provides a quick access Settings window, accessed from the cog wheel at the top right of the dashboard window -- or you can use shortcut ^⌥-comma. (This replaces the normal method of going to the NotePlan Preference Pane, and finding the right Plugin.)
 
 <img width="550px" src="settings-dialog-2.1.0.png" alt="Settings dialog"/>
 

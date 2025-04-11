@@ -17,7 +17,7 @@ const NoTasks = (): Node => {
   return (
     <div className="sectionItemRow checkedBackground" data-section-type="">
       <div className="TaskItem checked">
-        <i className="checked fa-solid fa-circle-check"></i>
+        <i className="checked fa-solid fa-fw  fa-circle-check"></i>
       </div>
       <div className="sectionItemContent sectionItem">
         <div className="checked">

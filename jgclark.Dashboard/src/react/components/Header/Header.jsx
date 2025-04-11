@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated for 2.1.0.b4
+// Last updated 2025-03-24 for v2.2.0.a8
 // --------------------------------------------------------------------------
 
 // --------------------------------------------------------------------------
@@ -21,11 +21,12 @@ import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
 import PerspectiveSelector from './PerspectiveSelector.jsx'
+import SearchBar from './SearchBar.jsx'
+import SearchPanel from './SearchPanel.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
-import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
+// import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
 import './Header.css'
-
 // --------------------------------------------------------------------------
 // Type Definitions
 // --------------------------------------------------------------------------
@@ -45,7 +46,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // ----------------------------------------------------------------------
   // Context
   // ----------------------------------------------------------------------
-  const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData } = useAppContext()
+  const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData, reactSettings, setReactSettings } = useAppContext()
+  const { isDialogOpen, openDialog, closeDialog } = useSettingsDialogHandler()
 
   // ----------------------------------------------------------------------
   // Hooks
@@ -57,7 +59,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // ----------------------------------------------------------------------
   const [openDropdownMenu, setOpenDropdownMenu] = useState<string | null>(null)
   const [tempDashboardSettings, setTempDashboardSettings] = useState({ ...dashboardSettings }) // for queuing up changes from dropdown menu to be applied when it is closed
-  const { isDialogOpen, handleToggleDialog } = useSettingsDialogHandler(sendActionToPlugin)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [lastSearchPanelToggleTime, setLastSearchPanelToggleTime] = useState(0)
+  // State to track if the panel should be rendered
+  const [shouldRenderPanel, setShouldRenderPanel] = useState(false)
 
   // ----------------------------------------------------------------------
   // Effects
@@ -72,6 +77,20 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       setTempDashboardSettings({ ...dashboardSettings })
     }
   }, [dashboardSettings, openDropdownMenu])
+
+  // Effect to handle panel rendering/removal with animation
+  useEffect(() => {
+    if (isSearchOpen) {
+      // When opening, immediately render the panel
+      setShouldRenderPanel(true)
+    } else {
+      // When closing, wait for the animation to complete before removing
+      const timer = setTimeout(() => {
+        setShouldRenderPanel(false)
+      }, 500) // Match the faster closing animation duration (500ms)
+      return () => clearTimeout(timer)
+    }
+  }, [isSearchOpen])
 
   // ----------------------------------------------------------------------
   // Handlers
@@ -162,6 +181,74 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       sendActionToPlugin(actionType, { actionType: actionType, sectionCodes: visibleSectionCodes }, 'Refresh button clicked', true)
     }
 
+  /**
+   * Handles the search event.
+   * @param {string} query - The search query.
+   */
+  const handleSearch = (query: string): void => {
+    console.log('Header: handleSearch', `Search query:${query}`) // not OK here
+    // Send request to plugin to start a search
+    const data = {
+      stringToEvaluate: query,
+      from: 'searchBar',
+    }
+    sendActionToPlugin('startSearch', data, 'Search button clicked', false)
+  }
+
+  /**
+   * Handles the click event for the search icon.
+   * If the panel is open (X is showing), it will close the panel.
+   * If the panel is closed (search icon is showing), it will open the panel.
+   * @param {Object} e - The mouse event
+   */
+  const handleSearchPanelIconClick = (e: any) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const now = Date.now()
+    // Prevent toggling too quickly (within 300ms)
+    if (now - lastSearchPanelToggleTime < 300) {
+      return
+    }
+
+    setLastSearchPanelToggleTime(now)
+
+    // Force the state to be the opposite of what it currently is
+    setIsSearchOpen((prevState) => !prevState)
+  }
+
+  function handleButtonClick(_event: MouseEvent, controlStr: string, handlingFunction: string) {
+    // const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(_event) // Indicates whether a modifier key was pressed
+    // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
+    // const currentContent = para.content
+    logDebug(`Header handleButtonClick`, `Button clicked on controlStr: ${controlStr}, handlingFunction: ${handlingFunction}`)
+    // $FlowIgnore[prop-missing]
+    // const updatedContent = inputRef?.current?.getValue() || ''
+    // if (controlStr === 'update') {
+    //   logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
+    // }
+    // let handlingFunctionToUse = handlingFunction
+    // const actionType = (noteType === 'Calendar' && !resched) ? 'moveFromCalToCal' : 'rescheduleItem'
+    // logDebug(`DialogForTaskItems`, `handleButtonClick - actionType calculated:'${actionType}', resched?:${String(resched)}`)
+
+    const dataToSend = {
+      // ...detailsMessageObject,
+      actionType: handlingFunction,
+      controlStr: controlStr,
+      // updatedContent: currentContent !== updatedContent ? updatedContent : '',
+      // sectionCodes: sectionCodes,
+    }
+
+    sendActionToPlugin(handlingFunction, dataToSend, `Header requesting call to ${handlingFunction}`, true)
+  }
+
+  /**
+   * Closes the search panel
+   */
+  const closeSearchPanel = () => {
+    setIsSearchOpen(false)
+  }
+
   // ----------------------------------------------------------------------
   // Constants
   // ----------------------------------------------------------------------
@@ -176,9 +263,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
   const isDevMode = logSettings._logLevel === 'DEV'
   const showRefreshButton = pluginData.platform !== 'iOS'
-  const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
+  const showHardRefreshButton = /* isDevMode && */ dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
   const isMobile = pluginData.platform !== 'macOS'
-  const isNarrowWidth = window.innerWidth <= 680
+  const isNarrowWidth = window.innerWidth <= 700
+  const isSearchPanelAvailable = /* isDevMode && */ dashboardSettings?.FFlag_ShowSearchPanel
 
   // ----------------------------------------------------------------------
   // Render
@@ -186,90 +274,105 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(' mins', 'm').replace(' min', 'm').replace(' hours', 'h').replace(' hour', 'h')
   // logInfo('Header', `Rendering Header; isMobile:${String(isMobile)}, isNarrowWidth:${String(isNarrowWidth)}, showRefreshButton:${String(showRefreshButton)}, showHardRefreshButton:${String(showHardRefreshButton)}`)
   return (
-    <header className="header">
-      {/* Perspective selector */}
-      {dashboardSettings.perspectivesEnabled && (
-        <div className="perspectiveName">
-          <PerspectiveSelector />
-        </div>
-      )}
+    <div className="header-container">
+      <header className="header">
+        {/* Perspective selector */}
+        {dashboardSettings.usePerspectives && (
+          <div className="perspectiveName">
+            <PerspectiveSelector />
+          </div>
+        )}
 
-      {showRefreshButton && (
-        <div className="refreshButtons">
-          <RefreshControl refreshing={pluginData.refreshing === true} firstRun={firstRun} handleRefreshClick={handleRefreshClick(false)} />
-          {showHardRefreshButton && (
-            <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton">
-              <i className={'fa-regular fa-arrows-retweet'}></i>
-              <span className="pad-left">{isNarrowWidth ? 'HR' : 'Hard Refresh'}</span>
-            </button>
+        {showRefreshButton && (
+          <div className="refreshButtons">
+            <RefreshControl refreshing={pluginData.refreshing === true} firstRun={firstRun} handleRefreshClick={handleRefreshClick(false)} />
+            {showHardRefreshButton && (
+              <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton">
+                <i className={'fa-regular fa-arrows-retweet'}></i>
+                <span className="pad-left">HR</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="lowerPrioritySpace">
+          {/* {!(isMobile || isNarrowWidth) && ( */}
+          <div className="lastRefreshInfo">
+            {/* <> */}
+            Updated: <span id="timer">{timeAgoText}</span>
+            {/* </> */}
+          </div>
+          {/* )} */}
+
+          {/* {!(isMobile || isNarrowWidth) && ( */}
+          <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
+          {/* )} */}
+        </div>
+
+        <div className="headerActionIconButtons">
+          {/* {isSearchPanelAvailable ? (
+            <div id="searchPanelButton">
+              <i
+                className={`fa-solid ${isSearchOpen ? 'fa-xmark' : 'fa-search'}`}
+                onClick={handleSearchPanelIconClick}
+                onMouseDown={(e) => {
+                  // Prevent default to avoid any unwanted behavior
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+                title={isSearchOpen ? 'Close search panel' : 'Open search panel'}
+              ></i>
+            </div>
+          ) : ( */}
+          <SearchBar onSearch={handleSearch} />
+          {/* )} */}
+
+          {/* addItem button. TODO(later): see if we can get a better DynamicDialog for this */}
+          <button accessKey="a" className="buttonsWithoutBordersOrBackground" title="Add new task/checklist" onClick={(e) => handleButtonClick(e, 'qath', 'addTaskAnywhere')}>
+            <i className="fa-solid fa-hexagon-plus"></i>
+          </button>
+
+          {/* Feature Flags dropdown */}
+          {isDevMode && (
+            <DropdownMenu
+              onSaveChanges={handleChangesInSettings}
+              otherItems={featureFlagItems}
+              handleSwitchChange={handleLocalSwitchChange}
+              className={'feature-flags'}
+              iconClass="fa-solid fa-flag"
+              isOpen={openDropdownMenu === 'featureFlags'}
+              toggleMenu={() => handleToggleDropdownMenu('featureFlags')}
+              labelPosition="left"
+            />
           )}
-        </div>
-      )}
 
-      {!(isMobile || isNarrowWidth) && (
-        <div className="lastRefreshInfo">
-          {/* <> */}
-          Updated: <span id="timer">{timeAgoText}</span>
-          {/* </> */}
-        </div>
-      )}
+          {/* Render the SettingsDialog only when it is open */}
+          {isDialogOpen && <SettingsDialog items={dashboardSettingsItems} className={'dashboard-settings'} onSaveChanges={handleChangesInSettings} />}
 
-      {/* TODO: use this to test out modals + tooltips. Needs a trigger button first. */}
-      {/* <div>
-        <ModalWithTooltip
-          tooltipTextNoModifier="tooltip with no extra key pressed"
-          tooltipTextCmdModifier="tooltip with ⌘ key pressed"
-        />
-      </div>
- */}
-      {!(isMobile || isNarrowWidth) && (
-        <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
-      )}
-
-      <div id="dropdowns" className="dropdownButtons">
-        {/* Feature Flags dropdown */}
-        {isDevMode && (
+          {/* Display Filters dropdown menu */}
           <DropdownMenu
+            accessKey="f" // FIXME: this is not working
             onSaveChanges={handleChangesInSettings}
-            otherItems={featureFlagItems}
+            sectionItems={dropdownSectionItems}
+            otherItems={dropdownOtherItems}
             handleSwitchChange={handleLocalSwitchChange}
-            className={'feature-flags'}
-            iconClass="fa-solid fa-flag"
-            isOpen={openDropdownMenu === 'featureFlags'}
-            toggleMenu={() => handleToggleDropdownMenu('featureFlags')}
+            handleSaveInput={handleLocalSaveInput}
+            className={'filter'}
+            iconClass="fa-solid fa-filter"
+            isOpen={openDropdownMenu === 'filter'}
+            toggleMenu={() => handleToggleDropdownMenu('filter')}
             labelPosition="left"
           />
-        )}
-
-        {/* Render the SettingsDialog only when it is open */}
-        {isDialogOpen && (
-          <SettingsDialog
-            items={dashboardSettingsItems}
-            className={'dashboard-settings'}
-            isOpen={isDialogOpen}
-            toggleDialog={handleToggleDialog}
-            onSaveChanges={handleChangesInSettings}
-          />
-        )}
-        {/* Display toggles dropdown menu */}
-        <DropdownMenu
-          onSaveChanges={handleChangesInSettings}
-          sectionItems={dropdownSectionItems}
-          otherItems={dropdownOtherItems}
-          handleSwitchChange={handleLocalSwitchChange}
-          handleSaveInput={handleLocalSaveInput}
-          className={'filter'}
-          iconClass="fa-solid fa-filter"
-          isOpen={openDropdownMenu === 'filter'}
-          toggleMenu={() => handleToggleDropdownMenu('filter')}
-          labelPosition="left"
-        />
-        {/* Cog Icon for opening the settings dialog */}
-        <div className="dropdown">
-          <i className="fa-solid fa-gear" onClick={handleToggleDialog}></i>
+          {/* Cog Icon for opening the settings dialog */}
+          <button accessKey="," className="dropdown buttonsWithoutBordersOrBackground" onClick={() => openDialog()} title="Open Dashboard Settings dialog">
+            <i className="fa-solid fa-gear"></i>
+          </button>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* SearchPanel container with sliding animation */}
+      <div className={`search-panel-container ${isSearchOpen ? 'open' : ''}`}>{(isSearchOpen || shouldRenderPanel) && <SearchPanel onClose={closeSearchPanel} />}</div>
+    </div>
   )
 }
 

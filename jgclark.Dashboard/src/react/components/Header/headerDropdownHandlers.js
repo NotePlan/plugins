@@ -56,7 +56,7 @@ export const handleSwitchChange = (
         return
       }
 
-      const isSection = key.startsWith('show')
+      const isSection = key.startsWith('show') && key.endsWith('Section')
       const isTagSection = key.startsWith('showTagSection_')
       const isChecked = e?.target?.checked || false
 

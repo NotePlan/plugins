@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 // import { trimString } from '@helpers/dataManipulation'
-import { clo, logDebug, logError } from '@helpers/dev'
+import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { RE_SYNC_MARKER } from '@helpers/regex'
 
 /**
@@ -95,8 +95,8 @@ export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: 
 }
 
 /**
- * Returns true if A is a strict subset of B, starting from the beginning.
- * i.e. won't match if A===B
+ * Returns true if A is a subset of B, starting from the beginning.
+ * If strictSubset is true it won't match if A===B
  * @author @jgclark
  * @param {string} searchTerm
  * @param {string} textToSearch
@@ -120,6 +120,29 @@ export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: stri
 }
 
 /**
+ * Returns true if A is a strict subset of B, starting from the end.
+ * If strictSubset is true it won't match if A===B
+ * @author @jgclark
+ * @param {string} searchTerm
+ * @param {string} textToSearch
+ * @param {boolean} strictSubset? (default: true)
+ * @returns {boolean} matches?
+ */
+export function caseInsensitiveEndsWith(searchTerm: string, textToSearch: string, strictSubset: boolean = true): boolean {
+  try {
+    const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = strictSubset
+      ? new RegExp(`${escapedSearchTerm}.+$`, "i") // = case insensitive 'ends with' Regex
+      : new RegExp(`${escapedSearchTerm}$`, "i") // = case insensitive 'ends with' Regex
+    return re.test(textToSearch)
+  }
+  catch (error) {
+    logError('search/caseInsensitiveEndsWith', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
+    return false
+  }
+}
+
+/**
  * Returns true if A is a found in B, but not a subset of any words in B
  * i.e. will match 'hell' in 'heaven and hell' 
  * i.e. will match 'hell' in 'heaven and Hell' (depending if caseSensitive is set)
@@ -133,6 +156,16 @@ export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: stri
  */
 export function fullWordMatch(searchTerm: string, textToSearch: string, caseSensitive: boolean = true): boolean {
   try {
+    // write a regex that will test whether 'searchTerm' is a whole word in 'textToSearch' but treating '#' and '@' as word characters
+    const isWholeWord = (searchTerm: string, textToSearch: string): boolean => {
+      const regex = new RegExp(`(^|[^\\w#@])${searchTerm}([^\\w#@]|$)`, 'g')
+      return regex.test(textToSearch)
+    }
+
+    // First try special case for hashtags and mentions
+    if (searchTerm.startsWith('#') || searchTerm.startsWith('@')) {
+      return isWholeWord(searchTerm, textToSearch)
+    }
     // First need to escape any special characters in the search term
     const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = caseSensitive
@@ -354,19 +387,21 @@ export function trimAndHighlightTermInLine(
         // logDebug('trimAndHighlight', `- maxChars = ${String(maxChars)}, LRSplit = ${String(LRSplit)}, mainPart.length = ${String(mainPart.length)}`)
 
         // regex: find occurrences of search terms and the text around them
-        const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}(${termsForRE}).{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
-        // logDebug('trimAndHighlight', `- RE: ${RE_FIND_TEXT_AROUND_THE_TERMS}`)
-        const matches = mainPart.match(RE_FIND_TEXT_AROUND_THE_TERMS) ?? [] // multiple matches
-        if (matches.length > 0) {
+        const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}(${termsForRE}).{0,${String(maxChars - LRSplit)}})\\b(?:\\w+|$)`, "gi")
+        // logDebug('trimAndHighlight', `- RE: ${String(RE_FIND_TEXT_AROUND_THE_TERMS)}`)
+        const textAroundTerms = mainPart.match(RE_FIND_TEXT_AROUND_THE_TERMS) ?? [] // multiple matches
+        logDebug('trimAndHighlight', `- textAroundTerms = ${String(textAroundTerms)}`)
+        if (textAroundTerms.length > 0) {
           // If we have more than 1 match in the line, join the results together with '...'
-          output = matches.join(' ...')
-          // If starts with a non-word character, then (it's approximately right that) we have landed in the middle of sentence, so prepend '...'
-          if (output.match(/^\W/)) {
-            output = `...${output}`
+          output = textAroundTerms.join(' ...')
+          // If the output doesn't start with the mainPart, then we have chopped the start of a sentence, so prepend '...'
+          if (!caseInsensitiveStartsWith(output, mainPart, false)) {
+            logDebug('trimAndHighlight', `- have shortened start of line`)
+            output = `... ${output}`
           }
-          // If we now have a shortened string, then (it's approximately right that) we have trimmed off the end, so append '...'
-          if (output.length < mainPart.length) {
-            // logDebug('trimAndHighlight', `- have shortened line`)
+          // If we now have a shortened string, then append '...' unless search term is at the end of the line
+          if (!caseInsensitiveEndsWith(output, mainPart, false)) {
+            logDebug('trimAndHighlight', `- have shortened end of line`)
             output = `${output} ...`
           }
           //
@@ -375,6 +410,8 @@ export function trimAndHighlightTermInLine(
           // logDebug('trimAndHighlight', `- could not find a match in the line, so using the first part of the line`)
           output = (output.length >= maxChars) ? output.slice(0, maxChars) : output
         }
+        // Replace multiple spaces with a single space
+        output = output.replace(/\s{2,}/g, ' ')
       } else {
         output = mainPart
       }
@@ -396,7 +433,7 @@ export function trimAndHighlightTermInLine(
     if (addHighlight && nonEmptyTerms && terms.length > 0 && (simplifyLine || !this_RE.test(output))) {
       // regex: find any of the match terms in all the text
       const RE_HIGHLIGHT_MATCH = new RegExp(`(?:[^=](${termsForRE})(?=$|[^=]))`, "gi")
-      // logDebug('trimAndHighlight', `- /${RE_HIGHLIGHT_MATCH}/`)
+      // logDebug('trimAndHighlight', `- /${String(RE_HIGHLIGHT_MATCH)}/`)
       const termMatches = output.matchAll(RE_HIGHLIGHT_MATCH)
       let offset = 0
       for (const tm of termMatches) {

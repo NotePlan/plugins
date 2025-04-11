@@ -5,12 +5,14 @@
 //
 // Includes logic to either disable focus when isEditable=false,
 // and logic to only scroll if needed, plus an optional prop to disable scrolling altogether.
+// Last updated 2025-04-05 by @jgclark
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, useMemo, type ElementRef, useLayoutEffect } from 'react'
 import './DropdownSelect.css'
-import { clo, logDebug } from '@helpers/react/reactDev'
+import { clo, logDebug, logInfo } from '@helpers/react/reactDev'
 
 declare var NP_THEME: any
+const maxChars = 50 // to show in dropdown
 
 export type Option = {
   label: string,
@@ -149,20 +151,15 @@ const DropdownSelect = ({
   const optionsRef = useRef<?ElementRef<'div'>>(null)
 
   // Calculate the width based on the longest option if fixedWidth is not provided
+  // v2 calculates in `ch` units; v1 did it in `px` units.
   const calculateWidth = () => {
     if (fixedWidth) return fixedWidth
     const longestOption = normalizedOptions.reduce((max, option) => {
       return option.label.length > max.length ? option.label : max
     }, '')
-    const canvas = document.createElement('canvas')
-    const context = canvas.getContext('2d')
-    if (context && dropdownRef.current) {
-      const computedStyle = window.getComputedStyle(dropdownRef.current)
-      context.font = computedStyle.font || '16px Arial' // Use computed font from CSS
-      const textWidth = context.measureText(longestOption).width
-      return textWidth + 40 // Add extra space for padding and dropdown arrow
-    }
-    return 200 // Fallback width
+    // We can still get some ridiculously long options if there are URLs in a heading, so limit to maxChars characters
+    // logDebug(`DropdownSelect::calculateWidth`, `longestOption.length: ${longestOption.length} / maxChars: ${maxChars}`)
+    return Math.min(longestOption.length, maxChars) // No need in practice to add extra space for padding and dropdown arrow
   }
 
   useLayoutEffect(() => {
@@ -234,16 +231,16 @@ const DropdownSelect = ({
   }
 
   const findScrollableAncestor = (el: HTMLElement): ?HTMLElement => {
-    let currentEl: ?Element = el
-    while (currentEl && currentEl.parentElement) {
-      currentEl = currentEl.parentElement
-      if (currentEl instanceof HTMLElement) {
-        const style = window.getComputedStyle(currentEl)
+    let currentElement: ?Element = el
+    while (currentElement && currentElement.parentElement) {
+      currentElement = currentElement.parentElement
+      if (currentElement instanceof HTMLElement) {
+        const style = window.getComputedStyle(currentElement)
         const overflowY = style.overflowY
-        const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && currentEl.scrollHeight > currentEl.clientHeight
+        const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && currentElement.scrollHeight > currentElement.clientHeight
         if (isScrollable) {
-          logDebug(`Found scrollable ancestor: `, currentEl)
-          return currentEl
+          logDebug(`Found scrollable ancestor: `, currentElement.tagName)
+          return currentElement
         }
       }
     }
@@ -364,7 +361,11 @@ const DropdownSelect = ({
       <label className="dropdown-select-label" style={mergeStyles({}, styles.label)}>
         {label}
       </label>
-      <div className="dropdown-select-wrapper" style={mergeStyles({ width: `${calculatedWidth}px` }, styles.wrapper)} onClick={disabled ? undefined : toggleDropdown}>
+      <div className="dropdown-select-wrapper"
+        style={mergeStyles({
+          // width: `max(${calculatedWidth}ch, 90%)`
+        }, styles.wrapper)}
+        onClick={disabled ? undefined : toggleDropdown}>
         <div
           className="dropdown-select-input-container"
           style={mergeStyles(
@@ -372,7 +373,8 @@ const DropdownSelect = ({
               display: 'flex',
               alignItems: 'center',
               position: 'relative',
-              width: `${calculatedWidth}px`,
+              width: `max(${calculatedWidth}ch, 98%)`,
+              // width: '100%',
             },
             styles.inputContainer || {},
           )}
@@ -394,7 +396,11 @@ const DropdownSelect = ({
           </span>
         </div>
         {isOpen && (
-          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}px`, maxHeight: '80vh', overflowY: 'auto' }, styles.dropdown)}>
+          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({
+            // width: `max(${calculatedWidth}ch, 98%)`,
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }, styles.dropdown)}>
             {filteredOptions.map((option: Option, i) => {
               if (option.type === 'separator') {
                 return <div key={option.value} style={styles.separator}></div>
@@ -415,7 +421,8 @@ const DropdownSelect = ({
                   )}
                 >
                   {showIndicator && <span style={dot(option[showIndicatorOptionProp] === true, styles.indicator || {})} />}
-                  <span className="option-label" style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
+                  <span className="option-label"
+                    style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
                     {option.label}
                   </span>
                 </div>

@@ -1,10 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated for v2.1.10
+// Last updated 2025-04-09 for v2.2.0.a12, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
+// import type { TSearchOptions} from '../../jgclark.SearchExtensions/src/searchHelpers.js'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog' // for now because it was imported in lots of places
 
@@ -25,13 +26,17 @@ export type TNotePlanSettings = {
  */
 export type TDashboardSettings = {
   /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES */
-  perspectivesEnabled: boolean,
+  // Note: add all of these to the list of items in cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
+  usePerspectives: boolean,
+  applyIgnoreTermsToCalendarHeadingSections: boolean,
+  FFlag_UseTagCache?: boolean,
+  FFlag_ShowSearchPanel?: boolean,
+  // searchSettings?: TSearchOptions, // an object holding a number of settings TODO: add from 2.3.0
+  // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings
   FFlag_DebugPanel?: boolean, // to show debug pane
   FFlag_ShowTestingPanel?: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
-  applyIgnoreTermsToCalendarHeadingSections: boolean,
-  FFlag_UseTagCache?: boolean,
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
   defaultFileExtension?: string,
@@ -48,8 +53,15 @@ export type TDashboardSettings = {
   // Note: if you add a new setting, make sure to
   // - update the dashboardSettingsDefaults object in dashboardSettings.js
   // - update the getDashboardSettings() function in dashboardHelpers.js if it is type number
+  // - possibly update the cleanDashboardSettingsInAPerspective() function in perspectiveHelpers.js
+  // Note: if you change a setting name, make sure to update the following:
+  // - the onUpdateOrInstall() function in index.js to handle most of the migration
+  // - the dashboardSettingsDefaults object in dashboardSettings.js
+  // - the cleanDashboardSettingsInAPerspective() function in perspectiveHelpers.js
+  applyCurrentFilteringToSearch: boolean,
   autoUpdateAfterIdleTime: number,
   dashboardTheme: string,
+  dontSearchFutureItems: boolean,
   displayDoneCounts: boolean,
   enableInteractiveProcessing: boolean,
   enableInteractiveProcessingTransitions: boolean,
@@ -62,9 +74,9 @@ export type TDashboardSettings = {
   ignoreChecklistItems: boolean,
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
-  includeFolderName: boolean, // TODO(later): ideally rename to show...
-  includeScheduledDates: boolean, // TODO(later): ideally rename to show...
-  includeTaskContext: boolean, // TODO(later): ideally rename to show...
+  showFolderName: boolean, // Note: was includeFolderName before 2.2.0.
+  showScheduledDates: boolean, // Note: was includeScheduledDates before 2.2.0.rename to show...
+  showTaskContext: boolean, // Note: was includeTaskContext before 2.2.0.
   interactiveProcessingHighlightTask: boolean,
   lastModified?: string,
   lookBackDaysForOverdue: number,
@@ -77,28 +89,25 @@ export type TDashboardSettings = {
   rescheduleNotMove: boolean,
   separateSectionForReferencedNotes: boolean,
   settingsMigrated: boolean,
+  tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
+  useLiteScheduleMethod: boolean,
+  useTodayDate: boolean,
+  // the following turn on/off different sections: they must start with 'show' and end with 'Section'
   showLastWeekSection: boolean,
   showMonthSection: boolean,
   showOverdueSection: boolean,
   showPrioritySection: boolean,
   showProjectSection: boolean,
   showQuarterSection: boolean,
+  showSavedSearchSection: boolean, // Note: the SEARCH Section doesn't need a setting. This is for future use for SAVEDSEARCH section(s).
   showTimeBlockSection: boolean,
   showTodaySection: boolean,
   showTomorrowSection: boolean,
   showWeekSection: boolean,
   showYesterdaySection: boolean,
-  tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
-  useLiteScheduleMethod: boolean,
-  useTodayDate: boolean,
 }
 
-export type TDashboardPluginSettings = {
-  ...TDashboardLoggingConfig,
-  pluginID: string,
-  dashboardSettings: string,
-  perspectiveSettings: string,
-}
+export type TPerspectiveSettings = Array<TPerspectiveDef>
 
 export type TPerspectiveDef = {
   name: string,
@@ -108,13 +117,17 @@ export type TPerspectiveDef = {
   lastModified?: number,
 }
 
-export type TPerspectiveSettings = Array<TPerspectiveDef>
+export type TDashboardPluginSettings = {
+  ...TDashboardLoggingConfig,
+  pluginID: string,
+  dashboardSettings: Partial<TDashboardSettings>,
+  perspectiveSettings: TPerspectiveSettings,
+}
 
 //-----------------------------------------------------------------------------
 // Other types
 
-// FIXME: remove extra one later
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' | '_TB' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 
@@ -134,9 +147,10 @@ export type TSection = {
   generatedDate?: Date, // note different from lastFullRefresh on whole project
   totalCount?: number, // for when not all possible items are passed in pluginData
   doneCounts?: TDoneCount, // number of tasks and checklists completed today etc.
+  showColoredBackground?: boolean, // whether to show a colored background for the section
 }
 
-export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'timeblock'
+export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'timeblock' | 'noSearchResults'
 
 // an item within a section, with optional TParagraphForDashboard
 export type TSectionItem = {
@@ -148,6 +162,8 @@ export type TSectionItem = {
   updated?: boolean, // used to keep deletes from confusing the dialog which is waiting for updates to the same line
   // updated will be set by the copyUpdatedSectionItemData function when content is modified
   parentID?: string, // if this is a sub-task, this holds the ID of the parent task if that is also an open item (required for displaying children properly with their parents in useSelectionSortAndFilter)
+  message?: string, // for items that don't have a para or project
+  settingsDialogAnchor?: string, // scroll to this element when the gear icon is clicked
 }
 
 // reduced paragraph definition
@@ -208,6 +224,7 @@ export type TActionType =
   | 'completeTaskThen'
   | 'completeChecklist'
   | 'cancelChecklist'
+  | 'closeSection'
   | 'cyclePriorityStateUp'
   | 'cyclePriorityStateDown'
   | 'dashboardSettingsChanged'
@@ -233,6 +250,7 @@ export type TActionType =
   | 'showLineInEditorFromTitle'
   // | 'setSpecificDate'
   | 'startReviews'
+  | 'startSearch'
   | '(not yet set)'
   // | 'turnOffPriorityItemsFilter'
   | 'toggleType'
@@ -241,9 +259,6 @@ export type TActionType =
   | 'unscheduleItem'
   | 'updateItemContent'
   | 'rescheduleItem'
-  | 'windowWasResized'
-  | 'windowReload' // Used by 'Hard Refresh' button for devs
-  | 'windowResized'
   | 'addNewPerspective'
   | 'commsBridgeTest'
   | 'copyPerspective'
@@ -253,6 +268,8 @@ export type TActionType =
   | 'savePerspectiveAs'
   | 'switchToPerspective'
   | 'evaluateString'
+  | 'windowReload' // Used by 'Hard Refresh' button for devs
+  | 'windowResized'
 
 export type TControlString =
   | 't'
@@ -303,15 +320,16 @@ export type MessageDataObject = {
  */
 
 export type TActionOnReturn =
-  | 'UPDATE_LINE_IN_JSON'
+  | 'CLOSE_SECTION'
+  | 'INCREMENT_DONE_COUNT'
+  | 'PERSPECTIVE_CHANGED'
   | 'REMOVE_LINE_FROM_JSON'
   | 'REFRESH_SECTION_IN_JSON'
   | 'REFRESH_ALL_SECTIONS'
-  | 'REFRESH_ALL_ENABLED_SECTIONS' // added for v2.1.0
+  | 'REFRESH_ALL_ENABLED_SECTIONS'
   | 'REFRESH_ALL_CALENDAR_SECTIONS'
   | 'START_DELAYED_REFRESH_TIMER'
-  | 'INCREMENT_DONE_COUNT'
-  | 'PERSPECTIVE_CHANGED'
+  | 'UPDATE_LINE_IN_JSON'
 
 export type TBridgeClickHandlerResult = {
   success: boolean,
@@ -338,6 +356,10 @@ export type TReactSettings = {
   dialogData?: TDialogData,
   interactiveProcessing?: TInteractiveProcessing,
   perspectivesTableVisible?: boolean,
+  settingsDialog?: {
+    isOpen: boolean,
+    scrollTarget?: string,
+  },
 }
 
 export type TPluginData = {

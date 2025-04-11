@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2024-11-09 by @jgclark
+// Last updated 2025-03-09 by @jgclark
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import {
@@ -102,7 +102,7 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
  * @param {TNote} Note
  * @returns {string} HTML
  */
-export async function getNoteContentAsHTML(content: string, note: TNote): ?string {
+export async function getNoteContentAsHTML(content: string, note: TNote): Promise<string> {
   try {
     let lines = content?.split('\n') ?? []
 
@@ -118,7 +118,7 @@ export async function getNoteContentAsHTML(content: string, note: TNote): ?strin
       for (let i = 1; i < lines.length; i++) {
         if (lines[i].match(/^title:\s/)) {
           titleAsMD = lines[i].replace('title:', '#')
-          logDebug('previewNote', `removing title line ${String(i)}`)
+          logDebug('getNoteContentAsHTML', `removing title line ${String(i)}`)
           lines.splice(i, 1)
         }
         if (lines[i].trim() === '---') {
@@ -169,21 +169,21 @@ export async function getNoteContentAsHTML(content: string, note: TNote): ?strin
     const noteDirPath = getFolderFromFilename(note.filename)
     
     for (const match of matches) {
-        const imagePath = match[1]
-        try {
-            // Handle both absolute and relative paths
-            let fullPath = `../../../Notes/${noteDirPath}/${decodeURI(imagePath)}`
-            if(fullPath.endsWith('.drawing')) {
-              fullPath = fullPath.replace('.drawing', '.png')
-            }
-            const data = await DataStore.loadData(fullPath)
-            if (data) {
-                const base64Data = `data:image/png;base64,${data.toString('base64')}`
-                body = body.replaceAll(imagePath, base64Data)
-            }
-        } catch (err) {
-            logWarn("Failed to load image", imagePath, err)
+      const imagePath = match[1]
+      try {
+        // Handle both absolute and relative paths
+        let fullPath = `../../../Notes/${noteDirPath}/${decodeURI(imagePath)}`
+        if(fullPath.endsWith('.drawing')) {
+          fullPath = fullPath.replace('.drawing', '.png')
         }
+        const data = await DataStore.loadData(fullPath, false)
+        if (data) {
+          const base64Data = `data:image/png;base64,${data.toString('base64')}`
+          body = body.replaceAll(imagePath, base64Data)
+        }
+      } catch (err) {
+        logWarn('getNoteContentAsHTML', `Failed to load image "${imagePath}". Error: ${err.message}`)
+      }
     }
 
     // TODO: Ideally build a frontmatter styler extension (to use above) but for now ...
@@ -226,15 +226,16 @@ export async function getNoteContentAsHTML(content: string, note: TNote): ?strin
       line = line.replace(RE_SYNC_MARKER, '')
 
       if (line !== origLine) {
-        logDebug('previewNote', `modified {${origLine}} -> {${line}}`)
+        logDebug('getNoteContentAsHTML', `modified {${origLine}} -> {${line}}`)
       }
       modifiedLines.push(line)
     }
     return modifiedLines.join('\n')
 
   } catch (error) {
-      logError('Converting To HTML', error.message)
-    }
+    logError('getNoteContentAsHTML', error.message)
+    return '<conversion error>'
+  }
 }
 
 
@@ -1109,8 +1110,8 @@ export function convertHighlightsToHTML(input: string): string {
 export function convertTimeBlockToHTML(input: string, timeblockTextMustContainString: string = ''): string {
   let output = input
   if (isTimeBlockLine(input, timeblockTextMustContainString)) {
-    const timeBlockPart = getTimeBlockString(input, timeblockTextMustContainString)
-    logDebug('convertTimeBlockToHTML', `found time block '${timeBlockPart}'`)
+    const timeBlockPart = getTimeBlockString(input)
+    // logDebug('convertTimeBlockToHTML', `found time block '${timeBlockPart}'`)
     output = output.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
   }
   return output

@@ -19,7 +19,6 @@
 	align-items: end;
 	gap: 10px;
 	position: relative;
-	width: fit-content;
 }
 
 .dropdown-select-label {

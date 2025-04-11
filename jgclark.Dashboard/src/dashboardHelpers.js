@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated for v2.1.10
+// Last updated 2025-04-10 for v2.2.0.a13
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -21,7 +21,7 @@ import type {
   TSectionCode,
   TSectionItem,
 } from './types'
-import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { renameKeys, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getAPIDateStrFromDisplayDateStr, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
@@ -33,19 +33,13 @@ import { isAChildPara } from '@helpers/parentsAndChildren'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import {
-  getStartTimeObjFromParaContent,
-  getTimeBlockString,
-  isActiveOrFutureTimeBlockPara,
-} from '@helpers/timeblocks'
-import {
-  isOpen, isOpenNotScheduled, removeDuplicates
-} from '@helpers/utils'
+import { getStartTimeObjFromParaContent, getTimeBlockString, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
+import { isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Settings
 
-const pluginID = pluginJson['plugin.id']
+const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
 
 /**
  * Return an Object that includes settings:
@@ -55,43 +49,73 @@ const pluginID = pluginJson['plugin.id']
  * These can potentially be changed by setSetting(s) calls.
  */
 export async function getDashboardSettings(): Promise<TDashboardSettings> {
-  // Note: We think following (newer API call) is unreliable.
-  let pluginSettings = DataStore.settings
-  if (!pluginSettings || !pluginSettings.dashboardSettings) {
-    clo(
-      pluginSettings,
-      `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `,
-    )
+  try {
+    // Note: We think following (newer API call) is unreliable.
+    // let pluginSettings = DataStore.settings
+    // if (!pluginSettings || !pluginSettings.dashboardSettings) {
+    //   clo(
+    //     pluginSettings,
+    //     `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `,
+    //   )
 
     // Fall back to the older way:
-    pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
+    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    // clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
+    // }
+    if (!pluginSettings.dashboardSettings) {
+      throw (
+        (pluginSettings,
+        `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${
+          pluginSettings.pluginID || ''
+        } plugin: `)
+      )
+    }
+    // clo(pluginSettings, 'pluginSettings:') // OK
+
+    const parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
+
+    // additional setting that always starts as true
+    parsedDashboardSettings.showSearchSection = true
+
+    // TODO: @jgclark: Would it be ok to move the following to the migratePluginSettings() function? Would be nice to keep this function cleaner
+    // Note: Workaround for number types getting changed to strings at some point in our Settings system.
+    parsedDashboardSettings.newTaskSectionHeadingLevel = parseInt(parsedDashboardSettings.newTaskSectionHeadingLevel || '2')
+    parsedDashboardSettings.maxItemsToShowInSection = parseInt(parsedDashboardSettings.maxItemsToShowInSection || '24')
+    parsedDashboardSettings.lookBackDaysForOverdue = parseInt(parsedDashboardSettings.lookBackDaysForOverdue || '7')
+    parsedDashboardSettings.autoUpdateAfterIdleTime = parseInt(parsedDashboardSettings.autoUpdateAfterIdleTime || '10')
+
+    // When the underlying issue is tackled, then TEST: to see whether JSON number type handling has been corrected
+    // clvt(parsedDashboardSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedDashboardSettings.newTaskSectionHeadingLevel:`)
+    // Warn if any of the settings are not numbers
+    // if (typeof parsedDashboardSettings.newTaskSectionHeadingLevel !== 'number') {
+    //   logWarn('getDashboardSettings', `parsedDashboardSettings.newTaskSectionHeadingLevel is not a number type: ${parsedDashboardSettings.newTaskSectionHeadingLevel}`)
+    // }
+
+    return parsedDashboardSettings
+  } catch (err) {
+    logError('getDashboardSettings', `${err.name}: ${err.message}`)
+    // $FlowFixMe[incompatible-return]
+    return
   }
-  if (!pluginSettings.dashboardSettings) {
-    throw (
-      (pluginSettings,
-      `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${
-        pluginSettings.pluginID || ''
-      } plugin: `)
-    )
+}
+
+/**
+ * Migrate some setting names to new names.
+ * Note: can't easily be done with updateSettingData() in index.js as there can be multiple copies of these settings at different object levels.
+ * @author @jgclark
+ * @tests in dataManipulation.test.js
+ */
+export function migratePluginSettings(settingsIn: any): any {
+  // Migrate some setting names to new names
+  const keysToChange = {
+    usePerspectives: 'usePerspectives',
+    includeFolderName: 'showFolderName',
+    includeScheduledDates: 'showScheduledDates',
+    includeTaskContext: 'showTaskContext',
   }
-
-  const parsedSettings = parseSettings(pluginSettings.dashboardSettings)
-
-  // Note: Workaround for  number types getting changed to strings at some point in our Settings system.
-  parsedSettings.newTaskSectionHeadingLevel = parseInt(parsedSettings.newTaskSectionHeadingLevel || '2')
-  parsedSettings.maxItemsToShowInSection = parseInt(parsedSettings.maxItemsToShowInSection || '24')
-  parsedSettings.lookBackDaysForOverdue = parseInt(parsedSettings.lookBackDaysForOverdue || '7')
-  parsedSettings.autoUpdateAfterIdleTime = parseInt(parsedSettings.autoUpdateAfterIdleTime || '10')
-
-  // When the underlying issue is tackled, then TEST: to see whether JSON number type handling has been corrected
-  // clvt(parsedSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedSettings.newTaskSectionHeadingLevel:`)
-  // Warn if any of the settings are not numbers
-  // if (typeof parsedSettings.newTaskSectionHeadingLevel !== 'number') {
-  //   logWarn('getDashboardSettings', `parsedSettings.newTaskSectionHeadingLevel is not a number type: ${parsedSettings.newTaskSectionHeadingLevel}`)
-  // }
-
-  return parsedSettings
+  const migratedSettings = renameKeys(settingsIn, keysToChange)
+  clo(migratedSettings, `migratePluginSettings - migratedSettings:`)
+  return migratedSettings
 }
 
 /**
@@ -123,7 +147,10 @@ export function getNotePlanSettings(): TNotePlanSettings {
   try {
     // Extend settings with value we might want to use when DataStore isn't available etc.
     return {
-      timeblockMustContainString: String(DataStore.preference('timeblockTextMustContainString')) ?? '',
+      // Note: this is a workaround for a bug in NotePlan where the timeblockTextMustContainString preference is sometimes undefined.
+      timeblockMustContainString: String(DataStore.preference('timeblockTextMustContainString') && DataStore.preference('timeblockTextMustContainString') !== 'undefined')
+        ? String(DataStore.preference('timeblockTextMustContainString'))
+        : '',
       defaultFileExtension: DataStore.defaultFileExtension,
       doneDatesAvailable: !!DataStore.preference('isAppendCompletionLinks'),
     }
@@ -157,6 +184,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   if (config.tagsToShow) sectionsToShow.push('TAG')
   if (config.showOverdueSection) sectionsToShow.push('OVERDUE')
   if (config.showPrioritySection) sectionsToShow.push('PRIORITY')
+  sectionsToShow.push('SEARCH')
   logDebug('getListOfEnabledSections', `sectionsToShow: ${String(sectionsToShow)}`)
   return sectionsToShow
 }
@@ -176,7 +204,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       if (note) {
         // Note: seems to be a quick operation (1ms), but leaving a timer for now to indicate if >10ms
         const anyChildren = p.children()
-        const hasChild = anyChildren.length > 0
+        const hasChild = anyChildren && anyChildren.length > 0
         const isAChild = isAChildPara(p, note)
 
         // Note: debugging why sometimes hasChild is wrong
@@ -221,7 +249,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       }
     })
     // $FlowIgnore[unsafe-arithmetic]
-    logTimer('makeDashboardParas', timer, `- done for ${origParas.length} paras (i.e. average ${String((new Date() - timer) / origParas.length)}/para)`)
+    logTimer('makeDashboardParas', timer, `- done for ${origParas.length} paras (i.e. average ${((new Date() - timer) / origParas.length).toFixed(1)}ms/para)`)
     return dashboardParas
   } catch (error) {
     logError('makeDashboardParas', error.message)
@@ -284,12 +312,10 @@ export function getOpenItemParasForTimePeriod(
     const isToday = theNoteDateHyphenated === todayHyphenated
     const latestDate = todayHyphenated > theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
     // logDebug('getOpenItemPFCTP', `timeframe:${timePeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
-    
+
     // Keep only non-empty open tasks (and checklists if wanted),
     // and now add in other timeblock lines (if wanted), other than checklists (if excluded)
-    let openParas = alsoReturnTimeblockLines
-      ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
-      : parasToUse.filter((p) => isOpen(p))
+    let openParas = alsoReturnTimeblockLines ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString)) : parasToUse.filter((p) => isOpen(p))
     logDebug('getOpenItemPFCTP', `- after initial pull: ${openParas.length} para(s)`)
     if (dashboardSettings.ignoreChecklistItems) {
       openParas = openParas.filter((p) => !(p.type === 'checklist'))

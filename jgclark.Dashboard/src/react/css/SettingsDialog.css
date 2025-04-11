@@ -1,5 +1,5 @@
 /* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
-/* Last updated for v2.1.0.a */
+/* Last updated for v2.2.0.a10 */
 
 /* Style for the settings dialog */
 .settings-dialog {
@@ -22,13 +22,14 @@
 
     /* Style for Section headings */
     .ui-heading {
-        font-size: 130%;
+        font-size: 122%;
         color: var(--tint-color);
         font-weight: 600;
         text-align: start;
         line-height: 140%;
-        padding-top: 0rem; /* 0.3rem; */
-        padding-bottom: 0rem; /* 0.3rem; */
+        letter-spacing: 0.4px;
+        padding-top: 0rem;
+        padding-bottom: 0rem;
     }
 
     /* Style for container for Items in a section */
@@ -39,9 +40,10 @@
 
     /* Style for Item descriptions that follow the item */
     .item-description {
-        font-size: smaller;
+        font-size: small;
         color: var(--fg-alt-color);
         margin-bottom: 0.2rem;
+        font-weight: 300;
     }
 
     /* override default for hr */

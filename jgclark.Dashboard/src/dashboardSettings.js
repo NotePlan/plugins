@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated for v2.1.7
+// Last updated 2025-04-09 for v2.2.0.a12
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -32,19 +32,24 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
     description: "Only display one instance of each item, even if it's in multiple sections",
   },
   {
-    label: 'Exclude tasks that include time blocks?',
+    label: 'Exclude tasks that contain time blocks?',
     key: 'excludeTasksWithTimeblocks',
     type: 'switch',
     default: false,
     description: 'Whether to stop display of open tasks that contain a time block',
   },
   {
-    label: 'Exclude checklists that include time blocks?',
+    label: 'Exclude checklists that contain time blocks?',
     key: 'excludeChecklistsWithTimeblocks',
     type: 'switch',
     default: false,
     description: 'Whether to stop display of open checklists that contain a time block',
   },
+]
+
+export const searchPanelSettings: Array<TSettingItem> = [
+  // TODO: fill in
+  {},
 ]
 
 // This section is an array that describes the order and type of the individual settings
@@ -60,7 +65,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
       "A 'Perspective' is a named set of all your Dashboard settings below, including which folders to include/ignore, which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default (which can't be deleted).",
   },
   {
-    key: 'perspectivesEnabled',
+    key: 'usePerspectives', // was 'perspectivesEnabled' before v2.2.0
     label: 'Enable Perspectives',
     description: '',
     type: 'switch',
@@ -109,7 +114,8 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: 'applyIgnoreTermsToCalendarHeadingSections',
     label: 'Apply to sections under headings in Calendar notes?',
-    description: 'If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored. (This applies to the preceding headings all the way up the H5->H1 hierarchy of section headings for that line.)',
+    description:
+      'If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored. (This applies to the preceding headings all the way up the H5->H1 hierarchy of section headings for that line.)',
     type: 'switch',
     default: false,
     compactDisplay: true,
@@ -167,7 +173,8 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: 'newTaskSectionHeadingLevel',
     label: 'Heading level for new Headings',
-    description: 'Heading level (1-5) to use when adding new headings in notes. Note: you can also set this to 0 which means add task under the heading, but only if it already exists.',
+    description:
+      'Heading level (1-5) to use when adding new headings in notes. Note: you can also set this to 0 which means add task under the heading, but only if it already exists.',
     type: 'number',
     default: 2,
     compactDisplay: true,
@@ -245,21 +252,21 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     label: 'Show note link for tasks?',
-    key: 'includeTaskContext',
+    key: 'showTaskContext', // was 'includeTaskContext' before v2.2.0
     type: 'switch',
     default: true,
     description: 'Whether to show the note link for an open task or checklist',
   },
   {
     label: 'Show folder name in note link?',
-    key: 'includeFolderName',
+    key: 'showFolderName', // was 'includeFolderName' before v2.2.0
     type: 'switch',
     default: true,
     description: 'Whether to include the folder name when showing a note link',
   },
   {
     label: 'Show scheduled date for tasks?',
-    key: 'includeScheduledDates',
+    key: 'showScheduledDates', // was 'includeScheduledDates' before v2.2.0
     type: 'switch',
     default: true,
     description: 'Whether to display scheduled >dates for tasks in dashboard view',
@@ -269,9 +276,33 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     // label: 'Show parent/child markers on items?',
     // description: 'Add a small icon on items that either have indented sub-items, or is an indented child a parent item.',
     label: 'Show parent markers on items?',
-    description: 'If set adds an ellipsis icon on items that have "children" (indented sub-items), whether they are also shown or not.',
+    description: 'If set, adds an ellipsis icon on items that have "children" (indented sub-items), whether they are also shown or not.',
     type: 'switch',
     default: true,
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: 'Search section',
+  },
+  {
+    key: 'applyCurrentFilteringToSearch',
+    label: 'Apply current filtering to Search?',
+    description:
+      'If set, then the search will use the "What to Include and Exclude?" settings above to filter the search results before displaying them. If not set, then the search will run over all open items.',
+    type: 'switch',
+    default: true,
+    compactDisplay: true,
+  },
+  {
+    key: 'dontSearchFutureItems',
+    label: "Don't return future items?",
+    description: "If set, don't return items dated in the future, or from future calendar notes.",
+    type: 'switch',
+    default: true,
+    compactDisplay: true,
   },
   {
     type: 'separator',
@@ -289,7 +320,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     options: ['priority', 'earliest', 'most recent'],
     default: 'priority',
     compactDisplay: true,
-    fixedWidth: 150,
+    // fixedWidth: 150,
   },
   {
     key: 'lookBackDaysForOverdue',
@@ -349,12 +380,14 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
       case 'separator':
         return {
           type: 'separator',
+          key: thisKey,
         }
       case 'heading':
         return {
           type: 'heading',
           label: setting.label || '',
           description: setting.description || '',
+          key: thisKey,
         }
       // $FlowIgnore[incompatible-type] don't understand the error
       case 'header': // Note: deliberately the same as 'heading' above.
@@ -362,6 +395,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'heading',
           label: setting.label || '',
           description: setting.description || '',
+          key: thisKey,
         }
       case 'switch':
         return {

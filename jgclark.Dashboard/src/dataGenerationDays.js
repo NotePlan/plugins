@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated for 2.1.10
+// Last updated 2025-04-08 for v2.2.0.a12
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -97,10 +97,12 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const todayHeadings: Array<string> = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, false) : []
     const tomorrowHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, false) : []
+    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
+    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
     const todayFormFields: Array<TSettingItem> = formFieldsBase.concat(
       todayHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', options: todayHeadings, noWrapOptions: true, value: defaultHeadingToAddTo }]
         : [],
     )
     const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
@@ -111,11 +113,10 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
               type: 'dropdown-select',
               label: 'Under Heading:',
               key: 'heading',
-              fixedWidth: 300,
               // $FlowIgnore[incompatible-type]
               options: tomorrowHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -140,7 +141,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           actionName: 'addTask',
           actionParam: thisFilename,
           actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ',
+          display: '<i class= "fa-regular fa-fw  fa-circle-plus sidebarDaily" ></i> ',
           tooltip: "Add a new task to today's note",
           postActionRefresh: ['DT'],
           formFields: todayFormFields,
@@ -151,7 +152,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           actionName: 'addChecklist',
           actionParam: thisFilename,
           actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-square-plus sidebarDaily" ></i> ',
+          display: '<i class= "fa-regular fa-fw  fa-square-plus sidebarDaily" ></i> ',
           tooltip: "Add a checklist item to today's note",
           postActionRefresh: ['DT'],
           formFields: todayFormFields,
@@ -162,7 +163,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           actionName: 'addTask',
           actionParam: nextPeriodFilename,
           actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-circle-arrow-right sidebarDaily" ></i> ',
+          display: '<i class= "fa-regular fa-fw  fa-circle-arrow-right sidebarDaily" ></i> ',
           tooltip: "Add a new task to tomorrow's note",
           postActionRefresh: ['DO'],
           formFields: tomorrowFormFields,
@@ -173,29 +174,32 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           actionName: 'addChecklist',
           actionParam: nextPeriodFilename,
           actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-square-arrow-right sidebarDaily" ></i> ',
+          display: '<i class= "fa-regular fa-fw  fa-square-arrow-right sidebarDaily" ></i> ',
           tooltip: "Add a checklist item to tomorrow's note",
           postActionRefresh: ['DO'],
           formFields: tomorrowFormFields,
           submitOnEnter: true,
           submitButtonText: 'Add & Close',
         },
-        {
-          actionName: 'addTaskToFuture',
-          actionParam: thisFilename,
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-calendar-plus sidebarDaily" ></i> ',
-          tooltip: 'Add a new task to future note',
-          postActionRefresh: [], // Note: very likely to go to a note that isn't going to be shown in the dashboard, but can't be guaranteed
-          formFields: anyDayFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
+        // Removing this button for now, and instead trying a new 'add item' button to the Header
+        // {
+        //   actionName: 'addTaskToFuture',
+        //   actionParam: thisFilename,
+        //   actionPluginID: `${pluginJson['plugin.id']}`,
+        //   display: '<i class= "fa-regular fa-calendar-plus sidebarDaily" ></i> ',
+        //   tooltip: 'Add a new task to future note',
+        //   postActionRefresh: [], // Note: very likely to go to a note that isn't going to be shown in the dashboard, but can't be guaranteed
+        //   formFields: anyDayFormFields,
+        //   submitOnEnter: true,
+        //   submitButtonText: 'Add & Close',
+        // },
         {
           actionName: 'moveAllTodayToTomorrow',
           actionPluginID: `${pluginJson['plugin.id']}`,
           display: 'All <i class="fa-solid fa-right-long"></i> Tomorrow',
-          tooltip: 'Move or schedule all remaining open items to tomorrow',
+          tooltip: config.rescheduleNotMove
+            ? '(Re)Schedule all open items from today to tomorrow. (Press ⌘-click to move instead.)'
+            : 'Move all open items from today to tomorrow. (Press ⌘-click to (re)schedule instead.)',
           actionParam: 'true' /* refresh afterwards */,
           postActionRefresh: ['DT', 'DO'], // refresh 2 sections afterwards
         },
@@ -380,7 +384,9 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         {
           actionName: 'moveAllYesterdayToToday',
           actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: 'Move or schedule all open items from yesteday to today',
+          tooltip: config.rescheduleNotMove
+            ? '(Re)Schedule all open items from yesterday to today. (Press ⌘-click to move instead.)'
+            : 'Move all open items from yesterday to today. (Press ⌘-click to (re)schedule instead.)',
           display: 'All <i class="fa-solid fa-right-long"></i> Today',
           actionParam: 'true' /* refresh afterwards */,
           postActionRefresh: ['DT', 'DY'], // refresh 2 sections afterwards
@@ -502,10 +508,12 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const tomorrowHeadings: Array<string> = tomorrowsNote ? getHeadingsFromNote(tomorrowsNote, false, true, true, false) : []
+    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
+    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
     const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
       tomorrowHeadings.length
         ? // $FlowIgnore[incompatible-type]
-        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', options: tomorrowHeadings, noWrapOptions: true, value: defaultHeadingToAddTo }]
         : [],
     )
 
@@ -526,7 +534,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
           actionName: 'addTask',
           actionParam: thisFilename,
           actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-circle-arrow-right sidebarDaily" ></i> ',
+          display: '<i class= "fa-regular fa-fw  fa-circle-arrow-right sidebarDaily" ></i> ',
           tooltip: "Add a new task to tomorrow's note",
           postActionRefresh: ['DO'],
           formFields: tomorrowFormFields,
@@ -537,7 +545,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
           actionName: 'addChecklist',
           actionParam: thisFilename,
           actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-square-arrow-right sidebarDaily" ></i> ',
+          display: '<i class= "fa-regular fa-fw  fa-square-arrow-right sidebarDaily" ></i> ',
           tooltip: "Add a checklist item to tomorrow's note",
           postActionRefresh: ['DO'],
           formFields: tomorrowFormFields,

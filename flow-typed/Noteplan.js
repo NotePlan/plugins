@@ -1333,9 +1333,10 @@ declare interface Paragraph {
    * So a task that has a child task that has a child task will have 2 children (and the first child will have one).
    * Note: Available from v3.3
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
-   * @return {[TParagraph]}
+   * WARNING: appears to be unreliable on iOS.
+   * @return {$ReadOnlyArray<TParagraph> | void}
    */
-  children(): $ReadOnlyArray<TParagraph>;
+children(): $ReadOnlyArray < TParagraph > | void;
   /**
    * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
    * Note: Available from v3.5.2
@@ -1368,19 +1369,6 @@ type NoteType = 'Calendar' | 'Notes'
  * inherit the same paragraph functions.
  */
 declare interface Note extends CoreNoteFields {
-  // These properties are only on Note, not on Editor.
-  /**
-   * Get all types assigned to this note in the frontmatter as an array of strings.
-   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
-   * Note: Available from v3.5.0
-   */
-  +frontmatterTypes: $ReadOnlyArray<string>;
-  /**
-   * Get all attributes in the frontmatter, as an object or {} if no frontmatter stripes or if there are stripes but no attributes.
-   * Note: Added by @jgclark by inspection of real data
-   * TODO(@EduardMe): add this to the documentation.
-   */
-  +frontmatterAttributes: Object; // dbw Does not exist on Editor. Returns {} if no frontmatter stripes or if there are stripes but no attributes.
   /**
    * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
    * Note: Available from v3.2.0
@@ -1726,18 +1714,6 @@ declare interface CoreNoteFields {
    */
   +publicRecordID: ?string;
   /**
-   * Publishes the note using CloudKit (inserts a record on the public database). Build the web-link to the note by using the publicRecordID.
-   * Note: Available from v3.9.1
-   * @return {Promise}
-   */
-  publish(): Promise<void>;
-  /**
-   * Unpublishes the note from CloudKit (deletes the database entry from the public database).
-   * Note: Available from v3.9.1
-   * @return {Promise}
-   */
-  unpublish(): Promise<void>;
-  /**
    * Returns the conflicted version if any, including 'url' which is the path to the file. Otherwise, returns undefined.
    * Note: Available from v3.9.3
    * @return { Object(filename: string, url: string, content: string) }
@@ -1750,6 +1726,19 @@ declare interface CoreNoteFields {
    * Note: Available from v3.7.2
    */
   +versions: $ReadOnlyArray<string, Date>;
+  /**
+   * Get all 'type's assigned to this note in the frontmatter as an array of strings.
+   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
+   * Note: Available on Note from v3.5.0, but only on Editor from v3.16.3.
+   */
++frontmatterTypes: $ReadOnlyArray < string >;
+/**
+ * Get all attributes in the frontmatter, as an object or {[]} (empty array object) if there are stripes but no attributes.
+ * Note: Available on Note from 3.5.0, but only on Editor from v3.16.3.
+ * Note: Added by @jgclark by inspection of real data. TODO(@EduardMe): add this to the documentation.
+ * @type {[String:String]}
+ */
++frontmatterAttributes: Object; // dbw Does not exist on Editor. Returns {} if no frontmatter stripes or if there are stripes but no attributes.
   /**
    * Renames the note. You can also define a folder path. The note will be moved to that folder and the folder will be automatically created.
    * If the filename already exists, a number will be appended. If the filename begins with ".", it will be removed.
@@ -1941,6 +1930,20 @@ declare interface CoreNoteFields {
    * @param {number} length - Amount of characters to replace from the location
    */
   replaceTextInCharacterRange(text: string, location: number, length: number): void;
+
+/**
+* Publishes the note using CloudKit (inserts a record on the public database). Build the web-link to the note by using the publicRecordID.
+* Note: Available from v3.9.1
+* @return {Promise}
+*/
+publish(): Promise < void>;
+/**
+ * Unpublishes the note from CloudKit (deletes the database entry from the public database).
+ * Note: Available from v3.9.1
+ * @return {Promise}
+ */
+unpublish(): Promise < void>;
+
   /**
    * Generates a unique block ID and adds it to the content of this paragraph.
    * Remember to call .updateParagraph(p) to write it to the note.

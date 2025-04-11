@@ -2,25 +2,25 @@
 //-----------------------------------------------------------------------------
 // More advanced searching
 // Jonathan Clark
-// Last updated 2025-01-17 for v1.4.0, @jgclark
+// Last updated 2025-03-13 for v2.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
-// Note: following waiting for v1.5
-// export {
-//   replace,
-//   replaceOverAll,
-//   replaceOverNotes,
-//   replaceOverCalendar
-// } from './replace'
+export {
+  replace,
+  replaceOverAll,
+  replaceOverNotes,
+  replaceOverCalendar
+} from './replace'
 export {
   quickSearch,
   saveSearch,
   searchOverAll,
   searchOpenTasks,
   searchOverNotes,
-  searchOverCalendar
+  searchOverCalendar,
+  searchPeriod
 } from './saveSearch'
-export { searchPeriod } from './saveSearchPeriod'
+// export { searchPeriod } from './saveSearchPeriod' Note: now refactored into saveSearch.js
 export { refreshSavedSearch } from './searchTriggers'
 export {
   closeDialogWindow,

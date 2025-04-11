@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2024-09-20 for v2.1.0.a12 by @jgclark */
+/* Last updated 2025-04-05 for v2.2.0.a10 by @jgclark */
 
 :root {	
 	/* font-size: 16px; this works */
@@ -16,13 +16,20 @@
 
 html {
 	--itemIndentWidth: 1.5rem;
-	--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%); /* TEST: for subtle colouring */
-	--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%); /* TEST: for subtle colouring */
+	--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%); /* for subtle colouring - not yet used */
+	--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%); /* for subtle colouring - not yet used */
 }
 
 body {
 	margin: 0px;
 	width: 90vw;
+}
+
+/* Add a focus-visible outline to any element that is focussed and the browser decides needs to show a focus ring */
+/* This is overridden later for a certain type of buttons */
+:focus-visible {
+	outline: 1px solid rgb(from var(--tint-color) r g b / 0.5);
+	border-radius: 4px;
 }
 
 /* 
@@ -59,268 +66,61 @@ dialog::backdrop {
 	}
 }
 
-/* The main grid for a section: sectionInfo then sectionGrid. */
-.section {
-	display: grid;
-	grid-template-columns: [info] /* 12rem */ 13.5rem [items] auto;
-	grid-template-rows: min-content;
-	/* grid-auto-flow: column; */
-	/* a little extra gap between first 2 cols */
-	/* a little spacing at top and bottom of section */
-	/* padding: 2px 2px; */
-	/* turn on top border (from theme CSS) */
-	border-bottom: 1px solid var(--divider-color);
-}
-
-.sectionInfo {
-	display: block;
-	/* these padding values have been tweaked to be optically correct, at least for JGC's fonts */
-	padding-block-start: 4px;
-	padding-block-end: 4px;
-	padding-inline-start: 0.6rem;
-	padding-inline-end: 0.5rem;
-	color: var(--fg-sidebar-color);
-	background-color: var(--bg-sidebar-color);
-	border-right: 1px solid var(--divider-color);
-}
-
-/* Inner grid for details of a section -- allow up to 3 columns if wide enough */
-.sectionItemsGrid {
-	font-size: 1.0rem;
-	/* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
-	column-count: 3;
-	column-width: 24rem; /* 25rem; */
-	column-rule: 1px solid var(--divider-color);
-	column-fill: auto;
-	padding-inline-start: 0.5rem;
-	padding-block-start: 0.3rem;
-	padding-block-end: 0.1rem;
-}
-
-/* first part of sectionInfo. Grid to contain sectionIcon, sectionName, .addNewActionButtons */
-.sectionInfoFirstLine {
-	display: grid;
-	grid-template-columns: auto auto;
-	gap: 4px;
-}
-
-.sectionIcon {
-	font-size: 1.1rem;
-	/* font-weight: 400; */
-	text-align: center;
-	padding-right: 0.3rem;
-	padding-top: 1px;
-}
-
-.sectionName {
-	font-size: 1.0rem;
-	/* make noteTitles bold */
-	font-weight: 700;
-	margin: unset;
-	/* padding: 3px 0px 0px; */
-	justify-self: start;
-}
-
-/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
-.addNewActionButtons {
-	display: inline-flex;
-	gap: 0.4rem;
-	justify-self: end;
-	align-self: flex-start;
-	border: 0px none;
-	box-shadow: none;
-	padding-top: 1px;
-}
-
-/* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
-.iOS .addNewActionButtons, .iPadOS .addNewActionButtons {
-	gap: 0.9rem !important; /* haven't tested whether !important is needed here */
-	font-size: 1.0rem !important;
-}
-
-/* Next part of sectionInfo. */
-.sectionDescription {
-	/* a bit smaller */
-	font-size: 0.9rem;
-	padding-top: 0.1rem;
-
-}
-
-/* If very narrow -- for small iPhone drop .sectionDescription */
-@media screen and (max-width: 430px) {
-	.sectionDescription {
-		display: none;
-	}
-}
-
-.sectionItemRow {
-	/* The important trick to avoiding bad wrapping at end of columns */
-	break-inside: avoid;
-	/* display: grid; */
-	/* grid-template-columns: [icon] 1.1rem [item-details] auto; */
-	display: flex;
-	
-	/* trying margin not padding now */
-	/* no bottom padding */
-	/* padding: 0px 4px 3px 0px; */
-	margin: 0px 4px 3px 0px; 
-	
-	border: 0px none;
-	column-gap: 3px;
-	/* vertical in containing block */
-	/* align-self: start; */
-	/* horizontal in containing block */
-	/* justify-self: right; */
-	/* border-collapse: collapse; */
-	/* vertical for all items this contains */
-	align-items: baseline; /* start; */
-	/* horizontal for all items this contains */
-	justify-items: start;
-	/*
-	opacity: 1;
-	transition: opacity 500ms ease-in-out;
-	*/
-}
-
-/* The actual item's details (was col4) */
-.sectionItemContent {
-	/* reduce vertical spacing and line below */
-	font-size: 1.0rem;
-	font-weight: 400;
-	padding: 1px 4px;
-	border-bottom: 0px;
-	break-inside: avoid;
-	line-height: 1.2rem;
-}
-
-/* If rather narrow, slide [items] under [info] */
-/* This needs to come after the earlier definitions to take priority */
-@media screen and (max-width: 600px) {
-	.section {
-		grid-template-columns: 1fr;
-	}
-
-	.sectionInfo {
-		border-top: solid 0.5px var(--tint-color);
-		border-bottom: solid 1px var(--divider-color);
-		display: grid;
-		/* now make this area grid column-based not row-based */
-		grid-template-columns: max-content max-content auto;
-		grid-column-gap: 1.0rem;
-		padding-top: 0.2rem;
-		padding-bottom: 0.2rem;
-		/* put all items essentially on a baseline */
-		/* align-items: end; */
-		align-items: center;
-	}
-
-	.sectionName {
-		/* turn off padding under section name */
-		padding-top: 0.1rem;
-		padding-bottom: 0rem;
-		padding-left: 1px;
-		/* some padding to right */
-		padding-right: 0.5rem;
-	}
-
-	/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
-	.addNewActionButtons {
-		justify-self: start;
-		padding-top: 2px;
-	}
-}
-
-.projectProgress {
-	font-size: 0.9rem;
-}
-
-/* ------------------------------------------------------------------ */
-/* Various item icons */
-
-/* Need to override some CSS that comes in the theme */
-.itemIcon {
-	color: var(--item-icon-color);
-	margin-bottom: unset !important;
-	line-height: unset !important;
-	font-size: 1.0rem  !important;
-	/* font-size: unset !important; */
-	font-weight: 400;
-	/* position this horizontally centred; vertically at start */
-	align-self: center;
-	justify-self: center;
-	/* and give a little nudge down to make things line up in practice */
-	/* padding-block-start: 1px; */
-	cursor: pointer;
-}
-
-/* Make square-based icons a touch larger, as they're optically smaller than the circle equivalents. Advanced stuff! */
-.fa-square, .fa-square-plus, .fa-square-arrow-right {
-	font-size: 103%; /*110%;*/
-	padding-left: 1px;
-}
-
-/* Override the theme definition of a completed task a little */
-.checked {
-	/* padding-top: 1px !important; */
-	margin-bottom: 0px !important; /* over-ride margin-bottom: 0.25rem that is set somwhere else */
-	font-size: 98%
-}
-
-.projectIcon {
-	/* less to do as this is SVG not text */
-	/* align-self: center; -- would have worked when a single line, but it can now have progress text */
-	align-self: start;
-	justify-self: center;
-	/* and give a little nudge down to make things line up in practice */
-	margin-block-start: 2px;
-	margin-right: 2px;
-}
-
-.dialogTriggerIcon {
-	color: var(--fg-main-color);
-	opacity: 0.4;
-	cursor: pointer;
-}
-
-/* The marker for parent/child projects, designed to mimic what EM introduced in 3.15.1 */
-/* Note: no longer using childMarker */
-.parentMarker {
-	font-size: 70%;
-	color: var(--fg-main-color);
-	background-color: var(--divider-color);
-	margin-left: 0.35rem;
-	border-radius: 30%;
-	opacity: 0.7;
-	padding: 0px 4px;
-	vertical-align: middle;
-	transform: scale(1.15,1);
-}
-
-/* I'm not sure how to send a variable through into this calculation, so this is moved into the code */
-/* .indentItem {
-	padding-left: calc(1 * 1.35rem);
-} */
-
 /* --------------------------------------------------------------- */
 
 /* All buttons and inputs, but at lower priority */
 @layer A {
 	button,
-	input {
+	input[type="text"],
+	input[type="search"],
+	input[type="number"] {
 		color: var(--fg-sidebar-color);
 		background-color: var(--bg-alt-color);
 		border: 1px solid rgb(from var(--fg-main-color) r g b/0.3);
-		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
+		box-shadow: 1px 1px 0px 0px rgb(from var(--fg-main-color) r g b / 0.2);
 	}
 	/* set input backgrounds a little lighter on hover */
 	input &:hover {
-		filter: brightness(104%);
+		filter: brightness(112%);
 		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to use this when CSS standards catch up. */
 		/* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
 	}
 }
 
-/* For add buttons in section info areas */
+/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
+.buttonsWithoutBordersOrBackground,
+.buttonsWithoutBordersOrBackground * {
+	display: inline-flex;
+	gap: 0.4rem;
+	justify-self: end;
+	/* align-self: flex-start; /* Doesn't seem to be needed */
+	border: 0px none;
+	box-shadow: none;
+	padding-top: 1px;
+	padding-left: unset;
+	padding-right: unset;
+	background-color: unset;
+
+	/* &:focus {
+		outline: none;
+	} */
+	/* Add a more specific 'underline' to indicate focus for these buttons to aid keyboard navigation */
+	&:focus-visible {
+		filter: brightness(112%);
+		/* Remove the default focus ring */
+		outline: none;
+		border-radius: 0px;
+		border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.5);
+	}
+}
+
+/* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
+.iOS .buttonsWithoutBordersOrBackground, .iPadOS .buttonsWithoutBordersOrBackground {
+	gap: 0.9rem !important; /* haven't tested whether !important is needed here */
+	font-size: 1.0rem !important;
+}
+
+/* For action buttons in section title areas */
 .addButton {
 	font-size: 0.95rem;
 	/* line-height: 1.2rem; */
@@ -388,7 +188,8 @@ button,
 	.tooltip {
 		position: relative;
 		/* float above everything, including the header */
-		/* z-index: 20; */
+		/* FIXME: this is not working as expected. It then makes the Perspective dropdown sit under the buttons. */
+		/* z-index: 12; */
 	}
 
 	.tooltip::before,
@@ -542,15 +343,18 @@ html {
 	--fg-sidebarYearly: #efba13;
 	--fg-sidebarHashtag: var(--hashtag-color);
 	--fg-sidebarMention: var(--attag-color);
+	--fg-sidebarSearch: #9da5a8;
 }
 /* But still need these as named styles */
 .sidebarDaily {color: var(--fg-sidebarDaily);}
+	/* background-color: var(--bg-sidebar-color);} FIXME: need to find out why this is needed */
 .sidebarWeekly {color: var(--fg-sidebarWeekly);}
 .sidebarMonthly {color: var(--fg-sidebarMonthly);}
 .sidebarQuarterly {color: var(--fg-sidebarQuarterly);}
 .sidebarYearly {color: var(--fg-sidebarYearly);}
 .sidebarHashtag {color: var(--hashtag-color);}
 .sidebarMention {color: var(--attag-color);}
+.sidebarSearch {color: var(--fg-sidebarSearch);}
 
 /* .priority, .overdue, .projects {
 	font-size: 1.0rem;
@@ -576,22 +380,22 @@ html {
 /* --------------------------------------------------------------- */
 
 /* For fancy toggle as checkbox */
-/* from [Pure CSS3 iOS switch checkbox. A switch allows the user to quickly… | by Pedro M. S. Duarte | codeburst](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb)
+/* from [Pure CSS3 iOS switch checkbox by Pedro M. S. Duarte | codeburst](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb)
  */
+ /* Note: This is a copy of what is in helpers/.../DynamicDialog.css */
 input.apple-switch {
 	position: relative;
 	appearance: none;
-	vertical-align: top;
+	vertical-align: baseline; /* top; */
 	outline: none;
 	width: 2.0rem;
 	/* 50px; */
-	height: 1.1rem;
+	height: 1.2rem;
 	/* 30px; */
-	background-color: #EEE;
-	border: 1px solid #DDD;
-	border-radius: 2.0rem;
-	/* 50px; */
-	/* box-shadow: inset -0.8rem 0 0 0 #fff; /* -20px */
+	border: 1px solid var(--divider-color); /* rgb(from var(--fg-main-color) r g b / 0.3); */
+	border-radius: 1.9rem;
+	background-color: var(--bg-apple-switch-color);
+	/* box-shadow: 1px 1px 1px 0px var(--divider-color); */
 	margin-top: 0px;
 	margin-right: 4px;
 }
@@ -600,31 +404,34 @@ input.apple-switch:after {
 	content: "";
 	vertical-align: top;
 	position: absolute;
-	top: 0px;
+	top: 1px;
 	left: 1px;
-	background: #FFF;
+	background-color: #fff; /* var(--fg-alt-color); */
+	/* border: 1px solid rgb(from var(--fg-main-color) r g b / 0.5); */
 	width: 1.0rem;
 	/* 26px; */
 	height: 1.0rem;
 	/* 26px; */
 	border-radius: 50%;
-	box-shadow: 1px 0px 1px rgba(0, 0, 0, 0.3);
+	box-shadow: 0px 0px 2px var(--divider-color);
 	margin-right: 1.0rem;
 }
 
 input.apple-switch:checked {
 	vertical-align: top;
-	box-shadow: inset 0.8rem 0 0 0 var(--tint-color);
+	background-color: var(--tint-color);
+	/* box-shadow: inset 0.8rem 0 0 0 var(--tint-color); */
 	/* 20px; */
-	border-color: var(--tint-color);
 }
 
 input.apple-switch:checked:after {
 	vertical-align: top;
+	/* top: 1px; */
 	left: 0.8rem;
 	/* 20px; */
-	box-shadow: -2px 4px 3px rgba(0, 0, 0, 0.1);
-	/* 0.05;*/
+	background-color:  #fff; /* var(--fg-alt-color); */
+	/* border: 1px solid var(--tint-color); */
+	box-shadow: 0px 0px 2px var(--divider-color);
 }
 
 /* Circular progress bar for Project items */

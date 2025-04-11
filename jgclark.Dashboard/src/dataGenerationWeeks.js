@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated for 2.1.10
+// Last updated 2025-04-01 for 2.2.0.a10
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -78,19 +78,21 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const thisWeekHeadings: Array<string> = currentWeeklyNote ? getHeadingsFromNote(currentWeeklyNote, false, true, true, true) : []
     const nextWeekHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
+    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
     const thisWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisWeekHeadings.length
+
         ? // $FlowIgnore[incompatible-type]
           [
             {
               type: 'dropdown-select',
               label: 'Under Heading:',
               key: 'heading',
-              fixedWidth: 300,
               // $FlowFixMe[incompatible-type]
               options: thisWeekHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -103,11 +105,10 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
               type: 'dropdown-select',
               label: 'Under Heading:',
               key: 'heading',
-              fixedWidth: 300,
               // $FlowFixMe[incompatible-type]
               options: nextWeekHeadings,
               noWrapOptions: true,
-              value: config.newTaskSectionHeading,
+              value: defaultHeadingToAddTo,
             },
           ]
         : [],
@@ -130,7 +131,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           actionName: 'addTask',
           actionPluginID: `${pluginJson['plugin.id']}`,
           tooltip: "Add a new task to this week's note",
-          display: '<i class= "fa-regular fa-circle-plus sidebarWeekly" ></i> ',
+          display: '<i class= "fa-regular fa-fw fa-circle-plus sidebarWeekly" ></i> ',
           actionParam: thisFilename,
           postActionRefresh: ['W'],
           formFields: thisWeekFormFields,
@@ -141,7 +142,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           actionName: 'addChecklist',
           actionPluginID: `${pluginJson['plugin.id']}`,
           tooltip: "Add a checklist item to this week's note",
-          display: '<i class= "fa-regular fa-square-plus sidebarWeekly" ></i> ',
+          display: '<i class= "fa-regular fa-fw fa-square-plus sidebarWeekly" ></i> ',
           actionParam: thisFilename,
           postActionRefresh: ['W'],
           formFields: thisWeekFormFields,
@@ -152,7 +153,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           actionName: 'addTask',
           actionPluginID: `${pluginJson['plugin.id']}`,
           tooltip: "Add a new task to next week's note",
-          display: '<i class= "fa-regular fa-circle-arrow-right sidebarWeekly" ></i> ',
+          display: '<i class= "fa-regular fa-fw fa-circle-arrow-right sidebarWeekly" ></i> ',
           actionParam: nextPeriodFilename,
           formFields: nextWeekFormFields,
           submitOnEnter: true,
@@ -162,7 +163,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           actionName: 'addChecklist',
           actionPluginID: `${pluginJson['plugin.id']}`,
           tooltip: "Add a checklist item to next week's note",
-          display: '<i class= "fa-regular fa-square-arrow-right sidebarWeekly" ></i> ',
+          display: '<i class= "fa-regular fa-fw fa-square-arrow-right sidebarWeekly" ></i> ',
           actionParam: nextPeriodFilename,
           formFields: nextWeekFormFields,
           submitOnEnter: true,

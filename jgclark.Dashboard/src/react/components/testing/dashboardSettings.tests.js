@@ -33,7 +33,7 @@ export default {
 
         const testFunc = () =>
           Object.keys(getContext().dashboardSettings)
-            .filter((key) => key.startsWith('show'))
+            .filter((key) => key.startsWith('show') && key.endsWith('Section'))
             .every((key) => getContext().dashboardSettings[key] === false)
         await waitFor(testFunc, 'dashboardSettings.show* settings are false')
       },
@@ -49,7 +49,7 @@ export default {
 
         const testFunc = () =>
           Object.keys(getContext().dashboardSettings)
-            .filter((key) => key.startsWith('show'))
+            .filter((key) => key.startsWith('show') && key.endsWith('Section'))
             .every((key) => getContext().dashboardSettings[key] === (key === 'showPrioritySection' ? false : true))
         await waitFor(testFunc, 'dashboardSettings.show* settings are false')
       },
@@ -64,7 +64,7 @@ export default {
 
         const testFunc = () =>
           Object.keys(getContext().dashboardSettings)
-            .filter((key) => key.startsWith('show'))
+            .filter((key) => key.startsWith('show') && key.endsWith('Section'))
             .every((key) => getContext().dashboardSettings[key] === false)
         await waitFor(testFunc, 'dashboardSettings.show* settings are false', 5000)
       },
@@ -86,7 +86,7 @@ export default {
         await new Promise((resolve) => setTimeout(resolve, 0))
         const testFunc = () =>
           Object.keys(getContext().dashboardSettings)
-            .filter((key) => key.startsWith('show'))
+            .filter((key) => key.startsWith('show') && key.endsWith('Section'))
             .every((key) => getContext().dashboardSettings[key] === (key === 'showPrioritySection' ? false : true))
         await waitFor(testFunc, 'dashboardSettings.show* settings are true', 20000)
       },
