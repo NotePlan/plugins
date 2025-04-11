@@ -1,11 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated for v2.1.10, 2025-02-14 by @jgclark
+// last updated 2025-04-11 for v2.3.0.a1
 //-----------------------------------------------------------------------------
-
-// TODO:
-// - Add a new function to get the list of all hashtags and mentions listed in all perspectives, and use that to populate the wantedTagMentionsList.json file.
 
 /**
  * Note: In a weird development (literally), I (JGC) found that a refactor of the original findNotesWithMatchingHashtag() suddenly made it now as fast, if not faster, as this new Cache.
@@ -14,7 +11,8 @@
  */
 
 import moment from 'moment/min/moment-with-locales'
-// import { getDateStringFromCalendarFilename, getTodaysDateHyphenated } from '@helpers/dateTime'
+import type { TPerspectiveDef } from './types'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { CaseInsensitiveSet } from '@helpers/general'
 import { getNotesChangedInInterval } from '@helpers/NPnote'
@@ -69,8 +67,9 @@ export function addTagMentionCacheDefinition(mentionOrTag: string): void {
 
 /**
  * Set the tag and mentions to the wantedTagMentionsList.json file.
- * @param {string} tags The tags to set.
- * @param {string} mentions The mentions to set.
+ * Note: see following variant that works out all tags/mentions of interest given the current perspectives.
+ * @param {Array<string>} tags The tags to set.
+ * @param {Array<string>} mentions The mentions to set.
  */
 export function setTagMentionCacheDefinitions(tags: Array<string>, mentions: Array<string>): void {
   const cache = {
@@ -78,6 +77,15 @@ export function setTagMentionCacheDefinitions(tags: Array<string>, mentions: Arr
     mentions: mentions,
   }
   DataStore.saveData(JSON.stringify(cache), wantedTagMentionsList, true)
+  logInfo('setTagMentionCacheDefinitions', `Saved [${String(tags)}] tags and [${String(mentions)}] mentions to ${wantedTagMentionsList}`)
+}
+
+/**
+ * Set the tag and mentions to the wantedTagMentionsList.json file based on the current perspectives.
+ */
+export function setTagMentionCacheDefinitionsFromAllPerspectives(allPerspectiveDefs: Array<TPerspectiveDef>): void {
+  const { wantedTags, wantedMentions } = getWantedTagsAndMentionsFromAllPerspectives(allPerspectiveDefs)
+  setTagMentionCacheDefinitions(wantedTags, wantedMentions)
 }
 
 /**
@@ -142,9 +150,9 @@ export async function generateTagMentionCache(): Promise<void> {
     const calWantedItems = []
     let ccal = 0
     for (const note of allCalNotes) {
-      const foundWantedTags = getWantedTagListFromNote(note, wantedTags)
+      const foundWantedTags = (wantedTags.length > 0) ? getWantedTagListFromNote(note, wantedTags) : []
       // if (foundWantedTags.length > 0) logDebug('generateTagMentionCache', `-> ${String(foundWantedTags.length)} foundWantedTags [${String(foundWantedTags)}] calWantedTags`)
-      const foundWantedMentions = getWantedMentionListFromNote(note, wantedMentions)
+      const foundWantedMentions = (wantedMentions.length > 0) ? getWantedMentionListFromNote(note, wantedMentions) : []
       if (foundWantedTags.length > 0 || foundWantedMentions.length > 0) {
         calWantedItems.push({ filename: note.filename, tags: foundWantedTags, mentions: foundWantedMentions })
         ccal++
@@ -153,9 +161,9 @@ export async function generateTagMentionCache(): Promise<void> {
     const regularWantedItems = []
     let creg = 0
     for (const note of allRegularNotes) {
-      const foundWantedTags = getWantedTagListFromNote(note, wantedTags)
+      const foundWantedTags = (wantedTags.length > 0) ? getWantedTagListFromNote(note, wantedTags) : []
       // if (foundWantedTags.length > 0) logDebug('generateTagMentionCache', `-> ${String(foundWantedTags.length)} foundWantedTags [${String(foundWantedTags)}] regularWantedTags`)
-      const foundWantedMentions = getWantedMentionListFromNote(note, wantedMentions)
+      const foundWantedMentions = (wantedMentions.length > 0) ? getWantedMentionListFromNote(note, wantedMentions) : []
       if (foundWantedTags.length > 0 || foundWantedMentions.length > 0) {
         regularWantedItems.push({ filename: note.filename, tags: foundWantedTags, mentions: foundWantedMentions })
         creg++
@@ -180,8 +188,7 @@ export async function generateTagMentionCache(): Promise<void> {
 }
 
 /**
- * Returns a count of all completed tasks today.
- * It does this by keeping and updating a list of all notes changed today, and the number of completed tasks it contains.
+ * Update the tagMentionCacheFile.
  * It works smartly: it only recalculates notes that have been updated since the last time this was run, according to JS date saved in 'lastTimeThisWasRunPref'.
  */
 export async function updateTagMentionCache(): Promise<void> {
@@ -223,7 +230,7 @@ export async function updateTagMentionCache(): Promise<void> {
     const jsdateToStartLooking = momPrevious.toDate()
     const numDaysBack = momPrevious.diff(momNow, 'days', true) // don't round to nearest integer
     const recentlychangedNotes = getNotesChangedInInterval(numDaysBack).filter((n) => n.changedDate >= jsdateToStartLooking)
-    logDebug('updateTagMentionCache', `Found ${recentlychangedNotes.length} recently changed notes in last ${numDaysBack} days`)
+    logDebug('updateTagMentionCache', `Found ${recentlychangedNotes.length} changed notes in that time`)
 
     // For each note, get wanted tags and mentions, and overwrite the existing cache details
     let c = 0
@@ -234,10 +241,9 @@ export async function updateTagMentionCache(): Promise<void> {
       // First clear existing details for this note
       logDebug('updateTagMentionCache', `- deleting existing items for recently changed file '${note.filename}'`)
       if (isCalendarNote) {
-        // FIXME: can get errors here
-        cache.calendarNotes.delete(note.filename)
+        cache.calendarNotes = cache.calendarNotes.filter((item) => item.filename !== note.filename)
       } else {
-        cache.regularNotes.delete(note.filename)
+        cache.regularNotes = cache.regularNotes.filter((item) => item.filename !== note.filename)
       }
 
       // Then get wanted tags and mentions, and add them
@@ -281,35 +287,42 @@ export async function updateTagMentionCache(): Promise<void> {
  * @returns 
  */
 export function getWantedTagListFromNote(note: TNote, wantedItems: Array<string>): Array<string> {
-  const output: Array<string> = []
-  // Ask API for all seen tags in this note, and reverse them
-  const seenTags = note.hashtags.slice().reverse()
-  let lastTag = ''
-  for (const tag of seenTags) {
-    // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
-    if (caseInsensitiveStartsWith(tag, lastTag)) {
-      // logDebug('getWantedTagListFromNote', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
+  try {
+    if (wantedItems.length === 0) {
+      logWarn('getWantedTagListFromNote', `Starting, with empty wantedItems params`)
+      return []
     }
-    else {
-      // check this is one of the ones we're after, then add
-      if (caseInsensitiveIncludes(tag, wantedItems)) {
-        // logDebug('getWantedTagListFromNote', `- Found matching occurrence ${tag} on date ${n.filename}`)
-        output.push(tag)
-      }
-    }
-    lastTag = tag
-  }
 
-  // Now create (case-insensitive) set of the tags
-  const tagSet = new Set < string > ()
-  for (const tag of output) {
-    tagSet.add(tag)
+    const output: Array<string> = []
+    // Ask API for all seen tags in this note, and reverse them
+    const seenTags = note.hashtags.slice().reverse()
+    let lastTag = ''
+    for (const tag of seenTags) {
+      // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
+      if (caseInsensitiveStartsWith(tag, lastTag)) {
+        // logDebug('getWantedTagListFromNote', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
+      }
+      else {
+        // check this is one of the ones we're after, then add
+        if (caseInsensitiveIncludes(tag, wantedItems)) {
+          // logDebug('getWantedTagListFromNote', `- Found matching occurrence ${tag} on date ${n.filename}`)
+          output.push(tag)
+        }
+      }
+      lastTag = tag
+    }
+
+    // Now create (case-insensitive) set of the tags
+    const tagSet = new CaseInsensitiveSet(output)
+    const distinctTags: Array<string> = [...tagSet]
+    if (output.length > 0) {
+      logDebug('getWantedTagListFromNote', `→ ${String(distinctTags.length)} distinct tags found from ${String(output.length)} instances in ${String(note.filename)}`)
+    }
+    return distinctTags
+  } catch (err) {
+    logError('getWantedTagListFromNote', JSP(err))
+    return []
   }
-  const distinctTags = Array.from(tagSet)
-  if (output.length > 0) {
-    logDebug('getWantedTagListFromNote', `→ ${String(distinctTags.length)} distinct tags found from ${String(output.length)} instances in ${String(note.filename)}`)
-  }
-  return distinctTags
 }
 
 /**
@@ -319,34 +332,66 @@ export function getWantedTagListFromNote(note: TNote, wantedItems: Array<string>
  * @returns 
  */
 export function getWantedMentionListFromNote(note: TNote, wantedItems: Array<string>): Array<string> {
-  const output: Array<string> = []
-  // Ask API for all seen mentions in this note, and reverse them
-  const seenMentions = note.mentions.slice().reverse()
-  let lastMention = ''
-  for (const mention of seenMentions) {
-    // if this mention is starting subset of the last one, assume this is an example of the bug, so skip this mention
-    if (caseInsensitiveStartsWith(mention, lastMention)) {
-      // logDebug('getWantedMentionListFromNote', `- Found ${mention} but ignoring as part of a longer hashmention of the same name`)
+  try {
+    if (wantedItems.length === 0) {
+      logWarn('getWantedMentionListFromNote', `Starting, with empty wantedItems params`)
+      return []
     }
-    else {
-      // check this is one of the ones we're after, then add
-      if (caseInsensitiveIncludes(mention, wantedItems)) {
-        // logDebug('getWantedMentionListFromNote', `- Found matching occurrence ${mention} on date ${n.filename}`)
-        output.push(mention)
+    const output: Array<string> = []
+    // Ask API for all seen mentions in this note, and reverse them
+    const seenMentions = note.mentions.slice().reverse()
+    let lastMention = ''
+    for (const mention of seenMentions) {
+      // if this mention is starting subset of the last one, assume this is an example of the bug, so skip this mention
+      if (caseInsensitiveStartsWith(mention, lastMention)) {
+        // logDebug('getWantedMentionListFromNote', `- Found ${mention} but ignoring as part of a longer hashmention of the same name`)
       }
+      else {
+    // check this is one of the ones we're after, then add
+        // FIXME: can get undefined is not an object (evaluating 'arrayToSearch.filter') in this line
+        if (caseInsensitiveIncludes(mention, wantedItems)) {
+          // logDebug('getWantedMentionListFromNote', `- Found matching occurrence ${mention} on date ${n.filename}`)
+          output.push(mention)
+        }
+      }
+      lastMention = mention
     }
-    lastMention = mention
-  }
 
-  // Now create (case-insensitive) set of the mentions
-  const mentionSet = new CaseInsensitiveSet(output)
-  // for (const mention of output) {
-  //   mentionSet.add(mention)
-  // }
-  // const distinctMentions: Array<string> = Array.from(mentionSet)
-  const distinctMentions: Array<string> = [...mentionSet]
-  if (output.length > 0) {
-    logDebug('getWantedMentionListFromNote', `→ ${String(distinctMentions.length)} distinct mentions found from ${String(output.length)} instances in ${String(note.filename)}`)
+    // Now create (case-insensitive) set of the mentions
+    const mentionSet = new CaseInsensitiveSet(output)
+    const distinctMentions: Array<string> = [...mentionSet]
+    if (output.length > 0) {
+      logDebug('getWantedMentionListFromNote', `→ ${String(distinctMentions.length)} distinct mentions found from ${String(output.length)} instances in ${String(note.filename)}`)
+    }
+    return distinctMentions
+  } catch (err) {
+    logError('getWantedMentionListFromNote', JSP(err))
+    return []
   }
-  return distinctMentions
+}
+
+
+/**
+ * Get the list of wanted tags and mentions from all perspectives.
+ * Note: moved from perspectiveHelpers.js to here to avoid circular dependency.
+ * @returns {Object} An object containing the list of mentions and tags. { "mentions": [...], "tags": [...] }
+ */
+function getWantedTagsAndMentionsFromAllPerspectives(allPerspectives: Array<TPerspectiveDef>): { wantedTags: Array<string>, wantedMentions: Array<string> } {
+  const wantedTags = new Set < string > ()
+  const wantedMentions = new Set < string > ()
+  for (const perspective of allPerspectives) {
+    logDebug('getWantedTagsAndMentionsFromAllPerspectives', `- reading perspective: [${String(perspective.name)}]`)
+    const tagsAndMentionsStr = perspective.dashboardSettings.tagsToShow ?? ''
+    const tagsAndMentionsArr = stringListOrArrayToArray(tagsAndMentionsStr, ',')
+    tagsAndMentionsArr.forEach((torm) => {
+      if (torm.startsWith('@')) {
+        wantedMentions.add(torm)
+      } else {
+        wantedTags.add(torm)
+      }
+    })
+  }
+  logDebug('', `=> wantedTags: ${String(Array.from(wantedTags))}`)
+  logDebug('', `=> wantedMentions: ${String(Array.from(wantedMentions))}`)
+  return { wantedTags: Array.from(wantedTags), wantedMentions: Array.from(wantedMentions) }
 }

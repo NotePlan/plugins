@@ -2,16 +2,17 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-04-09 for v2.2.0.a12
+// last updated 2025-04-11 for v2.3.0.a1
 // ----------------------------------------------------------------------------
 
 /**
  * Imports
  */
 import pluginJson from '../plugin.json'
+import {
+  getNotesWithTagOrMention
+} from './tagMentionCache'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-// No longer used
-// import {  getNotesWithTagOrMention} from './tagMentionCache'
 
 const pluginID = 'jgclark.Dashboard'
 
@@ -52,7 +53,6 @@ export {
 } from './reactMain.js'
 
 export {
-  // onUpdateOrInstall,
   init, onSettingsUpdated, versionCheck
 } from './NPHooks'
 
@@ -86,12 +86,12 @@ export async function onUpdateOrInstall(): Promise<void> {
       includeScheduledDates: 'showScheduledDates',
       includeTaskContext: 'showTaskContext',
     }
-    logInfo(pluginJson, `onUpdateOrInstall() renaming any necessary keys from 2.1.x to 2.2.x ...`)
     const migratedSettings = renameKeys(initialSettings, keysToChange)
-    clo(migratedSettings, `onUpdateOrInstall - migratedSettings:`)
-
-    // Save the settings back to the DataStore
     if (migratedSettings !== initialSettings) {
+      logInfo(pluginJson, `onUpdateOrInstall() renamed any necessary keys from 2.1.x to 2.2.x ...`)
+      clo(migratedSettings, `onUpdateOrInstall - migratedSettings:`)
+
+      // Save the settings back to the DataStore
       const result = await saveSettings(pluginID, migratedSettings)
       logInfo(`onUpdateOrInstall`, `Changes detected. Saved settings with result: ${JSP(result)}`)
     }
@@ -107,7 +107,7 @@ export async function onUpdateOrInstall(): Promise<void> {
  * Test functions
  */
 // No longer used
-// export async function testTagCache(): Promise<void> {
-//   let res = await getNotesWithTagOrMention(['@home'], false)
-//   res = await getNotesWithTagOrMention(['#jgcDR'], false)
-// }
+export async function testTagCache(): Promise<void> {
+  let res = await getNotesWithTagOrMention(['@home'], false)
+  res = await getNotesWithTagOrMention(['#jgcDR'], false)
+}

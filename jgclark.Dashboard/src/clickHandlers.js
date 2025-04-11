@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-04-09 for v2.2.0.a12, @jgclark
+// Last updated 2025-04-11 for v2.3.0.a1, @jgclark
 //-----------------------------------------------------------------------------
 import moment from 'moment'
 // import pluginJson from '../plugin.json'
@@ -496,7 +496,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     }
     if (needToSetDash) {
       if (typeof newSettings === 'object' && newSettings !== null && !Array.isArray(newSettings)) {
-        perspectivesToSave = setDashPerspectiveSettings(newSettings, perspectiveSettings)
+        perspectivesToSave = await setDashPerspectiveSettings(newSettings, perspectiveSettings)
       } else {
         logError(`doDashboardSettingsChanged`, `newSettings is not an object: ${JSP(newSettings)}`)
       }

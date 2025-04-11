@@ -45,32 +45,43 @@ const pluginID = 'jgclark.Dashboard'
  ****************************************************************************************************************************/
 
 export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  clo(_data, `doAddNewPerspective starting ...`)
-  await addNewPerspective(_data?.perspectiveName || '')
-  const updatesToPluginData = { perspectiveSettings: await getPerspectiveSettings() }
-  await setPluginData(updatesToPluginData, `_Added perspective in DataStore.settings & reloaded perspectives`)
-  return handlerResult(true, [])
+  try {
+    clo(_data, `doAddNewPerspective starting ...`)
+    await addNewPerspective(_data?.perspectiveName || '')
+    const updatesToPluginData = { perspectiveSettings: await getPerspectiveSettings() }
+    await setPluginData(updatesToPluginData, `_Added perspective in DataStore.settings & reloaded perspectives`)
+    return handlerResult(true, [])
+  } catch (err) {
+    logError('doAddNewPerspective', JSP(err))
+    return handlerResult(false, [], { errorMsg: `doAddNewPerspective failed` })
+  }
 }
 
 export async function doCopyPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  clo(data, `doCopyPerspective starting ... with mbo`)
-  // const fromName = data.userInputObj?.fromName ?? ''
-  const newName = data.userInputObj?.newName ?? ''
-  const perspectiveSettings = await getPerspectiveSettings()
-  const activeDef = getActivePerspectiveDef(perspectiveSettings)
+  try {
+    clo(data, `doCopyPerspective starting ... with mbo`)
+    // const fromName = data.userInputObj?.fromName ?? ''
+    const newName = data.userInputObj?.newName ?? ''
+    const perspectiveSettings = await getPerspectiveSettings()
+    const activeDef = getActivePerspectiveDef(perspectiveSettings)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
   const newDef = { ...activeDef, name: newName, isModified: false, isActive: false }
-  const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
+    const revisedDefs = await replacePerspectiveDef(perspectiveSettings, newDef)
   if (!revisedDefs) return handlerResult(false, [], { errorMsg: `doCopyPerspective failed` })
-  await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${activeDef.name}`)
-  return handlerResult(true, [])
+    await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${activeDef.name}`)
+    return handlerResult(true, [])
+  } catch (err) {
+    logError('doCopyPerspective', JSP(err))
+    return handlerResult(false, [], { errorMsg: `doCopyPerspective failed` })
+  }
 }
 
 export async function doDeletePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  await deletePerspective(data.perspectiveName)
-  let perspectiveSettings = await getPerspectiveSettings()
-  const activeDef = getActivePerspectiveDef(perspectiveSettings)
-  if (!activeDef) {
+  try {
+    await deletePerspective(data.perspectiveName)
+    let perspectiveSettings = await getPerspectiveSettings()
+    const activeDef = getActivePerspectiveDef(perspectiveSettings)
+    if (!activeDef) {
     const newPerspSettings = await switchToPerspective('-', perspectiveSettings)
     if (newPerspSettings) {
       perspectiveSettings = newPerspSettings
@@ -78,33 +89,43 @@ export async function doDeletePerspective(data: MessageDataObject): Promise<TBri
       logError('doDeletePerspective', `switchToPerspective('-', perspectiveSettings) failed after deleting ${data.perspectiveName || ''}`)
       return handlerResult(false, [], { errorMsg: `switchToPerspective('-', perspectiveSettings) failed` })
     }
+    }
+    const updatesToPluginData = { perspectiveSettings: perspectiveSettings, dashboardSettings: await getDashboardSettings() }
+    await setPluginData(updatesToPluginData, `_Deleted perspective in DataStore.settings & reloaded perspectives`)
+    return handlerResult(true, [])
+  } catch (err) {
+    logError('doDeletePerspective', JSP(err))
+    return handlerResult(false, [], { errorMsg: `doDeletePerspective failed` })
   }
-  const updatesToPluginData = { perspectiveSettings: perspectiveSettings, dashboardSettings: await getDashboardSettings() }
-  await setPluginData(updatesToPluginData, `_Deleted perspective in DataStore.settings & reloaded perspectives`)
-  return handlerResult(true, [])
 }
 
 export async function doSavePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  clo(data, `doSavePerspective starting ... with mbo`)
-  const perspectiveSettings = await getPerspectiveSettings()
-  const activeDef = getActivePerspectiveDef(perspectiveSettings)
-  if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
-  if (!activeDef.isModified) return handlerResult(false, [], { errorMsg: `Perspective ${activeDef.name} is not modified. Not saving.` })
-  if (activeDef.name === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" is not allowed to be saved.` })
-  const dashboardSettings = await getDashboardSettings()
-  if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
-  const newDef = { ...activeDef, dashboardSettings: cleanDashboardSettingsInAPerspective(dashboardSettings), isModified: false }
-  const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
-  const result = await savePerspectiveSettings(revisedDefs)
-  if (!result) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
-  await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${activeDef.name}`)
-  return handlerResult(true, [])
+  try {
+    clo(data, `doSavePerspective starting ... with mbo`)
+    const perspectiveSettings = await getPerspectiveSettings()
+    const activeDef = getActivePerspectiveDef(perspectiveSettings)
+    if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
+    if (!activeDef.isModified) return handlerResult(false, [], { errorMsg: `Perspective ${activeDef.name} is not modified. Not saving.` })
+    if (activeDef.name === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" is not allowed to be saved.` })
+    const dashboardSettings = await getDashboardSettings()
+    if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+    const newDef = { ...activeDef, dashboardSettings: cleanDashboardSettingsInAPerspective(dashboardSettings), isModified: false }
+    const revisedDefs = await replacePerspectiveDef(perspectiveSettings, newDef)
+    const result = await savePerspectiveSettings(revisedDefs)
+    if (!result) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
+    await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${activeDef.name}`)
+    return handlerResult(true, [])
+  } catch (err) {
+    logError('doSavePerspective', JSP(err))
+    return handlerResult(false, [], { errorMsg: `doSavePerspective failed` })
+  }
 }
 
 export async function doRenamePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  clo(data, `doRenamePerspective starting ... with mbo`)
-  const origName = data.userInputObj?.oldName ?? ''
-  const newName = data.userInputObj?.newName ?? ''
+  try {
+    clo(data, `doRenamePerspective starting ... with mbo`)
+    const origName = data.userInputObj?.oldName ?? ''
+    const newName = data.userInputObj?.newName ?? ''
   if (origName === '') return handlerResult(false, [], { errorMsg: `doRenamePerspective: origName is empty` })
   if (newName === '') return handlerResult(false, [], { errorMsg: `doRenamePerspective: newName is empty` })
   if (origName === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" cannot be renamed` })
@@ -121,19 +142,23 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
   } else {
     return handlerResult(true, [])
   }
+  } catch (err) {
+    logError('doRenamePerspective', JSP(err))
+    return handlerResult(false, [], { errorMsg: `doRenamePerspective failed` })
+  }
 }
 
 /**
- * Switch to a perspective and save the new perspective settings and dashboard settings
- * TODO: Add default dashboardSettings to the perspectiveDefs if they are missing.
+ * Switch to a perspective and save the new perspective settings and dashboard settings.
+ * Adds default dashboardSettings to the perspectiveDefs if they are missing.
  * @param {MessageDataObject} data - the data object containing the perspective name
  * @returns {TBridgeClickHandlerResult} - the result of the switch to perspective
  */
 export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  //aka doSwitchPerspective
-  const switchToName = data?.perspectiveName || ''
-  if (!switchToName) {
-    logError('doSwitchToPerspective', `No perspective name provided.`)
+  try {
+    const switchToName = data?.perspectiveName || ''
+    if (!switchToName) {
+      logError('doSwitchToPerspective', `No perspective name provided.`)
     return handlerResult(false, [], { errorMsg: `No perspectiveName provided.` })
   }
   const ps = await getPerspectiveSettings()
@@ -142,16 +167,16 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   logPerspectiveNames(revisedDefs || [], 'doSwitchToPerspective: Persp settings after switch:')
   if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective failed` })
   const activeDef = getActivePerspectiveDef(revisedDefs)
-  if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
+    if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef() failed in doSwitchToPerspective` })
   const prevDashboardSettings = await getDashboardSettings()
   // each perspective has its own tagged sections so we don't want to keep old ones around
   // so we will remove all keys from prevDS that start with showTagSection_
-  if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+    if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings() failed in doSwitchToPerspective` })
   // apply the new perspective's settings to the main dashboard settings
-  const dashboardFilterDefaults = dashboardFilterDefs.filter((f) => f.key !== 'includedFolders')
+    const dashboardFilterDefaults = dashboardFilterDefs
   const nonFilterDefaults = dashboardSettingDefs.filter((f) => f.key)
   const dashboardSettingsDefaults = [...dashboardFilterDefaults, ...nonFilterDefaults].reduce((acc, curr) => {
-    if (curr.default && curr.key) {
+    if (curr.default !== undefined && curr.key !== undefined) {
       // $FlowIgnore
       acc[curr.key] = curr.default
     } else {
@@ -194,10 +219,14 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
     `sending revised perspectiveSettings and dashboardSettings to react window after switching to ${data?.perspectiveName || ''} current excludedFolders=${
       newDashboardSettings.excludedFolders ? newDashboardSettings.excludedFolders : 'not set'
     }`,
-  )
-  logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Sending these perspectiveSettings to react window in pluginData')
-  await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
-  return handlerResult(true, ['PERSPECTIVE_CHANGED'])
+    )
+    logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Sending these perspectiveSettings to react window in pluginData')
+    await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
+    return handlerResult(true, ['PERSPECTIVE_CHANGED'])
+  } catch (err) {
+    logError('doSwitchToPerspective', JSP(err))
+    return handlerResult(false, [], { errorMsg: `doSwitchToPerspective failed` })
+  }
 }
 
 /**
@@ -206,10 +235,10 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
  * @param {TPerspectiveSettings} perspectiveSettings
  * @returns {TPerspectiveSettings}
  */
-export function setDashPerspectiveSettings(newDashboardSettings: TDashboardSettings, perspectiveSettings: TPerspectiveSettings): TPerspectiveSettings {
+export async function setDashPerspectiveSettings(newDashboardSettings: TDashboardSettings, perspectiveSettings: TPerspectiveSettings): Promise<TPerspectiveSettings> {
   logDebug(`setDashPerspectiveSettings`, `Saving new Dashboard settings to "-" perspective, setting isModified and isActive to false for all other perspectives`)
   const dashDef = { name: '-', isActive: true, dashboardSettings: cleanDashboardSettingsInAPerspective(newDashboardSettings), isModified: false }
-  return replacePerspectiveDef(perspectiveSettings, dashDef).map((p) => (p.name === '-' ? p : { ...p, isModified: false, isActive: false }))
+  return await replacePerspectiveDef(perspectiveSettings, dashDef).map((p) => (p.name === '-' ? p : { ...p, isModified: false, isActive: false }))
 }
 
 /**

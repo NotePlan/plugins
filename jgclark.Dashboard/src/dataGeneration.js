@@ -636,7 +636,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
       if (config?.FFlag_UseTagCache) {
         // Log timing details and comparison
-        logDebug('getTaggedSectionData', `- CACHE operation took ${percent(cacheLookupTime, APILookupTime)}`)
+        logInfo('getTaggedSectionData', `- CACHE operation took ${percent(cacheLookupTime, APILookupTime)}`)
         // Compare the two lists and warn if different
         if (notesWithTagFromCache.length !== notesWithTag.length) {
           logError('getTaggedSectionData', `- notesWithTagFromCache.length !== notesWithTag.length.`)
@@ -754,7 +754,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
     isReferenced: false,
     actionButtons: [],
   }
-  logTimer('getTaggedSectionData', thisStartTime, `to find ${itemCount} ${sectionDetail.sectionName} items`, 1000)
+  logTimer('getTaggedSectionData', thisStartTime, `to find ${itemCount} ${sectionDetail.sectionName} items`, 2000) // TODO: reduce this down to 1000 once it isn't dual-running with tagMentionCache
   return section
 }
 
