@@ -29,7 +29,7 @@ import { getLastWeekSectionData, getThisWeekSectionData } from './dataGeneration
 import { openMonthParas, refMonthParas, tagParasFromNote } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import { removeInvalidTagSections } from './perspectiveHelpers'
-import { getNotesWithTagOrMention } from './tagMentionCache'
+import { getNotesWithTagOrMentions } from './tagMentionCache'
 import { getDateStringFromCalendarFilename, getNPMonthStr, getNPQuarterStr, filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -617,7 +617,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       const notesWithTagFromCache: Array<TNote> = []
       if (config?.FFlag_UseTagCache) {
         const cachedOperationStartTime = new Date()
-        const filenamesWithTagFromCache = await getNotesWithTagOrMention([sectionDetail.sectionName], true)
+        const filenamesWithTagFromCache = await getNotesWithTagOrMentions([sectionDetail.sectionName], true)
         filenamesWithTagFromCache.forEach((filename) => {
           const note = getNoteByFilename(filename)
           if (note) notesWithTagFromCache.push(note)
@@ -636,7 +636,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
       if (config?.FFlag_UseTagCache) {
         // Log timing details and comparison
-        logInfo('getTaggedSectionData', `- CACHE operation took ${percent(cacheLookupTime, APILookupTime)}`)
+        logInfo('getTaggedSectionData', `- CACHE took ${percent(cacheLookupTime, APILookupTime)} compared to API`)
         // Compare the two lists and warn if different
         if (notesWithTagFromCache.length !== notesWithTag.length) {
           logError('getTaggedSectionData', `- notesWithTagFromCache.length !== notesWithTag.length.`)

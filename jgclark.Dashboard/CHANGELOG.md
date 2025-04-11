@@ -11,7 +11,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ### New
 - wired up the tagMentionCache to changes in perspectives, and improved logging for it
 ### Changed
-- TODO: change tagMentionCache and supporting functions to use a simpler data structure
+- changed tagMentionCache and supporting functions to use a simpler data structure
 ### Fixed
 - dashboardSettings not having defaults set when the default was false
 

@@ -10,7 +10,7 @@
  */
 import pluginJson from '../plugin.json'
 import {
-  getNotesWithTagOrMention
+  getNotesWithTagOrMentions
 } from './tagMentionCache'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 
@@ -108,6 +108,8 @@ export async function onUpdateOrInstall(): Promise<void> {
  */
 // No longer used
 export async function testTagCache(): Promise<void> {
-  let res = await getNotesWithTagOrMention(['@home'], false)
-  res = await getNotesWithTagOrMention(['#jgcDR'], false)
+  const res1 = await getNotesWithTagOrMentions(['@home'], false)
+  const res2 = await getNotesWithTagOrMentions(['#jgcDR'], false)
+  const res3 = await getNotesWithTagOrMentions(['#dbwDR'], false)
+  // logInfo(pluginJson, `testTagCache() res: ${JSP(res)}`)
 }
