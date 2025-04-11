@@ -1333,7 +1333,7 @@ declare interface Paragraph {
    * Note: Available from v3.3
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    * WARNING: appears to be unreliable on iOS.
-   * @return {[TParagraph]}
+   * @return {$ReadOnlyArray<TParagraph> | void}
    */
 children(): $ReadOnlyArray < TParagraph > | void;
   /**

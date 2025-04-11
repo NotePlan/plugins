@@ -48,13 +48,13 @@ export function removeParentsWhoAreChildren(everyParaIsAParent: Array<ParentPara
   for (let i = 0; i < everyParaIsAParent.length; i++) {
     const p = everyParaIsAParent[i]
     if (childrenSeen.includes(p.parent)) {
-      if (p.children && p.children.length) {
+      if (p.children.length) {
         childrenSeen.push(...p.children)
       }
       continue // do not list this as a parent, because another para has it as a child
     }
     // concat all p.children to the childrenSeen array (we know they are unique, so no need to check)
-    if (p.children && p.children.length) {
+    if (p.children.length) {
       childrenSeen.push(...p.children)
     }
     parentsOnlyAtTop.push(p)
@@ -212,6 +212,11 @@ export function isAChildPara(thisPara: TParagraph, thisNote: TNote): boolean {
  */
 export function getParaAndAllChildren(parentPara: TParagraph): Array<TParagraph> {
   const allChildren = parentPara.children()
+  if (!allChildren || allChildren.length === 0) {
+    logDebug('blocks/getParaAndAllChildren', `No child paragraphs found`)
+    return [parentPara]
+  }
+
   // but if there are multiple levels of children, then there will be duplicates in this array, which we want to remove
   const allChildrenNoDupes = allChildren.filter((p, index) => allChildren.findIndex((p2) => p2.lineIndex === p.lineIndex) === index)
 
