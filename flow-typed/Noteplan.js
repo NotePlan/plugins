@@ -401,6 +401,15 @@ declare interface TEditor extends CoreNoteFields {
    * @param {boolean}
    */
   skipNextRepeatDeletionCheck: boolean;
+/**
+* Sets a frontmatter attribute with the given key and value.
+* If the key already exists, updates its value. If it doesn't exist, adds a new key-value pair.
+* To set multiple frontmatter attributes, use frontmatterAttributes = key-value object.
+* @param {string} key - The frontmatter key to set
+* @param {string} value - The value to set for the key
+* Note: Available from v3.17 - only for Editor!
+*/
+setFrontmatterAttribute(key: string, value: string): void;
 }
 
 /**
@@ -1732,13 +1741,16 @@ declare interface CoreNoteFields {
    * Note: Available on Note from v3.5.0, but only on Editor from v3.16.3.
    */
 +frontmatterTypes: $ReadOnlyArray < string >;
-/**
- * Get all attributes in the frontmatter, as an object or {[]} (empty array object) if there are stripes but no attributes.
- * Note: Available on Note from 3.5.0, but only on Editor from v3.16.3.
- * Note: Added by @jgclark by inspection of real data. TODO(@EduardMe): add this to the documentation.
- * @type {[String:String]}
- */
-+frontmatterAttributes: Object; // dbw Does not exist on Editor. Returns {} if no frontmatter stripes or if there are stripes but no attributes.
+  /**
+  * Returns the frontmatter key-value pairs inside the note. To set a frontmatter attribute, use setFrontmatterAttribute.
+  * You can also use the setter, but you will need to first read the complete frontmatter object (key-value pairs), change it and then set it. Otherwise the setter *won't* be triggered if you set it directly like `frontmatterAttributes["key"] = "value"`. This is more useful if you want to set multiple frontmatter values.
+  * Note: @dbwertheimer says "Returns {} if no frontmatter stripes or if there are stripes but no attributes."
+  * @returns {{[key: string]: string}}
+  * Note: Available on Note from 3.5.0, but only on Editor from v3.16.3.
+  * WARNING: The setter only works with macOS >= 14 and iOS >= 16, since below these versions, the frontmatter editor is not supported and the raw frontmatter is shown (if a user still calls this, a warning is logged).
+  */
++frontmatterAttributes: Object;
+
   /**
    * Renames the note. You can also define a folder path. The note will be moved to that folder and the folder will be automatically created.
    * If the filename already exists, a number will be appended. If the filename begins with ".", it will be removed.
