@@ -156,6 +156,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       })
       // Update tempDashboardSettings with the new settings
       setTempDashboardSettings(newSettings)
+      //TODO: REFACTOR:Maybe update isModified & sendActionToPlugin to save the settings and remove from the useDashboardSettings hook
     },
     [dashboardSettings, tempDashboardSettings, dispatchDashboardSettings],
   )

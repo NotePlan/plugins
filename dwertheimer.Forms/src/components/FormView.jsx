@@ -15,6 +15,7 @@ type Props = {
   dispatch: Function,
   reactSettings: any,
   setReactSettings: Function,
+  onSubmitOrCancelCallFunctionNamed: string,
 }
 /****************************************************************************************************************************
  *                             NOTES
@@ -46,7 +47,7 @@ import './FormView.css'
  * @param {Function} dispatch - function to send data back to the Root Component and plugin
  * NOTE: Even though we have named this FormView.jsx, it is exported as WebView because that is what Root expects to load dynamically
  */
-export function FormView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
+export function FormView({ data, dispatch, reactSettings, setReactSettings, onSubmitOrCancelCallFunctionNamed = 'onSubmitClick' }: Props): Node {
   /****************************************************************************************************************************
    *                             HOOKS
    ****************************************************************************************************************************/
@@ -79,13 +80,13 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
   }
 
   const handleCancel = () => {
-    sendActionToPlugin('onSubmitClick', { type: 'cancel' })
+    sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, { type: 'cancel' })
     closeDialog()
   }
 
   const handleSave = (formValues: Object) => {
     clo(formValues, 'DynamicDialog: handleSave: formValues')
-    sendActionToPlugin('onSubmitClick', { type: 'submit', formValues, receivingTemplateTitle: pluginData['receivingTemplateTitle'] || '' })
+    sendActionToPlugin(onSubmitOrCancelCallFunctionNamed, { type: 'submit', formValues, receivingTemplateTitle: pluginData['receivingTemplateTitle'] || '' })
     closeDialog()
   }
 

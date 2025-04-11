@@ -66,7 +66,7 @@ Add the title of this template to settings:
 
 ![](checklist-setting.png)
 
-Then in your daily note include the same checklist, and mark them as completed in the usual way. (If you want to use this template in another note it can be imported using `<%- import("Daily tasks”) -%>`)
+Then in your daily note include the same checklist, and mark them as completed in the usual way. (If you want to use this template in another note it can be imported using `<%- import("Daily tasks") -%>`)
  
 Then completion is shown using the '/appendProgressUpdate' command, for example:
 

@@ -2,12 +2,13 @@
 // ----------------------------------------------------------------------------
 // Plugin to help link lines between notes with Line IDs
 // Jonathan Clark
-// last updated 9.6.2024 for v0.7.0+
+// last updated 2025-04-03 for v0.7.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { addParasAsText, getFilerSettings } from './filerHelpers'
 import { logDebug, logError, logWarn } from '@helpers/dev'
+import { saveEditorIfNecessary } from '@helpers/editor'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
 // import { getSelectedParaIndex } from '@helpers/NPParagraph'
@@ -40,7 +41,7 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     note.addBlockID(para) // in this case, note is Editor.note, which is not saved in realtime. This has been causing race conditions at times.
     note.updateParagraph(para)
     if (NotePlan.environment.buildVersion >= 1053) {
-      await Editor.save() // attempt to save this before reading it again (if running NP 3.9.3+)
+      await saveEditorIfNecessary() // attempt to save this before reading it again (if running NP 3.9.3+)
     }
     para = note.paragraphs[firstSelParaIndex] // refresh para
     const newBlockID = para.blockId

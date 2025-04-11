@@ -70,6 +70,7 @@ export type TSettingItem = {
   numberOfMonths?: number, // for calendarpicker, the number of months to show
   required?: boolean, // for input fields, require the field to be filled out
   validationType?: 'email' | 'number' | 'date-interval', // for input fields, validate the input
+  isEditable?: boolean, // for dropdown-select, allow the user to edit the value
 }
 
 export type TDynamicDialogProps = {
@@ -107,7 +108,7 @@ const DynamicDialog = ({
   allowEmptySubmit = false,
   submitButtonText = 'Submit',
   isOpen = true,
-  style, // Destructure style prop
+  style = {}, // Destructure style prop
   isModal = true, // by default, it is a modal dialog, but can run full screen
   onSave, // caller needs to process the updated settings
   onCancel,

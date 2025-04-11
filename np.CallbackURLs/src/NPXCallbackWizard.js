@@ -28,9 +28,17 @@ async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' | 'delete
   let url = '',
     note,
     fields
-  const date = await askAboutDate() // returns date or '' or false
+  const date = await askWhatKind() // returns date or '' or false
   if (date === false) return false
-  if (date === '') {
+  if (date === 'folder') {
+    note = await chooseFolder('Choose a folder', true, false)
+    logDebug(pluginJson, `getAddTextOrOpenNoteURL: folder=${String(note)}`)
+    if (note) {
+      // in this case, note is a string (the folder name)
+      url = createOpenOrDeleteNoteCallbackUrl(String(note), 'filename')
+      return url
+    }
+  } else if (date === '') {
     note = await chooseNote()
     log(pluginJson, `getAddTextOrOpenNoteURL: ${note?.filename || 'no note filename'}`)
     if (command === 'addText' && note) {
@@ -96,12 +104,14 @@ export async function search(): Promise<string> {
 
 /**
  * Ask user what type of note to get, and if they want a date, get the date from them
+ * (or optionallyget a folder)
  * @returns {Promise<string>} YYYYMMDD like '20180122' or use 'today', 'yesterday', 'tomorrow' instead of a date; '' if they want to enter a title, or false if date entry failed
  */
-async function askAboutDate(): Promise<string | false> {
+async function askWhatKind(): Promise<string | false> {
   const opts = [
     { label: 'Open/use a Calendar/Daily Note', value: 'date' },
     { label: 'Open/use a Project Note (by title)', value: '' },
+    { label: 'Open a Folder', value: 'folder' },
   ]
   let choice = await chooseOption('What kind of note do you want to use/open?', opts, opts[0].value)
   if (choice === 'date') {
@@ -296,7 +306,7 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
     } else {
       const options = [
         { label: 'Copy URL to NOTE+Heading of current line', value: 'headingLink' },
-        { label: 'OPEN a note', value: 'openNote' },
+        { label: 'OPEN a note or folder', value: 'openNote' },
         { label: 'NEW NOTE with title and text', value: 'addNote' },
         { label: 'ADD text to a note', value: 'addText' },
         { label: 'FILTER Notes by Preset', value: 'filter' },

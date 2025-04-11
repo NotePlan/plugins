@@ -1,5 +1,9 @@
 # Favorites Plugin Changelog
 
+## [1.2.10] - 2025-04-10 @dwertheimer
+
+- Bugfix: Fix issue with frontmatter not being visible immediately after setting a favorite
+
 ## [1.2.9] - 2025-02-20 @dwertheimer
 
 - Bugfix: Fix Stacey issue with writing title above frontmatter when only one field and no title

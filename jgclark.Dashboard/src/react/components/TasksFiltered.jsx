@@ -30,6 +30,7 @@ const TasksFiltered = ({ item }: Props): Node => {
     }
     logDebug('TasksFiltered', `handleLineClick Calling UPDATE_DASHBOARD_SETTINGS`)
     dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: newPayload, reason: `Turnung off filterPriorityItems` })
+    //TODO: REFACTOR:Maybe update isModified & sendActionToPlugin to save the settings and remove from the useDashboardSettings hook
   }
 
   return (

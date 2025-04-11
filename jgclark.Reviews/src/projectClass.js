@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2025-03-17 for v1.2.0, @jgclark
+// Last updated 2025-03-17 for v1.2.1, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -54,9 +54,8 @@ export type Progress = {
 
 /**
  * Define 'Project' class to use in GTD.
- * Holds title, last reviewed date, due date, review interval, completion date,
- * number of closed, open & waiting for tasks.
- *
+ * Holds title, last reviewed date, due date, review interval, completion date, progress information that is read from the note,
+ * and other derived data.
  * @example To create a project instance for a note call 'const x = new Project(note, ...)'
  * @author @jgclark
  */
@@ -178,17 +177,8 @@ export class Project {
       // read in nextReview date (if present)
       tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
       if (tempStr !== '') {
-        // v2:
         this.nextReviewDateStr = tempStr.slice(12, 22)
         this.nextReviewDate = moment(this.nextReviewDateStr, "YYYY-MM-DD").toDate()
-        // v1:
-        // this.nextReviewDate = getDateObjFromDateString(tempStr)
-        // if (this.nextReviewDate) {
-        //   this.nextReviewDateStr = toISODateString(this.nextReviewDate)
-        //   logDebug('Project', `- found '@nextReview(${this.nextReviewDateStr})' = ${String(this.nextReviewDate)}`)
-        // } else {
-        //   logWarn('Project', `- couldn't get valid date from  '@nextReview(${tempStr})'`)
-        // }
       }
 
       // count tasks (includes both tasks and checklists)
@@ -226,7 +216,8 @@ export class Project {
       }
 
       // calculate the durations from these dates
-      this.calcDurations()
+      this.calculateDueDays()
+      this.calculateCompletedOrCancelledDurations()
       // if not finished, calculate next review dates
       if (!this.isCancelled && !this.isCompleted) {
         this.calcNextReviewDate()
@@ -236,29 +227,13 @@ export class Project {
       this.processProgressLines()
 
       // If percentComplete not set via progress line, then calculate
-      if (this.lastProgressComment === '') {
-        this.numTotalItems = (numberDaysForFutureToIgnore > 0)
-          ? this.numCompletedItems + this.numOpenItems - this.numFutureItems
-          : this.numCompletedItems + this.numOpenItems
-        if (this.numTotalItems > 0) {
-          // use 'floor' not 'round' to ensure we don't get to 100% unless really everything is done
-          this.percentComplete = Math.floor((this.numCompletedItems / this.numTotalItems) * 100)
-        } else {
-          this.percentComplete = NaN
-        }
+      if (this.lastProgressComment === '' || isNaN(this.percentComplete)) {
+        this.calculatePercentComplete(numberDaysForFutureToIgnore)
       }
 
       // If we want to track next actions, find the first one of each tag (if any)
       if (nextActionTags.length > 0) {
-        for (const nextActionTag of nextActionTags) {
-          const nextActionParas = paras.filter(isOpen).filter((p) => p.content.match(nextActionTag))
-
-          if (nextActionParas.length > 0) {
-            const thisNA = nextActionParas[0].rawContent
-            this.nextActionsRawContent.push(simplifyRawContent(thisNA))
-            // logDebug('Project', `  - found nextActionRawContent = ${thisNA}`)
-          }
-        }
+        this.generateNextActionComments(nextActionTags, paras)
       }
 
       if (this.title.includes('TEST')) {
@@ -297,28 +272,45 @@ export class Project {
   }
 
   /**
+  * Calculate the percentage complete for this project based on open/completed items
+  * @param {number} numberDaysForFutureToIgnore - number of days in future to ignore tasks for
+  */
+  calculatePercentComplete(numberDaysForFutureToIgnore: number) {
+    this.numTotalItems = (numberDaysForFutureToIgnore > 0)
+      ? this.numCompletedItems + this.numOpenItems - this.numFutureItems
+      : this.numCompletedItems + this.numOpenItems
+    if (this.numTotalItems > 0) {
+      // use 'floor' not 'round' to ensure we don't get to 100% unless really everything is done
+      this.percentComplete = Math.floor((this.numCompletedItems / this.numTotalItems) * 100)
+    } else {
+      this.percentComplete = NaN
+    }
+  }
+
+  calculateDueDays(): void {
+    const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+    this.dueDays =
+      this.dueDate != null
+        ? daysBetween(now, this.dueDate)
+        : NaN
+  }
+
+  /**
    * From the project metadata read in, calculate due/finished durations
    */
-  calcDurations(): void {
+  calculateCompletedOrCancelledDurations(): void {
     try {
-      const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-      // Calculate # days until due
-      this.dueDays =
-        this.dueDate != null
-          ? daysBetween(now, this.dueDate)
-          : NaN
-
       // Calculate durations or time since cancel/complete
-      // logDebug('calcDurations', String(this.startDate ?? 'no startDate'))
+      // logDebug('calculateCompletedOrCancelledDurations', String(this.startDate ?? 'no startDate'))
       if (this.startDate) {
         const momTSD = moment(this.startDate)
         if (this.completedDate != null) {
           this.completedDuration = `after ${momTSD.to(moment(this.completedDate), true)}`
-          // logDebug('calcDurations', `-> completedDuration = ${this.completedDuration}`)
+          // logDebug('calculateCompletedOrCancelledDurations', `-> completedDuration = ${this.completedDuration}`)
         }
         else if (this.cancelledDate != null) {
           this.cancelledDuration = `after ${momTSD.to(moment(this.cancelledDate), true)}`
-          // logDebug('calcDurations', `-> cancelledDuration = ${this.cancelledDuration}`)
+          // logDebug('calculateCompletedOrCancelledDurations', `-> cancelledDuration = ${this.cancelledDuration}`)
         }
       }
       else {
@@ -327,22 +319,22 @@ export class Project {
           if (this.completedDuration.includes('hours')) {
             this.completedDuration = 'today' // edge case
           }
-          // logDebug('calcDurations', `-> completedDuration = ${this.completedDuration}`)
+          // logDebug('calculateCompletedOrCancelledDurations', `-> completedDuration = ${this.completedDuration}`)
         }
         else if (this.cancelledDate != null) {
           this.cancelledDuration = moment(this.cancelledDate).fromNow() // ...ago
           if (this.cancelledDuration.includes('hours')) {
             this.cancelledDuration = 'today' // edge case
           }
-          // logDebug('calcDurations', `-> completedDuration = ${this.cancelledDuration}`)
+          // logDebug('calculateCompletedOrCancelledDurations', `-> completedDuration = ${this.cancelledDuration}`)
         }
         else {
           // Nothing to do
-          // logDebug('calcDurations', `No completed or cancelled dates.`)
+          // logDebug('calculateCompletedOrCancelledDurations', `No completed or cancelled dates.`)
         }
       }
     } catch (error) {
-      logError('calcDurations', error.message)
+      logError('calculateCompletedOrCancelledDurations', error.message)
     }
   }
 
@@ -388,6 +380,22 @@ export class Project {
     } catch (error) {
       logError('calcNextReviewDate', error.message)
       return null
+    }
+  }
+
+  generateNextActionComments(nextActionTags: Array<string>, paras: Array<Paragraph>): void {
+    for (const nextActionTag of nextActionTags) {
+      const nextActionParas = paras.filter(isOpen).filter((p) => p.content.match(nextActionTag))
+
+      if (nextActionParas.length > 0) {
+        const thisNextAction = nextActionParas[0].rawContent
+        this.nextActionsRawContent.push(simplifyRawContent(thisNextAction))
+        logDebug('Project', `  - found nextActionRawContent = ${thisNextAction}`)
+      }
+    }
+    // If we have more than one next action, then its rare but possible to get valid duplicates, so dedupe them to make it look more sensible
+    if (this.nextActionsRawContent.length > 1) {
+      this.nextActionsRawContent = this.nextActionsRawContent.filter((na, index, self) => self.indexOf(na) === index)
     }
   }
 
@@ -493,7 +501,8 @@ export class Project {
       this.isCancelled = false
       this.isPaused = false
       this.completedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-      this.calcDurations()
+      this.calculateDueDays()
+      this.calculateCompletedOrCancelledDurations()
 
       // re-write the note's metadata line
       logDebug('completeProject', `Completing '${this.title}' ...`)
@@ -537,7 +546,8 @@ export class Project {
       this.isCancelled = true
       this.isPaused = false
       this.cancelledDate = new moment().toDate()  // getJSDateStartOfToday() // use moment instead of `new Date` to ensure we get a date in the local timezone
-      this.calcDurations()
+      this.calculateDueDays()
+      this.calculateCompletedOrCancelledDurations()
 
       // re-write the note's metadata line
       logDebug('cancelProject', `Cancelling '${this.title}' ...`)
@@ -695,16 +705,16 @@ export function calcDurationsForProject(thisProjectIn: Project): Partial<Project
         : NaN
 
     // Calculate durations or time since cancel/complete
-    logDebug('calcDurations', String(thisProject.startDate ?? 'no startDate'))
+    logDebug('calcDurationsForProject', String(thisProject.startDate ?? 'no startDate'))
     if (thisProject.startDate) {
       const momTSD = moment(thisProject.startDate)
       if (thisProject.completedDate != null) {
         thisProject.completedDuration = `after ${momTSD.to(moment(thisProject.completedDate), true)}`
-        logDebug('calcDurations', `-> completedDuration = ${thisProject.completedDuration}`)
+        logDebug('calcDurationsForProject', `-> completedDuration = ${thisProject.completedDuration}`)
       }
       else if (thisProject.cancelledDate != null) {
         thisProject.cancelledDuration = `after ${momTSD.to(moment(thisProject.cancelledDate), true)}`
-        logDebug('calcDurations', `-> cancelledDuration = ${thisProject.cancelledDuration}`)
+        logDebug('calcDurationsForProject', `-> cancelledDuration = ${thisProject.cancelledDuration}`)
       }
     }
     else {
@@ -713,24 +723,24 @@ export function calcDurationsForProject(thisProjectIn: Project): Partial<Project
         if (thisProject.completedDuration.includes('hours')) {
           thisProject.completedDuration = 'today' // edge case
         }
-        logDebug('calcDurations', `-> completedDuration = ${thisProject.completedDuration ?? '?'}`)
+        logDebug('calcDurationsForProject', `-> completedDuration = ${thisProject.completedDuration ?? '?'}`)
       }
       else if (thisProject.cancelledDate != null) {
         thisProject.cancelledDuration = moment(thisProject.cancelledDate).fromNow() // ...ago
         if (thisProject.cancelledDuration.includes('hours')) {
           thisProject.cancelledDuration = 'today' // edge case
         }
-        logDebug('calcDurations', `-> completedDuration = ${thisProject.cancelledDuration ?? '?'}`)
+        logDebug('calcDurationsForProject', `-> completedDuration = ${thisProject.cancelledDuration ?? '?'}`)
       }
       else {
         // Nothing to do
-        logDebug('calcDurations', `No completed or cancelled dates.`)
+        logDebug('calcDurationsForProject', `No completed or cancelled dates.`)
       }
       // $FlowFixMe[incompatible-return] changed from $Shape<Project> to Partial<Project>, but I don't understand why this doesn't work now
       return thisProject
     }
   } catch (error) {
-    logError('calcDurations', error.message)
+    logError('calcDurationsForProject', error.message)
     // $FlowFixMe[incompatible-return] reason for suppression
     return null
   }

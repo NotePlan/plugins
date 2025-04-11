@@ -5,7 +5,7 @@
 
 import {
   // PERSPECTIVE_ACTIONS,
-  DASHBOARD_ACTIONS
+  DASHBOARD_ACTIONS,
 } from '../../reducers/actionTypes'
 import { allSectionDetails } from '../../../constants.js'
 import type { TDashboardSettings, TSectionCode, TPerspectiveSettings } from '../../../types.js'
@@ -73,6 +73,8 @@ export const handleSwitchChange = (
           payload: settingsToSave,
           reason: `Switch changed: ${key}=${isChecked}`,
         })
+        //TODO: REFACTOR:Maybe update isModified & sendActionToPlugin to save the settings and remove from the useDashboardSettings hook
+
         if (isChecked && isSection && key.startsWith('show')) {
           // this is a section show/hide setting
           // call for new data for a section just turned on
@@ -122,6 +124,7 @@ export const handleSaveInput =
       payload: newSettings,
       reason: `Input value changed: ${key}=${newValue}`,
     })
+    //TODO: REFACTOR:Maybe update isModified & sendActionToPlugin to save the settings and remove from the useDashboardSettings hook
   }
 
 /**
@@ -187,8 +190,7 @@ export const handleOpenMenuEffect = (openDropdownMenu: string | null, dropdownMe
  * @returns {Function} - A function to handle the event when changes were made.
  */
 export const onDropdownMenuChangesMade =
-  (setDropdownMenuChangesMade: (changesMade: boolean) => void,
-    _sendActionToPlugin: Function): Function =>
+  (setDropdownMenuChangesMade: (changesMade: boolean) => void, _sendActionToPlugin: Function): Function =>
   (): void => {
     setDropdownMenuChangesMade(false) // Reset changes made
     logDebug('Header headerDropdownHandlers', `onDropdownMenuChangesMade called -- refreshing sections after dropdown changes`)
