@@ -60,11 +60,11 @@
 	top: 100%;
 	left: 0;
 	right: 0;
-	border: 1px solid var(--divider-color);
+	border: 1px solid var(--border-color);
 	border-radius: 4px;
 	background-color: var(--bg-main-color);
 	filter: brightness(110%);
-	box-shadow: 0 2px 5px var(--divider-color);
+	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 	z-index: 5;
 	width: 100%;
 	/* ensure that a right margin can be seen still - not sure why this is needed */
@@ -73,20 +73,20 @@
 
 /* The displayed options. */
 .dropdown-select-option {
+	background-color: var(--bg-main-color);
+	padding: 4px 8px;
 	cursor: pointer;
 	color: var(--fg-main-color);
 	margin: 0rem 0.2rem;
-	padding: 0.2rem;
 	min-height: 0.9rem;
 	width: 100%;
+	background-color: var(--bg-main-color);
 }
 
 /* The currently hovered-over option. */
-.dropdown-select-option:hover {
-	background-color: var(--tint-color);
-	color: var(--bg-alt-color);
-	filter: brightness(95%);
-	border-radius:4px;
+.dropdown-select-option:hover,
+.dropdown-select-option.highlighted {
+	background-color: var(--tint-color-transparent, rgba(219, 154, 142, 0.2));
 }
 
 .dropdown-select-option .option-label {

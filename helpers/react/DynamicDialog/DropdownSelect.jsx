@@ -63,6 +63,7 @@ type DropdownSelectProps = {
    * Defaults to false (meaning auto-scroll is active).
    */
   disableAutoScroll?: boolean,
+  tabIndex?: number,
 }
 
 /**
@@ -106,6 +107,7 @@ const mergeStyles = (baseStyles: { [string]: mixed }, overrideStyles: { [string]
  * @param {string} [props.className] - Additional class names for the dropdown.
  * @param {boolean} [props.isEditable] - Whether the dropdown input is editable.
  * @param {boolean} [props.disableAutoScroll] - Whether to skip the auto-scrolling logic.
+ * @param {number} [props.tabIndex] - Tab index for the dropdown input.
  * @returns {React$Node} The rendered dropdown component.
  */
 const DropdownSelect = ({
@@ -125,6 +127,7 @@ const DropdownSelect = ({
   isEditable = false,
   disabled = false,
   disableAutoScroll = false,
+  tabIndex,
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
 
@@ -146,9 +149,11 @@ const DropdownSelect = ({
   }, [options, value])
   const [selectedValue, setSelectedValue] = useState(value ? normalizeOption(value) : options[0] ? normalizeOption(options[0]) : { label: '', value: '' })
   const [inputValue, setInputValue] = useState(selectedValue.label)
-  const [calculatedWidth, setCalculatedWidth] = useState(fixedWidth || 200) // Initial width
+  const [calculatedWidth, setCalculatedWidth] = useState(fixedWidth || 200)
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
   const optionsRef = useRef<?ElementRef<'div'>>(null)
+  const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [zIndex, setZIndex] = useState(1000)
 
   // Calculate the width based on the longest option if fixedWidth is not provided
   // v2 calculates in `ch` units; v1 did it in `px` units.
@@ -170,21 +175,27 @@ const DropdownSelect = ({
   // Filter options based on input value only if editable
   const filteredOptions = useMemo(() => {
     if (!isEditable) return normalizedOptions
+    if (!inputValue) return normalizedOptions
     return normalizedOptions.filter((option) => option.label.toLowerCase().includes(inputValue.toLowerCase()))
   }, [inputValue, normalizedOptions, isEditable])
 
   // Handle input change
   const handleInputChange = (event: SyntheticInputEvent<HTMLInputElement>) => {
+    logDebug(`DropdownSelect`, `handleInputChange`, `isEditable: ${String(isEditable)}`)
     if (isEditable) {
-      setInputValue(event.target.value)
-      setIsOpen(true) // Open dropdown when typing
+      const newValue = event.target.value
+      setInputValue(newValue)
+      // Keep dropdown open while typing
+      setIsOpen(true)
     }
   }
 
   // Handle input focus
   const handleInputFocus = (event: SyntheticFocusEvent<HTMLInputElement>) => {
-    // Disable default focus behavior if not editable
-    if (!isEditable) {
+    logDebug(`DropdownSelect`, `handleInputFocus`, `isEditable: ${String(isEditable)}`)
+    if (isEditable) {
+      setIsOpen(true)
+    } else {
       event.preventDefault()
     }
   }
@@ -202,27 +213,60 @@ const DropdownSelect = ({
 
   // Update inputValue based on effectiveValue
   useEffect(() => {
-    setInputValue(effectiveValue.label)
-  }, [effectiveValue])
+    if (!isEditable || !isOpen) {
+      setInputValue(effectiveValue.label)
+    }
+  }, [effectiveValue, isEditable, isOpen])
 
   // Handle option click
-  const handleOptionClick = (option: Option) => {
+  const handleOptionClick = (option: Option, e?: MouseEvent | KeyboardEvent) => {
+    // Stop event from bubbling up
+    if (e) {
+      e.stopPropagation()
+    }
     logDebug(`DropdownSelect`, `option click: ${option.label}`)
     setSelectedValue(option)
-    setInputValue(option.label) // Update inputValue with the selected option's label
-    onChange({ label: option.label, value: option.value }) // Ensure onChange is called with a valid object
+    setInputValue(option.label)
+    onChange({ label: option.label, value: option.value })
     setIsOpen(false)
+    setHighlightedIndex(-1)
+
+    // Focus next tabbable element after animation completes
+    setTimeout(() => {
+      // Find all tabbable elements in the document
+      const allTabbable = Array.from(document.querySelectorAll('input:not([disabled]), select:not([disabled]), button:not([disabled])'))
+      // Find the current input's index
+      const currentIndex = allTabbable.findIndex((el) => el === inputRef?.current)
+      if (currentIndex >= 0 && currentIndex < allTabbable.length - 1) {
+        // Find the next tabbable element that isn't part of this dropdown
+        const nextElement = allTabbable.slice(currentIndex + 1).find((el) => {
+          return !el.closest('.dropdown-select-container')
+        })
+        if (nextElement instanceof HTMLElement) {
+          nextElement.focus()
+        }
+      }
+    }, 350) // Wait for animation
   }
 
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
 
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen)
+  const toggleDropdown = (e: MouseEvent) => {
+    logDebug(`DropdownSelect`, `toggleDropdown`, `isOpen: ${String(isOpen)}`)
+    // Stop event from bubbling up to prevent clickOutside handler from firing
+    if (e) {
+      e.stopPropagation()
+    }
+    // Only toggle closed -> open, never open -> closed via click
+    if (!isOpen) {
+      setIsOpen(true)
+    }
   }
 
   const handleClickOutside = (event: MouseEvent) => {
+    logDebug(`DropdownSelect`, `handleClickOutside`, `isOpen: ${String(isOpen)}`)
     const target = event.target
     if (dropdownRef.current && target instanceof Node && !dropdownRef.current.contains(target)) {
       logDebug(`handleClickOutside, am outside, making false`)
@@ -230,27 +274,7 @@ const DropdownSelect = ({
     }
   }
 
-  const findScrollableAncestor = (el: HTMLElement): ?HTMLElement => {
-    let currentElement: ?Element = el
-    while (currentElement && currentElement.parentElement) {
-      currentElement = currentElement.parentElement
-      if (currentElement instanceof HTMLElement) {
-        const style = window.getComputedStyle(currentElement)
-        const overflowY = style.overflowY
-        const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && currentElement.scrollHeight > currentElement.clientHeight
-        if (isScrollable) {
-          logDebug(`Found scrollable ancestor: `, currentElement.tagName)
-          return currentElement
-        }
-      }
-    }
-    return null
-  }
-
-  //----------------------------------------------------------------------
-  // Effects
-  //----------------------------------------------------------------------
-
+  // Remove the auto-scroll effect since we want natural dropdown behavior
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
@@ -270,64 +294,19 @@ const DropdownSelect = ({
     }
   }, [value, normalizedOptions])
 
-  // Scroll adjustment effect
-  useEffect(() => {
-    if (disableAutoScroll) {
-      // Skip the auto-scrolling logic if the parent doesn't want it
-      return
-    }
-    if (isOpen && dropdownRef.current && optionsRef.current) {
-      setTimeout(() => {
-        if (!dropdownRef.current || !optionsRef.current) return
-        const dropdown: HTMLElement = dropdownRef.current
-        const options: HTMLElement = optionsRef.current
-
-        const dropdownRect = dropdown.getBoundingClientRect()
-        const optionsRect = options.getBoundingClientRect()
-
-        const totalTop = Math.min(dropdownRect.top, optionsRect.top)
-        const totalBottom = Math.max(dropdownRect.bottom, optionsRect.bottom)
-
-        const totalRect = {
-          top: totalTop,
-          bottom: totalBottom,
-        }
-
-        const scrollableContainer = findScrollableAncestor(dropdown)
-
-        if (scrollableContainer) {
-          const containerRect = scrollableContainer.getBoundingClientRect()
-
-          // Determine if the dropdown is actually out of view
-          const isOutOfView = totalRect.top < containerRect.top || totalRect.bottom > containerRect.bottom
-
-          logDebug(`DropdownSelect, isOutOfView:  ${isOutOfView ? 'true' : 'false'}`)
-
-          // Only adjust scroll if the dropdown is not fully in view
-          if (isOutOfView) {
-            const overshootBottom = totalRect.bottom - containerRect.bottom
-            const overshootTop = containerRect.top - totalRect.top
-
-            if (overshootBottom > 0) {
-              scrollableContainer.scrollBy({
-                top: overshootBottom,
-                behavior: 'smooth',
-              })
-            } else if (overshootTop > 0) {
-              scrollableContainer.scrollBy({
-                top: -overshootTop,
-                behavior: 'smooth',
-              })
-            }
-          }
-        }
-      }, 300) // Increased delay to ensure layout is stable
-    }
-  }, [isOpen, disableAutoScroll])
-
   // Determine if the selected option should show the indicator
   const selectedOption = normalizedOptions.find((option) => option.value === effectiveValue.value)
   const shouldShowIndicator = showIndicatorOptionProp && selectedOption ? selectedOption[showIndicatorOptionProp] === true : false
+
+  // Calculate z-index based on position in document so that any dropdown overlaps other elements below it properly
+  useEffect(() => {
+    if (dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect()
+      // Use the negative of the y position so higher elements get higher z-index
+      // Add a base z-index of 1000 to ensure it's above most other elements
+      setZIndex(1000 + Math.floor(10000 - rect.top))
+    }
+  }, [isOpen])
 
   //----------------------------------------------------------------------
   // Indicator Style Function
@@ -352,6 +331,71 @@ const DropdownSelect = ({
       ...customStyles,
     })
 
+  // Handle keyboard navigation
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (!isOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === ' ') {
+        e.preventDefault()
+        setIsOpen(true)
+        if (e.key !== ' ') {
+          setHighlightedIndex(e.key === 'ArrowDown' ? 0 : filteredOptions.length - 1)
+        }
+      }
+      return
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setHighlightedIndex((prev) => (prev < filteredOptions.length - 1 ? prev + 1 : 0))
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : filteredOptions.length - 1))
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
+          const option = filteredOptions[highlightedIndex]
+          setSelectedValue(option)
+          setInputValue(option.label)
+          onChange({ label: option.label, value: option.value })
+          setIsOpen(false)
+          setHighlightedIndex(-1)
+
+          // Focus next tabbable element after animation completes
+          setTimeout(() => {
+            const allTabbable = document.querySelectorAll('input:not([disabled]), select:not([disabled]), button:not([disabled])')
+            const currentIndex = Array.from(allTabbable).findIndex((el) => el === inputRef?.current)
+            if (currentIndex >= 0 && currentIndex < allTabbable.length - 1) {
+              const nextElement = allTabbable[currentIndex + 1]
+              if (nextElement instanceof HTMLElement) {
+                nextElement.focus()
+              }
+            }
+          }, 350) // Wait for animation
+        }
+        break
+      case ' ':
+        if (!isEditable) {
+          e.preventDefault()
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        setIsOpen(false)
+        setHighlightedIndex(-1)
+        break
+      default:
+        break
+    }
+  }
+
+  // Reset highlighted index when options change or dropdown closes
+  useEffect(() => {
+    setHighlightedIndex(-1)
+  }, [filteredOptions, isOpen])
+
   return (
     <div
       className={`${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''} ${className}`}
@@ -361,46 +405,39 @@ const DropdownSelect = ({
       <label className="dropdown-select-label" style={mergeStyles({}, styles.label)}>
         {label}
       </label>
-      <div className="dropdown-select-wrapper"
-        style={mergeStyles({
-          // width: `max(${calculatedWidth}ch, 90%)`
-        }, styles.wrapper)}
-        onClick={disabled ? undefined : toggleDropdown}>
-        <div
-          className="dropdown-select-input-container"
-          style={mergeStyles(
-            {
-              display: 'flex',
-              alignItems: 'center',
-              position: 'relative',
-              width: `max(${calculatedWidth}ch, 98%)`,
-              // width: '100%',
-            },
-            styles.inputContainer || {},
-          )}
-        >
+      <div className="dropdown-select-wrapper" style={mergeStyles({}, styles.wrapper)} onClick={disabled ? undefined : toggleDropdown}>
+        <div className="dropdown-select-input-container" style={mergeStyles({}, styles.inputContainer || {})}>
           {showIndicatorOptionProp && <span style={dot(shouldShowIndicator, styles.indicator || {})} />}
           <input
             type="text"
             className="dropdown-select-input"
             value={inputValue}
-            onChange={handleInputChange} // Handle input change
-            onFocus={handleInputFocus} // Handle input focus
+            onChange={handleInputChange}
+            onFocus={handleInputFocus}
+            onKeyDown={handleKeyDown}
             ref={inputRef}
             disabled={disabled}
-            readOnly={!isEditable} // Set readOnly based on isEditable prop
-            style={mergeStyles({ paddingLeft: showIndicatorOptionProp ? '24px' : '8px' }, styles.input)} // TODO: Ideally find a way to do this in CSS, rather than here. Also do we use Indicator?
+            readOnly={!isEditable}
+            style={mergeStyles({ paddingLeft: showIndicatorOptionProp ? '24px' : '8px' }, styles.input)}
+            tabIndex={tabIndex}
           />
           <span className="dropdown-select-arrow" style={mergeStyles({}, styles.arrow)}>
             &#9662;
           </span>
         </div>
         {isOpen && (
-          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({
-            // width: `max(${calculatedWidth}ch, 98%)`,
-            maxHeight: '80vh',
-            overflowY: 'auto'
-          }, styles.dropdown)}>
+          <div
+            className="dropdown-select-dropdiv"
+            ref={optionsRef}
+            style={mergeStyles(
+              {
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                zIndex,
+              },
+              styles.dropdown,
+            )}
+          >
             {filteredOptions.map((option: Option, i) => {
               if (option.type === 'separator') {
                 return <div key={option.value} style={styles.separator}></div>
@@ -409,20 +446,18 @@ const DropdownSelect = ({
               return (
                 <div
                   key={`${option.value}-${i}`}
-                  className={`dropdown-select-option`}
-                  onClick={() => handleOptionClick(option)}
+                  className={`dropdown-select-option ${i === highlightedIndex ? 'highlighted' : ''}`}
+                  onClick={(e) => handleOptionClick(option, e)}
                   style={mergeStyles(
                     {
-                      display: 'flex',
-                      alignItems: 'center',
-                      width: '100%',
+                      padding: '4px 8px',
+                      cursor: 'pointer',
                     },
                     styles.option,
                   )}
                 >
                   {showIndicator && <span style={dot(option[showIndicatorOptionProp] === true, styles.indicator || {})} />}
-                  <span className="option-label"
-                    style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
+                  <span className="option-label" style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
                     {option.label}
                   </span>
                 </div>

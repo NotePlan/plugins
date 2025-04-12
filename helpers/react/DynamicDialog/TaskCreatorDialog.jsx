@@ -1,7 +1,7 @@
 // @flow
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import InputBox from './InputBox'
-import ThemedSelect, { type OptionType } from './ThemedSelect'
+import DropdownSelect from './DropdownSelect'
 import { Button } from './ButtonComponents'
 import Switch from './Switch'
 import { logDebug, clo } from '@helpers/react/reactDev'
@@ -42,9 +42,10 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
   const [isChecklist, setIsChecklist] = useState(false)
   const [selectedNote, setSelectedNote] = useState<OptionType | null>(null)
   const [selectedHeading, setSelectedHeading] = useState<OptionType | null>(null)
-  const [notes, setNotes] = useState<Array<OptionType>>([])
-  const [headings, setHeadings] = useState<Array<OptionType>>([])
-  const [isLoading, setIsLoading] = useState(true)
+  //FIXME: Remove placeholder notes and headings
+  const [notes, setNotes] = useState<Array<OptionType>>([{ label: 'TEMP PLACEHOLDER', value: '_TEMP PLACEHOLDER_' }])
+  const [headings, setHeadings] = useState<Array<OptionType>>([{ label: 'TEMP HEADING', value: 'TEMP HEADING' }])
+  const [isLoading, setIsLoading] = useState(false) // FIXME: Change this back to true
 
   // Open the modal dialog when component mounts
   useEffect(() => {
@@ -79,7 +80,7 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
         }
 
         // Don't submit when in a select dropdown
-        if (document.activeElement?.closest('.css-26l3qy-menu')) {
+        if (document.activeElement?.closest('.dropdown-select-container-compact')) {
           return
         }
 
@@ -139,7 +140,8 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
   const handleNoteSelect = (option: OptionType | null) => {
     setSelectedNote(option)
     setSelectedHeading(null) // Reset heading selection
-    setHeadings([]) // Clear headings list
+
+    if (option && option.value !== '_TEMP PLACEHOLDER_') setHeadings([]) // Clear headings list
 
     if (option?.value) {
       logDebug('TaskCreatorDialog', `Fetching headings for note: ${option.value}`)
@@ -202,29 +204,32 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
             showSaveButton={false}
             className="full-width-input"
             inputRef={taskInputRef}
+            tabIndex={1}
           />
 
-          {/* $FlowFixMe[incompatible-type] */}
-          <ThemedSelect
+          <DropdownSelect
             label="Note"
             options={notes}
             value={selectedNote}
             onChange={handleNoteSelect}
+            isEditable={true}
             disabled={isLoading || notes.length === 0}
             compactDisplay={true}
             className="full-width-select"
+            tabIndex={2}
           />
 
           <div className={`heading-select-container ${isHeadingVisible ? 'visible' : ''}`}>
-            {/* $FlowFixMe[incompatible-type] */}
-            <ThemedSelect
+            <DropdownSelect
               label="Heading"
               options={headings}
               value={selectedHeading}
+              isEditable={true}
               onChange={(option: OptionType | null) => setSelectedHeading(option)}
               disabled={!selectedNote || headings.length === 0}
               compactDisplay={true}
               className="full-width-select"
+              tabIndex={3}
             />
           </div>
         </div>

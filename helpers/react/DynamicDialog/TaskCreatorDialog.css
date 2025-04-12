@@ -1,4 +1,14 @@
 /* Dialog modal styling */
+
+dialog:has(.task-creator-dialog-modal) {
+  margin: unset !important;
+  color: var(--fg-color, #333);
+}
+
+.task-creator-dialog-modal .dropdown-select-option {
+  width: 95%;
+}
+
 .task-creator-dialog-modal {
   padding: 0;
   border: none;
@@ -7,18 +17,21 @@
   width: 500px;
   max-width: 90vw;
   max-height: 90vh;
+  margin: auto !important;
+  inset: 0;
+  position: fixed;
 }
 
 /* Dialog backdrop styling */
 .task-creator-dialog-modal::backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--bg-main-color);
 }
 
 /* Dialog container */
 .task-creator-dialog {
   background-color: var(--background-color, #fff);
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 16px var(--bg-divider-color);
   width: 100%;
   height: 100%;
   min-height: 320px;
@@ -32,7 +45,7 @@
 .task-creator-dialog-header {
   background-color: var(--tint-color, #db9a8e);
   color: white;
-  padding: 16px 20px;
+  padding: 5px 10px;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
   display: flex;
@@ -58,7 +71,7 @@
 
 /* Dialog footer */
 .task-creator-dialog-footer {
-  padding: 15px 20px;
+  padding: 5px 10px;
   border-top: 1px solid var(--border-color, #e1e1e1);
   display: flex;
   justify-content: flex-end;
@@ -71,6 +84,67 @@
   margin-bottom: 20px;
 }
 
+/* Label alignment and input width */
+.task-creator-dialog .input-box-label,
+.task-creator-dialog .dropdown-select-label {
+  text-align: right;
+  padding-right: 10px;
+  min-width: 80px;
+  flex: 0 0 80px;
+  color: var(--text-color, #333);
+  font-size: 14px;
+  line-height: 32px;
+}
+
+.task-creator-dialog .input-box-container-compact,
+.task-creator-dialog .dropdown-select-container-compact {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 0 20px;
+}
+
+.task-creator-dialog .input-box-wrapper,
+.task-creator-dialog .dropdown-select-wrapper {
+  flex: 1;
+  width: 100%;
+}
+
+.task-creator-dialog .full-width-input .input-box-input,
+.task-creator-dialog .full-width-select .dropdown-select-input {
+  width: 100%;
+  height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 4px;
+}
+
+.task-creator-dialog .full-width-select .dropdown-select-input-container {
+  width: 100%;
+}
+
+/* Validation message */
+.task-creator-dialog .validation-message {
+  text-align: center;
+  margin: 4px 20px 16px;
+  color: #f44336;
+  font-size: 0.8rem;
+}
+
+/* Switch line adjustments */
+.task-creator-dialog-content .switch-line {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.task-creator-dialog-content .switch-line .switch-label {
+  color: var(--text-color, #333);
+  font-size: 14px;
+}
+
 /* Fix for the Switch component showing two white circles */
 .task-creator-dialog .apple-switch {
   -webkit-appearance: none;
@@ -79,19 +153,28 @@
 }
 
 /* Full width inputs and selects */
-.task-creator-dialog .full-width-input .input-box-wrapper {
+.task-creator-dialog .full-width-input .dropdown-select-wrapper {
   width: 100%;
-}
-
-.task-creator-dialog .full-width-input .input-box-input {
-  width: 100%;
-  min-height: 32px;
-  padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
 }
 
 .task-creator-dialog .full-width-select {
+  width: 100%;
+}
+
+.task-creator-dialog .full-width-select .dropdown-select-wrapper {
+  width: 100%;
+  min-height: 32px;
+}
+
+.task-creator-dialog .full-width-select .dropdown-select-input {
+  width: 100%;
+}
+
+.task-creator-dialog .full-width-select .dropdown-select-input-container {
+  width: 100%;
+}
+
+.task-creator-dialog .full-width-select .dropdown-select-dropdiv {
   width: 100%;
 }
 
@@ -113,12 +196,6 @@
 /* Themed Select adjustments */
 .task-creator-dialog .css-yk16xz-control {
   min-height: 32px;
-}
-
-.task-creator-dialog-content .switch-line {
-  display: flex;
-  justify-content: center;
-  padding: 10px 0;
 }
 
 /* Button styling */
@@ -174,19 +251,11 @@
 .task-creator-dialog .input-box-container-compact {
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
 }
 
 .task-creator-dialog .input-box-label {
   min-width: 80px;
   margin-right: 10px;
-}
-
-/* Fix for validation messages */
-.task-creator-dialog .validation-message {
-  margin-top: 4px;
-  color: #f44336;
-  font-size: 0.8rem;
 }
 
 /* Dark mode support */

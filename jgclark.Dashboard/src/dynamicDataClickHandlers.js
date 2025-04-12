@@ -5,6 +5,7 @@ import type { MessageDataObject, TBridgeClickHandlerResult } from './types'
 import { handlerResult, setPluginData } from './dashboardHelpers'
 import { log, logError, logDebug, timer, clo, clof, JSP } from '@helpers/dev'
 import { getHeadingsFromNote } from '@helpers/NPnote'
+import { getNote } from '@helpers/note'
 
 /**
  * Get notes from the project notes
@@ -34,7 +35,11 @@ export async function getNotes(_data: MessageDataObject): Promise<TBridgeClickHa
  */
 export async function getHeadings(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename } = data
-  const note = DataStore.projectNotes.find((note) => note.filename === filename)
+  if (!filename) {
+    return handlerResult(false, [], { errorMsg: `No filename provided` })
+  }
+
+  const note = await getNote(filename)
   if (!note) {
     return handlerResult(false, [], { errorMsg: `Note not found: ${filename || ''}` })
   }

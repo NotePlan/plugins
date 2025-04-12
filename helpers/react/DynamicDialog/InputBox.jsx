@@ -24,6 +24,7 @@ type InputBoxProps = {
   required?: boolean,
   validationType?: 'email' | 'number' | 'date-interval',
   inputRef?: any, // Use a more permissive type to handle various ref types
+  tabIndex?: number, // Add tabIndex prop
 }
 
 const InputBox = ({
@@ -43,6 +44,7 @@ const InputBox = ({
   required,
   validationType,
   inputRef: externalInputRef,
+  tabIndex, // Add tabIndex to destructuring
 }: InputBoxProps): React$Node => {
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
@@ -82,12 +84,18 @@ const InputBox = ({
   }, [inputValue, value])
 
   useEffect(() => {
-    if (focus && !wasFocused && internalInputRef.current) {
-      internalInputRef.current.focus() // Focus the input if focus is true
-      internalInputRef.current?.setSelectionRange(inputValue.length, inputValue.length) // Move cursor to the end
-      setWasFocused(true)
+    if (focus && !wasFocused && inputRefToUse.current) {
+      // Add a small delay to ensure the dialog is rendered
+      setTimeout(() => {
+        const input = inputRefToUse.current
+        if (input instanceof HTMLInputElement) {
+          input.focus()
+          input.setSelectionRange(inputValue.length, inputValue.length)
+          setWasFocused(true)
+        }
+      }, 100)
     }
-  }, [focus, inputValue])
+  }, [focus, inputValue, wasFocused])
 
   const handleInputChange = (e: any, firstRun: boolean = false) => {
     const newValue = e.target.value
@@ -130,6 +138,7 @@ const InputBox = ({
             disabled={disabled}
             step={isNumberType && step !== undefined && step > 0 ? step : undefined} // Conditionally use step attribute
             min="0" // works for 'number' type; ignored for rest.
+            tabIndex={tabIndex} // Add tabIndex to input
           />
           {showSaveButton && (
             <button className="input-box-save" onClick={handleSaveClick} disabled={!isSaveEnabled}>
