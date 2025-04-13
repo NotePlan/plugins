@@ -149,9 +149,11 @@ export async function doAddTaskAnywhere(data: MessageDataObject): Promise<TBridg
   if (!destNote) return handlerResult(false, [], { errorMsg: `Could not get note for filename ${filename} / ${JSP(data)}` })
 
   // TODO: @jgclark - please implement the task creation logic here under heading
-  await Editor.openNoteByFilename(filename) // Temporary
+  destNote.prependParagraph(content, type || 'open') // temporary until jgclark implements the new task creation logic
+  // ^^^ this doesn't work reliably. i don't know why. a note gets created, but sometimes no content is added.
+  await Editor.openNoteByFilename(filename) // Temporary so we can see the new note and content
   // temporarily return reminder error message
-  return handlerResult(false, [], { errorMsg: `doAddTaskAnywhere needs some help from @jgclark :). check log for MBO` })
+  return handlerResult(false, [], { errorMsg: `doAddTaskAnywhere needs finishing by @jgclark :). check log for MBO` })
 
   // const res = await DataStore.invokePluginCommandByName('quick add task under heading', 'jgclark.QuickCapture') // with no args, this will prompt for the note, heading and text
   // // we don't get a return value from the command, so we just return true

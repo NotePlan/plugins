@@ -320,7 +320,7 @@ export type MessageDataObject = {
   isNewNote?: boolean,
   heading?: string,
   folder?: string,
-  type?: string,
+  type?: ParagraphType,
   content?: string,
 }
 

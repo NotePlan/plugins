@@ -44,7 +44,6 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
   const taskInputRef = useRef<?HTMLInputElement>(null)
 
   // State for all form inputs
-  const [taskTitle, setTaskTitle] = useState(dynamicData?.title || '')
   const [taskText, setTaskText] = useState('')
   const [isChecklist, setIsChecklist] = useState(false)
   const [selectedNote, setSelectedNote] = useState<OptionType | null>(dynamicData?.defaultNote || null)
@@ -237,7 +236,7 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
     <dialog ref={dialogRef} className={`task-creator-dialog-modal ${className}`} onClick={handleBackdropClick}>
       <div className="task-creator-dialog" style={style}>
         <div className="task-creator-dialog-header">
-          <h2>{taskTitle}</h2>
+          <h2>Add New Task/Checklist</h2>
         </div>
 
         <div className="task-creator-dialog-content">
