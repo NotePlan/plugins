@@ -17,6 +17,7 @@ const maxChars = 50 // to show in dropdown
 export type Option = {
   label: string,
   value: string,
+  tooltip?: string, // Optional tooltip text
   [string]: any, // Allow additional properties (e.g. isModified)
 }
 
@@ -169,7 +170,7 @@ const DropdownSelect = ({
   const [isOpen, setIsOpen] = useState(false)
   const normalizedOptions: Array<Option> = useMemo(() => {
     // First filter out any empty options
-    const normalized = options.map(normalizeOption).filter((option) => option.label && option.value)
+    const normalized = options ? options.map(normalizeOption).filter((option) => option.label && option.value) : []
 
     // Only add the current value if it's not empty and not already in the list
     if (value) {
@@ -215,25 +216,18 @@ const DropdownSelect = ({
     if (!allowFiltering) return normalizedOptions
     if (!inputValue) return normalizedOptions
 
-    // First check if there's an exact match
-    const exactMatch = normalizedOptions.find((option) => option.label.toLowerCase() === inputValue.toLowerCase())
+    // Filter for partial matches
+    const matches = normalizedOptions.filter((option) => option.label.toLowerCase().includes(inputValue.toLowerCase()))
 
-    // If there's an exact match, only show that option
-    if (exactMatch) {
-      logDebug(`DropdownSelect`, `filteredOptions`, `Found exact match: ${exactMatch.label}`)
-      setIsValueNotInList(false)
-      return [exactMatch]
-    }
-
-    // If allowCustomValues is true and there are no matches, return empty array
-    if (allowCustomValues) {
-      logDebug(`DropdownSelect`, `filteredOptions`, `No matches found, setting isValueNotInList to true`)
+    // If allowCustomValues is true and there are no matches, allow custom value
+    if (allowCustomValues && matches.length === 0) {
       setIsValueNotInList(true)
       return []
     }
 
-    // Otherwise, filter for partial matches
-    return normalizedOptions.filter((option) => option.label.toLowerCase().includes(inputValue.toLowerCase()))
+    // If we have matches, clear the custom value state
+    setIsValueNotInList(false)
+    return matches
   }, [inputValue, normalizedOptions, allowFiltering, allowCustomValues])
 
   // Helper function to safely normalize an option
@@ -556,6 +550,7 @@ const DropdownSelect = ({
                     e.stopPropagation()
                     handleOptionClick(option, e)
                   }}
+                  title={option.tooltip}
                   style={mergeStyles(
                     {
                       padding: '4px 8px',

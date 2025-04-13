@@ -22,63 +22,63 @@ export type headingLevelType = 1 | 2 | 3 | 4 | 5
  */
 export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
   // This is how private keys work in actual Javascript now.
-  #keysMap: Map<string, string> = new Map < string, string > ()
+  #keysMap: Map<string, string> = new Map<string, string>()
 
-constructor(iterable ?: Iterable < [string, TVal] >) {
-  super()
-  if (iterable) {
-    for (const [key, value] of iterable) {
-      this.set(key, value)
+  constructor(iterable?: Iterable<[string, TVal]>) {
+    super()
+    if (iterable) {
+      for (const [key, value] of iterable) {
+        this.set(key, value)
+      }
     }
   }
-}
 
-set(key: string, value: TVal): this {
-  const keyLowerCase = typeof key === 'string' ? key.toLowerCase() : key
-  if (!this.#keysMap.has(keyLowerCase)) {
-    this.#keysMap.set(keyLowerCase, key) // e.g. 'test': 'TEst'
-    // console.log(`new map entry: public '${keyLowerCase}' and private '${key}'`)
+  set(key: string, value: TVal): this {
+    const keyLowerCase = typeof key === 'string' ? key.toLowerCase() : key
+    if (!this.#keysMap.has(keyLowerCase)) {
+      this.#keysMap.set(keyLowerCase, key) // e.g. 'test': 'TEst'
+      // console.log(`new map entry: public '${keyLowerCase}' and private '${key}'`)
+    }
+    super.set(keyLowerCase, value) // set main Map to use 'test': value
+    return this
   }
-  super.set(keyLowerCase, value) // set main Map to use 'test': value
-  return this
-}
 
-get(key: string): TVal | void {
-  return typeof key === 'string' ? super.get(key.toLowerCase()) : super.get(key)
-}
+  get(key: string): TVal | void {
+    return typeof key === 'string' ? super.get(key.toLowerCase()) : super.get(key)
+  }
 
-has(key: string): boolean {
-  return typeof key === 'string' ? super.has(key.toLowerCase()) : super.has(key)
-}
+  has(key: string): boolean {
+    return typeof key === 'string' ? super.has(key.toLowerCase()) : super.has(key)
+  }
 
-delete (key: string): boolean {
-  const keyLowerCase = typeof key === 'string' ? (key.toLowerCase(): string) : key
-  this.#keysMap.delete(keyLowerCase)
+  delete(key: string): boolean {
+    const keyLowerCase = typeof key === 'string' ? (key.toLowerCase(): string) : key
+    this.#keysMap.delete(keyLowerCase)
 
-  return super.delete(keyLowerCase)
-}
+    return super.delete(keyLowerCase)
+  }
 
-clear(): void {
-  this.#keysMap.clear()
+  clear(): void {
+    this.#keysMap.clear()
     super.clear()
-}
-
-keys(): Iterator < string > {
-  return this.#keysMap.values()
-}
-
-  * entries(): Iterator < [string, TVal] > {
-    for(const [keyLowerCase, value] of super.entries()) {
-  const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
-  yield[key, value]
-}
   }
 
-forEach(callbackfn: (value: TVal, key: string, map: Map<string, TVal>) => mixed): void {
-  for(const [keyLowerCase, value] of super.entries()) {
-  const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
-  callbackfn(value, key, this)
-}
+  keys(): Iterator<string> {
+    return this.#keysMap.values()
+  }
+
+  *entries(): Iterator<[string, TVal]> {
+    for (const [keyLowerCase, value] of super.entries()) {
+      const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
+      yield [key, value]
+    }
+  }
+
+  forEach(callbackfn: (value: TVal, key: string, map: Map<string, TVal>) => mixed): void {
+    for (const [keyLowerCase, value] of super.entries()) {
+      const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
+      callbackfn(value, key, this)
+    }
   }
 }
 
@@ -116,7 +116,6 @@ export class CaseInsensitiveSet extends Set<string> {
     return super.delete(value)
   }
 }
-
 
 //-------------------------------------------------------------------------------
 // Parsing structured data functions
@@ -192,8 +191,51 @@ export function displayTitle(n: ?CoreNoteFields): string {
   return !n
     ? '(error)'
     : n.type === 'Calendar'
-      ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
-      : n.title ?? '(error)'
+    ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
+    : n.title ?? '(error)'
+}
+
+/**
+ * Get the full title path of a note by combining the path from filename with the title
+ * @author @dwertheimer
+ * @param {CoreNoteFields} note - note to get path for
+ * @return {string} - path with title (e.g. for filename "/bar/baz/sam.md" and title "foo" returns "/bar/baz/foo")
+ */
+export function getTitleWithPath(note: CoreNoteFields): string {
+  if (!note?.filename) return ''
+  const title = note.title ?? ''
+  if (!title) return ''
+
+  const lastSlashIndex = note.filename.lastIndexOf('/')
+  if (lastSlashIndex === -1) {
+    return title
+  }
+
+  return `${note.filename.substring(0, lastSlashIndex + 1)}${title}`
+}
+
+/**
+ * Get the full title path of a note by combining the path from filename with the title
+ * @author @dwertheimer
+ * @param {string} filename - full filename path of the note
+ * @param {string} title - title of the note
+ * @return {string} - path with title (e.g. for filename "/bar/baz/sam.md" and title "foo" returns "/bar/baz/foo")
+ * @example
+ * getTitleWithPathFromFilenameAndTitle("/bar/baz/sam.md", "foo") // returns "/bar/baz/foo"
+ * getTitleWithPathFromFilenameAndTitle("sam.md", "foo") // returns "foo"
+ * getTitleWithPathFromFilenameAndTitle("/bar/baz/sam.md", "") // returns ""
+ * getTitleWithPathFromFilenameAndTitle("", "foo") // returns ""
+ */
+export function getTitleWithPathFromFilenameAndTitle(filename: string, title: string): string {
+  if (!filename) return ''
+  if (!title) return ''
+
+  const lastSlashIndex = filename.lastIndexOf('/')
+  if (lastSlashIndex === -1) {
+    return title
+  }
+
+  return `${filename.substring(0, lastSlashIndex + 1)}${title}`
 }
 
 /**

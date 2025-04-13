@@ -128,14 +128,28 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
 export async function doAddTaskAnywhere(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   logDebug('doAddTaskAnywhere', `starting. Just calling addTaskToNoteHeading().`)
   clo(data, `doAddTaskAnywhere starting with data`)
-  const { filename, heading, content, type } = data
-  if (!filename) return handlerResult(false, [], { errorMsg: `No filename was provided` })
+  const { isNewNote, filename: origFilename, heading, content, type, folder } = data
+  if (!origFilename) return handlerResult(false, [], { errorMsg: `No filename was provided` })
   if (!content) return handlerResult(false, [], { errorMsg: `No content was provided` })
   if (!type) return handlerResult(false, [], { errorMsg: `No type was provided` })
-  const destNote = await getNote(filename)
-  if (!destNote) return handlerResult(false, [], { errorMsg: `Could not get note for filename ${filename}` })
+  let destNote = null
+  let filename = origFilename
+  if (isNewNote) {
+    // NOTE that if isNewNote is true, then the filename is a new note TITLE (not a filename), and we need to create it first
+    const noteTitle = origFilename
+    // TODO: @jgclark - please implement the new note creation logic here in folder with maybe heading
+    // this doesn't quite work
+    const noteContent = `# ${noteTitle}\n${heading ? `## ${heading}\n` : ''}`
+    filename = DataStore.newNoteWithContent(noteContent, folder || '/')
+    if (!filename) return handlerResult(false, [], { errorMsg: `Could not create new note with title ${noteTitle} in folder ${folder || ''}` })
+    logDebug('doAddTaskAnywhere', `Created new note with filename ${filename}`)
+  }
+  destNote = await getNote(filename)
+
+  if (!destNote) return handlerResult(false, [], { errorMsg: `Could not get note for filename ${filename} / ${JSP(data)}` })
 
   // TODO: @jgclark - please implement the task creation logic here under heading
+  await Editor.openNoteByFilename(filename) // Temporary
   // temporarily return reminder error message
   return handlerResult(false, [], { errorMsg: `doAddTaskAnywhere needs some help from @jgclark :). check log for MBO` })
 

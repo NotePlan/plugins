@@ -44,17 +44,19 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
   const taskInputRef = useRef<?HTMLInputElement>(null)
 
   // State for all form inputs
+  const [taskTitle, setTaskTitle] = useState(dynamicData?.title || '')
   const [taskText, setTaskText] = useState('')
   const [isChecklist, setIsChecklist] = useState(false)
-  const [selectedNote, setSelectedNote] = useState<OptionType | null>(null)
-  const [selectedHeading, setSelectedHeading] = useState<OptionType | null>(null)
-  const [notes, setNotes] = useState<Array<OptionType>>([{ label: 'TEMP PLACEHOLDER', value: '_TEMP PLACEHOLDER_' }])
-  const [defaultNote, setDefaultNote] = useState<OptionType | null>(null)
-  const [headings, setHeadings] = useState<Array<OptionType>>([{ label: 'TEMP HEADING', value: 'TEMP HEADING' }])
-  const [defaultHeading, setDefaultHeading] = useState<OptionType | null>(null)
+  const [selectedNote, setSelectedNote] = useState<OptionType | null>(dynamicData?.defaultNote || null)
+  const [selectedFolder, setSelectedFolder] = useState<OptionType | null>(null)
+  const [selectedHeading, setSelectedHeading] = useState<OptionType | null>(dynamicData?.defaultHeading || null)
   const [isLoading, setIsLoading] = useState(false)
   const [noteError, setNoteError] = useState<string | null>(null)
+  const [folderError, setFolderError] = useState<string | null>(null)
   const [headingError, setHeadingError] = useState<string | null>(null)
+  const [localNotes, setNotes] = useState<Array<OptionType>>(dynamicData?.getNotesResults || [{ label: 'TEMP PLACEHOLDER', value: '_TEMP PLACEHOLDER_' }])
+  const [localFolders, setFolders] = useState<Array<OptionType>>(dynamicData?.getFoldersResults || [{ label: 'TEMP FOLDER', value: '_TEMP FOLDER_' }])
+  const [localHeadings, setHeadings] = useState<Array<OptionType>>(dynamicData?.getHeadingsResults || [{ label: 'TEMP HEADING', value: 'TEMP HEADING' }])
 
   // Open the modal dialog when component mounts
   useEffect(() => {
@@ -145,17 +147,58 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
     }
   }, [dynamicData])
 
+  // Watch for folders data from the plugin
+  useEffect(() => {
+    if (dynamicData?.getFoldersResults) {
+      logDebug('TaskCreatorDialog', 'Folders received from plugin')
+      clo(dynamicData.getFoldersResults)
+      const formattedFolders = dynamicData.getFoldersResults.map((folder) => {
+        // Ensure we're using the string value for label and value
+        const folderValue = typeof folder === 'string' ? folder : folder.value || folder.label || ''
+        return {
+          tooltip: folderValue,
+          label: folderValue,
+          value: folderValue,
+        }
+      })
+      setFolders(formattedFolders)
+    }
+  }, [dynamicData])
+
   // Handle note selection
   const handleNoteSelect = (option: OptionType | null) => {
-    setSelectedNote(option)
-    setSelectedHeading(null) // Reset heading selection
+    if (option && typeof option.label === 'string' && typeof option.value === 'string') {
+      const selectedOption: OptionType = { label: option.label, value: option.value }
+      setSelectedNote(selectedOption)
+      setSelectedFolder(null) // Reset folder selection
+      setSelectedHeading(null) // Reset heading selection
 
-    if (option && option.value !== '_TEMP PLACEHOLDER_') {
-      setHeadings([]) // Clear headings list
-      logDebug('TaskCreatorDialog', `Fetching headings for note: ${option.value}`)
-      sendActionToPlugin('getHeadings', { actionType: 'getHeadings', filename: option.value })
+      if (selectedOption.value !== '_TEMP PLACEHOLDER_') {
+        // Check if the selected note is a custom value (not in our predefined list)
+        const isCustomNote = !localNotes.some((note) => note.value === selectedOption.value)
+
+        if (isCustomNote) {
+          setFolders([]) // Clear folders list
+          setHeadings([]) // Clear headings list
+          logDebug('TaskCreatorDialog', `Fetching folders for custom note: ${selectedOption.value}`)
+          sendActionToPlugin('getFolders', { noteId: selectedOption.value })
+        } else {
+          // For predefined notes, fetch headings directly
+          setFolders([])
+          setHeadings([])
+          logDebug('TaskCreatorDialog', `Fetching headings for predefined note: ${selectedOption.value}`)
+          sendActionToPlugin('getHeadings', { noteId: selectedOption.value })
+        }
+      } else {
+        setFolders([])
+        setHeadings([{ label: 'TEMP HEADING', value: 'TEMP HEADING' }]) // Reset to placeholder
+      }
     } else {
-      setHeadings([{ label: 'TEMP HEADING', value: 'TEMP HEADING' }]) // Reset to placeholder
+      setSelectedNote(null)
+      setSelectedFolder(null)
+      setSelectedHeading(null)
+      setFolders([])
+      setHeadings([{ label: 'TEMP HEADING', value: 'TEMP HEADING' }])
     }
   }
 
@@ -168,6 +211,8 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
       type: isChecklist ? 'checklist' : 'open',
       filename: selectedNote?.value,
       heading: selectedHeading?.value,
+      folder: selectedFolder?.value,
+      isNewNote: selectedNote && !localNotes.some((note) => note.value === selectedNote.value),
     }
 
     logDebug('TaskCreatorDialog', 'Submitting form with data:', userInputObj)
@@ -182,15 +227,17 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
     }
   }
 
+  // Determine if folder should be visible (only for custom notes)
+  const isFolderVisible = selectedNote !== null && selectedNote.value !== '_TEMP PLACEHOLDER_'
   // Determine if heading should be visible
-  const isHeadingVisible = selectedNote !== null
+  const isHeadingVisible = selectedNote !== null && (!isFolderVisible || selectedFolder !== null)
 
   return (
     // $FlowFixMe[incompatible-type] - Flow doesn't recognize dialog element well
     <dialog ref={dialogRef} className={`task-creator-dialog-modal ${className}`} onClick={handleBackdropClick}>
       <div className="task-creator-dialog" style={style}>
         <div className="task-creator-dialog-header">
-          <h2>{title}</h2>
+          <h2>{taskTitle}</h2>
         </div>
 
         <div className="task-creator-dialog-content">
@@ -219,41 +266,61 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
 
           <DropdownSelect
             label="Note"
-            options={notes}
+            options={localNotes}
             value={selectedNote || { label: '', value: '' }}
             onChange={handleNoteSelect}
             allowFiltering={true}
             allowCustomValues={true}
             showClearButton={true}
-            defaultValue={defaultNote}
+            defaultValue={dynamicData?.defaultNote}
             onValidationError={(error) => {
               // Show error message under the dropdown
               setNoteError(error)
             }}
-            disabled={isLoading || notes.length === 0}
+            disabled={isLoading || localNotes.length === 0}
             compactDisplay={true}
             className="full-width-select"
             tabIndex={2}
           />
 
+          {isFolderVisible && (
+            <DropdownSelect
+              label="Folder"
+              options={localFolders}
+              value={selectedFolder || { label: '', value: '' }}
+              onChange={(option: OptionType | null) => setSelectedFolder(option)}
+              allowFiltering={true}
+              allowCustomValues={true}
+              showClearButton={true}
+              onValidationError={(error) => {
+                // Show error message under the dropdown
+                setFolderError(error)
+              }}
+              disabled={!selectedNote || localFolders.length === 0}
+              compactDisplay={true}
+              className="full-width-select"
+              tabIndex={3}
+            />
+          )}
+
           <div className={`heading-select-container ${isHeadingVisible ? 'visible' : ''}`}>
             <DropdownSelect
               label="Heading"
-              options={headings}
+              options={localHeadings}
               value={selectedHeading || { label: '', value: '' }}
               onChange={(option: OptionType | null) => setSelectedHeading(option)}
               allowFiltering={true}
               allowCustomValues={true}
               showClearButton={true}
-              defaultValue={defaultHeading}
+              defaultValue={dynamicData?.defaultHeading}
               onValidationError={(error) => {
                 // Show error message under the dropdown
                 setHeadingError(error)
               }}
-              disabled={!selectedNote || headings.length === 0}
+              disabled={!selectedNote || localHeadings.length === 0}
               compactDisplay={true}
               className="full-width-select"
-              tabIndex={3}
+              tabIndex={4}
             />
           </div>
         </div>

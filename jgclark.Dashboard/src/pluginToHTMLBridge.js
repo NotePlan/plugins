@@ -52,7 +52,7 @@ import {
   doSetNextReviewDate,
   doStartReviews,
 } from './projectClickHandlers'
-import { getNotes, getHeadings } from './dynamicDataClickHandlers'
+import { getNotes, getHeadings, getFolders } from './dynamicDataClickHandlers'
 import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickHandlers'
 import { scheduleAllOverdueOpenToToday, scheduleAllTodayTomorrow, scheduleAllYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
@@ -345,6 +345,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'getHeadings': {
         result = await getHeadings(data)
+        break
+      }
+      case 'getFolders': {
+        result = await getFolders(data)
         break
       }
       case 'commsBridgeTest': {

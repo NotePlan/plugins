@@ -273,6 +273,7 @@ export type TActionType =
   | 'evaluateString'
   | 'getNotes'
   | 'getHeadings'
+  | 'getFolders'
 
 export type TControlString =
   | 't'
@@ -316,6 +317,11 @@ export type MessageDataObject = {
   userInputObj?: TAnyObject,
   perspectiveName?: string,
   stringToEvaluate?: string,
+  isNewNote?: boolean,
+  heading?: string,
+  folder?: string,
+  type?: string,
+  content?: string,
 }
 
 /**
