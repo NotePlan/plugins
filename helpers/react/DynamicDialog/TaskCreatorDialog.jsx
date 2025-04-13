@@ -1,4 +1,9 @@
 // @flow
+/*
+ * TODO:
+ * - folder comes up all the time, but should only come up if this is a new note creation
+ */
+
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import InputBox from './InputBox'
 import DropdownSelect from './DropdownSelect'
