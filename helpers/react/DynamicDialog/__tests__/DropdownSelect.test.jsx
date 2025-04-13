@@ -13,14 +13,7 @@ describe.skip('DropdownSelect React test', () => {
 
     const handleChange = jest.fn()
 
-    render(
-      <DropdownSelect
-        label="Test Dropdown"
-        options={options}
-        value={options[0]}
-        onChange={handleChange}
-      />
-    )
+    render(<DropdownSelect label="Test Dropdown" options={options} value={options[0]} onChange={handleChange} />)
 
     // Check if the dropdown is rendered with the initial value
     expect(screen.getByDisplayValue('Option 1')).toBeInTheDocument()

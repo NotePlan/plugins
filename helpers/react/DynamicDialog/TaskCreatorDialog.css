@@ -111,13 +111,26 @@ dialog:has(.task-creator-dialog-modal) {
   width: 100%;
 }
 
-.task-creator-dialog .full-width-input .input-box-input,
-.task-creator-dialog .full-width-select .dropdown-select-input {
-  width: 100%;
-  height: 32px;
-  padding: 4px 8px;
+.task-creator-dialog .full-width-input .input-box-input {
   border: 1px solid var(--border-color, #ccc);
   border-radius: 4px;
+  height: 32px;
+  padding: 4px 8px;
+  width: 100%;
+}
+
+.task-creator-dialog .full-width-input .input-box-input.invalid {
+  border: 2px solid #f44336;
+}
+
+.task-creator-dialog .full-width-input .input-box-input:not(.invalid):focus {
+  border-color: var(--tint-color, #db9a8e);
+  outline: none;
+}
+
+.task-creator-dialog .full-width-input .input-box-input.invalid:focus {
+  border: 2px solid #f44336;
+  outline: none;
 }
 
 .task-creator-dialog .full-width-select .dropdown-select-input-container {
@@ -126,10 +139,7 @@ dialog:has(.task-creator-dialog-modal) {
 
 /* Validation message */
 .task-creator-dialog .validation-message {
-  text-align: center;
-  margin: 4px 20px 16px;
-  color: #f44336;
-  font-size: 0.8rem;
+  display: none;
 }
 
 /* Switch line adjustments */

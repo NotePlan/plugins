@@ -3,7 +3,7 @@
 // React component to show an HTML DropdownSelect control, with various possible settings.
 // Based on basic HTML controls, not a fancy React Component.
 //
-// Includes logic to either disable focus when isEditable=false,
+// Includes logic to either disable focus when allowFiltering=false,
 // and logic to only scroll if needed, plus an optional prop to disable scrolling altogether.
 // Last updated 2025-04-05 by @jgclark
 //--------------------------------------------------------------------------
@@ -31,6 +31,7 @@ type Styles = {
   option?: { [string]: mixed },
   indicator?: { [string]: mixed }, // Style for the indicator
   separator?: { [string]: mixed }, // Style for the separator
+  clearButton?: { [string]: mixed },
 }
 
 type DropdownSelectProps = {
@@ -57,7 +58,30 @@ type DropdownSelectProps = {
   noWrapOptions?: boolean,
   fixedWidth?: number,
   className?: string,
-  isEditable?: boolean,
+  /**
+   * Whether to allow typing to filter options
+   * Defaults to false
+   */
+  allowFiltering?: boolean,
+  /**
+   * Whether to allow submitting values not in the list
+   * Defaults to false
+   */
+  allowCustomValues?: boolean,
+  /**
+   * Whether to show a clear button when input has value
+   * Defaults to false
+   */
+  showClearButton?: boolean,
+  /**
+   * Default value to use when input is cleared
+   * Defaults to null
+   */
+  defaultValue?: Option | null,
+  /**
+   * Callback for validation errors
+   */
+  onValidationError?: (error: string) => void,
   /**
    * Whether to skip automatic scrolling logic entirely.
    * Defaults to false (meaning auto-scroll is active).
@@ -105,7 +129,11 @@ const mergeStyles = (baseStyles: { [string]: mixed }, overrideStyles: { [string]
  * @param {boolean} [props.noWrapOptions] - Whether to prevent options from wrapping.
  * @param {number} [props.fixedWidth] - Fixed width for the dropdown.
  * @param {string} [props.className] - Additional class names for the dropdown.
- * @param {boolean} [props.isEditable] - Whether the dropdown input is editable.
+ * @param {boolean} [props.allowFiltering] - Whether to allow typing to filter options.
+ * @param {boolean} [props.allowCustomValues] - Whether to allow submitting values not in the list.
+ * @param {boolean} [props.showClearButton] - Whether to show a clear button when input has value.
+ * @param {Option | null} [props.defaultValue] - Default value to use when input is cleared.
+ * @param {Function} [props.onValidationError] - Callback for validation errors.
  * @param {boolean} [props.disableAutoScroll] - Whether to skip the auto-scrolling logic.
  * @param {number} [props.tabIndex] - Tab index for the dropdown input.
  * @returns {React$Node} The rendered dropdown component.
@@ -124,31 +152,40 @@ const DropdownSelect = ({
   noWrapOptions = true,
   fixedWidth,
   className = '',
-  isEditable = false,
+  allowFiltering = false,
+  allowCustomValues = false,
+  showClearButton = false,
+  defaultValue = null,
+  onValidationError,
   disabled = false,
   disableAutoScroll = false,
   tabIndex,
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
-
   const normalizeOption: (option: string | Option) => Option = (option) => {
     return typeof option === 'string' ? { label: option, value: option } : option
   }
 
   const [isOpen, setIsOpen] = useState(false)
   const normalizedOptions: Array<Option> = useMemo(() => {
-    const normalized = options.map(normalizeOption)
+    // First filter out any empty options
+    const normalized = options.map(normalizeOption).filter((option) => option.label && option.value)
+
+    // Only add the current value if it's not empty and not already in the list
     if (value) {
       const normalizedValue = normalizeOption(value)
-      const exists = normalized.some((option) => option.value === normalizedValue.value)
-      if (!exists) {
-        normalized.unshift(normalizedValue)
+      if (normalizedValue.label && normalizedValue.value) {
+        const exists = normalized.some((option) => option.value === normalizedValue.value)
+        if (!exists) {
+          normalized.unshift(normalizedValue)
+        }
       }
     }
     return normalized
   }, [options, value])
-  const [selectedValue, setSelectedValue] = useState(value ? normalizeOption(value) : options[0] ? normalizeOption(options[0]) : { label: '', value: '' })
-  const [inputValue, setInputValue] = useState(selectedValue.label)
+  const [selectedValue, setSelectedValue] = useState<Option>(normalizedOptions[0] || { label: '', value: '' })
+  const [inputValue, setInputValue] = useState(selectedValue?.label || '')
+  const [isValueNotInList, setIsValueNotInList] = useState(false)
   const [calculatedWidth, setCalculatedWidth] = useState(fixedWidth || 200)
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
   const optionsRef = useRef<?ElementRef<'div'>>(null)
@@ -172,33 +209,32 @@ const DropdownSelect = ({
     setCalculatedWidth(width)
   }, [fixedWidth, normalizedOptions])
 
-  // Filter options based on input value only if editable
-  const filteredOptions = useMemo(() => {
-    if (!isEditable) return normalizedOptions
+  // Filter options based on input value only if allowFiltering is true
+  const filteredOptions: Array<Option> = useMemo(() => {
+    logDebug(`DropdownSelect`, `filteredOptions`, `inputValue=${inputValue} isValueNotInList=${String(isValueNotInList)} allowCustomValues=${String(allowCustomValues)}`)
+    if (!allowFiltering) return normalizedOptions
     if (!inputValue) return normalizedOptions
+
+    // First check if there's an exact match
+    const exactMatch = normalizedOptions.find((option) => option.label.toLowerCase() === inputValue.toLowerCase())
+
+    // If there's an exact match, only show that option
+    if (exactMatch) {
+      logDebug(`DropdownSelect`, `filteredOptions`, `Found exact match: ${exactMatch.label}`)
+      setIsValueNotInList(false)
+      return [exactMatch]
+    }
+
+    // If allowCustomValues is true and there are no matches, return empty array
+    if (allowCustomValues) {
+      logDebug(`DropdownSelect`, `filteredOptions`, `No matches found, setting isValueNotInList to true`)
+      setIsValueNotInList(true)
+      return []
+    }
+
+    // Otherwise, filter for partial matches
     return normalizedOptions.filter((option) => option.label.toLowerCase().includes(inputValue.toLowerCase()))
-  }, [inputValue, normalizedOptions, isEditable])
-
-  // Handle input change
-  const handleInputChange = (event: SyntheticInputEvent<HTMLInputElement>) => {
-    logDebug(`DropdownSelect`, `handleInputChange`, `isEditable: ${String(isEditable)}`)
-    if (isEditable) {
-      const newValue = event.target.value
-      setInputValue(newValue)
-      // Keep dropdown open while typing
-      setIsOpen(true)
-    }
-  }
-
-  // Handle input focus
-  const handleInputFocus = (event: SyntheticFocusEvent<HTMLInputElement>) => {
-    logDebug(`DropdownSelect`, `handleInputFocus`, `isEditable: ${String(isEditable)}`)
-    if (isEditable) {
-      setIsOpen(true)
-    } else {
-      event.preventDefault()
-    }
-  }
+  }, [inputValue, normalizedOptions, allowFiltering, allowCustomValues])
 
   // Helper function to safely normalize an option
   const safeNormalizeOption = (option: ?(string | Option)): Option => {
@@ -213,10 +249,75 @@ const DropdownSelect = ({
 
   // Update inputValue based on effectiveValue
   useEffect(() => {
-    if (!isEditable || !isOpen) {
+    logDebug(
+      `DropdownSelect`,
+      `useEffect[effectiveValue]`,
+      `effectiveValue=${JSON.stringify(effectiveValue)} allowFiltering=${String(allowFiltering)} isOpen=${String(isOpen)} isValueNotInList=${String(isValueNotInList)}`,
+    )
+    // Only update inputValue if we're not in filtering mode or if the dropdown is closed
+    // and we're not in the middle of typing a custom value
+    if ((!allowFiltering || !isOpen) && !isValueNotInList) {
+      logDebug(`DropdownSelect`, `useEffect[effectiveValue]`, `Setting inputValue to ${effectiveValue.label}`)
       setInputValue(effectiveValue.label)
     }
-  }, [effectiveValue, isEditable, isOpen])
+  }, [effectiveValue, allowFiltering, isOpen, isValueNotInList])
+
+  // Handle input blur
+  const handleInputBlur = (event: SyntheticFocusEvent<HTMLInputElement>) => {
+    logDebug(`DropdownSelect`, `handleInputBlur`, `inputValue=${inputValue} isValueNotInList=${String(isValueNotInList)} allowCustomValues=${String(allowCustomValues)}`)
+    // Don't call onChange on blur for custom values
+    // The value will be committed when Enter is pressed or an option is selected
+    // But maintain the input value and clear button visibility
+    if (allowCustomValues && inputValue) {
+      logDebug(`DropdownSelect`, `handleInputBlur`, `Setting selectedValue to custom value: ${inputValue}`)
+      setSelectedValue({ label: inputValue, value: inputValue })
+    }
+  }
+
+  // Handle input change
+  const handleInputChange = (event: SyntheticInputEvent<HTMLInputElement>) => {
+    const newValue = event.target.value
+    logDebug(`DropdownSelect`, `handleInputChange`, `newValue=${newValue} isValueNotInList=${String(isValueNotInList)}`)
+    setInputValue(newValue)
+
+    if (allowFiltering) {
+      setIsOpen(true)
+    }
+
+    // If allowCustomValues is true, update the input value but don't call onChange yet
+    if (allowCustomValues) {
+      // Only update the selected value if it's different from the current value
+      if (newValue !== selectedValue?.label) {
+        logDebug(`DropdownSelect`, `handleInputChange`, `Setting selectedValue to custom value: ${newValue}`)
+        setSelectedValue({ label: newValue, value: newValue })
+        // Don't call onChange here - it will be called when the user commits the value
+      }
+    }
+  }
+
+  // Handle input focus
+  const handleInputFocus = (event: SyntheticFocusEvent<HTMLInputElement>) => {
+    logDebug(`DropdownSelect`, `handleInputFocus`, `inputValue=${inputValue} isValueNotInList=${String(isValueNotInList)}`)
+    if (allowFiltering) {
+      setIsOpen(true)
+      // Restore custom value state when focus returns
+      if (inputValue && !normalizedOptions.some((option) => option.label.toLowerCase() === inputValue.toLowerCase())) {
+        logDebug(`DropdownSelect`, `handleInputFocus`, `Setting isValueNotInList to true for value: ${inputValue}`)
+        setIsValueNotInList(true)
+      }
+    } else {
+      event.preventDefault()
+    }
+  }
+
+  // Handle clear button click
+  const handleClear = () => {
+    logDebug(`DropdownSelect`, `handleClear`, `Clearing input value and resetting state`)
+    setInputValue('')
+    setSelectedValue(normalizedOptions[0])
+    setIsValueNotInList(false)
+    onChange({ label: '', value: '' })
+  }
 
   // Handle option click
   const handleOptionClick = (option: Option, e?: MouseEvent | KeyboardEvent) => {
@@ -224,9 +325,9 @@ const DropdownSelect = ({
     if (e) {
       e.stopPropagation()
     }
-    logDebug(`DropdownSelect`, `option click: ${option.label}`)
     setSelectedValue(option)
     setInputValue(option.label)
+    setIsValueNotInList(false)
     onChange({ label: option.label, value: option.value })
     setIsOpen(false)
     setHighlightedIndex(-1)
@@ -253,24 +354,18 @@ const DropdownSelect = ({
   // Handlers
   //----------------------------------------------------------------------
 
-  const toggleDropdown = (e: MouseEvent) => {
-    logDebug(`DropdownSelect`, `toggleDropdown`, `isOpen: ${String(isOpen)}`)
-    // Stop event from bubbling up to prevent clickOutside handler from firing
-    if (e) {
-      e.stopPropagation()
-    }
-    // Only toggle closed -> open, never open -> closed via click
-    if (!isOpen) {
-      setIsOpen(true)
-    }
-  }
-
   const handleClickOutside = (event: MouseEvent) => {
-    logDebug(`DropdownSelect`, `handleClickOutside`, `isOpen: ${String(isOpen)}`)
+    logDebug(`DropdownSelect`, `handleClickOutside`, `isOpen: ${String(isOpen)} inputValue=${inputValue}`)
     const target = event.target
+    // Check if the click was on the arrow or clear button
+    if (target instanceof Element && (target.closest('.dropdown-select-arrow') || target.closest('.dropdown-select-clear'))) {
+      return
+    }
     if (dropdownRef.current && target instanceof Node && !dropdownRef.current.contains(target)) {
       logDebug(`handleClickOutside, am outside, making false`)
       setIsOpen(false)
+      setHighlightedIndex(-1)
+      // Don't reset isValueNotInList or inputValue here
     }
   }
 
@@ -287,6 +382,17 @@ const DropdownSelect = ({
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [isOpen])
+
+  const toggleDropdown = (e: MouseEvent) => {
+    logDebug(`DropdownSelect`, `toggleDropdown`, `isOpen: ${String(isOpen)}`)
+    // Stop event from bubbling up to prevent clickOutside handler from firing
+    if (e) {
+      e.stopPropagation()
+      e.preventDefault()
+    }
+    // Toggle the dropdown state
+    setIsOpen(!isOpen)
+  }
 
   useEffect(() => {
     if (value !== undefined) {
@@ -357,27 +463,15 @@ const DropdownSelect = ({
         e.preventDefault()
         if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
           const option = filteredOptions[highlightedIndex]
-          setSelectedValue(option)
-          setInputValue(option.label)
-          onChange({ label: option.label, value: option.value })
+          handleOptionClick(option, e)
+        } else if (allowCustomValues && inputValue) {
+          // If no option is highlighted but we have a custom value, commit it
+          onChange({ label: inputValue, value: inputValue })
           setIsOpen(false)
-          setHighlightedIndex(-1)
-
-          // Focus next tabbable element after animation completes
-          setTimeout(() => {
-            const allTabbable = document.querySelectorAll('input:not([disabled]), select:not([disabled]), button:not([disabled])')
-            const currentIndex = Array.from(allTabbable).findIndex((el) => el === inputRef?.current)
-            if (currentIndex >= 0 && currentIndex < allTabbable.length - 1) {
-              const nextElement = allTabbable[currentIndex + 1]
-              if (nextElement instanceof HTMLElement) {
-                nextElement.focus()
-              }
-            }
-          }, 350) // Wait for animation
         }
         break
       case ' ':
-        if (!isEditable) {
+        if (!allowFiltering) {
           e.preventDefault()
         }
         break
@@ -405,27 +499,38 @@ const DropdownSelect = ({
       <label className="dropdown-select-label" style={mergeStyles({}, styles.label)}>
         {label}
       </label>
-      <div className="dropdown-select-wrapper" style={mergeStyles({}, styles.wrapper)} onClick={disabled ? undefined : toggleDropdown}>
+      <div className="dropdown-select-wrapper" style={mergeStyles({}, styles.wrapper)}>
         <div className="dropdown-select-input-container" style={mergeStyles({}, styles.inputContainer || {})}>
           {showIndicatorOptionProp && <span style={dot(shouldShowIndicator, styles.indicator || {})} />}
           <input
             type="text"
-            className="dropdown-select-input"
+            className={`dropdown-select-input ${isValueNotInList ? 'custom-value' : ''}`}
             value={inputValue}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
             onKeyDown={handleKeyDown}
             ref={inputRef}
             disabled={disabled}
-            readOnly={!isEditable}
+            readOnly={!allowFiltering}
             style={mergeStyles({ paddingLeft: showIndicatorOptionProp ? '24px' : '8px' }, styles.input)}
             tabIndex={tabIndex}
           />
-          <span className="dropdown-select-arrow" style={mergeStyles({}, styles.arrow)}>
+          {isValueNotInList && (
+            <span className="dropdown-select-custom-indicator" title="Custom value">
+              +
+            </span>
+          )}
+          {showClearButton && inputValue && (
+            <button className="dropdown-select-clear" onClick={handleClear} type="button" style={mergeStyles({}, styles.clearButton)}>
+              ×
+            </button>
+          )}
+          <span className="dropdown-select-arrow" style={mergeStyles({}, styles.arrow)} onClick={toggleDropdown}>
             &#9662;
           </span>
         </div>
-        {isOpen && (
+        {isOpen && filteredOptions.length > 0 && (
           <div
             className="dropdown-select-dropdiv"
             ref={optionsRef}
@@ -447,7 +552,10 @@ const DropdownSelect = ({
                 <div
                   key={`${option.value}-${i}`}
                   className={`dropdown-select-option ${i === highlightedIndex ? 'highlighted' : ''}`}
-                  onClick={(e) => handleOptionClick(option, e)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleOptionClick(option, e)
+                  }}
                   style={mergeStyles(
                     {
                       padding: '4px 8px',

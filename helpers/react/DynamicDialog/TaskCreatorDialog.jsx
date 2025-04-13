@@ -7,6 +7,12 @@ import Switch from './Switch'
 import { logDebug, clo } from '@helpers/react/reactDev'
 import './TaskCreatorDialog.css'
 
+type OptionType = {
+  label: string,
+  value: string,
+  [string]: any,
+}
+
 /**
  * @typedef {Object} TaskCreatorDialogProps
  * @property {string} title - The title of the dialog
@@ -42,10 +48,13 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
   const [isChecklist, setIsChecklist] = useState(false)
   const [selectedNote, setSelectedNote] = useState<OptionType | null>(null)
   const [selectedHeading, setSelectedHeading] = useState<OptionType | null>(null)
-  //FIXME: Remove placeholder notes and headings
   const [notes, setNotes] = useState<Array<OptionType>>([{ label: 'TEMP PLACEHOLDER', value: '_TEMP PLACEHOLDER_' }])
+  const [defaultNote, setDefaultNote] = useState<OptionType | null>(null)
   const [headings, setHeadings] = useState<Array<OptionType>>([{ label: 'TEMP HEADING', value: 'TEMP HEADING' }])
-  const [isLoading, setIsLoading] = useState(false) // FIXME: Change this back to true
+  const [defaultHeading, setDefaultHeading] = useState<OptionType | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [noteError, setNoteError] = useState<string | null>(null)
+  const [headingError, setHeadingError] = useState<string | null>(null)
 
   // Open the modal dialog when component mounts
   useEffect(() => {
@@ -141,11 +150,12 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
     setSelectedNote(option)
     setSelectedHeading(null) // Reset heading selection
 
-    if (option && option.value !== '_TEMP PLACEHOLDER_') setHeadings([]) // Clear headings list
-
-    if (option?.value) {
+    if (option && option.value !== '_TEMP PLACEHOLDER_') {
+      setHeadings([]) // Clear headings list
       logDebug('TaskCreatorDialog', `Fetching headings for note: ${option.value}`)
       sendActionToPlugin('getHeadings', { actionType: 'getHeadings', filename: option.value })
+    } else {
+      setHeadings([{ label: 'TEMP HEADING', value: 'TEMP HEADING' }]) // Reset to placeholder
     }
   }
 
@@ -210,9 +220,16 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
           <DropdownSelect
             label="Note"
             options={notes}
-            value={selectedNote}
+            value={selectedNote || { label: '', value: '' }}
             onChange={handleNoteSelect}
-            isEditable={true}
+            allowFiltering={true}
+            allowCustomValues={true}
+            showClearButton={true}
+            defaultValue={defaultNote}
+            onValidationError={(error) => {
+              // Show error message under the dropdown
+              setNoteError(error)
+            }}
             disabled={isLoading || notes.length === 0}
             compactDisplay={true}
             className="full-width-select"
@@ -223,9 +240,16 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
             <DropdownSelect
               label="Heading"
               options={headings}
-              value={selectedHeading}
-              isEditable={true}
+              value={selectedHeading || { label: '', value: '' }}
               onChange={(option: OptionType | null) => setSelectedHeading(option)}
+              allowFiltering={true}
+              allowCustomValues={true}
+              showClearButton={true}
+              defaultValue={defaultHeading}
+              onValidationError={(error) => {
+                // Show error message under the dropdown
+                setHeadingError(error)
+              }}
               disabled={!selectedNote || headings.length === 0}
               compactDisplay={true}
               className="full-width-select"

@@ -131,7 +131,9 @@ const InputBox = ({
             ref={inputRefToUse} // Use the appropriate ref
             type={inputType}
             readOnly={readOnly}
-            className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''} ${isNumberType && (step === undefined || step === 0) ? 'hide-step-buttons' : ''}`}
+            className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''} ${isNumberType && (step === undefined || step === 0) ? 'hide-step-buttons' : ''} ${
+              validationError ? 'invalid' : ''
+            }`}
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
