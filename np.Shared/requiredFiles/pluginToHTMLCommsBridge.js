@@ -21,6 +21,50 @@
  */
 
 /**
+ * Mock data store for simulating plugin responses when debugging in the browser
+ * Specify the returnVarName (in pluginData.dynamicData) and returnData to be returned for each command
+ * @type {Object.<string, {returnVarName: string, returnData: Array<{label: string, value: string}>}>}
+ */
+const MOCK_DATA = {
+  getNotes: {
+    returnVarName: 'getNotesResults',
+    returnData: [
+      { label: 'Note 1', value: 'note1' },
+      { label: 'Note 2', value: 'note2' },
+      { label: 'Note 3', value: 'note3' },
+    ],
+  },
+  getFolders: {
+    returnVarName: 'getFoldersResults',
+    returnData: [
+      { label: 'Folder 1', value: 'folder1' },
+      { label: 'Folder 2', value: 'folder2' },
+      { label: 'Folder 3', value: 'folder3' },
+    ],
+  },
+  getHeadings: {
+    returnVarName: 'getHeadingsResults',
+    returnData: [
+      { label: 'Heading 1', value: 'heading1' },
+      { label: 'Heading 2', value: 'heading2' },
+      { label: 'Heading 3', value: 'heading3' },
+    ],
+  },
+}
+
+/**
+ * Load mock data only when in browser environment and simulation is needed
+ * @param {string} dataType - The type of data to load (e.g., 'getNotes', 'getFolders')
+ * @returns {{returnVarName: string, returnData: Array<{label: string, value: string}>}|null} The mock data for the specified type
+ */
+const getMockData = (dataType) => {
+  if (!window.webkit && MOCK_DATA[dataType]) {
+    return MOCK_DATA[dataType]
+  }
+  return null
+}
+
+/**
  * Generic callback bridge from HTML to the plugin. We use this to generate the convenience function sendMessageToPlugin(args)
  * This command be used to run any plugin command, but it's better to use one single command: sendMessageToPlugin(args) for everything
  * @param {string} commandName
@@ -40,7 +84,34 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
       id: '1',
     })
   } else {
+    simulateDynamicData(commandArgs)
     console.log(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
+  }
+}
+
+/**
+ * Debugging function to simulate dynamic data responses from the plugin in the browser window
+ * @param {*} _commandArgs
+ */
+function simulateDynamicData(_commandArgs) {
+  const commandName = _commandArgs[0]
+  const pluginID = _commandArgs[1]
+  const commandArgs = _commandArgs.slice(2)
+  // make sure globalSharedData.pluginData.dynamicData exists, if not, create all parts of it
+  if (!globalSharedData.pluginData) {
+    globalSharedData.pluginData = {}
+  }
+  if (!globalSharedData.pluginData.dynamicData) {
+    globalSharedData.pluginData.dynamicData = {}
+  }
+
+  const mockData = getMockData(commandName)
+  if (mockData) {
+    globalSharedData.pluginData.dynamicData = {
+      ...globalSharedData.pluginData.dynamicData,
+      [mockData.returnVarName]: mockData.returnData,
+    }
+    console.log(`Simulated ${commandName} data loaded into dynamicData[${mockData.returnVarName}]:`, globalSharedData.pluginData.dynamicData[mockData.returnVarName])
   }
 }
 

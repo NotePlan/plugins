@@ -93,7 +93,6 @@ dialog:has(.task-creator-dialog-modal) {
   flex: 0 0 80px;
   color: var(--text-color, #333);
   font-size: 14px;
-  line-height: 32px;
 }
 
 .task-creator-dialog .input-box-container-compact,
@@ -131,6 +130,10 @@ dialog:has(.task-creator-dialog-modal) {
 .task-creator-dialog .full-width-input .input-box-input.invalid:focus {
   border: 2px solid #f44336;
   outline: none;
+}
+
+.task-creator-dialog .dropdown-select-input-container {
+  background-color: var(--background-color, #fff);
 }
 
 .task-creator-dialog .full-width-select .dropdown-select-input-container {
@@ -177,10 +180,6 @@ dialog:has(.task-creator-dialog-modal) {
 }
 
 .task-creator-dialog .full-width-select .dropdown-select-input {
-  width: 100%;
-}
-
-.task-creator-dialog .full-width-select .dropdown-select-input-container {
   width: 100%;
 }
 

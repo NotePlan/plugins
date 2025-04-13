@@ -212,7 +212,6 @@ const DropdownSelect = ({
 
   // Filter options based on input value only if allowFiltering is true
   const filteredOptions: Array<Option> = useMemo(() => {
-    logDebug(`DropdownSelect`, `filteredOptions`, `inputValue=${inputValue} isValueNotInList=${String(isValueNotInList)} allowCustomValues=${String(allowCustomValues)}`)
     if (!allowFiltering) return normalizedOptions
     if (!inputValue) return normalizedOptions
 
@@ -251,7 +250,6 @@ const DropdownSelect = ({
     // Only update inputValue if we're not in filtering mode or if the dropdown is closed
     // and we're not in the middle of typing a custom value
     if ((!allowFiltering || !isOpen) && !isValueNotInList) {
-      logDebug(`DropdownSelect`, `useEffect[effectiveValue]`, `Setting inputValue to ${effectiveValue.label}`)
       setInputValue(effectiveValue.label)
     }
   }, [effectiveValue, allowFiltering, isOpen, isValueNotInList])

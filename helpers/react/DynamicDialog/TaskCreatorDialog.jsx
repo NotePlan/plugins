@@ -55,12 +55,14 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
   const [selectedFolder, setSelectedFolder] = useState<OptionType | null>(null)
   const [selectedHeading, setSelectedHeading] = useState<OptionType | null>(dynamicData?.defaultHeading || null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isNewNoteTitle, setIsNewNoteTitle] = useState(false)
+  const [isHeadingSelectVisible, setIsHeadingSelectVisible] = useState(false)
   const [noteError, setNoteError] = useState<string | null>(null)
   const [folderError, setFolderError] = useState<string | null>(null)
   const [headingError, setHeadingError] = useState<string | null>(null)
   const [localNotes, setNotes] = useState<Array<OptionType>>(dynamicData?.getNotesResults || [{ label: 'TEMP PLACEHOLDER', value: '_TEMP PLACEHOLDER_' }])
   const [localFolders, setFolders] = useState<Array<OptionType>>(dynamicData?.getFoldersResults || [{ label: 'TEMP FOLDER', value: '_TEMP FOLDER_' }])
-  const [localHeadings, setHeadings] = useState<Array<OptionType>>(dynamicData?.getHeadingsResults || [{ label: 'TEMP HEADING', value: 'TEMP HEADING' }])
+  const [localHeadings, setLocalHeadings] = useState<Array<OptionType>>(dynamicData?.getHeadingsResults || [{ label: 'TEMP HEADING', value: 'TEMP HEADING' }])
 
   // Open the modal dialog when component mounts
   useEffect(() => {
@@ -136,7 +138,7 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
   useEffect(() => {
     if (dynamicData?.getNotesResults) {
       logDebug('TaskCreatorDialog', 'Notes received from plugin')
-      clo(dynamicData.getNotesResults, 'Notes data received:')
+      clo(dynamicData.getNotesResults.slice(0, 5), 'Notes data received (first 5):')
       setNotes(dynamicData.getNotesResults)
       setIsLoading(false)
     }
@@ -147,7 +149,8 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
     if (dynamicData?.getHeadingsResults) {
       logDebug('TaskCreatorDialog', 'Headings received from plugin')
       clo(dynamicData.getHeadingsResults)
-      setHeadings(dynamicData.getHeadingsResults)
+      setLocalHeadings(dynamicData.getHeadingsResults)
+      setIsHeadingSelectVisible(true)
     }
   }, [dynamicData])
 
@@ -180,29 +183,63 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
       if (selectedOption.value !== '_TEMP PLACEHOLDER_') {
         // Check if the selected note is a custom value (not in our predefined list)
         const isCustomNote = !localNotes.some((note) => note.value === selectedOption.value)
-
+        setIsNewNoteTitle(isCustomNote)
         if (isCustomNote) {
           setFolders([]) // Clear folders list
-          setHeadings([]) // Clear headings list
+          setLocalHeadings([]) // Clear headings list
           logDebug('TaskCreatorDialog', `Fetching folders for custom note: ${selectedOption.value}`)
-          sendActionToPlugin('getFolders', { noteId: selectedOption.value })
+          sendActionToPlugin('getFolders', {})
+          setIsHeadingSelectVisible(false)
         } else {
           // For predefined notes, fetch headings directly
           setFolders([])
-          setHeadings([])
+          setLocalHeadings([])
+          setIsNewNoteTitle(false)
+          setIsHeadingSelectVisible(true)
           logDebug('TaskCreatorDialog', `Fetching headings for predefined note: ${selectedOption.value}`)
-          sendActionToPlugin('getHeadings', { noteId: selectedOption.value })
+          sendActionToPlugin('getHeadings', { filename: selectedOption.value })
         }
       } else {
         setFolders([])
-        setHeadings([{ label: 'TEMP HEADING', value: 'TEMP HEADING' }]) // Reset to placeholder
+        setLocalHeadings([{ label: 'TEMP HEADING', value: 'TEMP HEADING' }]) // Reset to placeholder
       }
     } else {
       setSelectedNote(null)
       setSelectedFolder(null)
       setSelectedHeading(null)
       setFolders([])
-      setHeadings([{ label: 'TEMP HEADING', value: 'TEMP HEADING' }])
+      setIsNewNoteTitle(false)
+      setLocalHeadings([{ label: 'TEMP HEADING', value: 'TEMP HEADING' }])
+      setIsHeadingSelectVisible(false)
+    }
+  }
+
+  // Handle folder selection
+  const handleFolderSelect = (option: OptionType | null) => {
+    if (option && typeof option.label === 'string' && typeof option.value === 'string') {
+      const selectedOption: OptionType = { label: option.label, value: option.value }
+      setSelectedFolder(selectedOption)
+      if (isNewNoteTitle) {
+        setLocalHeadings([
+          {
+            label: '⏫ (top of note)',
+            value: '⏫ (top of note)',
+          },
+        ])
+        setIsHeadingSelectVisible(true)
+      }
+    } else {
+      setSelectedFolder(null)
+    }
+  }
+
+  // Handle heading selection
+  const handleHeadingSelect = (option: OptionType | null) => {
+    if (option && typeof option.label === 'string' && typeof option.value === 'string') {
+      const selectedOption: OptionType = { label: option.label, value: option.value }
+      setSelectedHeading(selectedOption)
+    } else {
+      setSelectedHeading(null)
     }
   }
 
@@ -230,11 +267,6 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
       handleSubmit()
     }
   }
-
-  // Determine if folder should be visible (only for custom notes)
-  const isFolderVisible = selectedNote !== null && selectedNote.value !== '_TEMP PLACEHOLDER_'
-  // Determine if heading should be visible
-  const isHeadingVisible = selectedNote !== null && (!isFolderVisible || selectedFolder !== null)
 
   return (
     // $FlowFixMe[incompatible-type] - Flow doesn't recognize dialog element well
@@ -287,17 +319,16 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
             tabIndex={2}
           />
 
-          {isFolderVisible && (
+          {isNewNoteTitle && (
             <DropdownSelect
               label="Folder"
               options={localFolders}
               value={selectedFolder || { label: '', value: '' }}
-              onChange={(option: OptionType | null) => setSelectedFolder(option)}
+              onChange={handleFolderSelect}
               allowFiltering={true}
               allowCustomValues={true}
               showClearButton={true}
               onValidationError={(error) => {
-                // Show error message under the dropdown
                 setFolderError(error)
               }}
               disabled={!selectedNote || localFolders.length === 0}
@@ -307,18 +338,17 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
             />
           )}
 
-          <div className={`heading-select-container ${isHeadingVisible ? 'visible' : ''}`}>
+          {isHeadingSelectVisible && (
             <DropdownSelect
-              label="Heading"
+              label="Under Heading"
               options={localHeadings}
               value={selectedHeading || { label: '', value: '' }}
-              onChange={(option: OptionType | null) => setSelectedHeading(option)}
+              onChange={handleHeadingSelect}
               allowFiltering={true}
               allowCustomValues={true}
               showClearButton={true}
               defaultValue={dynamicData?.defaultHeading}
               onValidationError={(error) => {
-                // Show error message under the dropdown
                 setHeadingError(error)
               }}
               disabled={!selectedNote || localHeadings.length === 0}
@@ -326,9 +356,8 @@ const TaskCreatorDialog = ({ title, onSubmit, onCancel, sendActionToPlugin, dyna
               className="full-width-select"
               tabIndex={4}
             />
-          </div>
+          )}
         </div>
-
         <div className="task-creator-dialog-footer">
           <Button label="Cancel" value="cancel" onClick={onCancel} className="task-creator-dialog-button PCButton" />
           <Button label="Create" value="submit" onClick={handleSubmit} className="task-creator-dialog-button PCButton default-button" disabled={!taskText.trim()} />
