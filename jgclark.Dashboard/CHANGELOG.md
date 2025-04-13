@@ -7,11 +7,14 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: ^⌥s triggers the search bar
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
  -->
-## [2.3.0.a1] 2025-04-???
+## [2.3.0.a1] 2025-04-13
 ### New
 - wired up the tagMentionCache to changes in perspectives, and improved logging for it
+- new FFlag_ShowSectionTimings: Show generation timings in section headers for non-calendar sections.
+- new FFlag_TagCacheOnlyForOpenItems: Tag Cache only tracks open tasks/checklists. Need to issue /generateTagMentionCache after changing this setting.
 ### Changed
 - changed tagMentionCache and supporting functions to use a simpler data structure
+- updated the Diagnostics file to show a summary of the tagMentionCache
 ### Fixed
 - dashboardSettings not having defaults set when the default was false
 

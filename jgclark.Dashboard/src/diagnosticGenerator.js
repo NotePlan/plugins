@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate diagnostics file for Dashboard plugin to help with debugging
-// Last updated for v2.1.9
+// Last updated for v2.3.0.a1
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -13,11 +13,11 @@ import {
 } from './dashboardHelpers'
 import { logPerspectives, logPerspectiveNames, getActivePerspectiveName, getPerspectiveSettings } from './perspectiveHelpers'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
+import { generateTagMentionCacheSummary } from './tagMentionCache'
 import type { TPerspectiveDef } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getOrMakeNote } from '@helpers/note'
-import { showMessage, showMessageYesNo } from '@helpers/userInput'
-
+import { showMessageYesNo } from '@helpers/userInput'
 //-----------------------------------------------------------------
 
 const diagnosticsNoteFilename = 'diagnostics-for-dashboard.md'
@@ -88,6 +88,11 @@ export async function generateDiagnosticsFile() {
     output.push('```json')
     output.push(JSON.stringify(perspectiveDefs, null, 2))
     output.push('```')
+
+    if (ds.FFlag_UseTagCache) {
+      output.push('')
+      output.push(generateTagMentionCacheSummary())
+    }
 
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
     const outputNote = await getOrMakeNote(diagnosticsNoteTitle, '')

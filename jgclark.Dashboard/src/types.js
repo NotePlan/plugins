@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-04-09 for v2.2.0.a12, @jgclark
+// Last updated 2025-04-13 for v2.3.0.a1, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -26,17 +26,21 @@ export type TNotePlanSettings = {
  */
 export type TDashboardSettings = {
   /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES */
-  // Note: add all of these to the list of items in cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
+  // Note: add all of these to the list of items in perspectiveHelpers::cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
   usePerspectives: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
-  FFlag_UseTagCache?: boolean,
-  FFlag_ShowSearchPanel?: boolean,
   // searchSettings?: TSearchOptions, // an object holding a number of settings TODO: add from 2.3.0
   // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings
+
+  /* FEATURE FLAGS - also globals, and automatically removed from perspectiveSettings */
   FFlag_DebugPanel?: boolean, // to show debug pane
-  FFlag_ShowTestingPanel?: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
+  FFlag_ShowSearchPanel?: boolean,
+  FFlag_ShowSectionTimings?: boolean,
+  FFlag_ShowTestingPanel?: boolean,
+  FFlag_UseTagCache?: boolean,
+  FFlag_TagCacheOnlyForOpenItems?: boolean,
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
   defaultFileExtension?: string,
