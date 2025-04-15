@@ -7,6 +7,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: ^⌥s triggers the search bar
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
  -->
+## [2.2.1] 2025-04-???
+### New
+- you can now order results in Tag and Overdue sections by due date, as well as by the existing options (for @LauraH)
+
 ## [2.2.0] 2025-04-11
 ### New
 - Search section. Click on the new icon in the header and a small search bar opens up, where you can type a term to search for open tasks and checklists in regular or calendar notes. This uses the extended syntax from my separate [Search Extensions plugin](https://noteplan.co/plugins/jgclark.SearchExtensions/) to allow more complex searches than NotePlan natively allows.  The Search Section stays until either you manually refresh the dashboard, or you click the close `[x]` button. This means you can edit the items like any other section contents, and also use Interactive Processing.

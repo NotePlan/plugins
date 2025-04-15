@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-04-10 for v2.2.0.a13
+// Last updated 2025-04-15 for v2.2.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -28,13 +28,15 @@ import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
 import { filterOutParasInExcludeFolders, isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
+import { getFirstDateInPeriod } from '@helpers/NPdateTime'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import { isAChildPara } from '@helpers/parentsAndChildren'
+import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { getStartTimeObjFromParaContent, getTimeBlockString, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
-import { isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
+import { hasScheduledDate, isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Settings
@@ -206,6 +208,23 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         const anyChildren = p.children()
         const hasChild = anyChildren && anyChildren.length > 0
         const isAChild = isAChildPara(p, note)
+        let dueDateStr = 'none'
+        const hasDueDate = hasScheduledDate(p.content)
+        if (hasDueDate) {
+          const dueDateMatch = p.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE)
+          if (dueDateMatch) {
+            dueDateStr = getFirstDateInPeriod(dueDateMatch[0], 'day')
+          }
+        } else {
+          // If this is from a calendar note, then use that date instead
+          if (note.type === 'Calendar') {
+            const dueDate = getFirstDateInPeriod(note.title, 'day')
+            if (dueDate) {
+              dueDateStr = dueDate
+            }
+          }
+        }
+        // logDebug('makeDashboardParas', `dueDateStr: ${dueDateStr} in note ${note.filename}`)
 
         // Note: debugging why sometimes hasChild is wrong
         // TODO(later): remove this debugging
@@ -236,11 +255,11 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           indentLevel: p.indents, // TEST: not returning correct indents at times?
           lineIndex: p.lineIndex,
           priority: getNumericPriorityFromPara(p),
-          // timeStr: startTime,
           startTime: startTimeStr,
           changedDate: note?.changedDate,
           hasChild: hasChild,
           isAChild: isAChild,
+          dueDate: dueDateStr,
         }
       } else {
         logWarn('makeDashboardParas', `No note found for para {${p.content}}`)
