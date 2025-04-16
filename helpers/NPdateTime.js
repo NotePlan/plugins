@@ -880,7 +880,7 @@ export function getYearData(dateIn: string | Date = new Date(), offsetIncrement:
 export function getFirstDateInPeriod(NPDateString: string): string {
   try {
     let firstDateStr = ''
-    if (NPDateString === 'today') {
+    if (NPDateString === 'today' || NPDateString === '>today') {
       firstDateStr = todaysDateISOString
     } else if (isDailyDateStr(NPDateString)) {
       logDebug('getFirstDateInPeriod', `'${NPDateString}' was already a day date`)

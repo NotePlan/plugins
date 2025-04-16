@@ -7,9 +7,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: ^⌥s triggers the search bar
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
  -->
-## [2.2.1] 2025-04-???
-### New
-- you can now order results in Tag and Overdue sections by due date, as well as by the existing options (for @LauraH)
+## [2.2.1] 2025-04-16
+### Changed
+- You can now order results in Tag and Overdue sections by due date, as well as by the existing options (for @LauraH)
+- Tweak layout of text & stop overscrolling behaviour under an open dialog
 
 ## [2.2.0] 2025-04-11
 ### New
