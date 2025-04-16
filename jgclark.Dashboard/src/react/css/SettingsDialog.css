@@ -1,5 +1,5 @@
 /* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
-/* Last updated for v2.2.0.a10 */
+/* Last updated 2025-04-16 for v2.2.1 by @jgclark */
 
 /* Style for the settings dialog */
 .settings-dialog {
@@ -329,15 +329,17 @@
 
 /* Ensure the settings dialog content is hidden when closed */
 .settings-dialog-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem; /* down from 1rem to give more control elsewhere */
-    background-color: var(--bg-mid-color);
-    padding: 0.75rem 0.9rem;
-    border-radius: 8px;
-    overflow-y: auto;
-    max-height: 85vh;
-    margin-bottom: 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem; /* down from 1rem to give more control elsewhere */
+	background-color: var(--bg-mid-color);
+	padding: 0.75rem 0.9rem;
+	border-radius: 8px;
+	max-height: 85vh;
+	margin-bottom: 10px;
+	overflow-y: auto;
+	/* Prevent over-scrolling in main window when dialog is open */
+    overscroll-behavior: contain;
 }
 
 

@@ -59,7 +59,8 @@
 	/* a bit smaller */
 	font-size: 0.9rem;
 	padding-top: 0.1rem;
-
+	/* Ensure we don't get a single word orphan on a line. Not sure if it is supported in NotePlan's version of Safari. */
+	text-wrap: pretty;
 }
 
 /* If very narrow -- for small iPhone drop .sectionDescription */
@@ -109,6 +110,8 @@
 	border-bottom: 0px;
 	break-inside: avoid;
 	line-height: 1.2rem;
+	/* Ensure we don't get a single word orphan on a line. Not sure if it is supported in NotePlan's version of Safari. */
+	text-wrap: pretty;
 }
 
 /* If rather narrow, slide [items] under [info] */

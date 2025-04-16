@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2025-04-05 for v2.2.0.a10 by @jgclark */
+/* Last updated 2025-04-16 for v2.2.1 by @jgclark */
 
 :root {	
 	/* font-size: 16px; this works */
@@ -18,6 +18,8 @@ html {
 	--itemIndentWidth: 1.5rem;
 	--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%); /* for subtle colouring - not yet used */
 	--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%); /* for subtle colouring - not yet used */
+	/* Add a gutter to the scrollbar to prevent it from overlapping with the content. Available in Safari, but not sure when it becomes available in NotePlan. */
+	scrollbar-gutter: stable;
 }
 
 body {
