@@ -7,7 +7,7 @@ import { simpleFormatter, DataStore /* Note, mockWasCalledWithString, Paragraph 
 beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
   global.DataStore = DataStore
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
 describe('search.js tests', () => {
@@ -49,7 +49,7 @@ describe('search.js tests', () => {
       expect(result).toEqual(false)
     })
     test('should not match "Can do Simply Health claim for hospital nights" to array ["@Home","Hospital"]', () => {
-      const result = s.caseInsensitiveIncludes('Can do Simply Health claim for hospital nights', ["@Home", "Hospital"])
+      const result = s.caseInsensitiveIncludes('Can do Simply Health claim for hospital nights', ['@Home', 'Hospital'])
       expect(result).toEqual(false)
     })
   })
@@ -93,7 +93,7 @@ describe('search.js tests', () => {
     })
     // Note: Different outcome from above function
     test('should match "Can do Simply Health claim for hospital nights" to array ["@Home","Hospital"]', () => {
-      const result = s.caseInsensitiveSubstringIncludes('Can do Simply Health claim for hospital nights', ["@Home", "Hospital"])
+      const result = s.caseInsensitiveSubstringIncludes('Can do Simply Health claim for hospital nights', ['@Home', 'Hospital'])
       expect(result).toEqual(true)
     })
   })
