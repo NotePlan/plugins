@@ -15,28 +15,28 @@ const AddButtons = (): React$Node => {
         data-tooltip="Add a new task to today's note"
         onClick={() => sendActionToPlugin('addTask', { actionType: 'addTask', toFilename: '20240324.md' })}
       >
-        <i className="fa-regular fa-circle-plus sidebarDaily"></i>
+        <i className="fa-regular fa-fw fa-circle-plus sidebarDaily"></i>
       </button>
       <button
         className="XCBButton tooltip"
         data-tooltip="Add a new checklist to today's note"
         onClick={() => sendActionToPlugin('addChecklist', { actionType: 'addChecklist', toFilename: '20240324.md' })}
       >
-        <i className="fa-regular fa-square-plus sidebarDaily"></i>
+        <i className="fa-regular fa-fw fa-square-plus sidebarDaily"></i>
       </button>{' '}
       <button
         className="XCBButton tooltip"
         data-tooltip="Add a new task to tomorrow's note"
         onClick={() => sendActionToPlugin('addTask', { actionType: 'addTask', toFilename: '20240325.md' })}
       >
-        <i className="fa-regular fa-circle-arrow-right sidebarDaily"></i>
+        <i className="fa-regular fa-fw fa-circle-arrow-right sidebarDaily"></i>
       </button>{' '}
       <button
         className="XCBButton tooltip"
         data-tooltip="Add a new checklist to tomorrow's note"
         onClick={() => sendActionToPlugin('addChecklist', { actionType: 'addChecklist', toFilename: '20240325.md' })}
       >
-        <i className="fa-regular fa-square-arrow-right sidebarDaily"></i>
+        <i className="fa-regular fa-fw fa-square-arrow-right sidebarDaily"></i>
       </button>
     </>
   )

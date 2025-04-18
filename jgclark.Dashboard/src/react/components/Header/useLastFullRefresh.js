@@ -1,19 +1,26 @@
 // @flow
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getTimeAgoString } from '@helpers/dateTime.js'
- 
+
 const useLastFullRefresh = (lastFullRefresh: Date): string => {
   const [timeAgo, setTimeAgo] = useState<string>(getTimeAgoString(lastFullRefresh))
- 
-  useEffect(() => {
-    setTimeAgo(getTimeAgoString(lastFullRefresh)) // Update timeAgo immediately when lastFullRefresh changes
 
-    const timer = setInterval(() => {
-      setTimeAgo(getTimeAgoString(lastFullRefresh))
-    }, 20000)
+  // Memoize the update function to prevent unnecessary re-renders
+  const updateTimeAgo = useCallback(() => {
+    const newTimeAgo = getTimeAgoString(lastFullRefresh)
+    // Only update if the display would actually change
+    if (newTimeAgo !== timeAgo) {
+      setTimeAgo(newTimeAgo)
+    }
+  }, [lastFullRefresh, timeAgo])
+
+  useEffect(() => {
+    updateTimeAgo() // Update timeAgo immediately when lastFullRefresh changes
+
+    const timer = setInterval(updateTimeAgo, 20000)
 
     return () => clearInterval(timer)
-  }, [lastFullRefresh])
+  }, [lastFullRefresh, updateTimeAgo])
 
   return timeAgo
 }

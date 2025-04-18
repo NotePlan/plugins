@@ -62,7 +62,6 @@ export default class TemplatingEngine {
     const lines = templateData.split('\n')
     const startBlock = lines.indexOf('--')
     const endBlock = startBlock === 0 ? lines.indexOf('--', startBlock + 1) : -1
-    // clo(lines, `_replaceDoubleDashes: templateData: ${templateData}`)
     if (startBlock >= 0 && endBlock > 0) {
       lines[startBlock] = '---'
       lines[endBlock] = '---'
@@ -228,7 +227,7 @@ export default class TemplatingEngine {
         .replace(/ejs:\d+/gi, '')
         .replace('list.', 'list')
         .replace('while compiling ejs', '')
-      let result = '==An error occurred rendering template:==\n' + `\`\`\`\n${m}\n\`\`\``
+      let result = '\n==An error occurred rendering template:==\n' + `\`\`\`\n${m}\n\`\`\``
 
       return result
     }

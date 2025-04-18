@@ -162,7 +162,7 @@ export default {
             const testPassed =
               modifiedMatch &&
               Object.keys(getContext().dashboardSettings)
-                .filter((s) => s.startsWith('show'))
+                .filter((s) => s.startsWith('show') && s.endsWith('Section'))
                 .every((s) => getContext().dashboardSettings[s] === false)
             elapsed > 4000 &&
               console.log(
@@ -415,7 +415,7 @@ export default {
 }
 
 /**
- * Turn perspectives on by setting perspectivesEnabled:true in dashboardSettings
+ * Turn perspectives on by setting usePerspectives:true in dashboardSettings
  * And turn all sections off
  * @param {*} getContext
  */
@@ -423,7 +423,7 @@ async function turnPerspectivesOn(getContext: () => AppContextType, allSectionsO
   const allOffSettings = allSectionsOff ? getDashboardSettingsWithShowVarsSetTo(getContext, false) : getContext().dashboardSettings
   const msg = `Testing_Perspectives: Turning perspectives on and ${allSectionsOff ? 'all sections off' : 'keeping sections on'}`
   // setting excluded folders to the current timestamp to make sure it's different and triggers a send to the plugin
-  const newSettings = { ...allOffSettings, perspectivesEnabled: true, excludedFolders: `${dtl()}`, lastChange: msg }
+  const newSettings = { ...allOffSettings, usePerspectives: true, excludedFolders: `${dtl()}`, lastChange: msg }
 
   // Save the all-off settings
   getContext().dispatchDashboardSettings({
@@ -436,11 +436,11 @@ async function turnPerspectivesOn(getContext: () => AppContextType, allSectionsO
   await waitFor(
     (elapsed) => {
       // ensure all show vars are off
-      const showVars = Object.keys(getContext().dashboardSettings).filter((s) => s.startsWith('show'))
+      const showVars = Object.keys(getContext().dashboardSettings).filter((s) => s.startsWith('show') && s.endsWith('Section'))
       const allShowVarsOff = showVars.every((s) => getContext().dashboardSettings[s] === false)
-      // ensure perspectivesEnabled is true
-      const perspectivesEnabled = getContext().dashboardSettings.perspectivesEnabled
-      const testPassed = perspectivesEnabled && allShowVarsOff
+      // ensure usePerspectives is true
+      const usePerspectives = getContext().dashboardSettings.usePerspectives
+      const testPassed = usePerspectives && allShowVarsOff
       testPassed && console.log(`Perspectives enabled and all sections ${allSectionsOff ? 'off' : 'unchanged'}`)
       elapsed > 5000 &&
         console.log(`___ About to timeout waiting for perspectives to be enabled and all sections ${allSectionsOff ? 'off' : 'unchanged'}`, {
@@ -448,7 +448,7 @@ async function turnPerspectivesOn(getContext: () => AppContextType, allSectionsO
         })
       return testPassed
     },
-    'dashboardSettings with perspectivesEnabled:true to be available',
+    'dashboardSettings with usePerspectives:true to be available',
     6000,
     100,
   )

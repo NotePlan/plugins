@@ -18,7 +18,7 @@ export const getDashboardSettingsWithShowVarsSetTo = (getContext: () => AppConte
   const dashboardSettings = getContext().dashboardSettings
   return Object.keys(dashboardSettings).reduce(
     (acc, key) => {
-      if (key.startsWith('show')) {
+      if (key.startsWith('show') && key.endsWith('Section')) {
         acc[key] = showValue
       }
       if (key === 'showPrioritySection') {

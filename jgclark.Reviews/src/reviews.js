@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2025-02-14 for v1.1.1, @jgclark
+// Last updated 2025-04-03 for v1.2.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -46,6 +46,7 @@ import {
 } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
+import { saveEditorIfNecessary } from '@helpers/editor'
 import {
   createRunPluginCallbackUrl, displayTitle,
 } from '@helpers/general'
@@ -61,17 +62,16 @@ import {
 } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------------------
+// Constants
 
-// Settings
 const pluginID = 'jgclark.Reviews'
-// const fullReviewListFilename = `../${pluginID}/full-review-list.md` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
-// const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
 const windowTitle = `Project Review List`
 const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
 const customRichWinId = `${pluginID}.rich-review-list`
 const customMarkdownWinId = `markdown-review-list`
 
 //-------------------------------------------------------------------------------
+// JS scripts
 
 const faLinksInHeader = `
 <!-- Load in Project List-specific CSS -->
@@ -201,6 +201,7 @@ const receivingPluginID = "jgclark.Reviews"; // the plugin ID of the plugin whic
 `
 /**
  * Script to add some keyboard shortcuts to control the dashboard. (Meta=Cmd here.)
+ * TODO: change to use built-in accesskey HTML system instead.
  */
 const shortcutsScript = `
 <!-- shortcuts script -->
@@ -274,36 +275,6 @@ const addToggleEvents: string = `
 </script>
 `
 
-// TODO(later): remove this once happy with details/summary system
-// const collapseSection: string = `
-// <script>
-// /**
-//  * Collapse/expand a section.
-//  * @param {Element} element The element to toggle.
-//  */
-// function toggleSection(element) {
-//   const tbody = element.closest('tbody');
-//   tbody.classList.toggle('collapsed');
-
-//   // Update the arrow indicator
-//   const headerText = element.textContent;
-//   element.firstElementChild.textContent = headerText.includes('▼')
-//     ? headerText.replace('▼', '▶')
-//     : headerText.replace('▶', '▼');
-// }
-
-// // Optional: Initialize all sections as expanded or collapsed
-// document.addEventListener('DOMContentLoaded', () => {
-//   // To start all collapsed:
-//   // document.querySelectorAll('.collapsible').forEach(tbody => {
-//   //   tbody.classList.add('collapsed');
-//   //   tbody.querySelector('.folder-header td').textContent =
-//   //     tbody.querySelector('.folder-header td').textContent.replace('▼', '▶');
-//   // });
-// });
-// </script>
-// `
-
 //-----------------------------------------------------------------------------
 
 /**
@@ -312,13 +283,13 @@ const addToggleEvents: string = `
  * @param {string? | null} argsIn as JSON (optional)
  * @param {number?} scrollPos in pixels (optional, for HTML only)
  */
-export async function makeProjectLists(argsIn?: string | null = null, scrollPos: number = 0): Promise<void> {
+export async function displayProjectLists(argsIn?: string | null = null, scrollPos: number = 0): Promise<void> {
   try {
     let config = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     const args = argsIn?.toString() || ''
-    logDebug(pluginJson, `makeProjectLists: starting with JSON args <${args}> and scrollPos ${String(scrollPos)}`)
+    logDebug(pluginJson, `displayProjectLists: starting with JSON args <${args}> and scrollPos ${String(scrollPos)}`)
     if (args !== '') {
       config = overrideSettingsWithEncodedTypedArgs(config, args)
       // clo(config, 'Review settings updated with args:')
@@ -332,7 +303,7 @@ export async function makeProjectLists(argsIn?: string | null = null, scrollPos:
     // Call the relevant rendering function with the updated config
     await renderProjectLists(config, true, scrollPos)
   } catch (error) {
-    logError('makeProjectLists', JSP(error))
+    logError('displayProjectLists', JSP(error))
   }
 }
 
@@ -353,7 +324,7 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
     // Call the relevant rendering function, but only continue if relevant window is open
     await renderProjectLists(config, false, scrollPos)
   } catch (error) {
-    logError('makeProjectLists', JSP(error))
+    logError('displayProjectLists', JSP(error))
   }
 }
 
@@ -373,8 +344,6 @@ export async function renderProjectLists(
     logDebug(pluginJson, `--------------------------------------------------------------`)
     logDebug('renderProjectLists', `Starting ${configIn ? 'with given config' : '*without config*'}. shouldOpen ${String(shouldOpen)} / scrollPos ${scrollPos}`)
     const config = (configIn) ? configIn : await getReviewSettings()
-    // TODO(later): remove once figured out GavinW issues
-    clo(config, 'config:')
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -398,15 +367,14 @@ export async function renderProjectLists(
  * @author @jgclark
  * @param {any} config
  * @param {boolean} shouldOpen window/note if not already open?
- * @param {number?} scrollPos scroll position to set (pixels) for HTML display  */
+ * @param {number?} scrollPos scroll position to set (pixels) for HTML display
+ */
 export async function renderProjectListsHTML(
   config: any,
   shouldOpen: boolean = true,
   scrollPos: number = 0
 ): Promise<void> {
   try {
-    // Q: Why isn't this debug line being shown when triggered by toggleDisplayOnlyDue called from HTML window, but not from x-callback?
-    // A: Don't know, but workaround for loss of plugin folder seems to have cured it.
     if (config.projectTypeTags.length === 0) {
       throw new Error('No projectTypeTags configured to display')
     }
@@ -448,8 +416,6 @@ export async function renderProjectListsHTML(
         logWarn(`renderProjectListsHTML`, `- local requiredFile ${filename} not found`)
       }
     }
-
-    logTimer('renderProjectListsHTML', funcTimer, `after checkForWantedResources`)
 
     // Ensure projectTypeTags is an array before proceeding
     if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
@@ -500,55 +466,10 @@ export async function renderProjectListsHTML(
       `Finish review of currently open Project and start the next review`,
       true
     )
-    // const skipReviewPCButton = makePluginCommandButton(`<i class="fa-solid fa-forward"></i>\u00A0Skip\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
-    //   'jgclark.Reviews',
-    //   'skip project review',
-    //   '',
-    //   'Skip this Project review and select new date',
-    //   true)
-    // const newIntervalPCButton = makePluginCommandButton(`<i class="fa-solid fa-arrows-left-right"></i>\u00A0New Interval`,
-    //   'jgclark.Reviews',
-    //   'set new review interval',
-    //   '',
-    //   'Set new review interval for Project',
-    //   true)
-    // const updateProgressPCButton = makePluginCommandButton(
-    //   `\u00A0<i class="fa-solid fa-comment-lines"></i>\u00A0Add Progress`,
-    //   'jgclark.Reviews',
-    //   'add progress update',
-    //   '',
-    //   'Add a progress line to the currently open Project note',
-    //   true)
-    // const pausePCButton = makePluginCommandButton(
-    //   `Toggle\u00A0<i class="fa-solid fa-circle-pause"></i>\u00A0Pause`,
-    //   'jgclark.Reviews',
-    //   'pause project toggle',
-    //   '',
-    //   'Pause the currently open Project note',
-    //   true
-    // )
-    // const completePCButton = makePluginCommandButton(
-    //   `<i class="fa-solid fa-circle-check"></i>\u00A0Complete`,
-    //   'jgclark.Reviews',
-    //   'complete project',
-    //   '',
-    //   'Complete the currently open Project note',
-    //   true
-    // )
-    // const cancelPCButton = makePluginCommandButton(
-    //   `<i class="fa-solid fa-circle-xmark"></i>\u00A0Cancel`,
-    //   'jgclark.Reviews',
-    //   'cancel project',
-    //   '',
-    //   'Cancel the currently open Project note',
-    //   true
-    // )
 
     // Start with a sticky top bar
     outputArray.push(`<div class="topbar">`)
     // v1: old style top middle box with lots of buttons
-    // const controlButtons = `<span class="sticky-box-header">Review:</span> ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n${newIntervalPCButton}\n<br /><span class="sticky-box-header">List</span>: \n${refreshPCButton} \n<span class="sticky-box-header">Project:</span>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
-
     // v2: New simpler version, with flexbox top bar
     if (config.usePerspectives) {
       const perspectiveSection = `<div class="topbar-text">Persp: <span class="perspective-name">${config.perspectiveName}</span></div>`
@@ -562,18 +483,15 @@ export async function renderProjectListsHTML(
     // Show time since generation + display settings
     const displayFinished = config.displayFinished ?? false
     const displayOnlyDue = config.displayOnlyDue ?? false
-    logDebug('renderProjectListsHTML', `displayOnlyDue=${displayOnlyDue ? '✅' : '❌'}, displayFinished = ${displayFinished ? '✅' : '❌'}`)
-    // let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
-    // togglesValues += (displayFinished === 'hide') ? '' : ', plus finished ones'
-    // outputArray.push(`<p class="display-details">Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> `)
 
-    // add checkbox toggles in place of previous text
-    // outputArray.push(`(${togglesValues})`)
+    // add checkbox toggles
+    logDebug('renderProjectListsHTML', `displayOnlyDue=${displayOnlyDue ? '✅' : '❌'}, displayFinished = ${displayFinished ? '✅' : '❌'}`)
     outputArray.push(`<div id="toggles">`)
     outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">Display only due?</input>`)
     outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">Display finished?</input>`)
     outputArray.push(`</div>`)
-    // Close the sticky top bar
+
+    // Finish the sticky top bar
     outputArray.push(`</div>`)
 
     // Note: remove test lines to see scroll position:
@@ -591,13 +509,14 @@ export async function renderProjectListsHTML(
       const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
 
       // Write out all relevant HTML
+      const headingContent = `<span class="h3 folder-name">${thisTag}</span> (${noteCount} notes, ${due} ready for review${config.numberDaysForFutureToIgnore > 0 ? ', with future items ignored' : ''})`
       // If there are multiple projectTypeTags, then use details/summary HTML tags to open/close the section
       if (config.projectTypeTags.length > 1) {
         outputArray.push(`  <details open>`) // start it open
         // Had tried adding: <i class="fa-solid fa-chevron-down"></i>
-        outputArray.push(`   <summary class="folder-header"><span class="h3 folder-name">${thisTag} </span>(${noteCount} notes, ${due} ready for review)</summary>`)
+        outputArray.push(`   <summary class="folder-header">${headingContent}</summary>`)
       } else {
-        outputArray.push(`  <div class="folder-header"><span class="h3 folder-name">${thisTag} </span>(${noteCount} notes, ${due} ready for review)</div>`)
+        outputArray.push(`  <div class="folder-header">${headingContent}</div>`)
       }
       outputArray.push('\n<div class="details-content">')
 
@@ -736,7 +655,7 @@ export async function renderProjectListsHTML(
 export async function renderProjectListsMarkdown(config: any, shouldOpen: boolean = true): Promise<void> {
   try {
     logDebug('renderProjectListsMarkdown', `Starting for ${String(config.projectTypeTags)} tags`)
-    const funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+    const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
 
     // Set up x-callback URLs for various commands
     const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'start reviews', '') // "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=start%20reviews"
@@ -1030,8 +949,6 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
   try {
     const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
-    // TODO(later): remove once figured out GavinW issues
-    clo(config, 'config:')
 
     const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
     const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
@@ -1045,7 +962,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         const nextActionLineIndex = getNextActionLineIndex(note, naTag)
         logDebug('finishReviewCoreLogic', `nextActionLineIndex= '${String(nextActionLineIndex)}'`)
 
-        if (isNaN(nextActionLineIndex)) {
+        if (!isNaN(nextActionLineIndex)) {
           nextActionTagLineIndexes.push(nextActionLineIndex)
         }
       }
@@ -1054,6 +971,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
           `There's no Next Action tag in '${displayTitle(note)}'. Do you wish to continue finishing this review?`,
         )
         if (res === 'No') {
+          logDebug('finishReviewCoreLogic', `- user cancelled command by clicking '${res}' button.`)
           return
         }
       }
@@ -1062,19 +980,21 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     if (Editor.filename === note.filename) {
       logDebug('finishReviewCoreLogic', `- updating Editor ...`)
       // First update @review(date) on current open note
-      let res: ?TNote = await updateMetadataInEditor([reviewedTodayString])
+      updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      res = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
+      deleteMetadataMentionInEditor([config.nextReviewMentionStr])
 
-      // Using Editor, update it in the cache so the latest changes can be picked up elsewhere.
+      // Save Editor to note, and then update the cache so the latest changes can be picked up elsewhere.
       // Note: Putting the Editor.save() call here, rather than in the above functions, seems to work
-      await Editor.save()
+      await saveEditorIfNecessary()
+      DataStore.updateCache(Editor.note, true)
     } else {
       logDebug('finishReviewCoreLogic', `- updating note ...`)
       // First update @review(date) on the note
-      await updateMetadataInNote(note, [reviewedTodayString])
+      updateMetadataInNote(note, [reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      await deleteMetadataMentionInNote(note, [config.nextReviewMentionStr])
+      deleteMetadataMentionInNote(note, [config.nextReviewMentionStr])
+      DataStore.updateCache(note, true)
     }
     logDebug('finishReviewCoreLogic', `- after metadata updates`)
 
@@ -1098,6 +1018,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       logWarn('finishReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
       await generateProjectListsAndRenderIfOpen()
     }
+    logDebug('finishReviewCoreLogic', `- finished successfully`)
   }
   catch (error) {
     logError('finishReviewCoreLogic', error.message)
@@ -1153,10 +1074,12 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
 
     // Finish review
     await finishReview()
+    logDebug('finishReviewAndStartNextReview', `- Returned from finishReview() and will now look for next review ...`)
 
     // Read review list to work out what's the next one to review
     const noteToReview: ?TNote = await getNextNoteToReview()
     if (noteToReview != null) {
+      logDebug('finishReviewAndStartNextReview', `- Opening '${displayTitle(noteToReview)}' as nextReview note ...`)
       if (config.confirmNextReview) {
         // Check whether to open that note in editor
         const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
@@ -1164,7 +1087,6 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
           return
         }
       }
-      logDebug('finishReviewAndStartNextReview', `- Opening '${displayTitle(noteToReview)}' as nextReview note ...`)
       await Editor.openNoteByFilename(noteToReview.filename)
     } else {
       logInfo('finishReviewAndStartNextReview', `- 🎉 No more notes to review!`)
@@ -1229,15 +1151,15 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
     if (Editor.filename === note.filename) {
       // Update metadata in the current open note
       logDebug('skipReviewCoreLogic', `- updating Editor ...`)
-      const res = await updateMetadataInEditor([nextReviewMetadataStr])
+      updateMetadataInEditor([nextReviewMetadataStr])
 
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
-      await Editor.save()
+      await saveEditorIfNecessary()
     } else {
       // add/update metadata on the note
       logDebug('skipReviewCoreLogic', `- updating note ...`)
-      await updateMetadataInNote(note, [nextReviewMetadataStr])
+      updateMetadataInNote(note, [nextReviewMetadataStr])
     }
     logDebug('skipReviewCoreLogic', `- after metadata updates`)
 
@@ -1340,7 +1262,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
     logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
-    const note: TNote = noteArg ? noteArg : Editor
+    const note: CoreNoteFields = noteArg ? noteArg : Editor
     if (!note || note.type !== 'Notes') {
       throw new Error(`Not in a Project note (at least 2 lines long)`)
     }
@@ -1363,14 +1285,14 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     if (!noteArg) {
       // Update metadata in the current open note
       logDebug('setNewReviewInterval', `- updating metadata in Editor`)
-      const res = await updateMetadataInEditor([`@review(${newIntervalStr})`])
+      updateMetadataInEditor([`@review(${newIntervalStr})`])
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
-      await Editor.save()
+      await saveEditorIfNecessary()
     } else {
       // update metadata on the note
       logDebug('setNewReviewInterval', `- updating metadata in note`)
-      const res = await updateMetadataInNote(note, [`@review(${newIntervalStr})`])
+      updateMetadataInNote(note, [`@review(${newIntervalStr})`])
     }
 
     // Save changes to allProjects list

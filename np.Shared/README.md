@@ -105,10 +105,16 @@ There is also a `pluginToHTMLCommsBridge` file that can be used to enable bi-dir
 - Users shouldn't need to know anything about this
 
 ### Opening a dialog from within a React plugin window:
-use the `DynamicDialog` component from np.Shared
+Use the `DynamicDialog` component from np.Shared
 
->**NOTE:** The html-plugin-comms.js is where you will do the sending/receiving in the HTML window (browser side). That file is auto-created for you when you run a `np-cli plugin:create` command. 
+> **NOTE:** The html-plugin-comms.js is where you will do the sending/receiving in the HTML window (browser side). That file is auto-created for you when you run a `np-cli plugin:create` command. 
 
+## Previewing React
+The `live-server` npm package can be very useful to locally open saved HTML output file but running the react script files updated in the background by `npc ... -w`. For example:
+
+`live-server --open="jgclark.Dashboard/dashboard-react.html" --ignore="*.json"`
+
+(The `ignore` in this case stops it re-loading when that plugin's `todaysChangedNoteList.json` file changes, which it can do frequently.)
 
 ## Support
 

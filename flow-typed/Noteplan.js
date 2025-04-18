@@ -291,6 +291,7 @@ declare interface TEditor extends CoreNoteFields {
   /**
    * Save content of Editor to file. This can be used before updateCache() to ensure latest changes are available quickly.
    * Warning: beware possiblity of this causing an infinite loop, particularly if used in a function call be an onEditorWillSave trigger.
+   * WARNING: from @jgclark and @dwertheimer: use helper editor.js function saveEditorIfNecessary() instead, as too often this silently fails, and stops plugins from running.
    * Note: Available from 3.9.3
    */
   save(): Promise<void>;
@@ -400,6 +401,15 @@ declare interface TEditor extends CoreNoteFields {
    * @param {boolean}
    */
   skipNextRepeatDeletionCheck: boolean;
+/**
+* Sets a frontmatter attribute with the given key and value.
+* If the key already exists, updates its value. If it doesn't exist, adds a new key-value pair.
+* To set multiple frontmatter attributes, use frontmatterAttributes = key-value object.
+* @param {string} key - The frontmatter key to set
+* @param {string} value - The value to set for the key
+* Note: Available from v3.17 - only for Editor!
+*/
+setFrontmatterAttribute(key: string, value: string): void;
 }
 
 /**
@@ -432,10 +442,13 @@ declare class DataStore {
   /**
    * Get all calendar notes.
    * Note: from v3.4 this includes all future-referenced dates, not just those with an actual created note.
+   * TODO: from v3.17.0 does this return Teamspace calendar notes?
    */
   static +calendarNotes: $ReadOnlyArray<TNote>;
   /**
-   * Get all regular, project notes.
+   * Get all regular notes (earlier called "project notes").
+   * From v3.17.0, this includes Teamspace regular notes. These have as their 'filename' a path represented with an ID, followed by any number of folders, and then a note ID.
+   * Example: %%NotePlanCloud%%/275ce631-6c20-4f76-b5fd-a082a9ac5160/Projects/Research/b79735c9-144b-4fbf-8633-eaeb40c182fa
    * Note: This includes notes and templates from folders that begin with "@" such as "@Archive" and "@Templates". It excludes notes in the trash folder though.
    * Note: @jgclark adds that this will return non-note document files (e.g. PDFs) as well as notes.
    */
@@ -568,27 +581,33 @@ declare class DataStore {
   static fileExists(filename: string): boolean;
   /**
    * Returns the calendar note for the given date and timeframe (optional, the default is "day", see below for more options).
+   * Note: from v3.17.0, this includes Teamspace calendar notes. Calendar Notes are represented with the ISO date + extension in the path.
    * Note: 'timeframe' available from v3.6.0
+   * Note: 'parent' available from v3.17.0
    * WARNING: @jgclark: I think from use in Dashboard, this is unreliable, but I can't yet prove it. Instead use calendarNoteByDateString() below.
    *
    * @param {Date}
-   * @param {string?} - "day" (default), "week", "month", "quarter" or "year"
+   * @param {string?} timeframe: "day" (default), "week", "month", "quarter" or "year"
+   * @param {string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
    * @returns {NoteObject}
    */
-  static calendarNoteByDate(date: Date, timeframe?: string): ?TNote;
+  static calendarNoteByDate(date: Date, timeframe ?: string, parent ?: string): ?TNote;
   /**
    * Returns the calendar note for the given date string (can be undefined, if the calendar note was not created yet). See the date formats below for various types of calendar notes:
    * Daily: "YYYYMMDD", example: "20210410"
    * Weekly: "YYYY-Wwn", example: "2022-W24"
    * Quarter: "YYYY-Qq", example: "2022-Q4"
    * Monthly: "YYYY-MM", example: "2022-10"
-   * Yearly: "YYYY", example: "2022"
-   * Note: Some available from v3.7.2
+   * Yearly: "YYYY", example: "2022".
+   * Note: from v3.17.0, this includes Teamspace calendar notes. Calendar Notes are represented with the ISO date + extension in the path.
+   * Note: Some timeframes available from v3.7.2
+   * Note: 'parent' available from v3.17.0
    * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty.
-   * @param {string}
+   * @param {string} dateString
+   * @param {string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
    * @returns {NoteObject}
    */
-  static calendarNoteByDateString(dateString: string): ?TNote;
+  static calendarNoteByDateString(dateString: string, parent ?: string): ?TNote;
   /**
    * Returns all regular notes with the given title.
    * Since multiple notes can have the same title, an array is returned.
@@ -611,8 +630,13 @@ declare class DataStore {
   /**
    * Returns a regular or calendar note for the given filename. Type can be "Notes" or "Calendar". Include relative folder and file extension (`folder/filename.txt` for example).
    * Use "YYYYMMDD.ext" for calendar notes, like "20210503.txt".
+   * Note: 'parent' available from v3.17.0
+   * @param {string} filename
+   * @param {NoteType} type
+   * @param {string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. Applies only to calendar notes.
+   * @returns {?TNote}
    */
-  static noteByFilename(filename: string, type: NoteType): ?TNote;
+  static noteByFilename(filename: string, type: NoteType, parent ?: string): ?TNote;
   /**
    * Move a regular note using the given filename (with extension) to another folder. Use "/" for the root folder.
    * Note: Can also move *folders* by specifying its filename (without trailing slash).
@@ -795,11 +819,19 @@ declare class DataStore {
   static searchCalendarNotes(keyword?: string, shouldLoadDatedTodos?: boolean): Promise<$ReadOnlyArray<TParagraph>>;
   /**
    * Returns list of all overdue tasks (i.e. tasks that are open and in the past). Use with await, it runs in the background. If there are a lot of tasks consider showing a loading bar.
+   * Note: this does not include open checklist items.
    * Note: Available from v3.8.1
    * @param {string} = keyword to search for
    * @return {$ReadOnlyArray<TParagraph>} Promise to array of results
    */
   static listOverdueTasks(keyword: string): Promise<$ReadOnlyArray<TParagraph>>;
+
+  /**
+   * DataStore.teamspaces returns an array of teamspaces represented as Note Objects with title and filename populated. Example of a filename: %%NotePlanCloud%%/275ce631-6c20-4f76-b5fd-a082a9ac5160
+   * Note: No object for private notes is included here.
+   * Note: Available from v3.17.0
+   */
+  static teamspaces: $ReadOnlyArray < TNote >;
 }
 
 /**
@@ -1332,9 +1364,10 @@ declare interface Paragraph {
    * So a task that has a child task that has a child task will have 2 children (and the first child will have one).
    * Note: Available from v3.3
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
-   * @return {[TParagraph]}
+   * WARNING: appears to be unreliable on iOS.
+   * @return {$ReadOnlyArray<TParagraph> | void}
    */
-  children(): $ReadOnlyArray<TParagraph>;
+children(): $ReadOnlyArray < TParagraph > | void;
   /**
    * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
    * Note: Available from v3.5.2
@@ -1360,26 +1393,13 @@ type TNote = Note
 type NoteType = 'Calendar' | 'Notes'
 
 /**
- * Notes can be queried by DataStore. You can change the complete text of the
- * note, which will be saved to file or query, add, remove, or modify
- * particular paragraphs (a paragraph is a task for example). See more
- * paragraph editing examples under Editor. NoteObject and Editor both
- * inherit the same paragraph functions.
+ * Notes can be queried by DataStore. You can change the complete text of the note,
+ * which will be saved to file or query, add, remove, or modify
+ * particular paragraphs (a paragraph is a task for example).
+ * See more paragraph editing examples under Editor.
+ * NoteObject and Editor both inherit the same paragraph functions.
  */
 declare interface Note extends CoreNoteFields {
-  // These properties are only on Note, not on Editor.
-  /**
-   * Get all types assigned to this note in the frontmatter as an array of strings.
-   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
-   * Note: Available from v3.5.0
-   */
-  +frontmatterTypes: $ReadOnlyArray<string>;
-  /**
-   * Get all attributes in the frontmatter, as an object or {} if no frontmatter stripes or if there are stripes but no attributes.
-   * Note: Added by @jgclark by inspection of real data
-   * TODO(@EduardMe): add this to the documentation.
-   */
-  +frontmatterAttributes: Object; // dbw Does not exist on Editor. Returns {} if no frontmatter stripes or if there are stripes but no attributes.
   /**
    * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
    * Note: Available from v3.2.0
@@ -1725,18 +1745,6 @@ declare interface CoreNoteFields {
    */
   +publicRecordID: ?string;
   /**
-   * Publishes the note using CloudKit (inserts a record on the public database). Build the web-link to the note by using the publicRecordID.
-   * Note: Available from v3.9.1
-   * @return {Promise}
-   */
-  publish(): Promise<void>;
-  /**
-   * Unpublishes the note from CloudKit (deletes the database entry from the public database).
-   * Note: Available from v3.9.1
-   * @return {Promise}
-   */
-  unpublish(): Promise<void>;
-  /**
    * Returns the conflicted version if any, including 'url' which is the path to the file. Otherwise, returns undefined.
    * Note: Available from v3.9.3
    * @return { Object(filename: string, url: string, content: string) }
@@ -1749,6 +1757,22 @@ declare interface CoreNoteFields {
    * Note: Available from v3.7.2
    */
   +versions: $ReadOnlyArray<string, Date>;
+  /**
+   * Get all 'type's assigned to this note in the frontmatter as an array of strings.
+   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
+   * Note: Available on Note from v3.5.0, but only on Editor from v3.16.3.
+   */
++frontmatterTypes: $ReadOnlyArray < string >;
+  /**
+  * Returns the frontmatter key-value pairs inside the note. To set a frontmatter attribute, use setFrontmatterAttribute.
+  * You can also use the setter, but you will need to first read the complete frontmatter object (key-value pairs), change it and then set it. Otherwise the setter *won't* be triggered if you set it directly like `frontmatterAttributes["key"] = "value"`. This is more useful if you want to set multiple frontmatter values.
+  * Note: @dbwertheimer says "Returns {} if no frontmatter stripes or if there are stripes but no attributes."
+  * @returns {{[key: string]: string}}
+  * Note: Available on Note from 3.5.0, but only on Editor from v3.16.3.
+  * WARNING: The setter only works with macOS >= 14 and iOS >= 16, since below these versions, the frontmatter editor is not supported and the raw frontmatter is shown (if a user still calls this, a warning is logged).
+  */
++frontmatterAttributes: Object;
+
   /**
    * Renames the note. You can also define a folder path. The note will be moved to that folder and the folder will be automatically created.
    * If the filename already exists, a number will be appended. If the filename begins with ".", it will be removed.
@@ -1940,6 +1964,20 @@ declare interface CoreNoteFields {
    * @param {number} length - Amount of characters to replace from the location
    */
   replaceTextInCharacterRange(text: string, location: number, length: number): void;
+
+/**
+* Publishes the note using CloudKit (inserts a record on the public database). Build the web-link to the note by using the publicRecordID.
+* Note: Available from v3.9.1
+* @return {Promise}
+*/
+publish(): Promise < void>;
+/**
+ * Unpublishes the note from CloudKit (deletes the database entry from the public database).
+ * Note: Available from v3.9.1
+ * @return {Promise}
+ */
+unpublish(): Promise < void>;
+
   /**
    * Generates a unique block ID and adds it to the content of this paragraph.
    * Remember to call .updateParagraph(p) to write it to the note.
@@ -1973,7 +2011,20 @@ declare interface CoreNoteFields {
    * Resolves a conflict, if any, using the other version (which is version 2 in the conflict bar inside the UI). Once resolved you need to reload the note.
    * Note: Available from v3.9.3
    */
-  resolveConflictWithOtherVersion(): void;
+resolveConflictWithOtherVersion(): void;
+
+/**
+ * If used with a teamspace note, it returns a human readable path to the teamspace note, like 'Engineering/Projects/bugs.md'
+ * Note: Available from v3.17.0
+ * @returns {string}
+ */
++resolvedFilename: string;
+/**
+ * To quickly identify if this specific note is from a teamspace.
+ * Note: Available from v3.17.0
+ * @returns {boolean}
+ */
++isTeamspaceNote: boolean;
 }
 
 declare class NotePlan {

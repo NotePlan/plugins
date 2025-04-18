@@ -31,6 +31,6 @@ export function getHeadingHierarchyForThisPara(para: TParagraph): Array<string> 
     }
     lineIndex--
   }
-  logDebug('getHeadingHierarchyForThisPara', `-> for line #${String(lineIndex)} in note ${noteFilename},  ${String(theseHeadings.length)} headings found: [${String(theseHeadings)}]`)
+  // logDebug('getHeadingHierarchyForThisPara', `-> for line #${String(lineIndex)} in note ${noteFilename},  ${String(theseHeadings.length)} headings found: [${String(theseHeadings)}]`)
   return theseHeadings
 }

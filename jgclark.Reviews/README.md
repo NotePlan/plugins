@@ -1,7 +1,7 @@
 # 🔬 Projects + Reviews plugin
 Unlike many task or project management apps, NotePlan has very little enforced structure, and is entirely text/markdown based.  This makes it much more flexible, but makes it less obvious how to use it for tracking and managing complex work, loosely referred to here as 'Projects'.
 
-This plugin provides commands to help **review** Project notes, and it helps me manage at times over 100 such projects. The approach will be familiar to people who use David Allen's **Getting Things Done** methodology, or any other where **regular reviews** are important.
+This plugin lets you easily a single list of active projects, and their progress towards completion. It helps regularly **review** Project notes -- an approach that will be familiar to people who use David Allen's **Getting Things Done** methodology, or any other where **regular reviews** are important.
 
 The **/project lists** command shows the Project Review List screen, showing the projects due for review from various different NotePlan folders:
 
@@ -92,6 +92,8 @@ Other notes:
 - If there are multiple copies of a metadata field, only the first one is used.
 - I'm sometimes asked why I use `@reviewed(2021-06-25)` rather than `@reviewed/2021-06-25`. The answer is that while the latter form is displayed in a neater way in the sidebar, the date part isn't available in the NotePlan API as the part after the slash is not a valid @tag as it doesn't contain an alphabetic character.
 
+_The next major release of the plugin will make it possible to migrate all this metadata to the Frontmatter block that has become properly supported since NotePlan 3.16.3._
+
 ## Selecting notes to include
 There are 2 parts of this:
 1. Use the '**Hashtags to review**' setting to control which notes are included in the review lists. If it is set (e.g. `#project, #area, #goal`), then it will include just those notes which also have one or more of those tags. If this setting is empty, then it will include all notes for review that include a `@review(...)` string.
@@ -108,15 +110,38 @@ You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, sh
 
 ![Example of 'Markdown' style of Project Lists](review-list-markdown-0.11@2x.png)
 
-Notes about the displays:
+### Project Lists: 2 styles of display
 - the **Rich style** is a temporary HTML window that picks up the NotePlan Theme you use (though see below on how to override this).  In this style there's a heading row deliberately 'sticks' to the top of the window as you scroll the list.
 - in the Rich style, all your different #tags to review get shown one after the other in a single window. These can be collapsed and expanded as a group using the triangle icons ▼ or ▶.
 - if you can make the window wide enough it will display in 2 (or even 3!) columns
-- the **Markdown style** list _is_ stored as a summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
+- the **Markdown style** list _is_ stored as a summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be). _Note: this style is now deprecated, and I expect to remove support in v2._
 - the button 'Start reviews' / 'Start reviewing notes ready for review' is a shortcut to the '/start reviews' command (described below).
 - each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
-Other settings:
+### Progress Summaries
+In a project/area note you can, if you wish, include a **one-line summary** of your view on its current **overall progress**. If given, the latest one is shown in the project lists. To continue the example above, here's the start of the note a few weeks later, showing I think it's only 10% complete:
+
+```markdown
+# Secret Undertaking
+#project @review(1w) @reviewed(2021-05-20) @start(2021-04-05) @due(2021-11-30)
+Aim: Do this amazing secret thing
+Progress: 10@2021-05-20: Tracked down 007 and got him on the case
+Progress: 0@2021-04-05: Project started with a briefing from M about SPECTRE's dastardly plan
+
+## Details
+* [x] track 007 down
+* [x] Get briefing from 'M' at HQ
+* [x] task 'Q' with building a personal jetpack (with USB ports)
+* [x] set up team Deliveroo account
+* [ ] arrange for 007's parking tickets to be paid
+...
+```
+
+The starting percentage number doesn't have to be given; if it's not it is **calculated from the % of open and completed tasks** found in the note. From v1.2. there are new settings that affect which open tasks/checklists are included:
+- Ignore tasks set more than these days in the future: If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 0 days -- i.e. no future items are ignored).
+- Ignore checklists in progress? If set, then checklists in progress will not be counted as part of the project's completion percentage.
+
+### Other settings
 - Next action tag(s): optional list of #hashtags to include in a task or checklist to indicate its the next action in this project (comma-separated; default '#next').
 - Display next actions in output? Whether to display the next action in the output? This requires the previous setting to be set. Note: If there are multiple items with the next action tag, only the first is shown.
 - Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`. Note also: 
@@ -126,13 +151,13 @@ Other settings:
   - if you specify the root folder `/` this only ignores the root folder, and not all sub-folders.
   - the special @Trash, @Templates and @Archive folders are always excluded.
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
-- Display projects grouped by folder? Whether to group the projects by their folder.
+- Show projects grouped by folder? Whether to group the projects by their folder.
 - Hide higher-level folder names in headings? If 'Display projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in headings.
 - Show completed/cancelled projects? If set, then completed/cancelled projects will be shown at the end of the list of active projects.
 - How to show completed/cancelled projects?: The options are 'display at end', 'display' or 'hide'.
-- Only display projects/areas ready for review?: If true then it will only display project/area notes ready for review (plus paused ones).
-- Display project dates?  Whether to display the project's review and due dates (where set).
-- Display project's latest progress?  Whether to show the project's latest progress (where available). If some lines have a specific 'Progress:' field. (See above for details.)
+- Only show projects/areas ready for review?: If true then it will only show project/area notes ready for review (plus paused ones).
+- Show project dates?  Whether to show the project's review and due dates (where set).
+- Show project's latest progress?  Whether to show the project's latest progress summary text. These are only shown where there are specific 'Progress:' field(s) in the note. (See above for details.)
 - Confirm next Review?: When running '/next project review' it asks whether to start the next review.
 - Theme to use in rich project lists: if set to a valid installed Theme name, then that will always be used in place of the currently active theme for the rest of NotePlan.
 - Folder to Archive completed/cancelled project notes to: By default this is the built-in Archive folder (shown in the sidebar) which has the special name '@Archive', but it can be set to any other folder name.
@@ -175,30 +200,10 @@ Progress: <num>@YYYY-MM-DD: <short description>
 ```
 It will also update the project's `@reviewed(date)`.
 
-## Capturing Progress
-In a project/area note you can, if you wish, include a one-line summary of your view on its current **overall progress**. If given, the latest one is shown in the project lists. To continue the example above, here's the start of the note a few weeks later, showing I think it's only 10% complete:
-
-```markdown
-# Secret Undertaking
-#project @review(1w) @reviewed(2021-05-20) @start(2021-04-05) @due(2021-11-30)
-Aim: Do this amazing secret thing
-Progress: 10@2021-05-20: Tracked down 007 and got him on the case
-Progress: 0@2021-04-05: Project started with a briefing from M about SPECTRE's dastardly plan
-
-## Details
-* [x] Get briefing from 'M' at HQ
-* [x] recruit James Bond
-* [x] task 'Q' with building a personal jetpack (with USB ports)
-* [x] set up team Deliveroo account
-* [ ] arrange for 007's parking tickets to be paid
-...
-```
-The starting percentage number doesn't have to be given; if it's not it is calculated from the % of open and completed tasks found in the note (that aren't due in the future). The comment are needed, and the date is inserted automatically.
-
 ## 'Next Actions': capturing and displaying
 Part of the "Getting Things Done" methodology is to be clear what your 'next action' is. If you want to put a standard tag on such actionable tasks/checklists -- e.g. `#next` or `#na`, and put that in the settings, then in the project lists this next action will be shown after the progress summary. In fact you can set several different 'next action' tags, and the first of each will be shown in the progress summary. I use this to distinguish the things I can do (`#na`) from things I'm waiting on others to do (`#waiting`).
 
-The **Dashboard Plugin** has the ability to set up Sections for tags/mentions, that show all open tasks/checklists with those tags/mentions. This is a different way to see all such 'next actions'
+The **Dashboard Plugin** has the ability to set up Sections for tags/mentions, that show all open tasks/checklists with those tags/mentions. This is a different way to see all such 'next actions'.
 
 Alternatively, you could use the "/searchOpenTasks" command (from the [Search Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions)) with search term `#next` to sync _all_ your open `#next` tasks to your `#next Search Results` note. You can then use this as the source to drag'n'drop tasks into daily/weekly/monthly notes.
 
@@ -252,7 +257,7 @@ There is what I consider to be a bug in the NotePlan API that means most of thes
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise an ['Issue' of a Bug or Feature Request](https://github.com/NotePlan/plugins/issues).
 
-I'm not part of the NotePlan team, but I've spent at least 3 working weeks on this particular plugin. If you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through
+I'm not part of the NotePlan team, but I've spent at least 3.5 working weeks on this particular plugin. If you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 

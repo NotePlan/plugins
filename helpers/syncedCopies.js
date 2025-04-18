@@ -31,14 +31,12 @@ export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, kee
         const matchingIndex = revisedParas.findIndex((t) => {
           if (t.content === e.content) {
             if (t.blockId !== undefined && e.blockId !== undefined && t.blockId === e.blockId) {
-              logDebug('eDSP', `Duplicate sync line eliminated: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
+              logDebug('eDSP', `Duplicate synced line eliminated: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
               return true
             } else {
               if (t.filename === e.filename && !syncedLinesOnly) {
-                logDebug('eDSP', `Duplicate sync line eliminated: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
+                logDebug('eDSP', `Duplicate non-synced line eliminated: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
                 return true
-              } else {
-                logDebug('eDSP', `Duplicate sync line allowed: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
               }
             }
           }

@@ -1,14 +1,14 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated v2.1.0.b
+// Last updated 2025-04-05 for v2.2.0.a11
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
 import { replaceArrowDatesInString } from '@helpers/dateTime'
-import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev'
+import { clo, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev'
 import {
   changeBareLinksToHTMLLink,
   changeMarkdownLinksToHTMLLink,
@@ -58,7 +58,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140)
 
   // get rid of arrowDates if desired by user
-  if (mainContent && !dashboardSettings.includeScheduledDates) mainContent = replaceArrowDatesInString(mainContent, '')
+  if (mainContent && !dashboardSettings.showScheduledDates) mainContent = replaceArrowDatesInString(mainContent, '')
 
   // get rid of priority markers if desired by user (maincontent starts with <span> etc.)
   const shouldRemove = dashboardSettings && dashboardSettings.hidePriorityMarkers === true
@@ -73,6 +73,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
       return `${startTag}${replaced}${endTag}`
     })
   }
+
   function handleTaskClick(e: MouseEvent) {
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed -- Note: not yet used
     const dataObjectToPassToFunction = {
@@ -101,13 +102,17 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   //     : ''
   const possChildMarker = ''
 
-  const handleClickToOpenDialog = (e: MouseEvent): void => {
-    // logDebug('TaskItem', `handleClickToOpenDialog - setting dialogData to: ${JSP(messageObject)}`)
-    const clickPosition = { clientY: e.clientY, clientX: e.clientX }
+  const handleClickToOpenEditDialog = (event: MouseEvent): void => {
+    const clickPosition = { clientY: event.clientY, clientX: event.clientX }
+    const { metaKey } = extractModifierKeys(event)
+    logDebug('ItemContent/handleClickToOpenEditDialog', `- metaKey=${String(metaKey)}`)
+    messageObject.modifierKey = metaKey // boolean
+    const dialogData = { isOpen: true, isTask: true, details: messageObject, clickPosition }
+    logDebug('ItemContent/handleClickToOpenEditDialog', `- setting dialogData to: ${JSP(dialogData)}`)
     setReactSettings((prev) => ({
       ...prev,
       lastChange: `_Dashboard-TaskDialogOpen`,
-      dialogData: { isOpen: true, isTask: true, details: messageObject, clickPosition },
+      dialogData: dialogData,
     }))
   }
 
@@ -120,9 +125,9 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
       {possParentIcon}
       {/* <span className="pad-left">[ID:{item.ID}]</span> */}
       <a className="dialogTriggerIcon">
-        <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenDialog}></i>
+        <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenEditDialog}></i>
       </a>
-      {dashboardSettings?.includeTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
+      {dashboardSettings?.showTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
     </div>
   )
 }

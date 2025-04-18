@@ -25,7 +25,6 @@ type Props = {
  */
 const RefreshControl = (props: Props): React$Node => {
   const { refreshing, firstRun, handleRefreshClick } = props
-  logDebug('RefreshControl', `refreshing = ${String(refreshing)}, firstRun = ${String(firstRun)}`)
   return (
     <Button
       text={
@@ -42,4 +41,4 @@ const RefreshControl = (props: Props): React$Node => {
   )
 }
 
-export default RefreshControl
+export default React.memo(RefreshControl)
