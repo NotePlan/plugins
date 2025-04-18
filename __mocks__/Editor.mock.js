@@ -44,7 +44,7 @@ export const Editor = new Proxy(editorOverrides, {
     if (prop in target) {
       return target[prop]
     }
-    if (prop in target.note) {
+    if (prop && target.note && prop in target.note) {
       return target.note[prop]
     }
     // Handle known built-in Symbol properties with sensible defaults
