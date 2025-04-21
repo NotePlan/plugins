@@ -23,12 +23,12 @@ Settings:
   - `MEETINGNOTE` will insert a link that when clicked, will help you create a meeting note for this particular event. For this there's a setting 'Meeting Note Template title' which you can use to set which template to pick if you have several; if it isn't set then a list will be presented.<!-- **Note:** MEETINGNOTE links requires at least v1.1.2 of the separate "Meeting Notes" plugin. -->
   - `START` and `END` are the start and end times of the event. (The format of these can be controlled -- see 'Time options' below.)
 
-  **Note**: each placeholder has to be surrounded by `*|...|*` to distinguish them as placeholders and not other markdown text to include.
+  **Note**: each placeholder has to be surrounded by `*|...|*` to distinguish them as placeholders and not other markdown text to include. (Sorry it's a bit fiddly!)
 
-  Default: `- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`
+  Default: `- (*|CAL, |**|START|**|, LOCATION|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`
 - **Events List display format for all-day events**: the format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are as above, with the exception of `START` and `END`.
 
-  Default: `- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`
+  Default: `- (*|CAL, |**|START|**|, LOCATION|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`
 - **Sort order of events list**: by 'time' (= increasing start time of events) or by 'calendar' first, which then secondarily sorts by start time.
 - **Calendars to include**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
 - **Calendar name mappings**: optional - add mappings for your calendar names to appear as in the output - e.g. from "Jonathan (iCloud)" to "Me" (and from "Us (iCloud)" to "Us") with `Jonathan (iCloud);Me, Us (iCloud);Us`. Note: separate mapping from main name by `;` a character, and separate mapping pairs with the `,` character.
@@ -37,7 +37,7 @@ Settings:
 - **Events match list**: for `/add matching events` is an array of pairs of strings. The first string is what is matched for in an event's title. If it does match, the second string is used as the format for how to insert the event details at the cursor.  This uses the same placeholders as above. For example:
   ```jsonc
   {
-    "#meeting" : "### *|TITLE|* (*|START|*)\nWith *|ATTENDEES|**|\n NOTES|**|\nEVENTLINK|*",
+    "#meeting" : "### *|TITLE|* (*|START|**|, LOCATION|*)\nWith *|ATTENDEES|**|\n NOTES|**|\nEVENTLINK|*",
     "holiday" : "*|TITLE|*\nHoliday:: *|NOTES|*"
   }
   ```
