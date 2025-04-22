@@ -8,12 +8,12 @@ import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
 import * as dt from '@helpers/dateTime'
 import {
-  calcOffsetDateStrUsingCalendarType,
-  getTodaysDateHyphenated,
+  // calcOffsetDateStrUsingCalendarType,
+  // getTodaysDateHyphenated,
   // isScheduled, // Note: name clash. Where used this will be dt.isScheduled
   isValidCalendarNoteFilename,
   isValidCalendarNoteFilenameWithoutExtension,
-  isValidCalendarNoteTitleStr,
+  // isValidCalendarNoteTitleStr,
   RE_ISO_DATE,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
@@ -21,7 +21,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import { displayTitle } from '@helpers/general'
+import { displayTitle, isValidUUID } from '@helpers/general'
 import { endOfFrontmatterLineIndex, ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { noteType } from '@helpers/note'
@@ -40,36 +40,36 @@ const pluginJson = 'NPnote.js'
  */
 export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): void {
   try {
-    let note
-    if (noteIn == null) {
-      logDebug('note/printNote()', 'No Note passed. Will try Editor note.')
-      note = Editor?.note
-    } else {
-      note = noteIn
-    }
+    const note = (noteIn == null) ? Editor?.note : noteIn
     if (!note) {
       logWarn('note/printNote()', `No valid note found. Stopping.`)
       return
     }
 
+    console.log(`# ${note.type} Note: '${displayTitle(note)}'${noteIn == null ? ' from Editor' : ''}:`)
+    // If it's a Teamspace note, show some details
+    if (note.isTeamspaceNote) {
+      console.log(`- 🧑‍🤝‍🧑 teamspace: ${note.teamspaceTitle} (id ${note.teamspaceID})\n- filename ${note.filename}`)
+    } else {
+      console.log(`- Private note\n- filename ${note.filename}`)
+    }
+
     if (note.type === 'Notes') {
       const endOfActive = findEndOfActivePartOfNote(note)
-      logInfo(
-        'note/printNote',
-        `title: ${note.title ?? ''}\n- filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${
-          String(note.changedDate) ?? ''
-        }\n- paragraphs: ${note.paragraphs.length} (endOfActive: ${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${
-          note.mentions?.join(', ') ?? ''
+      console.log(
+        `- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''
+        }\n- paragraphs: ${note.paragraphs.length} (endOfActive: ${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''
         }`,
       )
     } else {
-      logInfo(
-        'note/printNote',
-        `filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${
-          note.paragraphs.length
+      // Calendar note
+      console.log(dt.getDateStringFromCalendarFilename(note.filename))
+      console.log(
+        `- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${note.paragraphs.length
         }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
       )
     }
+
     if (note.paragraphs.length > 0) {
       const open = note.paragraphs.filter((p) => isOpen(p)).length
       const done = note.paragraphs.filter((p) => isDone(p)).length
@@ -81,6 +81,7 @@ export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): 
         note.paragraphs.map((p) => console.log(`  ${p.lineIndex}: ${p.type} ${p.rawContent}`))
       }
     }
+
     // Now show .backlinks
     if (note.backlinks.length > 0) {
       console.log(`Backlinks`)
@@ -94,6 +95,39 @@ export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): 
     }
   } catch (e) {
     logError('note/printNote', `Error printing note: ${e.message}`)
+  }
+}
+
+/**
+ * Get the teamspace details from a note.
+ * Note: requires NotePlan v3.17 or later.
+ * @author @jgclark
+ * @param {TNote} note
+ * @returns {TTeamspace | null} teamspace details, or null if not a teamspace note or if NotePlan build version is too old
+ */
+export function getTeamspaceDetailsFromNote(note: TNote): TTeamspace | null {
+  try {
+    if ((NotePlan.environment.buildVersion < 1366 && NotePlan.environment.platform === 'macOS') || (NotePlan.environment.buildVersion < 1295 && NotePlan.environment.platform !== 'macOS')) {
+      return null
+    }
+    if (note.isTeamspaceNote) {
+      const teamspaceId = note.filename.split('/')[1]
+      const resolvedFilename = note.resolvedFilename
+      const teamspaceTitle = resolvedFilename.split('/')[0]
+      if (!teamspaceId || !teamspaceId.length || !isValidUUID(teamspaceId)) {
+        throw new Error(`Note ${note.filename} is a teamspace note but cannot get valid ID for it`)
+      }
+      if (!teamspaceTitle || !teamspaceTitle.length) {
+        throw new Error(`Note ${note.filename} is a teamspace note but cannot get title for it`)
+      }
+      // logDebug('NPnote/getTeamspaceIDFromNote', `Note ${note.filename} is a teamspace note with ID ${teamspaceId}`)
+      return { id: teamspaceId, title: teamspaceTitle }
+    }
+    logWarn('NPnote/getTeamspaceIDFromNote', `Note ${note.filename} is not a teamspace note`)
+    return null
+  } catch (err) {
+    logError('NPnote/getTeamspaceIDFromNote', `${err.name}: ${err.message}`)
+    return null
   }
 }
 
@@ -137,7 +171,7 @@ export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
       // this is a date interval, so -> date string relative to today
       // $FlowIgnore[incompatible-use]
       const thisOffset = possDateString.match(new RegExp(RE_OFFSET_DATE_CAPTURE))[1]
-      possDateString = calcOffsetDateStrUsingCalendarType(thisOffset)
+      possDateString = dt.calcOffsetDateStrUsingCalendarType(thisOffset)
       logDebug('NPnote/getNoteFilenameFromTitle', `found offset date ${thisOffset} -> '${possDateString}'`)
     }
     // If its YYYY-MM-DD then have to turn it into YYYYMMDD
@@ -188,7 +222,7 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
     // this is a date interval, so -> date string relative to today
     // $FlowIgnore[incompatible-use]
     const thisOffset = possDateString.match(new RegExp(RE_OFFSET_DATE_CAPTURE))[1]
-    possDateString = calcOffsetDateStrUsingCalendarType(thisOffset)
+    possDateString = dt.calcOffsetDateStrUsingCalendarType(thisOffset)
     logDebug('NPnote/getNoteFilenameFromTitle', `found offset date ${thisOffset} -> '${possDateString}'`)
   }
   // If its YYYY-MM-DD then have to turn it into YYYYMMDD
@@ -274,7 +308,7 @@ export function selectFirstNonTitleLineInEditor(): void {
  * @returns {Array<TParagraph>} of paragraphs which are open or open+tagged for today
  */
 export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = false): Array<TParagraph> {
-  const hyphDate = getTodaysDateHyphenated()
+  const hyphDate = dt.todaysDateISOString
   // const toDate = getDateObjFromDateTimeString(hyphDate)
   const isTodayItem = (text: string) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
   // const todos:Array<TParagraph>  = []

@@ -442,7 +442,7 @@ declare class DataStore {
   /**
    * Get all calendar notes.
    * Note: from v3.4 this includes all future-referenced dates, not just those with an actual created note.
-   * TODO: from v3.17.0 does this return Teamspace calendar notes?
+   * Note: from v3.17.0, this includes Teamspace calendar notes (with the teamspace ID in the filename).
    */
   static +calendarNotes: $ReadOnlyArray<TNote>;
   /**
@@ -604,10 +604,10 @@ declare class DataStore {
    * Note: 'parent' available from v3.17.0
    * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty.
    * @param {string} dateString
-   * @param {string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
+   * @param {TTeamspaceID? | string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
    * @returns {NoteObject}
    */
-  static calendarNoteByDateString(dateString: string, parent ?: string): ?TNote;
+  static calendarNoteByDateString(dateString: string, parent ?: TTeamspaceID | string): ?TNote;
   /**
    * Returns all regular notes with the given title.
    * Since multiple notes can have the same title, an array is returned.
@@ -1414,6 +1414,19 @@ declare interface Note extends CoreNoteFields {
 }
 
 /**
+ * UUID type
+ */
+type UUID = string
+
+/**
+ * Teamspace object
+ */
+type TTeamspace = {
+  id: UUID,
+  title: string,
+}
+
+/**
  * Ranges are used when you deal with selections or need to know where a
  * paragraph is in the complete text.
  */
@@ -1682,6 +1695,11 @@ type TBacklinkFields = {
   note: {},
 }
 
+/* Future idea:
+type TRegularFilename = string
+type TCalendarFilename = string
+*/
+
 type TCoreNoteFields = CoreNoteFields
 declare interface CoreNoteFields {
   /**
@@ -1697,7 +1715,7 @@ declare interface CoreNoteFields {
    * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
    * From v3.6.0 can also *set* the filename, which does a rename.
    */
-  filename: string;
+filename: string;  /* Idea: TRegularFilename | TCalendarFilename; */
   /**
    * Optional date if it's a calendar note
    */
@@ -2025,6 +2043,18 @@ resolveConflictWithOtherVersion(): void;
  * @returns {boolean}
  */
 +isTeamspaceNote: boolean;
+/**
+ * The ID of the teamspace the note belongs to (will be undefined for private notes).
+ * Note: Available from v3.17.0
+ * @returns {?string}
+ */
++teamspaceID: ?string;
+/**
+ * Returns the title of the teamspace the note belongs to (will be undefined for private notes)
+ * Note: Available from v3.17.0
+ * @returns {?string}
+ */
++teamspaceTitle: ?string;
 }
 
 declare class NotePlan {

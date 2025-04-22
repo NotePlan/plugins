@@ -154,17 +154,6 @@ export function percent(value: number, total: number): string {
   return total > 0 ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)` : `${value.toLocaleString()} (0%)`
 }
 
-// Deprecated: more trouble than they're worth ...
-// export const defaultFileExt: () => any = () =>
-//   DataStore.defaultFileExtension != null
-//     ? DataStore.defaultFileExtension.toString()
-//     : 'md'
-
-// export const defaultTodoCharacter: () => any = () =>
-//   DataStore.preference('defaultTodoCharacter') != null
-//     ? DataStore.preference('defaultTodoCharacter').toString()
-//     : '*'
-
 /**
  * Return range information as a string
  * Note: There is a copy of this is note.js to avoid a circular dependency.
@@ -593,4 +582,13 @@ export function CreateUUID(howManyChars: number = 37): string {
  */
 export function escapeRegex(str: any): any {
   return typeof str === 'string' ? str.replace(/[/-\^$*+?.()|[]{}]/g, '$&') : str
+}
+
+/**
+ * Check if a string is a valid UUID
+ * @param {string} str - the string to check
+ * @returns {boolean} true if the string is a valid UUID, false otherwise
+ */
+export function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
 }

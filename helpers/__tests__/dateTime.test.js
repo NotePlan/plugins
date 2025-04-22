@@ -213,10 +213,28 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
+  * parseTeamspaceCalendarFilename()
+  */
+  describe('parseTeamspaceCalendarFilename()' /* function */, () => {
+    test('should parse a non-teamspace calendar filename', () => {
+      const result = dt.parseTeamspaceCalendarFilename('20250422.md')
+      expect(result).toEqual({ filename: '20250422.md', isTeamspace: false })
+    })
+    test('should parse a Teamspace calendar filename', () => {
+      const result = dt.parseTeamspaceCalendarFilename('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
+      expect(result).toEqual({ filename: '20250422.md', isTeamspace: true, teamspaceID: 'c484b190-77dd-4d40-a05c-e7d7144f24e1' })
+    })
+  })
+
+  /*
    * replaceArrowDatesInString()
    */
-  describe('replaceArrowDatesInString()' /* function */, () => {
-    test('should replace today with todays date', () => {
+  describe('replaceArrowDatesInString()', () => {
+    test('should not change anything if no arrow dates and empty replace string', () => {
+      const result = dt.replaceArrowDatesInString('test today with no dates!', '')
+      expect(result).toEqual(`test today with no dates!`)
+    })
+    test('should just remove >today', () => {
       const result = dt.replaceArrowDatesInString('test today >today', '')
       expect(result).toEqual(`test today`)
     })
@@ -225,11 +243,15 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(`foo bar ${dt.getTodaysDateAsArrowDate()}`)
     })
     test('should replace multiples with todays date', () => {
-      const result = dt.replaceArrowDatesInString('>2021-02-02 foo >today bar >2022-05-05')
+      const result = dt.replaceArrowDatesInString('>2021-02-02 foo >today bar >2022')
       expect(result).toEqual(`foo bar ${dt.getTodaysDateAsArrowDate()}`)
     })
     test('should replace multiples with my string', () => {
       const result = dt.replaceArrowDatesInString('>2021-02-02 foo >today bar >2022-05-05', 'baz')
+      expect(result).toEqual(`foo bar baz`)
+    })
+    test('should replace multiple scheduled week/month dates with my string', () => {
+      const result = dt.replaceArrowDatesInString('>2021-02 foo >today bar >2022-W05 >2022-Q3', 'baz')
       expect(result).toEqual(`foo bar baz`)
     })
   })
@@ -992,6 +1014,14 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should return invalid date for yearly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-.md')
       expect(result).toEqual('(invalid date)')
+    })
+    test('should return valid date for teamspace daily calendar filename', () => {
+      const result = dt.getDateStringFromCalendarFilename('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
+      expect(result).toEqual('20250422')
+    })
+    test('should return valid date for teamspace weekly calendar filename', () => {
+      const result = dt.getDateStringFromCalendarFilename('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-W01.txt')
+      expect(result).toEqual('2025-W01')
     })
   })
 
