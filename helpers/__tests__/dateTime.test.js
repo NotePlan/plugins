@@ -445,12 +445,12 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
-  describe('unhyphenatedDate', () => {
+  describe('YYYYMMDDDateStringFromDate', () => {
     test('for 20210424', () => {
-      expect(dt.unhyphenatedDate(new Date(2021, 3, 24, 0, 0, 0))).toEqual('20210424')
+      expect(dt.YYYYMMDDDateStringFromDate(new Date(2021, 3, 24, 0, 0, 0))).toEqual('20210424')
     })
     test('for 20211231', () => {
-      expect(dt.unhyphenatedDate(new Date(2021, 11, 31, 0, 0, 0))).toEqual('20211231')
+      expect(dt.YYYYMMDDDateStringFromDate(new Date(2021, 11, 31, 0, 0, 0))).toEqual('20211231')
     })
   })
 
@@ -788,8 +788,6 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   describe('filenameIsInFuture()', () => {
-    // const today = getTodaysDateUnhyphenated()
-
     // Daily notes
     test('should return false for a daily note filename in the past', () => {
       expect(dt.filenameIsInFuture('/path/to/note/20200101.md')).toEqual(false)

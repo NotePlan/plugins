@@ -12,7 +12,7 @@ import {
   calcOffsetDateStr,
   getCalendarNoteTimeframe,
   // getDateStringFromCalendarFilename,
-  getDateFromUnhyphenatedDateString,
+  getDateFromYYYYMMDDString,
   getDateStrForStartofPeriodFromCalendarFilename,
   // getISODateStringFromYYYYMMDD,
   toLocaleDateString,
@@ -89,7 +89,7 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
 
       // Add heading if wanted, or if doing more than 1 day
       if (daysToCover > 1) {
-        const npDateStr = getDateFromUnhyphenatedDateString(dateStr)
+        const npDateStr = getDateFromYYYYMMDDString(dateStr)
         if (!npDateStr) {
           throw new Error(`Could not get valid NP date string from ${dateStr}`)
         }
@@ -235,7 +235,7 @@ export async function listMatchingDaysEvents(
 
       // Add heading if wanted, or if doing more than 1 day
       if (daysToCover > 1) {
-        const npDateStr = getDateFromUnhyphenatedDateString(dateStr)
+        const npDateStr = getDateFromYYYYMMDDString(dateStr)
         if (!npDateStr) {
           throw new Error(`Could not get valid NP date string from ${dateStr}`)
         }

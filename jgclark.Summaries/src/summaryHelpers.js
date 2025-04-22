@@ -11,7 +11,7 @@ import pluginJson from '../plugin.json'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   calcOffsetDateStr,
-  // getDateFromUnhyphenatedDateString,
+  // getDateFromYYYYMMDDString,
   getDateStringFromCalendarFilename,
   getISODateStringFromYYYYMMDD,
   isDailyNote,

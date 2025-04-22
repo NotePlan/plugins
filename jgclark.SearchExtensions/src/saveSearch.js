@@ -29,7 +29,7 @@ import {
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
   convertISODateFilenameToNPDayFilename,
-  unhyphenatedDate,
+  YYYYMMDDDateStringFromDate,
 } from '@helpers/dateTime'
 import {
   getPeriodStartEndDates,
@@ -388,8 +388,8 @@ export async function saveSearch(
         if (fromDate == null || toDate == null) {
           throw new Error('dates could not be parsed for requested time period')
         }
-        fromDateStr = unhyphenatedDate(fromDate)
-        toDateStr = unhyphenatedDate(toDate)
+        fromDateStr = YYYYMMDDDateStringFromDate(fromDate)
+        toDateStr = YYYYMMDDDateStringFromDate(toDate)
         if (periodAndPartStr === '') {
           periodAndPartStr = periodString
         }

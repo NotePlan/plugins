@@ -351,13 +351,13 @@ export function printDateRange(dr: DateRange) {
  * @param {Date} dateObj
  * @returns {string}
  */
-export function unhyphenatedDate(dateObj: Date): string {
+export function YYYYMMDDDateStringFromDate(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
   return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
 }
 
 /**
- * Alias for unhyphenatedDate()
+ * Alias for YYYYMMDDDateStringFromDate()
  * Note: This works on local time, so can ignore TZ effects.
  * @author @nmn
  * @param {Date} dateObj
@@ -554,7 +554,7 @@ export function getDateStrForStartofPeriodFromCalendarFilename(filename: string)
     // logDebug('dateTime / gDSFSOPFCF', `for ${filename} ...`)
     const thisNote = DataStore.noteByFilename(filename, 'Calendar')
     if (thisNote && thisNote.date) {
-      const dateOut = unhyphenatedDate(thisNote.date) ?? '(error)'
+      const dateOut = YYYYMMDDDateStringFromDate(thisNote.date) ?? '(error)'
       // logDebug('gDSFSOPFCF', `-> ${dateOut}`)
       return dateOut
     } else {
@@ -811,10 +811,10 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
 /**
  * Turn a YYYYMMDD string into a JS Date. If no valid date found, then warning written to the log.
  * @param {string} - YYYYMMDD string
- * @return {?Date} - JS Date version of
+ * @return {?Date} - JS Date version the first found YYYYMMDD string
  */
-export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
-  // logDebug('dateTime / getDateFromUnhyphenatedDateString', inputString)
+export function getDateFromYYYYMMDDString(inputString: string): ?Date {
+  // logDebug('dateTime / getDateFromYYYYMMDDString', inputString)
   const res = inputString.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
@@ -827,10 +827,10 @@ export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
       0,
       0, // HH:MM:SS:mmm
     )
-    // logDebug('dateTime / getDateFromUnhyphenatedDateString', toLocaleDateTimeString(date))
+    // logDebug('dateTime / getDateFromYYYYMMDDString', toLocaleDateTimeString(date))
     return date
   } else {
-    logWarn('dateTime / getDateFromUnhyphenatedDateString', `  no valid date found in '${inputString}'`)
+    logWarn('dateTime / getDateFromYYYYMMDDString', `  no valid date found in '${inputString}'`)
     return
   }
 }
@@ -1428,18 +1428,18 @@ export function includesScheduledFurtherFutureDate(line: string, futureStartsInD
  * Checks if the given filename is in a future note.
  *
  * @param {string} filename - The filename to check.
- * @param {string} [fromUnhyphenatedDate=getTodaysDateUnhyphenated()] - The date to compare against, in unhyphenated format (YYYYMMDD).
+ * @param {string} [fromYYYYMMDDDateStringFromDate=getTodaysDateUnhyphenated()] - The date to compare against, in unhyphenated format (YYYYMMDD).
  * @returns {boolean} - Returns true if the filename is scheduled in a future note.
  */
-export function filenameIsInFuture(filename: string, fromUnhyphenatedDate: string = getTodaysDateUnhyphenated()): boolean {
-  const today = new Date(parseInt(fromUnhyphenatedDate.slice(0, 4)), parseInt(fromUnhyphenatedDate.slice(4, 6), 10) - 1, parseInt(fromUnhyphenatedDate.slice(6, 8), 10))
+export function filenameIsInFuture(filename: string, fromYYYYMMDDDateStringFromDate: string = getTodaysDateUnhyphenated()): boolean {
+  const today = new Date(parseInt(fromYYYYMMDDDateStringFromDate.slice(0, 4)), parseInt(fromYYYYMMDDDateStringFromDate.slice(4, 6), 10) - 1, parseInt(fromYYYYMMDDDateStringFromDate.slice(6, 8), 10))
 
   // Test for daily notes
   if (filename.match(RE_DAILY_NOTE_FILENAME)) {
     const dateMatch = filename.match(RE_DAILY_NOTE_FILENAME)
     if (dateMatch) {
       const dailyDate = dateMatch[0].match(/\d{8}/)?.[0] ?? ''
-      return dailyDate > fromUnhyphenatedDate
+      return dailyDate > fromYYYYMMDDDateStringFromDate
     }
   }
 
