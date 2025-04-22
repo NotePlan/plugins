@@ -17,8 +17,8 @@ This plugin (now a Core Plugin bundled with NotePlan 3.16.1 onwards) provides co
 - **jump to done** (alias **jd**): simply jumps the cursor to the `## Done` section of the current note (if it exists)
 - **list inconsistent note filenames**: lists the names of notes whose filenames are inconsistent with their titles
 - **list published notes**: generates a list in the new 'Publlished Notes' note of all notes that have been published to the internet through NotePlan. The note is created in the root folder; after this it can be moved to a different folder if desired.
-- **log note details**: logs the main details about the currently open note to the plugin console
-- **logEditorNoteDetailed** command that does the same as **log note details** but also logs line type and rawContents
+- **log Editor Note**: logs the main details about the currently open note to the plugin console.
+- **log Editor Note (detailed)** command that does the same as **log Editor Note** but also logs line type and rawContents.
 - - **move note** (alias **mn**): which moves a note to a different folder the user selects
 - **new note** (alias **nn**): creates a new (regular, not calendar) note with a title you give, and in a folder you can select. If the "Default Text to add to frontmatter" setting isn't blank, then the note will be created using that frontmatter.
 - **new note from clipboard** (alias **/nnc**): takes the current text in the clipboard to form the basis of a new note. The command asks for the note title and folder location.
