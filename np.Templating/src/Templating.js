@@ -203,8 +203,18 @@ export async function templateInvoke(templateName?: string): Promise<void> {
   }
 }
 
-export async function templateNew(templateTitle: string = '', _folder?: string, args?: Object): Promise<void> {
+/**
+ * Create a new note from a template
+ * @param {string} templateTitle - The title of the template to use
+ * @param {string} _folder - The folder to create the new note in
+ * @param {Object|string} args - The arguments to pass to the template - can be an object or a stringified object (e.g. JSON.stringify({newNoteTitle: 'bar'}))
+ * @returns {Promise<void>}
+ */
+export async function templateNew(templateTitle: string = '', _folder?: string, args?: Object | string): Promise<void> {
   try {
+    if (typeof args === 'string') {
+      args = JSON.parse(args)
+    }
     clo(args, `🤵 DBWDELETEME NPTemplating.templateNew templateTitle=${templateTitle} _folder=${_folder || ''} args=`)
     let selectedTemplate // will be a filename
     if (templateTitle?.trim().length) {
