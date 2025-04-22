@@ -1,4 +1,5 @@
 // @flow
+// Show task counts for currently displayed note, or all notes
 // Last updated 2025-04-22 for v0.7.0 by @jgclark
 
 import { displayTitle, percent } from '@helpers/general'
@@ -43,6 +44,9 @@ export async function showTaskCountForNote() {
 
 // Shows task statistics for all notes, ignoring @special folders
 export async function showTaskCountForAll(): Promise<void> {
+  // Start this longish sort job in the background
+  await CommandBar.onAsyncThread()
+
   const regularNotes = DataStore.projectNotes.filter(
     (n) => !n.filename.startsWith("@Templates") && !n.filename.startsWith("@Trash") && !n.filename.startsWith("@Archive")
   )
@@ -61,6 +65,11 @@ export async function showTaskCountForAll(): Promise<void> {
 
   // Iterate over all project notes, counting
   for (let i = 0; i < allNotesCount; i += 1) {
+    // Show progress dialog every 50 notes
+    if (i % 100 === 0) {
+      CommandBar.showLoading(true, `Processing note ${i.toLocaleString()} of ${allNotesCount.toLocaleString()}`, (i / allNotesCount))
+    }
+
     const n = allNotes[i]
     const paragraphs = n.paragraphs
     const countParagraphsOfType = function (types: Array<string>) {
@@ -81,7 +90,9 @@ export async function showTaskCountForAll(): Promise<void> {
     // following is not quite the same as future. TODO: make future
     scheduledChecklistsTotal += countParagraphsOfType(["checklistScheduled"])
   }
+  CommandBar.showLoading(false)
   const numNotesWithOpen = [...open.entries()].length
+  await CommandBar.onMainThread()// no await
 
   const closedTasksTotal = doneTasksTotal + cancelledTasksTotal
   const tasksTotal = openTasksTotal + closedTasksTotal
