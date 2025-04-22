@@ -16,7 +16,7 @@ import {
   getDisplayDateStrFromFilenameDateStr,
   getTodaysDateUnhyphenated,
   RE_ISO_DATE,
-  unhyphenateString,
+  convertISODateFilenameToNPDayFilename,
 } from '@helpers/dateTime'
 import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
@@ -380,7 +380,7 @@ export async function prependTaskToCalendarNote(
     if (dateArg != null && dateArg !== '') {
       // change YYYY-MM-DD to YYYYMMDD, if needed
       const dateArgToMatch = dateArg.match(RE_ISO_DATE)
-        ? unhyphenateString(dateArg)
+        ? convertISODateFilenameToNPDayFilename(dateArg)
         : dateArg // for regular note titles, and weekly notes
       note = DataStore.calendarNoteByDateString(dateArgToMatch)
     }
@@ -441,7 +441,7 @@ export async function appendTaskToCalendarNote(
     if (dateArg != null && dateArg !== '') {
       // change YYYY-MM-DD to YYYYMMDD, if needed
       const dateArgToMatch = dateArg.match(RE_ISO_DATE)
-        ? unhyphenateString(dateArg)
+        ? convertISODateFilenameToNPDayFilename(dateArg)
         : dateArg // for regular note titles, and weekly notes
       note = DataStore.calendarNoteByDateString(dateArgToMatch)
     }

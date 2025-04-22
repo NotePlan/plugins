@@ -290,8 +290,20 @@ export function getYearMonthDate(dateObj: Date): $ReadOnly<{
 
 export type HourMinObj = { h: number, m: number }
 
-export function unhyphenateString(dateString: string): string {
-  return dateString.replace(/-/g, '')
+/**
+ * Change YYYY-MM-DD to YYYYMMDD, if needed. Leave the rest of the string (which is expected to be a filename) unchanged.
+ * Note: updated in Apr 2025 to cope with Teamspace Calendar notes (with leading %%NotePlanCloud%%/UUID/) as well as private daily notes.
+ * @param {string} dailyNoteFilename
+ * @returns {string} with YYYYMMDD in place of YYYY-MM-DD where found. 
+ */
+export function convertISODateFilenameToNPDayFilename(dailyNoteFilename: string): string {
+  const matches = dailyNoteFilename.match(RE_ISO_DATE)
+  if (matches) {
+    const npDayString = matches[0].replace(/-/g, '')
+    return dailyNoteFilename.replace(matches[0], npDayString)
+  } else {
+    return dailyNoteFilename
+  }
 }
 
 // Note: ? This does not work to get reliable date string from note.date for daily notes
@@ -345,18 +357,6 @@ export function unhyphenatedDate(dateObj: Date): string {
 }
 
 /**
- * Get YYYY-MM-DD for supplied date.
- * Note: This works on local time, so can ignore TZ effects.
- * @author @nmn
- * @param {Date} dateObj
- * @returns {string}
- */
-export function hyphenatedDateString(dateObj: Date): string {
-  const { year, month, date } = getYearMonthDate(dateObj)
-  return `${year}-${month < 10 ? '0' : ''}${month}-${date < 10 ? '0' : ''}${date}`
-}
-
-/**
  * Alias for unhyphenatedDate()
  * Note: This works on local time, so can ignore TZ effects.
  * @author @nmn
@@ -366,6 +366,18 @@ export function hyphenatedDateString(dateObj: Date): string {
 export function filenameDateString(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
   return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
+}
+
+/**
+ * Get YYYY-MM-DD for supplied date.
+ * Note: This works on local time, so can ignore TZ effects.
+ * @author @nmn
+ * @param {Date} dateObj
+ * @returns {string}
+ */
+export function hyphenatedDateString(dateObj: Date): string {
+  const { year, month, date } = getYearMonthDate(dateObj)
+  return `${year}-${month < 10 ? '0' : ''}${month}-${date < 10 ? '0' : ''}${date}`
 }
 
 /**
@@ -444,7 +456,7 @@ export function getDisplayDateStrFromFilenameDateStr(dateStrIn: string): string 
  */
 export function getFilenameDateStrFromDisplayDateStr(dateStrIn: string): string {
   if (dateStrIn.match(RE_ISO_DATE)) {
-    return unhyphenateString(dateStrIn)
+    return convertISODateFilenameToNPDayFilename(dateStrIn)
   } else {
     return dateStrIn
   }
@@ -457,7 +469,7 @@ export function getFilenameDateStrFromDisplayDateStr(dateStrIn: string): string 
  */
 export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
   if (dateStrIn.match(RE_ISO_DATE)) {
-    return unhyphenateString(dateStrIn)
+    return convertISODateFilenameToNPDayFilename(dateStrIn)
   } else {
     return dateStrIn
   }

@@ -17,7 +17,7 @@ import {
   // getISODateStringFromYYYYMMDD,
   toLocaleDateString,
   toLocaleTime,
-  // unhyphenateString,
+  // convertISODateFilenameToNPDayFilename,
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { getTagParamsFromString } from '@helpers/general'
@@ -83,7 +83,7 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
       // Set dateStr to the day in question (YYYYMMDD)
 
       // const isoStartDayDateStr = getISODateStringFromYYYYMMDD(startDayDateString)
-      // const dateStr = unhyphenateString(calcOffsetDateStr(isoStartDayDateStr, `+${i}d`))
+      // const dateStr = convertISODateFilenameToNPDayFilename(calcOffsetDateStr(isoStartDayDateStr, `+${i}d`))
       const dateStr = calcOffsetDateStr(startDayDateString, `+${i}d`)
       logDebug('listDaysEvents', `${i}: startDayDateString=${startDayDateString}, dateStr=${dateStr}`)
 
@@ -229,7 +229,7 @@ export async function listMatchingDaysEvents(
     // For each day to cover
     for (let i = 0; i < daysToCover; i++) {
       // Set dateStr to the day in question (YYYYMMDD)
-      // const dateStr = unhyphenateString(calcOffsetDateStr(getISODateStringFromYYYYMMDD(baseDateStr), `+${i}d`))
+      // const dateStr = convertISODateFilenameToNPDayFilename(calcOffsetDateStr(getISODateStringFromYYYYMMDD(baseDateStr), `+${i}d`))
       const dateStr = calcOffsetDateStr(startDayDateString, `+${i}d`)
       logDebug('listDaysEvents', `${i}: startDayDateString=${startDayDateString}, dateStr=${dateStr}`)
 

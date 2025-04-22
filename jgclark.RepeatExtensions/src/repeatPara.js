@@ -10,7 +10,7 @@ import {
   RE_DONE_DATE_TIME,
   RE_DONE_DATE_TIME_CAPTURES,
   RE_ISO_DATE, // find dates of form YYYY-MM-DD
-  unhyphenateString,
+  convertISODateFilenameToNPDayFilename,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logInfo, logWarn, logError } from "@helpers/dev"
 
@@ -82,7 +82,7 @@ export async function generateRepeatForPara(
     } else {
       // Handle calendar note case
       if (newRepeatDateStr.match(RE_ISO_DATE)) {
-        newRepeatDateStr = unhyphenateString(newRepeatDateStr)
+        newRepeatDateStr = convertISODateFilenameToNPDayFilename(newRepeatDateStr)
       }
       const futureNote = await DataStore.calendarNoteByDateString(newRepeatDateStr)
       if (futureNote != null) {

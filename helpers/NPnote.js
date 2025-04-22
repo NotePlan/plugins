@@ -17,7 +17,7 @@ import {
   RE_ISO_DATE,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
-  unhyphenateString,
+  convertISODateFilenameToNPDayFilename,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
@@ -176,7 +176,7 @@ export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
     }
     // If its YYYY-MM-DD then have to turn it into YYYYMMDD
     if (new RegExp(RE_ISO_DATE).test(possDateString)) {
-      possDateString = unhyphenateString(possDateString)
+      possDateString = convertISODateFilenameToNPDayFilename(possDateString)
     }
     // If this matches a calendar note by filename (YYYYMMDD or YYYY-Wnn etc.)
     if (isValidCalendarNoteFilenameWithoutExtension(possDateString)) {
@@ -227,7 +227,7 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
   }
   // If its YYYY-MM-DD then have to turn it into YYYYMMDD
   if (new RegExp(RE_ISO_DATE).test(possDateString)) {
-    possDateString = unhyphenateString(possDateString)
+    possDateString = convertISODateFilenameToNPDayFilename(possDateString)
   }
   // If this matches a calendar note by filename (YYYYMMDD or YYYY-Wnn etc.)
   if (isValidCalendarNoteFilenameWithoutExtension(possDateString)) {

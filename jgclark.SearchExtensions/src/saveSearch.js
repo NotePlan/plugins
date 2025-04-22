@@ -28,7 +28,7 @@ import {
 import {
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
-  unhyphenateString,
+  convertISODateFilenameToNPDayFilename,
   unhyphenatedDate,
 } from '@helpers/dateTime'
 import {
@@ -363,14 +363,14 @@ export async function saveSearch(
 
         fromDateStr = (fromDateArg && fromDateArg !== '')
           ? (fromDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
-            ? unhyphenateString(fromDateArg)
+            ? convertISODateFilenameToNPDayFilename(fromDateArg)
             : fromDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
               ? fromDateArg
               : 'error')
           : todayMom.subtract(91, 'days').format('YYYYMMDD') // 91 days ago
         toDateStr = (toDateArg && toDateArg !== '')
           ? (toDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
-            ? unhyphenateString(toDateArg)
+            ? convertISODateFilenameToNPDayFilename(toDateArg)
             : toDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
               ? toDateArg
               : 'error')

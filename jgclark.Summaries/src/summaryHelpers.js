@@ -17,7 +17,7 @@ import {
   isDailyNote,
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
-  unhyphenateString,
+  convertISODateFilenameToNPDayFilename,
   withinDateRange,
 } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -466,7 +466,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
   try {
     const calendarNotesInPeriod = DataStore.calendarNotes.filter(
       (n) =>
-        isDailyNote(n) && withinDateRange(getDateStringFromCalendarFilename(n.filename), unhyphenateString(fromDateStr), unhyphenateString(toDateStr)))
+        isDailyNote(n) && withinDateRange(getDateStringFromCalendarFilename(n.filename), convertISODateFilenameToNPDayFilename(fromDateStr), convertISODateFilenameToNPDayFilename(toDateStr)))
     if (calendarNotesInPeriod.length === 0) {
       logWarn('gatherOccurrences', `- no matching calendar notes found between ${fromDateStr} and ${toDateStr}`)
       return [] // for completeness

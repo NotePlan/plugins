@@ -454,6 +454,29 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
+  describe('convertISODateFilenameToNPDayFilename', () => {
+    test('should return YYYYMMDD for a valid ISO date string', () => {
+      const result = dt.convertISODateFilenameToNPDayFilename('2025-04-22')
+      expect(result).toEqual('20250422')
+    })
+    test('should return teamspace YYYYMMDD for a valid ISO date string', () => {
+      const result = dt.convertISODateFilenameToNPDayFilename('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-04-22.md')
+      expect(result).toEqual('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
+    })
+    test('should return YYYYMMDD for a valid teamspace date string', () => {
+      const result = dt.convertISODateFilenameToNPDayFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2020-04-22.txt')
+      expect(result).toEqual('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20200422.txt')
+    })
+    test('should return YYYYMMDD from an existing YYYYMMDD date string', () => {
+      const result = dt.convertISODateFilenameToNPDayFilename('20250422')
+      expect(result).toEqual('20250422')
+    })
+    test('should return the original string if it is not a valid ISO date string', () => {
+      const result = dt.convertISODateFilenameToNPDayFilename('lorem ipsum 2025 and more')
+      expect(result).toEqual('lorem ipsum 2025 and more')
+    })
+  })
+
   describe('getWeek', () => {
     /**
      * For commentary see function defintion.
