@@ -207,15 +207,19 @@ export async function templateInvoke(templateName?: string): Promise<void> {
  * Create a new note from a template
  * @param {string} templateTitle - The title of the template to use
  * @param {string} _folder - The folder to create the new note in
- * @param {Object|string} args - The arguments to pass to the template - can be an object or a stringified object (e.g. JSON.stringify({newNoteTitle: 'bar'}))
+ * @param {string} newNoteTitle - The title of the new note to create
+ * @param {Object|string} args - The arguments to pass to the template - can be an object or a stringified object (e.g. JSON.stringify({foo: 'bar'}))
  * @returns {Promise<void>}
  */
-export async function templateNew(templateTitle: string = '', _folder?: string, args?: Object | string): Promise<void> {
+export async function templateNew(templateTitle: string = '', _folder?: string, newNoteTitle?: string, _args?: Object | string): Promise<void> {
   try {
-    if (typeof args === 'string') {
-      args = JSON.parse(args)
+    let args = _args
+    if (typeof _args === 'string') {
+      args = JSON.parse(_args)
+    } else if (!args) {
+      args = {}
     }
-    clo(args, `🤵 DBWDELETEME NPTemplating.templateNew templateTitle=${templateTitle} _folder=${_folder || ''} args=`)
+    clo(args, `🤵 DBWDELETEME NPTemplating.templateNew templateTitle=${templateTitle} _folder=${_folder || ''} newNoteTitle=${newNoteTitle} args= ${typeof args}=`)
     let selectedTemplate // will be a filename
     if (templateTitle?.trim().length) {
       const options = await NPTemplating.getTemplateList()
@@ -232,7 +236,6 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
 
     let folder = _folder ?? ''
-    let noteTitle = ''
 
     let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, args)
     frontmatterAttributes = { ...frontmatterAttributes, ...args }
@@ -242,14 +245,9 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
 
-    if (frontmatterAttributes.hasOwnProperty('newNoteTitle')) {
-      noteTitle = frontmatterAttributes.newNoteTitle
-    } else {
-      const title = await CommandBar.textPrompt('Template', 'Enter New Note Title', '')
-      if (typeof title === 'boolean' || title.length === 0) {
-        return // user did not provide note title (Cancel) abort
-      }
-      noteTitle = title
+    const noteTitle = newNoteTitle || frontmatterAttributes.newNoteTitle || (await CommandBar.textPrompt('Template', 'Enter New Note Title', ''))
+    if (typeof noteTitle === 'boolean' || noteTitle.length === 0) {
+      return // user did not provide note title (Cancel) abort
     }
 
     if (noteTitle.length === 0) {
