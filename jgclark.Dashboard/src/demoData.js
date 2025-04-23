@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin
-// Last updated for v2.1.1
+// Last updated for v2.2.0.a4
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import { Project } from '../../jgclark.Reviews/src/projectClass.js'
-import type { TSectionItem } from './types'
+import type { TSectionItem, TSection } from './types'
 import {
   getNPMonthStr,
   getNPWeekStr,
@@ -221,8 +221,8 @@ export const openYesterdayParas: Array<TSectionItem> = [
       filename: thisFilename,
       lineIndex: 4,
       priority: 0,
-      content: 'update contract for [[Staff Induction (SW)]] following review comments',
-      rawContent: 'update contract for [[Staff Induction (SW)]] following review comments',
+      content: 'Prepare contract for [[Staff Induction (SW)]] following review comments',
+      rawContent: 'Prepare contract for [[Staff Induction (SW)]] following review comments',
       prefix: '* ',
       hasChild: true,
       children: () => [{ content: 'check contract with Bev', indents: 1 }],
@@ -360,8 +360,8 @@ export const openTomorrowParas: Array<TSectionItem> = [
       noteType: 'Calendar',
       filename: thisFilename,
       lineIndex: 5,
-      content: 'Clear more of prayer room @staff >today ^q9jzj4',
-      rawContent: 'Clear more of prayer room @staff >today ^q9jzj4',
+      content: 'Prepare prayer room for Easter @staff >today ^q9jzj4',
+      rawContent: 'Prepare prayer room for Easter @staff >today ^q9jzj4',
       prefix: '* ',
       priority: 0,
       blockId: '^q9jzj4',
@@ -588,7 +588,73 @@ export const tagParasFromNote: Array<TSectionItem> = [
 ]
 
 //-----------------------------------------------------------
-// Notes to review
+// Demo data for Saved Search section
+
+// $FlowIgnore[prop-missing] demo data
+export const savedSearch1 = {
+  name: "'Prepare' Saved Search",
+  rep: 'prepare',
+  items: [
+    // $FlowIgnore[prop-missing] ID gets added later
+    {
+      itemType: 'open',
+      ID: '22-0',
+      para: {
+        type: 'open',
+        noteType: 'Calendar',
+        filename: thisFilename,
+        lineIndex: 5,
+        content: 'Prepare prayer room for Easter @staff >today ^q9jzj4',
+        rawContent: 'Prepare prayer room for Easter @staff >today ^q9jzj4',
+        prefix: '* ',
+        priority: 0,
+        blockId: '^q9jzj4',
+        // changedDate: new Date('2023-03-02T00:00:00.000Z'),
+        indentLevel: 0,
+      },
+    },
+    // $FlowIgnore[prop-missing] ID gets added later
+    {
+      itemType: 'open',
+      ID: '22-1',
+      para: {
+        noteType: 'Calendar',
+        type: 'open',
+        filename: thisFilename,
+        lineIndex: 4,
+        priority: 0,
+        content: 'Prepare contract for [[Staff Induction (SW)]] following review comments',
+        rawContent: 'Prepare contract for [[Staff Induction (SW)]] following review comments',
+        prefix: '* ',
+        hasChild: true,
+        children: () => [{ content: 'check contract with Bev', indents: 1 }],
+        indentLevel: 0,
+      },
+    },
+    // $FlowIgnore[prop-missing] ID gets added later
+    {
+      itemType: 'open',
+      ID: '22-2',
+      para: {
+        type: 'open',
+        noteType: 'Notes',
+        filename: 'CCC Areas/Services.md',
+        lineIndex: 6,
+        title: 'Services',
+        content: 'prepare service for 5/3 >2023-03-02',
+        rawContent: 'prepare service for 5/3 >2023-03-02',
+        prefix: '* ',
+        // changedDate: new Date('2023-03-02T00:00:00.000Z'),
+        priority: 0,
+        hasChild: true,
+        children: () => [{ content: 'plan Something Different for 5/3', indents: 1 }],
+        indentLevel: 0,
+      },
+    },
+  ]
+}
+//-----------------------------------------------------------
+// Project Notes to review
 // Note: uses newer Project-based objects now, not the earlier TNote-based demo data
 export const nextProjectNoteItems: Array<Project> = [
   // $FlowIgnore[incompatible-type]

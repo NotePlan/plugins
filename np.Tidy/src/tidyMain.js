@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2024-12-18 for v0.14.4, @jgclark
+// Last updated 2025-03-11 for v0.14.5, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -323,6 +323,8 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
 /**
  * Remove a given section (by matching on their section heading) from recently-changed Notes. Note: does not match on note title.
  * Can be passed parameters to override default time interval through an x-callback call.
+ * FIXME: Found 248 'Stats' sections in my notes.
+ * FIXME: numDays 
  * @author @jgclark
  * @param {?string} params optional JSON string
  */
@@ -341,7 +343,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     }
 
     // Get num days to process from param, or by asking user if necessary
-    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays ?? 0)
+    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays || 0)
     logDebug('removeSectionFromRecentNotes', `numDays = ${String(numDays)}`)
     // Note: can be 0 at this point, which implies process all days
 
@@ -395,7 +397,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
       // Check user wants to proceed (if not calledWithParams)
       if (!runSilently) {
         const res = await showMessageYesNo(`Do you want to remove ${String(numToRemove)} '${sectionHeading}' sections?`, ['Yes', 'No'], 'Remove Section from Notes')
-        if (res === 'No') {
+        if (res !== 'Yes') {
           logInfo('removeSectionFromRecentNotes', `User cancelled operation`)
           return
         }

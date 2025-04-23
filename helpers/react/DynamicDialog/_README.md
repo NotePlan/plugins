@@ -222,7 +222,7 @@ getTodaySectionData()
           actionName: 'addTask',
           actionParam: thisFilename,
           actionPluginID: `${pluginJson["plugin.id"]}`,
-          display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ',
+          display: '<i class= "fa-regular fa-fw  fa-circle-plus sidebarDaily" ></i> ',
           tooltip: "Add a new task to today's note",
           postActionRefresh: ['DT'],
           formFields: formFields, // <---

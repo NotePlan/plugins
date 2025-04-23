@@ -38,7 +38,7 @@
       1,
       {
         "args": "all",
-        "varsIgnorePattern": "^_|^clo$|^timer$|^log|^JSP$|^clof$|^res$|^describe$|^test$|^expect$|^beforeAll$|customConsole$|simpleFormatter$|Note$|^Paragraph$|^NotePlan$|^Editor$|^DataStore$|^CommandBar$|^Calendar$|^CalendarItem$|^Clipboard$|^HTMLView$|^globalThis$",
+        "varsIgnorePattern": "^_|^clo$|^clvt$|^timer$|^log|^JSP$|^clof$|^res$|^describe$|^test$|^expect$|^beforeAll$|customConsole$|simpleFormatter$|Note$|^Paragraph$|^NotePlan$|^Editor$|^DataStore$|^CommandBar$|^Calendar$|^CalendarItem$|^Clipboard$|^HTMLView$|^globalThis$",
         "argsIgnorePattern": "^_"
       }
     ],

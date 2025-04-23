@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 8.12.2023 for v1.3.0, @jgclark
+// Last updated 2025-03-21 for v2.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,26 +13,50 @@ import {
   searchOverCalendar,
   searchOverNotes,
   searchOpenTasks,
+  searchPeriod
 } from './saveSearch'
-import { searchPeriod } from './saveSearchPeriod'
+// import { searchPeriod } from './saveSearchPeriod'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 
 
+/**
+ * Parses a URL string and returns an object of key-value pairs of the URL parameters.
+ * 
+ * @param {string} query - The URL string to parse.
+ * @returns {Object<string, string>} An object containing the key-value pairs from the URL parameters.
+ */
 function getUrlParams(query: string): { [key: string]: string } {
   const search = /([^&=]+)=?([^&]*)/g
   let match
-  const decode = function (s) {
-    return decodeURIComponent(s.replace(/\+/g, // Regex for replacing addition symbol with a space
-      " "))
+  const decode = function (s: string) {
+    // Regex for replacing addition symbol with a space
+    return decodeURIComponent(s.replace(/\+/g, " "))
   }
-  const urlParams = {}
-  while (match = search.exec(query)) {
+  const urlParams: { [key: string]: string } = {}
+  while ((match = search.exec(query)) !== null) {
     urlParams[decode(match[1])] = decode(match[2])
     console.log(`Found param: ${decode(match[1])} / ${decode(match[2])}`)
   }
   clo(urlParams)
   return urlParams
 }
+
+// Note: AI suggests a cleaner way to do it:
+// function getQueryParameters(url) {
+// const urlObj = new URL(url)
+// const params = new URLSearchParams(urlObj.search)
+// const paramList = []
+// for (const [key, value] of params.entries()) {
+//   paramList.push({ key, value })
+// }
+// return paramList
+// }
+
+// Example usage
+// const url = 'https://example.com/page?name=John&age=30&city=NewYork'
+// const parameters = getQueryParameters(url)
+// console.log(parameters)
+// Output: [{ key: 'name', value: 'John' }, { key: 'age', value: '30' }, { key: 'city', value: 'NewYork' }]
 
 
 /**
@@ -79,38 +103,33 @@ export async function refreshSavedSearch(): Promise<void> {
     const arg2 = params.arg2 ?? ''
     const arg3 = params.arg3 ?? ''
     const arg4 = params.arg4 ?? ''
+    const arg5 = params.arg5 ?? ''
 
     await CommandBar.showLoading(true, 'Refreshing search results ...')
     await CommandBar.onAsyncThread()
     switch (cmdName) {
-      case "searchOverCalendar": {
-        // Put up a progress indicator first, though
-        searchOverCalendar(arg0, arg1)
-        break
-      }
       case "search": { // -> searchOverAll()
-        // Put up a progress indicator first, though
-        searchOverAll(arg0, arg1)
+        searchOverAll(arg0, arg1, arg2, arg3)
         break
       }
-      case "searchOpenTasks": {
-        // Put up a progress indicator first, though
-        searchOpenTasks(arg0, arg1)
+      case "searchOverCalendar": {
+        searchOverCalendar(arg0, arg1, arg2, arg3)
         break
       }
       case "searchOverNotes": {
-        // Put up a progress indicator first, though
-        searchOverNotes(arg0, arg1)
+        searchOverNotes(arg0, arg1, arg2, arg3)
         break
       }
-      case "quickSearch": {
-        // Put up a progress indicator first, though
-        quickSearch(arg0, arg1, arg2)
+      case "searchOpenTasks": {
+        searchOpenTasks(arg0, arg1, arg2)
         break
       }
       case "searchInPeriod": { // -> searchPeriod()
-        // Put up a progress indicator first, though
-        searchPeriod(arg0, arg1, arg2, arg3, arg4)
+        searchPeriod(arg0, arg1, arg2, arg3, arg4, arg5)
+        break
+      }
+      case "quickSearch": {
+        quickSearch(arg0, arg1, arg2, arg3)
         break
       }
     }

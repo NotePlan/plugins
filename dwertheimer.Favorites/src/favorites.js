@@ -78,13 +78,14 @@ export const removeFavoriteFromTitle = (title: string, icon: string, favoriteIde
  * @returns {boolean} true if the note is a favorite, false otherwise
  */
 
-export function noteIsFavorite(note: TNote, config: FavoritesConfig): boolean {
+export function noteIsFavorite(note: CoreNoteFields, config: FavoritesConfig): boolean {
   const { favoriteIcon, favoriteIdentifier, favoriteKey } = config
   let titleIsFavorite = false,
     fmIsFavorite = false
   if (favoriteIdentifier.includes('Star')) {
     if (titleHasFavoriteIcon(note?.title || '', favoriteIcon)) {
       titleIsFavorite = true
+      if (favoriteIdentifier === 'Star in title') return true
       if (favoriteIdentifier === 'Star or Frontmatter (either)') return true
     }
     if (favoriteIdentifier === 'Star in title') return titleIsFavorite // if we are only looking for a star return early

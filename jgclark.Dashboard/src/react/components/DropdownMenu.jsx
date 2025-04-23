@@ -39,6 +39,7 @@ type DropdownMenuProps = {
   labelPosition?: 'left' | 'right',
   isOpen: boolean,
   toggleMenu: () => void,
+  accessKey?: string,
 }
 
 //--------------------------------------------------------------------------
@@ -57,13 +58,14 @@ function DropdownMenu({
   handleSwitchChange = (key: string) => (e: any) => {},
   handleInputChange = (_key, _e) => {},
   handleComboChange = (_key, _e) => {},
-  handleSaveInput = (key: string) => (newValue: string) => {},
+  handleSaveInput = (key: string) => (_newValue: string) => {},
   onSaveChanges,
   iconClass = 'fa-solid fa-filter',
   className = '',
   labelPosition = 'right',
   isOpen,
   toggleMenu,
+  accessKey = '',
 }: DropdownMenuProps): Node {
   //----------------------------------------------------------------------
   // Refs
@@ -135,6 +137,13 @@ function DropdownMenu({
     [handleSaveChanges],
   )
 
+  // Adapt the handleSaveInput function for renderItem
+  const adaptedHandleSaveInput = (key: string, newValue: string) => {
+    if (key) {
+      handleSaveInput(key)(newValue)
+    }
+  }
+
   //----------------------------------------------------------------------
   // Effects
   //----------------------------------------------------------------------
@@ -188,7 +197,7 @@ function DropdownMenu({
   // Render
   //----------------------------------------------------------------------
   return (
-    <div className={`dropdown ${className}`} ref={dropdownRef}>
+    <div accessKey={accessKey} className={`dropdown ${className}`} ref={dropdownRef}>
       <i className={iconClass} onClick={toggleMenu}></i>
       <div className={`dropdown-content  ${isOpen ? 'show' : ''}`}>
         <div className="changes-pending">{changesMade ? `Changes pending. Will be applied when you close the menu.` : ''}</div>
@@ -196,12 +205,12 @@ function DropdownMenu({
           {otherItems.map((item, index) =>
             renderItem({
               index,
-              item: { ...item, checked: localSwitchStates[item.key] },
+              item: { ...item, checked: item.key ? localSwitchStates[item.key] : false },
               labelPosition,
               handleFieldChange,
               handleInputChange,
               handleComboChange,
-              handleSaveInput,
+              handleSaveInput: adaptedHandleSaveInput,
               showDescAsTooltips: true,
             }),
           )}
@@ -211,12 +220,12 @@ function DropdownMenu({
             {sectionItems.map((item, index) =>
               renderItem({
                 index,
-                item: { ...item, checked: localSwitchStates[item.key] },
+                item: { ...item, checked: item.key ? localSwitchStates[item.key] : false },
                 labelPosition,
                 handleFieldChange,
                 handleInputChange,
                 handleComboChange,
-                handleSaveInput,
+                handleSaveInput: adaptedHandleSaveInput,
                 showDescAsTooltips: true,
               }),
             )}

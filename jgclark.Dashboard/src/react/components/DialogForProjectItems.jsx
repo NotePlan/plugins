@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by Dialog component
-// Last updated 2025-02-04 for v2.1.8
+// Last updated 2025-04-06  for v2.2.0.a11
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState } from 'react'
@@ -44,10 +44,15 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const thisItem = detailsMessageObject?.item
   if (!thisItem) { throw `Cannot find item` }
   const lastProgressText = (thisItem.project?.lastProgressComment) ? `last: ${thisItem.project?.lastProgressComment}` : ''
-  const { ID, itemType, filename, title } = validateAndFlattenMessageObject(detailsMessageObject)
+  const { ID, itemType, filename, title, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
 
   const { sendActionToPlugin, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
+  const monthsToShow = (pluginData.platform === 'iOS') ? 1 : 2
+
+  // We want to open the calendar picker if the meta key was pressed as this was dialog was being triggered.
+  const shouldStartCalendarOpen = modifierKey // = boolean for whether metaKey pressed
+  logDebug('DialogForTaskItems', `shouldStartCalendarOpen=${String(shouldStartCalendarOpen)}`)
 
   const reviewIntervalStr = (thisItem.project?.reviewInterval) ? `reviews: ${thisItem.project.reviewInterval}` : ''
   const reviewDaysStr = (thisItem.project?.nextReviewDays) ? `due ${relativeDateFromNumber(thisItem.project.nextReviewDays, true)}` : ''
@@ -220,7 +225,13 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
                   ))}
                 </button>
               ))}
-              <CalendarPicker onSelectDate={handleDateSelect} numberOfMonths={1} reset={resetCalendar} />
+              <CalendarPicker
+                onSelectDate={handleDateSelect}
+                positionFunction={() => positionDialog(dialogRef)}
+                numberOfMonths={monthsToShow}
+                resetDateToDefault={resetCalendar}
+                startingSelectedDate={null}
+                shouldStartOpen={shouldStartCalendarOpen} />
             </div>
 
             {/* line2: Project Actions ---------------- */}

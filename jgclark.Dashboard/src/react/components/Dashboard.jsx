@@ -2,35 +2,24 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for v2.1.0.b
+// Last updated for v2.2.0.a12
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useMemo } from 'react'
-// import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
+import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import {
   dontDedupeSectionCodes,
   sectionDisplayOrder,
   sectionPriority,
-  // allSectionDetails
 } from '../../constants.js'
-// import {
-// getListOfEnabledSections,
-// getDisplayListOfSectionCodes
-// } from '../../dashboardHelpers'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
-// import type {
-// TSectionCode,
-// TPerspectiveSettings
-// } from '../../types.js'
-// import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
-// import useWatchForResizes from '../customHooks/useWatchForResizes.jsx' // jgclark removed in plugin so commenting out here
 import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
 import Header from './Header'
 import IdleTimer from './IdleTimer.jsx'
@@ -41,7 +30,7 @@ import PerspectivesTable from './PerspectivesTable.jsx'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import DebugPanel from '@helpers/react/DebugPanel'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
-import ModalSpinner from '@helpers/react/ModalSpinner'
+// import ModalSpinner from '@helpers/react/ModalSpinner'
 import NonModalSpinner from '@helpers/react/NonModalSpinner'
 
 export const standardSections: Array<TSettingItem> = showSectionSettingItems
@@ -89,7 +78,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
-  // useWatchForResizes(sendActionToPlugin) // jgclark removed in plugin so commenting out here
+  useWatchForResizes(sendActionToPlugin) // TEST: is this doing anything?
   // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs)
   const shortDelayTimerIsOn = logSettings._logLevel !== 'DEV'
   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: shortDelayTimerIsOn })
@@ -102,10 +91,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // State
   //----------------------------------------------------------------------
-
-  //
-  // Functions
-  //
 
   //----------------------------------------------------------------------
   // Constants
@@ -139,11 +124,9 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // logDebug('Dashboard:sortSections', `after sort: ${sections.length} (${getDisplayListOfSectionCodes(sections)}) with ${String(countTotalSectionItems(sections, dontDedupeSectionCodes))} items`)
   // clof(sections, `Dashboard: sortSections (length=${sections.length})`, ['sectionCode', 'name'], true)
 
-  // DBW says the 98 was to avoid scrollbars.
-  // TODO: JGC use KP's knowledge to have a more universal solution
   const dashboardContainerStyle = {
-    maxWidth: '100vw', // '98vw',
-    width: '100vw', // '98vw',
+    maxWidth: '100vw',
+    width: '100vw',
   }
 
   // For PerspectivesTable
@@ -274,20 +257,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
+
   const handleDialogClose = (xWasClicked: boolean = false) => {
     logDebug('Dashboard', `handleDialogClose() called with xWasClicked=${String(xWasClicked)}`)
     setReactSettings((prevSettings) => ({
       ...prevSettings,
       dialogData: { isOpen: false, isTask: true },
     }))
-  }
-
-  // Deal with the delayed refresh when a button was clicked
-  // Because sections and buttons could be destroyed after a click, we need to refresh from here
-  const handleCommandButtonClick = (/*  button: TActionButton */) => {
-    // logDebug('Dashboard', `handleCommandButtonClick was called for button: ${button.display}; setting up delayed timer.`)
-    // refreshTimer() // for now refresh after every button click, but could be more selective
-    // TODO: keep an eye out for times that it could be helpful
   }
 
   const autoRefresh = () => {
@@ -322,7 +298,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         <Header lastFullRefresh={lastFullRefresh} />
         <main>
           {sections.map((section, index) => (
-            <Section key={index} section={section} onButtonClick={handleCommandButtonClick} />
+            <Section key={index} section={section} onButtonClick={() => { }} /* {handleCommandButtonClick} */ />
           ))}
         </main>
         <Dialog

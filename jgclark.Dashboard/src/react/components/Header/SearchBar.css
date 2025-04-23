@@ -1,0 +1,17 @@
+search {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    input {
+        color: var(--fg-main-color);
+        background-color: var(--bg-apple-input-color);
+        padding: 2px 4px 0px 4px;
+        border: 1px solid rgb(from var(--fg-main-color) r g b/.3);
+        border-radius: 5px;
+        margin-right: 0.3rem;
+        /* min-width: 15ch; */
+        /* outline: none; */
+        transition: width 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+    }
+}

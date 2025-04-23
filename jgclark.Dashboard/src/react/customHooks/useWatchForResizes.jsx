@@ -32,7 +32,7 @@ export default function useWatchForResizes(
 
       debounceTimeout = setTimeout(() => {
         logDebug('useWatchForResizes', `Sending to plugin final dimensions: ${JSON.stringify(newDimensions)}`)
-        sendActionToPlugin('windowWasResized', { actionType: 'windowWasResized', newDimensions })
+        sendActionToPlugin('windowResized', { actionType: 'windowResized', newDimensions })
       }, 5000) // Wait time for the user to fiddle with the window before assuming it's done
     }
 

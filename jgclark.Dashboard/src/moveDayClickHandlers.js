@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions to move items from one day to another
-// Last updated for v2.1.10
+// Last updated 2025-04-09 for v2.2.0.a12
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -10,9 +10,7 @@ import { getOpenItemParasForTimePeriod, getRelevantOverdueTasks, getDashboardSet
 import { type MessageDataObject, type TBridgeClickHandlerResult } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer } from '@helpers/dev'
 import {
-  // calcOffsetDateStr,
   getDateStringFromCalendarFilename,
-  // getNPWeekStr,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
   replaceArrowDatesInString,
@@ -35,15 +33,16 @@ const checkThreshold = 20 // number beyond which to check with user whether to p
  * @param {MessageDataObject} data
  * @returns {TBridgeClickHandlerResult}
  */
-export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function scheduleAllYesterdayOpenToToday(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     let numberScheduled = 0
     const config: any = await getDashboardSettings()
-    // Override one config item so we can work on separate dated vs scheduled items
-    config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
     const reactWindowData: any = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-    // clo(reactWindowData)
+
+    // If called with modifierKey 'meta', then toggle from usual config.rescheduleNotMove behaviour to the opposite
+    const rescheduleNotMove = data.modifierKey === 'meta' ? !config.rescheduleNotMove : config.rescheduleNotMove
+    if (config.rescheduleNotMove !== config.rescheduleNotMove) logDebug('scheduleAllYesterdayOpenToToday', `starting with rescheduleNotMove setting overridden toggled to ${rescheduleNotMove}`)
 
     // Get paras for all open items in yesterday's note
     // Note: this could be taken from pluginData's DY section data, but it's very quick to generate, and guarantees that we're using fresh data
@@ -58,18 +57,24 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     }
 
     // Get list of open tasks/checklists from this calendar note
+    // First, override one config item so we can work on separate dated vs scheduled items
+    config.separateSectionForReferencedNotes = true
     const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod('day', yesterdaysNote, config)
-    const totalToMove = combinedSortedParas.length + sortedRefParas.length
-    // if (totalToMove !== prevTotalToMove) {
-    //   logDebug('scheduleAllTodayTomorrow', `- Excluding children reduced total to move from ${prevTotalToMove} to ${totalToMove}`)
-    // }
+    const initialTotalToMove = combinedSortedParas.length + sortedRefParas.length
 
-    // If there are lots, then double check whether to proceed
-    // TODO: get this from pluginData instead
+    // Remove child items from the two lists of paras
+    const combinedSortedParasWithoutChildren = combinedSortedParas.filter((dp) => !dp.isAChild)
+    const sortedRefParasWithoutChildren = sortedRefParas.filter((dp) => !dp.isAChild)
+    const totalToMove = combinedSortedParasWithoutChildren.length + sortedRefParasWithoutChildren.length
+    if (totalToMove !== initialTotalToMove) {
+      logDebug('scheduleAllYesterdayOpenToToday', `- Excluding children reduced total to move from ${initialTotalToMove} to ${totalToMove}`)
+    }
+
+    // If there are lots, then double check whether to proceed.
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS, so don't try.
     if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
       const res = await showMessageYesNo(
-        `Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to today?`,
+        `Are you sure you want to ${rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to today?`,
         ['Yes', 'No'],
         'Move Yesterday to Today',
         false,
@@ -81,19 +86,19 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     }
 
     let c = 0
-    if (combinedSortedParas.length > 0) {
+    if (combinedSortedParasWithoutChildren.length > 0) {
       reactWindowData.pluginData.refreshing = ['DT', 'DY']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(['DT', 'DY'])}`)
 
-      if (config.rescheduleNotMove) {
+      if (rescheduleNotMove) {
         // Determine if we need to use 'today' or schedule to the specific date.
         logDebug('scheduleAllYesterdayOpenToToday', `useTodayDate setting is ${config.useTodayDate}`)
         const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
         // For each para append ' >today'
-        for (const dashboardPara of combinedSortedParas) {
+        for (const dashboardPara of combinedSortedParasWithoutChildren) {
           c++
           // CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalToMove)
-          logDebug('scheduleAllYesterdayOpenToToday', `- scheduling "${dashboardPara.content}" to ${newDateStr}`)
+          logDebug('scheduleAllYesterdayOpenToToday', `- Scheduling item ${c}/${totalToMove} "${dashboardPara.content}" to tomorrow`)
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
@@ -105,18 +110,16 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
             logError('scheduleAllYesterdayOpenToToday', `Couldn't find para matching "${dashboardPara.content}"`)
           }
         }
-
         logDebug('scheduleAllYesterdayOpenToToday', `scheduled ${String(numberScheduled)} open items from yesterday's note to today's`)
       } else {
         // For each para move to today's note
-        for (const para of combinedSortedParas) {
-          logDebug('scheduleAllYesterdayOpenToToday', `- moving "${para.content}" to today`)
+        for (const para of combinedSortedParasWithoutChildren) {
           c++
           // CommandBar.showLoading(true, `Moving item ${c} to today`, c / totalToMove)
-          logDebug('scheduleAllYesterdayOpenToToday', `Moving item ${c} to today`)
+          logDebug('scheduleAllYesterdayOpenToToday', `Moving item ${c}/${totalToMove} "${para.content}" to today`)
           const res = await moveItemBetweenCalendarNotes(yesterdayDateStr, todayDateStr, para.content, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
           if (res) {
-            logDebug('scheduleAllYesterdayOpenToToday', `-> appeared to move item succesfully`)
+            // logDebug('scheduleAllYesterdayOpenToToday', `-> appeared to move item succesfully`)
             numberScheduled++
           } else {
             logWarn('scheduleAllYesterdayOpenToToday', `-> moveFromCalToCal from {yesterdayDateStr} to ${todayDateStr} not successful`)
@@ -129,7 +132,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     }
 
     // Now do the same for items scheduled to yesterday from other notes
-    if (sortedRefParas.length > 0) {
+    if (sortedRefParasWithoutChildren.length > 0) {
       // Show working indicator
       reactWindowData.pluginData.refreshing = ['DT', 'DY']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(['DT', 'DY'])}`)
@@ -137,8 +140,8 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
       // Determine if we need to use 'today' or schedule to the specific date.
       logDebug('scheduleAllYesterdayOpenToToday', `useTodayDate setting is ${config.useTodayDate}`)
       const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
-      // For each para append the date to move to.
-      for (const dashboardPara of sortedRefParas) {
+      // For each para append the date to move to
+      for (const dashboardPara of sortedRefParasWithoutChildren) {
         c++
         // CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalToMove)
         const thisNote = DataStore.noteByFilename(dashboardPara.filename, dashboardPara.noteType)
@@ -149,7 +152,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
             p.content = replaceArrowDatesInString(p.content, `>${newDateStr}`)
-            logDebug('scheduleAllYesterdayOpenToToday', `- scheduling referenced para from note ${thisNote.filename} with new content "${p.content}" `)
+            logDebug('scheduleAllYesterdayOpenToToday', `- Scheduling referenced para ${c}/${totalToMove} from note ${thisNote.filename} with new content "${p.content}"`)
             thisNote.updateParagraph(p)
             numberScheduled++
           } else {
@@ -159,9 +162,9 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
           DataStore.updateCache(thisNote, false)
         }
       }
-      logTimer('scheduleAllYesterdayOpenToToday', thisStartTime, `-> scheduled ${String(numberScheduled)} open items from yesterday in project notes to today`)
+      logTimer('scheduleAllYesterdayOpenToToday', thisStartTime, `scheduled ${String(numberScheduled)} open items from yesterday in project notes to today`)
     } else {
-      logDebug('scheduleAllYesterdayOpenToToday', `- No ref paras for yesterday found`)
+      // logDebug('scheduleAllYesterdayOpenToToday', `- No ref paras for yesterday found`)
     }
     // remove progress indicator
     reactWindowData.pluginData.refreshing = false
@@ -181,7 +184,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
  * @param {MessageDataObject} data
  * @returns {TBridgeClickHandlerResult}
  */
-export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function scheduleAllTodayTomorrow(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     let numberScheduled = 0
     const config = await getDashboardSettings()
@@ -189,6 +192,10 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+
+    // If called with modifierKey 'meta', then toggle from usual config.rescheduleNotMove behaviour to the opposite
+    const rescheduleNotMove = data.modifierKey === 'meta' ? !config.rescheduleNotMove : config.rescheduleNotMove
+    if (config.rescheduleNotMove !== config.rescheduleNotMove) logDebug('scheduleAllYesterdayOpenToToday', `starting with rescheduleNotMove setting overridden toggled to ${rescheduleNotMove}`)
 
     // Get paras for all open items in today's note
     // Note: this could be taken from pluginData's DT section data, but it's very quick to generate, and guarantees that we're using fresh data
@@ -204,10 +211,20 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     }
 
     // Get list of open tasks/checklists from this calendar note
+    // First, override one config item so we can work on separate dated vs scheduled items
+    config.separateSectionForReferencedNotes = true
     const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod('day', todaysNote, config)
-    const totalToMove = combinedSortedParas.length + sortedRefParas.length
+    const initialTotalToMove = combinedSortedParas.length + sortedRefParas.length
 
-    // TODO: get this from newer settings instead
+    // Remove child items from the two lists of paras
+    const combinedSortedParasWithoutChildren = combinedSortedParas.filter((dp) => !dp.isAChild)
+    const sortedRefParasWithoutChildren = sortedRefParas.filter((dp) => !dp.isAChild)
+    const totalToMove = combinedSortedParasWithoutChildren.length + sortedRefParasWithoutChildren.length
+    if (totalToMove !== initialTotalToMove) {
+      logDebug('scheduleAllTodayTomorrow', `- Excluding children reduced total to move from ${initialTotalToMove} to ${totalToMove}`)
+    }
+
+    // If there are lots, then double check whether to proceed.
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
     if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
       const res = await showMessageYesNo(
@@ -223,16 +240,16 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     }
 
     let c = 0
-    if (combinedSortedParas.length > 0) {
+    if (combinedSortedParasWithoutChildren.length > 0) {
       reactWindowData.pluginData.refreshing = ['DT', 'DO']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(['DT', 'DO'])}`)
 
       if (config.rescheduleNotMove) {
         // For each para append ' >' and tomorrow's ISO date
-        for (const dashboardPara of combinedSortedParas) {
+        for (const dashboardPara of combinedSortedParasWithoutChildren) {
           c++
           // CommandBar.showLoading(true, `Scheduling item ${c} to tomorrow`, c / totalToMove)
-          logDebug('scheduleAllTodayTomorrow', `- scheduling "${dashboardPara.content}" to tomorrow`)
+          logDebug('scheduleAllTodayTomorrow', `- Scheduling item ${c}/${totalToMove} "${dashboardPara.content}" to tomorrow`)
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
@@ -245,13 +262,13 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
         logDebug('scheduleAllTodayTomorrow', `scheduled ${String(numberScheduled)} open items from today's note`)
       } else {
         // For each para move to tomorrow's note
-        for (const para of combinedSortedParas) {
-          logDebug('scheduleAllTodayTomorrow', `- moving "${para.content}" to tomorrow`)
+        for (const para of combinedSortedParasWithoutChildren) {
           c++
           // CommandBar.showLoading(true, `Moving item ${c} to tomorrow`, c / totalToMove)
+          logDebug('scheduleAllTodayTomorrow', `Moving item ${c}/${totalToMove} "${para.content}" to tomorrow`)
           const res = await moveItemBetweenCalendarNotes(todayDateStr, tomorrowDateStr, para.content, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
           if (res) {
-            logDebug('scheduleAllTodayTomorrow', `-> appeared to move item succesfully`)
+            // logDebug('scheduleAllTodayTomorrow', `-> appeared to move item succesfully`)
             numberScheduled++
           } else {
             logWarn('scheduleAllTodayTomorrow', `-> moveFromCalToCal from {todayDateStr} to ${tomorrowDateStr} not successful`)
@@ -264,12 +281,13 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     }
 
     // Now do the same for items scheduled to today from other notes
-    if (sortedRefParas.length > 0) {
+    if (sortedRefParasWithoutChildren.length > 0) {
+    // Show working indicator
       reactWindowData.pluginData.refreshing = ['DT', 'DO']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(['DT', 'DO'])}`)
 
       // For each para append ' >tomorrow'
-      for (const dashboardPara of sortedRefParas) {
+      for (const dashboardPara of sortedRefParasWithoutChildren) {
         c++
         // CommandBar.showLoading(true, `Scheduling item ${c} to tomorrow`, c / totalToMove)
         const thisNote = DataStore.noteByFilename(dashboardPara.filename, dashboardPara.noteType)
@@ -280,18 +298,19 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
             p.content = replaceArrowDatesInString(p.content, `>${tomorrowISODateStr}`)
-            logDebug('scheduleAllTodayTomorrow', `- scheduling referenced para "${p.content}" from note ${thisNote.filename}`)
+            logDebug('scheduleAllTodayTomorrow', `- Scheduling referenced para ${c}/${totalToMove} from note ${thisNote.filename} with new content "${p.content}"`)
             thisNote.updateParagraph(p)
+            numberScheduled++
           } else {
-            logWarn('scheduleAllYesterdayOpenToToday', `Couldn't find para matching "${dashboardPara.content}"`)
+            logWarn('scheduleAllTodayTomorrow', `Couldn't find para matching "${dashboardPara.content}"`)
           }
-
-          numberScheduled++
           // Update cache to allow it to be re-read on refresh
           DataStore.updateCache(thisNote, false)
         }
       }
-      logDebug('scheduleAllTodayTomorrow', `-> scheduled ${String(numberScheduled)} open items from today to tomorrow`)
+      logTimer('scheduleAllTodayTomorrow', thisStartTime, `scheduled ${String(numberScheduled)} open items from today in project notes to tomorrow`)
+    } else {
+      // logDebug('scheduleAllTodayTomorrow', `- No ref paras for today found`)
     }
 
     // remove progress indicator
@@ -299,7 +318,6 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `scheduleAllTodayTomorrow finished `)
 
     // Update display of these 2 sections
-    logDebug('scheduleAllTodayTomorrow', `returning {true, REFRESH_SECTION_IN_JSON, [DT,DO,OVERDUE]}`)
     return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DT', 'DO', 'OVERDUE'] }
   } catch (error) {
     logError('scheduleAllTodayTomorrow', error.message)
@@ -312,7 +330,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
  * Function to schedule or move all open overdue tasks from their notes to today
  * Uses config setting 'rescheduleNotMove' to decide whether to reschedule or move.
  * Note: This uses an API call that doesn't include open checklist items.
- * FIXME: This doesn't honour the useDemoData setting yet.
+ * TODO: This doesn't honour the useDemoData setting yet.
  * @param {MessageDataObject} data
  * @returns {TBridgeClickHandlerResult}
  */
@@ -348,25 +366,30 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
 
     // Get paras for all overdue items in notes
     // Note: we need full TParagraphs, not ReducedParagraphs
-    // const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas) // note: does not include open checklist items
     const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, []) // Note: does not include open checklist items. Note: turned off dedupe with yesterday's items
-    const totalOverdue = overdueParas.length
-    if (totalOverdue === 0) {
+    const initialTotalOverdue = overdueParas.length
+    if (initialTotalOverdue === 0) {
       logInfo('scheduleAllOverdueOpenToToday', `Can't find any overdue items; this can happen if all were from yesterday, and have been de-duped. Stopping.`)
       return { success: false }
     }
-    logTimer('scheduleAllOverdueOpenToToday', thisStartTime, `Found ${totalOverdue} overdue items to ${config.rescheduleNotMove ? 'rescheduleItem' : 'move'} to today`)
+    // Remove child items from the list of paras
+    const overdueParasWithoutChildren = overdueParas.filter((dp) => !dp.isAChild)
+    const totalToMove = overdueParasWithoutChildren.length
+    if (totalToMove !== initialTotalOverdue) {
+      logDebug('scheduleAllOverdueOpenToToday', `- Excluding children reduced total to move from ${initialTotalOverdue} to ${totalToMove}`)
+    }
+
+    logTimer('scheduleAllOverdueOpenToToday', thisStartTime, `Found ${totalToMove} overdue items to ${config.rescheduleNotMove ? 'rescheduleItem' : 'move'} to today`)
 
     const todayDateStr = getTodaysDateHyphenated()
 
     // If there are lots, then double check whether to proceed
-    // TODO: get this from newer settings instead
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
-    if (NotePlan.environment.platform === 'macOS' && totalOverdue > checkThreshold) {
+    if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
       const res = await showMessageYesNo(
         `Are you sure you want to ${
           config.rescheduleNotMove ? 'rescheduleItem' : 'move'
-        } ${totalOverdue} overdue items to today? This can be a slow operation, and can't easily be undone.`,
+        } ${totalToMove} overdue items to today? This can be a slow operation, and can't easily be undone.`,
         ['Yes', 'No'],
         'Move Overdue to Today',
         false,
@@ -378,17 +401,16 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     }
 
     let c = 0
-    if (overdueParas.length > 0) {
+    if (overdueParasWithoutChildren.length > 0) {
       // start a progress indicator
       reactWindowData.pluginData.refreshing = ['OVERDUE']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(['OVERDUE'])}`)
 
       if (config.rescheduleNotMove) {
         // Determine if we need to use 'today' or schedule to the specific date.
-        logDebug('scheduleAllOverdueOpenToToday', `useTodayDate:${String(config.useTodayDate)}`)
         const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
         // For each para append ' >today'
-        for (const para of overdueParas) {
+        for (const para of overdueParasWithoutChildren) {
           c++
           const thisNote = para.note
           if (!thisNote) {
@@ -409,7 +431,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
         const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
         logDebug('scheduleAllOverdueOpenToToday', `useTodayDate=${String(config.useTodayDate)}, so newDateStr=${newDateStr}`)
         // For each para move to today's note
-        for (const para of overdueParas) {
+        for (const para of overdueParasWithoutChildren) {
           c++
           logDebug('scheduleAllOverdueOpenToToday', `Moving item #${c} to ${newDateStr}`)
           const thisNote = para.note
@@ -422,10 +444,10 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
             const thisNoteDateStr = getDateStringFromCalendarFilename(thisNote.filename, true)
             const res = await moveItemBetweenCalendarNotes(thisNoteDateStr, todayDateStr, para.content, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
             if (res) {
-              logDebug('scheduleAllOverdueOpenToToday', `-> success on moveFromCalToCal ${thisNoteDateStr} → ${todayDateStr}`)
+              logDebug('scheduleAllOverdueOpenToToday', `-> success on moveFromCalToCal ${thisNoteDateStr} -> ${todayDateStr}`)
               numberChanged++
             } else {
-              logWarn('scheduleAllOverdueOpenToToday', `-> failed to moveFromCalToCal ${thisNoteDateStr} → ${todayDateStr}`)
+              logWarn('scheduleAllOverdueOpenToToday', `-> failed to moveFromCalToCal ${thisNoteDateStr} -> ${todayDateStr}`)
             }
           } else {
             para.content = replaceArrowDatesInString(para.content, `>${newDateStr}`)
@@ -439,7 +461,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
         logTimer('scheduleAllOverdueOpenToToday', thisStartTime, `moved ${String(numberChanged)} overdue items to today's note`)
       }
     } else {
-      throw new Error(`after finding ${String(totalOverdue)} overdue items to move/reschedule a little earlier, I now don't have any!`)
+      throw new Error(`after finding ${String(initialTotalOverdue)} overdue items to move/reschedule a little earlier, I now don't have any!`)
     }
 
     // remove progress indicator

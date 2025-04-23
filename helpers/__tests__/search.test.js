@@ -49,7 +49,7 @@ describe('search.js tests', () => {
       expect(result).toEqual(false)
     })
     test('should not match "Can do Simply Health claim for hospital nights" to array ["@Home","Hospital"]', () => {
-      const result = s.caseInsensitiveIncludes('Can do Simply Health claim for hospital nights', ["@Home", "Hospital"])
+      const result = s.caseInsensitiveIncludes('Can do Simply Health claim for hospital nights', ['@Home', 'Hospital'])
       expect(result).toEqual(false)
     })
   })
@@ -93,7 +93,7 @@ describe('search.js tests', () => {
     })
     // Note: Different outcome from above function
     test('should match "Can do Simply Health claim for hospital nights" to array ["@Home","Hospital"]', () => {
-      const result = s.caseInsensitiveSubstringIncludes('Can do Simply Health claim for hospital nights', ["@Home", "Hospital"])
+      const result = s.caseInsensitiveSubstringIncludes('Can do Simply Health claim for hospital nights', ['@Home', 'Hospital'])
       expect(result).toEqual(true)
     })
   })
@@ -180,6 +180,26 @@ describe('search.js tests', () => {
     test("should not match 'hell' to 'Hell is all too real' with case sensitive match", () => {
       const result = s.fullWordMatch('hell', 'Hell is all too real', true)
       expect(result).toEqual(false)
+    })
+    test("should match simple mention '@bob' to 'saw @bob'", () => {
+      const result = s.fullWordMatch('@bob', 'saw @bob', true)
+      expect(result).toEqual(true)
+    })
+    test("should match simple hashtag '#dogWalk' to '#dogWalk'", () => {
+      const result = s.fullWordMatch('#dogWalk', '#dogWalk', true)
+      expect(result).toEqual(true)
+    })
+    test("should match simple hashtag '#dogWalk' to 'did the #dogWalk today'", () => {
+      const result = s.fullWordMatch('#dogWalk', 'did the #dogWalk today', false)
+      expect(result).toEqual(true)
+    })
+    test("should match complex hashtag '#Phil' to 'in #Phil/3/2 it says'", () => {
+      const result = s.fullWordMatch('#Phil', 'in #Phil/3/2 it says', false)
+      expect(result).toEqual(true)
+    })
+    test("should match complex mention '@staff/Bob' to 'see @staff/Bob tomorrow'", () => {
+      const result = s.fullWordMatch('@staff/Bob', 'see @staff/Bob tomorrow', true)
+      expect(result).toEqual(true)
     })
   })
 
@@ -420,7 +440,7 @@ describe('search.js tests', () => {
       expect(output).toEqual('- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do ==eiusmod== ==tempor== incididunt')
     })
     test('should return no highlights and end trimming, as simplifying', () => {
-      const output = s.trimAndHighlightTermInLine('Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt', ['sed'], true, false, '- ', 86)
+      const output = s.trimAndHighlightTermInLine('Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt', ['sed'], true, false, '- ', 88)
       expect(output).toEqual('- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod ...')
     })
     test('should return no highlights and front and end trimming, as simplifying', () => {
@@ -480,9 +500,9 @@ describe('search.js tests', () => {
     })
 
     // TODO: Ran out of energy to do the detail on this ...
-    test.skip('should return 1 highlight and front and end trimming', () => {
+    test('should return 1 highlight and front and end trimming', () => {
       const output = s.trimAndHighlightTermInLine('Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt', ['sed'], true, true, '- ', 48)
-      expect(output).toEqual('- ... ipsum dolor sit amet, ==sed== consectetur adipisicing elit, ...')
+      expect(output).toEqual('- ... ipsum dolor sit amet, ==sed== consectetur adipisicing ... elit, ==sed== do eiusmod tempor incididunt ...')
     })
   })
 })

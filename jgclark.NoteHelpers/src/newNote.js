@@ -4,7 +4,7 @@
 // Create new note from currently selected text
 // and (optionally) leave backlink to it where selection was
 // Note: this was originally in Filer plugin
-// Last updated 2024-12-26 for 1.0.0, @jgclark (originallu)
+// Last updated 2025-04-08 for 1.1.0+, @jgclark (originally @dwertheimer)
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -40,7 +40,7 @@ export async function newNote(): Promise<void> {
           }
         }
 
-        const res = (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note`)
+        const res = (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note`))
         if (res === 'Yes') {
           await Editor.openNoteByFilename(filename)
         }
@@ -84,7 +84,7 @@ export async function newNoteFromClipboard(): Promise<void> {
         const filename = (await DataStore.newNoteWithContent(content, currentFolder)) ?? ''
         logDebug(pluginJson, ` -> filename: ${filename}`)
 
-        const res = (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Clipboard`)
+        const res = (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Clipboard`))
         if (res === 'Yes') {
           await Editor.openNoteByFilename(filename)
         }

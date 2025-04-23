@@ -85,7 +85,7 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     if (!rootExcluded) {
       outputList.unshift('/')
     }
-    logDebug('getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
+    // logDebug('getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
     return outputList
   } catch (error) {
     logError('getFoldersMatching', error.message)

@@ -425,6 +425,18 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
  * @author @dwertheimer
  */
 export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean = true, title?: string | null): boolean {
+  const outputNoteContents = (message: string) =>
+    note.content &&
+    logDebug(
+      'ensureFrontmatter',
+      `${message} note.content:\n\t${String(
+        note.content
+          .split('\n')
+          .map((line) => `\t${line}`)
+          .join('\n'),
+      )}`,
+    )
+
   try {
     let retVal = false
     let fm = ''
@@ -446,6 +458,7 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
       retVal = true
     } else {
       // need to add frontmatter
+      outputNoteContents('before adding frontmatter')
       let newTitle
       if (note.type === 'Notes' && alsoEnsureTitle) {
         logDebug('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, so will now make one:`)
@@ -471,10 +484,18 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
       // logDebug('ensureFrontmatter', `newContent = ${newContent}`)
       // note.content = '' // in reality, we can just set this to newContent, but for the mocks to work, we need to do it the long way
       logDebug('ensureFrontmatter', `front to add: ${fm}`)
-      // FIXME: this doesn't do anything for @jgclark
       note.insertParagraph(fm, 0, 'text')
+      // $FlowIgnore
+      if (note.note) {
+        // we must be looking at the Editor (because it has a note property)
+        logDebug(
+          'ensureFrontmatter',
+          `We just created frontmatter, but due to a bug/lag in NP, the properties panel/editor may not show it immediately. And the Editor.frontmatterAttributes may not be present immediately. In order to see the frontmatter, you can open the note again, e.g. Editor.openNoteByFilename(Editor.filename).`,
+        )
+      }
       retVal = true
       logDebug('ensureFrontmatter', `-> Note '${displayTitle(note)}' converted to use frontmatter.`)
+      outputNoteContents('after adding frontmatter')
     }
     return retVal
   } catch (error) {
@@ -862,11 +883,9 @@ export function normalizeValue(value: string): string {
  * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in newAttributes (default: false)
  * @returns {boolean} - Whether the front matter was updated successfully.
  */
-export function updateFrontMatterVars(_note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
+export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {
     clo(newAttributes, `updateFrontMatterVars: newAttributes = ${JSON.stringify(newAttributes)}`)
-    const isEditor = _note.note ? true : false
-    const note = isEditor ? _note.note : _note
     // Ensure the note has front matter
     if (!ensureFrontmatter(note)) {
       logError(pluginJson, `updateFrontMatterVars: Failed to ensure front matter for note "${note.filename || ''}".`)
@@ -875,6 +894,7 @@ export function updateFrontMatterVars(_note: TEditor | TNote, newAttributes: { [
 
     const existingAttributes = { ...getFrontMatterAttributes(note) } || {}
     // Normalize newAttributes before comparison
+    clo(existingAttributes, `updateFrontMatterVars: existingAttributes`)
     const normalizedNewAttributes = {}
     clo(Object.keys(newAttributes), `updateFrontMatterVars: Object.keys(newAttributes) = ${JSON.stringify(Object.keys(newAttributes))}`)
     Object.keys(newAttributes).forEach((key: string) => {
@@ -894,11 +914,12 @@ export function updateFrontMatterVars(_note: TEditor | TNote, newAttributes: { [
     keysToUpdate.forEach((key: string) => {
       // $FlowIgnore
       const attributeLine = `${key}: ${normalizedNewAttributes[key]}`
-      const paragraph = _note.paragraphs.find((para) => para.content.startsWith(`${key}:`))
+      const paragraph = note.paragraphs.find((para) => para.content.startsWith(`${key}:`))
       if (paragraph) {
         logDebug(pluginJson, `updateFrontMatterVars: updating paragraph "${paragraph.content}" with "${attributeLine}"`)
         paragraph.content = attributeLine
-        _note.updateParagraph(paragraph)
+        note.updateParagraph(paragraph)
+        logDebug(pluginJson, `updateFrontMatterVars: updated paragraph ${paragraph.lineIndex} to: "${paragraph.content}"`)
       } else {
         logError(pluginJson, `updateFrontMatterVars: Failed to find frontmatter paragraph for key "${key}".`)
       }
@@ -909,9 +930,9 @@ export function updateFrontMatterVars(_note: TEditor | TNote, newAttributes: { [
       // $FlowIgnore
       const newAttributeLine = `${key}: ${normalizedNewAttributes[key]}`
       // Insert before the closing '---'
-      const closingIndex = _note.paragraphs.findIndex((para) => para.content.trim() === '---' && para.lineIndex > 0)
+      const closingIndex = note.paragraphs.findIndex((para) => para.content.trim() === '---' && para.lineIndex > 0)
       if (closingIndex !== -1) {
-        _note.insertParagraph(newAttributeLine, closingIndex, 'text')
+        note.insertParagraph(newAttributeLine, closingIndex, 'text')
       } else {
         logError(pluginJson, `updateFrontMatterVars: Failed to find closing '---' in note "${note.filename || ''}" could not add new attribute "${key}".`)
       }
@@ -920,7 +941,7 @@ export function updateFrontMatterVars(_note: TEditor | TNote, newAttributes: { [
     // Delete attributes that are no longer present
     const paragraphsToDelete = []
     keysToDelete.forEach((key) => {
-      const paragraph = _note.paragraphs.find((para) => para.content.startsWith(`${key}:`))
+      const paragraph = note.paragraphs.find((para) => para.content.startsWith(`${key}:`))
       if (paragraph) {
         paragraphsToDelete.push(paragraph)
       } else {
@@ -928,7 +949,7 @@ export function updateFrontMatterVars(_note: TEditor | TNote, newAttributes: { [
       }
     })
     if (paragraphsToDelete.length > 0) {
-      _note.removeParagraphs(paragraphsToDelete)
+      note.removeParagraphs(paragraphsToDelete)
     }
 
     return true

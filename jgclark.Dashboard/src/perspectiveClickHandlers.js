@@ -3,14 +3,14 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated for v2.1.0.b
+// Last updated 2025-04-10 for v2.2.0.a13
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
 import {
   addNewPerspective,
-  cleanDashboardSettings,
+  cleanDashboardSettingsInAPerspective,
   deletePerspective,
   getActivePerspectiveDef,
   getPerspectiveNamed,
@@ -23,7 +23,9 @@ import {
   removeInvalidTagSections,
   logPerspectiveNames,
 } from './perspectiveHelpers'
+import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { saveSettings } from '@helpers/NPConfiguration'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -37,6 +39,7 @@ import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@h
  *                             Data types + constants
  ****************************************************************************************************************************/
 
+const pluginID = 'jgclark.Dashboard'
 /****************************************************************************************************************************
  *                             HANDLERS
  ****************************************************************************************************************************/
@@ -90,7 +93,7 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   if (activeDef.name === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" is not allowed to be saved.` })
   const dashboardSettings = await getDashboardSettings()
   if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
-  const newDef = { ...activeDef, dashboardSettings: cleanDashboardSettings(dashboardSettings), isModified: false }
+  const newDef = { ...activeDef, dashboardSettings: cleanDashboardSettingsInAPerspective(dashboardSettings), isModified: false }
   const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
   const result = await savePerspectiveSettings(revisedDefs)
   if (!result) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
@@ -111,17 +114,23 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
   if (!existingDef) return handlerResult(false, [], { errorMsg: `can't get definition for perspective ${origName}` })
   const revisedDefs = renamePerspective(origName, newName, perspectiveSettings)
   if (!revisedDefs) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
-  await savePerspectiveSettings(revisedDefs)
+  const res = await savePerspectiveSettings(revisedDefs)
   await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${newName}`)
-  return handlerResult(true, [])
+  if (!res) {
+    return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
+  } else {
+    return handlerResult(true, [])
+  }
 }
 
 /**
  * Switch to a perspective and save the new perspective settings and dashboard settings
+ * TODO: Add default dashboardSettings to the perspectiveDefs if they are missing.
  * @param {MessageDataObject} data - the data object containing the perspective name
  * @returns {TBridgeClickHandlerResult} - the result of the switch to perspective
  */
 export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  //aka doSwitchPerspective
   const switchToName = data?.perspectiveName || ''
   if (!switchToName) {
     logError('doSwitchToPerspective', `No perspective name provided.`)
@@ -137,17 +146,36 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   const prevDashboardSettings = await getDashboardSettings()
   // each perspective has its own tagged sections so we don't want to keep old ones around
   // so we will remove all keys from prevDS that start with showTagSection_
-  const prevDSWithoutTags = removeInvalidTagSections(prevDashboardSettings)
-  if (!prevDSWithoutTags) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+  if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
   // apply the new perspective's settings to the main dashboard settings
-  const newDashboardSettings = {
-    ...prevDSWithoutTags,
+  const dashboardFilterDefaults = dashboardFilterDefs.filter((f) => f.key !== 'includedFolders')
+  const nonFilterDefaults = dashboardSettingDefs.filter((f) => f.key)
+  const dashboardSettingsDefaults = [...dashboardFilterDefaults, ...nonFilterDefaults].reduce((acc, curr) => {
+    if (curr.default && curr.key) {
+      // $FlowIgnore
+      acc[curr.key] = curr.default
+    } else {
+      logError('doSwitchToPerspective', `doSwitchToPerspective: default value for ${String(curr.key)} is not set in dashboardSettings file defaults.`)
+    }
+    return acc
+  }, {})
+  // $FlowIgnore[prop-missing] // flow doesn't know that it will be complete
+  let newDashboardSettings = {
+    ...dashboardSettingsDefaults, // helps to add settings that may be new since this perspective was last saved
+    ...prevDashboardSettings,
     ...(activeDef.dashboardSettings || {}),
-    lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
-  } // the ending "changed from plugin" is important because it keeps it from sending back
+  }
+  newDashboardSettings = removeInvalidTagSections(newDashboardSettings) // just to make sure we don't have any invalid tag sections left over from previous perspectives
+  newDashboardSettings.lastChange = `_Switched to perspective ${switchToName} ${dt()} changed from plugin`
   logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
   clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
-  DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }
+
+  // Use helper to save settings from now on, not unreliable `DataStore.settings = {...}`
+  const res = await saveSettings(pluginID, { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) })
+  if (!res) {
+    return handlerResult(false, [], { errorMsg: `saveSettings failed` })
+  }
+
   const afterPerspSettings = await getPerspectiveSettings(true)
   logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Persp settings reading back from DataStore.settings:')
   // TODO: @jgclark resetting sections to [] on perspective switch forces a refresh of all enabled sections
@@ -179,8 +207,8 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
  * @returns {TPerspectiveSettings}
  */
 export function setDashPerspectiveSettings(newDashboardSettings: TDashboardSettings, perspectiveSettings: TPerspectiveSettings): TPerspectiveSettings {
-  logDebug(`doSettingsChanged`, `Saving new Dashboard settings to "-" perspective, setting isModified and isActive to false for all other perspectives`)
-  const dashDef = { name: '-', isActive: true, dashboardSettings: cleanDashboardSettings(newDashboardSettings), isModified: false }
+  logDebug(`setDashPerspectiveSettings`, `Saving new Dashboard settings to "-" perspective, setting isModified and isActive to false for all other perspectives`)
+  const dashDef = { name: '-', isActive: true, dashboardSettings: cleanDashboardSettingsInAPerspective(newDashboardSettings), isModified: false }
   return replacePerspectiveDef(perspectiveSettings, dashDef).map((p) => (p.name === '-' ? p : { ...p, isModified: false, isActive: false }))
 }
 
@@ -198,17 +226,24 @@ export async function doPerspectiveSettingsChanged(data: MessageDataObject): Pro
 
   let dashboardSettings = await getDashboardSettings()
   if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
-  const updatedPluginData = { perspectiveSettings: newSettings, dashboardSettings, serverPush: { perspectiveSettings: true, dashboardSettings: true } }
-  if (dashboardSettings.perspectivesEnabled) {
-    const currentPerspDef = getActivePerspectiveDef(newSettings)
+  // after (potential) multi-editing in the PerspectivesTable, we need to clean the dashboardSettings for each perspective
+  // because the tagsToShow may have been changed, so we need to clean out the showSection* vars
+  const cleanedPerspSettings = newSettings.map((p) => ({ ...p, dashboardSettings: cleanDashboardSettingsInAPerspective(p.dashboardSettings) }))
+  const updatedPluginData = { perspectiveSettings: cleanedPerspSettings, dashboardSettings, serverPush: { perspectiveSettings: true, dashboardSettings: true } }
+  if (dashboardSettings.usePerspectives) {
+    const currentPerspDef = getActivePerspectiveDef(cleanedPerspSettings)
     if (currentPerspDef && currentPerspDef.name !== '-') {
       dashboardSettings = { ...dashboardSettings, ...currentPerspDef.dashboardSettings }
       updatedPluginData.dashboardSettings = dashboardSettings
     }
   }
-  const combinedUpdatedSettings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(newSettings), dashboardSettings: JSON.stringify(dashboardSettings) }
+  const combinedUpdatedSettings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(cleanedPerspSettings), dashboardSettings: JSON.stringify(dashboardSettings) }
 
-  DataStore.settings = combinedUpdatedSettings
+  // Note: Use helper to save settings from now on, not unreliable `DataStore.settings = combinedUpdatedSettings`
+  const res = await saveSettings(pluginID, combinedUpdatedSettings)
+  if (!res) {
+    return handlerResult(false, [], { errorMsg: `saveSettings failed` })
+  }
   await setPluginData(updatedPluginData, `_Updated perspectiveSettings in global pluginData`)
   return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'])
 }

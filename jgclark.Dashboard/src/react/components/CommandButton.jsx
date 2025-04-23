@@ -1,14 +1,16 @@
 // @flow
 //--------------------------------------------------------------------------
 // Buttons on the UI, including adding tasks and checklists to today's note
-// Last updated for 2.1.0.b
+// Last updated 2025-04-08 for 2.2.0.a12
 //--------------------------------------------------------------------------
 
 import React from 'react'
 import type { TActionButton } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import { showDialog } from '@helpers/react/userInput'
 import { logDebug, JSP, clo } from '@helpers/react/reactDev.js'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+import { showDialog } from '@helpers/react/userInput'
+
 type ButtonProps = {
   button: TActionButton,
   onClick: (button: TActionButton) => void, // send this button info back up
@@ -25,17 +27,20 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   // const possIconAfter = (button.iconAfter !== '') ? <i className={`padLeft ${button.iconAfter}`}></i> : ''
   // Instead will use dangerouslySetInnerHTML, so we can set anything.
 
-  const sendButtonAction = (button: TActionButton, userInputObj: Object) => {
+  const sendButtonAction = (button: TActionButton, userInputObj: Object, modifierName?: string | null) => {
     sendActionToPlugin(button.actionPluginID, {
       actionType: button.actionName,
       toFilename: button.actionParam,
       sectionCodes: button.postActionRefresh,
       userInputObj: userInputObj,
+      modifierKey: modifierName,
     })
     onClick(button)
   }
 
-  const handleButtonClick = async () => {
+  const handleButtonClick = async (event: MouseEvent) => {
+    const { modifierName } = extractModifierKeys(event)
+    // logDebug('CommandButton', `🔸 handleButtonClick: ${button.tooltip}, modifierName=${modifierName ? modifierName : '-'}`)
     let userInputObj: TAnyObject | null
     if (button.formFields) {
       // show dialog to get user input if formFields are defined
@@ -44,11 +49,15 @@ function CommandButton(inputObj: ButtonProps): React$Node {
         title: button.tooltip,
         submitOnEnter: button.submitOnEnter,
         submitButtonText: button.submitButtonText,
-        className: `dashboard-command-button ${className || ''}`,
+        // TODO: can this be removed or refactored?
+        style: {
+          top: '40%',
+        },
+
       })
-      userInputObj ? sendButtonAction(button, userInputObj) : null
+      userInputObj ? sendButtonAction(button, userInputObj, modifierName) : null
     } else {
-      sendButtonAction(button, null)
+      sendButtonAction(button, null, modifierName)
     }
   }
 

@@ -5,7 +5,6 @@
  * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
-
 import moment from 'moment/min/moment-with-locales'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
@@ -117,6 +116,7 @@ export async function writeNoteContents(
 }
 
 /**
+ * Template Runner - aka Template File By Title Execute (or Ex for short)
  * Process a template that provides an existing filename or <today> for today's Calendar Note (aka "self-running templates")
  * The unique title of the template to run must be passed in as the first argument
  * TODO:
@@ -145,7 +145,7 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
 
       // args && args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
       if (!selectedTemplate || selectedTemplate.length === 0) {
-        await CommandBar.prompt('You must supply a template title as the first argument', helpInfo('Presets'))
+        await CommandBar.prompt('You must supply a template title as the first argument', helpInfo('Self-Running Templates'))
       }
       let failed = false
 
@@ -167,7 +167,7 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
         let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
         if (data['newNoteTitle']) {
           // if form or template has a newNoteTitle field then we need to call templateNew
-          const argsArray = [selectedTemplate, data['folder'] || null, argObj]
+          const argsArray = [selectedTemplate, data['folder'] || null, data['newNoteTitle'], argObj]
           await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
           return
         }

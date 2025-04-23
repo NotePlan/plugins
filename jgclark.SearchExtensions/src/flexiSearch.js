@@ -2,12 +2,14 @@
 //-----------------------------------------------------------------------------
 // Save search but with flexible options presented as HTML dialog to user first
 // Jonathan Clark
-// Last updated 2025-01-17 for v1.4.0, @jgclark
+// Last updated 2025-03-14 for v2.0.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 // TODO: fix Cancel button not working on iOS
 
 import pluginJson from '../plugin.json'
 import { saveSearch } from './saveSearch'
+import type { TSearchOptions } from './searchHelpers'
+import { getNoteTypesFromString, getParaTypesFromString } from './searchHelpers'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { type HtmlWindowOptions, showHTMLV2 } from '@helpers/HTMLView'
 import { closeWindowFromCustomId, logWindowsList } from '@helpers/NPWindows'
@@ -408,35 +410,42 @@ export async function showFlexiSearchDialog(
  * @param {string} saveType 
  * @param {string} caseSensitiveSearchingAsStr Note: string due to limit of bridge to plugin. either 'casesens' or ''
  * @param {string} fullWordSearchingAsStr Note: string due to limit of bridge to plugin. either 'fullword' or ''
- * @param {string} noteTypeToInclude 
+ * @param {string} noteType 'notes' | 'calendar' | 'both'
  * @param {string} paraTypes 
  * @returns {any} but in practice empty object
  */
-// eslint-disable-next-line require-await
 export async function flexiSearchHandler(
   searchTerms: string,
   saveType: string,
   caseSensitiveSearchingAsStr: string,
   fullWordSearchingAsStr: string,
-  noteTypeToInclude: string,
+  noteType: string,
   paraTypes: string
 ): Promise<void> {
   try {
-    logDebug(pluginJson, `flexiSearchHandler called with [${searchTerms}] / ${saveType} / ${caseSensitiveSearchingAsStr} / ${fullWordSearchingAsStr} / ${noteTypeToInclude} / ${paraTypes}`)
+    logDebug(pluginJson, `flexiSearchHandler called with [${searchTerms}] / ${saveType} / ${caseSensitiveSearchingAsStr} / ${fullWordSearchingAsStr} / ${noteType} / ${paraTypes}`)
     // First close the window
     closeDialogWindow('flexiSearchDialog')
 
-    // Take saveType and noteTypeToInclude add create originatorCommand from it
+    // Take saveType and noteType add create originatorCommand from it
     const originatorCommand =
       (saveType === 'quick') ? 'quickSearch'
-        : (noteTypeToInclude === 'notes') ? 'searchOverNotes'
-          : (noteTypeToInclude === 'calendar') ? 'searchOverCalendar'
+        : (noteType === 'notes') ? 'searchOverNotes'
+          : (noteType === 'calendar') ? 'searchOverCalendar'
             : 'search' // which defaults to 'both'
 
     // Then call main saveSearch function (no need to await for it)
     const caseSensitiveSearching: boolean = getPluginPreference('caseSensitiveSearching') === 'casesens'
     const fullWordSearching: boolean = getPluginPreference('fullWordSearching') === 'fullword'
-    saveSearch(searchTerms, noteTypeToInclude, originatorCommand, paraTypes, 'Searching', caseSensitiveSearching, fullWordSearching)
+    // saveSearch(searchTerms, noteType, originatorCommand, paraTypes, 'Searching', caseSensitiveSearching, fullWordSearching)
+    const searchOptions: TSearchOptions = {
+      noteTypesToInclude: getNoteTypesFromString(noteType),
+      paraTypesToInclude: getParaTypesFromString(paraTypes),
+      caseSensitiveSearching,
+      fullWordSearching,
+      originatorCommand,
+    }
+    await saveSearch(searchOptions, searchTerms) // Note: no need to await, but done for consistency
     return
   }
   catch (err) {
