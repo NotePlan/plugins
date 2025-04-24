@@ -6,7 +6,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component)
 - TODO: ^⌥s triggers the search bar
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
- -->
+-->
+
+## [2.2.2] 2025-04-24
+- new **backupSettings** command, which can be run from an x-callback as well: `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=backupSettings` See README for details.
+- clarified meaning of 'number of days to look back for Overdue tasks' to filter by due date (if set) or on date of a calendar note.
+<!-- - start of support for Teamspaces. Relevant tasks are shown, but much of the interaction isn't yet working. -->
+
 ## [2.2.1] 2025-04-16
 ### Changed
 - You can now order results in Tag and Overdue sections by due date, as well as by the existing options (for @LauraH)
