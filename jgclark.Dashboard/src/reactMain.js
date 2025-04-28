@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2025-03-28 for v2.2.0.a9
+// Last updated 2025-04-28 for v2.3.0.a2
 //-----------------------------------------------------------------------------
 
 import { getGlobalSharedData, sendToHTMLWindow } from '../../helpers/HTMLView'
@@ -15,6 +15,7 @@ import { getAllSectionsData /*getSomeSectionsData*/ } from './dataGeneration'
 import { getPerspectiveSettings, /*setActivePerspective,*/ getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
 // import { doSwitchToPerspective } from './perspectiveClickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
+import { generateTagMentionCache } from './tagMentionCache'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
 import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
@@ -22,7 +23,6 @@ import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/
 import { saveSettings } from '@helpers/NPConfiguration'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-// import { getWindowFromId } from '@helpers/NPWindows'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
 //------------------------------------------------------------------------------
@@ -353,12 +353,22 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
 /**
  * This is called from Dashboard.jsx when the React Window has initialised, and is ready to start receiving Sections.
  * It kicks off the incremental generation of the Sections.
+ * You can use this to do other things when the React Window is idle after first generation of sections is complete.
  * @returns {Promise<void>}
  */
 export async function reactWindowInitialised(): Promise<void> {
   logDebug('reactWindowInitialised', `--> React Window reported back to plugin that it has loaded <--`)
-  const enabledSections = getListOfEnabledSections(await getDashboardSettings())
+  const dashboardSettings = await getDashboardSettings()
+  const enabledSections = getListOfEnabledSections(dashboardSettings)
   await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
+
+  //------------------
+  // Do other things after first generation of sections is complete.
+  //------------------
+
+  // Now ask for full tagCache rebuild (unless we're in DEV mode)
+  const logSettings = await getLogSettings()
+  if (logSettings._logLevel !== 'DEV') await generateTagMentionCache(true)
 }
 
 /**

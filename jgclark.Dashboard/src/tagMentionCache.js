@@ -1,14 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2025-04-13 for v2.3.0.a1
+// last updated 2025-04-28 for v2.3.0.a2
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
 //   generatedAt: new Date(),
 //   lastUpdated: new Date(),
-//   regularNotes: [{file: 'note1.md', items: ['@BOB', '@BOB2']}, {file: 'note2.md', items: ['@BOB']}],
-//   calendarNotes: [{file: 'note3.md', items: ['#BOB']}, {file: 'note4.md', items: ['#BOB']}],
+//   wantedItems: ['@Alice', '@Bob'],
+//   regularNotes: [{filename: 'note1.md', items: ['@BOB', '@BOB2']}, {filename: 'note2.md', items: ['@BOB']}],
+//   calendarNotes: [{filename: 'note3.md', items: ['#BOB']}, {filename: 'note4.md', items: ['#BOB']}],
 // }
 //-----------------------------------------------------------------------------
 
@@ -38,6 +39,7 @@ const wantedTagMentionsList = 'wantedTagMentionsList.json'
 const tagMentionCacheFile = 'tagMentionCache.json'
 const lastTimeThisWasRunPref = 'jgclark.Dashboard.tagMentionCache.lastTimeUpdated'
 
+// TODO(later): remove this in time
 const turnOffAPILookups = true
 
 //-----------------------------------------------------------------
@@ -107,7 +109,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(tagOrMentions: Array<
     const wantedItems = getTagMentionCacheDefinitions()
     const missingItems = tagOrMentions.filter((item) => !wantedItems.includes(item))
     if (missingItems.length > 0) {
-      logWarn('getFilenamesOfNotesWithTagOrMentions', `Warning: the following tags/mentions are not in the wantedTagMentionsList.json file: [${String(missingItems)}]. I will add them to the list and then regenrate the cache.`)
+      logWarn('getFilenamesOfNotesWithTagOrMentions', `Warning: the following tags/mentions are not in the wantedTagMentionsList.json filename: [${String(missingItems)}]. I will add them to the list and then regenrate the cache.`)
       setTagMentionCacheDefinitions(wantedItems.concat(missingItems))
       await generateTagMentionCache()
     } else {
@@ -170,8 +172,9 @@ export async function getFilenamesOfNotesWithTagOrMentions(tagOrMentions: Array<
  * Generate the mention tag cache from scratch.
  * Writes all instances of wanted mentions and tags (from the wantedTagMentionsList) to the tagMentionCacheFile, by filename.
  * Note: this includes all calendar notes, and all regular notes, apart from those in special folders (starts with '@'), including @Templates, @Archive and @Trash folders.
+ * @param {boolean} forceRebuild If true, the cache will be rebuilt from scratch, otherwise it will revert to the quicker 'updateTagMentionCache' function if the wantedParaTypes are all already in the cache.
  */
-export async function generateTagMentionCache(): Promise<void> {
+export async function generateTagMentionCache(forceRebuild: boolean = false): Promise<void> {
   try {
     const startTime = new Date()
     const wantedItems = getTagMentionCacheDefinitions()
@@ -179,6 +182,23 @@ export async function generateTagMentionCache(): Promise<void> {
     logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}]${config.FFlag_TagCacheOnlyForOpenItems ? ' ONLY FOR OPEN ITEMS' : ''}`)
 
     const wantedParaTypes = config.FFlag_TagCacheOnlyForOpenItems ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
+
+    // If we're not forcing a rebuild, and the wantedParaTypes are the same as (or less than) what is in the cache, then use the quicker 'updateTagMentionCache' function
+    if (!forceRebuild) {
+      // Get wantedItems from the cache
+      const existingCache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
+      const parsedCache = JSON.parse(existingCache) ?? {}
+      const cachedWantedItems = parsedCache.wantedItems ?? []
+      logInfo('generateTagMentionCache', `- cachedWantedItems: [${String(cachedWantedItems)}]`)
+      if (wantedItems.every((item, index) => item === cachedWantedItems[index])) {
+        logInfo('generateTagMentionCache', `- Not forcing a rebuild, and wantedParaTypes are all present already in the cache, so calling updateTagMentionCache() instead.`)
+        await updateTagMentionCache()
+        return
+      } else {
+        logDebug('generateTagMentionCache', `- rebuild not forced, but wanted items are different, so will rebuild cache.`)
+      }
+    }
+    logDebug('generateTagMentionCache', `- forcing a cache rebuild`)
 
     // Start backgroud thread
     await CommandBar.onAsyncThread()
@@ -191,21 +211,24 @@ export async function generateTagMentionCache(): Promise<void> {
     // Iterate over all notes and get all open paras with tags and mentions
     const calWantedItems = []
     let ccal = 0
+    logDebug('generateTagMentionCache', `- Processing ${allCalNotes.length} calendar notes ...`)
     for (const note of allCalNotes) {
       const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes) : []
       if (foundWantedItems.length > 0) {
-        logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}] calWantedItems`)
-        calWantedItems.push({ file: note.filename, items: foundWantedItems })
+        logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}]`)
+        calWantedItems.push({ filename: note.filename, items: foundWantedItems })
         ccal++
       }
     }
+
     const regularWantedItems = []
     let creg = 0
+    logDebug('generateTagMentionCache', `- Processing ${allRegularNotes.length} regular notes ...`)
     for (const note of allRegularNotes) {
       const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes) : []
       if (foundWantedItems.length > 0) {
-        logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}] regularWantedItems`)
-        regularWantedItems.push({ file: note.filename, items: foundWantedItems })
+        logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}]`)
+        regularWantedItems.push({ filename: note.filename, items: foundWantedItems })
         creg++
       }
     }
@@ -215,6 +238,7 @@ export async function generateTagMentionCache(): Promise<void> {
     const cache = {
       generatedAt: startTime,
       lastUpdated: startTime,
+      wantedItems: wantedItems,
       regularNotes: regularWantedItems,
       calendarNotes: calWantedItems,
     }
@@ -295,17 +319,18 @@ export async function updateTagMentionCache(): Promise<void> {
       if (foundWantedItems.length > 0) logDebug('updateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}] calWantedItems`)
       if (foundWantedItems.length > 0) {
         if (isCalendarNote) {
-          cache.calendarNotes.push({ file: note.filename, items: foundWantedItems })
+          cache.calendarNotes.push({ filename: note.filename, items: foundWantedItems })
         } else {
-          cache.regularNotes.push({ file: note.filename, items: foundWantedItems })
+          cache.regularNotes.push({ filename: note.filename, items: foundWantedItems })
         }
         c++
       }
     }
     logTimer('updateTagMentionCache', startTime, `-> ${c} recently changed notes with wanted items`)
 
-    // Update the last updated time
+    // Update the last updated time and wanted items (which should be the same,)
     cache.lastUpdated = startTime
+    cache.wantedItems = wantedItems
 
     DataStore.saveData(JSON.stringify(cache), tagMentionCacheFile, true)
     logTimer('updateTagMentionCache', startTime, `- after saving to mentionTagCacheFile`)

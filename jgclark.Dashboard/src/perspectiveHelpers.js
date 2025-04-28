@@ -63,6 +63,7 @@ Named perspectives
   - set active perspective to default
 
 -----------------------------------------------------------------------------*/
+// Constants
 
 const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
 
@@ -76,6 +77,10 @@ const standardSettings = cleanDashboardSettingsInAPerspective(
     return acc
   }, {}),
 )
+
+//-----------------------------------------------------------------------------
+// Misc
+//-----------------------------------------------------------------------------
 
 /**
  * Get the default perspective settings for the first time perspectives are created.
@@ -259,100 +264,6 @@ export function getActivePerspectiveName(perspectiveSettings: Array<TPerspective
 }
 
 /**
- * From the full list of perspective definitions, replace the perspective definition with the new definition and return the revised full array.
- * If the named perspective doesn't exist, then add it to the end of the array.
- * @param {Array<TPerspectiveDef>} allPerspectiveDefs
- * @param {TPerspectiveDef} newDef
- * @returns {Array<TPerspectiveDef>}
- */
-export async function replacePerspectiveDef(allPerspectiveDefs: Array<TPerspectiveDef>, newDef: TPerspectiveDef): Promise<Array<TPerspectiveDef>> {
-  // if there is no existing definition with the same name, then add it to the end of the array
-  clo(newDef, `replacePerspectiveDef: newDef =`)
-  const existingIndex = allPerspectiveDefs.findIndex((s) => s.name === newDef.name)
-  if (existingIndex === -1) {
-    logDebug('replacePerspectiveDef', `Didn't find perspective ${newDef.name} to update. List is now:`)
-    logPerspectives(allPerspectiveDefs)
-    return [...allPerspectiveDefs, newDef]
-  }
-  logDebug('replacePerspectiveDef', `Found perspective to update: ${newDef.name}. List is now:`)
-  logPerspectives(allPerspectiveDefs)
-
-  // TEST: Update tagCache definition list, and then re-generate the cache
-  setTagMentionCacheDefinitionsFromAllPerspectives(allPerspectiveDefs)
-  await generateTagMentionCache()
-
-  return allPerspectiveDefs.map((s) => (s.name === newDef.name ? newDef : s))
-}
-
-/**
- * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all
- * @param {string} name
- * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns {Array<TPerspectiveDef>}
- */
-export function setActivePerspective(name: string, allPerspectiveDefs: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
-  // map over perspectiveSettings, setting isActive to true for the one with name === name, and false for all others
-  return allPerspectiveDefs ? allPerspectiveDefs.map((s) => ({ ...s, isActive: s.name === name, isModified: false })) : []
-}
-
-/**
- * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all
- * @param {string} name
- * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns {Array<TPerspectiveDef>}
- */
-export function renamePerspective(oldName: string, newName: string, allPerspectiveDefs: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
-  return allPerspectiveDefs.map((s) => ({ ...s, name: s.name === oldName ? newName : s.name }))
-}
-
-/**
- * Private function to add a new Perspective definition to the array
- * @param {Array<TPerspectiveDef>} allPerspectiveDefs
- * @param {TPerspectiveDef} newDefToAdd
- * @returns {Array<TPerspectiveDef>}
- */
-function addPerspectiveDef(allPerspectiveDefs: Array<TPerspectiveDef>, newDefToAdd: TPerspectiveDef): Array<TPerspectiveDef> {
-  return [...allPerspectiveDefs, newDefToAdd]
-}
-
-/**
- * Private function to delete a named Perspective definition from the array
- * @param {Array<TPerspectiveDef>} allPerspectiveDefs
- * @param {string} nameOfPerspectiveToDelete
- * @returns {Array<TPerspectiveDef>}
- */
-function deletePerspectiveDef(allPerspectiveDefs: Array<TPerspectiveDef>, nameOfPerspectiveToDelete: string): Array<TPerspectiveDef> {
-  return allPerspectiveDefs.filter((s) => s.name !== nameOfPerspectiveToDelete)
-}
-
-/**
- * Save all perspective definitions as a stringified array, to suit the forced type of the hidden setting.
- * NOTE: from this NP automatically triggers NPHooks::onSettingsUpdated()
- * @param {Array<TPerspectiveDef>} allDefs perspective definitions
- * @return {boolean} true if successful
- */
-export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): Promise<boolean> {
-  try {
-    logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
-    const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ''
-    // v1:
-    // const pluginSettings = DataStore.settings
-    // v2:
-    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    pluginSettings.perspectiveSettings = perspectiveSettingsStr
-
-    // TEST: use helper to save settings from now on
-    // DataStore.settings = pluginSettings
-    const res = await saveSettings(pluginID, pluginSettings)
-    logDebug('savePerspectiveSettings', `Apparently saved with result ${String(res)}. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
-    return res
-  } catch (error) {
-    logError('savePerspectiveSettings', `Error: ${error.message}`)
-    return false
-  }
-}
-
-/**
  * Get list of all Perspective names
  * @param {Array<TPerspectiveDef>} allDefs
  * @param {boolean} includeDefaultOption? (optional; default = true)
@@ -465,6 +376,105 @@ export async function logPerspectiveFiltering(filenameArg?: string): Promise<voi
 //-----------------------------------------------------------------------------
 
 /**
+ * From the full list of perspective definitions, replace the perspective definition with the new definition and return the revised full array.
+ * If the named perspective doesn't exist, then add it to the end of the array.
+ * @param {Array<TPerspectiveDef>} allPerspectiveDefs
+ * @param {TPerspectiveDef} newDef
+ * @returns {Array<TPerspectiveDef>}
+ */
+export async function replacePerspectiveDef(allPerspectiveDefs: Array<TPerspectiveDef>, newDef: TPerspectiveDef): Promise<Array<TPerspectiveDef>> {
+  // if there is no existing definition with the same name, then add it to the end of the array
+  clo(newDef, `replacePerspectiveDef: newDef =`)
+  const existingIndex = allPerspectiveDefs.findIndex((s) => s.name === newDef.name)
+  if (existingIndex === -1) {
+    logDebug('replacePerspectiveDef', `Didn't find perspective ${newDef.name} to update. List is now:`)
+    logPerspectives(allPerspectiveDefs)
+    return [...allPerspectiveDefs, newDef]
+  }
+  logDebug('replacePerspectiveDef', `Found perspective to update: ${newDef.name}. List is now:`)
+  logPerspectives(allPerspectiveDefs)
+
+  // Update tagCache definition list, and then re-generate the cache
+  setTagMentionCacheDefinitionsFromAllPerspectives(allPerspectiveDefs)
+  await generateTagMentionCache()
+
+  return allPerspectiveDefs.map((s) => (s.name === newDef.name ? newDef : s))
+}
+
+/**
+ * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all
+ * @param {string} name
+ * @param {Array<TPerspectiveDef>} perspectiveSettings
+ * @returns {Array<TPerspectiveDef>}
+ */
+export function setActivePerspective(name: string, allPerspectiveDefs: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
+  // map over perspectiveSettings, setting isActive to true for the one with name === name, and false for all others
+  return allPerspectiveDefs ? allPerspectiveDefs.map((s) => ({ ...s, isActive: s.name === name, isModified: false })) : []
+}
+
+/**
+ * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all
+ * @param {string} name
+ * @param {Array<TPerspectiveDef>} perspectiveSettings
+ * @returns {Array<TPerspectiveDef>}
+ */
+export function renamePerspective(oldName: string, newName: string, allPerspectiveDefs: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
+  return allPerspectiveDefs.map((s) => ({ ...s, name: s.name === oldName ? newName : s.name }))
+}
+
+/**
+ * Private function to add a new Perspective definition to the array
+ * @param {Array<TPerspectiveDef>} allPerspectiveDefs
+ * @param {TPerspectiveDef} newDefToAdd
+ * @returns {Array<TPerspectiveDef>}
+ */
+function addPerspectiveDef(allPerspectiveDefs: Array<TPerspectiveDef>, newDefToAdd: TPerspectiveDef): Array<TPerspectiveDef> {
+  return [...allPerspectiveDefs, newDefToAdd]
+}
+
+/**
+ * Private function to delete a named Perspective definition from the array
+ * @param {Array<TPerspectiveDef>} allPerspectiveDefs
+ * @param {string} nameOfPerspectiveToDelete
+ * @returns {Array<TPerspectiveDef>}
+ */
+function deletePerspectiveDef(allPerspectiveDefs: Array<TPerspectiveDef>, nameOfPerspectiveToDelete: string): Array<TPerspectiveDef> {
+  return allPerspectiveDefs.filter((s) => s.name !== nameOfPerspectiveToDelete)
+}
+
+/**
+ * Save all perspective definitions as a stringified array, to suit the forced type of the hidden setting.
+ * NOTE: from this NP automatically triggers NPHooks::onSettingsUpdated()
+ * @param {Array<TPerspectiveDef>} allDefs perspective definitions
+ * @return {boolean} true if successful
+ */
+export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): Promise<boolean> {
+  try {
+    logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
+    const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ''
+    // v1:
+    // const pluginSettings = DataStore.settings
+    // v2:
+    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    pluginSettings.perspectiveSettings = perspectiveSettingsStr
+
+    // TEST: use helper to save settings from now on
+    // DataStore.settings = pluginSettings
+    const res = await saveSettings(pluginID, pluginSettings)
+    logDebug('savePerspectiveSettings', `Apparently saved with result ${String(res)}. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
+
+    // TEST: Update tagCache definition list, and then re-generate the cache (if necessary)
+    setTagMentionCacheDefinitionsFromAllPerspectives(allDefs)
+    await generateTagMentionCache()
+
+    return res
+  } catch (error) {
+    logError('savePerspectiveSettings', `Error: ${error.message}`)
+    return false
+  }
+}
+
+/**
  * Switch to the perspective with the given name (updates isActive flag on that one)
  * Saves perspectiveSettings to DataStore.settings but does not update dashboardSettings or anything else
  * Does not send the new PerspectiveSettings to the front end. Returns the new PerspectiveSettings or false if not found.
@@ -545,11 +555,7 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
     logInfo('updateCurrentPerspectiveDef', `Will update def '${activeDef.name}'`)
     const res = await savePerspectiveSettings(newDefs)
 
-    // TEST: Update tagCache definition list, and then re-generate the cache
-    setTagMentionCacheDefinitionsFromAllPerspectives(allDefs)
-    await generateTagMentionCache()
-
-    // return res
+    return res
   } catch (error) {
     logError('updateCurrentPerspectiveDef', `Error: ${error.message}`)
     return false
@@ -740,9 +746,8 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   const newPerspectiveSettings = await switchToPerspective('-', allDefs)
   await setPluginData({ perspectiveSettings: newPerspectiveSettings }, `_Deleted all named perspectives`)
 
-  // TEST: Update tagCache definition list, and then re-generate the cache
+  // Update tagCache definition list, but don't re-generate the cache, as there's no point.
   await setTagMentionCacheDefinitionsFromAllPerspectives(allDefs)
-  await generateTagMentionCache()
 
   logDebug('deleteAllNamedPerspectiveSettings', `Result of switchToPerspective("-"): ${String(newPerspectiveSettings)}`)
 }
@@ -790,6 +795,7 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
       // delete and then switch
       logDebug('deletePerspective', `Deleting active perspective, so will need to switch to default Perspective ("-")`)
       updatedDefs = deletePerspectiveDef(existingDefs, nameToUse)
+      // Save the updated perspective settings, which includes updating the tagCache definition list, and then re-generating the cache
       const res = await savePerspectiveSettings(updatedDefs)
       await switchToPerspective('-', updatedDefs)
       // update/refresh PerspectiveSelector component
@@ -797,14 +803,11 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
     } else {
       // just delete
       updatedDefs = deletePerspectiveDef(existingDefs, nameToUse)
+      // Save the updated perspective settings, which includes updating the tagCache definition list, and then re-generating the cache
       const res = await savePerspectiveSettings(updatedDefs)
       // update/refresh PerspectiveSelector component
       await setPluginData({ perspectiveSettings: updatedDefs }, `after deleting Perspective ${nameToUse}.`)
     }
-
-    // TEST: Update tagCache definition list, and then re-generate the cache
-    await setTagMentionCacheDefinitionsFromAllPerspectives(updatedDefs)
-    await generateTagMentionCache()
 
     clof(DataStore.settings, `deletePerspective at end DataStore.settings =`, ['name', 'isActive'], true) // ✅
   } catch (error) {
