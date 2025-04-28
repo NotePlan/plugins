@@ -169,8 +169,8 @@ export function rangeToString(r: TRange): string {
 }
 
 /**
- * Return title of note useful for display, including for
- * - calendar notes based on the filename
+ * Return title of note useful for display.
+ * FIXME(EduardMe): Produces error for Teamspace Calendar notes.
  * Note: local copy of this in helpers/paragraph.js to avoid circular dependency.
  * @author @jgclark
  *
@@ -178,11 +178,17 @@ export function rangeToString(r: TRange): string {
  * @return {string}
  */
 export function displayTitle(n: ?CoreNoteFields): string {
-  return !n
-    ? '(error)'
-    : n.type === 'Calendar'
-      ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
-      : n.title ?? '(error)'
+  if (!n) {
+    return '(no note found)'
+  }
+  if (n.type === 'Calendar') {
+    if (getDateStringFromCalendarFilename(n.filename)) {
+      return getDateStringFromCalendarFilename(n.filename)
+    }
+  } else {
+    if (n.title) { return n.title }
+  }
+  return '(error)'
 }
 
 /**

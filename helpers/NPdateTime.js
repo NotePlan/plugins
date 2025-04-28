@@ -888,7 +888,7 @@ export function getFirstDateInPeriod(NPDateStringIn: string): string {
     if (NPDateString === 'today') {
       firstDateStr = todaysDateISOString
     } else if (isDailyDateStr(NPDateString)) {
-      logDebug('getFirstDateInPeriod', `'${NPDateString}' was already a day date`)
+      // logDebug('getFirstDateInPeriod', `'${NPDateString}' was already a day date`)
       firstDateStr = NPDateString
     } else {
       // It's not a day date, so need to convert to one. Take the first day of the week/month/quarter/year.
@@ -906,7 +906,7 @@ export function getFirstDateInPeriod(NPDateStringIn: string): string {
       }
       firstDateStr = NPInfo && NPInfo.startDate ? hyphenatedDateString(NPInfo?.startDate) : ''
     }
-    logDebug('getFirstDateInPeriod', `first date of ${NPDateString} = '${firstDateStr}'`)
+    // logDebug('getFirstDateInPeriod', `first date of ${NPDateString} = '${firstDateStr}'`)
     return firstDateStr
   } catch (err) {
     logError('getFirstDateInPeriod', err.message)

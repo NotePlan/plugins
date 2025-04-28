@@ -97,16 +97,17 @@ declare interface TEditor extends CoreNoteFields {
   replaceSelectionWithText(text: string): void;
   /**
    * Opens a note using the given filename. Returns the note if it exists or fails, returning null if the file has not been created yet.
-   * Note: some parameters introduced in v3.4 and v3.5.2
-   * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
-   * Note: if the note doesn't exist, then returns null
-   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
-   * @param {number} highlightStart - (optional) Start position of text highlighting
-   * @param {number} highlightEnd - (optional) End position of text highlighting
-   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
-   * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
-   * @param {string} content - (optional) Content to fill the note (replaces contents if the note already existed) (from v3.7.2)
+   * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`. If the note doesn't exist, then returns null
+   * @param {boolean?} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number?} highlightStart - (optional) Start position of text highlighting
+   * @param {number?} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean?} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @param {boolean?} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
+   * @param {string?} content - (optional) Content to fill the note (replaces contents if the note already existed) (from v3.7.2)
+   * @param {boolean?} stayInSpace? - (optional; default = false) Stay in the current Teamspace or Private space for the given filename
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
+   * Note: some parameters introduced in v3.4 and v3.5.2
+   * Note: stayInSpace parameter available from v3.17.0
    */
   openNoteByFilename(
     filename: string,
@@ -116,16 +117,8 @@ declare interface TEditor extends CoreNoteFields {
     splitView?: boolean,
     createIfNeeded?: boolean,
     content?: string,
-  ): Promise<TNote | void>;
-  openNoteByFilename(
-    filename: string,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-    createIfNeeded: boolean,
-    content?: string,
-  ): Promise<TNote>;
+    stayInSpace ?: boolean,
+  ): Promise < TNote | void>;
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: 'splitView' parameter available for macOS from v3.4
@@ -158,25 +151,29 @@ declare interface TEditor extends CoreNoteFields {
   /**
    * Opens a calendar note by the given date
    * Note: 'splitView' parameter available for macOS from v3.4
-   * Note: 'timeframe' parameter available for macOS from v3.6
+   * Note: 'timeframe' parameter available from v3.6
+   * Note: 'parent' parameter available from v3.17
    * @param {Date} date - The date that should be opened, this is a normal JavaScript date object
-   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
-   * @param {number} highlightStart - (optional) Start position of text highlighting
-   * @param {number} highlightEnd - (optional) End position of text highlighting
-   * @param {boolean} splitView - (optional) Open note in a new split view
-   * @param {string} timeframe - (optional) Use "week", "month", "quarter" or "year" to open a calendar note other than a daily one
+   * @param {boolean?} newWindow - (optional) Open note in new window? (default = false)
+   * @param {number?} highlightStart - (optional) Start position of text highlighting
+   * @param {number?} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean?} splitView - (optional) Open note in a new split view
+   * @param {string?} timeframe - (optional) Use "week", "month", "quarter" or "year" to open a calendar note other than a daily one
+   * @param {string?} parent - (optional) to specify UUID of Teamspace to look in
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote | void>;
+openNoteByDate(date: Date, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean, timeframe ?: string, parent ?: string): Promise < TNote | void>;
   /**
-   * Opens a calendar note by the given date string
-   * Note: from v3.6 also accepts weeks in the main parameter
-   * @param {string} dateString - The date string that should be opened, in ISO format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
+   * Opens a calendar note by the given date string.
+   * @param {string} dateString - The date string that should be opened, in ISO format ("YYYY-MM-DD") or filename format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
    * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
+   * Note: from v3.6 also accepts weeks in the main parameter
+   * Note: ISO Daily dateString available from v3.17.0
+   * Note: from v3.17.0, this includes Teamspace calendar notes. Calendar Notes are represented with the ISO date + extension in the path.
    */
   openNoteByDateString(dateString: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
@@ -594,12 +591,13 @@ declare class DataStore {
   static calendarNoteByDate(date: Date, timeframe ?: string, parent ?: string): ?TNote;
   /**
    * Returns the calendar note for the given date string (can be undefined, if the calendar note was not created yet). See the date formats below for various types of calendar notes:
-   * Daily: "YYYYMMDD", example: "20210410"
+   * Daily: "YYYYMMDD", example: "20210410" or "YYYY-MM-DD", example: "2021-04-10"
    * Weekly: "YYYY-Wwn", example: "2022-W24"
    * Quarter: "YYYY-Qq", example: "2022-Q4"
    * Monthly: "YYYY-MM", example: "2022-10"
    * Yearly: "YYYY", example: "2022".
    * Note: from v3.17.0, this includes Teamspace calendar notes. Calendar Notes are represented with the ISO date + extension in the path.
+   * Note: ISO Daily dateString available from v3.17.0
    * Note: Some timeframes available from v3.7.2
    * Note: 'parent' available from v3.17.0
    * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty.

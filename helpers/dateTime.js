@@ -487,10 +487,10 @@ export function parseTeamspaceCalendarFilename(filenameIn: string): { filename: 
   if (match) {
     const filename = filenameIn.split('/')[2]
     const teamspaceID = match[2]
-    // logDebug('parseTeamspaceCalendarFilename', `Teamspace note, with calendar part: ${filename} for teamspaceID ${teamspaceID}`)
-    return { filename, isTeamspace: true, teamspaceID }
+    // logInfo('parseTeamspaceCalendarFilename', `Teamspace note, with calendar part: ${filename} for teamspaceID ${teamspaceID}`)
+    return { filename: filename, isTeamspace: true, teamspaceID }
   } else {
-    // logDebug('parseTeamspaceCalendarFilename', `Non-teamspace note`)
+    // logInfo('parseTeamspaceCalendarFilename', `Non-teamspace note with filename ${filenameIn}`)
     return { filename: filenameIn, isTeamspace: false }
   }
 }
@@ -507,32 +507,38 @@ export function parseTeamspaceCalendarFilename(filenameIn: string): { filename: 
  */
 export function getDateStringFromCalendarFilename(filenameIn: string, returnISODate: boolean = false): string {
   try {
-    // logDebug('gDSFCF', `for ${filenameIn} ...`)
+    logDebug('gDSFCF', `for ${filenameIn} ...`)
 
-    const { filename, _isTeamspace, _teamspaceID } = parseTeamspaceCalendarFilename(filenameIn)
+    let { filenameWithoutTeamspaceID } = parseTeamspaceCalendarFilename(filenameIn)
+    logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
+    // FIXME: Don't know why this is undefined for private calendar notes.
+    // Workaround: if undefined, then use the original filename.
+    if (filenameWithoutTeamspaceID === undefined) {
+      filenameWithoutTeamspaceID = filenameIn
+    }
 
     // Check for daily notes
-    if (filename.match(RE_DAILY_NOTE_FILENAME)) {
+    if (filenameWithoutTeamspaceID.match(RE_DAILY_NOTE_FILENAME)) {
       // logDebug('gDSFCF', `= daily`)
       if (returnISODate) {
-        return getISODateStringFromYYYYMMDD(filename)
+        return getISODateStringFromYYYYMMDD(filenameWithoutTeamspaceID)
       } else {
-        return filename.slice(0, 8)
+        return filenameWithoutTeamspaceID.slice(0, 8)
       }
-    } else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
-      // logDebug('gDSFCF', `${filename} = weekly`)
-      return filename.slice(0, 8)
-    } else if (filename.match(RE_MONTHLY_NOTE_FILENAME)) {
-      // logDebug('gDSFCF', `${filename} = monthly`)
-      return filename.slice(0, 7)
-    } else if (filename.match(RE_QUARTERLY_NOTE_FILENAME)) {
-      // logDebug('gDSFCF', `${filename} = quarterly`)
-      return filename.slice(0, 7)
-    } else if (filename.match(RE_YEARLY_NOTE_FILENAME)) {
-      // logDebug('gDSFCF', `${filename} = yearly`)
-      return filename.slice(0, 4)
+    } else if (filenameWithoutTeamspaceID.match(RE_WEEKLY_NOTE_FILENAME)) {
+      // logDebug('gDSFCF', `${filenameWithoutTeamspaceID} = weekly`)
+      return filenameWithoutTeamspaceID.slice(0, 8)
+    } else if (filenameWithoutTeamspaceID.match(RE_MONTHLY_NOTE_FILENAME)) {
+      // logDebug('gDSFCF', `${filenameWithoutTeamspaceID} = monthly`)
+      return filenameWithoutTeamspaceID.slice(0, 7)
+    } else if (filenameWithoutTeamspaceID.match(RE_QUARTERLY_NOTE_FILENAME)) {
+      // logDebug('gDSFCF', `${filenameWithoutTeamspaceID} = quarterly`)
+      return filenameWithoutTeamspaceID.slice(0, 7)
+    } else if (filenameWithoutTeamspaceID.match(RE_YEARLY_NOTE_FILENAME)) {
+      // logDebug('gDSFCF', `${filenameWithoutTeamspaceID} = yearly`)
+      return filenameWithoutTeamspaceID.slice(0, 4)
     } else {
-      throw new Error(`Invalid calendar filename: ${filename}`)
+      throw new Error(`Invalid calendar filename: ${filenameIn}`)
     }
   } catch (err) {
     logError('dateTime / getDateStringFromCalendarFilename', err.message)
@@ -839,7 +845,7 @@ export function getDateFromYYYYMMDDString(inputString: string): ?Date {
  * Return rough relative string version of difference between date and today.
  * Don't return all the detail, but just the most significant unit (year, month, week, day)
  * If date is in the past then adds 'ago'.
- * TODO: Shift to moment library
+ * TODO: Shift to moment library or move to NPdateTime.js
  * @param {Date} date - calculate difference between this date and today
  * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
  */
@@ -1418,7 +1424,7 @@ export function includesScheduledFurtherFutureDate(line: string, futureStartsInD
     const futureMoment = moment().add(futureStartsInDays, 'days')
     const futureMomentStr = futureMoment.format('YYYY-MM-DD')
     const ISODateFromMatch = m[0].slice(1) // need to remove leading '>'
-    logDebug(`includesScheduledFurtherFutureDate`, `match: ${ISODateFromMatch} >= futureStart:${futureMomentStr} = ${String(ISODateFromMatch >= futureMomentStr)}`)
+    // logDebug(`includesScheduledFurtherFutureDate`, `match: ${ISODateFromMatch} >= futureStart:${futureMomentStr} = ${String(ISODateFromMatch >= futureMomentStr)}`)
     return ISODateFromMatch >= futureMomentStr
   }
   return false
@@ -1432,7 +1438,9 @@ export function includesScheduledFurtherFutureDate(line: string, futureStartsInD
  * @returns {boolean} - Returns true if the filename is scheduled in a future note.
  */
 export function filenameIsInFuture(filename: string, fromYYYYMMDDDateStringFromDate: string = getTodaysDateUnhyphenated()): boolean {
-  const today = new Date(parseInt(fromYYYYMMDDDateStringFromDate.slice(0, 4)), parseInt(fromYYYYMMDDDateStringFromDate.slice(4, 6), 10) - 1, parseInt(fromYYYYMMDDDateStringFromDate.slice(6, 8), 10))
+  const today = new Date(
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(0, 4)), parseInt(fromYYYYMMDDDateStringFromDate.slice(4, 6), 10) - 1, parseInt(fromYYYYMMDDDateStringFromDate.slice(6, 8), 10)
+  )
 
   // Test for daily notes
   if (filename.match(RE_DAILY_NOTE_FILENAME)) {
