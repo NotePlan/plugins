@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2025-04-09 for v2.2.0.a12
+// Last updated 2025-04-15 for v2.2.1, @jgclark
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -244,6 +244,16 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     refreshAllOnChange: true,
   },
   {
+    key: 'overdueSortOrder',
+    label: 'Sort order for Tag/Mention and Overdue items',
+    description:
+      "The order to show items: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, 'due date' by the due date (if present), or 'most recent' changed note.",
+    type: 'dropdown-select',
+    options: ['priority', 'earliest', 'due date', 'most recent'],
+    default: 'priority',
+    compactDisplay: true,
+  },
+  {
     label: 'Hide priority markers?',
     key: 'hidePriorityMarkers',
     type: 'switch',
@@ -310,17 +320,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
     label: 'Overdue Tasks section',
-  },
-  {
-    key: 'overdueSortOrder',
-    label: 'Sort order for Tag/Mention and Overdue items',
-    description:
-      "The order to show items: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.",
-    type: 'dropdown-select',
-    options: ['priority', 'earliest', 'most recent'],
-    default: 'priority',
-    compactDisplay: true,
-    // fixedWidth: 150,
   },
   {
     key: 'lookBackDaysForOverdue',

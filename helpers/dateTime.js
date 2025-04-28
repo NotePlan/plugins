@@ -20,7 +20,7 @@ export const MOMENT_FORMAT_NP_YEAR = 'YYYY'
 
 //-----------------------------------------------------------
 // REGEXES (and strings that help make regexes)
-// FIXME: Most of the RE_* below aren't actually regex objects but strings
+// WARNING: Most of the RE_* below aren't actually regex objects but strings
 
 // Basic date/time regex strings
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
@@ -74,6 +74,7 @@ export const RE_YEARLY_NOTE_FILENAME = `(^|\\/)${RE_NP_YEAR_SPEC}${RE_FILE_EXTEN
 // Tests for all calendar period types
 export const RE_ANY_DUE_DATE_TYPE: RegExp = new RegExp(`\\s+>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`)
 export const RE_IS_SCHEDULED: RegExp = new RegExp(`>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC}|today)`)
+export const RE_SCHEDULED_DATES_G: RegExp = new RegExp(`>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC}|today)`, 'g')
 export const RE_IS_SCHEDULED_CAPTURES: RegExp = new RegExp(`>((${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC}|today))`, 'g')
 
 // @done(...)
@@ -140,16 +141,31 @@ export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): strin
 // return datetime in UTC ISO format
 export const nowUTCShortDateTimeISOString: string = moment().toISOString().replace('T', ' ').slice(0, 16)
 
-// See getNoteType in note.js to get the type of a note
-export const isDailyNote = (note: CoreNoteFields): boolean => new RegExp(RE_DAILY_NOTE_FILENAME).test(note.filename)
+// Note: See getNoteType in note.js to get the type of a note
+export function isDailyNote(note: CoreNoteFields): boolean {
+  const { filename } = parseTeamspaceCalendarFilename(note.filename)
+  return new RegExp(RE_DAILY_NOTE_FILENAME).test(filename)
+}
 
-export const isWeeklyNote = (note: CoreNoteFields): boolean => new RegExp(RE_WEEKLY_NOTE_FILENAME).test(note.filename)
+export function isWeeklyNote(note: CoreNoteFields): boolean {
+  const { filename } = parseTeamspaceCalendarFilename(note.filename)
+  return new RegExp(RE_WEEKLY_NOTE_FILENAME).test(filename)
+}
 
-export const isMonthlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_MONTHLY_NOTE_FILENAME).test(note.filename)
+export function isMonthlyNote(note: CoreNoteFields): boolean {
+  const { filename } = parseTeamspaceCalendarFilename(note.filename)
+  return new RegExp(RE_MONTHLY_NOTE_FILENAME).test(filename)
+}
 
-export const isQuarterlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_QUARTERLY_NOTE_FILENAME).test(note.filename)
+export function isQuarterlyNote(note: CoreNoteFields): boolean {
+  const { filename } = parseTeamspaceCalendarFilename(note.filename)
+  return new RegExp(RE_QUARTERLY_NOTE_FILENAME).test(filename)
+}
 
-export const isYearlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_YEARLY_NOTE_FILENAME).test(note.filename)
+export function isYearlyNote(note: CoreNoteFields): boolean {
+  const { filename } = parseTeamspaceCalendarFilename(note.filename)
+  return new RegExp(RE_YEARLY_NOTE_FILENAME).test(filename)
+}
 
 /**
  * Return timeframe of calendar notes (or false for project notes).
@@ -238,16 +254,9 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
     repl = getTodaysDateAsArrowDate()
   }
   // logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith ? replaceWith : 'null'}, repl=${repl ? repl : 'null'}`)
-  // TODO: could this be done by .replace(RE_SCHEDULED_DATES_G) instead?
   while (str && isScheduled(str)) {
     str = str
-      .replace(RE_PLUS_DATE, '')
-      .replace(/ ?\>today ?/g, ' ')
-      .replace(new RegExp(RE_SCHEDULED_ISO_DATE), '')
-      .replace(RE_SCHEDULED_WEEK_NOTE_LINK, '')
-      .replace(RE_SCHEDULED_MONTH_NOTE_LINK, '')
-      .replace(RE_SCHEDULED_QUARTERLY_NOTE_LINK, '')
-      .replace(RE_SCHEDULED_YEARLY_NOTE_LINK, '')
+      .replace(RE_SCHEDULED_DATES_G, '')
       .replace(/ {2,}/g, ' ')
       .trim()
   }
@@ -281,8 +290,20 @@ export function getYearMonthDate(dateObj: Date): $ReadOnly<{
 
 export type HourMinObj = { h: number, m: number }
 
-export function unhyphenateString(dateString: string): string {
-  return dateString.replace(/-/g, '')
+/**
+ * Change YYYY-MM-DD to YYYYMMDD, if needed. Leave the rest of the string (which is expected to be a filename) unchanged.
+ * Note: updated in Apr 2025 to cope with Teamspace Calendar notes (with leading %%NotePlanCloud%%/UUID/) as well as private daily notes.
+ * @param {string} dailyNoteFilename
+ * @returns {string} with YYYYMMDD in place of YYYY-MM-DD where found. 
+ */
+export function convertISODateFilenameToNPDayFilename(dailyNoteFilename: string): string {
+  const matches = dailyNoteFilename.match(RE_ISO_DATE)
+  if (matches) {
+    const npDayString = matches[0].replace(/-/g, '')
+    return dailyNoteFilename.replace(matches[0], npDayString)
+  } else {
+    return dailyNoteFilename
+  }
 }
 
 // Note: ? This does not work to get reliable date string from note.date for daily notes
@@ -330,7 +351,19 @@ export function printDateRange(dr: DateRange) {
  * @param {Date} dateObj
  * @returns {string}
  */
-export function unhyphenatedDate(dateObj: Date): string {
+export function YYYYMMDDDateStringFromDate(dateObj: Date): string {
+  const { year, month, date } = getYearMonthDate(dateObj)
+  return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
+}
+
+/**
+ * Alias for YYYYMMDDDateStringFromDate()
+ * Note: This works on local time, so can ignore TZ effects.
+ * @author @nmn
+ * @param {Date} dateObj
+ * @returns {string}
+ */
+export function filenameDateString(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
   return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
 }
@@ -345,18 +378,6 @@ export function unhyphenatedDate(dateObj: Date): string {
 export function hyphenatedDateString(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
   return `${year}-${month < 10 ? '0' : ''}${month}-${date < 10 ? '0' : ''}${date}`
-}
-
-/**
- * Alias for unhyphenatedDate()
- * Note: This works on local time, so can ignore TZ effects.
- * @author @nmn
- * @param {Date} dateObj
- * @returns {string}
- */
-export function filenameDateString(dateObj: Date): string {
-  const { year, month, date } = getYearMonthDate(dateObj)
-  return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
 }
 
 /**
@@ -435,7 +456,7 @@ export function getDisplayDateStrFromFilenameDateStr(dateStrIn: string): string 
  */
 export function getFilenameDateStrFromDisplayDateStr(dateStrIn: string): string {
   if (dateStrIn.match(RE_ISO_DATE)) {
-    return unhyphenateString(dateStrIn)
+    return convertISODateFilenameToNPDayFilename(dateStrIn)
   } else {
     return dateStrIn
   }
@@ -448,22 +469,49 @@ export function getFilenameDateStrFromDisplayDateStr(dateStrIn: string): string 
  */
 export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
   if (dateStrIn.match(RE_ISO_DATE)) {
-    return unhyphenateString(dateStrIn)
+    return convertISODateFilenameToNPDayFilename(dateStrIn)
   } else {
     return dateStrIn
   }
 }
 
 /**
+ * Check whether a calendar filename is from a teamspace note and extract the relevant parts
+ * @param {string} filenameIn - The full filename to check
+ * @returns {{ filename: string, isTeamspace: boolean, teamspaceID?: string }}
+ */
+export function parseTeamspaceCalendarFilename(filenameIn: string): { filename: string, isTeamspace: boolean, teamspaceID?: string } {
+  const RE_TEAMSPACE_CALENDAR_NOTE_FILENAME = new RegExp(`^(%%Supabase%%|%%NotePlanCloud%%)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/`, 'i')
+  const match = filenameIn.match(RE_TEAMSPACE_CALENDAR_NOTE_FILENAME)
+
+  if (match) {
+    const filename = filenameIn.split('/')[2]
+    const teamspaceID = match[2]
+    // logDebug('parseTeamspaceCalendarFilename', `Teamspace note, with calendar part: ${filename} for teamspaceID ${teamspaceID}`)
+    return { filename, isTeamspace: true, teamspaceID }
+  } else {
+    // logDebug('parseTeamspaceCalendarFilename', `Non-teamspace note`)
+    return { filename: filenameIn, isTeamspace: false }
+  }
+}
+
+/**
  * Returns the NP string representation of a Calendar note's date, from its filename. Covers daily to yearly notes.
- * @param {string} filename
+ * Extended in Apr 2025 to cover teamspace notes, which are prefixed with '[%%Supabase%%|%%NotePlanCloud%%]/<teamspaceID>/'
+ * e.g. %%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md
+ * Note: see related getDateStrForStartofPeriodFromCalendarFilename().
+ * @param {string} filenameIn
  * @param {boolean} returnISODate - returns ISO daily note YYYY-MM-DD not actual filename YYYYMMDD
  * @returns {string} YYYYMMDD or YYYY-MM-DD depending on 2nd parameter / YYYY-Wnn / YYYY-mm / YYYY-Qn / YYYY date (some only from NP v3.7.2)
  * @tests in jest file
  */
-export function getDateStringFromCalendarFilename(filename: string, returnISODate: boolean = false): string {
+export function getDateStringFromCalendarFilename(filenameIn: string, returnISODate: boolean = false): string {
   try {
-    // logDebug('gDSFCF', `for ${filename} ...`)
+    // logDebug('gDSFCF', `for ${filenameIn} ...`)
+
+    const { filename, _isTeamspace, _teamspaceID } = parseTeamspaceCalendarFilename(filenameIn)
+
+    // Check for daily notes
     if (filename.match(RE_DAILY_NOTE_FILENAME)) {
       // logDebug('gDSFCF', `= daily`)
       if (returnISODate) {
@@ -472,7 +520,6 @@ export function getDateStringFromCalendarFilename(filename: string, returnISODat
         return filename.slice(0, 8)
       }
     } else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
-      //TEST:
       // logDebug('gDSFCF', `${filename} = weekly`)
       return filename.slice(0, 8)
     } else if (filename.match(RE_MONTHLY_NOTE_FILENAME)) {
@@ -494,8 +541,9 @@ export function getDateStringFromCalendarFilename(filename: string, returnISODat
 }
 
 /**
- * Returns a YYYYMMDD string representation of a Calendar note's first date that it covers, from its filename. (e.g. '2022-Q4.md' -> '20221001')
- * FIXME: Relies on DataStore -- shouldn't be in this file
+ * Returns a YYYYMMDD string representation of a Calendar note's first date that it covers, from its filename (e.g. '2022-Q4.md' -> '20221001').
+ * Note: see related getDateStringFromCalendarFilename().
+ * FIXME: Relies on DataStore -- really shouldn't be in this file.
  * WARNING: Probably not reliable as it relies on the Calendar note existing, I think.
  * @param {string} filename
  * @returns {string} YYYYMMDD for first date in period
@@ -506,7 +554,7 @@ export function getDateStrForStartofPeriodFromCalendarFilename(filename: string)
     // logDebug('dateTime / gDSFSOPFCF', `for ${filename} ...`)
     const thisNote = DataStore.noteByFilename(filename, 'Calendar')
     if (thisNote && thisNote.date) {
-      const dateOut = unhyphenatedDate(thisNote.date) ?? '(error)'
+      const dateOut = YYYYMMDDDateStringFromDate(thisNote.date) ?? '(error)'
       // logDebug('gDSFSOPFCF', `-> ${dateOut}`)
       return dateOut
     } else {
@@ -741,13 +789,13 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
     timeString = '00:00'
   }
   if (timeString.split(':').length === 2) timeString = `${timeString}:00`
-  let timeParts = timeString.split(':')
-  let dateParts = dateString.split('-')
-  if (timeParts.length !== 3 || dateParts.length !== 3) {
+  const timePartsStr = timeString.split(':')
+  const datePartsStr = dateString.split('-')
+  if (timePartsStr.length !== 3 || datePartsStr.length !== 3) {
     throw `dateTimeString "${dateTimeString}" is not in expected format`
   }
-  timeParts = timeParts.map((t) => parseInt(t))
-  dateParts = dateParts.map((d) => parseInt(d))
+  const timeParts = timePartsStr.map((t) => parseInt(t))
+  const dateParts = datePartsStr.map((d) => parseInt(d))
   dateParts[1] = dateParts[1] - 1 // Months is an index from 0-11
   const date = new Date(...dateParts, ...timeParts)
   if (date.toString() === 'Invalid Date') {
@@ -763,10 +811,10 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
 /**
  * Turn a YYYYMMDD string into a JS Date. If no valid date found, then warning written to the log.
  * @param {string} - YYYYMMDD string
- * @return {?Date} - JS Date version of
+ * @return {?Date} - JS Date version the first found YYYYMMDD string
  */
-export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
-  // logDebug('dateTime / getDateFromUnhyphenatedDateString', inputString)
+export function getDateFromYYYYMMDDString(inputString: string): ?Date {
+  // logDebug('dateTime / getDateFromYYYYMMDDString', inputString)
   const res = inputString.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
@@ -779,10 +827,10 @@ export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
       0,
       0, // HH:MM:SS:mmm
     )
-    // logDebug('dateTime / getDateFromUnhyphenatedDateString', toLocaleDateTimeString(date))
+    // logDebug('dateTime / getDateFromYYYYMMDDString', toLocaleDateTimeString(date))
     return date
   } else {
-    logWarn('dateTime / getDateFromUnhyphenatedDateString', `  no valid date found in '${inputString}'`)
+    logWarn('dateTime / getDateFromYYYYMMDDString', `  no valid date found in '${inputString}'`)
     return
   }
 }
@@ -1001,14 +1049,14 @@ export function getNPDateFormatForFilenameFromOffsetUnit(unit: string): string {
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_DAY // = YYYYMMDD not display format
       : unit === 'w'
-      ? MOMENT_FORMAT_NP_WEEK
-      : unit === 'm'
-      ? MOMENT_FORMAT_NP_MONTH
-      : unit === 'q'
-      ? MOMENT_FORMAT_NP_QUARTER
-      : unit === 'y'
-      ? MOMENT_FORMAT_NP_WEEK
-      : ''
+        ? MOMENT_FORMAT_NP_WEEK
+        : unit === 'm'
+          ? MOMENT_FORMAT_NP_MONTH
+          : unit === 'q'
+            ? MOMENT_FORMAT_NP_QUARTER
+            : unit === 'y'
+              ? MOMENT_FORMAT_NP_WEEK
+              : ''
   return momentDateFormat
 }
 
@@ -1023,14 +1071,14 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_ISO // = YYYY-MM-DD not filename format
       : unit === 'w'
-      ? MOMENT_FORMAT_NP_WEEK
-      : unit === 'm'
-      ? MOMENT_FORMAT_NP_MONTH
-      : unit === 'q'
-      ? MOMENT_FORMAT_NP_QUARTER
-      : unit === 'y'
-      ? MOMENT_FORMAT_NP_YEAR
-      : ''
+        ? MOMENT_FORMAT_NP_WEEK
+        : unit === 'm'
+          ? MOMENT_FORMAT_NP_MONTH
+          : unit === 'q'
+            ? MOMENT_FORMAT_NP_QUARTER
+            : unit === 'y'
+              ? MOMENT_FORMAT_NP_YEAR
+              : ''
   return momentDateFormat
 }
 
@@ -1380,18 +1428,18 @@ export function includesScheduledFurtherFutureDate(line: string, futureStartsInD
  * Checks if the given filename is in a future note.
  *
  * @param {string} filename - The filename to check.
- * @param {string} [fromUnhyphenatedDate=getTodaysDateUnhyphenated()] - The date to compare against, in unhyphenated format (YYYYMMDD).
+ * @param {string} [fromYYYYMMDDDateStringFromDate=getTodaysDateUnhyphenated()] - The date to compare against, in unhyphenated format (YYYYMMDD).
  * @returns {boolean} - Returns true if the filename is scheduled in a future note.
  */
-export function filenameIsInFuture(filename: string, fromUnhyphenatedDate: string = getTodaysDateUnhyphenated()): boolean {
-  const today = new Date(parseInt(fromUnhyphenatedDate.slice(0, 4)), parseInt(fromUnhyphenatedDate.slice(4, 6), 10) - 1, parseInt(fromUnhyphenatedDate.slice(6, 8), 10))
+export function filenameIsInFuture(filename: string, fromYYYYMMDDDateStringFromDate: string = getTodaysDateUnhyphenated()): boolean {
+  const today = new Date(parseInt(fromYYYYMMDDDateStringFromDate.slice(0, 4)), parseInt(fromYYYYMMDDDateStringFromDate.slice(4, 6), 10) - 1, parseInt(fromYYYYMMDDDateStringFromDate.slice(6, 8), 10))
 
   // Test for daily notes
   if (filename.match(RE_DAILY_NOTE_FILENAME)) {
     const dateMatch = filename.match(RE_DAILY_NOTE_FILENAME)
     if (dateMatch) {
       const dailyDate = dateMatch[0].match(/\d{8}/)?.[0] ?? ''
-      return dailyDate > fromUnhyphenatedDate
+      return dailyDate > fromYYYYMMDDDateStringFromDate
     }
   }
 

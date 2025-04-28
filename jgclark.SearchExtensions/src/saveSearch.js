@@ -28,8 +28,8 @@ import {
 import {
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
-  unhyphenateString,
-  unhyphenatedDate,
+  convertISODateFilenameToNPDayFilename,
+  YYYYMMDDDateStringFromDate,
 } from '@helpers/dateTime'
 import {
   getPeriodStartEndDates,
@@ -363,14 +363,14 @@ export async function saveSearch(
 
         fromDateStr = (fromDateArg && fromDateArg !== '')
           ? (fromDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
-            ? unhyphenateString(fromDateArg)
+            ? convertISODateFilenameToNPDayFilename(fromDateArg)
             : fromDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
               ? fromDateArg
               : 'error')
           : todayMom.subtract(91, 'days').format('YYYYMMDD') // 91 days ago
         toDateStr = (toDateArg && toDateArg !== '')
           ? (toDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
-            ? unhyphenateString(toDateArg)
+            ? convertISODateFilenameToNPDayFilename(toDateArg)
             : toDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
               ? toDateArg
               : 'error')
@@ -388,8 +388,8 @@ export async function saveSearch(
         if (fromDate == null || toDate == null) {
           throw new Error('dates could not be parsed for requested time period')
         }
-        fromDateStr = unhyphenatedDate(fromDate)
-        toDateStr = unhyphenatedDate(toDate)
+        fromDateStr = YYYYMMDDDateStringFromDate(fromDate)
+        toDateStr = YYYYMMDDDateStringFromDate(toDate)
         if (periodAndPartStr === '') {
           periodAndPartStr = periodString
         }

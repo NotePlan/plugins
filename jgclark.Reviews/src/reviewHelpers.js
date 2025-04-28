@@ -13,7 +13,7 @@ import { type Progress } from './projectClass'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   calcOffsetDate,
-  getDateFromUnhyphenatedDateString,
+  getDateFromYYYYMMDDString,
   getDateObjFromDateString,
   getJSDateStartOfToday,
   RE_ISO_DATE,
@@ -247,7 +247,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
           getDateObjFromDateString(progressLine.match(RE_ISO_DATE)[0])
         : new RegExp(RE_YYYYMMDD_DATE).test(progressLine)
         ? // $FlowIgnore
-          getDateFromUnhyphenatedDateString(progressLine.match(RE_YYYYMMDD_DATE)[0])
+          getDateFromYYYYMMDDString(progressLine.match(RE_YYYYMMDD_DATE)[0])
         : new Date('0001-01-01')
       const tempSplitParts = progressLine.split(/[:@]/)
       // logDebug('processMostRecentProgressParagraph', `tempSplitParts: ${String(tempSplitParts)}`)

@@ -1,4 +1,10 @@
 # What's Changed in 🔢 Statistics plugin?
+
+## [0.7.0] - 2025-04-22
+### New
+- added some basic stats about Teamspaces, if they are in use, to **/note stats** command.
+- all commands now also write their stats to the plugin console
+
 ## [0.6.1] - 2022-12-30
 ### New
 - added new stat 'Notes with open tasks' to "/task stats for all notes" command

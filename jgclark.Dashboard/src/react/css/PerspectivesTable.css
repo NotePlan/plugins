@@ -1,6 +1,8 @@
 /* Container for the table with scrolling  */
 .perspectives-table-container {
   overflow: auto;
+  /* Prevent over-scrolling in main window when dialog is open */
+  overscroll-behavior: contain;
 }
 
 /* Change scrollbar look to match theme */

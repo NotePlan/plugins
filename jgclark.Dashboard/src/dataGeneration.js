@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-04-01 for v2.2.0.a10, @jgclark
+// Last updated 2025-04-15 for v2.2.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -548,33 +548,6 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
 //----------------------------------------------------------------
 
 /**
- * Note: now not used, as core of it is now in getSomeSectionsData() above. This is because:
- *  1. it is really just a wrapper around getTaggedSectionData()
- *  2. this means multiple TAG sections can be returned as they are generated, rather than all at once, which feels more natural.
- * Get the tagged sections for each tag - they will all be sectionCode=TAG
- * sectionName will be the tag name, and showSettingName will be unique for this tag
- * @param {TDashboardSettings} config
- * @param {boolean} [useDemoData=false]
- * @returns {Array<TSection>}
- */
-// export function getTaggedSections(config: TDashboardSettings, useDemoData: boolean = false): Array<TSection> {
-//   const startTime = new Date()
-//   const tagSections = getTagSectionDetails(removeInvalidTagSections(config))
-//   // clo(tagSections)
-//   // logInfo('getTaggedSections', `- after getTagSectionDetails:  ${timer(startTime)}`)
-//
-//   const output = tagSections.reduce((acc: Array<TSection>, sectionDetail: TSectionDetails, index: number) => {
-//     // $FlowIgnore[invalid-computed-prop]
-//     const showSettingForTag = config[sectionDetail.showSettingName]
-//     // logDebug('getTaggedSections', `sectionDetail.sectionName=${sectionDetail.sectionName} showSettingForTag=${showSettingForTag}`)
-//     if (typeof showSettingForTag === 'undefined' || showSettingForTag) acc.push(getTaggedSectionData(config, useDemoData, sectionDetail, index))
-//     return acc // Return the accumulator
-//   }, [])
-//   logTimer('getTaggedSections', startTime, `at end`, 1500)
-//   return output
-// }
-
-/**
  * Generate data for a section for items with a Tag/Mention.
  * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future.
  * Now also uses all the 'ignore' settings, other than any that are the same as this particular tag/mention.
@@ -720,8 +693,10 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
           config.overdueSortOrder === 'priority'
             ? ['-priority', '-changedDate']
             : config.overdueSortOrder === 'earliest'
-            ? ['changedDate', 'priority']
-            : ['-changedDate', 'priority'] // 'most recent'
+              ? ['changedDate', '-priority']
+              : config.overdueSortOrder === 'due date'
+                ? ['dueDate', '-priority']
+                : ['-changedDate', '-priority'] // 'most recent'
         const sortedTagParas = sortListBy(dashboardParas, sortOrder)
         logTimer('getTaggedSectionData', thisStartTime, `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)}`)
 
@@ -828,7 +803,13 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
 
       // Sort paragraphs by one of several options
       const sortOrder =
-        config.overdueSortOrder === 'priority' ? ['-priority', '-changedDate'] : config.overdueSortOrder === 'earliest' ? ['changedDate', 'priority'] : ['-changedDate', 'priority'] // 'most recent'
+        config.overdueSortOrder === 'priority'
+          ? ['-priority', '-changedDate']
+          : config.overdueSortOrder === 'earliest'
+            ? ['changedDate', '-priority']
+            : config.overdueSortOrder === 'due date'
+              ? ['dueDate', '-priority']
+              : ['-changedDate', '-priority'] // 'most recent'
       const sortedOverdueTaskParas = sortListBy(dashboardParas, sortOrder)
       logDebug('getOverdueSectionData', `- Sorted ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
 

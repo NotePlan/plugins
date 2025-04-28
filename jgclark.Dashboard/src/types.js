@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-04-09 for v2.2.0.a12, @jgclark
+// Last updated 2025-04-15 for v2.2.1, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -84,7 +84,7 @@ export type TDashboardSettings = {
   moveSubItems: boolean,
   newTaskSectionHeading: string,
   newTaskSectionHeadingLevel: number,
-  overdueSortOrder: string,
+  overdueSortOrder: string, // 'priority' | 'earliest' | 'most recent'
   parentChildMarkersEnabled: boolean,
   rescheduleNotMove: boolean,
   separateSectionForReferencedNotes: boolean,
@@ -179,13 +179,12 @@ export type TParagraphForDashboard = {
   lineIndex: number, // needed for child ordering processing
   priority: number,
   blockId?: string,
-  // timeStr?: string, // = used to order extended paragraphs. TEST: Can it be consolidated with .startTime?
   startTime?: string, // this is still definitely used to style time blocks
   endTime?: string,
   changedDate?: Date, // required for sorting items in display
   hasChild?: boolean, // whether it has child item(s)
   isAChild?: boolean, // whether it is a child item
-  // children?: Function, // TEST: removing it as JGC can't see it being used on 2024-12-10
+  dueDate?: string, // ISO string of due date, or 'none', required for sorting items in display
 }
 
 // a project item within a section

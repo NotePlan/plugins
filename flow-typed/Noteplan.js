@@ -442,10 +442,13 @@ declare class DataStore {
   /**
    * Get all calendar notes.
    * Note: from v3.4 this includes all future-referenced dates, not just those with an actual created note.
+   * Note: from v3.17.0, this includes Teamspace calendar notes (with the teamspace ID in the filename).
    */
   static +calendarNotes: $ReadOnlyArray<TNote>;
   /**
-   * Get all regular, project notes.
+   * Get all regular notes (earlier called "project notes").
+   * From v3.17.0, this includes Teamspace regular notes. These have as their 'filename' a path represented with an ID, followed by any number of folders, and then a note ID.
+   * Example: %%NotePlanCloud%%/275ce631-6c20-4f76-b5fd-a082a9ac5160/Projects/Research/b79735c9-144b-4fbf-8633-eaeb40c182fa
    * Note: This includes notes and templates from folders that begin with "@" such as "@Archive" and "@Templates". It excludes notes in the trash folder though.
    * Note: @jgclark adds that this will return non-note document files (e.g. PDFs) as well as notes.
    */
@@ -578,27 +581,33 @@ declare class DataStore {
   static fileExists(filename: string): boolean;
   /**
    * Returns the calendar note for the given date and timeframe (optional, the default is "day", see below for more options).
+   * Note: from v3.17.0, this includes Teamspace calendar notes. Calendar Notes are represented with the ISO date + extension in the path.
    * Note: 'timeframe' available from v3.6.0
+   * Note: 'parent' available from v3.17.0
    * WARNING: @jgclark: I think from use in Dashboard, this is unreliable, but I can't yet prove it. Instead use calendarNoteByDateString() below.
    *
    * @param {Date}
-   * @param {string?} - "day" (default), "week", "month", "quarter" or "year"
+   * @param {string?} timeframe: "day" (default), "week", "month", "quarter" or "year"
+   * @param {string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
    * @returns {NoteObject}
    */
-  static calendarNoteByDate(date: Date, timeframe?: string): ?TNote;
+  static calendarNoteByDate(date: Date, timeframe ?: string, parent ?: string): ?TNote;
   /**
    * Returns the calendar note for the given date string (can be undefined, if the calendar note was not created yet). See the date formats below for various types of calendar notes:
    * Daily: "YYYYMMDD", example: "20210410"
    * Weekly: "YYYY-Wwn", example: "2022-W24"
    * Quarter: "YYYY-Qq", example: "2022-Q4"
    * Monthly: "YYYY-MM", example: "2022-10"
-   * Yearly: "YYYY", example: "2022"
-   * Note: Some available from v3.7.2
+   * Yearly: "YYYY", example: "2022".
+   * Note: from v3.17.0, this includes Teamspace calendar notes. Calendar Notes are represented with the ISO date + extension in the path.
+   * Note: Some timeframes available from v3.7.2
+   * Note: 'parent' available from v3.17.0
    * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty.
-   * @param {string}
+   * @param {string} dateString
+   * @param {TTeamspaceID? | string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
    * @returns {NoteObject}
    */
-  static calendarNoteByDateString(dateString: string): ?TNote;
+  static calendarNoteByDateString(dateString: string, parent ?: TTeamspaceID | string): ?TNote;
   /**
    * Returns all regular notes with the given title.
    * Since multiple notes can have the same title, an array is returned.
@@ -621,8 +630,13 @@ declare class DataStore {
   /**
    * Returns a regular or calendar note for the given filename. Type can be "Notes" or "Calendar". Include relative folder and file extension (`folder/filename.txt` for example).
    * Use "YYYYMMDD.ext" for calendar notes, like "20210503.txt".
+   * Note: 'parent' available from v3.17.0
+   * @param {string} filename
+   * @param {NoteType} type
+   * @param {string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. Applies only to calendar notes.
+   * @returns {?TNote}
    */
-  static noteByFilename(filename: string, type: NoteType): ?TNote;
+  static noteByFilename(filename: string, type: NoteType, parent ?: string): ?TNote;
   /**
    * Move a regular note using the given filename (with extension) to another folder. Use "/" for the root folder.
    * Note: Can also move *folders* by specifying its filename (without trailing slash).
@@ -805,11 +819,19 @@ declare class DataStore {
   static searchCalendarNotes(keyword?: string, shouldLoadDatedTodos?: boolean): Promise<$ReadOnlyArray<TParagraph>>;
   /**
    * Returns list of all overdue tasks (i.e. tasks that are open and in the past). Use with await, it runs in the background. If there are a lot of tasks consider showing a loading bar.
+   * Note: this does not include open checklist items.
    * Note: Available from v3.8.1
    * @param {string} = keyword to search for
    * @return {$ReadOnlyArray<TParagraph>} Promise to array of results
    */
   static listOverdueTasks(keyword: string): Promise<$ReadOnlyArray<TParagraph>>;
+
+  /**
+   * DataStore.teamspaces returns an array of teamspaces represented as Note Objects with title and filename populated. Example of a filename: %%NotePlanCloud%%/275ce631-6c20-4f76-b5fd-a082a9ac5160
+   * Note: No object for private notes is included here.
+   * Note: Available from v3.17.0
+   */
+  static teamspaces: $ReadOnlyArray < TNote >;
 }
 
 /**
@@ -1371,11 +1393,11 @@ type TNote = Note
 type NoteType = 'Calendar' | 'Notes'
 
 /**
- * Notes can be queried by DataStore. You can change the complete text of the
- * note, which will be saved to file or query, add, remove, or modify
- * particular paragraphs (a paragraph is a task for example). See more
- * paragraph editing examples under Editor. NoteObject and Editor both
- * inherit the same paragraph functions.
+ * Notes can be queried by DataStore. You can change the complete text of the note,
+ * which will be saved to file or query, add, remove, or modify
+ * particular paragraphs (a paragraph is a task for example).
+ * See more paragraph editing examples under Editor.
+ * NoteObject and Editor both inherit the same paragraph functions.
  */
 declare interface Note extends CoreNoteFields {
   /**
@@ -1389,6 +1411,19 @@ declare interface Note extends CoreNoteFields {
    * Note: Available from v3.2.0
    */
   +datedTodos: $ReadOnlyArray<TParagraph>;
+}
+
+/**
+ * UUID type
+ */
+type UUID = string
+
+/**
+ * Teamspace object
+ */
+type TTeamspace = {
+  id: UUID,
+  title: string,
 }
 
 /**
@@ -1660,6 +1695,11 @@ type TBacklinkFields = {
   note: {},
 }
 
+/* Future idea:
+type TRegularFilename = string
+type TCalendarFilename = string
+*/
+
 type TCoreNoteFields = CoreNoteFields
 declare interface CoreNoteFields {
   /**
@@ -1675,7 +1715,7 @@ declare interface CoreNoteFields {
    * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
    * From v3.6.0 can also *set* the filename, which does a rename.
    */
-  filename: string;
+filename: string;  /* Idea: TRegularFilename | TCalendarFilename; */
   /**
    * Optional date if it's a calendar note
    */
@@ -1989,7 +2029,32 @@ unpublish(): Promise < void>;
    * Resolves a conflict, if any, using the other version (which is version 2 in the conflict bar inside the UI). Once resolved you need to reload the note.
    * Note: Available from v3.9.3
    */
-  resolveConflictWithOtherVersion(): void;
+resolveConflictWithOtherVersion(): void;
+
+/**
+ * If used with a teamspace note, it returns a human readable path to the teamspace note, like 'Engineering/Projects/bugs.md'
+ * Note: Available from v3.17.0
+ * @returns {string}
+ */
++resolvedFilename: string;
+/**
+ * To quickly identify if this specific note is from a teamspace.
+ * Note: Available from v3.17.0
+ * @returns {boolean}
+ */
++isTeamspaceNote: boolean;
+/**
+ * The ID of the teamspace the note belongs to (will be undefined for private notes).
+ * Note: Available from v3.17.0
+ * @returns {?string}
+ */
++teamspaceID: ?string;
+/**
+ * Returns the title of the teamspace the note belongs to (will be undefined for private notes)
+ * Note: Available from v3.17.0
+ * @returns {?string}
+ */
++teamspaceTitle: ?string;
 }
 
 declare class NotePlan {

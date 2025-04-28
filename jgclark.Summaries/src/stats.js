@@ -22,7 +22,7 @@ import {
   // getWeek,
   hyphenatedDate,
   RE_DATE,
-  // unhyphenatedDate,
+  // YYYYMMDDDateStringFromDate,
 } from '@helpers/dateTime'
 import { getPeriodStartEndDates, getPeriodStartEndDatesFromPeriodCode } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'

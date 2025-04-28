@@ -873,12 +873,17 @@ export function getYearData(dateIn: string | Date = new Date(), offsetIncrement:
 /**
  * Get the first date in a period, given a NotePlan date string (e.g. '2022-01-01', '2022-W01', '2022-Q1', '2022'), or 'today'.
  * If the date string is already a day date, it will be returned as is.
- * @param {string} NPDateString - NotePlan date string (or 'today')
+ * If the date string starts with '>' then it will be trimmed off.
+ * @param {string} NPDateStringIn - NotePlan date string (or 'today')
  * @returns {string} - the first date in the period
  * @tests in jest file
  */
-export function getFirstDateInPeriod(NPDateString: string): string {
+export function getFirstDateInPeriod(NPDateStringIn: string): string {
   try {
+    let NPDateString = NPDateStringIn
+    if (NPDateString.startsWith('>')) {
+      NPDateString = NPDateString.slice(1)
+    }
     let firstDateStr = ''
     if (NPDateString === 'today') {
       firstDateStr = todaysDateISOString
