@@ -211,10 +211,10 @@ export async function getPerspectiveSettings(logAllKeys: boolean = false): Promi
       perspectiveSettings = replacePerspectiveDef(perspectiveSettings, defaultPersp)
       logPerspectives(perspectiveSettings)
     }
-    clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
+    // clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
     const perspSettings = ensureDefaultPerspectiveExists(perspectiveSettings)
     // logDebug('getPerspectiveSettings', `After ensureDefaultPerspectiveExists():`)
-    logPerspectives(perspectiveSettings, logAllKeys)
+    // logPerspectives(perspectiveSettings, logAllKeys)
     return perspSettings
   } catch (error) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
@@ -560,8 +560,8 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
  * @returns {TDashboardPluginSettings}
  */
 export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPluginSettings, deleteAllShowTagSections?: boolean): Partial<TDashboardPluginSettings> {
-  logInfo('cleanDashboardSettingsInAPerspective', `Starting for:`)
-  clo(settingsIn)
+  // logDebug('cleanDashboardSettingsInAPerspective', `Starting for:`)
+  // clo(settingsIn)
   // Define keys to remove
   const patternsToRemove = [
     // the following shouldn't be persisted in the perspectiveSettings object, but only in the top-level dashboardSettings object

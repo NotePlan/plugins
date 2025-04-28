@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-04-15 for v2.2.1, @jgclark
+// Last updated 2025-04-26 for v2.2.3, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -37,6 +37,7 @@ export type TDashboardSettings = {
   FFlag_ShowTestingPanel?: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
+  FFlag_IncludeTeamspaceNotes?: boolean,
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
   defaultFileExtension?: string,
@@ -185,6 +186,7 @@ export type TParagraphForDashboard = {
   hasChild?: boolean, // whether it has child item(s)
   isAChild?: boolean, // whether it is a child item
   dueDate?: string, // ISO string of due date, or 'none', required for sorting items in display
+  isTeamspace?: boolean, // whether this is from a Teamspace note
 }
 
 // a project item within a section

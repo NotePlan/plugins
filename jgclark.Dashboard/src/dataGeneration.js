@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-04-15 for v2.2.1, @jgclark
+// Last updated 2025-04-25 for v2.2.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -178,14 +178,8 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         }
 
         // Get list of open tasks/checklists from this calendar note
-        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('month', currentMonthlyNote, config, useEditorWherePossible)
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'month', config, useEditorWherePossible)
 
-        // // write one combined section
-        // sortedOrCombinedParas.map((p) => {
-        //   const thisID = `${sectionNumStr}-${itemCount}`
-        //   items.push(createSectionItemObject(thisID, p))
-        //   itemCount++
-        // })
         // Iterate and write items for first (or combined) section
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
         itemCount += items.length
@@ -380,14 +374,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         }
 
         // Get list of open tasks/checklists from this calendar note
-        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('quarter', currentQuarterlyNote, config, useEditorWherePossible)
-
-        // // write one combined section
-        // sortedOrCombinedParas.map((p) => {
-        //   const thisID = `${sectionNumStr}-${itemCount}`
-        //   items.push(createSectionItemObject(thisID, p))
-        //   itemCount++
-        // })
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'quarter', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
@@ -602,7 +589,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes).
       // Though JGC has also seen 9,900ms for all notes in the system, so its variable.
       const thisStartTime = new Date()
-      const notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true, true, true)
+      const notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true, true, true, config.FFlag_IncludeTeamspaceNotes)
       // $FlowIgnore[unsafe-arithmetic]
       const APILookupTime = new Date() - thisStartTime
       logInfo('getTaggedSectionData', `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName} from API in ${timer(thisStartTime)}`)
@@ -778,9 +765,8 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
         })
       }
     } else {
-      // Get overdue tasks
-      // Note: Cannot move the reduce into here otherwise scheduleAllOverdueOpenToToday() doesn't have all it needs to work
-      // overdueParas = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas)
+      // Get overdue tasks (de-duping any sync'd lines)
+      // Note: Cannot move the reduce into here otherwise separate call to this function by scheduleAllOverdueOpenToToday() doesn't have all it needs to work
       overdueParas = await getRelevantOverdueTasks(config, [])
       logDebug('getOverdueSectionData', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
     }
@@ -792,12 +778,6 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       // Note: this takes ~600ms for 1,000 items
       dashboardParas = makeDashboardParas(overdueParas)
       logDebug('getOverdueSectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
-
-      // Remove possible dupes from sync'd lines
-      // TODO(@dwertheimer): please test whether we can re-introduce this?
-      // Note: currently commented out, to save 2? secs of processing
-      // overdueParas = eliminateDuplicateSyncedParagraphs(overdueParas)
-      // logTimer('getOverdueSectionData', thisStartTime, `- after sync lines dedupe ->  ${overdueParas.length}`)
 
       totalOverdue = dashboardParas.length
 
