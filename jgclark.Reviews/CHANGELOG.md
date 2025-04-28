@@ -1,6 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.2.3] - 2025-04-28
+- Fixed race condition stopping 'Finish + Next' review from working. (thanks, @gdrn)
+- Fixed problem in 'Pause Project'
+
 ## [1.2.2] - 2025-04-03
 - Added workaround for failing API call when using 'Finish + Next' (thanks, Alexandre Jacques)
 

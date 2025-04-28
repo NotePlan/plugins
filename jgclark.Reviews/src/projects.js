@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 2025-02-03 for v1.1.0, @jgclark
+// Last updated 2025-02-03 for v1.1.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -48,9 +48,9 @@ export async function addProgressUpdate(noteArg?: TNote): Promise<void> {
 
     // Construct a Project class object from this note
     const thisProject = new Project(note)
-    // And then use it to add progress line
+
     await thisProject.addProgressLine()
-    // Finally call Finish Review
+
     await finishReview()
   } catch (error) {
     logError('addProgressUpdate', JSP(error))
