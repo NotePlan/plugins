@@ -487,7 +487,7 @@ export function parseTeamspaceCalendarFilename(filenameIn: string): { filename: 
   if (match) {
     const filename = filenameIn.split('/')[2]
     const teamspaceID = match[2]
-    // logInfo('parseTeamspaceCalendarFilename', `Teamspace note, with calendar part: ${filename} for teamspaceID ${teamspaceID}`)
+    logDebug('parseTeamspaceCalendarFilename', `Teamspace note, with calendar part: ${filename} for teamspaceID ${teamspaceID}`)
     return { filename: filename, isTeamspace: true, teamspaceID }
   } else {
     // logInfo('parseTeamspaceCalendarFilename', `Non-teamspace note with filename ${filenameIn}`)
@@ -508,14 +508,9 @@ export function parseTeamspaceCalendarFilename(filenameIn: string): { filename: 
 export function getDateStringFromCalendarFilename(filenameIn: string, returnISODate: boolean = false): string {
   try {
     logDebug('gDSFCF', `for ${filenameIn} ...`)
-
-    let { filenameWithoutTeamspaceID } = parseTeamspaceCalendarFilename(filenameIn)
-    logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
-    // FIXME: Don't know why this is undefined for private calendar notes.
-    // Workaround: if undefined, then use the original filename.
-    if (filenameWithoutTeamspaceID === undefined) {
-      filenameWithoutTeamspaceID = filenameIn
-    }
+    const parsedDetails = parseTeamspaceCalendarFilename(filenameIn)
+    let filenameWithoutTeamspaceID = parsedDetails.filename
+    // logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
 
     // Check for daily notes
     if (filenameWithoutTeamspaceID.match(RE_DAILY_NOTE_FILENAME)) {

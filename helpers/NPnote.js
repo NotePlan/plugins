@@ -144,16 +144,21 @@ export function getTeamspaceDetailsFromNote(note: TNote): TTeamspace | null {
  * @returns {TNote?} note if found, or null
  */
 export function getNoteFromFilename(filename: string): TNote | null {
-  let foundNote: TNote | null = null
-  const { _filename, isTeamspace, teamspaceID } = dt.parseTeamspaceCalendarFilename(filename)
-  if (isTeamspace) {
-    foundNote = DataStore.teamspaceNoteByFilename(filename, teamspaceID) ?? DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filename, teamspaceID))
-    logInfo('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filename}`)
-  } else {
-    foundNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filename))
-    logInfo('NPnote/getNoteFromFilename', `Found private note '${displayTitle(foundNote)}' from ${filename}`)
+  try {
+    let foundNote: TNote | null = null
+    const { _filename, isTeamspace, teamspaceID } = dt.parseTeamspaceCalendarFilename(filename)
+    if (isTeamspace) {
+      foundNote = DataStore.projectNoteByFilename(filename, teamspaceID) ?? DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filename, teamspaceID))
+      logInfo('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filename}`)
+    } else {
+      foundNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filename))
+      logInfo('NPnote/getNoteFromFilename', `Found private note '${displayTitle(foundNote)}' from ${filename}`)
+    }
+    return foundNote
+  } catch (err) {
+    logError('NPnote/getNoteFromFilename', `${err.name}: ${err.message}`)
+    return null
   }
-  return foundNote
 }
 
 /**
@@ -630,8 +635,9 @@ export function getNotesChangedInInterval(numDays: number, noteTypesToInclude: A
     matchingNotes = allNotesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
     logDebug(
       'getNotesChangedInInterval',
-      `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`,
+      `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}:`,
     )
+    // logDebug('getNotesChangedInInterval', `${matchingNotes.map((n) => `- ${displayTitle(n)} changed on ${String(n.changedDate)}`).join('\n')}`)
     return matchingNotes
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -744,7 +750,7 @@ export function findNotesMatchingHashtagOrMention(
     }
     logDebug(
       `NPnote/findNotesMatchingHashtagOrMention`,
-      `item:${item} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} ItemsToExclude:${String(itemsToExclude)} for ${String(
+      `item:${item} folder:${String(folder ?? '<all>')} includeSubfolders:${String(includeSubfolders)} ItemsToExclude:${String(itemsToExclude)} for ${String(
         projectNotesInFolder.length,
       )} notes`,
     )
