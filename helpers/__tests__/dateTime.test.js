@@ -191,9 +191,39 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
+ * isDailyDateStr()
+ */
+  describe('isDailyDateStr()', () => {
+    test('false for empty string', () => {
+      const result = dt.isDailyDateStr('')
+      expect(result).toEqual(false)
+    })
+    test('true for a DDDDMMYY date', () => {
+      const result = dt.isDailyDateStr('20220505')
+      expect(result).toEqual(true)
+    })
+    test('true for a private filename', () => {
+      const result = dt.isDailyDateStr('20220505.txt')
+      expect(result).toEqual(true)
+    })
+    test('true for a teamspace filename', () => {
+      const result = dt.isDailyDateStr('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250429.md')
+      expect(result).toEqual(true)
+    })
+    test('true for an ISO date', () => {
+      const result = dt.isDailyDateStr('string with 2022-06-06 in it')
+      expect(result).toEqual(true)
+    })
+    test('should fail on a non-daily filename', () => {
+      const result = dt.isDailyDateStr('xyz2022-W35.md')
+      expect(result).toEqual(false)
+    })
+  })
+
+  /*
  * isYearlyDateStr()
  */
-  describe('isYearlyDateStr()' /* function */, () => {
+  describe('isYearlyDateStr()', () => {
     test('should find a bare Year', () => {
       const result = dt.isYearlyDateStr('2022')
       expect(result).toEqual(true)

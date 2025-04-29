@@ -183,7 +183,7 @@ export function getCalendarNoteTimeframe(note: TNote): false | 'day' | 'week' | 
   return false // all other cases
 }
 
-export const isDailyDateStr = (dateStr: string): boolean => new RegExp(RE_DATE).test(dateStr)
+export const isDailyDateStr = (dateStr: string): boolean => (new RegExp(RE_DATE).test(dateStr) || new RegExp(RE_NP_DAY_SPEC).test(dateStr))
 
 export const isWeeklyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_WEEK_SPEC).test(dateStr)
 
