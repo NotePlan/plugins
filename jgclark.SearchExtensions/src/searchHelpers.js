@@ -17,7 +17,7 @@ import {
 } from '@helpers/general'
 import { differenceByPropVal, differenceByObjectEquality, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
-  getNoteByFilename, getNoteContextAsSuffix, getOrMakeNote,
+  getNoteByFilename, getNoteLinkForDisplay, getOrMakeNote,
   replaceSection
 } from '@helpers/note'
 import { getNoteTitleFromFilename } from '@helpers/NPnote'
@@ -1144,8 +1144,8 @@ export function createFormattedResultLines(resultSet: resultOutputType, config: 
         // - do I need to remove this non-grouped option entirely?
 
         // Write the line, first transforming it to add context on the end, and make other changes according to what the user has configured
-        const outputLine = trimAndHighlightTermInLine(rnal.line, notEmptyMayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
-          + getNoteContextAsSuffix(rnal.noteFilename, config.dateStyle)
+        let outputLine = trimAndHighlightTermInLine(rnal.line, notEmptyMayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
+        outputLine += ` (${getNoteLinkForDisplay(rnal.noteFilename, config.dateStyle)})`
         resultOutputLines.push(outputLine)
         nc++
       }
