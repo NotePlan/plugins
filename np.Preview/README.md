@@ -25,6 +25,7 @@ triggers: onEditorWillSave => np.Preview.updatePreview
 It deliberately updates the Preview window without giving it focus, so that you can continue editing.
 
 ## Mermaid charts
+<img src="kanban-mermaid@2x.png" alt="Example of Kanban board in Mermaid charts" />
 Mermaid is a third-party library that makes a wide variety of diagrams (including Flowcharts, Gantt, Kanban, state transition etc.) and some simple charts, using markdown-ish definitions. These definitions are placed in one or more fenced code blocks, like this:
 
 ```
