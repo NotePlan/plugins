@@ -14,6 +14,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 <!-- - start of support for Teamspaces. Relevant tasks are shown, but much of the interaction isn't yet working. -->
 <!-- - for v2.3 started to specify new settings for including calendar sections. -->
 - added FF for including Teamspace notes, by default turned off.
+- improved way note links are shown in sections and the task dialog
+- added Teamspace icon when showing a Teampace note
 
 ## [2.2.1] 2025-04-16
 ### Changed

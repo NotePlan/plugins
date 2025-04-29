@@ -133,7 +133,11 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
       <a className="dialogTriggerIcon">
         <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenEditDialog}></i>
       </a>
-      {showItemNoteLink && <ItemNoteLink item={item} />}
+      {showItemNoteLink && <ItemNoteLink
+        item={item}
+        thisSection={thisSection}
+        alwaysShowNoteTitle={false}
+      />}
     </div>
   )
 }

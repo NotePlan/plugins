@@ -439,9 +439,10 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
               */}
               <ItemNoteLink
                 item={item}
-              // thisSection={sectionCodes}
+                thisSection={sectionCodes}
+                alwaysShowNoteTitle={true}
               />
-              {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar note)</span> : null}
+              {/* {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar note)</span> : null} */}
             </div>
           </TooltipOnKeyPress>
           <div className="dialog-top-right">

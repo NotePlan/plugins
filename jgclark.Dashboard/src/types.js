@@ -143,7 +143,7 @@ export type TSection = {
   sectionItems: Array<TSectionItem>,
   FAIconClass?: string, // CSS class to show FA Icons
   sectionTitleColorPart?: string, // `sidebarX` string to use in `var(--fg-...)` color, or if not given, will default to `var(--item-icon-color)`
-  sectionFilename?: string, // filename for relevant calendar (or not given if a non-calendar section)
+  sectionFilename?: string, // filename for relevant calendar (or not given if a non-calendar section). Note: will not be a full Teamspace filepath
   actionButtons?: Array<TActionButton>,
   generatedDate?: Date, // note different from lastFullRefresh on whole project
   totalCount?: number, // for when not all possible items are passed in pluginData
@@ -169,7 +169,7 @@ export type TSectionItem = {
 
 // reduced paragraph definition
 export type TParagraphForDashboard = {
-  filename: string,
+  filename: string, // Note: can have a Teamspace prefix, even for Calendar note
   noteType: NoteType /* Notes | Calendar */,
   title?: string, // not present for Calendar notes
   type: ParagraphType, // paragraph type
