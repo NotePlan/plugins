@@ -424,7 +424,7 @@ export async function templateMeetingNote(templateName: string = '', templateDat
         if (frontmatterAttributes?.newNoteTitle) {
           newNoteTitle = frontmatterAttributes.newNoteTitle
         } else {
-          const format = getSetting('np.Templating', 'timestampFormat')
+          const format = await getSetting('np.Templating', 'timestampFormat')
           const info = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', timestamp(format))
           newNoteTitle = info ? info : ''
           if (typeof newNoteTitle === 'boolean' || newNoteTitle.length === 0) {

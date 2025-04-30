@@ -126,12 +126,12 @@ export async function copySpecificSettings(oldPluginID: string, newPluginID: str
   await saveSettings(newPluginID, newPluginSettings, false)
 }
 
-export function getSetting(pluginId: string = '', key: string = '', defaultValue?: any = ''): any | null {
-  const settings = DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
+export async function getSetting(pluginId: string, key: string, defaultValue?: any = ''): Promise<any | null> {
+  const settings = await DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
   return typeof settings === 'object' && settings.hasOwnProperty(key) ? settings[key] : defaultValue
 }
 
-export async function getSettings(pluginId: string = '', defaultValue?: any = {}): any | null {
+export async function getSettings(pluginId: string, defaultValue?: any = {}): any | null {
   const settings = await DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
   return typeof settings === 'object' ? settings : defaultValue
 }
