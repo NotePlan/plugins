@@ -164,7 +164,7 @@ describe(`${FILENAME}`, () => {
         expect(f.relativeDateFromDateString('2023-09-0', toDateStr)).toEqual(['(error)', '(error)'])
       })
       test('fail on 2023-09-06 to 20230910', () => {
-        expect(f.relativeDateFromDateString('2023-09-06', '20230910')).toEqual(['(error)', '(error)'])
+        expect(f.relativeDateFromDateString('2023-09-06', '20230910')).toEqual(['-4d', '-4 days'])
       })
     })
     describe('valid inputs should work', () => {
@@ -272,6 +272,7 @@ describe(`${FILENAME}`, () => {
       expect(f.getFirstDateInPeriod('2024')).toEqual('2024-01-01')
       expect(f.getFirstDateInPeriod('2024-Q2')).toEqual('2024-04-01')
       expect(f.getFirstDateInPeriod('2024-12')).toEqual('2024-12-01')
+      expect(f.getFirstDateInPeriod('20241222')).toEqual('20241222')
       expect(f.getFirstDateInPeriod('2024-12-22')).toEqual('2024-12-22')
     })
     // Don't know why this is returning one day out
@@ -279,7 +280,6 @@ describe(`${FILENAME}`, () => {
       expect(f.getFirstDateInPeriod('2024-W52')).toEqual('2024-12-23')
     })
     it('should return \'(error)\' from invalid date string', () => {
-      expect(f.getFirstDateInPeriod('20241222')).toEqual('(error)')
       expect(f.getFirstDateInPeriod('')).toEqual('(error)')
       expect(f.getFirstDateInPeriod('bob')).toEqual('(error)')
       expect(f.getFirstDateInPeriod('24')).toEqual('(error)')
