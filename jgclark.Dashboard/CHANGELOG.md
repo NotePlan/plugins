@@ -16,6 +16,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - added FF for including Teamspace notes, by default turned off.
 - improved way note links are shown in sections and the task dialog
 - added Teamspace icon when showing a Teampace note
+- started to add FF for including all open items in a note, based on 'note-tag' field in frontmatter (e.g. `note-tag: #teamspace, #CTI`)
 
 ## [2.2.1] 2025-04-16
 ### Changed
