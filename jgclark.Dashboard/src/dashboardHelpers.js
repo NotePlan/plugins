@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-04-22 for v2.2.2, @jgclark
+// Last updated 2025-04-30 for v2.2.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -21,7 +21,7 @@ import type {
   TSectionCode,
   TSectionItem,
 } from './types'
-import { renameKeys, stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { convertISODateFilenameToNPDayFilename, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
@@ -72,26 +72,19 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
         } plugin: `)
       )
     }
-    // clo(pluginSettings, 'pluginSettings:') // OK
 
     const parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
 
     // additional setting that always starts as true
     parsedDashboardSettings.showSearchSection = true
 
-    // TODO: @jgclark: Would it be ok to move the following to the migratePluginSettings() function? Would be nice to keep this function cleaner
-    // Note: Workaround for number types getting changed to strings at some point in our Settings system.
-    parsedDashboardSettings.newTaskSectionHeadingLevel = parseInt(parsedDashboardSettings.newTaskSectionHeadingLevel || '2')
-    parsedDashboardSettings.maxItemsToShowInSection = parseInt(parsedDashboardSettings.maxItemsToShowInSection || '24')
-    parsedDashboardSettings.lookBackDaysForOverdue = parseInt(parsedDashboardSettings.lookBackDaysForOverdue || '7')
-    parsedDashboardSettings.autoUpdateAfterIdleTime = parseInt(parsedDashboardSettings.autoUpdateAfterIdleTime || '10')
-
     // When the underlying issue is tackled, then TEST: to see whether JSON number type handling has been corrected
     // clvt(parsedDashboardSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedDashboardSettings.newTaskSectionHeadingLevel:`)
-    // Warn if any of the settings are not numbers
-    // if (typeof parsedDashboardSettings.newTaskSectionHeadingLevel !== 'number') {
-    //   logWarn('getDashboardSettings', `parsedDashboardSettings.newTaskSectionHeadingLevel is not a number type: ${parsedDashboardSettings.newTaskSectionHeadingLevel}`)
-    // }
+
+    // Warn if any a sample setting is not a number
+    if (typeof parsedDashboardSettings.newTaskSectionHeadingLevel !== 'number') {
+      logWarn('getDashboardSettings', `parsedDashboardSettings.newTaskSectionHeadingLevel is not a number type: ${parsedDashboardSettings.newTaskSectionHeadingLevel}`)
+    }
 
     return parsedDashboardSettings
   } catch (err) {
@@ -102,22 +95,25 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
 }
 
 /**
- * Migrate some setting names to new names.
- * Note: can't easily be done with updateSettingData() in index.js as there can be multiple copies of these settings at different object levels.
- * @author @jgclark
- * @tests in dataManipulation.test.js
+ * Save all dashboard settings as a stringified array.
+ * @param {TDashboardSettings} settings
+ * @return {boolean} true if successful
  */
-export function migratePluginSettings(settingsIn: any): any {
-  // Migrate some setting names to new names
-  const keysToChange = {
-    usePerspectives: 'usePerspectives',
-    includeFolderName: 'showFolderName',
-    includeScheduledDates: 'showScheduledDates',
-    includeTaskContext: 'showTaskContext',
+export async function saveDashboardSettings(settings: TDashboardSettings): Promise<boolean> {
+  try {
+    logDebug(`saveDashboardSettings saving settings in DataStore.settings`)
+    const dashboardSettingsStr = JSON.stringify(settings) ?? ''
+    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    pluginSettings.dashboardSettings = dashboardSettingsStr
+
+    // Save settings using the reliable helper ("the long way")
+    const res = await saveSettings(pluginID, pluginSettings)
+    logDebug('saveDashboardSettings', `Apparently saved with result ${String(res)}. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
+    return res
+  } catch (error) {
+    logError('saveDashboardSettings', `Error: ${error.message}`)
+    return false
   }
-  const migratedSettings = renameKeys(settingsIn, keysToChange)
-  clo(migratedSettings, `migratePluginSettings - migratedSettings:`)
-  return migratedSettings
 }
 
 /**
@@ -247,7 +243,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
 
         // Note: debugging why sometimes hasChild is wrong
         // TODO(later): remove this debugging
-        if (hasChild || note.isTeamspaceNote || note.filename.startsWith('%%')) {
+        if (hasChild) {
           const pp = note.paragraphs || []
           const nextLineIndex = p.lineIndex + 1
           clo(
@@ -287,7 +283,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         // }
         return outputPara
       } else {
-        logWarn('makeDashboardParas', `No note found for para {${p.content}}`)
+        logWarn('makeDashboardParas', `No note found for para {${p.content}} - probably an API teamspacebug`)
         // $FlowFixMe[incompatible-call]
         return
       }

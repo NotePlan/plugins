@@ -111,10 +111,10 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   const handleClickToOpenEditDialog = (event: MouseEvent): void => {
     const clickPosition = { clientY: event.clientY, clientX: event.clientX }
     const { metaKey } = extractModifierKeys(event)
-    logDebug('ItemContent/handleClickToOpenEditDialog', `- metaKey=${String(metaKey)}`)
+    // logDebug('ItemContent/handleClickToOpenEditDialog', `- metaKey=${String(metaKey)}`)
     messageObject.modifierKey = metaKey // boolean
     const dialogData = { isOpen: true, isTask: true, details: messageObject, clickPosition }
-    logDebug('ItemContent/handleClickToOpenEditDialog', `- setting dialogData to: ${JSP(dialogData)}`)
+    // logDebug('ItemContent/handleClickToOpenEditDialog', `- setting dialogData to: ${JSP(dialogData)}`)
     setReactSettings((prev) => ({
       ...prev,
       lastChange: `_Dashboard-TaskDialogOpen`,

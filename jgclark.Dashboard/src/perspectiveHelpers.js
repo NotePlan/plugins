@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-04-10 for v2.2.0.a13
+// Last updated 2025-04-30 for v2.2.0.a13+
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -333,14 +333,10 @@ export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): 
   try {
     logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
     const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ''
-    // v1:
-    // const pluginSettings = DataStore.settings
-    // v2:
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     pluginSettings.perspectiveSettings = perspectiveSettingsStr
 
-    // TEST: use helper to save settings from now on
-    // DataStore.settings = pluginSettings
+    // Save settings using the reliable helper ("the long way")
     const res = await saveSettings(pluginID, pluginSettings)
     logDebug('savePerspectiveSettings', `Apparently saved with result ${String(res)}. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
     return res
@@ -601,7 +597,7 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPlugi
       if (!shouldRemoveKey(key)) {
         acc[key] = settingsIn[key]
       } else {
-        logInfo('cleanDashboardSettingsInAPerspective', `- Removing key '${key}' from settings`)
+        logInfo('cleanDashboardSettingsInAPerspective', `- Removing key '${key}'`)
       }
       return acc
     }, {})

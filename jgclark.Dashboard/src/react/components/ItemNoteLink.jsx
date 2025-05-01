@@ -29,8 +29,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
   const filename = item.para?.filename ?? '<no filename found>'
   // compute the things we need later
   const noteTitle = item?.para?.title || ''
-  logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} item.para.noteType:${item.para.noteType} / thisSection.filename=${thisSection.sectionFilename}`)
-  // clo(thisSection)
+  // logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} item.para.noteType:${item.para.noteType} / thisSection.filename=${thisSection.sectionFilename}`)
   const folderNamePart = dashboardSettings.includeFolderName && filename !== '<no filename found>' && getFolderFromFilename(filename) !== '/' ? `${getFolderFromFilename(filename)} /` : ''
 
   // Compute the icon and link class and style depending whether this is a teamspace item, and/or note types
@@ -48,7 +47,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
   const parsedTeamspace = parseTeamspaceCalendarFilename(filename)
   const filenameWithoutTeamspacePrefix = parsedTeamspace.filename
   const isFromTeamspace = parsedTeamspace.isTeamspace
-  logDebug(`ItemNoteLink`, `noteIconToUse:${noteIconToUse} with filenameWithoutTeamspacePrefix:${filenameWithoutTeamspacePrefix}`)
+  // logDebug(`ItemNoteLink`, `noteIconToUse:${noteIconToUse} with filenameWithoutTeamspacePrefix:${filenameWithoutTeamspacePrefix}`)
   const linkClass = isFromTeamspace ? 'teamspaceName' : 'noteTitle'
   const linkStyle = isFromTeamspace ? 'teamspaceName' : 'folderName'
   const showNoteTitle = alwaysShowNoteTitle || item.para.noteType === 'Notes' || filenameWithoutTeamspacePrefix !== thisSection.sectionFilename

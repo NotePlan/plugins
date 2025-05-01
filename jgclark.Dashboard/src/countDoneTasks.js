@@ -6,7 +6,10 @@
 
 import moment from 'moment/min/moment-with-locales'
 import type { TDoneCount, TDoneTodayNotes, TSection } from './types'
-import { getDateStringFromCalendarFilename, getTodaysDateHyphenated } from '@helpers/dateTime'
+import {
+  // getDateStringFromCalendarFilename,
+  getTodaysDateHyphenated
+} from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getNotesChangedInInterval, getNoteFromFilename } from '@helpers/NPnote'
 

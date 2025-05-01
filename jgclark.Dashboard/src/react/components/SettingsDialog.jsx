@@ -60,15 +60,15 @@ const SettingsDialog = ({
   const [changesMade, setChangesMade] = useState(false)
   const [updatedSettings, setUpdatedSettings] = useState(() => {
     const initialSettings: Settings = {}
-    logDebug('SettingsDialog/initial state', `Starting`)
+    // logDebug('SettingsDialog/initial state', `Starting`)
     items.forEach((item) => {
       if (item.key) {
         const thisKey = item.key
         initialSettings[thisKey] = item.value || item.checked || ''
-        if (item.controlsOtherKeys) logDebug('SettingsDialog/initial state', `- ${thisKey} controls [${String(item.controlsOtherKeys)}]`) // ✅
+        // if (item.controlsOtherKeys) logDebug('SettingsDialog/initial state', `- ${thisKey} controls [${String(item.controlsOtherKeys)}]`) // ✅
 
         if (item.dependsOnKey) {
-          logDebug('SettingsDialog/initial state', `- ${thisKey} depends on ${item.dependsOnKey}, whose initialSettings=${String(initialSettings[item.dependsOnKey])}`) // ✅
+          // logDebug('SettingsDialog/initial state', `- ${thisKey} depends on ${item.dependsOnKey}, whose initialSettings=${String(initialSettings[item.dependsOnKey])}`) // ✅
         }
       }
     })
@@ -109,12 +109,12 @@ const SettingsDialog = ({
 
     // change whether to disable or not the other items listed in this controlsOtherKeys (if any)
     const thisItem = items.find((item) => item.key === key)
-    logDebug('SettingsDialog/handleFieldChange', `setting '${String(thisItem?.key ?? '?')}' has changed`) // ✅
-    logDebug('SettingsDialog/handleFieldChange', `- will impact controlled items [${String(thisItem?.controlsOtherKeys)}] ...`) // ✅
+    // logDebug('SettingsDialog/handleFieldChange', `setting '${String(thisItem?.key ?? '?')}' has changed`) // ✅
+    // logDebug('SettingsDialog/handleFieldChange', `- will impact controlled items [${String(thisItem?.controlsOtherKeys)}] ...`) // ✅
     if (thisItem && thisItem.controlsOtherKeys) {
       const controlledItems = items.filter((item) => thisItem.controlsOtherKeys?.includes(item.key))
       controlledItems.forEach((item) => {
-        logDebug('SettingsDialog/handleFieldChange', `- triggering change to disabled state for setting ${String(item.key)}`) // ✅
+        // logDebug('SettingsDialog/handleFieldChange', `- triggering change to disabled state for setting ${String(item.key)}`) // ✅
         // TODO: HELP: How to get each controlledItem re-rendered (which should pick up disabled state change)?
       })
     }
