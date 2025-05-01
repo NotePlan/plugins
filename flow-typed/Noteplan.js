@@ -538,6 +538,7 @@ declare class DataStore {
   /**
    * Load a JavaScript object from a JSON file located (by default) in the <Plugin>/data folder.
    * But you can also use relative paths: ../Plugins/<folder or filename>.
+   * Note: this can return a single string within the object, and so may need to be JSON.parse()d.
    * Note: Available from v3.1
    * @param {string} filename (defaults to plugin's setting.json)
    * @returns {Object}

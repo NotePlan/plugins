@@ -89,7 +89,7 @@ export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] 
  */
 export function noteHasFrontMatter(note: CoreNoteFields): boolean {
   try {
-    logDebug('noteHasFrontMatter', `Checking note "${note.title || note.filename}" for frontmatter`)
+    // logDebug('NPFrontMatter/noteHasFrontMatter', `Checking note "${note.title || note.filename}" for frontmatter`)
     if (!note) {
       logError('NPFrontMatter/noteHasFrontMatter()', `note is null or undefined`)
       return false
@@ -103,15 +103,15 @@ export function noteHasFrontMatter(note: CoreNoteFields): boolean {
       )
       return false
     }
-    logDebug('noteHasFrontMatter', `note.frontmatterAttributes: ${Object.keys(note.frontmatterAttributes).length}`)
+    // logDebug('noteHasFrontMatter', `note.frontmatterAttributes: ${Object.keys(note.frontmatterAttributes).length}`)
     if (note?.frontmatterAttributes && Object.keys(note.frontmatterAttributes).length > 0) return true // has frontmatter attributes
-    logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
+    // logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
     if (!note || !note.paragraphs || note.paragraphs?.length < 2) return false // could not possibly have frontmatter
-    logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
+    // logDebug('noteHasFrontMatter', `note.paragraphs: ${note.paragraphs.length}`)
     const paras = note.paragraphs
-    logDebug('noteHasFrontMatter', `paras: ${paras.length}`)
+    // logDebug('noteHasFrontMatter', `paras: ${paras.length}`)
     if (paras[0].type === 'separator' && paras.filter((p) => p.type === 'separator').length >= 2) return true // has the separators
-    logDebug('noteHasFrontMatter', `noteHasFrontMatter: false`)
+    // logDebug('noteHasFrontMatter', `noteHasFrontMatter: false`)
     return false
   } catch (err) {
     logError('NPFrontMatter/noteHasFrontMatter()', JSP(err))

@@ -265,6 +265,7 @@ export async function getNote(name: string, onlyLookInRegularNotes: boolean | nu
 
 /**
  * Get a note using filename (will try by Notes first, then Calendar)
+ * Probably FIXME: need to update to support Teamspace notes
  * @author @jgclark, building on @dwertheimer
  * @param {string} filename of either Calendar or Notes type
  * @returns {?TNote} - the note that was opened
@@ -283,19 +284,20 @@ export function getNoteByFilename(filename: string): ?TNote {
 
 /**
  * Get the noteType of a note from its filename
+ * Probably FIXME: need to update to support Teamspace notes
  * @author @jgclark
  * @param {string} filename of either Calendar or Notes type
  * @returns {NoteType} Calendar | Notes
  */
 export function getNoteTypeByFilename(filename: string): ?NoteType {
-  // logDebug('note/getNoteByFilename', `Started for '${filename}'`)
+  // logDebug('note/getNoteTypeByFilename', `Started for '${filename}'`)
   const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
   if (newNote != null) {
-    // logDebug('note/getNoteByFilename', `-> note '${displayTitle(newNote)}`)
+    // logDebug('note/getNoteTypeByFilename', `-> note '${displayTitle(newNote)}`)
     return newNote.type
   } else {
-    logWarn('note/getNoteByFilename', `-> couldn't find a note in either Notes or Calendar`)
-    return
+    logWarn('note/getNoteTypeByFilename', `-> couldn't find a note in either Notes or Calendar`)
+    return null
   }
 }
 

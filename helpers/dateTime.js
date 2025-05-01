@@ -490,7 +490,7 @@ export function parseTeamspaceCalendarFilename(filenameIn: string): { filename: 
     logDebug('parseTeamspaceCalendarFilename', `Teamspace note, with calendar part: ${filename} for teamspaceID ${teamspaceID}`)
     return { filename: filename, isTeamspace: true, teamspaceID }
   } else {
-    // logInfo('parseTeamspaceCalendarFilename', `Non-teamspace note with filename ${filenameIn}`)
+    // logDebug('parseTeamspaceCalendarFilename', `Non-teamspace note with filename ${filenameIn}`)
     return { filename: filenameIn, isTeamspace: false }
   }
 }
@@ -509,7 +509,7 @@ export function getDateStringFromCalendarFilename(filenameIn: string, returnISOD
   try {
     logDebug('gDSFCF', `for ${filenameIn} ...`)
     const parsedDetails = parseTeamspaceCalendarFilename(filenameIn)
-    let filenameWithoutTeamspaceID = parsedDetails.filename
+    const filenameWithoutTeamspaceID = parsedDetails.filename
     // logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
 
     // Check for daily notes
