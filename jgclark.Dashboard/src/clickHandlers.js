@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-04-09 for v2.2.0.a12, @jgclark
+// Last updated 2025-05-02 for v2.2.2, @jgclark
 //-----------------------------------------------------------------------------
 import moment from 'moment'
 // import pluginJson from '../plugin.json'
@@ -13,16 +13,17 @@ import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettingsInAPerspective } from './perspectiveHelpers'
 import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings } from './types'
-import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
-import { saveSettings } from '@helpers/NPConfiguration'
-import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename, highlightParagraphInEditor } from '@helpers/NPParagraph'
-import { unscheduleItem } from '@helpers/NPScheduleItems'
-import { openNoteByFilename } from '@helpers/NPnote'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
-import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
-import { processChosenHeading } from '@helpers/userInput'
+import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
+import { saveSettings } from '@helpers/NPConfiguration'
+import { openNoteByFilename } from '@helpers/NPnote'
+import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename, highlightParagraphInEditor } from '@helpers/NPParagraph'
+import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { getWindowFromCustomId, getLiveWindowRectFromWin, rectToString, storeWindowRect } from '@helpers/NPWindows'
+import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
+import { isTeamspaceNoteFromFilename } from '@helpers/teamspace'
+import { showMessage, processChosenHeading } from '@helpers/userInput'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -433,6 +434,12 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
 export async function doShowLineInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, modifierKey } = validateAndFlattenMessageObject(data)
   // logDebug('showLineInEditorFromFilename', `${filename} /  ${content}`)
+  if (isTeamspaceNoteFromFilename(filename)) {
+    logWarn('doShowLineInEditorFromFilename', `Can't yet open Teamspace note in Editor: please ask Eduard to implement this.`)
+    await showMessage(`Sorry; the Dashboard can't yet open Teamspace notes in the Editor. Please ask Eduard to implement this.`)
+    return handlerResult(true)
+  }
+
   // TODO(@EduardMe): this doesn't work for Teamspace notes
   const note = await Editor.openNoteByFilename(filename, modifierKey === 'meta', 0, 0, modifierKey === 'alt')
   if (note) {
@@ -443,7 +450,7 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
     )
     return handlerResult(true)
   } else {
-    logWarn('doShowLineInEditorFromFilename', `-> failed to open filename ${filename} in Editor`)
+    logWarn('doShowLineInEditorFromFilename', `-> failed to open filename ${filename} in Editor.`)
     return handlerResult(false)
   }
 }

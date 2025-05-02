@@ -146,7 +146,7 @@ export function getTeamspaceDetailsFromNote(note: TNote): TTeamspace | null {
 export function getNoteFromFilename(filename: string): TNote | null {
   try {
     let foundNote: TNote | null = null
-    const { _filename, isTeamspace, teamspaceID } = dt.parseTeamspaceCalendarFilename(filename)
+    const { _filename, isTeamspace, teamspaceID } = dt.parseTeamspaceFilename(filename)
     if (isTeamspace) {
       foundNote = DataStore.projectNoteByFilename(filename, teamspaceID) ?? DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filename, teamspaceID))
       logInfo('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filename}`)
