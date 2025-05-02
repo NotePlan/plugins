@@ -8,6 +8,7 @@ import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
 import { formatISO9075, eachDayOfInterval, eachWeekendOfInterval, format, add } from 'date-fns'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
+import { parseTeamspaceFilename } from './teamspace'
 
 //-----------------------------------------------------------
 // CONSTANTS
@@ -143,27 +144,27 @@ export const nowUTCShortDateTimeISOString: string = moment().toISOString().repla
 
 // Note: See getNoteType in note.js to get the type of a note
 export function isDailyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceCalendarFilename(note.filename)
+  const { filename } = parseTeamspaceFilename(note.filename)
   return new RegExp(RE_DAILY_NOTE_FILENAME).test(filename)
 }
 
 export function isWeeklyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceCalendarFilename(note.filename)
+  const { filename } = parseTeamspaceFilename(note.filename)
   return new RegExp(RE_WEEKLY_NOTE_FILENAME).test(filename)
 }
 
 export function isMonthlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceCalendarFilename(note.filename)
+  const { filename } = parseTeamspaceFilename(note.filename)
   return new RegExp(RE_MONTHLY_NOTE_FILENAME).test(filename)
 }
 
 export function isQuarterlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceCalendarFilename(note.filename)
+  const { filename } = parseTeamspaceFilename(note.filename)
   return new RegExp(RE_QUARTERLY_NOTE_FILENAME).test(filename)
 }
 
 export function isYearlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceCalendarFilename(note.filename)
+  const { filename } = parseTeamspaceFilename(note.filename)
   return new RegExp(RE_YEARLY_NOTE_FILENAME).test(filename)
 }
 
@@ -476,26 +477,6 @@ export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
 }
 
 /**
- * Check whether a calendar filename is from a teamspace note and extract the relevant parts
- * @param {string} filenameIn - The full filename to check
- * @returns {{ filename: string, isTeamspace: boolean, teamspaceID?: string }}
- */
-export function parseTeamspaceCalendarFilename(filenameIn: string): { filename: string, isTeamspace: boolean, teamspaceID?: string } {
-  const RE_TEAMSPACE_CALENDAR_NOTE_FILENAME = new RegExp(`^(%%Supabase%%|%%NotePlanCloud%%)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/`, 'i')
-  const match = filenameIn.match(RE_TEAMSPACE_CALENDAR_NOTE_FILENAME)
-
-  if (match) {
-    const filename = filenameIn.split('/')[2]
-    const teamspaceID = match[2]
-    logDebug('parseTeamspaceCalendarFilename', `Teamspace note, with calendar part: ${filename} for teamspaceID ${teamspaceID}`)
-    return { filename: filename, isTeamspace: true, teamspaceID }
-  } else {
-    // logDebug('parseTeamspaceCalendarFilename', `Non-teamspace note with filename ${filenameIn}`)
-    return { filename: filenameIn, isTeamspace: false }
-  }
-}
-
-/**
  * Returns the NP string representation of a Calendar note's date, from its filename. Covers daily to yearly notes.
  * Extended in Apr 2025 to cover teamspace notes, which are prefixed with '[%%Supabase%%|%%NotePlanCloud%%]/<teamspaceID>/'
  * e.g. %%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md
@@ -508,7 +489,7 @@ export function parseTeamspaceCalendarFilename(filenameIn: string): { filename: 
 export function getDateStringFromCalendarFilename(filenameIn: string, returnISODate: boolean = false): string {
   try {
     logDebug('gDSFCF', `for ${filenameIn} ...`)
-    const parsedDetails = parseTeamspaceCalendarFilename(filenameIn)
+    const parsedDetails = parseTeamspaceFilename(filenameIn)
     const filenameWithoutTeamspaceID = parsedDetails.filename
     // logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
 
