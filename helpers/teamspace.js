@@ -15,7 +15,7 @@ export const RE_TEAMSPACE_NOTE_FILENAME: RegExp = new RegExp(`^(%%Supabase%%|%%N
 // FUNCTIONS
 
 /**
- * Check whether a filename is a Teamspace note
+ * Check whether a filename is a Teamspace note.
  * @param {string} filenameIn - The full filename to check
  * @returns {boolean}
  */

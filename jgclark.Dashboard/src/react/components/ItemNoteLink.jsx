@@ -53,12 +53,21 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
           : 'fa-regular fa-file-lines'
   const parsedTeamspace = parseTeamspaceFilename(filename)
   const filenameWithoutTeamspacePrefix = parsedTeamspace.filename
-  // const teamspaceID = parsedTeamspace.teamspaceID
   const isFromTeamspace = parsedTeamspace.isTeamspace
   // logDebug(`ItemNoteLink`, `noteIconToUse:${noteIconToUse} with filenameWithoutTeamspacePrefix:${filenameWithoutTeamspacePrefix}`)
   const linkClass = isFromTeamspace ? 'teamspaceName' : 'noteTitle'
   const linkStyle = isFromTeamspace ? 'teamspaceName' : 'folderName'
   const showNoteTitle = alwaysShowNoteTitle || item.para.noteType === 'Notes' || filenameWithoutTeamspacePrefix !== thisSection.sectionFilename
+
+  let teamspaceIndicator = null
+  if (isFromTeamspace) {
+    const teamspaceTitle = item.teamspaceTitle && item.teamspaceTitle !== 'Unknown Teamspace' ? item.teamspaceTitle : ''
+    teamspaceIndicator = (
+      <span className='teamspaceName pad-right'>
+        <i className={`${TEAMSPACE_ICON} pad-right`}></i>
+        {teamspaceTitle}</span>
+    )
+  }
 
   // ------ HANDLERS ---------------------------------------
 
@@ -83,13 +92,8 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
       enabled={!reactSettings?.dialogData?.isOpen}>
       <span className={`pad-left-larger ${linkStyle} pad-right`}>{folderNamePart}</span>
       <a className={`${linkClass} ${linkStyle} sectionItem`} onClick={handleLinkClick}>
-        {/* If it's a teamspace note prepend that icon */}
-        {isFromTeamspace && (
-          <>
-            <i className={`${TEAMSPACE_ICON} pad-right`}></i>
-            {teamspaceID}
-          </>
-        )}
+        {/* If it's a teamspace note prepend that icon + title */}
+        {isFromTeamspace && teamspaceIndicator}
         {showNoteTitle && (
           <>
             <i className={`${noteIconToUse} pad-right`}></i>

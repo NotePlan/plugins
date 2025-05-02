@@ -35,6 +35,7 @@ import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
 import { getStartTimeObjFromParaContent, getTimeBlockString, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
 import { hasScheduledDate, isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
@@ -151,6 +152,7 @@ export function getNotePlanSettings(): TNotePlanSettings {
         : '',
       defaultFileExtension: DataStore.defaultFileExtension,
       doneDatesAvailable: !!DataStore.preference('isAppendCompletionLinks'),
+      currentTeamspaces: getAllTeamspaceIDsAndTitles(),
     }
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -886,8 +888,24 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
  * @returns {SectionItem} A sectionItem object.
  */
 export function createSectionItemObject(id: string, p: TParagraph | TParagraphForDashboard | null = null, theType?: TItemType): TSectionItem {
-  // $FlowIgnore - we are not using all the types in TParagraph
-  return { ID: id, itemType: theType ?? p.type, para: p }
+  try {
+    const itemObj = { ID: id, itemType: theType ?? p.type, para: p }
+    // FIXME: this lookup isn't working for teamspace notes
+    const thisNote = p.note
+    if (thisNote) {
+      const teamspaceTitle = getTeamspaceTitleFromNote(thisNote)
+      if (teamspaceTitle !== '') {
+        itemObj.teamspaceTitle = teamspaceTitle
+      }
+    } else {
+      logWarn('createSectionItemObject', `- cannot get note from para {${p.content}} -- probably a Teamspace API problem`)
+    }
+    // $FlowIgnore - we are not using all the types in TParagraph
+    return itemObj
+  } catch (error) {
+    logError('createSectionItemObject', `${error.message} from {${p?.content}}`)
+    return { ID: id, itemType: theType ?? p.type, para: p }
+  }
 }
 
 /**
