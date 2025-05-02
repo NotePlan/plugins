@@ -167,7 +167,7 @@ The 'action buttons' available in this section are:
 The 'Start Reviews' button does the same as the button of the same name in the Project & Reviews plugin, and is the equivalent of its **/start reviews** command. See the documentation for how that works, and which commands to follow it with once you've done reviewed the note.
 
 ### Overdue section
-This finds open items with a schedule date (e.g. `>2025-01-22`) in the past. This can generate a lot of tasks, and take a while, so there's a setting "Number of days to look back for Overdue tasks", which if set to any number > 0, will restrict Overdue tasks to just this last number of days.
+This finds open items with a schedule date (e.g. `>2025-01-22`) in the past. This can generate a lot of tasks, and take a while, so there's a setting "Number of days to look back for Overdue tasks", which if set to any number > 0, will filter by due date (if set) or on date of a calendar note.
 
 You can set the "Sort order for Tag/Mention and Overdue items": 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.
 
@@ -184,7 +184,7 @@ Dashboard provides a quick access Settings window, accessed from the cog wheel a
 The 3 key settings in "What to Include and Exclude" section control what folders and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Finally, individual lines in notes can be ignored by adding terms to the third setting:
 
 - Folders to Include: Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included.
-- Folders to Exclude: Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. The matches are partial, so 'Work' will exclude 'Work' and 'Work/CompanyA' etc. To ignore notes at the top-level (not in a folder), include '/' in the list. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)
+- Folders to Exclude: Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. The matches are partial, so 'Work' will exclude 'Work' and 'Work/CompanyA' etc.  Where there is a conflict, exclusions will take precedence over inclusions.  To ignore notes at the top-level (not in a folder), include '/' in the list. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)
 - Ignore items in notes with these phrase(s): If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. (This check is not case sensitive.) This is useful for situations where completing the item is outside your control.
   - Apply to sections under headings in Calendar notes? If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored. This applies to the preceding headings all the way up the H5->H1 hierarchy of section headings for that line. For example in the following note:
   ```markdown
@@ -218,7 +218,14 @@ The Filter menu includes the following toggles:
 - Exclude tasks that include time blocks?: Whether to stop display of open tasks that contain a time block. (This setting does _not_ apply to the 'Current time block' section.)
 - Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block. (This setting does _not_ apply to the 'Current time block' section.)
 
-Note: if you have more than 1 device running NotePlan, then all the settings are shared across your devices (apart from the logging settings).
+Note: if you have more than 1 device running NotePlan, then all the settings are shared across your devices.
+
+### Backing up your settings
+There are a lot of settings here, particularly when Perspectives are used. So I've added a "/backupSettings" command to take a Backup of your Dashboard settings.  This writes a copy of the `settings.json` file to dated version e.g. `settings_backup_20250524090402.json` in the same `<NotePlan root>/Plugins/data/jgclark.Dashboard/` folder. The `<NotePlan root>` varies depending on your sync settings. To find it, in any note go to the `...` menu and click on "Show in Finder", and then navigate up until you see a folder with `Notes` and `Plugins` sub-folders.
+
+This can be triggered by a callback (documented below), so it can be automated in a Shortcut or other third-party tool.
+
+Note: There's also the built-in NotePlan backup mechanism (Settings > Files > "Create a full copy") which includes all plugin settings. This cannot currently be automated.
 
 ### Updating the Dashboard automatically with a trigger
 (Generally it is better to use the newer 'Automatic update' feature, but this older mechanism is retained for now.)
@@ -309,6 +316,11 @@ For the `setSetting` callbacks, the names of the possible settings (described ab
 | enableInteractiveProcessing | true / false |
 | interactiveProcessingHighlightTask | true / false |
 | enableInteractiveProcessingTransitions | true / false |
+
+Finally, you can **backup your Dashboard settings**:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=backupSettings
+```
 
 ## Team
 I'm just a hobby coder, and not part of the NotePlan team, but I have spent at least 2 working months on this particular plugin. So if you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through:

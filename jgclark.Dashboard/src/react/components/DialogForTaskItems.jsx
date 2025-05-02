@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-04-08 for v2.2.0.a12
+// Last updated 2025-04-24 for v2.2.2
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -12,12 +12,14 @@ import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
+import ItemNoteLink from './ItemNoteLink.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logInfo } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
+//----------------------------------------------------------------------
 
 type Props = {
   onClose: (xWasClicked: boolean) => void,
@@ -52,8 +54,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // Constants
   //----------------------------------------------------------------------
 
-  // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
-  const { ID, itemType, para, filename, title, content, noteType, sectionCodes, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
+  clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
+  const { ID, item, itemType, para, filename, title, content, noteType, sectionCodes, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
 
   const { sendActionToPlugin, reactSettings, setReactSettings, dashboardSettings, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
@@ -431,9 +433,16 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
           <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`}>
             <div onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
               <span className="preText">From:</span>
+              {/*
               <i className="pad-left-larger pad-right fa-regular fa-file-lines"></i>
               <span className="dialogItemNote pad-right">{title}</span>
-              {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar note)</span> : null}
+              */}
+              <ItemNoteLink
+                item={item}
+                thisSection={sectionCodes}
+                alwaysShowNoteTitle={true}
+              />
+              {/* {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar note)</span> : null} */}
             </div>
           </TooltipOnKeyPress>
           <div className="dialog-top-right">

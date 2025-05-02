@@ -2,7 +2,7 @@
 import { format } from 'date-fns'
 import * as NPNote from '../NPnote'
 import { DataStore, Paragraph, Note, Editor, Calendar } from '@mocks/index'
-import { unhyphenatedDate } from '@helpers/dateTime'
+import { YYYYMMDDDateStringFromDate } from '@helpers/dateTime'
 
 beforeAll(() => {
   DataStore.settings['_logLevel'] = 'none' // change to DEBUG to see more console output during test runs
@@ -15,7 +15,7 @@ const PLUGIN_NAME = `helpers`
 const FILENAME = `NPNote`
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]
 const note = new Note({ paragraphs })
-note.filename = `${unhyphenatedDate(new Date())}.md`
+note.filename = `${YYYYMMDDDateStringFromDate(new Date())}.md`
 Editor.note = note
 Editor.filename = note.filename
 

@@ -16,6 +16,7 @@
 
 html {
 	--itemIndentWidth: 1.5rem;
+	--teamspace-color: #269F54;
 	--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%); /* for subtle colouring - not yet used */
 	--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%); /* for subtle colouring - not yet used */
 	/* Add a gutter to the scrollbar to prevent it from overlapping with the content. Available in Safari, but not sure when it becomes available in NotePlan. */
@@ -310,12 +311,19 @@ button,
 /* Colour the note titles */
 .noteTitle {
 	/* add "font-weight: 700;" to make noteTitles bold */
-	color: var(--tint-color) !important;
+	color: var(--tint-color);/* !important;*/
 }
 
-/* Desaturate note folder names */
+/* Private note link */
 .folderName {
-	opacity: 50%;
+	opacity: 80%;
+	color: var(--tint-color);
+}
+
+/* Teamspace note link */
+.teamspaceName {
+	opacity: 80%;
+	color: var(--teamspace-color);
 }
 
 /* .multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */

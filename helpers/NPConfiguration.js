@@ -54,7 +54,7 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
 }
 
 /**
- * Update setting data in the event plugin.settings object has been updated.
+ * Add new top-level keys to setting.json's data in the event plugin.settings object has been updated in a Plugin's plugin.json file.
  * @author @codedungeon
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
  * @return {number} update result (1 settings updated, 0 no update necessary, -1 update failed)
@@ -83,10 +83,10 @@ export function updateSettingData(pluginJsonData: any): number {
   // logDebug('DataStore.settings:', JSP(DataStore.settings, 2))
   try {
     if (DataStore && typeof DataStore.settings === 'object' && updateResult > 0) {
-      // FIXME: @jgclark at least once saw an 'undefined is not an object' error, which appeared to be for this line.
-      // dbw did the following logging to try to track it down but it looks like, JS thinks that DataStore is not an object at times
-      // and yet, somehow the migration actually does work and migrates new settings. So, I'm not sure what's going on here.
-      // we are going to leave this alone for the time being, but if you see this error again, please uncomment the following to keep hunting
+      // WARNING: @jgclark at least once saw an 'undefined is not an object' error, which appeared to be for this line.
+      // dbw added the following logging to try to track it down but it looks like, JS thinks that DataStore is not an object at times.
+      // And yet, somehow the migration actually does work and migrates new settings. So, I'm not sure what's going on here.
+      // We are going to leave this alone for the time being, but if you see this error again, please uncomment the following to keep hunting.
       logDebug(
         `NPConfiguration/updateSettingData for ${pluginJsonData['plugin.id']} updateResult: ${updateResult}`,
         `typeof DataStore: ${typeof DataStore} isArray:${String(
@@ -126,12 +126,12 @@ export async function copySpecificSettings(oldPluginID: string, newPluginID: str
   await saveSettings(newPluginID, newPluginSettings, false)
 }
 
-export function getSetting(pluginId: string = '', key: string = '', defaultValue?: any = ''): any | null {
-  const settings = DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
+export async function getSetting(pluginId: string, key: string, defaultValue?: any = ''): Promise<any | null> {
+  const settings = await DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
   return typeof settings === 'object' && settings.hasOwnProperty(key) ? settings[key] : defaultValue
 }
 
-export async function getSettings(pluginId: string = '', defaultValue?: any = {}): any | null {
+export async function getSettings(pluginId: string, defaultValue?: any = {}): any | null {
   const settings = await DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
   return typeof settings === 'object' ? settings : defaultValue
 }

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-04-15 for v2.2.1, @jgclark
+// Last updated 2025-05-01 for v2.2.2, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -37,6 +37,8 @@ export type TDashboardSettings = {
   FFlag_ShowTestingPanel?: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
+  FFlag_IncludeTeamspaceNotes?: boolean,
+  FFlag_UseNoteTags?: boolean,
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
   defaultFileExtension?: string,
@@ -142,7 +144,7 @@ export type TSection = {
   sectionItems: Array<TSectionItem>,
   FAIconClass?: string, // CSS class to show FA Icons
   sectionTitleColorPart?: string, // `sidebarX` string to use in `var(--fg-...)` color, or if not given, will default to `var(--item-icon-color)`
-  sectionFilename?: string, // filename for relevant calendar (or not given if a non-calendar section)
+  sectionFilename?: string, // filename for relevant calendar (or not given if a non-calendar section). Note: will not be a full Teamspace filepath
   actionButtons?: Array<TActionButton>,
   generatedDate?: Date, // note different from lastFullRefresh on whole project
   totalCount?: number, // for when not all possible items are passed in pluginData
@@ -168,7 +170,7 @@ export type TSectionItem = {
 
 // reduced paragraph definition
 export type TParagraphForDashboard = {
-  filename: string,
+  filename: string, // Note: can have a Teamspace prefix, even for Calendar note
   noteType: NoteType /* Notes | Calendar */,
   title?: string, // not present for Calendar notes
   type: ParagraphType, // paragraph type
@@ -185,6 +187,7 @@ export type TParagraphForDashboard = {
   hasChild?: boolean, // whether it has child item(s)
   isAChild?: boolean, // whether it is a child item
   dueDate?: string, // ISO string of due date, or 'none', required for sorting items in display
+  isTeamspace?: boolean, // whether this is from a Teamspace note
 }
 
 // a project item within a section

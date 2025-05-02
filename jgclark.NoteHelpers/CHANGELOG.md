@@ -6,7 +6,8 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 - ??? Look at spinning out Index... commands to separate plugin 
 - -->
 
-## [1.1.1] - 2025-03-06
+## [1.1.1] - 2025-04-22
+- the **log Editor Note** commands now handle Teamspace notes correctly.
 - fix to opening new notes in **new note** commands.
 
 ## [1.1.0] - 2025-02-19

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-04-15 for v2.2.1, @jgclark
+// Last updated 2025-04-30 for v2.2.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -21,8 +21,8 @@ import type {
   TSectionCode,
   TSectionItem,
 } from './types'
-import { renameKeys, stringListOrArrayToArray } from '@helpers/dataManipulation'
-import { getAPIDateStrFromDisplayDateStr, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { convertISODateFilenameToNPDayFilename, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
@@ -72,26 +72,19 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
         } plugin: `)
       )
     }
-    // clo(pluginSettings, 'pluginSettings:') // OK
 
     const parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
 
     // additional setting that always starts as true
     parsedDashboardSettings.showSearchSection = true
 
-    // TODO: @jgclark: Would it be ok to move the following to the migratePluginSettings() function? Would be nice to keep this function cleaner
-    // Note: Workaround for number types getting changed to strings at some point in our Settings system.
-    parsedDashboardSettings.newTaskSectionHeadingLevel = parseInt(parsedDashboardSettings.newTaskSectionHeadingLevel || '2')
-    parsedDashboardSettings.maxItemsToShowInSection = parseInt(parsedDashboardSettings.maxItemsToShowInSection || '24')
-    parsedDashboardSettings.lookBackDaysForOverdue = parseInt(parsedDashboardSettings.lookBackDaysForOverdue || '7')
-    parsedDashboardSettings.autoUpdateAfterIdleTime = parseInt(parsedDashboardSettings.autoUpdateAfterIdleTime || '10')
-
     // When the underlying issue is tackled, then TEST: to see whether JSON number type handling has been corrected
     // clvt(parsedDashboardSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedDashboardSettings.newTaskSectionHeadingLevel:`)
-    // Warn if any of the settings are not numbers
-    // if (typeof parsedDashboardSettings.newTaskSectionHeadingLevel !== 'number') {
-    //   logWarn('getDashboardSettings', `parsedDashboardSettings.newTaskSectionHeadingLevel is not a number type: ${parsedDashboardSettings.newTaskSectionHeadingLevel}`)
-    // }
+
+    // Warn if any a sample setting is not a number
+    if (typeof parsedDashboardSettings.newTaskSectionHeadingLevel !== 'number') {
+      logWarn('getDashboardSettings', `parsedDashboardSettings.newTaskSectionHeadingLevel is not a number type: ${parsedDashboardSettings.newTaskSectionHeadingLevel}`)
+    }
 
     return parsedDashboardSettings
   } catch (err) {
@@ -102,22 +95,25 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
 }
 
 /**
- * Migrate some setting names to new names.
- * Note: can't easily be done with updateSettingData() in index.js as there can be multiple copies of these settings at different object levels.
- * @author @jgclark
- * @tests in dataManipulation.test.js
+ * Save all dashboard settings as a stringified array.
+ * @param {TDashboardSettings} settings
+ * @return {boolean} true if successful
  */
-export function migratePluginSettings(settingsIn: any): any {
-  // Migrate some setting names to new names
-  const keysToChange = {
-    usePerspectives: 'usePerspectives',
-    includeFolderName: 'showFolderName',
-    includeScheduledDates: 'showScheduledDates',
-    includeTaskContext: 'showTaskContext',
+export async function saveDashboardSettings(settings: TDashboardSettings): Promise<boolean> {
+  try {
+    logDebug(`saveDashboardSettings saving settings in DataStore.settings`)
+    const dashboardSettingsStr = JSON.stringify(settings) ?? ''
+    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    pluginSettings.dashboardSettings = dashboardSettingsStr
+
+    // Save settings using the reliable helper ("the long way")
+    const res = await saveSettings(pluginID, pluginSettings)
+    logDebug('saveDashboardSettings', `Apparently saved with result ${String(res)}. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
+    return res
+  } catch (error) {
+    logError('saveDashboardSettings', `Error: ${error.message}`)
+    return false
   }
-  const migratedSettings = renameKeys(settingsIn, keysToChange)
-  clo(migratedSettings, `migratePluginSettings - migratedSettings:`)
-  return migratedSettings
 }
 
 /**
@@ -192,6 +188,42 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
 }
 
 /**
+ * Get the due date from paragraph content, or if none, then start of period of calendar note, or empty string.
+ * @param {TParagraph} p
+ * @param {boolean} useISOFormatOutput? if true, then return the date in ISO YYYY-MM-DD format, otherwise YYYYMMDD format
+ * @returns {string}
+ */
+export function getDueDateOrStartOfCalendarDate(p: TParagraph, useISOFormatOutput: boolean = true): string {
+  try {
+    let dueDateStr = ''
+    const hasDueDate = hasScheduledDate(p.content)
+    if (hasDueDate) {
+      // Get the first scheduled date from the content
+      const dueDateMatch = p.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE)
+      if (dueDateMatch) {
+        dueDateStr = getFirstDateInPeriod(dueDateMatch[1], 'day')
+      }
+    } else {
+      // If this is from a calendar note, then use that date instead
+      if (!p.note) {
+        throw new Error(`No note found for para {${p.content}}`)
+      }
+      if (p.note.type === 'Calendar') {
+        const dueDate = getFirstDateInPeriod(p.note.title)
+        if (dueDate) {
+          dueDateStr = dueDate
+        }
+      }
+    }
+    // logDebug('getDueDateOrStartOfCalendarDate', `dueDateStr: ${dueDateStr} in note ${note.filename}`)
+    return useISOFormatOutput ? dueDateStr : convertISODateFilenameToNPDayFilename(dueDateStr)
+  } catch (error) {
+    logError('getDueDateOrStartOfCalendarDate', error.message)
+    return ''
+  }
+}
+
+/**
  * Return an optimised set of fields based on each paragraph (plus filename + computed priority + title - many).
  * Note: can range from 7-70ms/para in JGC tests.
  *
@@ -208,23 +240,6 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         const anyChildren = p.children()
         const hasChild = anyChildren && anyChildren.length > 0
         const isAChild = isAChildPara(p, note)
-        let dueDateStr = 'none'
-        const hasDueDate = hasScheduledDate(p.content)
-        if (hasDueDate) {
-          const dueDateMatch = p.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE)
-          if (dueDateMatch) {
-            dueDateStr = getFirstDateInPeriod(dueDateMatch[0], 'day')
-          }
-        } else {
-          // If this is from a calendar note, then use that date instead
-          if (note.type === 'Calendar') {
-            const dueDate = getFirstDateInPeriod(note.title, 'day')
-            if (dueDate) {
-              dueDateStr = dueDate
-            }
-          }
-        }
-        // logDebug('makeDashboardParas', `dueDateStr: ${dueDateStr} in note ${note.filename}`)
 
         // Note: debugging why sometimes hasChild is wrong
         // TODO(later): remove this debugging
@@ -242,10 +257,11 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           // clo(anyChildren[0].contentRange, `contentRange for child[0]`)
         }
 
+        const dueDateStr = getDueDateOrStartOfCalendarDate(p)
         const startTime = getStartTimeObjFromParaContent(p.content)
         const startTimeStr = startTime ? getTimeStringFromHM(startTime.hours, startTime.mins) : 'none'
-        return {
-          filename: note.filename,
+        const outputPara: TParagraphForDashboard = {
+          filename: p.filename, // FIXME(EduardMe): note.filename doesn't seem to report the correct filename for teamspace notes?
           noteType: note.type,
           title: note.type === 'Notes' ? displayTitle(note) : note.title /* will be ISO-8601 date */,
           type: p.type,
@@ -260,9 +276,14 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           hasChild: hasChild,
           isAChild: isAChild,
           dueDate: dueDateStr,
+          isTeamspace: note.isTeamspaceNote || p.filename?.startsWith('%%') // TODO: remove this second test once API bug is fixed
         }
+        // if (p.content.includes('TEST')) {
+        // clo(outputPara, `FYI 👉 makeDashboardParas - outputPara:`)
+        // }
+        return outputPara
       } else {
-        logWarn('makeDashboardParas', `No note found for para {${p.content}}`)
+        logWarn('makeDashboardParas', `No note found for para {${p.content}} - probably an API teamspacebug`)
         // $FlowFixMe[incompatible-call]
         return
       }
@@ -279,58 +300,86 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
 //-----------------------------------------------------------------
 
 /**
- * Return list(s) of open task/checklist paragraphs in calendar note of type 'timePeriodName', or scheduled to that same date.
+ * Return list(s) of open task/checklist paragraphs in calendar note of type 'calendarPeriodName', or scheduled to that same date.
  * Various config.* items are used:
  * - excludedFolders? for folders to ignore for referenced notes
  * - separateSectionForReferencedNotes? if true, then two arrays will be returned: first from the calendar note; the second from references to that calendar note. If false, then both are included in a combined list (with the second being an empty array).
  * - ignoreItemsWithTerms  (from 2.1.0.b4 can be applied to calendar headings too)
  * - ignoreTasksScheduledToFuture
  * - excludeTasksWithTimeblocks & excludeChecklistsWithTimeblocks
- * @param {string} timePeriodName
  * @param {TNote} timePeriodNote base calendar note to process
+ * @param {string} calendarPeriodName
  * @param {TDashboardSettings} dashboardSettings
  * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open
  * @param {boolean} alsoReturnTimeblockLines? also include valid non-task/checklist lines that contain a timeblock
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
 export function getOpenItemParasForTimePeriod(
-  timePeriodName: string,
-  timePeriodNote: TNote,
+  NPCalendarFilenameStr: string,
+  calendarPeriodName: string,
   dashboardSettings: TDashboardSettings,
   useEditorWherePossible: boolean = false,
   alsoReturnTimeblockLines: boolean = false,
 ): [Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] {
   try {
-    let parasToUse: $ReadOnlyArray<TParagraph>
+    let parasToUse: Array<TParagraph> = []
     const NPSettings = getNotePlanSettings()
     const mustContainString = NPSettings.timeblockMustContainString
 
+    const matchingNotes: Array<TNote> = []
+    const possTimePeriodNote = DataStore.calendarNoteByDateString(NPCalendarFilenameStr)
+    if (possTimePeriodNote) {
+      matchingNotes.push(possTimePeriodNote)
+    }
+
+    // WARNING: Currently needs a FF to turn this on, as there are too many problems in the API in build 1368
+    if (dashboardSettings.FFlag_IncludeTeamspaceNotes) {
+      for (const teamspace of DataStore.teamspaces) {
+        // Get note for this teamspace (if it exists)
+        const note = DataStore.calendarNoteByDateString(NPCalendarFilenameStr, teamspace.filename)
+        if (note) {
+          matchingNotes.push(note)
+          logDebug('getOpenItemPFCTP', `Found matching note for ${NPCalendarFilenameStr} in teamspace ${teamspace.filename}`)
+
+          // FIXME(EduardMe): this is showing as false
+          // const firstPara = note.paragraphs[0]
+          // logDebug('getOpenItemPFCTP', `- 👉 isTeamspaceNote for para 0 is ${String(firstPara?.note?.isTeamspaceNote)}`)
+        }
+      }
+      logDebug('getOpenItemPFCTP', `Found ${String(matchingNotes.length)} matching notes for ${NPCalendarFilenameStr}`)
+    }
+
     //------------------------------------------------
-    // Get paras from calendar note
-    // Note: this takes 100-110ms for me
+    // Get paras from calendar note(s)
     const startTime = new Date() // for timing only
-    if (useEditorWherePossible && Editor && Editor?.note?.filename === timePeriodNote.filename) {
-      // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
-      parasToUse = Editor.paragraphs
-      logTimer(
-        'getOpenItemPFCTP',
-        startTime,
-        `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras`,
-      )
-    } else {
+    for (const note of matchingNotes) {
+      // Note: this takes 100-110ms for me
+      let thisNoteParas: Array<TParagraph> = []
+
+      // If note of interest is open in editor, then use latest version available, as the DataStore version could be stale.
+      if (useEditorWherePossible && Editor && Editor.note?.filename === note.filename) {
+        thisNoteParas = Editor.paragraphs
+        logTimer('getOpenItemPFCTP', startTime,
+          `Using EDITOR (${Editor.filename}) for the current time period: ${calendarPeriodName} which has ${String(Editor.paragraphs.length)} paras`,
+        )
+      } else {
       // read note from DataStore in the usual way
-      parasToUse = timePeriodNote.paragraphs
-      logTimer('getOpenItemPFCTP', startTime, `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
+        thisNoteParas = note.paragraphs
+      }
+      logDebug('getOpenItemPFCTP', `- found ${String(thisNoteParas.length)} paras for ${note.filename}`)
+      if (thisNoteParas.length) {
+        parasToUse = parasToUse.concat(thisNoteParas)
+      }
     }
 
     // Note: No longer running in background thread, as I found in v1.x it more than doubled the time taken to run this section.
 
     // Need to filter out non-open task/checklist types for following function, and any scheduled tasks (with a >date) and any blank tasks.
     const todayHyphenated = getTodaysDateHyphenated()
-    const theNoteDateHyphenated = timePeriodNote.title || ''
+    const theNoteDateHyphenated = NPCalendarFilenameStr
     const isToday = theNoteDateHyphenated === todayHyphenated
     const latestDate = todayHyphenated > theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
-    // logDebug('getOpenItemPFCTP', `timeframe:${timePeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
+    // logDebug('getOpenItemPFCTP', `timeframe:${calendarPeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
 
     // Keep only non-empty open tasks (and checklists if wanted),
     // and now add in other timeblock lines (if wanted), other than checklists (if excluded)
@@ -387,24 +436,27 @@ export function getOpenItemParasForTimePeriod(
       }
     }
 
+    // for (const p of openParas) {
+    //   logDebug('getOpenItemPFCTP', `- 👉 ${p.filename} is ${p.note.isTeamspaceNote ? '' : 'NOT'} a teamspace note`)
+    // }
+
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const openDashboardParas = makeDashboardParas(openParas)
-    // clo(openDashboardParas)
+    // clo(openDashboardParas, `getOpenItemPFCTP - openDashboardParas:`)
 
-    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(openDashboardParas.length ?? 0)} cal items for ${timePeriodName}`)
+    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(openDashboardParas.length ?? 0)} cal items for ${calendarPeriodName}`)
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
     // A task in today dated for today doesn't show here b/c it's not in backlinks
     // (In v1.x this was 2-3x quicker than part above)
     let refOpenParas: Array<TParagraph> = []
-    if (timePeriodNote) {
+    for (const note of matchingNotes) {
+      logDebug('getOpenItemPFCTP', `- getting referenced paras for ${note.filename}`)
       refOpenParas = alsoReturnTimeblockLines
-        ? getReferencedParagraphs(timePeriodNote, false).filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
-        : getReferencedParagraphs(timePeriodNote, false).filter((p) => isOpen(p))
-      logTimer(
-        'getOpenItemPFCTP',
-        startTime,
+        ? getReferencedParagraphs(note, false).filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
+        : getReferencedParagraphs(note, false).filter((p) => isOpen(p))
+      logTimer('getOpenItemPFCTP', startTime,
         `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`,
       )
       if (dashboardSettings.ignoreChecklistItems) {
@@ -418,25 +470,26 @@ export function getOpenItemParasForTimePeriod(
       // Get list of allowed folders (using both include and exlcude settings)
       const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
       // $FlowIgnore[incompatible-call]
+      // FIXME(EduardMe): I think this is where the .type is failing.
       refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
-      // logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
+      logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
 
       // Remove possible dupes from sync'd lines (returning the first copy found, without doing a sort first)
       refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
-      // logTimer('getOpenItemPFCTP', startTime, `- after 'eliminate sync dupes' filter: ${refOpenParas.length} para(s)`)
+      logTimer('getOpenItemPFCTP', startTime, `- after 'eliminate sync dupes' filter: ${refOpenParas.length} para(s)`)
 
       // Filter out anything from 'ignoreItemsWithTerms' setting
       if (dashboardSettings.ignoreItemsWithTerms) {
         refOpenParas = refOpenParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
-        // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
+        logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
       }
     }
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const refOpenDashboardParas = makeDashboardParas(refOpenParas)
-    // clo(refOpenDashboardParas, 'getOpenItemPFCTP refOpenDashboardParas after extending paras')
+    clo(refOpenDashboardParas, 'getOpenItemPFCTP refOpenDashboardParas after extending paras')
 
-    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(refOpenParas.length ?? 0)} referenced items for ${timePeriodName}`)
+    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(refOpenParas.length ?? 0)} referenced items for ${calendarPeriodName}`)
 
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
@@ -457,10 +510,10 @@ export function getOpenItemParasForTimePeriod(
 // ---------------------------------------------------
 
 /**
- * Note: suggested by ChatGPT
  * Deeply compares values, potentially recursively if they are objects.
  * Logs differences with a path to the differing property.
  * TODO(@dwertheimer): this is not used. Could it be moved to a helper file?
+ * Note: suggested by ChatGPT.
  * @param {any} value1 The first value to compare.
  * @param {any} value2 The second value to compare.
  * @param {string} path The base path to the property being compared.
@@ -485,8 +538,8 @@ export function deepCompare(value1: any, value2: any, path: string): void {
 }
 
 /**
- * Note: suggested by ChatGPT
  * Helper function to determine if a value is an object.
+ * Note: suggested by ChatGPT.
  *
  * @param {any} value The value to check.
  * @return {boolean} True if the value is an object, false otherwise.
@@ -533,13 +586,12 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     // Limit overdues to last N days for testing purposes
     if (!Number.isNaN(dashboardSettings.lookBackDaysForOverdue) && dashboardSettings.lookBackDaysForOverdue > 0) {
       const numDaysToLookBack = dashboardSettings.lookBackDaysForOverdue
-      const cutoffDate = moment().subtract(numDaysToLookBack, 'days').format('YYYYMMDD')
+      const cutoffDate = moment().subtract(numDaysToLookBack, 'days').format('YYYY-MM-DD')
       logDebug('getRelevantOverdueTasks', `lookBackDaysForOverdue limiting to last ${String(numDaysToLookBack)} days (from ${cutoffDate})`)
-      filteredOverdueParas = filteredOverdueParas.filter((p) => (p.filename ? p.filename > cutoffDate : true))
+      filteredOverdueParas = filteredOverdueParas.filter((p) => (getDueDateOrStartOfCalendarDate(p, true) > cutoffDate))
     }
 
-    // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
-    // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time
+    // Remove items that appear in this section twice (which can happen if a task is sync'd), based just on their content
     // Note: this is a quick operation
     // $FlowFixMe[class-object-subtyping]
     filteredOverdueParas = removeDuplicates(filteredOverdueParas, ['content'])
@@ -674,27 +726,6 @@ function getOpenPriorityItems(note: TNote): Array<TParagraph> {
     }
   }
   return priorityParas
-}
-
-/**
- * Wrap string with href onClick event to show note in editor,
- * using item.filename param.
- * @param {string} NPDateStr
- * @param {string} noteTitle
- * @returns {string} output
- */
-export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, itemID: string): string {
-  try {
-    const dateFilename = `${getAPIDateStrFromDisplayDateStr(NPDateStr)}.${DataStore.defaultFileExtension}`
-    // logDebug('makeNoteTitleWithOpenActionFromNPDateStr', `- making notelink with ${NPDateStr} / ${dateFilename}`)
-    // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(
-      dateFilename,
-    )}', encodedContent: ''}}><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
-  } catch (error) {
-    logError('makeNoteTitleWithOpenActionFromNPDateStr', `${error.message} for input '${NPDateStr}'`)
-    return '(error)'
-  }
 }
 
 /**

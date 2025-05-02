@@ -1306,7 +1306,7 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
 /**
  * Return a TParagraph object by an exact match to 'content' in file 'filenameIn'. If it fails to find a match, it returns false.
  * If the content is truncated with "..." it will match if the truncated version is the same as the start of the content in a line in the note
- * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars)
+ * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars).
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Works on both Project and Calendar notes.
  * @author @jgclark
@@ -1316,7 +1316,7 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
  */
 export function findParaFromStringAndFilename(filenameIn: string, content: string): TParagraph | false {
   try {
-    // logDebug('NPP/findParaFromStringAndFilename', `starting with filename: ${filenameIn}, content: {${content}}`)
+    logDebug('NPP/findParaFromStringAndFilename', `starting with filename: ${filenameIn}, content: {${content}}`)
     let filename = filenameIn
     if (filenameIn === 'today') {
       filename = getTodaysDateUnhyphenated()
@@ -1324,8 +1324,12 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
       filename = getNPWeekStr(new Date())
     }
     // Long-winded way to get note title, as we don't have TNote, but do have note's filename
-    // $FlowIgnore[incompatible-type]
-    const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
+    // FIXME(Eduard): update to cope with Teamspace notes
+    // V1
+    const thisNote: TNote | null = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename) ?? null
+    // V2
+    // TODO:
+    // const thisNote: TNote | null = getNoteFromFilename(filename)
 
     if (thisNote) {
       if (thisNote.paragraphs.length > 0) {

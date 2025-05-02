@@ -7,7 +7,7 @@ import pluginJson from '../plugin.json'
 import { getInput, chooseOptionWithModifiers } from '../../helpers/userInput'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { getDateOptions, unhyphenateString, RE_ISO_DATE, removeDateTagsAndToday } from '@helpers/dateTime'
+import { getDateOptions, convertISODateFilenameToNPDayFilename, RE_ISO_DATE, removeDateTagsAndToday } from '@helpers/dateTime'
 import { getWeekOptions } from '@helpers/NPdateTime'
 
 /**
@@ -32,7 +32,7 @@ export async function saveTodoInFuture(content: string, futureDate: string) {
     // chop off first character (>) of futureDate
     let dateStr = futureDate.slice(1)
     if (new RegExp(RE_ISO_DATE).test(dateStr)) {
-      dateStr = unhyphenateString(dateStr)
+      dateStr = convertISODateFilenameToNPDayFilename(dateStr)
     }
     logDebug(pluginJson, `saveTodoInFuture futureDate:${dateStr}`)
     const futureNote = DataStore.calendarNoteByDateString(dateStr)

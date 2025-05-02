@@ -17,7 +17,7 @@
 import { addMinutes, differenceInMinutes } from 'date-fns'
 import { keepTodayPortionOnly, RE_EVENT_ID } from './calendar'
 import {
-  getDateFromUnhyphenatedDateString,
+  getDateFromYYYYMMDDString,
   getISODateStringFromYYYYMMDD,
   type HourMinObj,
   // printDateRange,
@@ -374,7 +374,7 @@ export async function getEventsForDay(
     const allEventCount = eArr.length
 
     // Filter out parts of multi-day events not in today
-    eArr = keepTodayPortionOnly(eArr, getDateFromUnhyphenatedDateString(dateStr) ?? new Date())
+    eArr = keepTodayPortionOnly(eArr, getDateFromYYYYMMDDString(dateStr) ?? new Date())
 
     // If we have a calendarSet list, use to weed out events that don't match .calendar
     if (calendarSet && calendarSet.length > 0) {

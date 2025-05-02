@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-04-10 for v2.2.0.a13
+// Last updated 2025-04-30 for v2.2.0.a13+
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -211,10 +211,10 @@ export async function getPerspectiveSettings(logAllKeys: boolean = false): Promi
       perspectiveSettings = replacePerspectiveDef(perspectiveSettings, defaultPersp)
       logPerspectives(perspectiveSettings)
     }
-    clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
+    // clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
     const perspSettings = ensureDefaultPerspectiveExists(perspectiveSettings)
     // logDebug('getPerspectiveSettings', `After ensureDefaultPerspectiveExists():`)
-    logPerspectives(perspectiveSettings, logAllKeys)
+    // logPerspectives(perspectiveSettings, logAllKeys)
     return perspSettings
   } catch (error) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
@@ -333,14 +333,10 @@ export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): 
   try {
     logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
     const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ''
-    // v1:
-    // const pluginSettings = DataStore.settings
-    // v2:
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     pluginSettings.perspectiveSettings = perspectiveSettingsStr
 
-    // TEST: use helper to save settings from now on
-    // DataStore.settings = pluginSettings
+    // Save settings using the reliable helper ("the long way")
     const res = await saveSettings(pluginID, pluginSettings)
     logDebug('savePerspectiveSettings', `Apparently saved with result ${String(res)}. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
     return res
@@ -560,8 +556,8 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
  * @returns {TDashboardPluginSettings}
  */
 export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPluginSettings, deleteAllShowTagSections?: boolean): Partial<TDashboardPluginSettings> {
-  logInfo('cleanDashboardSettingsInAPerspective', `Starting for:`)
-  clo(settingsIn)
+  // logDebug('cleanDashboardSettingsInAPerspective', `Starting for:`)
+  // clo(settingsIn)
   // Define keys to remove
   const patternsToRemove = [
     // the following shouldn't be persisted in the perspectiveSettings object, but only in the top-level dashboardSettings object
@@ -601,7 +597,7 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPlugi
       if (!shouldRemoveKey(key)) {
         acc[key] = settingsIn[key]
       } else {
-        logInfo('cleanDashboardSettingsInAPerspective', `- Removing key '${key}' from settings`)
+        logInfo('cleanDashboardSettingsInAPerspective', `- Removing key '${key}'`)
       }
       return acc
     }, {})

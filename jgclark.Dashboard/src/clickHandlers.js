@@ -384,7 +384,6 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
   }
 }
 
-// TEST:
 export function doWindowResized(): TBridgeClickHandlerResult {
   logDebug('doWindowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
   const thisWin = getWindowFromCustomId(windowCustomId)
@@ -412,13 +411,14 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
   const { filename } = validateAndFlattenMessageObject(data)
   // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
   const wantedTitle = filename
+  // TODO(@EduardMe): this might not work for Teamspace notes
   const note = await Editor.openNoteByTitle(wantedTitle)
   if (note) {
     Editor.focus()
-    logDebug('bridgeClickDashboardItem', `-> successful call to open title ${wantedTitle} in Editor`)
+    logDebug('doShowNoteInEditorFromTitle', `-> successful call to open title ${wantedTitle} in Editor`)
     return handlerResult(true)
   } else {
-    logWarn('bridgeClickDashboardItem', `-> failed to open title ${wantedTitle} in Editor`)
+    logWarn('doShowNoteInEditorFromTitle', `-> failed to open title ${wantedTitle} in Editor`)
     return handlerResult(false)
   }
 }
@@ -433,16 +433,17 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
 export async function doShowLineInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, modifierKey } = validateAndFlattenMessageObject(data)
   // logDebug('showLineInEditorFromFilename', `${filename} /  ${content}`)
+  // TODO(@EduardMe): this doesn't work for Teamspace notes
   const note = await Editor.openNoteByFilename(filename, modifierKey === 'meta', 0, 0, modifierKey === 'alt')
   if (note) {
     const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
     logDebug(
-      'bridgeClickDashboardItem',
+      'doShowLineInEditorFromFilename',
       `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`,
     )
     return handlerResult(true)
   } else {
-    logWarn('bridgeClickDashboardItem', `-> failed to open filename ${filename} in Editor`)
+    logWarn('doShowLineInEditorFromFilename', `-> failed to open filename ${filename} in Editor`)
     return handlerResult(false)
   }
 }

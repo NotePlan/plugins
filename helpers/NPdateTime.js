@@ -873,17 +873,22 @@ export function getYearData(dateIn: string | Date = new Date(), offsetIncrement:
 /**
  * Get the first date in a period, given a NotePlan date string (e.g. '2022-01-01', '2022-W01', '2022-Q1', '2022'), or 'today'.
  * If the date string is already a day date, it will be returned as is.
- * @param {string} NPDateString - NotePlan date string (or 'today')
+ * If the date string starts with '>' then it will be trimmed off.
+ * @param {string} NPDateStringIn - NotePlan date string (or 'today')
  * @returns {string} - the first date in the period
  * @tests in jest file
  */
-export function getFirstDateInPeriod(NPDateString: string): string {
+export function getFirstDateInPeriod(NPDateStringIn: string): string {
   try {
+    let NPDateString = NPDateStringIn
+    if (NPDateString.startsWith('>')) {
+      NPDateString = NPDateString.slice(1)
+    }
     let firstDateStr = ''
-    if (NPDateString === 'today' || NPDateString === '>today') {
+    if (NPDateString === 'today') {
       firstDateStr = todaysDateISOString
     } else if (isDailyDateStr(NPDateString)) {
-      logDebug('getFirstDateInPeriod', `'${NPDateString}' was already a day date`)
+      // logDebug('getFirstDateInPeriod', `'${NPDateString}' was already a day date`)
       firstDateStr = NPDateString
     } else {
       // It's not a day date, so need to convert to one. Take the first day of the week/month/quarter/year.
@@ -901,7 +906,7 @@ export function getFirstDateInPeriod(NPDateString: string): string {
       }
       firstDateStr = NPInfo && NPInfo.startDate ? hyphenatedDateString(NPInfo?.startDate) : ''
     }
-    logDebug('getFirstDateInPeriod', `first date of ${NPDateString} = '${firstDateStr}'`)
+    // logDebug('getFirstDateInPeriod', `first date of ${NPDateString} = '${firstDateStr}'`)
     return firstDateStr
   } catch (err) {
     logError('getFirstDateInPeriod', err.message)

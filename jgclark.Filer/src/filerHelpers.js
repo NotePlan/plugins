@@ -36,7 +36,7 @@ export async function getFilerSettings(): Promise<any> {
   try {
     // // TODO: add to np.Shared
     // // First get global setting 'useTightBlockDefinition'
-    // let useTightBlockDefinition = getSetting('np.Shared', 'useTightBlockDefinition')
+    // let useTightBlockDefinition = await getSetting('np.Shared', 'useTightBlockDefinition')
     // logDebug('getFilerSettings', `- useTightBlockDefinition: np.Globals: ${String(useTightBlockDefinition)}`)
 
     // Get settings using Config system

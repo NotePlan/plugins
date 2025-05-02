@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2025-03-17 for v1.2.1, @jgclark
+// Last updated 2025-04-28 for v1.2.3, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -444,18 +444,23 @@ export class Project {
 
       // And write it to the Editor (if the note is open in it) ...
       if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
-        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to Editor at ${String(insertionIndex)}`)
+        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to Editor at line ${String(insertionIndex)}`)
         Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
+        logDebug('Project::addProgressLine', `- finished Editor.insertParagraph`)
         // Also updateCache to make changes more quickly available elsewhere
-        // $FlowIgnore[prop-missing]
-        await DataStore.updateCache(Editor, true)
+        // await DataStore.updateCache(Editor.note, true)
+        // TEST:
+        await Editor.save()
+        logDebug('Project::addProgressLine', `- after Editor.save`)
       }
       // ... or the project's note
       else {
-        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to project note '${this.note.filename}' at ${String(insertionIndex)}`)
+        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to project note '${this.note.filename}' at line ${String(insertionIndex)}`)
         this.note.insertParagraph(newProgressLine, insertionIndex, 'text')
+        logDebug('Project::addProgressLine', `- finished this.note.insertParagraph`)
         // Also updateCache
         await DataStore.updateCache(this.note, true)
+        logDebug('Project::addProgressLine', `- after DataStore.updateCache`)
       }
     } catch (error) {
       logError(`Project::addProgressLine`, JSP(error))
@@ -585,6 +590,7 @@ export class Project {
   async togglePauseProject(): Promise<string> {
     try {
       // Get progress field details (if wanted)
+      logDebug('togglePauseProject', `Starting for '${this.title}' ...`)
       await this.addProgressLine(this.isPaused ? 'Comment (if wanted) as you resume' : 'Comment (if wanted) as you pause')
 
       // update the metadata fields
@@ -602,8 +608,9 @@ export class Project {
       metadataPara.content = newMetadataLine
       if (Editor && Editor.note && Editor.note === this.note) {
         Editor.updateParagraph(metadataPara)
-        // $FlowIgnore[prop-missing]
-        DataStore.updateCache(Editor, true)
+        // DataStore.updateCache(Editor.note, true)
+        // TEST:
+        await Editor.save()
       } else {
         this.note.updateParagraph(metadataPara)
         DataStore.updateCache(this.note, true)

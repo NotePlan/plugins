@@ -55,7 +55,8 @@ const windowCustomId = `${pluginJson['plugin.id']}.main`
  */
 export async function onMessageFromHTMLView(actionType: string, data: any): any {
   try {
-    clo(data, `onMessageFromHTMLView dispatching actionType '${actionType}' with data object:`)
+    // clo(data, `onMessageFromHTMLView dispatching actionType '${actionType}' with data object:`)
+    logDebug(`onMessageFromHTMLView`, `dispatching actionType '${actionType}'`)
     switch (actionType) {
       case 'onClickProjectListItem':
         await bridgeClickProjectListItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object

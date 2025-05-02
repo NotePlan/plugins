@@ -1,14 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin function to find and track tasks completed today in non-calendar notes
-// Last updated 2025-03-24 for v2.2.0.a8
+// Last updated 2025-04-26 for v2.2.2
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import type { TDoneCount, TDoneTodayNotes, TSection } from './types'
-import { getDateStringFromCalendarFilename, getTodaysDateHyphenated } from '@helpers/dateTime'
+import {
+  // getDateStringFromCalendarFilename,
+  getTodaysDateHyphenated
+} from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { getNotesChangedInInterval } from '@helpers/NPnote'
+import { getNotesChangedInInterval, getNoteFromFilename } from '@helpers/NPnote'
 
 //--------------------------------------------------------------------------
 
@@ -47,6 +50,7 @@ export function getTotalDoneCountsFromSections(sections: Array<TSection>): TDone
 
 /**
  * Return number of completed tasks in the given (calendar or regular) note
+ * TODO: Needs to be updated for Teamspace notes. Looks possible to change this to receive a TNote object directly, not a filename.
  * @param {string} filename
  * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open
  * @returns {TDoneCount} {completedTasks, lastUpdated}
@@ -59,16 +63,27 @@ export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWhe
 
     //------------------------------------------------
     // Get paras from the note
-    if (useEditorWherePossible && Editor && Editor?.note?.filename === filename) {
-      // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
+
+    // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
+    if (useEditorWherePossible && Editor && Editor.note?.filename === filename) {
       parasToUse = Editor.paragraphs
       // logDebug('getNumCompletedTasksTodayFromNote', `Using EDITOR (${Editor.filename}) for note '${filename}`)
     } else {
       // read note from DataStore in the usual way
-      let note = DataStore.projectNoteByFilename(filename)
-      if (!note) {
-        note = DataStore.calendarNoteByDateString(getDateStringFromCalendarFilename(filename))
-      }
+
+      // v1:
+      // let note = DataStore.projectNoteByFilename(filename)
+      // if (!note) {
+      //   note = DataStore.calendarNoteByDateString(getDateStringFromCalendarFilename(filename))
+      // }
+      // if (!note) {
+      //   // FIXME: failing for Teamspace Calendar notes
+      //   note = DataStore.calendarNoteByDateString(getDateStringFromCalendarFilename(filename))
+      // }
+
+      // v2:
+      const note = getNoteFromFilename(filename)
+
       if (!note) throw new Error(`Note not found: ${filename}`)
       parasToUse = note.paragraphs
       // logDebug('getNumCompletedTasksTodayFromNote', `Processing ${note.filename}`)
@@ -89,7 +104,6 @@ export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWhe
     logError('getNumCompletedTasksTodayFromNote', error.message)
     return {
       completedTasks: 0,
-      // completedChecklists: 0,
       lastUpdated: new Date(),
     }
   }

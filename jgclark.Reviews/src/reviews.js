@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2025-04-03 for v1.2.2, @jgclark
+// Last updated 2025-04-28 for v1.2.3, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -397,26 +397,6 @@ export async function renderProjectListsHTML(
       logDebug('renderProjectListsHTML', `${String(res)} required shared resources found`)
     }
 
-    // TODO(later): remove in time
-    // Double-Check that some of the pluginJson.requiredFiles (local) are available
-    const wantedLocalFilenames = [
-      "projectList.css",
-      "projectListDialog.css",
-      "projectListEvents.js",
-      "HTMLWinCommsSwitchboard.js",
-      "shortcut.js",
-      "showTimeAgo.js"
-    ]
-    logDebug('renderProjectListsHTML', `Checking for ${wantedLocalFilenames.length} local requiredFiles (${String(wantedLocalFilenames)})`)
-    for (const lf of wantedLocalFilenames) {
-      const filename = `../../${pluginID}/${lf}`
-      if (DataStore.fileExists(filename)) {
-        logDebug(`renderProjectListsHTML`, `- ${filename} exists`)
-      } else {
-        logWarn(`renderProjectListsHTML`, `- local requiredFile ${filename} not found`)
-      }
-    }
-
     // Ensure projectTypeTags is an array before proceeding
     if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
 
@@ -485,7 +465,7 @@ export async function renderProjectListsHTML(
     const displayOnlyDue = config.displayOnlyDue ?? false
 
     // add checkbox toggles
-    logDebug('renderProjectListsHTML', `displayOnlyDue=${displayOnlyDue ? '✅' : '❌'}, displayFinished = ${displayFinished ? '✅' : '❌'}`)
+    // logDebug('renderProjectListsHTML', `displayOnlyDue=${displayOnlyDue ? '✅' : '❌'}, displayFinished = ${displayFinished ? '✅' : '❌'}`)
     outputArray.push(`<div id="toggles">`)
     outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">Display only due?</input>`)
     outputArray.push(`  <input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">Display finished?</input>`)
@@ -986,8 +966,8 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
 
       // Save Editor to note, and then update the cache so the latest changes can be picked up elsewhere.
       // Note: Putting the Editor.save() call here, rather than in the above functions, seems to work
-      await saveEditorIfNecessary()
-      DataStore.updateCache(Editor.note, true)
+      await Editor.save()
+      // DataStore.updateCache(Editor.note, true)
     } else {
       logDebug('finishReviewCoreLogic', `- updating note ...`)
       // First update @review(date) on the note

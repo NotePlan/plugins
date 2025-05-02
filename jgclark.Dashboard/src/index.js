@@ -2,16 +2,22 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-04-09 for v2.2.0.a12
+// last updated 2025-04-30 for v2.2.2
 // ----------------------------------------------------------------------------
 
 /**
  * Imports
  */
 import pluginJson from '../plugin.json'
-import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-// No longer used
-// import {  getNotesWithTagOrMention} from './tagMentionCache'
+import { renameKeys } from '@helpers/dataManipulation'
+import { clo, compareObjects, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import {
+  // updateSettingData,
+  pluginUpdated,
+  saveSettings
+} from '@helpers/NPConfiguration'
+
+// ----------------------------------------------------------------------------
 
 const pluginID = 'jgclark.Dashboard'
 
@@ -52,7 +58,7 @@ export {
 } from './reactMain.js'
 
 export {
-  // onUpdateOrInstall,
+  // onUpdateOrInstall, // Note: a more specialised version of this is below
   init, onSettingsUpdated, versionCheck
 } from './NPHooks'
 
@@ -61,53 +67,54 @@ export {
   updateTagMentionCache
 } from './tagMentionCache'
 
+export {
+  backupSettings
+} from './backupSettings'
+
 export { externallyStartSearch } from './dataGenerationSearch.js'
 
 //-----------------------------------------------------------------------------
-
-import { renameKeys } from '@helpers/dataManipulation'
-import { saveSettings } from '@helpers/NPConfiguration'
 
 // Migrate some setting names to new names
 // TODO(later): remove this code in v2.3.0+
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logInfo(pluginJson, `onUpdateOrInstall() starting ...`)
-    // v1
-    // const initialSettings = DataStore.settings
-    // v2
     const initialSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     // clo(initialSettings, `onUpdateOrInstall - initialSettings:`)
+    // Note: this is deceptive because dashboardSettings is one single JSON stringified key inside initialSettings
 
-    // Migrate some setting names to new names
+    // Migrate some setting names to new names.
+    // Note: can't easily be done with updateSettingData() in index.js as there can be multiple copies of these settings at different object levels.
+    logInfo(pluginJson, `- renaming any necessary keys from 2.1.x to 2.2.x ...`)
     const keysToChange = {
       perspectivesEnabled: 'usePerspectives',
       includeFolderName: 'showFolderName',
       includeScheduledDates: 'showScheduledDates',
       includeTaskContext: 'showTaskContext',
     }
-    logInfo(pluginJson, `onUpdateOrInstall() renaming any necessary keys from 2.1.x to 2.2.x ...`)
-    const migratedSettings = renameKeys(initialSettings, keysToChange)
-    clo(migratedSettings, `onUpdateOrInstall - migratedSettings:`)
+    const initialDashboardSettings = JSON.parse(initialSettings.dashboardSettings)
+    const migratedDashboardSettings = renameKeys(initialDashboardSettings, keysToChange)
+
+    // Note: Workaround for number types getting changed to strings at some point in our Settings system.
+    migratedDashboardSettings.newTaskSectionHeadingLevel = parseInt(migratedDashboardSettings.newTaskSectionHeadingLevel || '2')
+    migratedDashboardSettings.maxItemsToShowInSection = parseInt(migratedDashboardSettings.maxItemsToShowInSection || '24')
+    migratedDashboardSettings.lookBackDaysForOverdue = parseInt(migratedDashboardSettings.lookBackDaysForOverdue || '7')
+    migratedDashboardSettings.autoUpdateAfterIdleTime = parseInt(migratedDashboardSettings.autoUpdateAfterIdleTime || '10')
+
+    // clo(migratedDashboardSettings, `onUpdateOrInstall - migratedDashboardSettings:`)
 
     // Save the settings back to the DataStore
-    if (migratedSettings !== initialSettings) {
+    if (compareObjects(migratedDashboardSettings, initialDashboardSettings, [], true) != null) {
+      const migratedSettings = { ...initialSettings, dashboardSettings: JSON.stringify(migratedDashboardSettings) }
       const result = await saveSettings(pluginID, migratedSettings)
-      logInfo(`onUpdateOrInstall`, `Changes detected. Saved settings with result: ${JSP(result)}`)
+      logInfo(`onUpdateOrInstall`, `- Changes detected. Saved settings with result: ${JSP(result)}`)
     }
-    logInfo(pluginJson, `onUpdateOrInstall() finished.`)
+
+    await pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
+
+    logInfo(`onUpdateOrInstall`, `- finished.`)
   } catch (err) {
     logError(pluginJson, `onUpdateOrInstall() error: ${err.message}`)
   }
 }
-
-//-----------------------------------------------------------------------------
-
-/**
- * Test functions
- */
-// No longer used
-// export async function testTagCache(): Promise<void> {
-//   let res = await getNotesWithTagOrMention(['@home'], false)
-//   res = await getNotesWithTagOrMention(['#jgcDR'], false)
-// }

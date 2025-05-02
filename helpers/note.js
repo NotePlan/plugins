@@ -114,7 +114,13 @@ export function getNoteType(note: TNote): false | 'Daily' | 'Weekly' | 'Monthly'
   }
 }
 
-export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
+/**
+ * Get a link to a note, formatted for display in search results etc.
+ * @param {string} filename
+ * @param {string} dateStyle
+ * @returns {string}
+ */
+export function getNoteLinkForDisplay(filename: string, dateStyle: string): string {
   const note = DataStore.noteByFilename(filename, noteType(filename))
   if (!note) {
     return '<error>'
@@ -133,7 +139,7 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
         ` @${hyphenatedDate(note.date)} `
       : '?'
   } else {
-    return ` ([[${note.title ?? ''}]])`
+    return `[[${note.title ?? ''}]]`
   }
 }
 
@@ -259,6 +265,7 @@ export async function getNote(name: string, onlyLookInRegularNotes: boolean | nu
 
 /**
  * Get a note using filename (will try by Notes first, then Calendar)
+ * Probably FIXME: need to update to support Teamspace notes
  * @author @jgclark, building on @dwertheimer
  * @param {string} filename of either Calendar or Notes type
  * @returns {?TNote} - the note that was opened
@@ -270,26 +277,27 @@ export function getNoteByFilename(filename: string): ?TNote {
     // logDebug('note/getNoteByFilename', `-> note '${displayTitle(newNote)}`)
     return newNote
   } else {
-    logWarn('note/getNoteByFilename', `-> couldn't find a note in either Notes or Calendar`)
+    logWarn('note/getNoteByFilename', `-> couldn't find a note for '${filename}' in either Notes or Calendar`)
     return null
   }
 }
 
 /**
  * Get the noteType of a note from its filename
+ * Probably FIXME: need to update to support Teamspace notes
  * @author @jgclark
  * @param {string} filename of either Calendar or Notes type
  * @returns {NoteType} Calendar | Notes
  */
 export function getNoteTypeByFilename(filename: string): ?NoteType {
-  // logDebug('note/getNoteByFilename', `Started for '${filename}'`)
+  // logDebug('note/getNoteTypeByFilename', `Started for '${filename}'`)
   const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
   if (newNote != null) {
-    // logDebug('note/getNoteByFilename', `-> note '${displayTitle(newNote)}`)
+    // logDebug('note/getNoteTypeByFilename', `-> note '${displayTitle(newNote)}`)
     return newNote.type
   } else {
-    logWarn('note/getNoteByFilename', `-> couldn't find a note in either Notes or Calendar`)
-    return
+    logWarn('note/getNoteTypeByFilename', `-> couldn't find a note in either Notes or Calendar`)
+    return null
   }
 }
 

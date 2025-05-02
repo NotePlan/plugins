@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2025-04-05 for v2.2.0.a11
+// Last updated 2025-04-28 for v2.2.0.a11+
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -46,6 +46,8 @@ type Props = {
 function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   const { sendActionToPlugin, setReactSettings, dashboardSettings } = useAppContext()
 
+  //------ Constants & Calculations --------------------------
+
   const messageObject: MessageDataObject = {
     item: item,
     actionType: '(not yet set)',
@@ -74,6 +76,28 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
     })
   }
 
+  // console.log(`-> ${mainContent}`)
+
+  // if hasChild, then set suitable icon
+  // v1: use'fa-arrow-down-from-line' icon
+  // v2:
+  // const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-regular fa-block-quote parentMarker pad-left"></i> : ''
+  // v3: switch to ellipsis to match what main Editor has just got in 3.15.2
+  const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-solid fa-ellipsis parentMarker"></i> : ''
+
+  // Note: this section now deliberately disabled
+  // if isAChild, then set suitable icon (previously tried arrow-right-from-line)
+  // Note: now handled by flex layout and indent on ItemRow
+  // Note: Following only for debugging
+  // const possChildMarker =
+  //   dashboardSettings.parentChildMarkersEnabled && item.parentID && item.parentID !== '' ? <span className="pad-left pad-right">[P={item.parentID}]</span>
+  //     : ''
+  const possChildMarker = ''
+
+  const showItemNoteLink = dashboardSettings?.showTaskContext && item.para?.filename !== '<no filename found>' && item.para?.filename !== thisSection.sectionFilename
+
+  //------ HANDLERS ---------------------------------------
+
   function handleTaskClick(e: MouseEvent) {
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed -- Note: not yet used
     const dataObjectToPassToFunction = {
@@ -84,31 +108,13 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
     sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Item clicked', true)
   }
 
-  // console.log(`-> ${mainContent}`)
-
-  // if hasChild, then set suitable icon
-  // v1: use'fa-arrow-down-from-line' icon
-  // v2:
-  // const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-regular fa-block-quote parentMarker pad-left"></i> : ''
-  // v3: switch to ellipsis to match what main Editor has just got in 3.15.2
-  const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-solid fa-ellipsis parentMarker"></i> : ''
-  
-  // Note: this section now deliberately disabled
-  // if isAChild, then set suitable icon (previously tried arrow-right-from-line)
-  // Note: now handled by flex layout and indent on ItemRow
-  // Note: Following only for debugging
-  // const possChildMarker =
-  //   dashboardSettings.parentChildMarkersEnabled && item.parentID && item.parentID !== '' ? <span className="pad-left pad-right">[P={item.parentID}]</span>
-  //     : ''
-  const possChildMarker = ''
-
   const handleClickToOpenEditDialog = (event: MouseEvent): void => {
     const clickPosition = { clientY: event.clientY, clientX: event.clientX }
     const { metaKey } = extractModifierKeys(event)
-    logDebug('ItemContent/handleClickToOpenEditDialog', `- metaKey=${String(metaKey)}`)
+    // logDebug('ItemContent/handleClickToOpenEditDialog', `- metaKey=${String(metaKey)}`)
     messageObject.modifierKey = metaKey // boolean
     const dialogData = { isOpen: true, isTask: true, details: messageObject, clickPosition }
-    logDebug('ItemContent/handleClickToOpenEditDialog', `- setting dialogData to: ${JSP(dialogData)}`)
+    // logDebug('ItemContent/handleClickToOpenEditDialog', `- setting dialogData to: ${JSP(dialogData)}`)
     setReactSettings((prev) => ({
       ...prev,
       lastChange: `_Dashboard-TaskDialogOpen`,
@@ -127,7 +133,11 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
       <a className="dialogTriggerIcon">
         <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenEditDialog}></i>
       </a>
-      {dashboardSettings?.showTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
+      {showItemNoteLink && <ItemNoteLink
+        item={item}
+        thisSection={thisSection}
+        alwaysShowNoteTitle={false}
+      />}
     </div>
   )
 }
@@ -303,7 +313,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
  * @param {string} noteTitle
  * @returns {string} output
  */
-export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNamePart: string): string {
+function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNamePart: string): string {
   try {
     // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${folderNamePart} ${noteTitle}`)
 
@@ -317,5 +327,27 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNa
     return '(makeNoteTitle... error)'
   }
 }
+
+/**
+ *  Note: no longer used, so commented out.
+ * Wrap string with href onClick event to show note in editor,
+ * using item.filename param.
+ * @param {string} NPDateStr
+ * @param {string} itemID
+ * @returns {string} output
+ */
+// function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, itemID: string): string {
+//   try {
+//     const dateFilename = `${getAPIDateStrFromDisplayDateStr(NPDateStr)}.${DataStore.defaultFileExtension}`
+//     // logDebug('makeNoteTitleWithOpenActionFromNPDateStr', `- making notelink with ${NPDateStr} / ${dateFilename}`)
+//     // Pass request back to plugin, as a single object
+//     return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(
+//       dateFilename,
+//     )}', encodedContent: ''}}><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
+//   } catch (error) {
+//     logError('makeNoteTitleWithOpenActionFromNPDateStr', `${error.message} for input '${NPDateStr}'`)
+//     return '(error)'
+//   }
+// }
 
 export default ItemContent

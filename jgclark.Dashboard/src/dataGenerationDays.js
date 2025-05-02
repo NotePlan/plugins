@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2025-04-08 for v2.2.0.a12
+// Last updated 2025-04-25 for v2.2.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -77,7 +77,8 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
 
         // Get list of open tasks/checklists from this calendar note
         // Note: now returns timeblocks (which may include just bullets) as well as tasks/checklists
-        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', currentDailyNote, config, useEditorWherePossible, true)
+        // ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', currentDailyNote, config, useEditorWherePossible, true)
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible, true)
         logDebug('getTodaySectionData', `getOpenItemParasForTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
 
         // Iterate and write items for first (or combined) section
@@ -353,7 +354,8 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         }
 
         // Get list of open tasks/checklists from this calendar note
-        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', yesterdaysNote, config, useEditorWherePossible)
+        // ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', yesterdaysNote, config, useEditorWherePossible)
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
@@ -493,7 +495,8 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         }
 
         // Get list of open tasks/checklists from this calendar note
-        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', tomorrowsNote, config, useEditorWherePossible)
+        // ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', tomorrowsNote, config, useEditorWherePossible)
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)

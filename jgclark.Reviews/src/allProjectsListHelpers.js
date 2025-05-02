@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2025-03-25 for v1.2.1, @jgclark
+// Last updated 2025-04-28 for v1.2.3, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -294,9 +294,8 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
 export async function filterAndSortProjectsList(config: ReviewConfig, projectTag: string = ''): Promise<Array<Project>> {
   try {
     // const startTime = new Date()
-    logDebug('reviews/filterAndSortProjectsList', `Starting with tag '${projectTag}' ...`)
     let projectInstances = await getAllProjectsFromList()
-    logDebug('reviews/filterAndSortProjectsList', `- for ${projectInstances.length} projects`)
+    logDebug('reviews/filterAndSortProjectsList', `Starting with tag '${projectTag}' => ${projectInstances.length} projects`)
 
     // Filter out projects that are not tagged with the projectTag
     if (projectTag !== '') {
@@ -318,9 +317,14 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
       logDebug('reviews/filterAndSortProjectsList', `- after filtering out non-due, ${projectInstances.length} projects`)
     }
 
-    // Sort projects by folder > nextReviewDays > dueDays > title
+    // Need to extend projectInstances with a proxy for the 'projectTag' field, so that we can sort by it according to the order it was given in config.projectTypeTags
+    projectInstances.forEach((pi) => {
+      pi.projectTagOrder = config.projectTypeTags.indexOf(pi.projectTag)
+    })
+
+    // Sort projects by projectTagOrder > folder > [nextReviewDays | dueDays | title]
     const sortingSpecification = []
-    // sortingSpecification.push('isPaused') //  oddly we need to put this first to make sure paused don't come at the top
+    sortingSpecification.push('projectTagOrder')
     if (config.displayGroupedByFolder) {
       sortingSpecification.push('folder')
     }
@@ -361,14 +365,13 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
  * @author @jgclark
  * @param {string} filename of note that has been reviewed
  * @param {boolean} simplyDelete the project line?
- * @param {any} config
-list (optional)
+ * @param {ReviewConfig} config
  */
 export async function updateAllProjectsListAfterChange(
   // reviewedTitle: string,
   reviewedFilename: string,
   simplyDelete: boolean,
-  config: any,
+  config: ReviewConfig,
 ): Promise<void> {
   try {
     if (reviewedFilename === '') {
@@ -401,9 +404,9 @@ export async function updateAllProjectsListAfterChange(
         logWarn('updateAllProjectsListAfterChange', `Couldn't find '${reviewedFilename}' to update in allProjects list`)
         return
       }
-      // FIXME: stale data here TEST: still a problem?
+      // Note: there had been issue of stale data here in the past. Leaving comment in case it's needed again.
       const updatedProject = new Project(reviewedNote, reviewedProject.projectTag, true, config.nextActionTag)
-      clo(updatedProject, '🟡 updatedProject:')
+      // clo(updatedProject, 'in updateAllProjectsListAfterChange() 🟡 updatedProject:')
       allProjects.push(updatedProject)
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
     }
@@ -438,7 +441,7 @@ export async function getNextNoteToReview(): Promise<?TNote> {
 
     if (!allProjectsSorted || allProjectsSorted.length === 0) {
       // Depending where this is called from, this may be quite possible or more of an error. With Perspective, review this.
-      logInfo('getNextNoteToReview', `No active projects found, so stopping`)
+      logInfo('getNextNoteToReview', `No active projects found, so stopping.`)
       return null
     }
 

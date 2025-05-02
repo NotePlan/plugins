@@ -1,8 +1,7 @@
 // @flow
-// Last updated 10.4.2023 for v0.6.1 by @jgclark
+// Show task counts for currently displayed note, or all notes
+// Last updated 2025-04-22 for v0.7.0 by @jgclark
 
-import pluginJson from '../plugin.json'
-// import { logDebug, logWarn } from '@helpers/dev' // removed as there isn't the setting system to define the log level
 import { displayTitle, percent } from '@helpers/general'
 import { showMessage } from '@helpers/userInput'
 
@@ -33,6 +32,7 @@ export async function showTaskCountForNote() {
     `Total Checklists: ${checklistsTotal}, of which ${percent(countParagraphsOfType(["checklistDone", "checklistCancelled"]), checklistsTotal)} are closed`,
   ]
 
+  console.log(`# Task Note Stats:\n${display.join('\n')}`)
   const re = await CommandBar.showOptions(
     display,
     `Task count for '${displayTitle(note)}'. Select anything to copy.`,
@@ -44,11 +44,14 @@ export async function showTaskCountForNote() {
 
 // Shows task statistics for all notes, ignoring @special folders
 export async function showTaskCountForAll(): Promise<void> {
-  const projectNotes = DataStore.projectNotes.filter(
+  // Start this longish sort job in the background
+  await CommandBar.onAsyncThread()
+
+  const regularNotes = DataStore.projectNotes.filter(
     (n) => !n.filename.startsWith("@Templates") && !n.filename.startsWith("@Trash") && !n.filename.startsWith("@Archive")
   )
   const calendarNotes = DataStore.calendarNotes.slice()
-  const allNotes = projectNotes.concat(calendarNotes)
+  const allNotes = regularNotes.concat(calendarNotes)
   const allNotesCount = allNotes.length
   let openTasksTotal = 0
   let doneTasksTotal = 0
@@ -62,6 +65,11 @@ export async function showTaskCountForAll(): Promise<void> {
 
   // Iterate over all project notes, counting
   for (let i = 0; i < allNotesCount; i += 1) {
+    // Show progress dialog every 50 notes
+    if (i % 100 === 0) {
+      CommandBar.showLoading(true, `Processing note ${i.toLocaleString()} of ${allNotesCount.toLocaleString()}`, (i / allNotesCount))
+    }
+
     const n = allNotes[i]
     const paragraphs = n.paragraphs
     const countParagraphsOfType = function (types: Array<string>) {
@@ -82,14 +90,16 @@ export async function showTaskCountForAll(): Promise<void> {
     // following is not quite the same as future. TODO: make future
     scheduledChecklistsTotal += countParagraphsOfType(["checklistScheduled"])
   }
+  CommandBar.showLoading(false)
   const numNotesWithOpen = [...open.entries()].length
+  await CommandBar.onMainThread()// no await
 
   const closedTasksTotal = doneTasksTotal + cancelledTasksTotal
   const tasksTotal = openTasksTotal + closedTasksTotal
   const doneTasksPercent = percent(doneTasksTotal, tasksTotal)
   const cancelledTasksPercent = percent(cancelledTasksTotal, tasksTotal)
   const display1 = [
-    `Task statistics from ${allNotesCount.toLocaleString()} notes:`,
+    `Task statistics from ${allNotesCount.toLocaleString()} active notes:`,
     `\t⚪️ Open: ${percent(openTasksTotal, tasksTotal)}\t📆 Scheduled: ${percent(scheduledTasksTotal, tasksTotal)}`,
     `\t✅ Done: ${doneTasksPercent}\t🚫 Cancelled: ${cancelledTasksPercent}`,
     `\tNotes with open tasks: ${numNotesWithOpen.toLocaleString()}`,
@@ -99,7 +109,7 @@ export async function showTaskCountForAll(): Promise<void> {
   const doneChecklistsPercent = percent(doneChecklistsTotal, checklistsTotal)
   const cancelledChecklistsPercent = percent(cancelledChecklistsTotal, checklistsTotal)
   const display2 = [
-    `Checklist statistics from ${allNotesCount.toLocaleString()} notes:`,
+    `Checklist statistics from ${allNotesCount.toLocaleString()} active notes:`,
     `\t⚪️ Open: ${percent(openChecklistsTotal, checklistsTotal)}\t📆 Scheduled: ${percent(scheduledChecklistsTotal, checklistsTotal)}`,
     `\t✅ Done: ${doneChecklistsPercent}\t🚫 Cancelled: ${cancelledChecklistsPercent}`,
   ]
@@ -120,6 +130,8 @@ export async function showTaskCountForAll(): Promise<void> {
     }
   }
   const display = display1.concat(display2).concat(display3)
+  console.log(`# Task Stats for all active notes:\n${display.join('\n')}`)
+
   const re = await CommandBar.showOptions(
     display,
     'Task stats.  (Select to open/copy)',
