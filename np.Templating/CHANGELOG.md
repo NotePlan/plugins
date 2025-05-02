@@ -4,8 +4,7 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
-## [1.13.0] 2025-03-18 @dwertheimer
-
+## [2.0.0] 2025-XX-XX @dwertheimer
 - Update `Add Frontmatter/Properties to Template` command name
 - add tag function `getValuesForKey` to get all values for a given frontmatter tag
 - add tag function `promptKey` to prompt user for a value with a lot of flexibility on which folders to search for the value etc.
@@ -16,7 +15,7 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 - Fix the long-standing bug where template errors did not show proper line number, esp. when longer code blocks
 - Improve templating error handling/making suggestions for how to fix on JS code execution errors
 - Add detection/messaging of template function calls called without parentheses
-
+- Add ability to pass newNoteTitle argument to `templateNew` command and JSON vars for Shortcuts support
 
 ## [1.12.0] 2025-03-09 @dwertheimer
 
