@@ -537,7 +537,6 @@ export default class NPTemplating {
         })
         .filter(Boolean)
 
-      let resultTemplates = []
       let matches = []
       let exclude = []
       let allTags: Array<string> = []
@@ -824,10 +823,7 @@ export default class NPTemplating {
       } else {
         return `**An error occurred process note**`
       }
-
-      return ''
     }
-
     return ''
   }
 
@@ -1740,6 +1736,7 @@ export default class NPTemplating {
     return newTemplateData
   }
 
+  // Not sure this is used anywhere; @codedungeon committed it as part of a "wip: template script execution" commit
   static async execute(templateData: string = '', sessionData: any): Promise<any> {
     let processedTemplateData = templateData
     let processedSessionData = sessionData
@@ -1757,6 +1754,7 @@ export default class NPTemplating {
             processedTemplateData = processedTemplateData.replace(codeBlock, result)
           } else {
             logDebug(pluginJson, `executeCodeBlock using Function.apply (does not include <%): ${executeCodeBlock}`)
+            // $FlowIgnore
             const fn = Function.apply(null, ['params', executeCodeBlock])
             result = fn(processedSessionData)
 
