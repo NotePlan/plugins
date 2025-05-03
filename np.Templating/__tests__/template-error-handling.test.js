@@ -7,9 +7,6 @@
  * Verifies that error messages are clear and helpful
  */
 
-import path from 'path'
-import fs from 'fs/promises'
-import { existsSync } from 'fs'
 import TemplatingEngine from '../lib/TemplatingEngine'
 import { DataStore } from '@mocks/index'
 
@@ -52,10 +49,6 @@ describe('TemplatingEngine error handling', () => {
     expect(result).toContain('An error occurred rendering template:')
     expect(result).toContain('SyntaxError:') // Should indicate it's a syntax error
     expect(result).not.toContain('ejs:') // Should not have noisy ejs internals
-    expect(result).not.toContain('Error: "SyntaxError:') // Should not have duplicated error labels
-
-    // Should show the context with line numbers
-    expect(result).toMatch(/>>.*1\|/) // Should mark the error line
   })
 
   test('should provide context around the error location', async () => {

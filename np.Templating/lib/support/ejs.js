@@ -725,10 +725,10 @@
               }
               // If the error mentions an identifier that doesn't appear in the line we identified,
               // we might have the wrong line
-              else if (err.message.includes('Unexpected identifier')) {
-                const identifierMatch = err.message.match(/Unexpected identifier ['"]?([^'")\s]+)['"]?/i)
-                if (identifierMatch && identifierMatch[1]) {
-                  const identifier = identifierMatch[1]
+              else if (err.message.includes('Unexpected identifier') || err.message.includes('Unexpected token')) {
+                const identifierMatch = err.message.match(/(Unexpected identifier|Unexpected token) ['"]?([^'")\s]+)['"]?/i)
+                if (identifierMatch && identifierMatch[2]) {
+                  const identifier = identifierMatch[2]
                   // Check if this identifier appears in the line we've identified
                   if (lineno > 0 && lineno <= lines.length && !lines[lineno - 1].includes(identifier)) {
                     // The identifier isn't on this line, so our line number might be wrong
@@ -776,7 +776,7 @@
               // Check if any snippets appear in the identified line
               for (const snippet of codeSnippets) {
                 const content = snippet.substring(1, snippet.length - 1)
-                if (content.length > 2 && lines[lineno - 1].includes(content)) {
+                if (content.length <= 2 || lines[lineno - 1].includes(content)) {
                   foundMatch = true
                   break
                 }

@@ -907,9 +907,6 @@ export default class NPTemplating {
     // Merge override variables into session data
     context.sessionData = { ...context.sessionData, ...context.override }
 
-    // Process and validate JSON in DataStore.invokePluginCommandByName calls
-    await this._processJsonInDataStoreCalls(context)
-
     // Return the processed data
     return {
       newTemplateData: context.templateData,
@@ -1233,35 +1230,6 @@ export default class NPTemplating {
       .join('\n')
 
     return context
-  }
-
-  /**
-   * Process and validate JSON in DataStore.invokePluginCommandByName calls
-   * This method specifically looks for JSON-like strings in the arguments of DataStore.invokePluginCommandByName calls
-   * and validates them. It handles several cases:
-   *
-   * 1. JSON strings wrapped in quotes: '{"key":"value"}' or "{"key":"value"}"
-   * 2. JSON strings in arrays: ['{"key":"value"}'] or ["{"key":"value"}"]
-   * 3. Direct JSON objects: {"key":"value"}
-   *
-   * The method guards against:
-   * - Invalid JSON syntax (missing quotes, unescaped characters, etc.)
-   * - Malformed object structures
-   * - Missing closing braces/brackets
-   * - Invalid property names
-   *
-   * @param {Object} context - The template processing context
-   * @returns {Promise<void>}
-   */
-  static async _processJsonInDataStoreCalls(context: {
-    templateData: string,
-    sessionData: Object,
-    jsonErrors: Array<any>,
-    criticalError: boolean,
-    override: Object,
-  }): Promise<void> {
-    // Use the JSONValidator class instead of implementing the validation here
-    await JSONValidator.validateJSON(context)
   }
 
   /**
