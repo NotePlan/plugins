@@ -10,6 +10,7 @@ import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
 import DateModule from './support/modules/DateModule'
 import { debug, helpInfo } from './helpers'
+import JSONValidator from './support/JSONValidator'
 
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
@@ -660,11 +661,13 @@ export default class NPTemplating {
         let templates: Array<TNote> = []
         if (isFilename) {
           logDebug(pluginJson, `NPTemplating.getTemplate: Searching for template by title without path "${originalFilename}" isFilename=${String(isFilename)}`)
-          templates = (await DataStore.projectNoteByTitle(originalFilename, true, false)) || []
+          const foundTemplates = await DataStore.projectNoteByTitle(originalFilename, true, false)
+          templates = foundTemplates ? Array.from(foundTemplates) : []
         } else {
           // if it was a path+title, we need to look for just the name part without the path
           logDebug(pluginJson, `NPTemplating.getTemplate: Searching for template by title without path "${filename || ''}" isFilename=${String(isFilename)}`)
-          templates = filename ? (await DataStore.projectNoteByTitle(filename, true, false)) || [] : []
+          const foundTemplates = filename ? await DataStore.projectNoteByTitle(filename, true, false) : null
+          templates = foundTemplates ? Array.from(foundTemplates) : []
           logDebug(pluginJson, `NPTemplating.getTemplate ${filename || ''}: Found ${templates.length} templates`)
           if (parts.length > 0 && templates && templates.length > 0) {
             // ensure the path part matched
@@ -908,9 +911,8 @@ export default class NPTemplating {
     // Merge override variables into session data
     context.sessionData = { ...context.sessionData, ...context.override }
 
-    // Fix JSON in DataStore.invokePluginCommandByName calls
-    // dbw note: this caused more problems than it solved; the call to it was removed in 2025-03-26
-    await this._processJsonInDataStoreCalls(context) // Too many false positives
+    // Process and validate JSON in DataStore.invokePluginCommandByName calls
+    await this._processJsonInDataStoreCalls(context)
 
     // Return the processed data
     return {
@@ -1252,13 +1254,8 @@ export default class NPTemplating {
    * - Missing closing braces/brackets
    * - Invalid property names
    *
-   * @param {Object} context - The template processing context containing:
-   *   - templateData: The full template text
-   *   - sessionData: Data available during processing
-   *   - jsonErrors: Array to collect any JSON validation errors
-   *   - criticalError: Boolean flag for critical errors
-   *   - override: Object for overriding values
-   * @private
+   * @param {Object} context - The template processing context
+   * @returns {Promise<void>}
    */
   static async _processJsonInDataStoreCalls(context: {
     templateData: string,
@@ -1267,114 +1264,18 @@ export default class NPTemplating {
     criticalError: boolean,
     override: Object,
   }): Promise<void> {
-    try {
-      // Only look for DataStore.invokePluginCommandByName calls
-      const commandPattern = /DataStore\.invokePluginCommandByName\([^)]*\)/g
-      const matches = context.templateData.match(commandPattern) || []
-
-      for (const match of matches) {
-        // Extract the arguments part of the call
-        const argsMatch = match.match(/DataStore\.invokePluginCommandByName\((.*)\)/)
-        if (!argsMatch) continue
-
-        const args = argsMatch[1]
-
-        // Look for JSON-like strings in the arguments
-        // This pattern matches:
-        // 1. JSON strings wrapped in quotes: '{"key":"value"}' or "{"key":"value"}"
-        // 2. JSON strings in arrays: ['{"key":"value"}'] or ["{"key":"value"}"]
-        // 3. Direct JSON objects: {"key":"value"}
-        const jsonPattern = /(?:['"](\{[^}]*\})['"]|(\{[^}]*\}))(?:\s*,\s*['"](\{[^}]*\})['"])?/g
-        let jsonMatch
-
-        while ((jsonMatch = jsonPattern.exec(args)) !== null) {
-          // Try each potential JSON match
-          for (let i = 1; i < jsonMatch.length; i++) {
-            if (jsonMatch[i]) {
-              try {
-                // Try to parse the JSON to validate it
-                JSON.parse(jsonMatch[i])
-              } catch (e) {
-                // If parsing fails, add an error
-                this._addJsonError(context, jsonMatch[i], `Invalid JSON in DataStore.invokePluginCommandByName call: ${e.message}`, true)
-              }
-            }
-          }
-        }
-      }
-
-      // Log a summary if multiple errors are found
-      if (context.jsonErrors.length > 0) {
-        logError(pluginJson, `Template contains JSON errors: ${context.jsonErrors.length} issues detected`)
-      }
-    } catch (error) {
-      logError(pluginJson, `Error in _processJsonInDataStoreCalls: ${error.message}`)
-    }
+    // Use the JSONValidator class instead of implementing the validation here
+    await JSONValidator.validateJSON(context)
   }
 
   /**
-   * Add a JSON error to the context's error collection
-   * Tracks errors by line to avoid duplicate contexts
-   * @param {Object} context - The template processing context
-   * @param {string} match - The text match that triggered the error
-   * @param {string} errorMessage - The error message to display
-   * @param {boolean} isCritical - Whether this is a critical error
+   * Format critical errors into a readable message with context
+   * @param {Array<any>} jsonErrors - The array of JSON errors
+   * @returns {string} - Formatted error message
    * @private
    */
-  static _addJsonError(context /*: Object */, match /*: string */, errorMessage /*: string */, isCritical /*: boolean */ = false) /*: void */ {
-    const lineNumber = this._getLineNumberForMatch(context.templateData, match)
-
-    // Find existing error for this line or create a new one
-    let existingError = context.jsonErrors.find((err) => err.lineNumber === lineNumber)
-
-    if (existingError) {
-      // Add this message to the existing error's list of messages
-      if (!existingError.messages) {
-        existingError.messages = [existingError.error]
-        delete existingError.error
-      }
-      existingError.messages.push(errorMessage)
-
-      // Update critical flag if needed
-      if (isCritical) {
-        existingError.critical = true
-        context.criticalError = true
-      }
-    } else {
-      // Create a new error entry with context
-      const errorContext = this._getErrorContextString(context.templateData, match, lineNumber)
-
-      context.jsonErrors.push({
-        lineNumber,
-        messages: [errorMessage],
-        context: errorContext,
-        critical: isCritical,
-      })
-
-      if (isCritical) {
-        context.criticalError = true
-      }
-
-      // Log the error for developers
-      logError(pluginJson, `JSON error at line ${lineNumber}: ${errorMessage}\n${errorContext}`)
-    }
-  }
-
-  /**
-   * Helper method to get the line number for a match
-   * @param {string} templateData - The template text
-   * @param {string} match - The text to find
-   * @returns {number} - The line number (1-based)
-   * @private
-   */
-  static _getLineNumberForMatch(templateData: string, match: string): number {
-    const lines = templateData.split('\n')
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes(match)) {
-        return i + 1
-      }
-    }
-    return 0
+  static _formatCriticalErrors(jsonErrors: Array<any>): string {
+    return JSONValidator.formatCriticalErrors(jsonErrors)
   }
 
   static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
@@ -1927,41 +1828,15 @@ export default class NPTemplating {
   }
 
   /**
-   * Format critical errors into a readable message with context
-   * @param {Array<any>} jsonErrors - The array of JSON errors
-   * @returns {string} - Formatted error message
+   * @deprecated Use JSONValidator._getLineNumberForMatch instead
+   * Helper method to get the line number for a match
+   * @param {string} templateData - The template text
+   * @param {string} match - The text to find
+   * @returns {number} - The line number (1-based)
    * @private
    */
-  static _formatCriticalErrors(jsonErrors: Array<any>): string {
-    // Group errors by line number
-    const errorsByLine = {}
-    jsonErrors
-      .filter((err) => err.critical)
-      .forEach((err) => {
-        if (!errorsByLine[err.lineNumber]) {
-          errorsByLine[err.lineNumber] = {
-            messages: err.messages || [err.error],
-            context: err.context,
-          }
-        } else {
-          // Append messages if this line already has errors
-          const messages = err.messages || [err.error]
-          errorsByLine[err.lineNumber].messages = [...errorsByLine[err.lineNumber].messages, ...messages]
-        }
-      })
-
-    // Convert to array and sort by line number
-    const errorLines = Object.keys(errorsByLine)
-      .sort((a, b) => parseInt(a) - parseInt(b))
-      .map((lineNum) => {
-        const { messages, context } = errorsByLine[lineNum]
-        const messagesText = messages.map((m: string) => `- ${m}`).join('\n')
-        const msg = `critical Error at line ${lineNum}:`.toUpperCase()
-        const errorMessage = `${msg}\n${messagesText}\n${context || ''}`
-        return `${errorMessage}\n`
-      })
-      .join('\n\n')
-
-    return `==Template has critical errors that must be fixed before rendering==\n\`\`\`Template Error\n${errorLines}\nPlease check the console log for more details.\n\`\`\`\n`
+  static _getLineNumberForMatch(templateData: string, match: string): number {
+    // Delegate to JSONValidator functionality
+    return JSONValidator._getLineNumberForMatch(templateData, match)
   }
 }

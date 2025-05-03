@@ -8,6 +8,7 @@
  */
 
 import NPTemplating from '../lib/NPTemplating'
+import JSONValidator from '../lib/support/JSONValidator'
 import { DataStore } from '@mocks/index'
 
 // for Flow errors with Jest
@@ -34,9 +35,9 @@ describe('JSON error detection', () => {
     global.logDebug = logDebugMock = jest.fn()
     global.logError = logErrorMock = jest.fn()
 
-    // Make the mock available directly in the NPTemplating module's scope
-    jest.mock('../lib/NPTemplating', () => {
-      const originalModule = jest.requireActual('../lib/NPTemplating')
+    // Make the mock available directly in the modules' scope
+    jest.mock('../lib/support/JSONValidator', () => {
+      const originalModule = jest.requireActual('../lib/support/JSONValidator')
       return {
         ...originalModule,
         logDebug: global.logDebug,
@@ -71,7 +72,7 @@ describe('JSON error detection', () => {
   test('should NOT flag valid JS object literals in DataStore function calls as errors', async () => {
     context.templateData = `<% await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',[{"numDays":14, "sectionHeading": "Blocks 🕑", "runSilently": true}]) -%>`
 
-    await NPTemplating._processJsonInDataStoreCalls(context)
+    await JSONValidator.validateJSON(context)
 
     // No errors should be reported
     expect(context.criticalError).toBe(false)
@@ -82,7 +83,7 @@ describe('JSON error detection', () => {
   test('should NOT flag valid JS object literals in DataStore function calls as errors', async () => {
     context.templateData = `<% await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',['{"numDays":14, "sectionHeading": "Blocks 🕑", "runSilently": true}']) -%>`
 
-    await NPTemplating._processJsonInDataStoreCalls(context)
+    await JSONValidator.validateJSON(context)
 
     // No errors should be reported
     expect(context.templateData).toContain(
@@ -94,9 +95,9 @@ describe('JSON error detection', () => {
 
   test('should detect missing closing brace in JSON outside of code blocks', async () => {
     const invalidJson = '{"numDays":14, "sectionHeading":"Test Section"'
-    context.templateData = `Here is some invalid JSON: ${invalidJson}`
+    context.templateData = `DataStore.invokePluginCommandByName('Test Command','plugin.id',[${invalidJson}])`
 
-    await NPTemplating._processJsonInDataStoreCalls(context)
+    await JSONValidator.validateJSON(context)
 
     expect(context.criticalError).toBe(true)
     expect(context.jsonErrors.length).toBeGreaterThan(0)
@@ -106,7 +107,7 @@ describe('JSON error detection', () => {
     const invalidJson = '{"numDays":14, \'sectionHeading\':"Test Section"}'
     context.templateData = `Here is some invalid JSON: ${invalidJson}`
 
-    await NPTemplating._processJsonInDataStoreCalls(context)
+    await JSONValidator.validateJSON(context)
 
     expect(context.criticalError).toBe(true)
     expect(context.jsonErrors.length).toBeGreaterThan(0)
@@ -116,7 +117,7 @@ describe('JSON error detection', () => {
     const invalidJson = '{"message":"This "contains" quotes"}'
     context.templateData = `Here is some invalid JSON: ${invalidJson}`
 
-    await NPTemplating._processJsonInDataStoreCalls(context)
+    await JSONValidator.validateJSON(context)
 
     expect(context.criticalError).toBe(true)
     expect(context.jsonErrors.length).toBeGreaterThan(0)
@@ -125,7 +126,7 @@ describe('JSON error detection', () => {
   test('should fix single-quoted properties in JSON objects outside of code blocks', async () => {
     context.templateData = `Here is some single-quoted JSON: '{"numDays":14, "sectionHeading":"Test Section"}'`
 
-    await NPTemplating._processJsonInDataStoreCalls(context)
+    await JSONValidator.validateJSON(context)
 
     // Should have converted single quotes to double quotes
     expect(context.templateData).toContain('{"numDays":14, "sectionHeading":"Test Section"}')
@@ -138,7 +139,7 @@ describe('JSON error detection', () => {
       Here is some invalid JSON with unescaped quotes: {"message":"This "contains" quotes"}
     `
 
-    await NPTemplating._processJsonInDataStoreCalls(context)
+    await JSONValidator.validateJSON(context)
 
     expect(context.criticalError).toBe(true)
     expect(context.jsonErrors.length).toBeGreaterThan(0)
@@ -150,7 +151,7 @@ describe('JSON error detection', () => {
       Here is some invalid JSON: {"unclosed": "object"
     `
 
-    await NPTemplating._processJsonInDataStoreCalls(context)
+    await JSONValidator.validateJSON(context)
 
     // Should find the error but leave the valid code block untouched
     expect(context.criticalError).toBe(true)
