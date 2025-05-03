@@ -35,7 +35,7 @@ import {
 //--------------------------------------------------------------------------
 // Constants
 
-const wantedTagMentionsList = 'wantedTagMentionsList.json'
+const wantedTagMentionsListFile = 'wantedTagMentionsList.json'
 const tagMentionCacheFile = 'tagMentionCache.json'
 const lastTimeThisWasRunPref = 'jgclark.Dashboard.tagMentionCache.lastTimeUpdated'
 
@@ -50,8 +50,8 @@ const turnOffAPILookups = true
  * @returns {Array<string>} An array containing the list of mentions and tags
  */
 export function getTagMentionCacheDefinitions(): Array<string> {
-  if (DataStore.fileExists(wantedTagMentionsList)) {
-    const data = DataStore.loadData(wantedTagMentionsList, true) ?? ''
+  if (DataStore.fileExists(wantedTagMentionsListFile)) {
+    const data = DataStore.loadData(wantedTagMentionsListFile, true) ?? ''
     const parsedData = JSON.parse(data)
     return parsedData.items
   } else {
@@ -63,13 +63,14 @@ export function getTagMentionCacheDefinitions(): Array<string> {
  * Add a new mention or tag to the wantedTagMentionsList.json file.
  * @param {string} mentionOrTag The mention or tag to add.
  */
-export function addTagMentionCacheDefinition(mentionOrTag: string): void {
+export function addTagMentionCacheDefinition(mentionOrTagIn: string): void {
+  const mentionOrTag = mentionOrTagIn.trim()
   const itemList: Array<string> = getTagMentionCacheDefinitions()
   // But only add if it's not already in the list
   if (!itemList.includes(mentionOrTag)) {
     itemList.push(mentionOrTag)
   }
-  DataStore.saveData(JSON.stringify({ items: itemList }), wantedTagMentionsList, true)
+  DataStore.saveData(JSON.stringify({ items: itemList }), wantedTagMentionsListFile, true)
 }
 
 /**
@@ -81,8 +82,8 @@ export function setTagMentionCacheDefinitions(items: Array<string>): void {
   const cache = {
     items: items,
   }
-  DataStore.saveData(JSON.stringify(cache), wantedTagMentionsList, true)
-  logInfo('setTagMentionCacheDefinitions', `Saved [${String(items)}] items to ${wantedTagMentionsList}`)
+  DataStore.saveData(JSON.stringify(cache), wantedTagMentionsListFile, true)
+  logInfo('setTagMentionCacheDefinitions', `Saved [${String(items)}] items to ${wantedTagMentionsListFile}`)
 }
 
 /**
@@ -281,7 +282,7 @@ export async function updateTagMentionCache(): Promise<void> {
     // Get last updated time from special preference
     const previousJSDate = DataStore.preference(lastTimeThisWasRunPref) ?? null
     if (!previousJSDate) {
-      throw new Error(`No previous cache update time found (as pref '${lastTimeThisWasRunPref}' appears not to be set)`)
+      logWarn('updateTagMentionCache', `No previous cache update time found (as pref '${lastTimeThisWasRunPref}' appears not to be set)`)
     }
     const momPrevious = moment(previousJSDate)
     const momNow = moment()
@@ -345,7 +346,7 @@ export function generateTagMentionCacheSummary(): string {
   const cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
   const parsedCache = JSON.parse(cache)
   const summary = `## Tag/Mention Cache Stats:
-- Wanted items: ${String(getTagMentionCacheDefinitions())}
+- Wanted items: ${getTagMentionCacheDefinitions().join(', ')}
 - Generated at: ${parsedCache.generatedAt}
 - Last updated: ${parsedCache.lastUpdated}
 - # Regular notes: ${parsedCache.regularNotes.length}
@@ -484,7 +485,7 @@ function getWantedTagsAndMentionsFromAllPerspectives(allPerspectives: Array<TPer
     const tagsAndMentionsStr = perspective.dashboardSettings.tagsToShow ?? ''
     const tagsAndMentionsArr = stringListOrArrayToArray(tagsAndMentionsStr, ',')
     tagsAndMentionsArr.forEach((torm) => {
-      wantedItems.add(torm)
+      wantedItems.add(torm.trim())
     })
   }
   logDebug('', `=> wantedItems: ${String(Array.from(wantedItems))}`)

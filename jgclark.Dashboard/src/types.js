@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-05-01 for v2.2.2, @jgclark
+// Last updated 2025-05-02 for v2.2.2, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -18,6 +18,7 @@ export type TNotePlanSettings = {
   defaultFileExtension: string,
   doneDatesAvailable: boolean,
   timeblockMustContainString: string,
+  currentTeamspaces?: Array<TTeamspace>,
 }
 
 /*
@@ -166,6 +167,7 @@ export type TSectionItem = {
   parentID?: string, // if this is a sub-task, this holds the ID of the parent task if that is also an open item (required for displaying children properly with their parents in useSelectionSortAndFilter)
   message?: string, // for items that don't have a para or project
   settingsDialogAnchor?: string, // scroll to this element when the gear icon is clicked
+  teamspaceTitle?: string, // if this is from a Teamspace note
 }
 
 // reduced paragraph definition

@@ -433,16 +433,13 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
           <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`}>
             <div onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
               <span className="preText">From:</span>
-              {/*
-              <i className="pad-left-larger pad-right fa-regular fa-file-lines"></i>
-              <span className="dialogItemNote pad-right">{title}</span>
-              */}
-              <ItemNoteLink
-                item={item}
-                thisSection={sectionCodes}
-                alwaysShowNoteTitle={true}
-              />
-              {/* {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar note)</span> : null} */}
+              <span style={{ fontWeight: 600 }}>
+                <ItemNoteLink
+                  item={item}
+                  thisSection={sectionCodes}
+                  alwaysShowNoteTitle={true}
+                />
+              </span>
             </div>
           </TooltipOnKeyPress>
           <div className="dialog-top-right">

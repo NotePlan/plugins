@@ -14,7 +14,10 @@ import { endOfFrontmatterLineIndex, ensureFrontmatter } from '@helpers/NPFrontMa
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { noteType } from '@helpers/note'
 import { caseInsensitiveIncludes, getCorrectedHashtagsFromNote } from '@helpers/search'
+import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
+
+//-------------------------------------------------------------------------------
 
 const pluginJson = 'NPnote.js'
 
@@ -146,7 +149,7 @@ export function getTeamspaceDetailsFromNote(note: TNote): TTeamspace | null {
 export function getNoteFromFilename(filename: string): TNote | null {
   try {
     let foundNote: TNote | null = null
-    const { _filename, isTeamspace, teamspaceID } = dt.parseTeamspaceCalendarFilename(filename)
+    const { _filename, isTeamspace, teamspaceID } = parseTeamspaceFilename(filename)
     if (isTeamspace) {
       foundNote = DataStore.projectNoteByFilename(filename, teamspaceID) ?? DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filename, teamspaceID))
       logInfo('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filename}`)
