@@ -10,7 +10,6 @@ import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
 import DateModule from './support/modules/DateModule'
 import { debug, helpInfo } from './helpers'
-import JSONValidator from './support/JSONValidator'
 
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
@@ -838,8 +837,6 @@ export default class NPTemplating {
     const context = {
       templateData: templateData || '',
       sessionData: { ...sessionData },
-      jsonErrors: [],
-      criticalError: false,
       override: {},
     }
 
@@ -848,8 +845,6 @@ export default class NPTemplating {
       return {
         newTemplateData: context.templateData,
         newSettingData: context.sessionData,
-        jsonErrors: context.jsonErrors,
-        criticalError: context.criticalError,
       }
     }
 
@@ -911,8 +906,6 @@ export default class NPTemplating {
     return {
       newTemplateData: context.templateData,
       newSettingData: context.sessionData,
-      jsonErrors: context.jsonErrors,
-      criticalError: context.criticalError,
     }
   }
 
@@ -920,10 +913,7 @@ export default class NPTemplating {
    * Process comment tags by removing them from the template
    * @private
    */
-  static async _processCommentTag(
-    tag: string,
-    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
-  ): Promise<void> {
+  static async _processCommentTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     const regex = new RegExp(`${tag}[\\s\\r\\n]*`, 'g')
     context.templateData = context.templateData.replace(regex, '')
   }
@@ -932,10 +922,7 @@ export default class NPTemplating {
    * Process note tags by replacing them with the note content
    * @private
    */
-  static async _processNoteTag(
-    tag: string,
-    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
-  ): Promise<void> {
+  static async _processNoteTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     context.templateData = context.templateData.replace(tag, await this.preProcessNote(tag))
   }
 
@@ -943,10 +930,7 @@ export default class NPTemplating {
    * Process calendar tags by replacing them with the calendar note content
    * @private
    */
-  static async _processCalendarTag(
-    tag: string,
-    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
-  ): Promise<void> {
+  static async _processCalendarTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     context.templateData = context.templateData.replace(tag, await this.preProcessCalendar(tag))
   }
 
@@ -954,10 +938,7 @@ export default class NPTemplating {
    * Process return/carriage return tags by removing them
    * @private
    */
-  static async _processReturnTag(
-    tag: string,
-    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
-  ): Promise<void> {
+  static async _processReturnTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     context.templateData = context.templateData.replace(tag, '')
   }
 
@@ -965,10 +946,7 @@ export default class NPTemplating {
    * Process code tags by adding await prefix to function calls
    * @private
    */
-  static async _processCodeTag(
-    tag: string,
-    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
-  ): Promise<void> {
+  static async _processCodeTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     // Extract the code content from inside the tag
     const startDelim = tag.startsWith('<%=') ? '<%=' : tag.startsWith('<%-') ? '<%-' : '<%'
     const endDelim = tag.endsWith('-%>') ? '-%>' : '%>'
@@ -1092,10 +1070,7 @@ export default class NPTemplating {
    * Process include/template tags by replacing them with the included template content
    * @private
    */
-  static async _processIncludeTag(
-    tag: string,
-    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
-  ): Promise<void> {
+  static async _processIncludeTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     if (isCommentTag(tag)) return
 
     let includeInfo = tag
@@ -1150,10 +1125,7 @@ export default class NPTemplating {
    * Process variable declaration tags
    * @private
    */
-  static async _processVariableTag(
-    tag: string,
-    context: { templateData: string, sessionData: Object, jsonErrors: Array<any>, criticalError: boolean, override: Object },
-  ): Promise<void> {
+  static async _processVariableTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     if (!context.sessionData) return
 
     const tempTag = tag.replace('const', '').replace('let', '').trimLeft().replace('<%', '').replace('-%>', '').replace('%>', '')
@@ -1232,16 +1204,6 @@ export default class NPTemplating {
     return context
   }
 
-  /**
-   * Format critical errors into a readable message with context
-   * @param {Array<any>} jsonErrors - The array of JSON errors
-   * @returns {string} - Formatted error message
-   * @private
-   */
-  static _formatCriticalErrors(jsonErrors: Array<any>): string {
-    return JSONValidator.formatCriticalErrors(jsonErrors)
-  }
-
   static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     const usePrompts = true
     try {
@@ -1316,12 +1278,7 @@ export default class NPTemplating {
 
           logDebug(pluginJson, `render calling preProcess ${key}: ${frontMatterValue}`)
           // $FlowIgnore
-          const { newTemplateData, newSettingData, jsonErrors, criticalError } = await this.preProcess(frontMatterValue, sessionData)
-
-          // If critical errors are found, return an error message instead of rendering
-          if (criticalError) {
-            return this._formatCriticalErrors(jsonErrors)
-          }
+          const { newTemplateData, newSettingData } = await this.preProcess(frontMatterValue, sessionData)
 
           sessionData = { ...sessionData, ...newSettingData }
           logDebug(pluginJson, `render calling render`)
@@ -1338,12 +1295,7 @@ export default class NPTemplating {
       templateData = convertJavaScriptBlocksToTags(templateData)
 
       // $FlowIgnore
-      const { newTemplateData, newSettingData, jsonErrors, criticalError } = await this.preProcess(templateData, sessionData)
-
-      // If critical errors are found, return an error message instead of rendering
-      if (criticalError) {
-        return this._formatCriticalErrors(jsonErrors)
-      }
+      const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
 
       sessionData = { ...newSettingData }
 
@@ -1791,18 +1743,5 @@ export default class NPTemplating {
       return TEMPLATE_MODULES.indexOf(moduleName) >= 0
     }
     return false
-  }
-
-  /**
-   * @deprecated Use JSONValidator._getLineNumberForMatch instead
-   * Helper method to get the line number for a match
-   * @param {string} templateData - The template text
-   * @param {string} match - The text to find
-   * @returns {number} - The line number (1-based)
-   * @private
-   */
-  static _getLineNumberForMatch(templateData: string, match: string): number {
-    // Delegate to JSONValidator functionality
-    return JSONValidator._getLineNumberForMatch(templateData, match)
   }
 }

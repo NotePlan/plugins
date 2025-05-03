@@ -49,12 +49,10 @@ describe('PreProcess helper functions', () => {
     // Mock DataStore.invokePluginCommandByName
     DataStore.invokePluginCommandByName = jest.fn().mockResolvedValue('mocked result')
 
-    // Standard context object for testing
+    // Basic context object for most tests
     context = {
-      templateData: '',
+      templateData: 'Initial data',
       sessionData: {},
-      jsonErrors: [],
-      criticalError: false,
       override: {},
     }
   })
@@ -262,8 +260,6 @@ var result3 = DataStore.invoke("cmd3");
       const testContext = {
         templateData: variableWithFunctionTag,
         sessionData: {},
-        jsonErrors: [],
-        criticalError: false,
         override: {},
       }
 
@@ -489,8 +485,7 @@ processData(data);
 
     test('should process code fragments with else if statements correctly', async () => {
       const tagWithFragments = `<% 
-} else if (dayNum === 2) { // tuesday
-%>`
+} else if (dayNum === 2) { // tuesday -%>`
       context.templateData = tagWithFragments
 
       await NPTemplating._processCodeTag(tagWithFragments, context)
@@ -546,73 +541,6 @@ processData(data);
   })
 
   describe('_processJsonInDataStoreCalls', () => {
-    test('should NOT flag valid JS object literals in function calls as errors', async () => {
-      // This is a valid JavaScript object literal in a function call - should NOT be flagged
-      context.templateData = `<% await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',[{"numDays":14, "sectionHeading": "Blocks 🕑", "runSilently": true}]) -%>`
-
-      await NPTemplating._processJsonInDataStoreCalls(context)
-
-      // No errors should be reported
-      expect(context.criticalError).toBe(false)
-      expect(context.jsonErrors.length).toBe(0)
-    })
-
-    test('should NOT flag JavaScript object with single quotes in function calls', async () => {
-      // Single-quoted object properties in JS function calls are valid
-      context.templateData = `<% await DataStore.invokePluginCommandByName('Command', 'plugin', [{'key': 'value'}]) %>`
-
-      await NPTemplating._processJsonInDataStoreCalls(context)
-
-      // No errors should be reported
-      expect(context.criticalError).toBe(false)
-      expect(context.jsonErrors.length).toBe(0)
-    })
-
-    test('should detect invalid JSON outside of template code blocks', async () => {
-      // Invalid JSON outside of a code block
-      const invalidJson = '{"numDays":14, "sectionHeading":"Test Section"'
-      context.templateData = `Here is some invalid JSON: ${invalidJson}`
-
-      await NPTemplating._processJsonInDataStoreCalls(context)
-
-      // Update to check for any errors, not specific message
-      expect(context.criticalError).toBe(true)
-      expect(context.jsonErrors.length).toBeGreaterThan(0)
-    })
-
-    test('should detect invalid JSON with mixed quotes outside of code blocks', async () => {
-      // Invalid JSON outside of a code block
-      const invalidJson = '{"numDays":14, \'sectionHeading\':"Test Section"}'
-      context.templateData = `Here is some invalid JSON: ${invalidJson}`
-
-      await NPTemplating._processJsonInDataStoreCalls(context)
-
-      // Update to check for any errors, not specific message
-      expect(context.criticalError).toBe(true)
-      expect(context.jsonErrors.length).toBeGreaterThan(0)
-    })
-
-    test('should detect JSON with unescaped quotes outside of code blocks', async () => {
-      // Invalid JSON outside of a code block
-      const invalidJson = '{"message":"This "contains" quotes"}'
-      context.templateData = `Here is some invalid JSON: ${invalidJson}`
-
-      await NPTemplating._processJsonInDataStoreCalls(context)
-
-      expect(context.criticalError).toBe(true)
-      expect(context.jsonErrors.length).toBeGreaterThan(0)
-    })
-
-    test('should fix single-quoted JSON format outside of code blocks', async () => {
-      // Single-quoted JSON outside of a code block
-      context.templateData = `Here is some invalid JSON: '{"numDays":14, "sectionHeading":"Test Section"}'`
-
-      await NPTemplating._processJsonInDataStoreCalls(context)
-
-      // Should convert single quotes to double quotes
-      expect(context.templateData).toContain('{"numDays":14, "sectionHeading":"Test Section"}')
-    })
-
     test('should process both valid code blocks and invalid JSON in the same template', async () => {
       // Mixed content - valid object in function call and invalid JSON elsewhere
       context.templateData = `
@@ -622,9 +550,6 @@ processData(data);
 
       await NPTemplating._processJsonInDataStoreCalls(context)
 
-      // Should find the error but leave the valid code block untouched
-      expect(context.criticalError).toBe(true)
-      expect(context.jsonErrors.length).toBeGreaterThan(0)
       expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName('Command','plugin',[{"valid": "object"}])`)
     })
   })
@@ -674,12 +599,6 @@ processData(data);
       expect(result.newSettingData.myVar).toBe('test value')
       expect(result.newTemplateData).not.toContain('<%# Comment to remove %>')
       expect(result.newTemplateData).toContain('await DataStore.invokePluginCommandByName')
-
-      // Verify that jsonErrors exists and contains at least one item
-      expect(result.jsonErrors).toBeTruthy()
-      expect(result.jsonErrors.length).toBeGreaterThan(0)
-      // Check that we have a criticalError flag set
-      expect(result.criticalError).toBe(true)
     })
   })
 })
