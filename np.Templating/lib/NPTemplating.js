@@ -1092,8 +1092,9 @@ export default class NPTemplating {
 
     const templateContent = await this.getTemplate(templateName, { silent: true })
     const hasFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateContent)
+    const isCalendarNote = /^\d{8}|\d{4}-\d{2}-\d{2}$/.test(templateName)
 
-    if (hasFrontmatter) {
+    if (hasFrontmatter && !isCalendarNote) {
       // if the included file has frontmatter, we need to preRender it because it could be a template
       const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateContent, context.sessionData)
       context.sessionData = { ...frontmatterAttributes }
@@ -1118,7 +1119,7 @@ export default class NPTemplating {
     } else {
       // this is a regular, non-frontmatter note (regular note or calendar note)
       // Handle special case for calendar data
-      if (templateName.length === 8 && /^\d+$/.test(templateName)) {
+      if (isCalendarNote) {
         const calendarData = await this.preProcessCalendar(templateName)
         context.templateData = context.templateData.replace(tag, calendarData)
       } else {
