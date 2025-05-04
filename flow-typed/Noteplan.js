@@ -2083,6 +2083,7 @@ declare class NotePlan {
    *   .machineName: {String}, name of the device, like 'macbook-pro.local', available in v3.9.7
    *   .screenWidth: {number}, available in v3.9.7
    *   .screenHeight: {number}, available in v3.9.7
+   *   .teamspaceFilenamePrefix: {string}, the prefix for teamspace notes, available in v3.17.0
    */
   static +environment: Object;
   /**

@@ -35,7 +35,7 @@ import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
+import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID, getNoteFromFilename, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
 import { getStartTimeObjFromParaContent, getTimeBlockString, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
 import { hasScheduledDate, isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
@@ -890,12 +890,13 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
 export function createSectionItemObject(id: string, p: TParagraph | TParagraphForDashboard | null = null, theType?: TItemType): TSectionItem {
   try {
     const itemObj = { ID: id, itemType: theType ?? p.type, para: p }
-    // FIXME: this lookup isn't working for teamspace notes
-    const thisNote = p.note
+    // FIXME: this lookup isn't working for ?some? teamspace notes
+    const thisNote = getNoteFromFilename(p.filename)
     if (thisNote) {
       const teamspaceTitle = getTeamspaceTitleFromNote(thisNote)
       if (teamspaceTitle !== '') {
         itemObj.teamspaceTitle = teamspaceTitle
+        logDebug('createSectionItemObject', `- added teamspaceTitle ${teamspaceTitle}`)
       }
     } else {
       logWarn('createSectionItemObject', `- cannot get note from para {${p.content}} -- probably a Teamspace API problem`)

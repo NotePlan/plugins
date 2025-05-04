@@ -9,14 +9,11 @@ import { useAppContext } from './AppContext.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { isDailyDateStr, isWeeklyDateStr, isMonthlyDateStr, isQuarterlyDateStr } from '@helpers/dateTime'
 import { getFolderFromFilename } from '@helpers/folders'
-import { parseTeamspaceFilename } from '@helpers/teamspace'
+import { parseTeamspaceFilename, TEAMSPACE_FA_ICON } from '@helpers/teamspace'
 import { logDebug, clo } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 //-----------------------------------------------------------
-// CONSTANTS & TYPES
-
-const TEAMSPACE_ICON = 'fa-regular fa-screen-users'
 
 type Props = {
   item: TSectionItem,
@@ -24,10 +21,11 @@ type Props = {
   alwaysShowNoteTitle: boolean
 }
 
+//-----------------------------------------------------------
+
 /**
  * Represents the main content for a single item within a section
  */
-// function ItemNoteLink({ item, thisSection }: Props): React$Node {
 function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props): React$Node {
 
   // ------ COMPUTED VALUES --------------------------------
@@ -55,8 +53,8 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
   const filenameWithoutTeamspacePrefix = parsedTeamspace.filename
   const isFromTeamspace = parsedTeamspace.isTeamspace
   // logDebug(`ItemNoteLink`, `noteIconToUse:${noteIconToUse} with filenameWithoutTeamspacePrefix:${filenameWithoutTeamspacePrefix}`)
-  const linkClass = isFromTeamspace ? 'teamspaceName' : 'noteTitle'
-  const linkStyle = isFromTeamspace ? 'teamspaceName' : 'folderName'
+  const linkClass = 'noteTitle'
+  const linkStyle = 'folderName'
   const showNoteTitle = alwaysShowNoteTitle || item.para.noteType === 'Notes' || filenameWithoutTeamspacePrefix !== thisSection.sectionFilename
 
   let teamspaceIndicator = null
@@ -64,8 +62,9 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
     const teamspaceTitle = item.teamspaceTitle && item.teamspaceTitle !== 'Unknown Teamspace' ? item.teamspaceTitle : ''
     teamspaceIndicator = (
       <span className='teamspaceName pad-right'>
-        <i className={`${TEAMSPACE_ICON} pad-right`}></i>
-        {teamspaceTitle}</span>
+        <i className={`${TEAMSPACE_FA_ICON} pad-right`}></i>
+        {teamspaceTitle}
+      </span>
     )
   }
 
