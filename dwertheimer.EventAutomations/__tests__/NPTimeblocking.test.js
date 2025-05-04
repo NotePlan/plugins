@@ -4,12 +4,12 @@
 
 // Note: expect(spy).toHaveBeenNthCalledWith(2, expect.stringMatching(/ERROR/))
 
+import moment from 'moment'
 import * as mainFile from '../src/NPTimeblocking'
 import * as timeBlockingShared from '../src/timeblocking-shared'
 import * as configFile from '../src/config'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, mockWasCalledWithString } from '@mocks/index'
-import { unhyphenatedDate } from '@helpers/dateTime'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -31,7 +31,8 @@ beforeAll(() => {
 
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]
 const note = new Note({ paragraphs })
-note.filename = `${unhyphenatedDate(new Date())}.md`
+const npFileDate = moment().format('YYYYMMDD')
+note.filename = `${npFileDate}.md`
 Editor.note = note
 Editor.filename = note.filename
 
@@ -97,12 +98,14 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         expect(result).toEqual(false)
       })
       test('should return false if Editor is open to another day', () => {
-        Editor.filename = `${unhyphenatedDate(new Date('2020-01-01'))}.md`
+        const npFileDate = moment('2020-01-01').format('YYYYMMDD')
+        Editor.filename = `${npFileDate}.md`
         const result = mainFile.editorIsOpenToToday()
         expect(result).toEqual(false)
       })
       test('should return true if Editor is open to is today', () => {
-        Editor.filename = `${unhyphenatedDate(new Date())}.md`
+        const npFileDate = moment().format('YYYYMMDD')
+        Editor.filename = `${npFileDate}.md`
         const result = mainFile.editorIsOpenToToday()
         expect(result).toEqual(true)
       })

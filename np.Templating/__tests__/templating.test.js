@@ -415,6 +415,7 @@ describe(`${PLUGIN_NAME}`, () => {
       const templateData = await factory('frontmatter-with-separators.ejs')
 
       let result = await templateInstance.render(templateData, {}, { extended: true })
+
       expect(result).toContain(`---\nSection Two`)
       expect(result).toContain(`---\nSection Three`)
       expect(result).toContain(`---\nSection Four`)

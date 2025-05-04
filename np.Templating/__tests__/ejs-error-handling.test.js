@@ -40,7 +40,7 @@ describe('EJS Error Handling', () => {
    */
   const testErrorTemplate = (template, expectation) => {
     try {
-      ejs.render(template, {}, { compileDebug: true, debug: true })
+      ejs.render(template, {}, {})
       // If we get here, no error was thrown
       expect(true).toBe(false) // Alternative to fail()
     } catch (err) {
@@ -255,7 +255,7 @@ Line 7`
 %>`
 
       try {
-        ejs.render(template, {}, { compileDebug: true, debug: true })
+        ejs.render(template, {}, {})
         // If we get here, no error was thrown
         expect(true).toBe(false) // Alternative to fail()
       } catch (err) {
@@ -271,7 +271,7 @@ Line 7`
     test('Should handle rendering error with bad JSON', () => {
       const template = `<% await DataStore.invokePluginCommandByName('Remove section from recent notes','np.Tidy',['{'numDays':14, 'sectionHeading':'Thoughts For the Day', 'runSilently': true}']) -%>`
       try {
-        ejs.render(template, {}, { compileDebug: true, debug: true })
+        ejs.render(template, {}, {})
         expect(true).toBe(false)
       } catch (err) {
         expect(err).toBeDefined()

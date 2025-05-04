@@ -19,7 +19,7 @@ describe('NPTemplating _processIncludeTag', () => {
   // Mock for NPTemplating.getTemplate
   const getTemplateMock = jest.fn()
   // Mock for FrontmatterModule().isFrontmatterTemplate
-  const isFrontmatterTemplateMock = jest.fn()
+  const mockIsFrontmatterTemplate = jest.fn()
   // Mock for NPTemplating.preRender
   const preRenderMock = jest.fn()
   // Mock for NPTemplating.render
@@ -43,7 +43,7 @@ describe('NPTemplating _processIncludeTag', () => {
     // Mock the FrontmatterModule
     jest.mock('../lib/support/modules/FrontmatterModule', () => {
       return jest.fn().mockImplementation(() => {
-        return { isFrontmatterTemplate: isFrontmatterTemplateMock }
+        return { isFrontmatterTemplate: mockIsFrontmatterTemplate }
       })
     })
 
@@ -57,7 +57,7 @@ describe('NPTemplating _processIncludeTag', () => {
 
   // Test case 1: Handle comment tags
   test('should ignore comment tags', async () => {
-    const tag = '<%# include('someTemplate') %>'
+    const tag = `<%# include('someTemplate') %>`
     const initialData = `Some text before ${tag} some text after.`
     context.templateData = initialData
 
@@ -80,7 +80,7 @@ describe('NPTemplating _processIncludeTag', () => {
 
   // Test case 3: Handle frontmatter template includes
   test('should process frontmatter template include correctly', async () => {
-    const tag = '<%- include('myTemplate') %>'
+    const tag = `<%- include('myTemplate') %>`
     const templateName = 'myTemplate'
     const templateContent = '---\ntitle: Test\n---\nBody content'
     const frontmatterAttrs = { title: 'Test', sessionVar: 'value' }
@@ -92,7 +92,7 @@ describe('NPTemplating _processIncludeTag', () => {
 
     // Setup mocks for this scenario
     getTemplateMock.mockResolvedValue(templateContent)
-    isFrontmatterTemplateMock.mockReturnValue(true) // It IS a frontmatter template
+    mockIsFrontmatterTemplate.mockReturnValue(true) // It IS a frontmatter template
     preRenderMock.mockResolvedValue({ frontmatterAttributes: frontmatterAttrs, frontmatterBody })
     renderMock.mockResolvedValue(renderedTemplate)
 
@@ -100,7 +100,7 @@ describe('NPTemplating _processIncludeTag', () => {
 
     // Verify mocks were called
     expect(getTemplateMock).toHaveBeenCalledWith(templateName, { silent: true })
-    expect(isFrontmatterTemplateMock).toHaveBeenCalledWith(templateContent)
+    expect(mockIsFrontmatterTemplate).toHaveBeenCalledWith(templateContent)
     expect(preRenderMock).toHaveBeenCalledWith(templateContent, context.sessionData)
     expect(renderMock).toHaveBeenCalledWith(frontmatterBody, context.sessionData) // Pass sessionData, not the full attributes
 
@@ -111,7 +111,7 @@ describe('NPTemplating _processIncludeTag', () => {
 
   // Test case 4: Handle frontmatter template include with variable assignment
   test('should process frontmatter template include with variable assignment', async () => {
-    const tag = '<% let myVar = include('myTemplate') %>'
+    const tag = `<% let myVar = include('myTemplate') %>`
     const templateName = 'myTemplate'
     const templateContent = '---\ntitle: Test\n---\nBody content'
     const frontmatterAttrs = { title: 'Test' }
@@ -122,7 +122,7 @@ describe('NPTemplating _processIncludeTag', () => {
 
     // Setup mocks
     getTemplateMock.mockResolvedValue(templateContent)
-    isFrontmatterTemplateMock.mockReturnValue(true)
+    mockIsFrontmatterTemplate.mockReturnValue(true)
     preRenderMock.mockResolvedValue({ frontmatterAttributes: frontmatterAttrs, frontmatterBody })
     renderMock.mockResolvedValue(renderedTemplate)
 
@@ -136,7 +136,7 @@ describe('NPTemplating _processIncludeTag', () => {
 
   // Test case 5: Handle non-frontmatter template (standard note)
   test('should process non-frontmatter template as a note include', async () => {
-    const tag = '<%- include('regularNote') %>'
+    const tag = `<%- include('regularNote') %>`
     const noteName = 'regularNote'
     const noteContent = 'This is the content of the regular note.'
 
@@ -144,14 +144,14 @@ describe('NPTemplating _processIncludeTag', () => {
 
     // Setup mocks
     getTemplateMock.mockResolvedValue(noteContent) // Assume getTemplate returns content
-    isFrontmatterTemplateMock.mockReturnValue(false) // It is NOT a frontmatter template
+    mockIsFrontmatterTemplate.mockReturnValue(false) // It is NOT a frontmatter template
     preProcessNoteMock.mockResolvedValue(noteContent) // Simulate preProcessNote return
 
     await NPTemplating._processIncludeTag(tag, context)
 
     // Verify mocks
     expect(getTemplateMock).toHaveBeenCalledWith(noteName, { silent: true })
-    expect(isFrontmatterTemplateMock).toHaveBeenCalledWith(noteContent)
+    expect(mockIsFrontmatterTemplate).toHaveBeenCalledWith(noteContent)
     expect(preProcessNoteMock).toHaveBeenCalledWith(noteName) // Ensure preProcessNote is called
 
     // Verify templateData is updated with note content
@@ -160,7 +160,7 @@ describe('NPTemplating _processIncludeTag', () => {
 
   // Test case 6: Handle special calendar date include
   test('should process special calendar date include', async () => {
-    const tag = '<%- include('20230101') %>'
+    const tag = `<%- include('20230101') %>`
     const dateString = '20230101'
     const calendarContent = 'Calendar content for 20230101'
 
@@ -168,14 +168,14 @@ describe('NPTemplating _processIncludeTag', () => {
 
     // Setup mocks
     getTemplateMock.mockResolvedValue('') // getTemplate might return empty for date string
-    isFrontmatterTemplateMock.mockReturnValue(false) // Date string is not frontmatter
+    mockIsFrontmatterTemplate.mockReturnValue(false) // Date string is not frontmatter
     preProcessCalendarMock.mockResolvedValue(calendarContent)
 
     await NPTemplating._processIncludeTag(tag, context)
 
     // Verify mocks
     expect(getTemplateMock).toHaveBeenCalledWith(dateString, { silent: true })
-    expect(isFrontmatterTemplateMock).toHaveBeenCalledWith('')
+    expect(mockIsFrontmatterTemplate).toHaveBeenCalledWith('')
     expect(preProcessCalendarMock).toHaveBeenCalledWith(dateString)
 
     // Verify templateData updated with calendar content

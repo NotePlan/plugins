@@ -1149,7 +1149,7 @@
                 src = '"use strict";\n' + src
               }
               if (opts.debug) {
-                console.log(src)
+                console.log(`---\nejs debug mode: src:\n${src}\n`)
               }
               if (opts.compileDebug && opts.filename) {
                 src = src + '\n' + '//# sourceURL=' + sanitizedFilename + '\n'

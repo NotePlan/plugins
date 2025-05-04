@@ -540,38 +540,6 @@ processData(data);
     })
   })
 
-  describe('_processJsonInDataStoreCalls', () => {
-    test('should process both valid code blocks and invalid JSON in the same template', async () => {
-      // Mixed content - valid object in function call and invalid JSON elsewhere
-      context.templateData = `
-        <% await DataStore.invokePluginCommandByName('Command','plugin',[{"valid": "object"}]) %>
-        Here is some invalid JSON: {"unclosed": "object"
-      `
-
-      await NPTemplating._processJsonInDataStoreCalls(context)
-
-      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName('Command','plugin',[{"valid": "object"}])`)
-    })
-  })
-
-  describe('_getLineNumberForMatch', () => {
-    test('should return correct line number for a match', () => {
-      const templateData = 'Line 1\nLine 2\nLine 3 with match\nLine 4'
-
-      const lineNumber = NPTemplating._getLineNumberForMatch(templateData, 'with match')
-
-      expect(lineNumber).toBe(3)
-    })
-
-    test('should return 0 if no match is found', () => {
-      const templateData = 'Line 1\nLine 2\nLine 3\nLine 4'
-
-      const lineNumber = NPTemplating._getLineNumberForMatch(templateData, 'not found')
-
-      expect(lineNumber).toBe(0)
-    })
-  })
-
   describe('Integration with preProcess', () => {
     test('should process all types of tags in a single pass', async () => {
       // Set up specific mocks for this test

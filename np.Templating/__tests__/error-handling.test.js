@@ -1,3 +1,4 @@
+/* global describe, beforeEach, afterEach, test, expect, jest */
 /**
  * @jest-environment jsdom
  */
@@ -11,7 +12,6 @@ import path from 'path'
 import fs from 'fs/promises'
 import { existsSync } from 'fs'
 import TemplatingEngine from '../lib/TemplatingEngine'
-import NPTemplating from '../lib/NPTemplating'
 import { DataStore } from '@mocks/index'
 
 // for Flow errors with Jest
@@ -26,13 +26,10 @@ const factory = async (factoryName = '') => {
   return 'FACTORY_NOT_FOUND'
 }
 
-describe('Error handling in template pre-processing', () => {
-  // Mock NPTemplating internal methods if necessary for specific error scenarios
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
-
-  
+// Mock NPTemplating internal methods if necessary for specific error scenarios
+beforeEach(() => {
+  jest.clearAllMocks()
+})
 
 describe('Error handling in template rendering', () => {
   let consoleLogMock

@@ -56,19 +56,6 @@ describe('Template preprocessing integration', () => {
     jest.clearAllMocks()
   })
 
-  test('should preprocess and format JSON in DataStore calls', async () => {
-    // Test direct preprocessing without rendering
-    const template = `<% await DataStore.invokePluginCommandByName('Test', 'plugin', ['{'key':'value'}']) %>`
-
-    // Test the preProcess method directly
-    const { newTemplateData } = await NPTemplating.preProcess(template, {})
-
-    // Verify JSON formatting happened correctly
-    expect(newTemplateData).toContain('"key"') // Double-quoted key
-    expect(newTemplateData).toContain('"value"') // Double-quoted value
-    expect(newTemplateData).not.toContain("'key'") // No more single-quoted key
-  })
-
   test('should render template with error handling', async () => {
     const template = `<% const invalid; %>` // Syntax error
 

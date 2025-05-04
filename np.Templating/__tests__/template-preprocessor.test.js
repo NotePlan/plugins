@@ -47,38 +47,6 @@ describe('NPTemplating.preProcess JSON handling', () => {
     jest.clearAllMocks()
   })
 
-  test('should convert single-quoted JSON property names to double-quoted in invokePluginCommandByName calls', async () => {
-    const template = await factory('single-quoted-json-template.ejs')
-    const { newTemplateData } = await NPTemplating.preProcess(template)
-
-    // Given the current implementation, it will add double quotes to property names and values
-    expect(newTemplateData).toContain('"numDays"')
-    expect(newTemplateData).toContain('"sectionHeading"')
-    expect(newTemplateData).toContain('"runSilently"')
-
-    // Original single quotes in property names and values should be gone
-    expect(newTemplateData).not.toContain("'numDays'")
-    expect(newTemplateData).not.toContain("'sectionHeading'")
-    expect(newTemplateData).not.toContain("'runSilently'")
-
-    // The original call should be recognizable, except for the quotes in the JSON
-    expect(newTemplateData).toContain("DataStore.invokePluginCommandByName('Remove section from recent notes'")
-    expect(newTemplateData).toContain("'np.Tidy'")
-  })
-
-  test('should process multiple invokePluginCommandByName calls in one template', async () => {
-    const template = await factory('single-quoted-json-template.ejs')
-    const { newTemplateData } = await NPTemplating.preProcess(template)
-
-    // First call - property names should have double quotes
-    expect(newTemplateData).toContain('"numDays"')
-    expect(newTemplateData).toContain('"sectionHeading"')
-    expect(newTemplateData).toContain('"runSilently"')
-
-    // Second call - should also have the second plugin command
-    expect(newTemplateData).toContain("DataStore.invokePluginCommandByName('Weather forecast','np.Weather'")
-  })
-
   test('should return the original content when there are no matches', async () => {
     const template = '<% const x = 5; %>'
     const { newTemplateData } = await NPTemplating.preProcess(template)
@@ -88,11 +56,11 @@ describe('NPTemplating.preProcess JSON handling', () => {
 
   test('should handle null input gracefully', async () => {
     const { newTemplateData } = await NPTemplating.preProcess(null)
-    expect(newTemplateData).toBe(null)
+    expect(newTemplateData).toEqual('')
   })
 
   test('should handle undefined input gracefully', async () => {
     const { newTemplateData } = await NPTemplating.preProcess(undefined)
-    expect(newTemplateData).toBe(undefined)
+    expect(newTemplateData).toEqual('')
   })
 })

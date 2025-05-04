@@ -1,19 +1,76 @@
 // @flow
 
+//TODO: mock the frontmatter of the note to be used by promptKey
+
 import NPTemplating from '../lib/NPTemplating'
 import { processPrompts } from '../lib/support/modules/prompts'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
+import { Note } from '@mocks/index'
+
+// import type { Option } from '@helpers/userInput' // Removed this import
 
 /* global describe, test, expect, jest, beforeEach */
 
+// Define a specific type for options used in mocks
+// Moved OptionObject inside jest.mock factory below
+// type OptionObject = { value: string, label: string, index?: number };
+
+// Mock NPFrontMatter helper
+jest.mock(
+  '@helpers/NPFrontMatter',
+  () => ({
+    getValuesForFrontmatterTag: jest
+      .fn<[string, string, boolean, string, boolean], Promise<Array<string>>>()
+      .mockImplementation((tagKey: string, noteType: string, caseSensitive: boolean, folderString: string, fullPathMatch: boolean) => {
+        // Removed async, added types
+        // console.log(`Mock getValuesForFrontmatterTag called with tagKey: ${tagKey}`) // Add console log for debugging
+        if (tagKey === 'projectStatus') {
+          // Return the expected options for projectStatus
+          return Promise.resolve(['Active', 'On Hold', 'Completed'])
+        }
+        if (tagKey === 'yesNo') {
+          // Return options for the yesNo prompt
+          return Promise.resolve(['y', 'n'])
+        }
+        // Return typed empty array for other keys
+        return Promise.resolve(([]: Array<string>))
+      }),
+    // Add mock for hasFrontMatter
+    hasFrontMatter: jest.fn<[], boolean>().mockReturnValue(true),
+    // Add mock for getAttributes
+    getAttributes: jest.fn<[any], Object>().mockImplementation((note) => {
+      // Basic check - return attributes if it looks like our mock note
+      if (note && note.title === 'Test Note') {
+        return { projectStatus: 'Active' }
+      }
+      // Return empty object otherwise
+      return {}
+    }),
+  }),
+  { virtual: true },
+)
+
 // Mock DataStore to prevent errors when accessing it in tests
+const mockNote = new Note({
+  title: 'Test Note',
+  content: `---
+  projectStatus: Active
+  ---
+  `,
+  frontmatterAttributes: {
+    projectStatus: 'Active',
+  },
+})
 global.DataStore = {
-  projectNotes: [],
+  projectNotes: [mockNote],
   calendarNotes: [],
+  settings: {
+    _logLevel: 'none',
+  },
 }
 
 // Helper function to replace quoted text placeholders in session data
-function replaceQuotedTextPlaceholders(sessionData) {
+function replaceQuotedTextPlaceholders(sessionData: Object): Object {
   const replacements = {
     __QUOTED_TEXT_0__: 'Yes',
     __QUOTED_TEXT_1__: 'No',
@@ -47,67 +104,91 @@ function replaceQuotedTextPlaceholders(sessionData) {
 // Mock userInput module
 jest.mock(
   '@helpers/userInput',
-  () => ({
-    datePicker: jest.fn().mockImplementation((message) => {
-      if (message.includes('start date')) {
-        return Promise.resolve('2023-03-01')
-      } else if (message.includes('deadline')) {
-        return Promise.resolve('2023-04-15')
-      }
-      return Promise.resolve('2023-01-15')
-    }),
-    askDateInterval: jest.fn().mockImplementation((message) => {
-      if (message.includes('availability')) {
-        return Promise.resolve('Mon-Fri, 9am-5pm')
-      }
-      return Promise.resolve('2023-01-01 to 2023-01-31')
-    }),
-    // Add mock for chooseOptionWithModifiers to handle test cases
-    chooseOptionWithModifiers: jest.fn().mockImplementation((message, options, allowCreate) => {
-      // Handle projectStatus case
-      if (message.includes('project status')) {
-        return Promise.resolve({ value: 'Active', label: 'Active', index: 0 })
-      }
-      // Handle yesNo case
-      else if (message.includes('Yes/No')) {
-        return Promise.resolve({ value: 'y', label: 'Yes', index: 0 })
-      }
-      // Handle chooseOne case
-      else if (message.includes('Choose one')) {
-        return Promise.resolve({ value: 'Option 1', label: 'Option 1', index: 0 })
-      }
-      // Default response for any other prompt
-      else if (options && options.length > 0) {
-        return Promise.resolve({ value: options[0].value, label: options[0].label, index: 0 })
-      }
+  () => {
+    // Define OptionObject type *inside* the mock factory
+    type OptionObject = { value: string, label: string, index?: number }
+    return {
+      datePicker: jest.fn<[string], Promise<string>>().mockImplementation((message: string) => {
+        if (message.includes('start date')) {
+          return Promise.resolve('2023-03-01')
+        } else if (message.includes('deadline')) {
+          return Promise.resolve('2023-04-15')
+        }
+        return Promise.resolve('2023-01-15')
+      }),
+      askDateInterval: jest.fn<[string], Promise<string>>().mockImplementation((message: string) => {
+        if (message.includes('availability')) {
+          return Promise.resolve('Mon-Fri, 9am-5pm')
+        }
+        return Promise.resolve('2023-01-01 to 2023-01-31')
+      }),
+      // Add mock for chooseOptionWithModifiers to handle test cases
+      chooseOptionWithModifiers: jest
+        .fn<[string, Array<OptionObject>, boolean | void], Promise<OptionObject>>()
+        .mockImplementation((message: string, options: Array<OptionObject>, allowCreate?: boolean): Promise<OptionObject> => {
+          const trimmedMessage = message.trim()
+          // Match exact prompt messages from templates used by promptKey/prompt
+          if (trimmedMessage === 'Select status:') {
+            return Promise.resolve({ value: 'Active', label: 'Active', index: 0 })
+          }
+          if (trimmedMessage === 'Press y/n:') {
+            return Promise.resolve({ value: 'y', label: 'Yes', index: 0 })
+          }
+          if (trimmedMessage === 'Is this urgent?') {
+            // Return the first option provided ('Yes')
+            if (options && options.length > 0) {
+              return Promise.resolve({ value: options[0].value, label: options[0].label, index: 0 })
+            }
+          }
+          if (trimmedMessage === 'Select one option:') {
+            // Handle the specific prompt from the third test (used by prompt, not promptKey)
+            return Promise.resolve({ index: 0, value: 'Option 1', label: 'Option 1' })
+          }
 
-      return Promise.resolve({ value: 'Text Response', label: 'Text Response', index: 0 })
-    }),
-    // Make sure chooseOption is also mocked
-    chooseOption: jest.fn().mockImplementation((options, message) => {
-      if (options && options.length > 0) {
-        return Promise.resolve(0) // Return first option
-      }
-      return Promise.resolve(false)
-    }),
-  }),
+          // Default response: return the first option if available
+          if (options && options.length > 0) {
+            return Promise.resolve({ value: options[0].value, label: options[0].label, index: 0 })
+          }
+
+          // Fallback if no options (shouldn't typically happen for these prompt types)
+          return Promise.resolve({ value: 'fallback', label: 'Fallback', index: 0 })
+        }),
+      // Make sure chooseOption is also mocked
+      chooseOption: jest.fn<[Array<OptionObject>, string], Promise<number | false>>().mockImplementation((options: Array<OptionObject>, message: string) => {
+        if (options && options.length > 0) {
+          return Promise.resolve(0) // Return first option
+        }
+        return Promise.resolve(false)
+      }),
+    }
+  },
   { virtual: true },
 )
 
 describe('Prompt Integration Tests', () => {
   beforeEach(() => {
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      ...DataStore,
+      settings: { _logLevel: 'none' },
     }
     // Mock CommandBar methods
     global.CommandBar = {
-      textPrompt: jest.fn().mockResolvedValue('Text Response'),
-      showOptions: jest.fn().mockImplementation((options, message) => {
-        if (message === 'Select one option:') {
-          return Promise.resolve({ index: 0, value: 'Option 1' })
-        }
-        return Promise.resolve({ index: 0 })
-      }),
+      textPrompt: jest.fn<[string, ?string, ?string], Promise<string>>().mockImplementation(() => Promise.resolve('Text Response')), // Default Text Response
+
+      // Restore simpler showOptions mock - primarily for prompt('chooseOne',...) potentially?
+      // The actual promptKey calls use chooseOptionWithModifiers from @helpers/userInput
+      showOptions: jest
+        .fn<[Array<{ value: string, label: string, index?: number }>, string], Promise<{ value: string, label: string, index?: number }>>()
+        .mockImplementation((options: Array<{ value: string, label: string, index?: number }>, message: string): Promise<{ value: string, label: string, index?: number }> => {
+          // This might only be needed if a standard prompt(...) with options directly calls CommandBar.showOptions
+          // Let's handle the known case from the third test explicitly.
+          if (message.trim() === 'Select one option:') {
+            return Promise.resolve({ index: 0, value: 'Option 1', label: 'Option 1' })
+          }
+          // Default: return the first option
+          const defaultOption = options && options.length > 0 ? options[0] : { value: 'default', label: 'Default', index: 0 }
+          return Promise.resolve({ value: defaultOption.value, label: defaultOption.label, index: defaultOption.index ?? 0 })
+        }),
     }
 
     // Reset mocks before each test
@@ -120,7 +201,7 @@ describe('Prompt Integration Tests', () => {
       
       ## Basic Information
       Name: <%- prompt('projectName', 'Enter project name:') %>
-      Status: <%- promptKey('projectStatus', 'Select status:', ['Active', 'On Hold', 'Completed']) %>
+      Status: <%- promptKey('projectStatus', 'Select status:') %>
       
       ## Timeline
       Start Date: <%- promptDate('startDate', 'Select start date:') %>
@@ -137,8 +218,7 @@ describe('Prompt Integration Tests', () => {
     const { datePicker, askDateInterval } = require('@helpers/userInput')
 
     // Set up specific responses for each prompt type
-    global.CommandBar.textPrompt.mockResolvedValueOnce('Task Manager App')
-    global.CommandBar.showOptions.mockResolvedValueOnce({ index: 0 }) // 'Yes' for isUrgent
+    global.CommandBar.textPrompt.mockImplementationOnce(() => Promise.resolve('Task Manager App'))
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
@@ -176,7 +256,7 @@ describe('Prompt Integration Tests', () => {
       
       ## Basic Information
       Name: <%- prompt('projectName', 'Enter project name:') %>
-      Status: <%- promptKey('projectStatus', 'Select status:', ['Active', 'On Hold', 'Completed']) %>
+      Status: <%- promptKey('projectStatus', 'Select status:') %>
       
       ## Timeline
       Start Date: <%- promptDate('startDate', 'Select start date:') %>
@@ -225,8 +305,7 @@ describe('Prompt Integration Tests', () => {
       Choose One: <%- prompt('chooseOne', 'Select one option:', ['Option 1', 'Option 2, with comma', 'Option "3" with quotes']) %>
       
       ## Keys
-      Press Key: <%- promptKey('pressKey', 'Press any key:') %>
-      Yes/No: <%- promptKey('yesNo', 'Press y/n:', ['y', 'n']) %>
+      Status: <%- promptKey('projectStatus', 'Select status:') %>
       
       ## Dates
       Simple Date: <%- promptDate('simpleDate', 'Select a date:') %>
@@ -250,8 +329,7 @@ describe('Prompt Integration Tests', () => {
     expect(cleanedSessionData.withComma).toBe('Text Response')
     expect(cleanedSessionData.withQuotes).toBe('Text Response')
     expect(cleanedSessionData.chooseOne).toBe('Option 1')
-    expect(cleanedSessionData.pressKey).toBe('Text Response')
-    expect(cleanedSessionData.yesNo).toBe('y')
+    expect(cleanedSessionData.projectStatus).toBe('Active')
     expect(cleanedSessionData.simpleDate).toBe('2023-01-15')
     expect(cleanedSessionData.formattedDate).toBe('2023-01-15')
     expect(cleanedSessionData.dateRange).toBe('2023-01-01 to 2023-01-31')

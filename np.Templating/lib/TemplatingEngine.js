@@ -396,8 +396,6 @@ export default class TemplatingEngine {
         async: true,
         openDelimiter: '{',
         closeDelimiter: '}',
-        debug: true, // dbw: add debug to see the error context
-        compileDebug: true, // dbw: add debug to see the error context
       })
 
       frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData)

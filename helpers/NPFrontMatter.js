@@ -166,8 +166,8 @@ export function getNotesWithFrontmatter(noteType: 'Notes' | 'Calendar' | 'All' =
     const start = new Date()
     logDebug(`getNotesWithFrontmatter running with noteType:${noteType}, folderString:${folderString || 'none'}, fullPathMatch:${String(fullPathMatch)}`)
 
-    const notes = noteType !== 'Calendar' ? DataStore.projectNotes : []
-    const calendarNotes = noteType !== 'Notes' ? DataStore.calendarNotes : []
+    const notes = (noteType !== 'Calendar' ? DataStore.projectNotes : []) || []
+    const calendarNotes = (noteType !== 'Notes' ? DataStore.calendarNotes : []) || []
     const allNotes = [...notes, ...calendarNotes]
 
     // First filter by frontmatter attributes

@@ -7,7 +7,7 @@
 import moment from 'moment'
 import * as mainFile from '../src/NPTimeblocking'
 import * as configFile from '../src/config'
-import { filenameDateString, unhyphenatedDate } from '@helpers/dateTime'
+import { filenameDateString } from '@helpers/dateTime'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph /*, mockWasCalledWithString */ } from '@mocks/index'
 
@@ -35,7 +35,8 @@ const filenameToday = `${filenameDateString(new Date())}.md`
 
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]
 const note = new Note({ paragraphs })
-note.filename = `${unhyphenatedDate(new Date())}.md`
+const npFileDate = moment().format('YYYYMMDD')
+note.filename = `${npFileDate}.md`
 Editor.note = note
 Editor.filename = note.filename
 
