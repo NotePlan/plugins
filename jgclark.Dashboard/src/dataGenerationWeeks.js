@@ -114,13 +114,15 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           ]
         : [],
     )
+    let sectionDescription = `{count} from ${dateStr}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(startTime)}`
 
     const section: TSection = {
       ID: sectionNumStr,
       name: 'This Week',
       showSettingName: 'showWeekSection',
       sectionCode: thisSectionCode,
-      description: `{count} from ${dateStr}`,
+      description: sectionDescription,
       FAIconClass: 'fa-light fa-calendar-week',
       sectionTitleColorPart: 'sidebarWeekly',
       sectionFilename: thisFilename,
@@ -276,13 +278,15 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
     }
 
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+    let sectionDescription = `{count} from ${dateStr}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(startTime)}`
 
     const section: TSection = {
       ID: sectionNumStr,
       name: 'Last Week',
       showSettingName: 'showLastWeekSection',
       sectionCode: thisSectionCode,
-      description: `{count} from ${dateStr}`,
+      description: sectionDescription,
       FAIconClass: 'fa-light fa-calendar-week',
       sectionTitleColorPart: 'sidebarWeekly',
       sectionFilename: thisFilename,

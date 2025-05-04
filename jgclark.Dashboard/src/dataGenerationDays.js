@@ -48,7 +48,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
     logInfo('getTodaySectionData', `--------- Gathering Today's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} from ${filenameDateStr} --------`)
-    const timer = new Date() // for timing only
+    const startTime = new Date() // for timing only
 
     if (useDemoData) {
       // write first or combined section items
@@ -124,12 +124,15 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     )
     const anyDayFormFields: Array<TSettingItem> = formFieldsBase.concat([{ type: 'calendarpicker', label: 'Date:', key: 'date', numberOfMonths: 2 }])
 
+    let sectionDescription = `{count} from ${todayDateLocale}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(startTime)}`
+
     const section: TSection = {
       ID: sectionNumStr,
       name: 'Today',
       showSettingName: 'showTodaySection',
       sectionCode: thisSectionCode,
-      description: `{count} from ${todayDateLocale}`,
+      description: sectionDescription,
       FAIconClass: 'fa-light fa-calendar-star',
       sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
@@ -368,13 +371,15 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       }
     }
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+    let sectionDescription = `{count} from ${yesterdayDateLocale}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(startTime)}`
 
     const section: TSection = {
       ID: sectionNumStr,
       name: 'Yesterday',
       showSettingName: 'showYesterdaySection',
       sectionCode: thisSectionCode,
-      description: `{count} from ${yesterdayDateLocale}`,
+      description: sectionDescription,
       FAIconClass: 'fa-light fa-calendar-arrow-up',
       sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
@@ -520,12 +525,15 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         : [],
     )
 
+    let sectionDescription = `{count} from ${tomorrowDateLocale}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(startTime)}`
+
     const section: TSection = {
       ID: sectionNumStr,
       name: 'Tomorrow',
       showSettingName: 'showTomorrowSection',
       sectionCode: thisSectionCode,
-      description: `{count} from ${tomorrowDateLocale}`,
+      description: sectionDescription,
       FAIconClass: 'fa-light fa-calendar-arrow-down',
       sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
