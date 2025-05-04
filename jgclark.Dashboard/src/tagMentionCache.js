@@ -271,7 +271,6 @@ export async function updateTagMentionCache(): Promise<void> {
       await generateTagMentionCache(true)
       return
     }
-
     // Get the list of wanted tags, mentions, and para types
     const wantedItems = getTagMentionCacheDefinitions()
     const wantedParaTypes = config.FFlag_TagCacheOnlyForOpenItems ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
@@ -288,12 +287,16 @@ export async function updateTagMentionCache(): Promise<void> {
     const momNow = moment()
     const fileAgeMins = momNow.diff(momPrevious, 'minutes')
     logDebug('updateTagMentionCache', `Last updated ${fileAgeMins.toFixed(3)} mins ago (previous time: ${momPrevious.format()} / now time: ${momNow.format()})`)
-
+    if (momNow.diff(momPrevious, 'seconds') < 3) {
+      logInfo('updateTagMentionCache', `- Not updating cache as it was updated less than 3 seconds ago`)
+      return
+    }
     // Find all notes updated since the last time this was run
     const jsdateToStartLooking = momPrevious.toDate()
     const numDaysBack = momPrevious.diff(momNow, 'days', true) // don't round to nearest integer
+    // Note: This operations takes >500ms for JGC
     const recentlychangedNotes = getNotesChangedInInterval(numDaysBack).filter((n) => n.changedDate >= jsdateToStartLooking)
-    logDebug('updateTagMentionCache', `Found ${recentlychangedNotes.length} changed notes in that time`)
+    logTimer('updateTagMentionCache', startTime, `Found ${recentlychangedNotes.length} changed notes in that time`)
 
     // For each note, get wanted tags and mentions, and overwrite the existing cache details
     let c = 0

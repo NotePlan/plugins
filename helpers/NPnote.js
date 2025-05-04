@@ -623,24 +623,31 @@ export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar
  */
 export function getNotesChangedInInterval(numDays: number, noteTypesToInclude: Array<string> = ['Calendar', 'Notes']): Array<TNote> {
   try {
+    const startTime = new Date()
     let allNotesToCheck: Array<TNote> = []
-    if (noteTypesToInclude.includes('Calendar')) {
+    if (noteTypesToInclude === ['Calendar', 'Notes']) {
+      allNotesToCheck = DataStore.allNotes.slice()
+    } else if (noteTypesToInclude.includes('Calendar')) {
       allNotesToCheck = DataStore.calendarNotes.slice()
-    }
-    if (noteTypesToInclude.includes('Notes')) {
+    } else if (noteTypesToInclude.includes('Notes')) {
       allNotesToCheck = allNotesToCheck.concat(DataStore.projectNotes.slice())
+    } else {
+      throw new Error(`Invalid noteTypesToInclude: ${String(noteTypesToInclude)}. Will return empty array.`)
     }
+    // Note: This operations takes >700ms for JGC
+    // I have asked @EM to make suggestions for optimising this.
+    logTimer('getNotesChangedInInterval', startTime, `to get list of ${allNotesToCheck.length} notes to check`)
+
     let matchingNotes: Array<TNote> = []
     const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
     const momentToStartLooking = todayStart.subtract(numDays, 'days')
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
     matchingNotes = allNotesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
-    logDebug(
-      'getNotesChangedInInterval',
+    // Note: This operations takes 3ms for JGC
+    logTimer('getNotesChangedInInterval', startTime,
       `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}:`,
     )
-    // logDebug('getNotesChangedInInterval', `${matchingNotes.map((n) => `- ${displayTitle(n)} changed on ${String(n.changedDate)}`).join('\n')}`)
     return matchingNotes
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
