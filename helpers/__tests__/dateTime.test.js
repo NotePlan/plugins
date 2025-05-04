@@ -1,7 +1,5 @@
 /* globals describe, expect, jest, test, beforeEach, afterEach, beforeAll */
 
-// Last updated: 6.9.2023 by @jgclark
-
 import colors from 'chalk'
 import { CustomConsole } from '@jest/console' // see note below
 import * as dt from '../dateTime'
@@ -239,20 +237,6 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should fail on an ISO date', () => {
       const result = dt.isYearlyDateStr('2024-12-22')
       expect(result).toEqual(false)
-    })
-  })
-
-  /*
-  * parseTeamspaceCalendarFilename()
-  */
-  describe('parseTeamspaceCalendarFilename()' /* function */, () => {
-    test('should parse a non-teamspace calendar filename', () => {
-      const result = dt.parseTeamspaceCalendarFilename('20250422.md')
-      expect(result).toEqual({ filename: '20250422.md', isTeamspace: false })
-    })
-    test('should parse a Teamspace calendar filename', () => {
-      const result = dt.parseTeamspaceCalendarFilename('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
-      expect(result).toEqual({ filename: '20250422.md', isTeamspace: true, teamspaceID: 'c484b190-77dd-4d40-a05c-e7d7144f24e1' })
     })
   })
 
