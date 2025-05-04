@@ -811,7 +811,10 @@ export default class NPTemplating {
       const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('calendar', '').replace('(', '').replace(')', '')
       const parts = includeInfo.split(',')
       if (parts.length > 0) {
-        const noteName = parts[0].replace(/'/gi, '').trim()
+        const noteNameWithPossibleDashes = parts[0].replace(/['`]/gi, '').trim()
+        // Remove dashes for DataStore lookup
+        const noteName = noteNameWithPossibleDashes.replace(/-/g, '')
+        logDebug(pluginJson, `preProcessCalendar: Looking up calendar note for: ${noteName} (original: ${noteNameWithPossibleDashes})`)
         let calendarNote = await DataStore.calendarNoteByDateString(noteName)
         if (typeof calendarNote !== 'undefined') {
           // $FlowIgnore
@@ -1077,19 +1080,21 @@ export default class NPTemplating {
     const keywords = ['<%=', '<%-', '<%', '_%>', '-%>', '%>', 'include', 'template']
     keywords.forEach((x) => (includeInfo = includeInfo.replace(/[{()}]/g, '').replace(new RegExp(x, 'g'), '')))
 
-    const parts = includeInfo.split(',')
-    if (parts.length === 0) {
+    includeInfo = includeInfo.trim()
+    if (!includeInfo) {
       context.templateData = context.templateData.replace(tag, '**Unable to parse include**')
       return
     }
+    const parts = includeInfo.split(',')
 
     const templateName = parts[0].replace(/['"`]/gi, '').trim()
     const templateData = parts.length >= 1 ? parts[1] : {}
 
     const templateContent = await this.getTemplate(templateName, { silent: true })
-    const isTemplate = new FrontmatterModule().isFrontmatterTemplate(templateContent)
+    const hasFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateContent)
 
-    if (isTemplate) {
+    if (hasFrontmatter) {
+      // if the included file has frontmatter, we need to preRender it because it could be a template
       const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateContent, context.sessionData)
       context.sessionData = { ...frontmatterAttributes }
       logDebug(pluginJson, `preProcess tag: ${tag} frontmatterAttributes: ${JSON.stringify(frontmatterAttributes, null, 2)}`)
@@ -1111,6 +1116,7 @@ export default class NPTemplating {
         context.templateData = context.templateData.replace(tag, renderedTemplate)
       }
     } else {
+      // this is a regular, non-frontmatter note (regular note or calendar note)
       // Handle special case for calendar data
       if (templateName.length === 8 && /^\d+$/.test(templateName)) {
         const calendarData = await this.preProcessCalendar(templateName)
