@@ -1,5 +1,5 @@
 /* CSS specific to Section components and their children.
-/* Last updated 2025-03-30 for v2.2.0.a10, @jgclark */
+/* Last updated 2025-05-04 for v2.2.2, @jgclark */
 
 /* The main grid for a section: sectionInfo then sectionGrid. */
 .section {
@@ -95,10 +95,6 @@
 	align-items: baseline; /* start; */
 	/* horizontal for all items this contains */
 	justify-items: start;
-	/*
-	opacity: 1;
-	transition: opacity 500ms ease-in-out;
-	*/
 }
 
 /* The actual item's details (was col4) */
@@ -201,8 +197,7 @@
 }
 
 .dialogTriggerIcon {
-	color: var(--fg-main-color);
-	opacity: 0.4;
+	color: rgb(from var(--fg-main-color) r g b / 0.4);
 	cursor: pointer;
 }
 
@@ -236,11 +231,10 @@
 /* The marker for parent items, designed to mimic what EM introduced in 3.15.1 */
 .parentMarker {
 	font-size: 70%;
-	color: var(--fg-main-color);
+	color: rgb(from var(--fg-main-color) r g b / 0.7);
 	background-color: var(--divider-color);
 	margin-left: 0.35rem;
 	border-radius: 30%;
-	opacity: 0.7;
 	padding: 0px 4px;
 	vertical-align: middle;
 	transform: scale(1.25,0.9);

@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2025-04-28 for v2.2.0.a11+
+// Last updated 2025-05-04 for v2.2.2 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -33,6 +33,9 @@ import {
 import { RE_SCHEDULED_DATES_G } from '@helpers/regex'
 // import { getTimeBlockString } from '@helpers/timeblocks'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+import '../css/ItemContent.css'
+
+//--------------------------------------------------------------------------
 
 type Props = {
   item: TSectionItem,

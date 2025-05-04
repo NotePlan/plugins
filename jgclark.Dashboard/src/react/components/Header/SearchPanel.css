@@ -12,7 +12,7 @@
   max-height: 0; /* Start with 0 height */
   pointer-events: none; /* Prevent interaction when closed */
   /* transition: max-height 800ms ease-in; */
-  will-change: transform; /* Optimize for animation */
+  will-change: transform; /* Optimize for animation. WARNING: this creates a stacking content. */
 
   .panel {
       display: flex;
@@ -30,7 +30,7 @@
       border-bottom-left-radius: 10px;
       border-bottom-right-radius: 10px;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add shadow for floating effect */
-      will-change: transform; /* Optimize for animation */
+      will-change: transform; /* Optimize for animation. WARNING: this creates a stacking content. */
       /* transform: translateY(0);
       transition: transform 800ms ease-in; */
   }

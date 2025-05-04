@@ -85,9 +85,8 @@
     /* Style for the inactive Save & Close button */
     .save-button-inactive {
         background-color: var(--tint-color);
-        color: var(--bg-main-color);
+        color: rgb(from var(--bg-main-color) r g b / 0.3);
         max-height: unset;
-        opacity: 0.3;
         cursor: unset;
     }
 

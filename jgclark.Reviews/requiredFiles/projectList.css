@@ -271,8 +271,7 @@ button, .fake-button, .clickTarget {
 }
 
 .dialogTrigger {
-	color: var(--fg-main-color);
-	opacity: 0.5;
+	color: rgb(from var(--fg-main-color) r g b / 0.5);
 	cursor: pointer;
 }
 
@@ -284,7 +283,6 @@ button, .fake-button, .clickTarget {
 .tooltip::before, .tooltip::after {
 	position: absolute;
 	left: 50%;
-	/* opacity:0;  -- problem is that this interferes with cursor selection because it still grabs cursor -- so switching to display: instead */
 	display: none;
 	transition: all ease 0.3s;
 	transition-delay: 0.8;
@@ -312,7 +310,6 @@ button, .fake-button, .clickTarget {
 }
 
 .tooltip:hover::before, .tooltip:hover::after {
-	/* opacity: 1; */
 	display: block;
 }
 
