@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate diagnostics file for Dashboard plugin to help with debugging
-// Last updated 2025-05-02 for v2.2.2
+// Last updated 2025-05-04 for v2.2.3
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -18,10 +18,11 @@ import type { TPerspectiveDef } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getOrMakeNote } from '@helpers/note'
 import { showMessageYesNo } from '@helpers/userInput'
+
 //-----------------------------------------------------------------
 
 const diagnosticsNoteFilename = 'diagnostics-for-dashboard.md'
-const diagnosticsNoteTitle = 'ℹ️ Diagnostics for Dashboard'
+const diagnosticsNoteTitle = 'Diagnostics for Dashboard'
 
 /**
  * Generate a list of all the main settings in the Dashboard plugin for the current user to help with debugging.
@@ -52,6 +53,9 @@ export async function generateDiagnosticsFile() {
     output.push('---')
     output.push(`title: ${diagnosticsNoteTitle}`)
     output.push(`generated: ${moment().format('YYYY-MM-DD HH:mm:ss')}`)
+    output.push('icon: circle-info')
+    output.push('icon-style: solid')
+    output.push('icon-color: blue-400')
     output.push('---')
     output.push(`- NP v${NotePlan.environment.version} build ${NotePlan.environment.buildVersion} running on ${NotePlan.environment.platform}`)
     output.push(`- Screen dimensions: ${String(NotePlan.environment.screenWidth)}w x ${String(NotePlan.environment.screenHeight)}h`)
