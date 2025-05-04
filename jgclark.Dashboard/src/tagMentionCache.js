@@ -39,8 +39,9 @@ const wantedTagMentionsListFile = 'wantedTagMentionsList.json'
 const tagMentionCacheFile = 'tagMentionCache.json'
 const lastTimeThisWasRunPref = 'jgclark.Dashboard.tagMentionCache.lastTimeUpdated'
 
-// TODO(later): remove this in time
+// TODO(later): remove these in time
 const turnOffAPILookups = true
+const TAG_CACHE_ONLY_FOR_OPEN_ITEMS = true
 
 //-----------------------------------------------------------------
 // exported Getter and setter functions
@@ -180,9 +181,9 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     const startTime = new Date()
     const wantedItems = getTagMentionCacheDefinitions()
     const config = await getDashboardSettings()
-    logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}]${config.FFlag_TagCacheOnlyForOpenItems ? ' ONLY FOR OPEN ITEMS' : ''} ${config.FFlag_UseNoteTags ? ' and USING NOTE TAGS' : ''}`)
+    logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}]${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' ONLY FOR OPEN ITEMS' : ''} ${config.FFlag_UseNoteTags ? ' and USING NOTE TAGS' : ''}`)
 
-    const wantedParaTypes = config.FFlag_TagCacheOnlyForOpenItems ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
+    const wantedParaTypes = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
 
     // If we're not forcing a rebuild, and the wantedParaTypes are the same as (or less than) what is in the cache, then use the quicker 'updateTagMentionCache' function
     if (!forceRebuild) {
@@ -273,7 +274,7 @@ export async function updateTagMentionCache(): Promise<void> {
     }
     // Get the list of wanted tags, mentions, and para types
     const wantedItems = getTagMentionCacheDefinitions()
-    const wantedParaTypes = config.FFlag_TagCacheOnlyForOpenItems ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
+    const wantedParaTypes = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
 
     const data = DataStore.loadData(tagMentionCacheFile, true) ?? ''
     const cache = JSON.parse(data)
@@ -352,7 +353,7 @@ export function generateTagMentionCacheSummary(): string {
 - Wanted items: ${getTagMentionCacheDefinitions().join(', ')}
 - Generated at: ${parsedCache.generatedAt}
 - Last updated: ${parsedCache.lastUpdated} (according to the cache file)
-- Last updated: ${DataStore.preference(lastTimeThisWasRunPref)} (according to the preference)
+- Last updated: ${String(DataStore.preference(lastTimeThisWasRunPref))} (according to the preference)
 - # Regular notes: ${parsedCache.regularNotes.length}
 - # Calendar notes: ${parsedCache.calendarNotes.length}`
   return summary
