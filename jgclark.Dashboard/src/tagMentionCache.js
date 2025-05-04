@@ -348,7 +348,8 @@ export function generateTagMentionCacheSummary(): string {
   const summary = `## Tag/Mention Cache Stats:
 - Wanted items: ${getTagMentionCacheDefinitions().join(', ')}
 - Generated at: ${parsedCache.generatedAt}
-- Last updated: ${parsedCache.lastUpdated}
+- Last updated: ${parsedCache.lastUpdated} (according to the cache file)
+- Last updated: ${DataStore.preference(lastTimeThisWasRunPref)} (according to the preference)
 - # Regular notes: ${parsedCache.regularNotes.length}
 - # Calendar notes: ${parsedCache.calendarNotes.length}`
   return summary

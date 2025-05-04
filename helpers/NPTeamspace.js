@@ -5,9 +5,28 @@
 //-------------------------------------------------------------------------------
 
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
+import { isTeamspaceNoteFromFilename, parseTeamspaceFilename } from '@helpers/teamspace'
 
 //-----------------------------------------------------------
 // FUNCTIONS
+
+/**
+ * Get the teamspace root identifier.
+ * Note: Can't be used in HTML/React components because it requires NotePlan.environment.
+ * @returns {string}
+ */
+export function getTeamspaceRootIdentifier(): string {
+  return NotePlan.environment.teamspaceFilenamePrefix ?? '%%Supabase%%'
+}
+
+/**
+ * Get the regular expression for a Teamspace note filename
+ * @returns {RegExp}
+ * Note: Can't be used in HTML/React components because it requires NotePlan.environment.
+ */
+export function getTeamspaceNoteFilenameRegex(): RegExp {
+  return new RegExp(`^${getTeamspaceRootIdentifier()}\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/`, 'i')
+}
 
 /**
  * Get all teamspace IDs and titles.
@@ -32,4 +51,25 @@ export function getTeamspaceTitleFromID(id: string): string {
 
 export function getTeamspaceTitleFromNote(note: TNote): string {
   return note.teamspaceTitle ?? ''
+}
+
+/**
+ * A Teamspace-aware way of getting a note from its filename.
+ * @param {string} filename 
+ * @returns {TNote | null}
+ */
+export function getNoteFromFilename(filename: string): TNote | null {
+  logDebug('NPTeamspace::getNoteFromFilename', `Starting with filename ${filename}`)
+  const possRegularNote = DataStore.noteByFilename(filename, 'Notes')
+  let possCalendarNote: TNote | null = null
+  if (isTeamspaceNoteFromFilename(filename)) {
+    const teamspaceObject = parseTeamspaceFilename(filename)
+    const dateString = filename.split('/')[2].split('.')[0]
+    possCalendarNote = DataStore.calendarNoteByDateString(dateString, teamspaceObject.teamspaceID)
+  } else {
+    const dateString = filename.split('.')[0]
+    possCalendarNote = DataStore.calendarNoteByDateString(dateString)
+  }
+  const thisNote = possRegularNote ?? possCalendarNote ?? null
+  return thisNote
 }
