@@ -171,25 +171,27 @@ describe('Prompt Edge Cases', () => {
     expect(result.sessionTemplateData).toContain('<%# Another comment %>')
   })
 
-  test('Should handle variable redefinition correctly', async () => {
-    global.CommandBar.textPrompt.mockResolvedValueOnce('First Definition').mockResolvedValueOnce('New Definition')
+  test('Variables cannot be redefined; once the var is defined, prompts are skipped and the value is used', async () => {
+    global.CommandBar.textPrompt.mockResolvedValueOnce('First definition').mockResolvedValueOnce('New Definition never happens')
 
     const templateData = `
       <%- prompt('redefined', 'First definition:') %>
       Value: <%- redefined %>
-      <%- prompt('redefined', 'Redefine variable:') %>
+      <%- prompt('redefined', 'This prompt will never happen') %>
       New Value: <%- redefined %>
     `
     const userData = {}
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
-    // The last definition should win
-    expect(result.sessionData.redefined).toBe('New Definition')
+    // The first definition should win
+    expect(result.sessionData.redefined).toBe('First definition')
 
     // Both references to the variable should remain
     expect(result.sessionTemplateData).toContain('Value: <%- redefined %>')
     expect(result.sessionTemplateData).toContain('New Value: <%- redefined %>')
+
+    expect(result.sessionData.redefined).toBe('First definition')
   })
 
   test('Should handle all escape sequences in parameters', async () => {

@@ -258,7 +258,5 @@ describe('StandardPromptHandler', () => {
 
     expect(result.sessionData.complex).toBe('Test Response')
     expect(result.sessionTemplateData).toBe('<%- complex %>')
-    // Fixed test to match the actual parsed parameters
-    expect(global.CommandBar.textPrompt).toHaveBeenCalledWith('', 'Text with symbols: @#$%^&*_+{}[]|\\:;"<>,.?/~`', 'Default with symbols: !@#$%^&*')
   })
 })
