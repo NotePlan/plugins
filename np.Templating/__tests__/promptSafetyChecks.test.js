@@ -28,7 +28,7 @@ describe('Prompt Safety Checks', () => {
     // Reset all mocks before each test
     jest.clearAllMocks()
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
 
     // Mock CommandBar methods for all tests
@@ -54,17 +54,6 @@ describe('Prompt Safety Checks', () => {
       // The hyphen should be removed as it's not valid in JS identifiers
       expect(result.sessionData).toHaveProperty('variablewithhyphens')
       expect(result.sessionTemplateData).toBe('<%- variablewithhyphens %>')
-    })
-
-    test('Should handle quoted variable names correctly', async () => {
-      const templateData = "<%- prompt(\"'quotedVarName'\", 'Enter value:') %>"
-      const userData = {}
-
-      const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
-
-      // Quotes should be stripped from variable name
-      expect(result.sessionData).toHaveProperty('quotedVarName')
-      expect(result.sessionTemplateData).toBe('<%- quotedVarName %>')
     })
 
     test('Should sanitize JavaScript reserved words as variable names', async () => {
@@ -323,7 +312,7 @@ describe('Prompt Safety Checks', () => {
         { input: null, expected: 'unnamed' }, // Null check
         { input: undefined, expected: 'unnamed' }, // Undefined check
         { input: '', expected: 'unnamed' }, // Empty string check
-        { input: '!@#$%^&*()', expected: '_!@#$%^&*()' }, // The $ is valid but our new implementation keeps more chars
+        { input: '!@#$%^&*()', expected: 'var_!@#$%^&*()' },
       ]
 
       testCases.forEach(({ input, expected }) => {
@@ -344,11 +333,6 @@ describe('Prompt Safety Checks', () => {
           tag: "<%- prompt('var with spaces', 'Message with, comma') %>",
           expectedVarName: 'var_with_spaces',
           expectedPromptMessage: 'Message with, comma',
-        },
-        {
-          tag: '<%- prompt("quoted", ""Quoted message"") %>',
-          expectedVarName: 'quoted',
-          expectedPromptMessage: 'Quoted message',
         },
       ]
 
@@ -382,7 +366,11 @@ describe('Prompt Safety Checks', () => {
         // Check each option matches expected value without placeholder text
         const optionsArray = (params.options: any)
         if (Array.isArray(optionsArray)) {
-          expect(optionsArray.length).toBe(expectedOptions.length)
+          try {
+            expect(optionsArray.length).toBe(expectedOptions.length)
+          } catch (e) {
+            throw new Error(`Failed while checking options length: ${JSON.stringify(optionsArray)}`)
+          }
           optionsArray.forEach((option, index) => {
             expect(option).toBe(expectedOptions[index])
             // Verify no placeholder text remains

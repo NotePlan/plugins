@@ -67,7 +67,6 @@ export default class TemplatingEngine {
       lines[endBlock] = '---'
       returnedData = lines.join('\n')
     }
-    logDebug(pluginJson, `TemplateDELETME _replaceDoubleDashes: returnedData: ${returnedData}`)
     return returnedData
   }
 
@@ -210,23 +209,29 @@ export default class TemplatingEngine {
 
     let successfulRender = ''
     let linesBuildingUp = ''
-    let lastSuccessfulRender = ''
+    let lastRender = ''
     let errorLine = 0
     let errorDetails = ''
 
     try {
       // First try rendering the entire template to see if it works
-      const fullRender = await this.render(templateData, userData, userOptions)
-      const failed = fullRender.includes('An error occurred rendering template')
-      logDebug(`incrementalRender fullRender: failed:[${String(failed)}]`, fullRender)
+      logDebug(`incrementalRender Trying to render entire template first`)
+      lastRender = await this.render(templateData, userData, userOptions)
+      const failed = lastRender.includes('An error occurred rendering template')
       if (!failed) {
-        return fullRender
+        logDebug(`incrementalRender fullRender: succeeded`, lastRender)
+        return lastRender
+      } else {
+        logDebug(`incrementalRender fullRender: failed; Will try incremental rendering; lastRender=`, lastRender)
       }
     } catch (error) {
       // If it fails, proceed with incremental rendering
-      logDebug(pluginJson, `Full template rendering failed. Starting incremental rendering to find the error.`)
+      logDebug(pluginJson, `IncrementalRender Caught error. Full template rendering failed. Starting incremental rendering to find the error.`)
     }
-
+    if (DataStore.settings.hasOwnProperty('incrementalRender') && !DataStore.settings.incrementalRender) {
+      logDebug(pluginJson, `incrementalRender: DISABLED by user setting`)
+      return lastRender
+    }
     let isErroneousLine1 = false
     // Attempt to render the template piece by piece
     for (let i = 0; i < templateLines.length; i++) {
@@ -240,10 +245,11 @@ export default class TemplatingEngine {
 
         try {
           // Then try rendering everything up to this point
-          lastSuccessfulRender = await this.render(linesBuildingUp, userData, userOptions)
-          logDebug(`incrementalRender lastSuccessfulRender: [${i}]`, lastSuccessfulRender)
-          if (lastSuccessfulRender.includes('ejs error encountered') || lastSuccessfulRender.includes('An error occurred rendering template')) {
-            throw new Error(lastSuccessfulRender)
+          logDebug(`incrementalRender about to render template through line: ${i}`)
+          lastRender = await this.render(linesBuildingUp, userData, userOptions)
+          logDebug(`incrementalRender through line: ${i} result: ${lastRender.length}chars`, lastRender)
+          if (lastRender.includes('ejs error encountered') || lastRender.includes('An error occurred rendering template')) {
+            throw new Error(lastRender)
           }
         } catch (error) {
           // If combining fails, we have context issue between chunks
@@ -272,7 +278,7 @@ export default class TemplatingEngine {
     let report = ''
 
     if (errorLine > 0) {
-      report = `## Template Rendering Error\n`
+      report = `---\n## Template Rendering Error\n`
       report += `==Rendering failed at line ${errorLine} of ${templateLines.length}==\n`
       report += errorDetails ? `### Template Processor Result:\n${errorDetails}\n` : ''
 
@@ -289,20 +295,20 @@ export default class TemplatingEngine {
       }
 
       // Show what rendered successfully
-      logDebug(`lastSuccessfulRender: "${lastSuccessfulRender}"`)
-      if (lastSuccessfulRender && lastSuccessfulRender.trim().length > 0) {
+      logDebug(`lastRender: ${lastRender.length}chars "${lastRender}"`)
+      if (lastRender && lastRender.trim().length > 0) {
         report += `### Last Successful Rendered Content:\n${
           successfulRender.length < 500
             ? successfulRender
             : successfulRender.substring(0, 250) + '\n... (truncated) ...\n' + successfulRender.substring(successfulRender.length - 250)
-        }\n`
+        }\n---\n`
       }
     } else {
       // This might happen if the template is empty or there's a setup issue
       report = `Unable to identify error location. Check template structure and data context.`
     }
 
-    return report
+    return report.replace(/\n\n/g, '\n')
   }
 
   async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
@@ -424,18 +430,18 @@ export default class TemplatingEngine {
     }
 
     try {
-      logDebug(pluginJson, `\n\nrender: BEFORE render`)
+      logDebug(pluginJson, `render: BEFORE render`)
       ouputData('before render top level renderData')
 
       let result = await ejs.render(processedTemplateData, renderData, options)
-      logDebug(pluginJson, `\n\nrender: AFTER render`)
+      logDebug(`\n\nrender: AFTER render`)
       ouputData('after render')
       result = (result && result?.replace(/undefined/g, '')) || ''
 
       return this._replaceDoubleDashes(result)
     } catch (error) {
-      logDebug(`199 np.Templating error: ${typeof error === 'object' ? JSON.stringify(error, null, 2) : error}`)
-      logDebug(pluginJson, `DETAILED ERROR INFO: line=${error.line}, column=${error.column}, message=${error.message}`)
+      logDebug(`render CAUGHT np.Templating error: ${typeof error === 'object' ? JSON.stringify(error, null, 2) : error}`)
+      logDebug(`render catch: DETAILED ERROR INFO: line=${error.line}, column=${error.column}, message=${error.message}`)
       ouputData('after catching render error')
 
       // Improved error message formatting

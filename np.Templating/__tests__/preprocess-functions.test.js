@@ -147,6 +147,14 @@ describe('PreProcess helper functions', () => {
       expect(context.templateData).toBe('<% await DataStore.invokePluginCommandByName("cmd", "id", []) %>')
     })
 
+    test('should add await prefix to events() calls', async () => {
+      context.templateData = '<% events() %>'
+
+      await NPTemplating._processCodeTag('<% events() %>', context)
+
+      expect(context.templateData).toBe('<% await events() %>')
+    })
+
     test('should handle tags with escaped expressions', async () => {
       context.templateData = '<%- DataStore.invokePluginCommandByName("cmd", "id", []) %>'
 

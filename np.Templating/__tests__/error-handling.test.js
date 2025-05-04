@@ -19,16 +19,18 @@ import { DataStore } from '@mocks/index'
 
 // Helper to load test fixtures
 const factory = async (factoryName = '') => {
-  const factoryFilename = path.join(__dirname, 'factories-new', factoryName)
+  const factoryFilename = path.join(__dirname, 'factories', factoryName)
   if (existsSync(factoryFilename)) {
     return await fs.readFile(factoryFilename, 'utf-8')
   }
-  return 'FACTORY_NOT_FOUND'
+  throw new Error(`Factory file not found: ${factoryFilename}`)
+  // return 'FACTORY_NOT_FOUND'
 }
 
 // Mock NPTemplating internal methods if necessary for specific error scenarios
 beforeEach(() => {
   jest.clearAllMocks()
+  global.DataStore = { ...DataStore, settings: { _logLevel: 'none' } }
 })
 
 describe('Error handling in template rendering', () => {

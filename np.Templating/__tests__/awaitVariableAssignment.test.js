@@ -180,5 +180,10 @@ describe('Await Variable Assignment Bug Test', () => {
     expect(sessionData.category).not.toMatch(/promptKey/)
     expect(sessionData.name).not.toMatch(/prompt\(/)
     expect(sessionData.date).not.toMatch(/promptDate/)
+
+    // We should never get [Object object]
+    expect(sessionData.category).not.toMatch(/object/i)
+    expect(sessionData.name).not.toMatch(/object/i)
+    expect(sessionData.date).not.toMatch(/object/i)
   })
 })

@@ -292,6 +292,7 @@ export default class BasePromptHandler {
       try {
         // Extract content and parse using the dedicated helper
         const arrayContent = processedText.substring(1, processedText.length - 1)
+        // Pass the content string AND the original quotedTexts
         return BasePromptHandler._parseArrayLiteralString(arrayContent, quotedTexts)
       } catch (e) {
         logError(pluginJson, `Error parsing array options: ${e.message}`)
@@ -931,6 +932,7 @@ export default class BasePromptHandler {
   /**
    * (Internal) Parses the content string of an array literal.
    * Assumes input is the string *inside* the brackets (e.g., "'a', 'b', 'c'").
+   * Handles quoted elements containing commas or escaped quotes.
    * Handles nested placeholders within items.
    * @param {string} arrayContentString - The string content of the array.
    * @param {Array<string>} quotedTexts - Original quotedTexts array (needed for nested restoration).
@@ -938,20 +940,66 @@ export default class BasePromptHandler {
    * @private
    */
   static _parseArrayLiteralString(arrayContentString: string, quotedTexts: Array<string>): Array<string> {
-    if (arrayContentString.trim() === '') {
+    const trimmedContent = arrayContentString.trim()
+    if (trimmedContent === '') {
       return []
     }
-    return arrayContentString
-      .split(',') // Split by comma
+
+    const items = []
+    let currentItem = ''
+    let inQuotes = null // null, "'", or '"'
+    let escapeNext = false
+
+    for (let i = 0; i < trimmedContent.length; i++) {
+      const char = trimmedContent[i]
+
+      if (escapeNext) {
+        currentItem += char
+        escapeNext = false
+        continue
+      }
+
+      if (char === '\\') {
+        // Keep the backslash as part of the string content
+        escapeNext = true
+        currentItem += char
+        continue
+      }
+
+      if (inQuotes) {
+        currentItem += char
+        if (char === inQuotes) {
+          inQuotes = null // End of quotes
+        }
+      } else {
+        if (char === "'" || char === '"') {
+          inQuotes = char // Start of quotes
+          currentItem += char
+        } else if (char === ',') {
+          // Found a separator outside quotes
+          items.push(currentItem.trim())
+          currentItem = '' // Reset for next item
+        } else {
+          // Regular character outside quotes
+          currentItem += char
+        }
+      }
+    }
+    // Add the last item after the loop finishes
+    items.push(currentItem.trim())
+
+    // Now process each extracted item: restore placeholders, then remove outer quotes
+    return items
       .map((item) => {
-        // Trim, restore nested quoted text placeholders, then remove outer quotes
-        let processedItem = item.trim()
+        // Restore nested quoted text placeholders first
+        let restoredItem = item
         quotedTexts.forEach((qText, index) => {
-          processedItem = processedItem.replace(`__QUOTED_TEXT_${index}__`, qText)
+          restoredItem = restoredItem.replace(`__QUOTED_TEXT_${index}__`, qText)
         })
-        return BasePromptHandler.removeQuotes(processedItem)
+        // Then remove outer quotes
+        return BasePromptHandler.removeQuotes(restoredItem)
       })
-      .filter(Boolean) // Remove any empty items resulting from trailing commas etc.
+      .filter(Boolean) // Keep filtering empty strings for now
   }
 
   /**

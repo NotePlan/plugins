@@ -37,3 +37,6 @@ export { render } from './Templating'
 export { renderTemplate } from './Templating'
 
 export { templateFileByTitle } from './Templating'
+
+// Allow for mobile editing of settings
+export { editSettings } from '@helpers/NPSettings'

@@ -724,7 +724,6 @@ export default class NPTemplating {
       if (isFrontmatterTemplate) {
         return templateContent || ''
       }
-      logDebug(pluginJson, `NPTemplating.getTemplate: isFrontmatterTemplate=${String(isFrontmatterTemplate)} ${timer(startTime)}`)
 
       if (templateContent == null || (templateContent.length === 0 && !options.silent)) {
         const message = `Template "${templateName}" Not Found or Empty`
@@ -830,7 +829,8 @@ export default class NPTemplating {
   }
 
   /**
-   * Validate template strings for errors before rendering
+   * Process various tags in the template data that will add variables/values to the session data
+   * to be used later in the template processing.
    * @param {string} templateData - The template string to process
    * @param {Object} sessionData - Data available during processing
    * @returns {Object} - Processed template data, updated session data, and any errors
@@ -856,51 +856,58 @@ export default class NPTemplating {
 
     // Process each tag in a single pass
     for (const tag of tags) {
-      logDebug(pluginJson, `preProcess tag: ${tag}`)
+      logDebug(pluginJson, `preProcessing tag: ${tag}`)
 
       // Process different tag types
       if (isCommentTag(tag)) {
+        logDebug(pluginJson, `preProcess: found comment in tag: ${tag}`)
         await this._processCommentTag(tag, context)
         continue
       }
 
       if (tag.includes('note(')) {
+        logDebug(pluginJson, `preProcess: found note() in tag: ${tag}`)
         await this._processNoteTag(tag, context)
         continue
       }
 
       if (tag.includes('calendar(')) {
+        logDebug(pluginJson, `preProcess: found calendar() in tag: ${tag}`)
         await this._processCalendarTag(tag, context)
         continue
       }
 
       if (tag.includes('include(') || tag.includes('template(')) {
+        logDebug(pluginJson, `preProcess: found include() or template() in tag: ${tag}`)
         await this._processIncludeTag(tag, context)
         continue
       }
 
       if (tag.includes(':return:') || tag.toLowerCase().includes(':cr:')) {
+        logDebug(pluginJson, `preProcess: found return() or cr() in tag: ${tag}`)
         await this._processReturnTag(tag, context)
         continue
       }
 
       // Process code tags that need await prefixing
       if (this.isCode(tag) && tag.includes('(')) {
+        logDebug(pluginJson, `preProcess: found code() in tag: ${tag}`)
         await this._processCodeTag(tag, context)
         continue
       }
 
       // Extract variables
       if (tag.includes('const') || tag.includes('let') || tag.includes('var')) {
+        logDebug(pluginJson, `preProcess: found const, let, or var in tag: ${tag}`)
         await this._processVariableTag(tag, context)
         continue
       }
     }
 
-    logDebug(pluginJson, `preProcessed tags: ${tags.length}`)
+    logDebug(pluginJson, `preProcess after checking ${tags.length} tags`)
     clo(context.sessionData, `preProcessed sessionData`)
     clo(context.override, `preProcessed override`)
-    logDebug(pluginJson, `preProcess templateData: ${context.templateData}`)
+    logDebug(pluginJson, `preProcess templateData:\n${context.templateData}`)
 
     // Merge override variables into session data
     context.sessionData = { ...context.sessionData, ...context.override }
@@ -1321,8 +1328,10 @@ export default class NPTemplating {
       }
 
       // template ready for final rendering, this is where most of the magic happens
-      // FIXME: DBW: MAYBE CHANGE THIS BACK TO RENDER ?
+      // FIXME: DBW note to self: MAYBE CHANGE THIS BACK TO RENDER if incrementalRender won't work?
+      logDebug(`NPTemplating::render: STARTING incrementalRender`)
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).incrementalRender(templateData, sessionData, userOptions)
+      logDebug(`NPTemplating::render: FINISHED incrementalRender`)
 
       logDebug(pluginJson, `>> renderedData after rendering:\n\t[PRE-RENDER]:${templateData}\n\t[RENDERED]: ${renderedData}`)
 

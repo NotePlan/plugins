@@ -206,6 +206,12 @@
       "alias": [
       ],
       "arguments": []
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "Templating: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
     }
 
   ],
@@ -325,6 +331,14 @@
     {
       "type": "heading",
       "title": "Debugging"
+    },
+    {
+      "key": "incrementalRender",
+      "title": "Allow Incremental Render Debugging",
+      "description": "If a template fails to render, we can retry rendering line by line to try to find the issue. Turn this off if something about this causes you issues.",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
       "key": "_logLevel",
