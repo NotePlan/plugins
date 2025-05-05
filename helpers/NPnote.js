@@ -30,7 +30,7 @@ const pluginJson = 'NPnote.js'
  * @param {boolean?} alsoShowParagraphs? (default: false)
  */
 // eslint-disable-next-line require-await
-export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): void {
+export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): Promise<void> {
   try {
     const note = (noteIn == null) ? Editor : noteIn
     if (!note) {
@@ -146,16 +146,23 @@ export function getTeamspaceDetailsFromNote(note: TNote): TTeamspace | null {
  * @param {string} filename
  * @returns {TNote?} note if found, or null
  */
-export function getNoteFromFilename(filename: string): TNote | null {
+export function getNoteFromFilename(filenameIn: string): TNote | null {
   try {
     let foundNote: TNote | null = null
-    const { _filename, isTeamspace, teamspaceID } = parseTeamspaceFilename(filename)
+    const { filename, isTeamspace, teamspaceID } = parseTeamspaceFilename(filenameIn)
     if (isTeamspace) {
-      foundNote = DataStore.projectNoteByFilename(filename, teamspaceID) ?? DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filename, teamspaceID))
-      logInfo('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filename}`)
+      if (!teamspaceID) {
+        throw new Error(`Note ${filenameIn} is a teamspace note but cannot get valid ID for it.`)
+      }
+      const nonTeamspaceFilename = filename
+      foundNote = DataStore.projectNoteByFilename(nonTeamspaceFilename)
+        ?? DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filenameIn), teamspaceID)
+        ?? null
+      logInfo('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
     } else {
-      foundNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filename))
-      logInfo('NPnote/getNoteFromFilename', `Found private note '${displayTitle(foundNote)}' from ${filename}`)
+      foundNote = DataStore.projectNoteByFilename(filenameIn) ??
+        DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filenameIn)) ?? null
+      logInfo('NPnote/getNoteFromFilename', `Found private note '${displayTitle(foundNote)}' from ${filenameIn}`)
     }
     return foundNote
   } catch (err) {
@@ -177,7 +184,7 @@ export function getNoteFromFilename(filename: string): TNote | null {
 export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
   try {
     let thisFilename = ''
-    // TODO: Ideally move this to a function, for i18n. Moment library doesn't cover all of this. Could Chrono library help?
+    // TODO: Ideally move this to a function, for i18n. Moment library doesn't quite cover all of this. Could Chrono library help?
     const noteIdentifier =
       noteIdentifierIn === 'today'
         ? '{0d}'
@@ -598,6 +605,9 @@ export function scrollToParagraphWithContent(content: string): boolean {
  */
 export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar', 'Notes']): Array<TNote> {
   try {
+    if (noteTypesToInclude.length === 0) {
+      throw new Error(`No note types given. Returning empty array.`)
+    }
     let allNotesToCheck: Array<TNote> = []
     if (noteTypesToInclude.includes('Calendar')) {
       allNotesToCheck = DataStore.calendarNotes.slice()
@@ -623,24 +633,22 @@ export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar
  */
 export function getNotesChangedInInterval(numDays: number, noteTypesToInclude: Array<string> = ['Calendar', 'Notes']): Array<TNote> {
   try {
-    let allNotesToCheck: Array<TNote> = []
-    if (noteTypesToInclude.includes('Calendar')) {
-      allNotesToCheck = DataStore.calendarNotes.slice()
-    }
-    if (noteTypesToInclude.includes('Notes')) {
-      allNotesToCheck = allNotesToCheck.concat(DataStore.projectNotes.slice())
-    }
+    const startTime = new Date()
+    // Note: This operations takes >700ms for JGC
+    // I have asked @EM to make suggestions for optimising this.
+    const allNotesToCheck: Array<TNote> = getAllNotesOfType(noteTypesToInclude)
+    logTimer('getNotesChangedInInterval', startTime, `to get list of ${allNotesToCheck.length} notes to check`)
+
     let matchingNotes: Array<TNote> = []
     const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
     const momentToStartLooking = todayStart.subtract(numDays, 'days')
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
     matchingNotes = allNotesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
-    logDebug(
-      'getNotesChangedInInterval',
+    // Note: This operations takes 3ms for JGC
+    logTimer('getNotesChangedInInterval', startTime,
       `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}:`,
     )
-    // logDebug('getNotesChangedInInterval', `${matchingNotes.map((n) => `- ${displayTitle(n)} changed on ${String(n.changedDate)}`).join('\n')}`)
     return matchingNotes
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)

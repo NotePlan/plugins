@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2025-04-16 for v2.2.1 by @jgclark */
+/* Last updated 2025-05-04 for v2.2.2 by @jgclark */
 
 :root {	
 	/* font-size: 16px; this works */
@@ -199,7 +199,6 @@ button,
 	.tooltip::after {
 		position: absolute;
 		left: 50%;
-		/* opacity:0;  -- problem is that this interferes with cursor selection because it still grabs cursor -- so switching to display: instead */
 		display: none;
 		transition: all ease 0.3s;
 		transition-delay: 0.8;
@@ -255,17 +254,17 @@ button,
 }
 
 .pad-left-larger {
-	/* add space before something (normally an icon) */
+	/* add space before something */
 	padding-left: 0.5rem !important;
 }
 
 .pad-right {
 	/* add space after something (normally an icon) */
-	padding-right: 0.3em !important;
+	padding-right: 0.2em !important;
 }
 
 .pad-right-larger {
-	/* add space after something (normally an icon) */
+	/* add more space after something */
 	padding-right: 0.5em !important;
 }
 
@@ -274,56 +273,56 @@ button,
 	padding-bottom: 0.3em;
 }
 
-.scheduledDate {
-	color: var(--tint-color);
-}
+/* Default for note titles, note links, and folder/teamspace links */
+@layer Default {
+	/* Colour the note titles */
+	.noteTitle {
+		color: var(--tint-color);
+	}
 
-/* all links turn off text color and underlining by default ... */
-.content,
-.content:visited,
-.content:active {
-	color: inherit;
-	text-decoration: none;
-	cursor: pointer;
-}
+	/* Private note link - default layer */
+	.folderName {
+		color: var(--tint-color);
+	}
 
-/* ... except when hovering over a content item */
-.content:hover,
-.noteTitle:hover {
-	text-decoration: underline;
-}
+	/* Teamspace note link - default layer */
+	.teamspaceName {
+		color: var(--teamspace-color);
+	}
 
-.externalLink {
-	text-decoration: underline;
-	cursor: pointer;
-	color: var(--tint-color);
-}
+	.scheduledDate {
+		color: var(--tint-color);
+	}
 
-.event-link {
-	font-weight: 400;
-	border-color: var(--bg-alt-color);
-	border-radius: 3px;
-	border-width: 1px;
-	border-style: solid;
-	padding: 0px 3px;
-}
+	/* turn off text color and underlining by default on all content items... */
+	.content,
+	.content:visited,
+	.content:active {
+		color: inherit;
+		text-decoration: none;
+		cursor: pointer;
+	}
 
-/* Colour the note titles */
-.noteTitle {
-	/* add "font-weight: 700;" to make noteTitles bold */
-	color: var(--tint-color);/* !important;*/
-}
+	/* ... except when hovering over a content item */
+	.content:hover,
+	.noteTitle:hover {
+		text-decoration: underline;
+	}
 
-/* Private note link */
-.folderName {
-	opacity: 80%;
-	color: var(--tint-color);
-}
+	.externalLink {
+		text-decoration: underline;
+		cursor: pointer;
+		color: var(--tint-color);
+	}
 
-/* Teamspace note link */
-.teamspaceName {
-	opacity: 80%;
-	color: var(--teamspace-color);
+	.event-link {
+		font-weight: 400;
+		border-color: var(--bg-alt-color);
+		border-radius: 3px;
+		border-width: 1px;
+		border-style: solid;
+		padding: 0px 3px;
+	}
 }
 
 /* .multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
@@ -366,23 +365,7 @@ html {
 .sidebarMention {color: var(--attag-color);}
 .sidebarSearch {color: var(--fg-sidebarSearch);}
 
-/* .priority, .overdue, .projects {
-	font-size: 1.0rem;
-	color: var(--item-icon-color);
-} */
-
-/* .sidebarHashtag {
-	font-size: 1.0rem;
-	color: var(--hashtag-color);
-}
-
-.sidebarMention {
-	font-size: 1.0rem;
-	color: var(--attag-color);
-} */
-
-
-/* Note: not currently used? */
+/* Note: not currently used */
 #error {
 	background-color: red;
 }

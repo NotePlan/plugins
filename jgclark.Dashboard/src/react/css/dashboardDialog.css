@@ -36,11 +36,6 @@ dialog:modal {
   /* gap: 0.5rem; */
 }
 
-/* icons in title */
-.dialogTitle i {
-  color: var(--tint-color);
-}
-
 .dialogTitle div:nth-last-child(1) {
   /* Put very last div (Close button etc.) on RHS */
   justify-self: end;

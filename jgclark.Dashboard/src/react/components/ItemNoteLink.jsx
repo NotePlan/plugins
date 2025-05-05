@@ -53,8 +53,8 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
   const filenameWithoutTeamspacePrefix = parsedTeamspace.filename
   const isFromTeamspace = parsedTeamspace.isTeamspace
   // logDebug(`ItemNoteLink`, `noteIconToUse:${noteIconToUse} with filenameWithoutTeamspacePrefix:${filenameWithoutTeamspacePrefix}`)
-  const linkClass = 'noteTitle'
-  const linkStyle = 'folderName'
+  // const linkClass = 'noteTitle'
+  // const linkStyle = 'folderName'
   const showNoteTitle = alwaysShowNoteTitle || item.para.noteType === 'Notes' || filenameWithoutTeamspacePrefix !== thisSection.sectionFilename
 
   let teamspaceIndicator = null
@@ -89,8 +89,8 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
       metaKey={{ text: 'Open in Floating Window' }}
       label={`${item.itemType}_${item.ID}_Open Note Link`}
       enabled={!reactSettings?.dialogData?.isOpen}>
-      <span className={`pad-left-larger ${linkStyle} pad-right`}>{folderNamePart}</span>
-      <a className={`${linkClass} ${linkStyle} sectionItem`} onClick={handleLinkClick}>
+      <span className={`pad-left-larger folderName pad-right`}>{folderNamePart}</span>
+      <a className={`noteTitle`} onClick={handleLinkClick}>
         {/* If it's a teamspace note prepend that icon + title */}
         {isFromTeamspace && teamspaceIndicator}
         {showNoteTitle && (

@@ -132,8 +132,7 @@
   /* Style for item description */
   .item-description {
     font-size: small;
-    color: var(--fg-alt-color);
-    opacity: 0.8;
+    color: rgb(from var(--fg-alt-color) r g b / 0.8);
     margin-top: 4px;
   }
 
