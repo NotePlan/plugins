@@ -24,7 +24,9 @@ import { getSetting } from '../../helpers/NPConfiguration'
 import { log, logError, clo } from '@helpers/dev'
 import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 import { getNote } from '@helpers/note'
+
 export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
+  logDebug(`globals::processDate: ${dateParams} as ${JSON.stringify(config)}`)
   const defaultConfig = config?.date ?? {}
   const dateParamsTrimmed = dateParams?.trim() || ''
   const paramConfig =
@@ -117,7 +119,7 @@ const globals = {
   },
 
   weather: async (formatParam: string = ''): Promise<string> => {
-    let weatherFormat = await getSetting(pluginJson['plugin.id'], 'weatherFormat', '') || ''
+    let weatherFormat = (await getSetting(pluginJson['plugin.id'], 'weatherFormat', '')) || ''
     if (formatParam.length > 0) {
       weatherFormat = formatParam
     }

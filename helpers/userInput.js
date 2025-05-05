@@ -366,18 +366,23 @@ export async function askForISODate(question: string): Promise<string> {
  * TODO: in time @EduardMe should produce a native API call that can improve this.
  * @author @jgclark, based on @nmn code
  *
- * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
+ * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} and {defaultValue:'YYYY-MM-DD'} parameters
  * @param {[string]: ?mixed} config - previously used as settings from _configuration note; now ignored
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
-export async function datePicker(dateParams: string, config?: { [string]: ?mixed } = {}): Promise<string> {
+export async function datePicker(dateParams: string, config?: { [string]: ?mixed } = {}): Promise<string | false> {
   try {
     const dateConfig = config.date ?? {}
     // $FlowIgnore[incompatible-call]
-    clo(dateConfig, 'userInput / datePicker dateConfig object:')
+    clo(dateConfig, `userInput / datePicker dateParams="${dateParams.trim()}" dateConfig typeof="${typeof dateConfig}" keys=${Object.keys(dateConfig)}`)
     const dateParamsTrimmed = dateParams.trim()
-    const paramConfig =
-      dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? parseJSON5(dateParams) : dateParamsTrimmed !== '' ? parseJSON5(`{${dateParams}}`) : {}
+    const paramConfig = dateParamsTrimmed
+      ? dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
+        ? parseJSON5(dateParams)
+        : dateParamsTrimmed !== ''
+        ? parseJSON5(`{${dateParams}}`)
+        : {}
+      : {}
     // $FlowIgnore[incompatible-type]
     logDebug('userInput / datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
@@ -405,7 +410,7 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
       return reply2
     } else {
       logWarn('userInput / datePicker', 'User cancelled date input')
-      return ''
+      return false
     }
   } catch (e) {
     logError('userInput / datePicker', e.message)

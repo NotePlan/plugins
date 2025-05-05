@@ -32,6 +32,7 @@ export default class PromptDateHandler {
       } else if (typeof options === 'string' && options.trim() !== '') {
         // If options is a non-empty string, try to parse it as JSON
         try {
+          logDebug(`PromptDateHandler::promptDate: about to parse options: ${options}`)
           dateOptions = JSON.parse(options)
         } catch (e) {
           logError(pluginJson, `Invalid JSON in promptDate options: ${e.message}`)
@@ -40,11 +41,21 @@ export default class PromptDateHandler {
       }
 
       // Call the datePicker with the processed message and options
-      const response = await datePicker(processedMessage, dateOptions)
+      // export async function datePicker(dateParams: string, config?: { [string]: ?mixed } = {}): Promise<string> {
+      // dateParams is a JSON string with question and defaultValue parameters
+      // config is an object with date properties
+      const dateParams = `{question:"${processedMessage}"}`
+      const response = await datePicker(dateParams, dateOptions)
 
       // Ensure we have a valid response
       if (response) {
         return response
+      } else {
+        logDebug(pluginJson, `PromptDateHandler::promptDate: datePicker returned response: ${response} (typeof: ${typeof response})`)
+        if (response === false) {
+          logError(pluginJson, `PromptDateHandler::promptDate: datePicker returned false`)
+          return false
+        }
       }
 
       // Fallback if datePicker fails
