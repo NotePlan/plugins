@@ -358,7 +358,10 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
 export async function reactWindowInitialised(): Promise<void> {
   logDebug('reactWindowInitialised', `--> React Window reported back to plugin that it has loaded <--`)
   const enabledSections = getListOfEnabledSections(await getDashboardSettings())
-  await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
+  const config = await getDashboardSettings()
+  if (!config.FFlag_ForceInitialLoadForBrowserDebugging) {
+    await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
+  }
 }
 
 /**
@@ -378,8 +381,7 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
       ...(activeDef.dashboardSettings || {}),
     }
 
-    // TEST: use helper to save settings from now on
-    // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(newDashboardSettings) }
+    // use our more reliable helper to save settings
     const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(newDashboardSettings) })
     if (!res) {
       throw new Error(`saveSettings failed`)
@@ -517,8 +519,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
   // But if we don't then 2 things are needed:
   // - the getSomeSectionsData() for just the Today section(s)
   // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSomeSections to generate the others
-  // const logSettings = await getLogSettings()
-  const sections = dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true ? await getAllSectionsData(useDemoData, true, true) : [] // was: await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
+  const sections = dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true ? await getAllSectionsData(useDemoData, true, true) : []
 
   const NPSettings = getNotePlanSettings()
 

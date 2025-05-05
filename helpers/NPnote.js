@@ -599,6 +599,7 @@ export function scrollToParagraphWithContent(content: string): boolean {
 
 /**
  * Return list of all notes of type ['Notes'] or ['Calendar'] or both (default).
+ * Note: .slice() is used to avoid mutating the original arrays. This doesn't appear to affect performance, so I'm leaving them in.
  * @author @jgclark
  * @param {Array<string>} noteTypesToInclude
  * @returns {Array<TNote>}
@@ -609,11 +610,14 @@ export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar
       throw new Error(`No note types given. Returning empty array.`)
     }
     let allNotesToCheck: Array<TNote> = []
-    if (noteTypesToInclude.includes('Calendar')) {
+    if (noteTypesToInclude === ['Calendar', 'Notes'] || noteTypesToInclude === ['Notes', 'Calendar']) {
+      allNotesToCheck = DataStore.calendarNotes.slice().concat(DataStore.projectNotes)
+    }
+    else if (noteTypesToInclude.includes('Calendar')) {
       allNotesToCheck = DataStore.calendarNotes.slice()
     }
-    if (noteTypesToInclude.includes('Notes')) {
-      allNotesToCheck = allNotesToCheck.concat(DataStore.projectNotes.slice())
+    else if (noteTypesToInclude.includes('Notes')) {
+      allNotesToCheck = DataStore.projectNotes.slice()
     }
     return allNotesToCheck
   } catch (err) {
