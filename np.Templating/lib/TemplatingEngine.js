@@ -197,6 +197,54 @@ export default class TemplatingEngine {
   }
 
   /**
+   * Formats the error report for incremental rendering failures.
+   * @private
+   * @param {number} errorLine - The line number where the error occurred (1-based index).
+   * @param {string[]} templateLines - The template content split into chunks/lines.
+   * @param {string} errorDetails - The detailed error message from the rendering engine.
+   * @param {string} successfulRender - The content successfully rendered before the error.
+   * @returns {string} The formatted error report string.
+   */
+  _formatIncrementalRenderError(errorLine: number, templateLines: string[], errorDetails: string, successfulRender: string): string {
+    let report = ''
+
+    if (errorLine > 0) {
+      report = `---\n## Template Rendering Error\n`
+      report += `==Rendering failed at line ${errorLine} of ${templateLines.length}==\n`
+      report += errorDetails ? `### Template Processor Result:\n${errorDetails}\n` : ''
+
+      // Show context (previous and next chunks)
+      if (errorLine > 1) {
+        report += `### Line Before Error (Line ${errorLine - 1}):\n\`\`\`\n${templateLines[errorLine - 2]}\n\`\`\`\n`
+      }
+
+      // Show the problematic chunk
+      report += `### Problematic Code (Line ${errorLine}):\n\`\`\`\n${templateLines[errorLine - 1]}\n\`\`\`\n`
+
+      // Show next line only if it exists and is not empty/whitespace
+      if (errorLine < templateLines.length && templateLines[errorLine]?.trim()) {
+        report += `### Next Line (Line ${errorLine + 1}):\n\`\`\`\n${templateLines[errorLine]}\n\`\`\`\n`
+      }
+
+      // Show what rendered successfully
+      logDebug(`successfulRender (before error): ${successfulRender.length}chars "${successfulRender}"`)
+      if (successfulRender && successfulRender.trim().length > 0) {
+        report += `### Last Successful Rendered Content:\n${
+          successfulRender.length < 500
+            ? successfulRender
+            : successfulRender.substring(0, 250) + '\n... (truncated) ...\n' + successfulRender.substring(successfulRender.length - 250)
+        }\n`
+      }
+      report += '---\n'
+    } else {
+      // This might happen if the template is empty or there's a setup issue
+      report = `Unable to identify error location. Check template structure and data context.`
+    }
+
+    return report.replace(/\n\n/g, '\n')
+  }
+
+  /**
    * Try to render the full template normally and if it fails, try to render it line by line to find the error
    * @param {string} templateData - The template to render
    * @param {Object} userData - The user data to pass to the template
@@ -276,39 +324,15 @@ export default class TemplatingEngine {
 
     // Format detailed error report
     let report = ''
-
     if (errorLine > 0) {
-      report = `---\n## Template Rendering Error\n`
-      report += `==Rendering failed at line ${errorLine} of ${templateLines.length}==\n`
-      report += errorDetails ? `### Template Processor Result:\n${errorDetails}\n` : ''
-
-      // Show context (previous and next chunks)
-      if (errorLine > 1) {
-        report += `### Line Before Error (Line ${errorLine - 1}):\n\`\`\`\n${templateLines[errorLine - 2]}\n\`\`\`\n`
-      }
-
-      // Show the problematic chunk
-      report += `### Problematic Code (Line ${errorLine}):\n\`\`\`\n${templateLines[errorLine - 1]}\n\`\`\`\n`
-
-      if (errorLine < templateLines.length) {
-        report += `### Next Line (Line ${errorLine + 1}):\n\`\`\`\n${templateLines[errorLine] || ''}\n\`\`\`\n`
-      }
-
-      // Show what rendered successfully
-      logDebug(`lastRender: ${lastRender.length}chars "${lastRender}"`)
-      if (lastRender && lastRender.trim().length > 0) {
-        report += `### Last Successful Rendered Content:\n${
-          successfulRender.length < 500
-            ? successfulRender
-            : successfulRender.substring(0, 250) + '\n... (truncated) ...\n' + successfulRender.substring(successfulRender.length - 250)
-        }\n---\n`
-      }
+      // Call the new helper function to format the error report
+      report = this._formatIncrementalRenderError(errorLine, templateLines, errorDetails, successfulRender)
     } else {
       // This might happen if the template is empty or there's a setup issue
       report = `Unable to identify error location. Check template structure and data context.`
     }
 
-    return report.replace(/\n\n/g, '\n')
+    return report
   }
 
   async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
@@ -462,11 +486,12 @@ export default class TemplatingEngine {
       // 3. Extract the relevant context lines and error location
       let contextLines = ''
       let lineInfo = ''
+      let adjustedLine = -1
 
       // Extract line and column for better error context
       if (error?.line) {
         // Adjust the line number offset - EJS adds boilerplate code at the top
-        const adjustedLine = error.line - 7
+        adjustedLine = error.line - 7 // Assuming 7 lines of boilerplate
         lineInfo = `Line: ${adjustedLine}`
 
         if (error?.column) {
@@ -476,57 +501,51 @@ export default class TemplatingEngine {
         // If we can extract the error context from the template
         if (processedTemplateData) {
           try {
-            // Get the lines from the template
             const templateLines = processedTemplateData.split('\n')
-
-            // Get more context around the error (increased from 2 to 5 lines)
             const startLine = Math.max(0, adjustedLine - 5)
             const endLine = Math.min(templateLines.length - 1, adjustedLine + 5)
 
-            contextLines += `Template context (lines ${startLine + 1}-${endLine + 1}):\n`
             for (let i = startLine; i <= endLine; i++) {
-              const marker = i === adjustedLine - 1 ? '>> ' : '   ' // Mark the error line
+              const marker = i === adjustedLine - 1 ? '>> ' : '   '
               contextLines += `${marker}${i + 1}| ${templateLines[i] || ''}\n`
             }
 
-            // Add a marker pointing to the column if available
             if (error.column && adjustedLine - 1 < templateLines.length) {
-              const errorLine = templateLines[adjustedLine - 1] || ''
-              const columnMarker = '   ' + ' '.repeat(adjustedLine.toString().length + 2) + ' '.repeat(Math.min(error.column, errorLine.length)) + '^'
+              const errorLineText = templateLines[adjustedLine - 1] || ''
+              const columnMarker = '   ' + ' '.repeat(String(adjustedLine).length + 2) + ' '.repeat(Math.min(error.column, errorLineText.length)) + '^'
               contextLines += `${columnMarker}\n`
             }
           } catch (e) {
-            // If we can't extract context, just continue without it
             logDebug(pluginJson, `Failed to extract error context: ${e.message}`)
+            contextLines = 'Could not extract template context.\n'
           }
         }
       }
 
-      // 4. Build the final error message
-      let result = '\n==An error occurred rendering template:==\n'
+      // Build the final error message using the detailed structure
+      let result = '---\n## Template Rendering Error\n'
 
-      if (lineInfo) {
-        result += `${lineInfo}\n`
+      if (adjustedLine > 0) {
+        result += `==Rendering failed at ${lineInfo}==\n`
+      } else {
+        result += `==Rendering failed==\n`
       }
+
+      result += `### Template Processor Result:\n\`\`\`\n${errorMessage.trim()}\n\`\`\`\n`
 
       if (contextLines) {
-        result += `\`\`\`\n${contextLines}\`\`\`\n`
+        result += `### Template Context:\n\`\`\`\n${contextLines.trim()}\n\`\`\`\n`
       }
 
-      // Add the exact error message format the test is looking for when error relates to JSON
+      // Add the special handling for critical errors (like JSON parsing)
+      // Note: This might duplicate some info but ensures test compatibility
       if (errorMessage.includes('JSON') || errorMessage.toLowerCase().includes('unexpected identifier')) {
-        if (errorMessage.toLowerCase().includes('unexpected identifier')) {
-          // For this specific case, combine both error messages to make both tests pass
-          result += `**Template contains critical errors.**\n\`\`\`\n${errorMessage.trim()}\n\`\`\``
-        } else {
-          // For JSON errors, use the standard message format that the critical error test expects
-          result += `**Template contains critical errors.**`
-        }
-      } else {
-        result += `\`\`\`\n${errorMessage.trim()}\n\`\`\``
+        result += `**Template contains critical errors.**\n` // Append this specific message
       }
 
-      return result
+      result += '---\n'
+
+      return result.replace(/\n\n/g, '\n')
     }
   }
 
@@ -572,10 +591,10 @@ export default class TemplatingEngine {
         log(pluginJson, `Please refer to np.Templating Documentation [Templating Plugins]`)
         break
       case 'object':
-        const moduleNmae = this.templateModules.find((item) => {
+        const moduleName = this.templateModules.find((item) => {
           return item.moduleNamespace === name
         })
-        if (!moduleNmae) {
+        if (!moduleName) {
           this.templateModules.push({ moduleNamespace: name, module: methodOrModule })
         }
         break
