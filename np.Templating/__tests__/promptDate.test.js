@@ -69,7 +69,7 @@ describe('PromptDateHandler', () => {
     expect(result.sessionTemplateData).toBe('<%- selectedDate %>')
 
     // Verify the datePicker was called with the right message and empty config
-    expect(datePicker).toHaveBeenCalledWith('Select a date with, comma:', {})
+    expect(datePicker).toHaveBeenCalledWith('{question:"Select a date with, comma:"}', {})
   })
 
   test('Should handle single quotes in parameters', async () => {
@@ -85,7 +85,23 @@ describe('PromptDateHandler', () => {
     expect(result.sessionTemplateData).toBe('<%- selectedDate %>')
 
     // Verify the datePicker was called with the right message
-    expect(datePicker).toHaveBeenCalledWith("Select a date with 'quotes':", {})
+    expect(datePicker).toHaveBeenCalledWith('{question:"Select a date with \'quotes\':"}', {})
+  })
+
+  test('Should handle double quotes in parameters', async () => {
+    // Using the mocked datePicker from @helpers/userInput
+    datePicker.mockClear()
+
+    const templateData = "<%- promptDate('selectedDate', 'Select a date with \"quotes\":') %>"
+    const userData = {}
+
+    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+
+    expect(result.sessionData.selectedDate).toBe('2023-01-15')
+    expect(result.sessionTemplateData).toBe('<%- selectedDate %>')
+
+    // Verify the datePicker was called with the right message
+    expect(datePicker).toHaveBeenCalledWith('{question:"Select a date with "quotes":"}', {})
   })
 
   test('Should handle multiple promptDate calls', async () => {
@@ -137,14 +153,15 @@ describe('PromptDateHandler', () => {
     datePicker.mockClear()
 
     // Test with more complex options
-    const templateData = "<%- let formattedDate = promptDate('formattedDate', 'Select date:') %>"
+    const templateData = "<%- let formattedDate = promptDate('formattedDate', 'Select date:', 'FIXME: add promptDate options here') %>"
     const userData = {}
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
     expect(result.sessionData.formattedDate).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('<%- formattedDate %>')
-    expect(datePicker).toHaveBeenCalledWith('Select date:', {})
+    expect(datePicker).toHaveBeenCalledWith('{question:"Select date:"}', {})
+    //FIXME: also add to the prompt dialog
   })
 
   test('Should handle variable names with question marks', async () => {

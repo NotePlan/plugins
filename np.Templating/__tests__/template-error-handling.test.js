@@ -46,7 +46,7 @@ describe('TemplatingEngine error handling', () => {
     const result = await templatingEngine.render(template, {})
 
     // Check for clear error message format
-    expect(result).toContain('An error occurred rendering template:')
+    expect(result).toContain('Template Rendering Error')
     expect(result).toContain('SyntaxError:') // Should indicate it's a syntax error
     expect(result).not.toContain('ejs:') // Should not have noisy ejs internals
   })

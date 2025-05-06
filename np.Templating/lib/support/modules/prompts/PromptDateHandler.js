@@ -44,6 +44,11 @@ export default class PromptDateHandler {
       // export async function datePicker(dateParams: string, config?: { [string]: ?mixed } = {}): Promise<string> {
       // dateParams is a JSON string with question and defaultValue parameters
       // config is an object with date properties
+
+      const options = typeof options === 'string' ? JSON.parse(options) : options || {}
+      if (options && typeof options === 'object') {
+        dateOptions.question = processedMessage
+      }
       const dateParams = `{question:"${processedMessage}"}`
       const response = await datePicker(dateParams, dateOptions)
 
