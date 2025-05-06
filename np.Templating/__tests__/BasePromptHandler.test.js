@@ -2,6 +2,7 @@
 // @flow
 
 import BasePromptHandler from '../lib/support/modules/prompts/BasePromptHandler'
+import StandardPromptHandler from '../lib/support/modules/prompts/StandardPromptHandler'
 import { getRegisteredPromptNames, cleanVarName } from '../lib/support/modules/prompts/PromptRegistry'
 
 /* global describe, test, expect, jest, beforeEach, beforeAll */
@@ -14,6 +15,7 @@ jest.mock('../lib/support/modules/prompts/PromptRegistry', () => ({
     // Simple implementation that replaces spaces with underscores and removes question marks
     return varName.replace(/\s+/g, '_').replace(/\?/g, '')
   }),
+  registerPromptType: jest.fn(),
 }))
 
 describe('BasePromptHandler', () => {
@@ -266,9 +268,28 @@ describe('BasePromptHandler', () => {
 
       expect(result.varName).toBe('my_var_name')
     })
+
+    it('should parse a tag with only a single message parameter (noVar=false)', () => {
+      const tag = "<%- prompt('Single Message Param') %>"
+      const result = BasePromptHandler.getPromptParameters(tag) // noVar is false by default
+
+      expect(result).toMatchObject({
+        varName: 'Single_Message_Param', // Cleaned message becomes varName
+        promptMessage: 'Single Message Param',
+        options: '',
+      })
+    })
   })
 
   describe('getPromptParameters with noVar=true', () => {
+    beforeEach(() => {
+      // Mock CommandBar for tests in this describe block that might use it via StandardPromptHandler
+      global.CommandBar = {
+        textPrompt: jest.fn().mockResolvedValue('mocked user input'),
+        showOptions: jest.fn().mockResolvedValue({ value: 'mocked option' }),
+      }
+    })
+
     it('should parse a tag with only a prompt message', () => {
       const tag = "<%- prompt('Enter a value:') %>"
       const result = BasePromptHandler.getPromptParameters(tag, true)
@@ -278,6 +299,27 @@ describe('BasePromptHandler', () => {
         promptMessage: 'Enter a value:',
       })
       expect(result.options).toBe('')
+    })
+
+    it('should ensure StandardPromptHandler.getResponse calls CommandBar.textPrompt correctly with parsed single-argument message', async () => {
+      const tag = "<%- prompt('My Test Message') %>"
+      const params = BasePromptHandler.getPromptParameters(tag, true)
+
+      // Verify parameters parsed by BasePromptHandler
+      expect(params.promptMessage).toBe('My Test Message')
+      expect(params.varName).toBe('')
+      expect(params.options).toBe('')
+
+      // Call StandardPromptHandler.getResponse with the parsed parameters
+      await StandardPromptHandler.getResponse(params.promptMessage, params.options)
+
+      // Verify CommandBar.textPrompt was called as expected
+      expect(global.CommandBar.textPrompt).toHaveBeenCalledTimes(1)
+      expect(global.CommandBar.textPrompt).toHaveBeenCalledWith(
+        '', // title parameter - not used in templating
+        'My Test Message', // placeholder argument (message || 'Enter a value:')
+        '', // defaultText argument (params.options)
+      )
     })
 
     it('should parse a tag with prompt message and options', () => {

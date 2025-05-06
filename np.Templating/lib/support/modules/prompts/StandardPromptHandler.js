@@ -90,14 +90,14 @@ export default class StandardPromptHandler {
       } else if (options && typeof options === 'object' && !Array.isArray(options)) {
         // Handle object options (could be for future extensions)
         logDebug(pluginJson, `Showing text prompt with object options: ${JSON.stringify(options)}`)
-        const textResponse = await CommandBar.textPrompt(processedMessage, processedMessage, '')
+        const textResponse = await CommandBar.textPrompt('', processedMessage, '')
         return textResponse
       } else {
         // String options are treated as default values
         const defaultValue: string = typeof processedOptions === 'string' ? processedOptions : ''
 
         logDebug(pluginJson, `Showing text prompt with default: ${defaultValue}`)
-        const textResponse = await CommandBar.textPrompt(processedMessage, processedMessage, defaultValue)
+        const textResponse = await CommandBar.textPrompt('', processedMessage, defaultValue)
         return textResponse || ''
       }
     } catch (error) {
@@ -149,7 +149,7 @@ export default class StandardPromptHandler {
         const defaultText = typeof options === 'string' ? options : ''
         logDebug(pluginJson, `StandardPromptHandler.getResponse: Using CommandBar.textPrompt with default="${defaultText}"`)
 
-        const promptResult = await CommandBar.textPrompt(message, message || 'Enter a value:', defaultText)
+        const promptResult = await CommandBar.textPrompt('', message || 'Enter a value:', defaultText)
 
         // Add logging about result to help diagnose escape key issues
         if (promptResult === null) {

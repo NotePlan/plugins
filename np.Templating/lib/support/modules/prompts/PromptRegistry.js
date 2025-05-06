@@ -345,7 +345,7 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
         try {
           // Parse the parameters
           const params = promptType.parseParameters(processContent)
-          logDebug(pluginJson, `Parsed prompt parameters: ${JSON.stringify(params)}`)
+          logDebug(pluginJson, `PromptRegistry::processPromptTag Parsed prompt parameters: ${JSON.stringify(params)}`)
 
           // Log the tag being processed
           logDebug(pluginJson, `Processing tag: ${tag.substring(0, 100)}...`)

@@ -361,7 +361,7 @@ export default class BasePromptHandler {
       // Handle the case of promptType("message")
       return {
         varName: noVar ? '' : BasePromptHandler.cleanVarName(directParams.message),
-        promptMessage: noVar ? directParams.message : '',
+        promptMessage: directParams.message,
         options: '',
       }
     }
