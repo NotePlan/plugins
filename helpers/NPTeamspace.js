@@ -34,8 +34,8 @@ export function getTeamspaceNoteFilenameRegex(): RegExp {
  * @returns {Array<TTeamspace>}
  */
 export function getAllTeamspaceIDsAndTitles(): Array<TTeamspace> {
-  const outputList = DataStore.teamspaces?.map((teamspace) => ({ id: teamspace.filename.split('/')[1], title: teamspace.title })) ?? []
-  clo(outputList, 'getAllTeamspaceIDsAndTitles')
+  const outputList = DataStore.teamspaces?.map((teamspace) => ({ id: teamspace.filename.split('/')[1], title: teamspace.title || '(unknown)' })) ?? []
+  // clo(outputList, 'getAllTeamspaceIDsAndTitles')
   return outputList
 }
 
@@ -61,7 +61,7 @@ export function getTeamspaceTitleFromNote(note: TNote): string {
 export function getNoteFromFilename(filename: string): TNote | null {
   logDebug('NPTeamspace::getNoteFromFilename', `Starting with filename ${filename}`)
   const possRegularNote = DataStore.noteByFilename(filename, 'Notes')
-  let possCalendarNote: TNote | null = null
+  let possCalendarNote: ?TNote
   if (isTeamspaceNoteFromFilename(filename)) {
     const teamspaceObject = parseTeamspaceFilename(filename)
     const dateString = filename.split('/')[2].split('.')[0]
