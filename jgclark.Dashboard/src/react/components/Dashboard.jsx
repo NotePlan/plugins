@@ -319,6 +319,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         <DebugPanel isVisible={showDebugPanel} getContext={getContext} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />
       )}
       <div id="tooltip-portal"></div>
+      <div id="dropdown-select-portal"></div>
     </div>
   )
 }

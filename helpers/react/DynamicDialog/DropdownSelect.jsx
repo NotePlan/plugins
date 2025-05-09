@@ -3,11 +3,14 @@
 // React component to show an HTML DropdownSelect control, with various possible settings.
 // Based on basic HTML controls, not a fancy React Component.
 //
+// WARNING: This includes a proof of concept change to use a Portal for the actual dropdown. Not fully implemented. Would need positioning control as well.
+//
 // Includes logic to either disable focus when isEditable=false,
 // and logic to only scroll if needed, plus an optional prop to disable scrolling altogether.
-// Last updated 2025-04-05 by @jgclark
+// Last updated 2025-05-09 by @jgclark
 //--------------------------------------------------------------------------
-import React, { useState, useEffect, useRef, useMemo, type ElementRef, useLayoutEffect } from 'react'
+import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, type ElementRef } from 'react'
+import ReactDOM from 'react-dom'
 import './DropdownSelect.css'
 import { clo, logDebug, logInfo } from '@helpers/react/reactDev'
 
@@ -352,6 +355,8 @@ const DropdownSelect = ({
       ...customStyles,
     })
 
+  const portalElement = document.getElementById('dropdown-select-portal')
+
   return (
     <div
       className={`${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''} ${className}`}
@@ -395,11 +400,14 @@ const DropdownSelect = ({
             &#9662;
           </span>
         </div>
-        {isOpen && (
+        {isOpen && ReactDOM.createPortal(
           <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({
             // width: `max(${calculatedWidth}ch, 98%)`,
             maxHeight: '80vh',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            position: 'absolute',
+            left: '3rem',
+            top: '2rem'
           }, styles.dropdown)}>
             {filteredOptions.map((option: Option, i) => {
               if (option.type === 'separator') {
@@ -428,7 +436,8 @@ const DropdownSelect = ({
                 </div>
               )
             })}
-          </div>
+          </div>,
+          portalElement
         )}
       </div>
     </div>
