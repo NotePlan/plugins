@@ -207,15 +207,15 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
   }
 
   // Return section details, even if no items found
-  let tagSectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
-  if (config?.FFlag_ShowSectionTimings) tagSectionDescription += ` in ${timer(thisStartTime)}`
-  if (config?.FFlag_UseTagCache) tagSectionDescription += `, using CACHE` // TODO(later): remove note about the tag cache
+  let sectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
+  if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
+  if (config?.FFlag_UseTagCache) sectionDescription += `, using CACHE` // TODO(later): remove note about the tag cache
   const section: TSection = {
     ID: sectionNumStr,
     name: sectionDetail.sectionName,
     showSettingName: sectionDetail.showSettingName,
     sectionCode: thisSectionCode,
-    description: tagSectionDescription,
+    description: sectionDescription,
     FAIconClass: isHashtag ? 'fa-light fa-hashtag' : 'fa-light fa-at',
     sectionTitleColorPart: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
     sectionFilename: '',

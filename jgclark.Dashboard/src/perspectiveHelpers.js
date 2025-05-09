@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-04-30 for v2.2.0.a13+
+// Last updated 2025-05-09 for v2.2.0.a13+
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,6 +14,7 @@ import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type { TDashboardSettings, TDashboardPluginSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { getPeriodOfNPDateStr } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
@@ -437,7 +438,7 @@ export async function logPerspectiveFiltering(filenameArg?: string): Promise<voi
     if (note.type === 'Calendar') {
       // Force generation of separate lists for testing purposes
       dashboardSettings.separateSectionForReferencedNotes = true
-      const [openDashboardParas, refOpenDashboardParas] = getOpenItemParasForTimePeriod('<testing>', note, dashboardSettings, false)
+      const [openDashboardParas, refOpenDashboardParas] = getOpenItemParasForTimePeriod(note.filename, getPeriodOfNPDateStr(note.filename), dashboardSettings, false)
       logInfo('', `There are ${String(openDashboardParas.length)} lines valid for this perspective in this note:`)
       openDashboardParas.forEach((p) => {
         console.log(`  - ${p.lineIndex}: ${p.type}: ${p.content}`)
@@ -597,7 +598,7 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPlugi
       if (!shouldRemoveKey(key)) {
         acc[key] = settingsIn[key]
       } else {
-        logInfo('cleanDashboardSettingsInAPerspective', `- Removing key '${key}'`)
+        logDebug('cleanDashboardSettingsInAPerspective', `- Removing key '${key}'`)
       }
       return acc
     }, {})

@@ -60,7 +60,6 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         }
 
         // Get list of open tasks/checklists from this calendar note
-        // ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('week', currentWeeklyNote, config, useEditorWherePossible)
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'week', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
@@ -239,7 +238,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
  */
 export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNumStr = '19' // TODO: remove sectionNumStrs
+    let sectionNumStr = '19'
     const thisSectionCode = 'LW'
     const sections: Array<TSection> = []
     let items: Array<TSectionItem> = []
@@ -264,7 +263,6 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
         }
 
         // Get list of open tasks/checklists from this calendar note
-        // ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('week', lastWeeklyNote, config, useEditorWherePossible)
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'week', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section

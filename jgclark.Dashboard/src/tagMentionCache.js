@@ -139,12 +139,12 @@ export async function getFilenamesOfNotesWithTagOrMentions(tagOrMentions: Array<
     const cacheLookupTime = new Date() - startTime
     logTimer('getFilenamesOfNotesWithTagOrMentions', startTime, `-> found ${String(matchingNoteFilenamesFromCache.length)} notes from CACHE with wanted tags/mentions [${String(tagOrMentions)}]:`, 500)
 
-    // Now for interest get from the API instead, and compare the results (depending on turnOffAPILookups)
+    // During Dev, get from the API instead, and compare the results (depending on turnOffAPILookups)
     if (!turnOffAPILookups) {
       const thisStartTime = new Date()
       let matchingNotesFromAPI: Array<TNote> = []
       for (const tagOrMention of tagOrMentions) {
-        matchingNotesFromAPI = matchingNotesFromAPI.concat(findNotesMatchingHashtagOrMention(tagOrMention, true, true, true))
+        matchingNotesFromAPI = matchingNotesFromAPI.concat(findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, []))
       }
       // $FlowIgnore[unsafe-arithmetic]
       const APILookupTime = new Date() - thisStartTime
@@ -302,7 +302,6 @@ export async function updateTagMentionCache(): Promise<void> {
     // For each note, get wanted tags and mentions, and overwrite the existing cache details
     let c = 0
     for (const note of recentlychangedNotes) {
-      // Work out if this note is a calendar note or a regular note
       const isCalendarNote = note.type === 'Calendar'
 
       // First clear existing details for this note

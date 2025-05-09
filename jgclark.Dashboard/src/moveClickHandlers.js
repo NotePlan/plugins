@@ -106,9 +106,9 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, itemType, para, item } = validateAndFlattenMessageObject(data)
+  const { filename, content, itemType, item } = validateAndFlattenMessageObject(data)
   logDebug('doMoveToNote', `starting for ID ${item?.ID ?? '?'} (${filename} / ${content} / ${itemType})`)
-  const newNote: TNote | null | void = await moveItemToRegularNote(filename, content, itemType) // TODO: make a boolean result?
+  const newNote: TNote | null = await moveItemToRegularNote(filename, content, itemType) // TODO: make a boolean result?
 
   // If success, then update the display
   if (newNote) {

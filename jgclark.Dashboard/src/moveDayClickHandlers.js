@@ -42,7 +42,7 @@ export async function scheduleAllYesterdayOpenToToday(data: MessageDataObject): 
 
     // If called with modifierKey 'meta', then toggle from usual config.rescheduleNotMove behaviour to the opposite
     const rescheduleNotMove = data.modifierKey === 'meta' ? !config.rescheduleNotMove : config.rescheduleNotMove
-    if (config.rescheduleNotMove !== config.rescheduleNotMove) logDebug('scheduleAllYesterdayOpenToToday', `starting with rescheduleNotMove setting overridden toggled to ${rescheduleNotMove}`)
+    if (config.rescheduleNotMove !== config.rescheduleNotMove) logDebug('scheduleAllYesterdayOpenToToday', `Starting with rescheduleNotMove setting overridden toggled to ${rescheduleNotMove}`)
 
     // Get paras for all open items in yesterday's note
     // Note: this could be taken from pluginData's DY section data, but it's very quick to generate, and guarantees that we're using fresh data
@@ -59,7 +59,7 @@ export async function scheduleAllYesterdayOpenToToday(data: MessageDataObject): 
     // Get list of open tasks/checklists from this calendar note
     // First, override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod('day', yesterdaysNote, config)
+    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod(yesterdaysNote.filename, 'day', config)
     const initialTotalToMove = combinedSortedParas.length + sortedRefParas.length
 
     // Remove child items from the two lists of paras
@@ -101,9 +101,11 @@ export async function scheduleAllYesterdayOpenToToday(data: MessageDataObject): 
           logDebug('scheduleAllYesterdayOpenToToday', `- Scheduling item ${c}/${totalToMove} "${dashboardPara.content}" to tomorrow`)
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
-          if (p) {
+          if (p && p.note) {
             p.content = replaceArrowDatesInString(p.content, `>${newDateStr}`)
-            p.note?.updateParagraph(p)
+            // $FlowIgnore[incompatible-use]
+            p.note.updateParagraph(p)
+            // $FlowIgnore[incompatible-call]
             DataStore.updateCache(p.note, false)
             numberScheduled++
           } else {
@@ -195,7 +197,7 @@ export async function scheduleAllTodayTomorrow(data: MessageDataObject): Promise
 
     // If called with modifierKey 'meta', then toggle from usual config.rescheduleNotMove behaviour to the opposite
     const rescheduleNotMove = data.modifierKey === 'meta' ? !config.rescheduleNotMove : config.rescheduleNotMove
-    if (config.rescheduleNotMove !== config.rescheduleNotMove) logDebug('scheduleAllYesterdayOpenToToday', `starting with rescheduleNotMove setting overridden toggled to ${rescheduleNotMove}`)
+    if (config.rescheduleNotMove !== config.rescheduleNotMove) logDebug('scheduleAllTodayTomorrow', `Starting with rescheduleNotMove setting overridden toggled to ${String(rescheduleNotMove)}`)
 
     // Get paras for all open items in today's note
     // Note: this could be taken from pluginData's DT section data, but it's very quick to generate, and guarantees that we're using fresh data
@@ -207,13 +209,13 @@ export async function scheduleAllTodayTomorrow(data: MessageDataObject): Promise
       logWarn('scheduleAllTodayTomorrow', `Oddly I can't find a daily note for today (${todayDateStr})`)
       return { success: false }
     } else {
-      logDebug('scheduleAllTodayTomorrow', `Starting with today's note${todayDateStr}`)
+      logDebug('scheduleAllTodayTomorrow', `Starting with today's note (${todayDateStr})`)
     }
 
     // Get list of open tasks/checklists from this calendar note
     // First, override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod('day', todaysNote, config)
+    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod(todaysNote.filename, 'day', config)
     const initialTotalToMove = combinedSortedParas.length + sortedRefParas.length
 
     // Remove child items from the two lists of paras
@@ -254,7 +256,9 @@ export async function scheduleAllTodayTomorrow(data: MessageDataObject): Promise
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
             p.content = replaceArrowDatesInString(p.content, `>${tomorrowISODateStr}`)
-            p.note?.updateParagraph(p)
+            // $FlowIgnore[incompatible-use]
+            p.note.updateParagraph(p)
+            // $FlowIgnore[incompatible-call]
             DataStore.updateCache(p.note, false)
             numberScheduled++
           }
@@ -350,7 +354,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     // }
     // // Override one setting so we can work on combined items
     // config.separateSectionForReferencedNotes = false
-    // const [yesterdaysCombinedSortedDashboardParas, _sortedRefParas] = getOpenItemParasForTimePeriod("day", yesterdaysNote, config, false)
+    // const [yesterdaysCombinedSortedDashboardParas, _sortedRefParas] = getOpenItemParasForTimePeriod(yesterdaysNote.filename, "day", config, false)
 
     // Now dedupe with Yesterday data
     // Now convert these back to full TParagraph
@@ -373,6 +377,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
       return { success: false }
     }
     // Remove child items from the list of paras
+    // FIXME: we need TDashboardParagraphs, not TParagraphs
     const overdueParasWithoutChildren = overdueParas.filter((dp) => !dp.isAChild)
     const totalToMove = overdueParasWithoutChildren.length
     if (totalToMove !== initialTotalOverdue) {

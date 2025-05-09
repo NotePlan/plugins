@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2025-03-28 for v2.2.0.a9
+// Last updated 2025-05-08 for v2.2.2
 //-----------------------------------------------------------------------------
 
 import { getGlobalSharedData, sendToHTMLWindow } from '../../helpers/HTMLView'
@@ -448,13 +448,13 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
  * @param {any} data - any data that the router (specified in onMessageFromHTMLView) needs -- may be nothing
  * @returns {Promise<any>} - does not return anything important
  */
-// export async function updateReactWindowData(actionType: string, data: any = null): Promise<any> {
-//   if (!getWindowFromId(WEBVIEW_WINDOW_ID)) {
-//     logError(pluginJson, `updateReactWindowData('${actionType}'): Window with ID ${WEBVIEW_WINDOW_ID} not found. Could not update data.`)
-//     return
-//   }
-//   await onMessageFromHTMLView(actionType, data)
-// }
+export async function updateReactWindowData(actionType: string, data: any = null): Promise<any> {
+  try {
+    await onMessageFromHTMLView(actionType, data)
+  } catch (error) {
+    logError(`updateReactWindowData`, `Error "${error.message}" for action '${actionType}'`)
+  }
+}
 
 /**
  * Router function that receives requests from the React Window and routes them to the appropriate function
@@ -478,31 +478,14 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
       // every time
       default:
         _newData = (await bridgeClickDashboardItem(dataToSend)) || reactWindowData // the processing function can update the reactWindowData object and return it
-        // await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`)
         break
     }
 
     return {} // this return value is ignored but needs to exist or we get an error
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError(`onMessageFromHTMLView`, `Error "${error.message}" for action '${actionType}'`)
   }
 }
-
-/**
- * Update the sections data in the React Window data object.
- * TEST: Try removing this, as it no longer seems to be used.
- * @returns {Promise<any>} - returns the full reactWindowData
- */
-// export async function refreshDashboardData(prevData?: any): any {
-//   const reactWindowData = prevData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID)) // get the current data from the React Window
-//   const { demoMode } = reactWindowData
-//   const sections = await getAllSectionsData(demoMode, false, true)
-//   logDebug(`refreshDashboardData`, `after get all sections sections[0]=${sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
-//   reactWindowData.pluginData.sections = sections
-//   logDebug(`refreshDashboardData`, `after get all sections reactWindowData[0]=${reactWindowData.pluginData.sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
-//   clo(reactWindowData.pluginData.sections, 'refreshDashboardData: reactWindowData.pluginData.sections=')
-//   return reactWindowData
-// }
 
 /**
  * Gather data you want passed to the React Window (e.g. what you you will use to display).

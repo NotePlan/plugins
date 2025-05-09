@@ -11,7 +11,7 @@ import { getDisplayListOfSectionCodes, getNotePlanSettings, handlerResult, merge
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { getGlobalSharedData } from '@helpers/HTMLView'
+import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -72,7 +72,7 @@ export async function refreshAllSections(): Promise<void> {
  * This is used on first launch to improve the UX and speed of first render.
  * Each section is returned to React as it's generated.
  * Today loads first and then this function is automatically called from a useEffect in Dashboard.jsx to load the rest.
- * FIXME: DBW thinks this generates way more updates than necessary
+ * TODO: DBW thinks this generates way more updates than necessary
  * 
  * @param {MessageDataObject} data
  * @param {boolean} calledByTrigger? (default: false)
@@ -84,38 +84,47 @@ export async function incrementallyRefreshSomeSections(
   calledByTrigger: boolean = false,
   setFullRefreshDate: boolean = false,
 ): Promise<TBridgeClickHandlerResult> {
-  const incrementalStart = new Date()
-  const { sectionCodes } = data
-  if (!sectionCodes) {
-    logError('incrementallyRefreshSomeSections', 'No sectionCodes provided')
+  try {
+    const incrementalStart = new Date()
+    const { sectionCodes } = data
+    if (!sectionCodes) {
+      logError('incrementallyRefreshSomeSections', 'No sectionCodes provided')
+      return handlerResult(false)
+    }
+    logDebug('incrementallyRefreshSomeSections', `Starting incremental refresh for sections [${String(sectionCodes)}]`)
+    await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
+    // loop through sectionCodes
+    for (const sectionCode of sectionCodes) {
+      // const start = new Date()
+      await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
+      // logTimer(`incrementallyRefreshSomeSections`, start, `- to get section: ${sectionCode}`, 1000)
+    }
+    const updates: any = { refreshing: false, firstRun: false }
+    if (setFullRefreshDate) updates.lastFullRefresh = new Date()
+    await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (after ${timer(incrementalStart)})`)
+    logTimer('incrementallyRefreshSomeSections', incrementalStart, `- to refresh ${sectionCodes.length} sections: ${sectionCodes.toString()}`, 2000)
+
+    // re-calculate done task counts (if the appropriate setting is on)
+    const NPSettings = await getNotePlanSettings()
+    if (NPSettings.doneDatesAvailable) {
+      const startTime = new Date()
+      const totalDoneCount = updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSomeSections (for [${sectionCodes.join(',')}])`)
+      const changedData = {
+        totalDoneCount: totalDoneCount,
+      }
+      await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSomeSections')
+      logTimer('incrementallyRefreshSomeSections', startTime, `- to calculate done counts at end of incrementallyRefreshSomeSections`, 1000)
+    }
+
+    return handlerResult(true)
+  }
+  catch (error) {
+    await setPluginData({ refreshing: false }, `Error in incrementallyRefreshSomeSections; closing modal spinner`)
+    logError('incrementallyRefreshSomeSections', error)
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Error in incrementallyRefreshSomeSections: ${error.message}`)
+    logDebug('incrementallyRefreshSomeSections', `Will also hide modal spinner`)
     return handlerResult(false)
   }
-  logDebug('incrementallyRefreshSomeSections', `Starting incremental refresh for sections [${String(sectionCodes)}]`)
-  await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
-  // loop through sectionCodes
-  for (const sectionCode of sectionCodes) {
-    // const start = new Date()
-    await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
-    // logTimer(`incrementallyRefreshSomeSections`, start, `- to get section: ${sectionCode}`, 1000)
-  }
-  const updates: any = { refreshing: false, firstRun: false }
-  if (setFullRefreshDate) updates.lastFullRefresh = new Date()
-  await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (after ${timer(incrementalStart)})`)
-  logTimer('incrementallyRefreshSomeSections', incrementalStart, `- to refresh ${sectionCodes.length} sections: ${sectionCodes.toString()}`, 2000)
-
-  // re-calculate done task counts (if the appropriate setting is on)
-  const NPSettings = await getNotePlanSettings()
-  if (NPSettings.doneDatesAvailable) {
-    const startTime = new Date()
-    const totalDoneCount = updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSomeSections (for [${sectionCodes.join(',')}])`)
-    const changedData = {
-      totalDoneCount: totalDoneCount,
-    }
-    await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSomeSections')
-    logTimer('incrementallyRefreshSomeSections', startTime, `- to calculate done counts at end of incrementallyRefreshSomeSections`, 1000)
-  }
-
-  return handlerResult(true)
 }
 
 /**

@@ -481,6 +481,8 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
       logDebug(`doDashboardSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
       if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
         // Clean up the settings before then comparing them with the active perspective settings
+        // $FlowIgnore[prop-missing]
+        // $FlowIgnore[incompatible-call]
         const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettings)
         const diff = compareObjects(activePerspDef.dashboardSettings, cleanedSettings, ['lastModified', 'lastChange'])
         clo(diff, `doDashboardSettingsChanged: diff`)

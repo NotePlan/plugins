@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate Project section data
-// Last updated for v2.1.10
+// Last updated 2025-05-09 for v2.2.2
 //-----------------------------------------------------------------------------
 
 import { getNextProjectsToReview } from '../../jgclark.Reviews/src/allProjectsListHelpers'
@@ -10,7 +10,7 @@ import { getDashboardSettings } from './dashboardHelpers'
 import { nextProjectNoteItems } from './demoData'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import type { TDashboardSettings, TSection, TSectionItem } from './types'
-import { logDebug, logTimer } from '@helpers/dev'
+import { logDebug, logTimer, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { pluginIsInstalled } from '@helpers/NPConfiguration'
 
@@ -23,7 +23,7 @@ import { pluginIsInstalled } from '@helpers/NPConfiguration'
  * @returns
  */
 
-export async function getProjectSectionData(_config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
+export async function getProjectSectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   const sectionNumStr = '15'
   const thisSectionCode = 'PROJ'
   let itemCount = 0
@@ -102,12 +102,15 @@ export async function getProjectSectionData(_config: TDashboardSettings, useDemo
     }
   }
   // clo(nextProjectsToReview, "nextProjectsToReview")
+  let sectionDescription = `{count} project{s} ready to review`
+  if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
+
   const section = {
     name: 'Projects',
     showSettingName: 'showProjectSection',
     ID: sectionNumStr,
     sectionCode: thisSectionCode,
-    description: `{count} project{s} ready to review`,
+    description: sectionDescription,
     sectionItems: items,
     FAIconClass: 'fa-regular fa-chart-gantt',
     // FAIconClass: 'fa-light fa-square-kanban',
