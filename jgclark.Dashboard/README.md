@@ -5,18 +5,22 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 - open tasks and checklists from today's note
 - scheduled open tasks and checklists from other notes to today
 - similarly for yesterday's note, tomorrow's note, this week's and last week's notes, and monthly and quarterly notes too (if used)
-- all open tasks and checklists that contain a particular  `#tags` or `@mention`s of your choosing. This can give "deferred date" functionality (see below).
+- all open tasks and checklists that contain a particular  `#tags` or `@mention`s of your choosing -- for example things tagged with the name of a family member of colleague. This can give "deferred date" functionality (see below).
 - all overdue tasks
 - all open items with an added priority
 - the next Project notes ready to review (if you have the "Projects and Reviews" plugin installed)
 - it shows any currently-active time block you've set
-- (and from v2.2) you can now 'Search' to show all open items that match a search. 
+- plus a 'Search' field to show all open items that match a search.
 
-... and then gives you many controls, mostly in an "edit dialog", that let you quickly edit, complete, cancel or move any of these items to be due on different days/week/months etc.
+This avoids you having to keep _copying_ tasks into your Today note to see them, but instead you can _see_ them all in one place in the Dashboard window.  From there you can quickly edit, complete, cancel or move any of these items to be due on different days/week/months, with the pop-up Edit Dialog.
+<img src="task-dialog-2.1.8.png" width="600px" margin="8px" alt="dialog showing task + checklist action buttons" />
 
 Here's a [great video from user George Crump](https://youtu.be/_lj8osSOvQc) that shows v2.0 in action, and how he lives in the Dashboard throughout his day:
 
 [<img width="500px" alt="thumbnail" src="./dashboard-v2-GC-video-title.jpeg">](https://youtu.be/_lj8osSOvQc)
+
+My suggestion is to think ahead. You may want to see overdue from yesterday now, but as your use grows you probably want to see more things from more places. E.g. I have a tag of things that I need to discuss with my Administrator, but these are spread across 30 different projects/areas. So I have a Section to show me them from whichever note they live in.
+That’s why Dashboard is as it is: don’t keep *copying* things into Today, but *see* them all in one place in the Dashboard window.  Yes, it means keeping it open most of the time, but that’s much easier than continually navigating around different notes.
 
 To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It automatically picks up the Theme from NotePlan and mimics it as far as possible (you're welcome).
 
@@ -26,7 +30,7 @@ To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It aut
 <img src="header-bar-2.2.0.png" width="500px" border="1pt solid" margin="8px" alt="Top right buttons"/>
 
 From left to right these are:
-- the **Perspective menu**, showing the currently-active Perspective. See [Search section](#search-section) below for more details.
+- the **Perspective menu**, showing the currently-active [Perspective](#perspectives) (see below for more details).
 - the **Refresh** button, which re-generates the whole display. If you [configure the setting](#configuration-settings) "Automatic Update interval" to any number > 0 minutes, then this should rarely be needed.
 - a **Search** button that opens up a Search bar. See [Search section](#search-section) below for more details.
 - an **Add new task** button, which then opens the NotePlan command bar to ask for task text to add, and then to which note and section within than note to add it to.  (Shortcut key: <kbd>^⌥a</kbd>)

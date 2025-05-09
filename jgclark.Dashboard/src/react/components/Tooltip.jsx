@@ -32,7 +32,8 @@ const Tooltip = ({ text, x, y, onDimensionsChange, visible }: TooltipProps) => {
     borderRadius: '6px',
     visibility: visible ? 'visible' : 'hidden',
     whiteSpace: 'nowrap',
-    zIndex: 1001,
+    // TEST: removing z-index wherever possible, to try to fix stacking issue. Seems to make no difference.
+    // zIndex: 1001,
   }
 
   const arrowStyles = {

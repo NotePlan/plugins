@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2025-03-24 for v2.2.0.a8
+// Last updated 2025-05-09 for v2.2.2 by @jgclark
 // --------------------------------------------------------------------------
 
 // --------------------------------------------------------------------------
@@ -263,10 +263,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
   const isDevMode = logSettings._logLevel === 'DEV'
   const showRefreshButton = pluginData.platform !== 'iOS'
-  const showHardRefreshButton = /* isDevMode && */ dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
+  const showHardRefreshButton = dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
   const isMobile = pluginData.platform !== 'macOS'
   const isNarrowWidth = window.innerWidth <= 700
-  const isSearchPanelAvailable = /* isDevMode && */ dashboardSettings?.FFlag_ShowSearchPanel
+  const isSearchPanelAvailable = dashboardSettings?.FFlag_ShowSearchPanel
 
   // ----------------------------------------------------------------------
   // Render
@@ -285,9 +285,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
         {showRefreshButton && (
           <div className="refreshButtons">
-            <RefreshControl refreshing={pluginData.refreshing === true} firstRun={firstRun} handleRefreshClick={handleRefreshClick(false)} />
+            <RefreshControl refreshing={pluginData.refreshing === true}
+              firstRun={firstRun}
+              handleRefreshClick={handleRefreshClick(false)} />
             {showHardRefreshButton && (
-              <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton">
+              <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton" title="Hard Refresh (restart whole Dashboard)">
                 <i className={'fa-regular fa-arrows-retweet'}></i>
                 <span className="pad-left">HR</span>
               </button>
@@ -296,17 +298,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         )}
 
         <div className="lowerPrioritySpace">
-          {/* {!(isMobile || isNarrowWidth) && ( */}
           <div className="lastRefreshInfo">
-            {/* <> */}
             Updated: <span id="timer">{timeAgoText}</span>
-            {/* </> */}
           </div>
-          {/* )} */}
 
-          {/* {!(isMobile || isNarrowWidth) && ( */}
           <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
-          {/* )} */}
         </div>
 
         <div className="headerActionIconButtons">
@@ -328,7 +324,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           {/* )} */}
 
           {/* addItem button. TODO(later): see if we can get a better DynamicDialog for this */}
-          <button accessKey="a" className="buttonsWithoutBordersOrBackground" title="Add new task/checklist" onClick={(e) => handleButtonClick(e, 'qath', 'addTaskAnywhere')}>
+          <button accessKey="a"
+            className="buttonsWithoutBordersOrBackground"
+            title="Add new task/checklist"
+            onClick={(e) => handleButtonClick(e, 'qath', 'addTaskAnywhere')}>
             <i className="fa-solid fa-hexagon-plus"></i>
           </button>
 
@@ -364,7 +363,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             labelPosition="left"
           />
           {/* Cog Icon for opening the settings dialog */}
-          <button accessKey="," className="dropdown buttonsWithoutBordersOrBackground" onClick={() => openDialog()} title="Open Dashboard Settings dialog">
+          <button accessKey=","
+            className="dropdown buttonsWithoutBordersOrBackground"
+            onClick={() => openDialog()}
+            title="Open Dashboard Settings dialog">
             <i className="fa-solid fa-gear"></i>
           </button>
         </div>

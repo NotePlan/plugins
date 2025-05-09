@@ -288,17 +288,25 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
       {autoUpdateEnabled && (
-        <IdleTimer idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000} onIdleTimeout={autoRefresh} />
+        <IdleTimer
+          idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000}
+          onIdleTimeout={autoRefresh} />
       )}
       {/* Note: this is where I might want to put further periodic data generation functions: completed task counter etc. */}
       {reactSettings?.perspectivesTableVisible && (
-        <PerspectivesTable perspectives={perspectiveSettings} settingDefs={settingDefs} onSave={hidePerspectivesTable} onCancel={hidePerspectivesTable} />
+        <PerspectivesTable
+          perspectives={perspectiveSettings}
+          settingDefs={settingDefs}
+          onSave={hidePerspectivesTable}
+          onCancel={hidePerspectivesTable} />
       )}
       <div className="dashboard">
         <Header lastFullRefresh={lastFullRefresh} />
         <main>
           {sections.map((section, index) => (
-            <Section key={index} section={section} onButtonClick={() => { }} /* {handleCommandButtonClick} */ />
+            <Section key={index}
+              section={section}
+              onButtonClick={() => { }} />
           ))}
         </main>
         <Dialog
@@ -311,12 +319,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       {pluginData.perspectiveChanging && (
         <NonModalSpinner
           textBelow="Switching perspectives"
-          // onClose={() => getContext().updatePluginData({ ...pluginData, perspectiveChanging: false }, 'Dashboard: perspectiveChanging set to false')}
           style={{ container: { color: 'var(--tint-color)', textAlign: 'center', marginTop: '0.6rem', marginBottom: '0rem' } }}
         />
       )}
       {pluginData?.logSettings?._logLevel === 'DEV' && (
-        <DebugPanel isVisible={showDebugPanel} getContext={getContext} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />
+        <DebugPanel isVisible={showDebugPanel}
+          getContext={getContext}
+          testGroups={testGroups}
+          defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />
       )}
       <div id="tooltip-portal"></div>
     </div>
