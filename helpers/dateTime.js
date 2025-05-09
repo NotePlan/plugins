@@ -1065,6 +1065,32 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
 }
 
 /**
+ * Get the period of a given NP date string
+ * @param {string} dateStr
+ * @returns {string} period: 'day', 'week', 'month', 'quarter', 'year'
+ */
+export function getPeriodOfNPDateStr(dateStr: string): string {
+  try {
+    if (dateStr.match(RE_ISO_DATE) || dateStr.match(RE_YYYYMMDD_DATE)) {
+      return 'day'
+    } else if (dateStr.match(RE_NP_WEEK_SPEC)) {
+      return 'week'
+    } else if (dateStr.match(RE_NP_MONTH_SPEC)) {
+      return 'month'
+    } else if (dateStr.match(RE_NP_QUARTER_SPEC)) {
+      return 'quarter'
+    } else if (dateStr.match(RE_NP_YEAR_SPEC)) {
+      return 'year'
+    } else {
+      throw new Error(`Invalid date string: ${dateStr}`)
+    }
+  } catch (err) {
+    logError('dateTime / getPeriodOfNPDateStr', err.message)
+    return '(error)'
+  }
+}
+
+/**
  * Calculate an offset date of a NP Daily/Weekly/Monthly/Quarterly/Yearly date string, and return as a JS Date.
  * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for  strings as well. Docs: https://momentjs.com/docs/#/get-set/
  * @author @jgclark

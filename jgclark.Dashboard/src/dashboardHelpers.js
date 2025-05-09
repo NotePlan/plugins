@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-04-30 for v2.2.2, @jgclark
+// Last updated 2025-05-04 for v2.2.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -28,6 +28,7 @@ import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
 import { filterOutParasInExcludeFolders, isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
+import { saveSettings } from '@helpers/NPConfiguration'
 import { getFirstDateInPeriod } from '@helpers/NPdateTime'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import { isAChildPara } from '@helpers/parentsAndChildren'
@@ -35,7 +36,7 @@ import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID, getNoteFromFilename, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
+import { getAllTeamspaceIDsAndTitles, getNoteFromFilename, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
 import { getStartTimeObjFromParaContent, getTimeBlockString, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
 import { hasScheduledDate, isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
@@ -203,7 +204,7 @@ export function getDueDateOrStartOfCalendarDate(p: TParagraph, useISOFormatOutpu
       // Get the first scheduled date from the content
       const dueDateMatch = p.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE)
       if (dueDateMatch) {
-        dueDateStr = getFirstDateInPeriod(dueDateMatch[1], 'day')
+        dueDateStr = getFirstDateInPeriod(dueDateMatch[1])
       }
     } else {
       // If this is from a calendar note, then use that date instead
@@ -211,6 +212,7 @@ export function getDueDateOrStartOfCalendarDate(p: TParagraph, useISOFormatOutpu
         throw new Error(`No note found for para {${p.content}}`)
       }
       if (p.note.type === 'Calendar') {
+        // $FlowIgnore[incompatible-call]
         const dueDate = getFirstDateInPeriod(p.note.title)
         if (dueDate) {
           dueDateStr = dueDate
@@ -263,7 +265,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         const startTime = getStartTimeObjFromParaContent(p.content)
         const startTimeStr = startTime ? getTimeStringFromHM(startTime.hours, startTime.mins) : 'none'
         const outputPara: TParagraphForDashboard = {
-          filename: p.filename, // FIXME(EduardMe): note.filename doesn't seem to report the correct filename for teamspace notes?
+          // $FlowIgnore[incompatible-type]
+          filename: p.filename,
           noteType: note.type,
           title: note.type === 'Notes' ? displayTitle(note) : note.title /* will be ISO-8601 date */,
           type: p.type,
@@ -278,7 +281,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           hasChild: hasChild,
           isAChild: isAChild,
           dueDate: dueDateStr,
-          isTeamspace: note.isTeamspaceNote || p.filename?.startsWith('%%') // TODO: remove this second test once API bug is fixed
+          isTeamspace: note.isTeamspaceNote
         }
         // if (p.content.includes('TEST')) {
         // clo(outputPara, `FYI 👉 makeDashboardParas - outputPara:`)
@@ -287,7 +290,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       } else {
         logWarn('makeDashboardParas', `No note found for para {${p.content}} - probably an API teamspacebug`)
         // $FlowFixMe[incompatible-call]
-        return
+        return []
       }
     })
     // $FlowIgnore[unsafe-arithmetic]
@@ -471,8 +474,8 @@ export function getOpenItemParasForTimePeriod(
 
       // Get list of allowed folders (using both include and exlcude settings)
       const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
-      // $FlowIgnore[incompatible-call]
       // FIXME(EduardMe): I think this is where the .type is failing.
+      // $FlowIgnore[incompatible-call]
       refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
       logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
 
@@ -504,7 +507,7 @@ export function getOpenItemParasForTimePeriod(
       return [combinedParas, []]
     }
   } catch (err) {
-    logError('getOpenItemParasForTimePeriod', err.message)
+    logError('getOpenItemParasForTimePeriod', `Error: ${err.message} from ${NPCalendarFilenameStr}`)
     return [[], []] // for completeness
   }
 }
@@ -527,9 +530,9 @@ export function deepCompare(value1: any, value2: any, path: string): void {
     const allKeys = new Set([...keys1, ...keys2])
     allKeys.forEach((key) => {
       if (!(key in value1)) {
-        logDebug(`Property ${path}.${key} is missing in the first object value`)
+        logDebug('deepCompare', `Property ${path}.${key} is missing in the first object value`)
       } else if (!(key in value2)) {
-        logDebug(`Property ${path}.${key} is missing in the second object value`)
+        logDebug('deepCompare', `Property ${path}.${key} is missing in the second object value`)
       } else {
         deepCompare(value1[key], value2[key], `${path}.${key}`)
       }
@@ -780,7 +783,7 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
  * Copes with 'AM' and 'PM' suffixes.
  * Note: A version of this now lives in helpers/timeblocks.js
  * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
- * @tests in dashboardHelpers.test.js. TODO: write some tests for AM/PM
+ * @tests in dashboardHelpers.test.js
  * @param {TParagraph| TParagraphForDashboard} para to process
  * @returns {string} time string found
  */
@@ -804,8 +807,8 @@ export function getStartTimeFromPara(para: TParagraph | TParagraphForDashboard):
     }
     return startTimeStr
   } catch (error) {
-    logError('getStartTimeFromPara', `${JSP(error)}`)
-    return ''
+    logError('getStartTimeFromPara', `${error.message}`)
+    return '(error)'
   }
 }
 
@@ -887,8 +890,11 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
  * @param {string} theType - The type of the sectionItem (if left blank, will use the para's type)
  * @returns {SectionItem} A sectionItem object.
  */
-export function createSectionItemObject(id: string, p: TParagraph | TParagraphForDashboard | null = null, theType?: TItemType): TSectionItem {
+export function createSectionItemObject(id: string, p: TParagraph | TParagraphForDashboard, theType?: TItemType): TSectionItem {
   try {
+    if (!p) {
+      throw new Error('p is null')
+    }
     const itemObj = { ID: id, itemType: theType ?? p.type, para: p }
     // FIXME: this lookup isn't working for ?some? teamspace notes
     const thisNote = getNoteFromFilename(p.filename)
