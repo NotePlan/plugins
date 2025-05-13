@@ -13,25 +13,20 @@
 // }
 //-----------------------------------------------------------------------------
 
-/**
- * Note: In a weird development (literally), I (JGC) found that a refactor of the original findNotesWithMatchingHashtag() suddenly made it now as fast, if not faster, as this new Cache.
- * I didn't take out any code, so I'm mystified. 
- * But not complaining, particularly as this still had some work required.
- */
-
 import moment from 'moment/min/moment-with-locales'
 import { getDashboardSettings } from './dashboardHelpers'
 import type { TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { CaseInsensitiveSet, displayTitle, percent } from '@helpers/general'
-import { noteHasFrontMatter } from '@helpers/NPFrontMatter'
+import { endOfFrontmatterLineIndex, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { findNotesMatchingHashtagOrMention, getNotesChangedInInterval } from '@helpers/NPnote'
 import {
   caseInsensitiveIncludes,
   caseInsensitiveStartsWith,
   caseInsensitiveSubstringMatch,
 } from '@helpers/search'
+
 //--------------------------------------------------------------------------
 // Constants
 
@@ -206,7 +201,8 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     await CommandBar.onAsyncThread()
 
     // Get all notes to scan
-    const allCalNotes = DataStore.calendarNotes
+    const allCalNotes = [] // DataStore.calendarNotes
+    // FIXME: is this not including project notes?
     const allRegularNotes = DataStore.projectNotes.filter((note) => !note.filename.startsWith('@'))
     logTimer('generateTagMentionCache', startTime, `- processing ${allCalNotes.length} calendar notes + ${allRegularNotes.length} regular notes ...`)
 
@@ -223,15 +219,19 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
       }
     }
 
+    // FIXME: something isn't right here, as the noteTags are not being added to the list of wanted items for regular notes (not yet tested calendar notes)
+    // - it is checking the Teamspace notes
+    // - and it is adding the noteTags to the list of wanted items (in the called function)
     const regularWantedItems = []
     let creg = 0
     logDebug('generateTagMentionCache', `- Processing ${allRegularNotes.length} regular notes ...`)
     for (const note of allRegularNotes) {
+      if (note.filename.startsWith('%%')) logInfo('generateTagMentionCache', `- Processing ${note.filename}`)
       const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, config.FFlag_UseNoteTags) : []
       if (foundWantedItems.length > 0) {
-        logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}]`)
-        regularWantedItems.push({ filename: note.filename, items: foundWantedItems })
         creg++
+        logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}] / creg=${creg}`) // ❌ not getting here for #teamspace/teamspaced items
+        regularWantedItems.push({ filename: note.filename, items: foundWantedItems })
       }
     }
     logTimer('generateTagMentionCache', startTime, `to find ${ccal} calendar notes with wanted items / ${creg} regular notes with wanted items`)
@@ -300,6 +300,7 @@ export async function updateTagMentionCache(): Promise<void> {
     logTimer('updateTagMentionCache', startTime, `Found ${recentlychangedNotes.length} changed notes in that time`)
 
     // For each note, get wanted tags and mentions, and overwrite the existing cache details
+    // Possible TODO: Idea: don't do filtering by wantedItems; it probably costs very little to keep track of them all, and then avoids more generations later
     let c = 0
     for (const note of recentlychangedNotes) {
       const isCalendarNote = note.type === 'Calendar'
@@ -375,7 +376,7 @@ export function getWantedTagOrMentionListFromNote(note: TNote, wantedItems: Arra
     }
 
     const seenWantedItems: Array<string> = []
-  // Ask API for all seen tags in this note, and reverse them
+    // Ask API for all seen tags in this note, and reverse them
     const allTagsInNote = note.hashtags.slice().reverse()
     let lastTag = ''
     for (const tag of allTagsInNote) {
@@ -427,7 +428,6 @@ export function getWantedTagOrMentionListFromNote(note: TNote, wantedItems: Arra
     }
 
     // If FFlag_UseNoteTags is true, include the frontmatter tags in the results
-    // FIXME: something isn't right here, as the noteTags are not being added to the list of wanted items
     if (includeNoteTags && noteHasFrontMatter(note)) {
       const frontmatterAttributes = note.frontmatterAttributes
       if (frontmatterAttributes && 'note-tag' in frontmatterAttributes) {
@@ -444,8 +444,8 @@ export function getWantedTagOrMentionListFromNote(note: TNote, wantedItems: Arra
 
     // If we want to restrict to certain para types, do so now
     if (wantedParaTypes.length > 0) {
-      distinctMentions = filterItemsInNoteToWantedParaTypes(note, distinctMentions, wantedParaTypes)
-      // logDebug('getWantedTagListFromNote', `-> filtered out ${distinctMentionsInitialCount - distinctMentions.length} mentions that didn't match the wanted para types`)
+      distinctMentions = filterItemsInNoteToWantedParaTypes(note, distinctMentions, wantedParaTypes, includeNoteTags)
+      // if (distinctMentionsInitialCount > distinctMentions.length) logDebug('getWantedTagOrMentionListFromNote', `-> filtered out ${distinctMentionsInitialCount - distinctMentions.length} mentions that didn't match the wanted para types`)
     }
 
     if (distinctMentions.length > 0) {
@@ -454,7 +454,7 @@ export function getWantedTagOrMentionListFromNote(note: TNote, wantedItems: Arra
 
     return distinctTags.concat(distinctMentions)
   } catch (err) {
-    logError('getWantedTagListFromNote', JSP(err))
+    logError('getWantedTagOrMentionListFromNote', JSP(err))
     return []
   }
 }
@@ -462,24 +462,32 @@ export function getWantedTagOrMentionListFromNote(note: TNote, wantedItems: Arra
 //-----------------------------------------------------------------
 // private helper functions
 
-function filterItemsInNoteToWantedParaTypes(note: TNote, initialItems: Array<string>, wantedParaTypes: Array<string>): Array<string> {
-  // Filter out any items where every paragraph in the note that contains the tag has a para type that doesn't match the wanted para types
+/**
+ * Filter out any items from initialItems that don't have a para type that matches the wanted para types
+ * OR if allowNoteTags is true, and the item is found in a frontmatter line
+ * @param {TNote} note
+ * @param {Array<string>} initialItems 
+ * @param {Array<string>} wantedParaTypes 
+ * @param {boolean?} allowNoteTags?
+ * @returns 
+ */
+function filterItemsInNoteToWantedParaTypes(note: TNote, initialItems: Array<string>, wantedParaTypes: Array<string>, allowNoteTags: boolean = false): Array<string> {
+  const endOfFMLineIndex = noteHasFrontMatter(note) ? endOfFrontmatterLineIndex(note) : 1
   const filteredItems = initialItems.filter((t) => {
     const paragraphsWithTag = note.paragraphs.filter((p) => caseInsensitiveSubstringMatch(t, p.content))
-    return paragraphsWithTag.every((p) => wantedParaTypes.includes(p.type))
+    return paragraphsWithTag.every((p) => wantedParaTypes.includes(p.type) || (allowNoteTags && p.lineIndex < endOfFMLineIndex))
   })
-  // logDebug('filterItemsInNoteToWantedParaTypes', `-> filtered out ${initialItems.length - filteredItems.length} tags that didn't match the wanted para types`)
 
-  if (filteredItems.length > 0) {
-    logDebug('filterItemsInNoteToWantedParaTypes', `-> ${String(filteredItems.length)} distinct tags found from ${String(initialItems.length)} instances in ${String(note.filename)}`)
-  }
-
+  // if (filteredItems.length > 0) {
+  //   logDebug('filterItemsInNoteToWantedParaTypes', `-> ${String(filteredItems.length)} distinct tags found from ${String(initialItems.length)} instances in ${String(note.filename)}`)
+  // }
   return filteredItems
 }
 
 /**
  * Get the list of wanted tags and mentions from all perspectives.
  * Note: moved from perspectiveHelpers.js to here to avoid circular dependency.
+ * @param {Array<TPerspectiveDef>} allPerspectives
  * @returns {Array<string>} An array containing the list of mentions and tags
  */
 function getWantedTagsAndMentionsFromAllPerspectives(allPerspectives: Array<TPerspectiveDef>): Array<string> {

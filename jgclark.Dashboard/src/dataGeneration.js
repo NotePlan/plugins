@@ -103,12 +103,12 @@ export async function getSomeSectionsData(
 
       // v2:
       const tagSections = getTagSectionDetails(removeInvalidTagSections(config))
-      clo(tagSections, 'getSomeSectionsData tagSections')
+      // clo(tagSections, 'getSomeSectionsData tagSections')
       let index = 0
       for (const tagSection of tagSections) {
         // $FlowIgnore[invalid-computed-prop]
         const showSettingForTag = config[tagSection.showSettingName]
-        logDebug('getSomeSectionsData', `💚 sectionDetail.sectionName=${tagSection.sectionName} showSettingForTag=${showSettingForTag}`)
+        // logDebug('getSomeSectionsData', `💚 sectionDetail.sectionName=${tagSection.sectionName} showSettingForTag=${showSettingForTag}`)
         if (typeof showSettingForTag === 'undefined' || showSettingForTag) {
           const newSection = await getTaggedSectionData(config, useDemoData, tagSection, index)
           if (newSection) sections.push(newSection)
