@@ -109,16 +109,12 @@ jest.mock(
     type OptionObject = { value: string, label: string, index?: number }
     return {
       datePicker: jest.fn<[string], Promise<string>>().mockImplementation((message: string) => {
-        if (message.includes('start date')) {
-          return Promise.resolve('2023-03-01')
-        } else if (message.includes('deadline')) {
-          return Promise.resolve('2023-04-15')
-        }
+        // Default implementation - always return '2023-01-15' unless overridden
         return Promise.resolve('2023-01-15')
       }),
       askDateInterval: jest.fn<[string], Promise<string>>().mockImplementation((message: string) => {
         if (message.includes('availability')) {
-          return Promise.resolve('Mon-Fri, 9am-5pm')
+          return Promise.resolve('5d')
         }
         return Promise.resolve('2023-01-01 to 2023-01-31')
       }),
@@ -173,6 +169,7 @@ describe('Prompt Integration Tests', () => {
     }
     // Mock CommandBar methods
     global.CommandBar = {
+      //FIXME: here this is overriding the jest overrides later
       textPrompt: jest.fn<[string, ?string, ?string], Promise<string>>().mockImplementation(() => Promise.resolve('Text Response')), // Default Text Response
 
       // Restore simpler showOptions mock - primarily for prompt('chooseOne',...) potentially?
@@ -218,7 +215,20 @@ describe('Prompt Integration Tests', () => {
     const { datePicker, askDateInterval } = require('@helpers/userInput')
 
     // Set up specific responses for each prompt type
+    // For text prompt (project name)
     global.CommandBar.textPrompt.mockImplementationOnce(() => Promise.resolve('Task Manager App'))
+
+    // For date prompts - override the default implementation for these specific cases
+    datePicker
+      .mockImplementationOnce(() => Promise.resolve('2023-03-01')) // For start date
+      .mockImplementationOnce(() => Promise.resolve('2023-04-15')) // For deadline
+    // After these two calls, it will fall back to the default implementation ('2023-01-15')
+
+    // For date interval (available times)
+    askDateInterval.mockImplementationOnce(() => Promise.resolve('5d'))
+
+    // For option selection (isUrgent)
+    global.CommandBar.showOptions.mockImplementation(() => Promise.resolve('Yes'))
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
@@ -230,7 +240,7 @@ describe('Prompt Integration Tests', () => {
     expect(cleanedSessionData.projectStatus).toBe('Active')
     expect(cleanedSessionData.startDate).toBe('2023-03-01')
     expect(cleanedSessionData.deadline).toBe('2023-04-15')
-    expect(cleanedSessionData.availableTimes).toBe('Mon-Fri, 9am-5pm')
+    expect(cleanedSessionData.availableTimes).toBe('5d')
     expect(cleanedSessionData.isUrgent).toBe('Yes')
 
     // Check that all variables are correctly referenced in the template

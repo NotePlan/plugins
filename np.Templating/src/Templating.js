@@ -240,7 +240,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, args)
     frontmatterAttributes = { ...frontmatterAttributes, ...args }
 
-    if (/select|choose/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {
+    if (/<select>|<choose>/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {
       // dbw note: I'm not sure I understand the second part of this condition, but it's always been that way, so not changing it
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }

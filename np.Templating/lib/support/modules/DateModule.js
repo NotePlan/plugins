@@ -21,7 +21,7 @@ export function createDateTime(userDateString = '') {
 }
 
 export function format(format: string = 'YYYY-MM-DD', dateString: string = '') {
-  const dt = moment(dateString).format('YYYY-MM-DD')
+  const dt = dateString ? moment(dateString).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
   return moment(createDateTime(dt)).format(format && format.length > 0 ? format : 'YYYY-MM-DD')
 }
 
@@ -88,7 +88,8 @@ export default class DateModule {
     format = format ?? '' // coerce if null passed
     this.setLocale()
 
-    let dateValue = date.length > 0 ? new Date(date) : new Date()
+    // Use the date provided or today if none was provided
+    let dateValue = date.length > 0 ? moment(date).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
     if (date.length === 10) {
       dateValue = moment(date).format('YYYY-MM-DD')
     }
@@ -101,7 +102,7 @@ export default class DateModule {
     const locale = this.config?.templateLocale || 'en-US'
     format = format.length > 0 ? format : configFormat
 
-    let formattedDate = moment(date).format(format)
+    let formattedDate = moment(dateValue).format(format)
 
     if (format === 'short' || format === 'medium' || format === 'long' || format === 'full') {
       formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: format }).format(dateValue)

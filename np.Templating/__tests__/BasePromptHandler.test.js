@@ -235,6 +235,17 @@ describe('BasePromptHandler', () => {
         options: '',
       })
     })
+
+    it('should handle extra parameters (e.g. for promptDate)', () => {
+      const tag = `<%- promptDate('varname','msg','default',true)`
+      const result = BasePromptHandler.parseParameters(tag)
+      const expectedOptions = ['default', 'true'] // note that all params end up getting quoted
+      expect(result).toMatchObject({
+        varName: 'varname',
+        promptMessage: 'msg',
+        options: expectedOptions,
+      })
+    })
   })
 
   describe('getPromptParameters with noVar=false (default)', () => {

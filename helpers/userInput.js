@@ -366,23 +366,28 @@ export async function askForISODate(question: string): Promise<string> {
  * TODO: in time @EduardMe should produce a native API call that can improve this.
  * @author @jgclark, based on @nmn code
  *
- * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} and {defaultValue:'YYYY-MM-DD'} parameters
+ * @param {string|object} dateParams - given parameters -- currently only looks for {question:'question test'} and {defaultValue:'YYYY-MM-DD'} and {canBeEmpty: false} parameters
  * @param {[string]: ?mixed} config - previously used as settings from _configuration note; now ignored
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
-export async function datePicker(dateParams: string, config?: { [string]: ?mixed } = {}): Promise<string | false> {
+export async function datePicker(dateParams: string | Object, config?: { [string]: ?mixed } = {}): Promise<string | false> {
   try {
     const dateConfig = config.date ?? {}
     // $FlowIgnore[incompatible-call]
-    clo(dateConfig, `userInput / datePicker dateParams="${dateParams.trim()}" dateConfig typeof="${typeof dateConfig}" keys=${Object.keys(dateConfig)}`)
-    const dateParamsTrimmed = dateParams.trim()
-    const paramConfig = dateParamsTrimmed
-      ? dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
-        ? parseJSON5(dateParams)
-        : dateParamsTrimmed !== ''
-        ? parseJSON5(`{${dateParams}}`)
+    clo(dateConfig, `userInput / datePicker dateParams="${dateParams}" dateConfig typeof="${typeof dateConfig}" keys=${Object.keys(dateConfig || {}).toString()}`)
+    let paramConfig = dateParams
+    if (typeof dateParams === 'string') {
+      // JSON stringified string
+      const dateParamsTrimmed = dateParams.trim()
+      paramConfig = dateParamsTrimmed
+        ? dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
+          ? parseJSON5(dateParams)
+          : dateParamsTrimmed !== ''
+          ? parseJSON5(`{${dateParams}}`)
+          : {}
         : {}
-      : {}
+    }
+
     // $FlowIgnore[incompatible-type]
     logDebug('userInput / datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
@@ -393,7 +398,7 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     }
     // logDebug('userInput / datePicker', allSettings.toString())
     // grab just question parameter, or provide a default
-    let { question, defaultValue } = (allSettings: any)
+    let { question, defaultValue, canBeEmpty } = (allSettings: any)
     // logDebug('userInput / datePicker', `defaultValue: ${defaultValue}`)
     question = question ? question : 'Please enter a date'
     defaultValue = defaultValue ? defaultValue : 'YYYY-MM-DD'
@@ -401,7 +406,7 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     // Ask question (newer style)
     // const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
     const reply = await CommandBar.textPrompt('Date Picker', question, defaultValue)
-    if (typeof reply === 'string') {
+    if (typeof reply === 'string' && !canBeEmpty) {
       const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
       if (!reply2.match(RE_DATE)) {
         await showMessage(`Sorry: ${reply2} wasn't a date of form YYYY-MM-DD`, `OK`, 'Error')

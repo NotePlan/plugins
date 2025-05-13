@@ -233,4 +233,15 @@ describe('Prompt Edge Cases', () => {
     expect(result.sessionTemplateData).toContain('<%- commentTest %>')
     expect(result.sessionTemplateData).toContain('<%# Another comment %>')
   })
+
+  test('Should handle variable setting and value retrieval without duplication', async () => {
+    const templateData = `<% var var9 = promptDate('9: Enter your value 09:') %><%- var9 %>`
+    const userData = {}
+    global.CommandBar.textPrompt.mockResolvedValue('2023-01-15')
+
+    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+
+    expect(result.sessionData.var9).toBe('2023-01-15')
+    expect(result.sessionTemplateData).toBe('<%- var9 %>')
+  })
 })

@@ -43,6 +43,17 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
     })
 
+    it(`should render ${method('.format')} default (no params)`, async () => {
+      const result = new DateModule().format()
+      expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
+    })
+
+    it(`should render ${method('.format')} with format`, async () => {
+      const format = 'YYYYMMDD'
+      const result = new DateModule().format(format)
+      expect(result).toEqual(moment(new Date()).format(format))
+    })
+
     it(`should render ${method('.now')}`, async () => {
       const result = new DateModule().now()
       expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))

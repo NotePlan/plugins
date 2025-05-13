@@ -470,13 +470,27 @@ export default class BasePromptHandler {
         const varName = BasePromptHandler.cleanVarName(params[0] ? String(BasePromptHandler.parseOptions(params[0], quotedTexts, arrayPlaceholders)) : 'unnamed')
         const promptMessage = params.length > 1 ? BasePromptHandler.parseOptions(params[1], quotedTexts, arrayPlaceholders) : ''
         let options: string | Array<string> = params.length > 2 ? BasePromptHandler.parseOptions(params[2], quotedTexts, arrayPlaceholders) : ''
-
         // Convert string array representations to actual arrays
         if (typeof options === 'string' && options.startsWith('[') && options.endsWith(']')) {
           try {
             options = BasePromptHandler.convertToArrayIfNeeded(options)
           } catch (e) {
             logDebug(pluginJson, `Error parsing array options: ${e.message}, keeping as string`)
+          }
+        }
+        // Deal with arbitrary more params and send options back as an array
+        if (params.length > 3) {
+          if (!Array.isArray(options)) {
+            options = [options]
+          }
+          for (let i = 3; i < params.length; i++) {
+            const parsedOption = BasePromptHandler.parseOptions(params[i], quotedTexts, arrayPlaceholders)
+            if (!Array.isArray(parsedOption)) {
+              options.push(parsedOption)
+            } else {
+              // TODO: allow for extra options including arrays if necessary
+              throw `In ${tagValue}, encountered an array in extra options which is not currently allowed`
+            }
           }
         }
 

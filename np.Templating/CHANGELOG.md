@@ -18,6 +18,8 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 - Add ability to pass newNoteTitle argument to `templateNew` command and JSON vars for Shortcuts support
 - Added `incrementalRender` setting to allow for turning off incremental render debugging of templates when they fail to render
 - Added `editSettings` command to allow for mobile editing of plugin settings
+- Fix long-standing bug where date.format did not work correctly
+- Fix templaterunner bug where the file was not opening in the Editor
 
 ## [1.12.0] 2025-03-09 @dwertheimer
 

@@ -4,6 +4,12 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [2.0.0] - 2025-05-13 @dwertheimer
+
+- Add <current> to append/prepend frontmatter tag
+- prepending a recurring meeting note will now accept a folder argument
+- Use Templating 2.0
+
 ## [1.2.3] -  2024-02-19 @dwertheimer
 
 - Allow for empty template frontmatter

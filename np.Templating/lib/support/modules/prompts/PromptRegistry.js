@@ -150,6 +150,7 @@ function findMatchingPromptType(tagContent: string): ?{ promptType: Object, name
 export async function processPromptTag(tag: string, sessionData: any, tagStart: string, tagEnd: string): Promise<string> {
   ;/prompt/i.test(tag) && logDebug(pluginJson, `processPromptTag starting with tag: ${tag}...`)
   let content = ''
+
   if (tag.startsWith(`${tagStart}-`)) {
     // Extract the content between tagStart and tagEnd, excluding the '-'
     content = tag.substring(tagStart.length + 1, tag.length - tagEnd.length).trim()
@@ -256,7 +257,7 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
               sessionData[varName] = response
               logDebug(pluginJson, `Stored response in sessionData[${varName}] = "${response}"`)
 
-              // Return a reference to the variable for the template engine
+              // Return a reference to the variable for the template engine if it's not a var assignment
               const result = `${tagStart}- ${varName} ${tagEnd}`
               logDebug(pluginJson, `Returning variable reference: "${result}"`)
               return result
@@ -313,8 +314,8 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
           sessionData[varName] = response
           logDebug(pluginJson, `Stored response in sessionData[${varName}] = "${response}"`)
 
-          // Return a reference to the variable for the template engine
-          const result = `${tagStart}- ${varName} ${tagEnd}`
+          // Return a reference to the variable for the template engine unless it's just var setting
+          const result = assignmentMatch ? '' : `${tagStart}- ${varName} ${tagEnd}`
           logDebug(pluginJson, `Returning variable reference: "${result}"`)
           return result
         } catch (error) {
@@ -361,6 +362,7 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
             sessionData[cleanedVarName] = response
 
             // Return the variable reference for the template using the cleaned name
+            logDebug(pluginJson, `PromptRegistry::processPromptTag Creating variable reference: ${cleanedVarName} -- "${tagStart}- ${cleanedVarName} ${tagEnd}"`)
             return `${tagStart}- ${cleanedVarName} ${tagEnd}`
           }
 
