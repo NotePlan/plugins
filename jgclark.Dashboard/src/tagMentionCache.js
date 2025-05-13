@@ -201,27 +201,25 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     await CommandBar.onAsyncThread()
 
     // Get all notes to scan
-    const allCalNotes = [] // DataStore.calendarNotes
-    // FIXME: is this not including project notes?
+    const allCalNotes = DataStore.calendarNotes
     const allRegularNotes = DataStore.projectNotes.filter((note) => !note.filename.startsWith('@'))
     logTimer('generateTagMentionCache', startTime, `- processing ${allCalNotes.length} calendar notes + ${allRegularNotes.length} regular notes ...`)
 
     // Iterate over all notes and get all open paras with tags and mentions
+    // First, get all calendar notes ...
     const calWantedItems = []
     let ccal = 0
     logDebug('generateTagMentionCache', `- Processing ${allCalNotes.length} calendar notes ...`)
     for (const note of allCalNotes) {
       const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, config.FFlag_UseNoteTags) : []
       if (foundWantedItems.length > 0) {
+        ccal++
         logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}]`)
         calWantedItems.push({ filename: note.filename, items: foundWantedItems })
-        ccal++
       }
     }
 
-    // FIXME: something isn't right here, as the noteTags are not being added to the list of wanted items for regular notes (not yet tested calendar notes)
-    // - it is checking the Teamspace notes
-    // - and it is adding the noteTags to the list of wanted items (in the called function)
+    // ... then all regular notes.
     const regularWantedItems = []
     let creg = 0
     logDebug('generateTagMentionCache', `- Processing ${allRegularNotes.length} regular notes ...`)
@@ -230,7 +228,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
       const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, config.FFlag_UseNoteTags) : []
       if (foundWantedItems.length > 0) {
         creg++
-        logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}] / creg=${creg}`) // ❌ not getting here for #teamspace/teamspaced items
+        logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}]`)
         regularWantedItems.push({ filename: note.filename, items: foundWantedItems })
       }
     }
@@ -472,16 +470,26 @@ export function getWantedTagOrMentionListFromNote(note: TNote, wantedItems: Arra
  * @returns 
  */
 function filterItemsInNoteToWantedParaTypes(note: TNote, initialItems: Array<string>, wantedParaTypes: Array<string>, allowNoteTags: boolean = false): Array<string> {
-  const endOfFMLineIndex = noteHasFrontMatter(note) ? endOfFrontmatterLineIndex(note) : 1
-  const filteredItems = initialItems.filter((t) => {
-    const paragraphsWithTag = note.paragraphs.filter((p) => caseInsensitiveSubstringMatch(t, p.content))
-    return paragraphsWithTag.every((p) => wantedParaTypes.includes(p.type) || (allowNoteTags && p.lineIndex < endOfFMLineIndex))
-  })
+  try {
+    const fmAttributes = note.frontmatterAttributes
+    const fmNoteTag = Object.keys(fmAttributes).length > 0 && fmAttributes['note-tag'] ? fmAttributes['note-tag'] : ''
+    if (fmNoteTag !== '') {
+      logInfo('filterItemsInNoteToWantedParaTypes', `found fmNoteTag: '${fmNoteTag}' in ${note.filename}`)
+    }
 
-  // if (filteredItems.length > 0) {
-  //   logDebug('filterItemsInNoteToWantedParaTypes', `-> ${String(filteredItems.length)} distinct tags found from ${String(initialItems.length)} instances in ${String(note.filename)}`)
-  // }
-  return filteredItems
+    const filteredItems = initialItems.filter((t) => {
+      const paragraphsWithTag = note.paragraphs.filter((p) => caseInsensitiveSubstringMatch(t, p.content))
+      return paragraphsWithTag.every((p) => wantedParaTypes.includes(p.type) || (allowNoteTags && fmNoteTag !== '' && t.includes(fmNoteTag.toLowerCase())))
+    })
+
+    if (filteredItems.length > 0) {
+      logDebug('filterItemsInNoteToWantedParaTypes', `-> ${String(filteredItems.length)} distinct tags found from ${String(initialItems.length)} instances in ${String(note.filename)}`)
+    }
+    return filteredItems
+  } catch (err) {
+    logError('filterItemsInNoteToWantedParaTypes', `Error filtering items in note ${note.filename}: ${err}`)
+    return []
+  }
 }
 
 /**
