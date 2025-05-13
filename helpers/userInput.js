@@ -374,7 +374,7 @@ export async function datePicker(dateParams: string | Object, config?: { [string
   try {
     const dateConfig = config.date ?? {}
     // $FlowIgnore[incompatible-call]
-    clo(dateConfig, `userInput / datePicker dateParams="${dateParams}" dateConfig typeof="${typeof dateConfig}" keys=${Object.keys(dateConfig || {}).toString()}`)
+    clo(dateConfig, `userInput / datePicker dateParams="${JSON.stringify(dateParams)}" dateConfig typeof="${typeof dateConfig}" keys=${Object.keys(dateConfig || {}).toString()}`)
     let paramConfig = dateParams
     if (typeof dateParams === 'string') {
       // JSON stringified string
