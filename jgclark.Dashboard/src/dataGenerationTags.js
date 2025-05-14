@@ -19,10 +19,11 @@ import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-import { noteHasFrontMatter } from '@helpers/NPFrontMatter'
+import { getFrontMatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { getNoteByFilename } from '@helpers/note'
 import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
+import { caseInsensitiveMatch } from '@helpers/search'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
 //-----------------------------------------------------------------
@@ -69,7 +70,6 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       // const notesWithTagFromCache: Array<TNote> = []
       let notesWithTag: Array<TNote> = []
       if (config?.FFlag_UseTagCache) {
-        // TODO: this is the only place this function is called, so it could be refactored to return Notes, not their filenames
         const filenamesWithTagFromCache = await getFilenamesOfNotesWithTagOrMentions([sectionDetail.sectionName], true)
         logInfo('getTaggedSectionData', `- found ${filenamesWithTagFromCache.length} filenames: [${filenamesWithTagFromCache.join(',')}]`)
 
@@ -84,7 +84,6 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
             logError('getTaggedSectionData', `- failed to get note by filename ${filename}`)
           }
         })
-        // $FlowIgnore[unsafe-arithmetic]
         logTimer('getTaggedSectionData', thisStartTime, `- from CACHE filename list looked up ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
         // $FlowIgnore[unsafe-arithmetic]
         // cacheLookupTime = new Date() - cachedOperationStartTime
@@ -103,38 +102,27 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
         if (stringListOrArrayToArray(config.excludedFolders, ',').includes(thisNoteFolder)) {
-          // logDebug('getTaggedSectionData', `- ignoring note '${n.filename}' as it is in an ignored folder`)
+          // logDebug('getTaggedSectionData', `  - ignoring note '${n.filename}' as it is in an ignored folder`)
           continue
         }
 
         // Get the relevant paras from this note
         const paras = n.paragraphs ?? []
-        if (paras.length > 500) {
-          logTimer('getTaggedSectionData', thisStartTime, `  - found ${paras.length} paras in "${n.filename}"`)
-          const content = n.content ?? ''
-          logTimer('getTaggedSectionData', thisStartTime, `  - to pull content from note`)
-          const pp = content.split('\n')
-          logTimer('getTaggedSectionData', thisStartTime, `  - to split content into ${pp.length} lines`)
-        }
 
         // If we want to use note tags, and the note has a 'note-tag' field in its FM, then work out if the note-tag matches this particular tag/mention.
-        let noteTagMatches = false
-        logDebug('getTaggedSectionData', `- '${displayTitle(n)}' has FM? ${String(noteHasFrontMatter(n))}, FFlag_UseNoteTags: ${String(config.FFlag_UseNoteTags)}`)
+        let hasMatchingNoteTag = false
         if (config.FFlag_UseNoteTags && noteHasFrontMatter(n)) {
-          logInfo('getTaggedSectionData', `- note "${n.filename}" has FM`)
-          const frontmatterAttributes = n.frontmatterAttributes
-          clo(frontmatterAttributes, 'getTaggedSectionData fm attributes')
-          if (frontmatterAttributes && 'note-tag' in frontmatterAttributes) {
-            logInfo('getTaggedSectionData', `- note "${n.filename}" has noteTag(s) "${frontmatterAttributes['note-tag']}"`)
-            const noteTags = frontmatterAttributes['note-tag'].split(',')
-            if (noteTags.includes(sectionDetail.sectionName)) {
-              noteTagMatches = true
-              logInfo('getTaggedSectionData', `-> noteTag is a match for ${sectionDetail.sectionName}`)
-            }
+          logDebug('getTaggedSectionData', `- note "${n.filename}" has FM`)
+          const noteTagAttribute = getFrontMatterAttribute(n, 'note-tag')
+          const noteTagList = noteTagAttribute ? stringListOrArrayToArray(noteTagAttribute, ',') : []
+          if (noteTagList.length > 0) {
+            hasMatchingNoteTag = noteTagList && noteTagList.some(tag => caseInsensitiveMatch(tag, sectionDetail.sectionName))
+
+            logInfo('getTaggedSectionData', `-> noteTag(s) '${String(noteTagList)}' is ${hasMatchingNoteTag ? 'a' : 'NOT a'} match for ${sectionDetail.sectionName}`)
           }
         }
         // Add the paras that contain the tag/mention, unless FFlag_UseNoteTags is true, in which case add all paras if FM field 'note-tag' matches. (Later we filter down to open non-scheduled items).
-        const tagParasFromNote = (noteTagMatches)
+        const tagParasFromNote = (hasMatchingNoteTag)
           ? paras
           : paras.filter((p) => p.content?.includes(sectionDetail.sectionName))
         logTimer('getTaggedSectionData', thisStartTime, `- found ${tagParasFromNote.length} paras containing ${sectionDetail.sectionName} in "${n.filename}"`)
