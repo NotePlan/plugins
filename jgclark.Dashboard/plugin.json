@@ -148,9 +148,9 @@
     },
     {
       "hidden": true,
-      "name": "reactWindowInitialised",
+      "name": "reactWindowInitialisedSoStartGeneratingData",
       "description": "React Window sends this message from Dashboard.jsx when it has initialised",
-      "jsFunction": "reactWindowInitialised"
+      "jsFunction": "reactWindowInitialisedSoStartGeneratingData"
     },
     {
       "hidden": false,

@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2025-05-08 for v2.2.2
+// Last updated 2025-05-14 for v2.2.2
 //-----------------------------------------------------------------------------
 
 import { getGlobalSharedData, sendToHTMLWindow } from '../../helpers/HTMLView'
@@ -11,18 +11,17 @@ import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getLogSettings, getNotePlanSettings, getListOfEnabledSections } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
-import { getAllSectionsData /*getSomeSectionsData*/ } from './dataGeneration'
-import { getPerspectiveSettings, /*setActivePerspective,*/ getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
-// import { doSwitchToPerspective } from './perspectiveClickHandlers'
+import { getAllSectionsData } from './dataGeneration'
+import { getPerspectiveSettings, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
-import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
 import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
+import { generateTagMentionCache } from './tagMentionCache'
+import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import { saveSettings } from '@helpers/NPConfiguration'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-// import { getWindowFromId } from '@helpers/NPWindows'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
 //------------------------------------------------------------------------------
@@ -355,13 +354,22 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
  * It kicks off the incremental generation of the Sections.
  * @returns {Promise<void>}
  */
-export async function reactWindowInitialised(): Promise<void> {
-  logDebug('reactWindowInitialised', `--> React Window reported back to plugin that it has loaded <--`)
-  const enabledSections = getListOfEnabledSections(await getDashboardSettings())
+export async function reactWindowInitialisedSoStartGeneratingData(): Promise<void> {
+  logDebug('reactWindowInitialisedSoStartGeneratingData', `--> React Window reported back to plugin that it has loaded <--`)
   const config = await getDashboardSettings()
+  const enabledSections = getListOfEnabledSections(config)
+
+  // Start generating data for the enabled sections
   if (!config.FFlag_ForceInitialLoadForBrowserDebugging) {
     await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
   }
+
+  // ---------------------------------------------------------------
+  // Now is the time to do any other background processing after the initial display is done
+  // ---------------------------------------------------------------
+
+  // Rebuild the tag mention cache. (Ideally this would be triggered by NotePlan once a day, but for now we will do it here.)
+  await generateTagMentionCache()
 }
 
 /**

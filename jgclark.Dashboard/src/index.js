@@ -54,7 +54,7 @@ export {
   setSetting,
   setSettings,
   makeSettingsAsCallback,
-  reactWindowInitialised,
+  reactWindowInitialisedSoStartGeneratingData,
 } from './reactMain.js'
 
 export {

@@ -181,8 +181,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   useEffect(() => {
     // Note: This executes before globalSharedData is saved into state
     logInfo('Dashboard/useEffect [] (startup only)', `${sections.length} sections (${origSections.length} origSections): [${sections.map((s) => s.sectionCode).join(', ')}]`)
-    logDebug('Dashboard', `React: sending reactWindowInitialised command to plugin`)
-    runPluginCommand('reactWindowInitialised', 'jgclark.Dashboard', [''])
+    logDebug('Dashboard', `React: sending reactWindowInitialisedSoStartGeneratingData command to plugin`)
+    runPluginCommand('reactWindowInitialisedSoStartGeneratingData', 'jgclark.Dashboard', [''])
   }, [])
 
   // Change the title when the section data changes
