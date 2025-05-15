@@ -712,7 +712,6 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
  * @param {Array<string>} itemsToExclude - optional list of tags/mentions that if found in the note, excludes the note
  * @param {string?} folder - optional folder to limit to
  * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to true)
- * @param {boolean?} includeTeamspaceNotes? - whether to include teamspace notes in the search (optional, defaults to true)
  * @return {Array<TNote>}
  */
 export function findNotesMatchingHashtagOrMention(
@@ -723,9 +722,9 @@ export function findNotesMatchingHashtagOrMention(
   itemsToExclude: Array<string> = [],
   folder: ?string,
   includeSubfolders?: boolean = true,
-  includeTeamspaceNotes?: boolean = true, // TODO(later): remove this once Teamspace support is no longer behind FFlag_IncludeTeamspaceNotes
 ): Array<TNote> {
   try {
+    const includeTeamspaceNotes = true
     // Check for special conditions first
     if (item === '') {
       logError('NPnote/findNotesMatchingHashtagOrMention', `No hashtag given. Stopping`)

@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin
-// Last updated for v2.2.0.a4
+// Last updated for v2.3.0
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import { Project } from '../../jgclark.Reviews/src/projectClass.js'
-import type { TSectionItem, TSection } from './types'
+import type { TSectionItem } from './types'
 import {
   getNPMonthStr,
   getNPWeekStr,
@@ -15,6 +15,16 @@ import {
 } from '@helpers/dateTime'
 
 const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+
+//-----------------------------------------------------------
+// Demo Teamspace definitions
+
+export const demoTeamspaces: Array<TTeamspace> = [
+  {
+    id: '123e4567-e89b-12d3-a456-426614174000',
+    title: 'Repair Café',
+  },
+]
 
 //-----------------------------------------------------------
 // Demo data for Today
@@ -98,6 +108,22 @@ export const openTodayItems: Array<TSectionItem> = [
       indentLevel: 0,
     },
   },
+  {
+    ID: '0-5',
+    itemType: 'open',
+    teamspaceTitle: 'Repair Café',
+    para: {
+      noteType: 'Calendar',
+      type: 'open',
+      filename: `%%NotePlanCloud%%/${demoTeamspaces[0].id}/${thisFilename}`,
+      lineIndex: 5,
+      priority: 0,
+      content: 'Order printing of new leaflets',
+      rawContent: 'Order printing of new leaflets',
+      prefix: '* ',
+      indentLevel: 0,
+    },
+  },
 ]
 export const refTodayItems: Array<TSectionItem> = [
   {
@@ -120,16 +146,36 @@ export const refTodayItems: Array<TSectionItem> = [
   {
     ID: '1-1',
     itemType: 'open',
+    teamspaceTitle: 'Repair Café',
     para: {
       noteType: 'Notes',
       title: 'Repair Café operation',
-      filename: 'Ministry Projects/Repair Café operation.md',
+      filename: `%%NotePlanCloud%%/${demoTeamspaces[0].id}/bd119556-9244-4012-ba5d-16c22ac5746c`,
       lineIndex: 10,
       type: 'open',
       priority: 0,
       prefix: '* ',
       content: 'Pay in cash from cafe 2:30PM',
       rawContent: 'Pay in cash from cafe 2:30PM',
+      indentLevel: 0,
+    },
+  },
+  {
+    ID: '1-2',
+    teamspaceTitle: 'Repair Café',
+    itemType: 'open',
+    para: {
+      noteType: 'Notes',
+      title: 'Repair Café operation',
+      filename: `%%NotePlanCloud%%/${demoTeamspaces[0].id}/abcdef321-9244-4012-ba5d-16c22ac57654`,
+      lineIndex: 5,
+      type: 'open',
+      priority: 2,
+      prefix: '* ',
+      content: '!! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
+      rawContent: '!! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
+      blockId: '^wazhht',
+      hasChild: true,
       indentLevel: 0,
     },
   },
@@ -232,102 +278,81 @@ export const openYesterdayParas: Array<TSectionItem> = [
 ]
 export const refYesterdayParas: Array<TSectionItem> = [
   // $FlowFixMe[prop-missing] children function is extra
-  {
-    ID: '2-5',
-    parentID: '',
-    itemType: 'open',
-    para: {
-      noteType: 'Notes',
-      title: 'Repair Café operation',
-      filename: 'Ministry Projects/Repair Café operation.md',
-      lineIndex: 5,
-      type: 'open',
-      priority: 2,
-      prefix: '* ',
-      content: '!! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
-      rawContent: '!! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
-      blockId: '^wazhht',
-      hasChild: true,
-      children: () => [{ content: 'item 1 response', indents: 1 }],
-      indentLevel: 0,
-    },
-  },
-  // $FlowFixMe[prop-missing] children function is extra
-  {
-    ID: '2-6',
-    parentID: '',
-    itemType: 'open',
-    para: {
-      type: 'open',
-      noteType: 'Notes',
-      filename: 'CCC Areas/Services.md',
-      lineIndex: 6,
-      title: 'Services',
-      content: 'prepare service for 5/3 >2023-03-02',
-      rawContent: 'prepare service for 5/3 >2023-03-02',
-      prefix: '* ',
-      changedDate: new Date('2023-03-02T00:00:00.000Z'),
-      priority: 0,
-      hasChild: true,
-      children: () => [{ content: 'plan Something Different for 5/3', indents: 1 }],
-      indentLevel: 0,
-    },
-  },
-  {
-    ID: '2-7',
-    itemType: 'open',
-    para: {
-      type: 'open',
-      noteType: 'Notes',
-      filename: 'CCC Areas/Services.md',
-      lineIndex: 7,
-      title: 'Services',
-      content: 'plan Something Different for 5/3',
-      rawContent: 'plan Something Different for 5/3',
-      prefix: '* ',
-      changedDate: new Date('2023-03-02T00:00:00.000Z'),
-      priority: 0,
-      hasChild: false,
-      indentLevel: 1,
-    },
-    parentID: '2-6',
-  },
-  {
-    ID: '2-8',
-    parentID: '2-6',
-    itemType: 'open',
-    para: {
-      noteType: 'Notes',
-      type: 'open',
-      filename: 'CCC Areas/Services.md',
-      lineIndex: 18,
-      title: 'Services',
-      priority: 1,
-      content: '! write 5/3 sermon >2023-03-02',
-      rawContent: '! write 5/3 sermon >2023-03-02',
-      prefix: '* ',
-      changedDate: new Date('2023-03-02T00:00:00.000Z'),
-      indentLevel: 1,
-    },
-  },
-  {
-    ID: '2-9',
-    parentID: '2-6',
-    itemType: 'open',
-    para: {
-      noteType: 'Notes',
-      type: 'open',
-      filename: 'CCC Areas/Services.md',
-      lineIndex: 20,
-      title: 'Services',
-      priority: 1,
-      content: ' ! test leading space before priority marker',
-      rawContent: ' ! test leading space before priority marker',
-      prefix: '* ',
-      changedDate: new Date('2023-03-02T00:00:00.000Z'),
-      indentLevel: 1,
-    },
-  },
+  // {
+  //   ID: '2-6',
+  //   parentID: '',
+  //   itemType: 'open',
+  //   para: {
+  //     type: 'open',
+  //     noteType: 'Notes',
+  //     filename: 'CCC Areas/Services.md',
+  //     lineIndex: 6,
+  //     title: 'Services',
+  //     content: 'prepare service for 5/3 >2023-03-02',
+  //     rawContent: 'prepare service for 5/3 >2023-03-02',
+  //     prefix: '* ',
+  //     changedDate: new Date('2023-03-02T00:00:00.000Z'),
+  //     priority: 0,
+  //     hasChild: true,
+  //     children: () => [{ content: 'plan Something Different for 5/3', indents: 1 }],
+  //     indentLevel: 0,
+  //   },
+  // },
+  // {
+  //   ID: '2-7',
+  //   itemType: 'open',
+  //   para: {
+  //     type: 'open',
+  //     noteType: 'Notes',
+  //     filename: 'CCC Areas/Services.md',
+  //     lineIndex: 7,
+  //     title: 'Services',
+  //     content: 'plan Something Different for 5/3',
+  //     rawContent: 'plan Something Different for 5/3',
+  //     prefix: '* ',
+  //     changedDate: new Date('2023-03-02T00:00:00.000Z'),
+  //     priority: 0,
+  //     hasChild: false,
+  //     indentLevel: 1,
+  //   },
+  //   parentID: '2-6',
+  // },
+  // {
+  //   ID: '2-8',
+  //   parentID: '2-6',
+  //   itemType: 'open',
+  //   para: {
+  //     noteType: 'Notes',
+  //     type: 'open',
+  //     filename: 'CCC Areas/Services.md',
+  //     lineIndex: 18,
+  //     title: 'Services',
+  //     priority: 1,
+  //     content: '! write 5/3 sermon >2023-03-02',
+  //     rawContent: '! write 5/3 sermon >2023-03-02',
+  //     prefix: '* ',
+  //     changedDate: new Date('2023-03-02T00:00:00.000Z'),
+  //     indentLevel: 1,
+  //   },
+  // },
+  // {
+  //   ID: '2-9',
+  //   parentID: '2-6',
+  //   itemType: 'open',
+  //   para: {
+  //     noteType: 'Notes',
+  //     type: 'open',
+  //     filename: 'CCC Areas/Services.md',
+  //     lineIndex: 20,
+  //     title: 'Services',
+  //     priority: 1,
+  //     content: ' ! test leading space before priority marker',
+  //     rawContent: ' ! test leading space before priority marker',
+  //     prefix: '* ',
+  //     changedDate: new Date('2023-03-02T00:00:00.000Z'),
+  //     indentLevel: 1,
+  //   },
+  // },
   {
     ID: '2-10',
     itemType: 'open',

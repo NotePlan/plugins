@@ -14,7 +14,7 @@ const featureFlagSettingDefs = [
   { key: 'FFlag_ShowTestingPanel', label: 'Show Testing Pane', description: 'Show testing panel with end-to-end testing buttons (requires Debug Panel)' },
   { key: 'FFlag_ShowSearchPanel', label: 'Show Search Panel', description: 'Show more advanced search panel with search bar and controls' },
   // { key: 'FFlag_UseTagCache', label: 'Use Tag Cache', description: 'Use tag cache to speed up tag/mention searches' },
-  { key: 'FFlag_IncludeTeamspaceNotes', label: 'Include Teamspace Notes', description: 'Include Teamspace notes in the Dashboard' },
+  // { key: 'FFlag_IncludeTeamspaceNotes', label: 'Include Teamspace Notes', description: 'Include Teamspace notes in the Dashboard' },
   // { key: 'FFlag_UseNoteTags', label: 'Use Note Tags', description: 'Use note tags to include whole notes in respective Tag sections' },
 ]
 

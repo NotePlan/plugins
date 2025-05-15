@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-05-02 for v2.2.2, @jgclark
+// Last updated 2025-05-15 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -39,7 +39,7 @@ export type TDashboardSettings = {
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
   FFlag_ShowSectionTimings?: boolean,
-  FFlag_IncludeTeamspaceNotes?: boolean,
+  // FFlag_IncludeTeamspaceNotes?: boolean,
   // FFlag_UseNoteTags?: boolean,
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */

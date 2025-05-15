@@ -59,7 +59,7 @@ export function getTeamspaceTitleFromNote(note: TNote): string {
  * @returns {TNote | null}
  */
 export function getNoteFromFilename(filename: string): TNote | null {
-  logDebug('NPTeamspace::getNoteFromFilename', `Starting with filename ${filename}`)
+  // logDebug('NPTeamspace::getNoteFromFilename', `Starting with filename ${filename}`)
   const possRegularNote = DataStore.noteByFilename(filename, 'Notes')
   let possCalendarNote: ?TNote
   if (isTeamspaceNoteFromFilename(filename)) {
