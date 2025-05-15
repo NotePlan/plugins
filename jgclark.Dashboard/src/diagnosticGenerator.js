@@ -73,10 +73,10 @@ export async function generateDiagnosticsFile() {
     output.push(`- + 📋 Templates: ${templatesCount.toLocaleString()}`)
     output.push(`- + 📔 Archived notes: ${archivedCount.toLocaleString()}`)
     output.push(`- ${foldersCount.toLocaleString()} Folders: [${String(DataStore.folders)}]`)
-    if (ds.FFlag_UseTagCache) {
+    // if (ds.FFlag_UseTagCache) {
       output.push('')
       output.push(generateTagMentionCacheSummary())
-    }
+    // }
     output.push('')
     output.push('## Current NotePlan settings for Dashboard')
     output.push('```json')

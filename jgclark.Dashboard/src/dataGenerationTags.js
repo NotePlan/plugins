@@ -69,7 +69,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       // Get notes with matching hashtag or mention (as can't get list of paras directly)
       // const notesWithTagFromCache: Array<TNote> = []
       let notesWithTag: Array<TNote> = []
-      if (config?.FFlag_UseTagCache) {
+      // if (config?.FFlag_UseTagCache) {
         const filenamesWithTagFromCache = await getFilenamesOfNotesWithTagOrMentions([sectionDetail.sectionName], true)
         logInfo('getTaggedSectionData', `- found ${filenamesWithTagFromCache.length} filenames: [${filenamesWithTagFromCache.join(',')}]`)
 
@@ -87,18 +87,18 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         logTimer('getTaggedSectionData', thisStartTime, `- from CACHE filename list looked up ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
         // $FlowIgnore[unsafe-arithmetic]
         // cacheLookupTime = new Date() - cachedOperationStartTime
-      } else {
-        // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes).
-        // Though JGC has also seen 9,900ms for all notes in the system, so its variable.
-        const thisStartTime = new Date()
-        notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true, true, true)
-        // $FlowIgnore[unsafe-arithmetic]
-        // const APILookupTime = new Date() - thisStartTime
-        logTimer('getTaggedSectionData', thisStartTime, `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName} from API in ${timer(thisStartTime)}`)
-      }
+      // } else {
+      //   // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes).
+      //   // Though JGC has also seen 9,900ms for all notes in the system, so its variable.
+      //   const thisStartTime = new Date()
+      //   notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true, true, true)
+      //   // $FlowIgnore[unsafe-arithmetic]
+      //   // const APILookupTime = new Date() - thisStartTime
+      //   logTimer('getTaggedSectionData', thisStartTime, `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName} from API in ${timer(thisStartTime)}`)
+      // }
 
       for (const n of notesWithTag) {
-        logTimer('getTaggedSectionData', thisStartTime, `- start of processing for note "${n.filename}"`)
+        // logTimer('getTaggedSectionData', thisStartTime, `- start of processing for note "${n.filename}"`)
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
         if (stringListOrArrayToArray(config.excludedFolders, ',').includes(thisNoteFolder)) {
@@ -112,7 +112,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         // If we want to use note tags, and the note has a 'note-tag' field in its FM, then work out if the note-tag matches this particular tag/mention.
         let hasMatchingNoteTag = false
         if (config.FFlag_UseNoteTags && noteHasFrontMatter(n)) {
-          logDebug('getTaggedSectionData', `- note "${n.filename}" has FM`)
+          // logDebug('getTaggedSectionData', `- note "${n.filename}" has FM`)
           const noteTagAttribute = getFrontMatterAttribute(n, 'note-tag')
           const noteTagList = noteTagAttribute ? stringListOrArrayToArray(noteTagAttribute, ',') : []
           if (noteTagList.length > 0) {
@@ -197,7 +197,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
   // Return section details, even if no items found
   let sectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
   if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
-  if (config?.FFlag_UseTagCache) sectionDescription += `, using CACHE` // TODO(later): remove note about the tag cache
+  // if (config?.FFlag_UseTagCache) sectionDescription += `, using CACHE` // TODO(later): remove note about the tag cache
   const section: TSection = {
     ID: sectionNumStr,
     name: sectionDetail.sectionName,
