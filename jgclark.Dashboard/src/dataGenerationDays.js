@@ -254,7 +254,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       sections.push(section)
     }
 
-    logTimer('getTodaySectionData', timer, `- found ${itemCount} daily items from ${filenameDateStr}`)
+    logTimer('getTodaySectionData', startTime, `- found ${itemCount} daily items from ${filenameDateStr}`)
 
     //------------------------------------------------------------
     // Add a section for time blocks, if wanted
@@ -295,7 +295,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         isReferenced: false,
         actionButtons: [],
       }
-      logTimer('getTodaySectionData', timer, `- found ${String(timeBlockItems.length)} timeblock items from ${filenameDateStr}`)
+      logTimer('getTodaySectionData', startTime, `- found ${String(timeBlockItems.length)} timeblock items from ${filenameDateStr}`)
       sections.push(section)
     }
 

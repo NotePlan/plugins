@@ -8,16 +8,19 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 -->
 
-## [2.2.2] 2025-05-??? (not yet released)
+## [2.3.0] 2025-05-14
+### Added
+- start of support for Teamspaces: open items in its calendar and regular notes are now included, and are shown with the name of the its Teamspace.
 - new **backupSettings** command, which can be run from an x-callback as well: `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=backupSettings` See README for details.
-- clarified meaning of 'number of days to look back for Overdue tasks' to filter by due date (if set) or on date of a calendar note.
-- start of support for Teamspaces. TODO: Relevant tasks are shown, but parts of the interaction isn't yet working.
-- added FF for including Teamspace notes, by default turned off.
-- improved way note links are shown in sections and the task dialog
-- added Teamspace icon when showing a Teampace note
 - new 'noteTags' that extend Tag sections: this includes all open items in a note, based on 'note-tag' field in frontmatter (e.g. `note-tag: #teamspace, #CTI`)
-- improved performance of Tag/Mention Sections
+### Changed
+- big speed-up of Tag/Mention Sections
+- improved way note links are shown in sections and the task dialog
+- clarified meaning of 'number of days to look back for Overdue tasks' to filter by due date (if set) or on date of a calendar note.
+### Fixed
 - (hopefully) avoid situation where the 'Switching Perspectives' spinner never goes away
+### Dev notes
+- added FF for including Teamspace notes, by default turned off.
 
 ## [2.2.1] 2025-04-16
 ### Changed

@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2025-04-28 for v1.2.3, @jgclark
+// Last updated 2025-05-14 for v1.2.3+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -66,14 +66,13 @@ export async function logAllProjectsList(): Promise<void> {
 }
 
 /**
- * Return all projects as Project instances, that match config items 'projectTypeTags'.
+ * Return all projects that match config items 'projectTypeTags' as Project instances.
  * @author @jgclark
  * @param {any} configIn
  * @param {boolean} runInForeground?
- * @returns {Promise<Array<Project>>}
+ * @returns {Array<Project>}
  */
 async function getAllMatchingProjects(configIn: any, runInForeground: boolean = false): Promise<Array<Project>> {
-
   const config = configIn ? configIn : await getReviewSettings() // get config from passed config if possible
   if (!config) throw new Error('No config found. Stopping.')
 
@@ -84,7 +83,12 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
   const filteredFolderList = (config.foldersToInclude.length > 0)
     ? getFoldersMatching(config.foldersToInclude, true).sort()
     : getFolderListMinusExclusions(config.foldersToIgnore, true, false).sort()
-  // For filtering DataStore, no need to look at folders which are in other folders on the list already
+
+  // Filter out subdirectories from the list of folders.
+  // It iterates over each folder in the filteredFolderList and checks if it is already represented in the accumulator array (acc).
+  // The check is done by seeing if any folder in the accumulator starts with the current folder (f).
+  // If the current folder is not a subdirectory of any folder already in the accumulator, it is added to the accumulator.
+  // The result is an array of folders that do not include any subdirectories of folders already in the list.
   const filteredFolderListWithoutSubdirs = filteredFolderList.reduce((acc: Array<string>, f: string) => {
     const exists = acc.some((s) => f.startsWith(s))
     if (!exists) acc.push(f)
@@ -92,39 +96,50 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
   }, [])
   // logDebug('getAllMatchingProjects', `- filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
 
-  // filter DataStore one time, searching each item to see if it startsWith an item in filterFolderList
-  // but need to deal with ignores here because of this optimization (in case an ignore folder is inside an included folder)
-  // TODO: make the excludes an includes not startsWith
-  let filteredDataStore = DataStore.projectNotes.filter(
-    (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some((s) => f.filename.includes(`${s}/`.replace('//', '/')))
-  )
-  // Above ignores root notes, so if we have '/' folder, now need to add them
-  if (filteredFolderListWithoutSubdirs.includes('/')) {
-    const rootNotes = DataStore.projectNotes.filter((f) => !f.filename.includes('/'))
-    filteredDataStore = filteredDataStore.concat(rootNotes)
-    // logDebug('getAllMatchingProjects', `Added root folder notes: ${rootNotes.map((n) => n.title).join(' / ')}`)
-  }
+  // Filter the list of project notes from the DataStore.
+  // It selects notes whose filenames start with any of the paths in the filteredFolderListWithoutSubdirs array.
+  // And it excludes notes whose filenames include any of the paths specified in the config.foldersToIgnore array.
+  // (Note ignored folders can be inside an included folder.)
+  // V1:
+  // let filteredProjectNotes = DataStore.projectNotes.filter(
+  //   (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some((s) => f.filename.includes(`${s}/`.replace('//', '/')))
+  // )
+  // // Above ignores root notes, so if we have '/' folder, now need to add them
+  // if (filteredFolderListWithoutSubdirs.includes('/')) {
+  //   const rootNotes = DataStore.projectNotes.filter((f) => !f.filename.includes('/'))
+  //   filteredProjectNotes = filteredProjectNotes.concat(rootNotes)
+  //   // logDebug('getAllMatchingProjects', `Added root folder notes: ${rootNotes.map((n) => n.title).join(' / ')}`)
+  // }
 
-  logTimer(`getAllMatchingProjects`, startTime, `- filteredDataStore: ${filteredDataStore.length} potential project notes`)
+  // V2: (more efficientthanks to Cursor AI)
+  const folderSet = new Set(filteredFolderListWithoutSubdirs)
+  const ignoreSet = new Set(config.foldersToIgnore.map(s => `${s}/`.replace('//', '/')))
+
+  const filteredProjectNotes = DataStore.projectNotes.filter(f => {
+    const isInFolder = folderSet.has('/') || folderSet.has(f.filename.split('/')[0])
+    const isIgnored = Array.from(ignoreSet).some(ignorePath => f.filename.includes(ignorePath))
+    return isInFolder && !isIgnored
+  })
+
+  logTimer(`getAllMatchingProjects`, startTime, `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`)
 
   if (runInForeground) {
     CommandBar.showLoading(true, `Generating Project Review list`)
-    // TODO: work out what to do about this: currently commented this out as it gives warnings because Editor is accessed.
-    // await CommandBar.onAsyncThread()
   }
+  // TEST: work out what to do about this: currently commented this out as it gives warnings because Editor is accessed.
+  await CommandBar.onAsyncThread()
 
-  // Iterate over the folders, using settings from config.foldersToProcess and config.foldersToIgnore list
+  // Iterate over the folders, looking for notes that match the projectTypeTags
   const projectInstances = []
   for (const folder of filteredFolderList) {
     // Either we have defined tag(s) to filter and group by, or just use []
     const tags = config.projectTypeTags != null && config.projectTypeTags.length > 0 ? config.projectTypeTags : []
 
     // Get notes that include projectTag in this folder, ignoring subfolders
-    // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
     for (const tag of tags) {
       // logDebug('getAllMatchingProjects', `looking for tag '${tag}' in project notes in folder '${folder}'...`)
       // Note: this is very quick <1ms
-      const projectNotesArr = findNotesMatchingHashtagOrMentionFromList(tag, filteredDataStore, true, false, folder, false, [])
+      const projectNotesArr = findNotesMatchingHashtagOrMentionFromList(tag, filteredProjectNotes, true, false, folder, false, [])
       if (projectNotesArr.length > 0) {
         // Get Project class representation of each note.
         // Save those which are ready for review in projectsReadyToReview array
@@ -135,8 +150,8 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
       }
     }
   }
+  await CommandBar.onMainThread()
   if (runInForeground) {
-    // await CommandBar.onMainThread()
     CommandBar.showLoading(false)
   }
   logTimer('getAllMatchingProjects', startTime, `- found ${projectInstances.length} available project notes`)
@@ -405,7 +420,7 @@ export async function updateAllProjectsListAfterChange(
         return
       }
       // Note: there had been issue of stale data here in the past. Leaving comment in case it's needed again.
-      const updatedProject = new Project(reviewedNote, reviewedProject.projectTag, true, config.nextActionTag)
+      const updatedProject = new Project(reviewedNote, reviewedProject.projectTag, true, config.nextActionTags)
       // clo(updatedProject, 'in updateAllProjectsListAfterChange() 🟡 updatedProject:')
       allProjects.push(updatedProject)
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)

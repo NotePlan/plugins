@@ -1,5 +1,5 @@
 // @flow
-// Last updated 2025-05-01 for v2.2.2 by @jgclark
+// Last updated 2025-05-15 for v2.3.0 by @jgclark
 
 import type { TSettingItem, TDashboardSettings } from '../../../types.js'
 
@@ -16,6 +16,7 @@ const featureFlagSettingDefs = [
   // { key: 'FFlag_UseTagCache', label: 'Use Tag Cache', description: 'Use tag cache to speed up tag/mention searches' },
   // { key: 'FFlag_IncludeTeamspaceNotes', label: 'Include Teamspace Notes', description: 'Include Teamspace notes in the Dashboard' },
   // { key: 'FFlag_UseNoteTags', label: 'Use Note Tags', description: 'Use note tags to include whole notes in respective Tag sections' },
+  { key: 'FFlag_ShowSectionTimings', label: 'Show Section Timings', description: 'Show timings for how long it took to generate sections' },
 ]
 
 export const createFeatureFlagItems = (dashboardSettings: TDashboardSettings): Array<TSettingItem> => {

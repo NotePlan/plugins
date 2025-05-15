@@ -1006,7 +1006,7 @@ export function generateProjectOutputLine(
  * @return {string} - title as wikilink
  */
 function decoratedProjectTitle(thisProject: Project, style: string, config: any): string {
-  const folderNamePart = config.includeFolderName ? `${thisProject.folder} / ` : ''
+  const folderNamePart = config.showFolderName ? `${thisProject.folder} / ` : ''
   const titlePart = thisProject.title ?? '(error, not available)'
   // const titlePartEncoded = encodeURIComponent(thisProject.title) ?? '(error, not available)'
   switch (style) {

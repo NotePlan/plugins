@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-05-04 for v2.2.2, @jgclark
+// Last updated 2025-05-14 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -337,18 +337,14 @@ export function getOpenItemParasForTimePeriod(
       matchingNotes.push(possTimePeriodNote)
     }
 
-    // WARNING: Currently needs a FF to turn this on, as there are too many problems in the API in build 1368
-    if (dashboardSettings.FFlag_IncludeTeamspaceNotes) {
+    // Stable from about b1371
+    if (NotePlan.environment.build >= 1371) {
       for (const teamspace of DataStore.teamspaces) {
         // Get note for this teamspace (if it exists)
         const note = DataStore.calendarNoteByDateString(NPCalendarFilenameStr, teamspace.filename)
         if (note) {
           matchingNotes.push(note)
           logDebug('getOpenItemPFCTP', `Found matching note for ${NPCalendarFilenameStr} in teamspace ${teamspace.filename}`)
-
-          // FIXME(EduardMe): this is showing as false
-          // const firstPara = note.paragraphs[0]
-          // logDebug('getOpenItemPFCTP', `- 👉 isTeamspaceNote for para 0 is ${String(firstPara?.note?.isTeamspaceNote)}`)
         }
       }
       logDebug('getOpenItemPFCTP', `Found ${String(matchingNotes.length)} matching notes for ${NPCalendarFilenameStr}`)
@@ -466,7 +462,7 @@ export function getOpenItemParasForTimePeriod(
       )
       if (dashboardSettings.ignoreChecklistItems) {
         refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist'))
-        logDebug('getOpenItemPFCTP', `- after filtering out referenced checklists: ${refOpenParas.length} para(s)`)
+        // logDebug('getOpenItemPFCTP', `- after filtering out referenced checklists: ${refOpenParas.length} para(s)`)
       }
       if (dashboardSettings.excludeChecklistsWithTimeblocks) {
         refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
@@ -481,18 +477,18 @@ export function getOpenItemParasForTimePeriod(
 
       // Remove possible dupes from sync'd lines (returning the first copy found, without doing a sort first)
       refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
-      logTimer('getOpenItemPFCTP', startTime, `- after 'eliminate sync dupes' filter: ${refOpenParas.length} para(s)`)
+      // logTimer('getOpenItemPFCTP', startTime, `- after 'eliminate sync dupes' filter: ${refOpenParas.length} para(s)`)
 
       // Filter out anything from 'ignoreItemsWithTerms' setting
       if (dashboardSettings.ignoreItemsWithTerms) {
         refOpenParas = refOpenParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
-        logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
+        // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
       }
     }
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const refOpenDashboardParas = makeDashboardParas(refOpenParas)
-    clo(refOpenDashboardParas, 'getOpenItemPFCTP refOpenDashboardParas after extending paras')
+    // clo(refOpenDashboardParas, 'getOpenItemPFCTP refOpenDashboardParas after extending paras')
 
     logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(refOpenParas.length ?? 0)} referenced items for ${calendarPeriodName}`)
 
@@ -699,7 +695,7 @@ export function isLineDisallowedByExcludedTerms(lineContent: string, ignoreItems
 
   const matchFound = caseInsensitiveSubstringIncludes(lineContent, ignoreTermsArr)
   if (matchFound) {
-    logDebug('isLineDisallowedByExcludedTerms', `- DID find excluding term(s) [${ignoreTermsArr.toString()}] in '${String(lineContent)}'`)
+    // logDebug('isLineDisallowedByExcludedTerms', `- DID find excluding term(s) [${ignoreTermsArr.toString()}] in '${String(lineContent)}'`)
   }
   return matchFound
 }
@@ -892,17 +888,16 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
  */
 export function createSectionItemObject(id: string, p: TParagraph | TParagraphForDashboard, theType?: TItemType): TSectionItem {
   try {
-    if (!p) {
-      throw new Error('p is null')
+    if (!p || !p.filename || !p.type) {
+      throw new Error('p is null or missing filename or type')
     }
-    const itemObj = { ID: id, itemType: theType ?? p.type, para: p }
-    // FIXME: this lookup isn't working for ?some? teamspace notes
+    const itemObj = { ID: id, itemType: theType ?? p.type, para: p, teamspaceTitle: '' }
     const thisNote = getNoteFromFilename(p.filename)
     if (thisNote) {
       const teamspaceTitle = getTeamspaceTitleFromNote(thisNote)
       if (teamspaceTitle !== '') {
         itemObj.teamspaceTitle = teamspaceTitle
-        logDebug('createSectionItemObject', `- added teamspaceTitle ${teamspaceTitle}`)
+        // logDebug('createSectionItemObject', `- added teamspaceTitle ${teamspaceTitle}`)
       }
     } else {
       logWarn('createSectionItemObject', `- cannot get note from para {${p.content}} -- probably a Teamspace API problem`)
@@ -911,7 +906,9 @@ export function createSectionItemObject(id: string, p: TParagraph | TParagraphFo
     return itemObj
   } catch (error) {
     logError('createSectionItemObject', `${error.message} from {${p?.content}}`)
-    return { ID: id, itemType: theType ?? p.type, para: p }
+    // $FlowIgnore[incompatible-return]
+    // $FlowIgnore[incompatible-exact] - we are not using all the types in TParagraphForDashboard
+    return { ID: id, itemType: theType ?? p.type ?? 'unknown', para: p }
   }
 }
 

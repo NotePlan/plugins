@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2025-05-14 for v2.2.2, @jgclark
+// last updated 2025-05-15 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
