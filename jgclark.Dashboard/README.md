@@ -314,7 +314,7 @@ For the `setSetting` callbacks, the names of the possible settings (described ab
 | ignoreChecklistItems | true / false |
 | includedFolders | comma-separated values |
 | excludedFolders | comma-separated values |
-| includeFolderName | true / false |
+| showFolderName | true / false |
 | includeTaskContext | true / false |
 | rescheduleNotMove | true / false |
 | useLiteScheduleMethod | true / false |

@@ -2,6 +2,7 @@
 // Last updated 2025-04-22 for v0.7.0 by @jgclark
 
 import { isDailyNote } from '@helpers/dateTime'
+import { logDebug, logError } from '@helpers/dev'
 import { percent } from '@helpers/general'
 import moment from 'moment'
 
@@ -70,6 +71,7 @@ export async function showNoteCount(): Promise<void> {
 
       display.push(`🧑‍🤝‍🧑 Teamspaces: include ${teamspaceCalendarNotes.length} calendar notes and ${teamspaceRegularNotes.length} regular notes`)
       for (const teamspace of teamspaces) {
+        // $FlowIgnore[incompatible-type]
         display.push(`\t- '${teamspace.title}'`)
       }
     }

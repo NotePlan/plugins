@@ -35,7 +35,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
   // compute the things we need later
   const noteTitle = item?.para?.title || ''
   // logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} item.para.noteType:${item.para.noteType} / thisSection.filename=${thisSection.sectionFilename}`)
-  const folderNamePart = dashboardSettings.includeFolderName && filename !== '<no filename found>' && getFolderFromFilename(filename) !== '/' ? `${getFolderFromFilename(filename)} /` : ''
+  const folderNamePart = dashboardSettings.showFolderName && filename !== '<no filename found>' && getFolderFromFilename(filename) !== '/' ? `${getFolderFromFilename(filename)} /` : ''
 
   // Compute the icon and link class and style depending whether this is a teamspace item, and/or note types
   // const isFromTeamspace = item.para?.isFromTeamspace ?? false
@@ -55,7 +55,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
   // logDebug(`ItemNoteLink`, `noteIconToUse:${noteIconToUse} with filenameWithoutTeamspacePrefix:${filenameWithoutTeamspacePrefix}`)
   // const linkClass = 'noteTitle'
   // const linkStyle = 'folderName'
-  const showNoteTitle = alwaysShowNoteTitle || item.para.noteType === 'Notes' || filenameWithoutTeamspacePrefix !== thisSection.sectionFilename
+  const showNoteTitle = alwaysShowNoteTitle || item.para?.noteType === 'Notes' || filenameWithoutTeamspacePrefix !== thisSection.sectionFilename
 
   let teamspaceIndicator = null
   if (isFromTeamspace) {
