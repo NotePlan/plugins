@@ -1,5 +1,5 @@
 # 🎛 Dashboard plugin
-<img alt="Example of Dashboard window" src="dashboard-medium-2.1.0.png" width="700px"/>
+<img alt="Example of Dashboard window" src="dashboard-medium-2.3.0.png" width="700px"/>
 
 This plugin provides a **dashboard window** for your NotePlan data that in one place shows a compact list of:
 - open tasks and checklists from today's note
@@ -131,6 +131,11 @@ The top bar has a **count of tasks done today** (apart from on narrow windows an
 
 The display will **automatically refresh** in the background if you set the "Automatic Update interval" to any number > 0. This number is the number of minutes after the window is idle when it will refresh the sections you want to display. You can also press the 'Refresh' button at any point, and/or you can set a trigger (see below).
 
+(From v2.3) The Dashboard will show notes held in a **Teamspace** (if you are part of one). It shows with the title of the Teamspace in green with the Teamspace icon, before the note title:
+
+<img src="teamspace-title-2.3.0.png" width="300px" margin="8px" border="1px solid grey" alt="example of Teamspace title" align="center"/>
+
+
 ### Current Time Block section
 [Time blocks in NotePlan](https://help.noteplan.co/article/121-time-blocking) are a helpful way to help you plan your days. If you define some, they appear in the calendar sidebar.  If the current time is within a time block, then this section appears at the top of the Dashboard. For example:
 
@@ -152,7 +157,20 @@ There are 2 specific settings for this section:
 _I plan to introduce more search options in later releases. In this release the searches are case-insensitive and match on part-words, which is the same as the NotePlan app. Unless, that is, you have the Search Extensions plugin installed, in which case it will use those settings._
 
 ### #tag/@mention sections
-The "#tag/@mention Section" will show all open tasks/checklists that include this #tag or @mention. This is a good way of showing all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.
+The "#tag/@mention Section" will show all open tasks/checklists that include the #tag or @mention of interest. This is a good way of showing all `#next` actions, for example, or all which involve `@007`.
+
+v2.3 introduces '**noteTags**'. These allow you to treat all the open items in a whole note as having a particular tag or mention applied to it. To use this, simply add a `note-tag` field in the frontmatter for the note, with the tag(s)/mention(s) in a list. 
+For example in this note:
+```md
+---
+title: Bring down the SPECTRE organisation
+note-tag: #ProjectSPECTRE, @007
+---
+* High speed chase to find the SPECTRE HQ
+* Listen in on the SPECTRE Head briefing his operatives
+* Use @Q's latest device to put most of the operatives out of action
+```
+all three tasks will be included in a `#ProjectSPECTRE` Section.
 
 You can use the '#Tags' section to create a "deferred date" function. To do this tag something as (for example) `#next` and then schedule it with a day in the future.On that future date, it will show up in this `#next` section. (Thanks to @george65 for spotting this use case.)
 

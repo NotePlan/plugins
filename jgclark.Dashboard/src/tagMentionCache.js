@@ -177,7 +177,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     const startTime = new Date()
     const wantedItems = getTagMentionCacheDefinitions()
     const config = await getDashboardSettings()
-    logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}]${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' ONLY FOR OPEN ITEMS' : ''} ${config.FFlag_UseNoteTags ? ' and USING NOTE TAGS' : ''}`)
+    logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}]${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' ONLY FOR OPEN ITEMS' : ''}`)
 
     const wantedParaTypes = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
 
@@ -212,7 +212,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     let ccal = 0
     logDebug('generateTagMentionCache', `- Processing ${allCalNotes.length} calendar notes ...`)
     for (const note of allCalNotes) {
-      const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, config.FFlag_UseNoteTags) : []
+      const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, true) : []
       if (foundWantedItems.length > 0) {
         ccal++
         logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}]`)
@@ -226,7 +226,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     logDebug('generateTagMentionCache', `- Processing ${allRegularNotes.length} regular notes ...`)
     for (const note of allRegularNotes) {
       if (note.filename.startsWith('%%')) logInfo('generateTagMentionCache', `- Processing ${note.filename}`)
-      const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, config.FFlag_UseNoteTags) : []
+      const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, true) : []
       if (foundWantedItems.length > 0) {
         creg++
         logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}]`)
@@ -313,7 +313,7 @@ export async function updateTagMentionCache(): Promise<void> {
       }
 
       // Then get wanted tags and mentions, and add them
-      const foundWantedItems = getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, config.FFlag_UseNoteTags)
+      const foundWantedItems = getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, true)
       if (foundWantedItems.length > 0) logDebug('updateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}] calWantedItems`)
       if (foundWantedItems.length > 0) {
         if (isCalendarNote) {
@@ -364,7 +364,7 @@ export function generateTagMentionCacheSummary(): string {
 /**
  * Get list of any of the 'wantedTagsOrMentions' tags/mentions that appear in this note.
  * Does filtering by para type, if 'wantedParaTypes' is provided, and is not empty.
- * If FFlag_UseNoteTags is true, include matching frontmatter tags in the results.
+ * If 'includeNoteTags' is true, include matching frontmatter tags in the results.
  * @param {TNote} note 
  * @param {Array<string>} wantedTagsOrMentions 
  * @param {Array<string>?} wantedParaTypes?

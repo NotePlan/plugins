@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-05-01 for v2.2.2, @jgclark
+// Last updated 2025-05-15 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -18,10 +18,10 @@ import { filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTi
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import { displayTitle } from '@helpers/general'
+// import { displayTitle } from '@helpers/general'
 import { getFrontMatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { getNoteByFilename } from '@helpers/note'
-import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers/NPnote'
+import { getHeadingsFromNote } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { caseInsensitiveMatch } from '@helpers/search'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
@@ -31,7 +31,7 @@ import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
  * Generate data for a section for items with a Tag/Mention.
  * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future.
  * Now also uses all the 'ignore' settings, other than any that are the same as this particular tag/mention.
- * Now also uses FFlag_UseNoteTags to include all open items in a note, based on tag in frontmatter.
+ * Now also implmenets noteTags feature to include all open items in a note, based on 'note-tag' attribute in frontmatter.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
@@ -111,7 +111,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
         // If we want to use note tags, and the note has a 'note-tag' field in its FM, then work out if the note-tag matches this particular tag/mention.
         let hasMatchingNoteTag = false
-        if (config.FFlag_UseNoteTags && noteHasFrontMatter(n)) {
+        if (/* config.FFlag_UseNoteTags && */ noteHasFrontMatter(n)) {
           // logDebug('getTaggedSectionData', `- note "${n.filename}" has FM`)
           const noteTagAttribute = getFrontMatterAttribute(n, 'note-tag')
           const noteTagList = noteTagAttribute ? stringListOrArrayToArray(noteTagAttribute, ',') : []
@@ -121,7 +121,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
             logInfo('getTaggedSectionData', `-> noteTag(s) '${String(noteTagList)}' is ${hasMatchingNoteTag ? 'a' : 'NOT a'} match for ${sectionDetail.sectionName}`)
           }
         }
-        // Add the paras that contain the tag/mention, unless FFlag_UseNoteTags is true, in which case add all paras if FM field 'note-tag' matches. (Later we filter down to open non-scheduled items).
+        // Add the paras that contain the tag/mention, unless this is a noteTag, in which case add all paras if FM field 'note-tag' matches. (Later we filter down to open non-scheduled items).
         const tagParasFromNote = (hasMatchingNoteTag)
           ? paras
           : paras.filter((p) => p.content?.includes(sectionDetail.sectionName))
