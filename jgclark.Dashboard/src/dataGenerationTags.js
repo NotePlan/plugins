@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-05-15 for v2.3.0, @jgclark
+// Last updated 2025-05-16 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -159,12 +159,18 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
         const beforeFilterCount = filteredTagParas.length
         // Note: this is a quick operation
+        const preDedupeCount = filteredTagParas.length
         // $FlowIgnore[class-object-subtyping]
         filteredTagParas = removeDuplicates(filteredTagParas, ['content', 'filename'])
-        logTimer('getTaggedSectionData', thisStartTime, `- after removeDuplicates -> ${filteredTagParas.length}`)
-        const afterFilterCount = filteredTagParas.length
-        if (beforeFilterCount !== afterFilterCount) {
-          logDebug('getTaggedSectionData', `  - filtered out (${beforeFilterCount - afterFilterCount}) duplicate items`)
+        const postDedupeCount = filteredTagParas.length
+        // TODO: remove this logging once we find cause of DBW seeing dupes
+        if (preDedupeCount !== postDedupeCount) {
+          logDebug('getTaggedSectionData', `- de-duped from ${preDedupeCount} to ${postDedupeCount} items`)
+        } else {
+          logDebug('getTaggedSectionData', `- no de-duping done of items:`)
+          for (const p of filteredTagParas) {
+            logDebug('getTaggedSectionData', `  - {${p.content}} in ${p.filename} line ${p.lineIndex}`)
+          }
         }
 
         // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
