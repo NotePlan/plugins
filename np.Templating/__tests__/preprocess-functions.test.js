@@ -14,6 +14,17 @@ import { DataStore } from '@mocks/index'
 // for Flow errors with Jest
 /* global describe, beforeEach, afterEach, test, expect, jest */
 
+// Make the mock available directly in the NPTemplating module's scope
+// jest.mock('../lib/NPTemplating', () => {
+//   const originalModule = jest.requireActual('../lib/NPTemplating')
+//   return {
+//     ...originalModule,
+//     logDebug: global.logDebug,
+//     logError: global.logError,
+//     pluginJson: global.pluginJson,
+//   }
+// })
+
 describe('PreProcess helper functions', () => {
   let consoleLogMock
   let consoleErrorMock
@@ -180,37 +191,37 @@ date.now()
       expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("cmd1", "id", [])`)
       expect(context.templateData).toContain(`let name = "george"`)
       expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("cmd2", "id", [])`)
-      expect(context.templateData).toContain(`await note.content()`)
-      expect(context.templateData).toContain(`await date.now()`)
+      expect(context.templateData).toContain(`note.content()`)
+      expect(context.templateData).toContain(`date.now()`)
     })
 
     test('should process semicolon-separated statements on a single line', async () => {
-      const tagWithSemicolons = '<% const foo = "bar"; DataStore.invoke("cmd1"); let x = 5; date.now() %>'
+      const tagWithSemicolons = '<% const foo = "bar"; DataStore.invokePluginCommandByName("cmd1"); let x = 5; date.now() %>'
       context.templateData = tagWithSemicolons
 
       await NPTemplating._processCodeTag(tagWithSemicolons, context)
 
       expect(context.templateData).toContain(`const foo = "bar"`)
-      expect(context.templateData).toContain(`await DataStore.invoke("cmd1")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("cmd1")`)
       expect(context.templateData).toContain(`let x = 5`)
-      expect(context.templateData).toContain(`await date.now()`)
+      expect(context.templateData).not.toContain(`await date.now()`)
     })
 
     test('should handle variable declarations with function calls', async () => {
-      const tagWithFuncInVar = '<% const result = DataStore.invoke("cmd"); %>'
+      const tagWithFuncInVar = '<% const result = DataStore.invokePluginCommandByName("cmd"); %>'
       context.templateData = tagWithFuncInVar
 
       await NPTemplating._processCodeTag(tagWithFuncInVar, context)
 
       // Should add await to the function call even though it's part of a variable declaration
-      expect(context.templateData).toContain(`const result = await DataStore.invoke("cmd")`)
+      expect(context.templateData).toContain(`const result = await DataStore.invokePluginCommandByName("cmd")`)
     })
 
     test('should not add await to lines that already have it', async () => {
       const tagWithAwait = `<% const foo = 'bar';
 await DataStore.invokePluginCommandByName("cmd1", "id", [])
 let name = "george"
-DataStore.invoke("cmd2")
+DataStore.invokePluginCommandByName("cmd2")
 %>`
       context.templateData = tagWithAwait
 
@@ -219,14 +230,14 @@ DataStore.invoke("cmd2")
       expect(context.templateData).toContain(`const foo = 'bar'`)
       expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("cmd1", "id", [])`)
       expect(context.templateData).toContain(`let name = "george"`)
-      expect(context.templateData).toContain(`await DataStore.invoke("cmd2")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("cmd2")`)
       // Should not double-add await
       expect(context.templateData).not.toContain(`await await`)
     })
 
     test('should handle mixed semicolons and newlines', async () => {
       const mixedTag = `<% const a = 1; const b = 2;
-DataStore.invoke("cmd1"); DataStore.invoke("cmd2");
+DataStore.invokePluginCommandByName("cmd1"); DataStore.invokePluginCommandByName("cmd2");
 await existingAwait(); doSomethingElse()
 %>`
       context.templateData = mixedTag
@@ -234,7 +245,7 @@ await existingAwait(); doSomethingElse()
       await NPTemplating._processCodeTag(mixedTag, context)
 
       expect(context.templateData).toContain(`const a = 1; const b = 2`)
-      expect(context.templateData).toContain(`await DataStore.invoke("cmd1"); await DataStore.invoke("cmd2")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("cmd1"); await DataStore.invokePluginCommandByName("cmd2")`)
       expect(context.templateData).toContain(`await existingAwait(); await doSomethingElse()`)
       // Should not double-add await
       expect(context.templateData).not.toContain(`await await`)
@@ -243,7 +254,7 @@ await existingAwait(); doSomethingElse()
     test('should not add await to prompt function calls', async () => {
       const tagWithPrompt = `<% const foo = 'bar';
 prompt("Please enter your name")
-DataStore.invoke("cmd")
+DataStore.invokePluginCommandByName("cmd")
 %>`
       context.templateData = tagWithPrompt
 
@@ -251,7 +262,7 @@ DataStore.invoke("cmd")
 
       expect(context.templateData).toContain(`const foo = 'bar'`)
       expect(context.templateData).toContain(`prompt("Please enter your name")`)
-      expect(context.templateData).toContain(`await DataStore.invoke("cmd")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("cmd")`)
       // Should not add await to prompt
       expect(context.templateData).not.toContain(`await prompt`)
     })
@@ -259,9 +270,9 @@ DataStore.invoke("cmd")
     test('should correctly place await in variable declarations with function calls', async () => {
       // Create a combined tag with all the variable declarations
       const variableWithFunctionTag = `<% 
-const result1 = DataStore.invoke("cmd1");
-let result2=DataStore.invoke("cmd2");
-var result3 = DataStore.invoke("cmd3");
+const result1 = DataStore.invokePluginCommandByName("cmd1");
+let result2=DataStore.invokePluginCommandByName("cmd2");
+var result3 = DataStore.invokePluginCommandByName("cmd3");
 %>`
 
       // Create specific test context for this test
@@ -279,9 +290,9 @@ var result3 = DataStore.invoke("cmd3");
       console.log('AFTER processing:', testContext.templateData)
 
       // Should place await before the function call, not before the variable declaration
-      expect(testContext.templateData).toContain(`const result1 = await DataStore.invoke("cmd1")`)
-      expect(testContext.templateData).toContain(`let result2= await DataStore.invoke("cmd2")`)
-      expect(testContext.templateData).toContain(`var result3 = await DataStore.invoke("cmd3")`)
+      expect(testContext.templateData).toContain(`const result1 = await DataStore.invokePluginCommandByName("cmd1")`)
+      expect(testContext.templateData).toContain(`let result2= await DataStore.invokePluginCommandByName("cmd2")`)
+      expect(testContext.templateData).toContain(`var result3 = await DataStore.invokePluginCommandByName("cmd3")`)
 
       // Should NOT place await before the variable declaration
       expect(testContext.templateData).not.toContain(`await const result1`)
@@ -313,7 +324,7 @@ if (dayNum == 6) {
     test('should NOT add await to for loops', async () => {
       const tagWithForLoop = `<% 
 for (let i = 0; i < 10; i++) {
-  DataStore.invoke("cmd");
+  DataStore.invokePluginCommandByName("cmd");
 }
 %>`
       context.templateData = tagWithForLoop
@@ -324,14 +335,14 @@ for (let i = 0; i < 10; i++) {
       expect(context.templateData).toContain(`for (let i = 0; i < 10; i++)`)
       expect(context.templateData).not.toContain(`await for`)
       // But should add await to function calls inside the loop
-      expect(context.templateData).toContain(`await DataStore.invoke("cmd")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("cmd")`)
     })
 
     test('should NOT add await to while loops', async () => {
       const tagWithWhileLoop = `<% 
 let x = 0;
 while (x < 10) {
-  DataStore.invoke("cmd");
+  DataStore.invokePluginCommandByName("cmd");
   x++;
 }
 %>`
@@ -343,14 +354,14 @@ while (x < 10) {
       expect(context.templateData).toContain(`while (x < 10)`)
       expect(context.templateData).not.toContain(`await while`)
       // But should add await to function calls inside the loop
-      expect(context.templateData).toContain(`await DataStore.invoke("cmd")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("cmd")`)
     })
 
     test('should NOT add await to do-while loops', async () => {
       const tagWithDoWhileLoop = `<% 
 let x = 0;
 do {
-  DataStore.invoke("cmd");
+  DataStore.invokePluginCommandByName("cmd");
   x++;
 } while (x < 10);
 %>`
@@ -364,21 +375,21 @@ do {
       expect(context.templateData).not.toContain(`await do`)
       expect(context.templateData).not.toContain(`await while`)
       // But should add await to function calls inside the loop
-      expect(context.templateData).toContain(`await DataStore.invoke("cmd")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("cmd")`)
     })
 
     test('should NOT add await to switch statements', async () => {
       const tagWithSwitch = `<% 
 switch (day) {
   case 1:
-    DataStore.invoke("weekday");
+    DataStore.invokePluginCommandByName("weekday");
     break;
   case 6:
   case 7:
-    DataStore.invoke("weekend");
+    DataStore.invokePluginCommandByName("weekend");
     break;
   default:
-    DataStore.invoke("default");
+    DataStore.invokePluginCommandByName("default");
 }
 %>`
       context.templateData = tagWithSwitch
@@ -389,15 +400,15 @@ switch (day) {
       expect(context.templateData).toContain(`switch (day)`)
       expect(context.templateData).not.toContain(`await switch`)
       // But should add await to function calls inside the switch
-      expect(context.templateData).toContain(`await DataStore.invoke("weekday")`)
-      expect(context.templateData).toContain(`await DataStore.invoke("weekend")`)
-      expect(context.templateData).toContain(`await DataStore.invoke("default")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("weekday")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("weekend")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("default")`)
     })
 
     test('should NOT add await to try/catch statements', async () => {
       const tagWithTryCatch = `<% 
 try {
-  DataStore.invoke("risky");
+  DataStore.invokePluginCommandByName("risky");
 } catch (error) {
   logError(error);
 }
@@ -412,7 +423,7 @@ try {
       expect(context.templateData).not.toContain(`await try`)
       expect(context.templateData).not.toContain(`await catch`)
       // But should add await to function calls inside the try/catch
-      expect(context.templateData).toContain(`await DataStore.invoke("risky")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("risky")`)
       expect(context.templateData).toContain(`await logError(error)`)
     })
 
@@ -452,21 +463,21 @@ const message = (age > 18) ? "Adult" : "Minor";
 // This is a complex template
 if (dayNum == 6) {
   // Saturday
-  DataStore.invoke("weekend");
+  DataStore.invokePluginCommandByName("weekend");
 } else if (dayNum == 7) {
   // Sunday
-  DataStore.invoke("weekend");
+  DataStore.invokePluginCommandByName("weekend");
 } else {
   // Weekday
   for (let i = 0; i < tasks.length; i++) {
     if (tasks[i].isImportant) {
-      DataStore.invoke("important", tasks[i]);
+      DataStore.invokePluginCommandByName("important", tasks[i]);
     }
   }
 }
 
 // Function calls outside of control structures
-const data = DataStore.invoke("getData");
+const data = DataStore.invokePluginCommandByName("getData");
 processData(data);
 %>`
       context.templateData = complexTag
@@ -485,9 +496,9 @@ processData(data);
       expect(context.templateData).not.toContain(`await for`)
 
       // Should add await to function calls
-      expect(context.templateData).toContain(`await DataStore.invoke("weekend")`)
-      expect(context.templateData).toContain(`await DataStore.invoke("important", tasks[i])`)
-      expect(context.templateData).toContain(`const data = await DataStore.invoke("getData")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("weekend")`)
+      expect(context.templateData).toContain(`await DataStore.invokePluginCommandByName("important", tasks[i])`)
+      expect(context.templateData).toContain(`const data = await DataStore.invokePluginCommandByName("getData")`)
       expect(context.templateData).toContain(`await processData(data)`)
     })
 

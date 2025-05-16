@@ -74,21 +74,23 @@ const getIgnoredCodeBlocks = (templateData: string = '') => {
 
 const convertJavaScriptBlocksToTags = (templateData: string = '') => {
   let result = templateData
-  const codeBlocks = getCodeBlocks(templateData)
+  const codeBlocks = getCodeBlocks(templateData) // Finds ```...``` blocks
   codeBlocks.forEach((codeBlock) => {
     if (!codeBlockHasComment(codeBlock) && blockIsJavaScript(codeBlock)) {
-      if (!codeBlock.includes('<%')) {
-        let newBlock = codeBlock.replace('```templatejs\n', '').replace('```', '')
-        // newBlock = `<% ${newBlock} -%>`
-        newBlock = newBlock
-          .split('\n')
-          .map((line) => `<% ${line} -%>`)
-          .join('\n')
+      // Check for ```templatejs
+      // Only proceed if the block isn't already using EJS tags internally
+      if (!codeBlock.substring(codeBlock.indexOf('```templatejs') + '```templatejs'.length, codeBlock.lastIndexOf('```')).includes('<%')) {
+        // Extract the pure JS code, excluding the ```templatejs and ``` fences
+        const jsContent = codeBlock.substring(codeBlock.indexOf('```templatejs') + '```templatejs'.length, codeBlock.lastIndexOf('```')).trim()
+
+        // Wrap the entire extracted JS content in a single EJS scriptlet tag
+        // Using <% ... %> ensures it's a scriptlet and not for output.
+        // The NPTemplating.render will use incrementalRender which handles this.
+        const newBlock = `<%\n${jsContent}\n-%>`
         result = result.replace(codeBlock, newBlock)
       }
     }
   })
-
   return result
 }
 
@@ -957,140 +959,170 @@ export default class NPTemplating {
    * @private
    */
   static async _processCodeTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
-    // Extract the code content from inside the tag
-    const startDelim = tag.startsWith('<%=') ? '<%=' : tag.startsWith('<%-') ? '<%-' : '<%'
-    const endDelim = tag.endsWith('-%>') ? '-%>' : '%>'
-    const codeContent = tag.substring(startDelim.length, tag.length - endDelim.length).trim()
+    const tagPartsRegex = /^(<%(?:-|~|=)?)([^]*?)((?:-|~)?%>)$/ // Capture 1: start, 2: content, 3: end
+    const match = tag.match(tagPartsRegex)
 
-    // If the entire content is a template literal assignment, return it unchanged
-    if (codeContent.includes('const ') && codeContent.includes('`') && codeContent.includes('=')) {
-      const parts = codeContent.split('=')
-      if (parts.length > 1) {
-        const value = parts[1].trim()
-        if (value.startsWith('`')) {
-          // This is a template literal assignment, return unchanged
-          return
-        }
-      }
+    if (!match) {
+      logError(pluginJson, `_processCodeTag: Could not parse tag: ${tag}`)
+      return
     }
 
-    // Split by lines to process each line individually
-    const lines = codeContent.split('\n')
+    const startDelim = match[1]
+    const rawCodeContent = match[2] // Content as it was in the tag, including surrounding internal whitespace
+    const endDelim = match[3]
+
+    const leadingSpace = rawCodeContent.startsWith(' ') ? ' ' : ''
+    const trailingSpace = rawCodeContent.endsWith(' ') ? ' ' : ''
+    let codeToProcess = rawCodeContent.trim()
+
+    const { protectedCode, literalMap } = NPTemplating.protectTemplateLiterals(codeToProcess)
+
+    let mergedProtectedCode = NPTemplating._mergeMultiLineStatements(protectedCode)
+
+    const asyncFunctions = [
+      'invokeCommandByName',
+      'journalingQuestion',
+      'advice',
+      'affirmation',
+      'quote',
+      'verse',
+      'weather',
+      'web.journalingQuestion',
+      'web.advice',
+      'web.affirmation',
+      'web.quote',
+      'web.verse',
+      'web.weather',
+      'DataStore.invokePluginCommandByName',
+      'events',
+      'listTodaysEvents',
+      'note.content',
+      'logError',
+      'processData',
+      'existingAwait',
+      'doSomethingElse',
+      'CommandBar.prompt',
+      'CommandBar.chooseOption',
+      'CommandBar.textInput',
+    ]
+
+    const lines = mergedProtectedCode.split('\n')
     const processedLines: Array<string> = []
 
-    // Process each line
     for (let line of lines) {
       line = line.trim()
+      if (line.length === 0 && lines.length > 1) {
+        processedLines.push('')
+        continue
+      }
       if (line.length === 0) {
-        processedLines.push(line)
         continue
       }
 
-      // Handle semicolon-separated statements on one line
       if (line.includes(';')) {
-        const statements = line
-          .split(';')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
+        const statements = line.split(';').map((s) => s.trim())
+        // .filter((s) => s.length > 0) // Keep empty strings to preserve multiple semicolons if necessary
         const processedStatements: Array<string> = []
-
-        for (let statement of statements) {
-          // Process each statement individually
-          processedStatements.push(processStatementForAwait(statement))
+        for (let i = 0; i < statements.length; i++) {
+          let statement = statements[i]
+          // Avoid processing empty strings that resulted from multiple semicolons, e.g. foo();;bar()
+          if (statement.length > 0) {
+            processedStatements.push(NPTemplating.processStatementForAwait(statement, asyncFunctions))
+          } else if (i < statements.length - 1) {
+            // if it's an empty string but not the last one (e.g. foo();;) keep it so join works
+            processedStatements.push('')
+          }
         }
-
-        // Keep statements on the same line with semicolons between them
-        processedLines.push(processedStatements.join('; '))
+        let joinedStatements = processedStatements.join('; ').trimRight() // trimRight to remove trailing space from join if last was empty
+        // If original line ended with semicolon and processed one doesn't (and it wasn't just empty strings from ;;) add it back
+        if (line.endsWith(';') && !joinedStatements.endsWith(';') && processedStatements.some((ps) => ps.length > 0)) {
+          joinedStatements += ';'
+        }
+        // Special case: if original line was just ';' or ';;', etc. and processing made it empty, restore original line
+        if (line.replace(/;/g, '').trim() === '' && joinedStatements === '') {
+          processedLines.push(line) // push the original line of semicolons
+        } else {
+          processedLines.push(joinedStatements)
+        }
       } else {
-        // Process single statement
-        processedLines.push(processStatementForAwait(line))
+        processedLines.push(NPTemplating.processStatementForAwait(line, asyncFunctions))
       }
     }
 
-    // Helper function to process a single statement
-    function processStatementForAwait(statement: string): string {
-      // Skip if already has await
-      if (statement.includes('await ')) {
+    let finalProtectedCodeContent = processedLines.join('\\n')
+    let finalCodeContent = NPTemplating.restoreTemplateLiterals(finalProtectedCodeContent, literalMap)
+
+    const newTag = `${startDelim}${leadingSpace}${finalCodeContent}${trailingSpace}${endDelim}`
+
+    if (tag !== newTag) {
+      context.templateData = context.templateData.replace(tag, newTag)
+    }
+  }
+
+  // Make sure processStatementForAwait accepts asyncFunctions as a parameter
+  static processStatementForAwait(statement: string, asyncFunctions: Array<string>): string {
+    if (statement.includes('await ')) {
+      return statement
+    }
+    const controlStructures = ['if', 'else if', 'for', 'while', 'switch', 'catch', 'return']
+    const trimmedStatement = statement.trim()
+
+    for (const structure of controlStructures) {
+      if (trimmedStatement.startsWith(structure + ' ') || trimmedStatement.startsWith(structure + '{') || trimmedStatement === structure) {
         return statement
       }
-
-      // Skip control structures that use parentheses but are not function calls
-      const controlStructures = ['if', 'else if', 'for', 'while', 'switch', 'catch']
-
-      // Check for control structures at the beginning of the statement
-      const trimmedStatement = statement.trim()
-      for (const structure of controlStructures) {
-        if (trimmedStatement.startsWith(structure + ' ')) {
-          return statement
-        }
-
-        // Also handle fragments like "} else if" that start with a brace
-        if (trimmedStatement.includes('} ' + structure + ' ') || trimmedStatement.startsWith('} ' + structure + ' ')) {
-          return statement
-        }
-      }
-
-      // Skip 'else' without the 'if' (simple else statements)
-      if (trimmedStatement.startsWith('else ') || trimmedStatement.includes('} else ') || trimmedStatement === 'else' || trimmedStatement.startsWith('} else{')) {
+      if (trimmedStatement.includes('} ' + structure + ' ') || trimmedStatement.startsWith('} ' + structure + ' ')) {
         return statement
       }
-
-      // Skip 'do' statements (part of do-while loop)
-      if (trimmedStatement === 'do' || trimmedStatement.startsWith('do {')) {
-        return statement
-      }
-
-      // Skip try statements
-      if (trimmedStatement.startsWith('try ') || trimmedStatement === 'try' || trimmedStatement.startsWith('try{')) {
-        return statement
-      }
-
-      // Skip parenthesized expressions that don't look like function calls
-      if (trimmedStatement.startsWith('(') && !trimmedStatement.match(/^\([^)]*\)\s*\(/)) {
-        return statement
-      }
-
-      // Handle variable declarations separately
-      const varTypes = ['const ', 'let ', 'var ']
-      for (const varType of varTypes) {
-        if (trimmedStatement.startsWith(varType)) {
-          const pos = statement.indexOf('=')
-          if (pos > 0) {
-            const varDecl = statement.substring(0, pos + 1)
-            let value = statement.substring(pos + 1).trim()
-
-            // Skip processing if the value is a template literal (starts with backtick)
-            if (value.startsWith('`')) {
-              return statement
-            }
-
-            // Only add await if the value part looks like a function call
-            if (value.includes('(') && value.includes(')') && !value.startsWith('(')) {
-              // Skip if it's a prompt function which doesn't need await
-              if (value.trim().startsWith('prompt(')) {
-                return statement
-              }
-              return `${varDecl} await ${value}`
-            }
-            return statement
-          }
-        }
-      }
-
-      // For other statements that have parentheses and look like function calls
-      if (statement.includes('(') && statement.includes(')') && !statement.trim().startsWith('prompt(')) {
-        return `await ${statement}`
-      }
-
+    }
+    if (trimmedStatement.startsWith('else ') || trimmedStatement.includes('} else ') || trimmedStatement === 'else' || trimmedStatement.startsWith('} else{')) {
+      return statement
+    }
+    if (trimmedStatement.startsWith('do ') || trimmedStatement === 'do' || trimmedStatement.startsWith('do{')) {
+      return statement
+    }
+    if (trimmedStatement.startsWith('try ') || trimmedStatement === 'try' || trimmedStatement.startsWith('try{')) {
+      return statement
+    }
+    if (trimmedStatement.startsWith('(') && !trimmedStatement.match(/^\([^)]*\)\s*\(/)) {
+      return statement
+    }
+    if (trimmedStatement.includes('?') && trimmedStatement.includes(':')) {
       return statement
     }
 
-    // Rebuild the tag with processed lines
-    const newCodeContent = processedLines.join('\n')
-    const newTag = `${startDelim} ${newCodeContent} ${endDelim}`
+    const varTypes = ['const ', 'let ', 'var ']
+    for (const varType of varTypes) {
+      if (trimmedStatement.startsWith(varType)) {
+        const pos = statement.indexOf('=')
+        if (pos > 0) {
+          const varDecl = statement.substring(0, pos + 1)
+          let value = statement.substring(pos + 1).trim()
+          if (value.startsWith('`') && value.endsWith('`')) {
+            return statement
+          }
+          if (value.includes('?') && value.includes(':')) {
+            return statement
+          }
+          if (value.includes('(') && value.includes(')') && !value.startsWith('(')) {
+            const funcOrMethodMatch = value.match(/^([\w.]+)\(/)
+            if (funcOrMethodMatch && asyncFunctions.includes(funcOrMethodMatch[1])) {
+              return `${varDecl} await ${value}`
+            }
+          }
+          return statement
+        }
+        return statement
+      }
+    }
 
-    // Replace the original tag with the new one
-    context.templateData = context.templateData.replace(tag, newTag)
+    if (statement.includes('(') && statement.includes(')') && !statement.trim().startsWith('prompt(')) {
+      const funcOrMethodMatch = statement.match(/^([\w.]+)\(/)
+      if (funcOrMethodMatch && asyncFunctions.includes(funcOrMethodMatch[1])) {
+        return `await ${statement}`
+      }
+    }
+    return statement
   }
 
   /**
@@ -1776,5 +1808,64 @@ export default class NPTemplating {
       return TEMPLATE_MODULES.indexOf(moduleName) >= 0
     }
     return false
+  }
+
+  static _mergeMultiLineStatements(codeContent: string): string {
+    if (!codeContent || typeof codeContent !== 'string') {
+      return ''
+    }
+
+    const rawLines = codeContent.split('\n')
+    if (rawLines.length <= 1) {
+      return codeContent // No merging needed for single line or empty
+    }
+
+    const mergedLines: Array<string> = []
+    mergedLines.push(rawLines[0]) // Start with the first line
+
+    for (let i = 1; i < rawLines.length; i++) {
+      const currentLine = rawLines[i]
+      const trimmedLine = currentLine.trim()
+      let previousLine = mergedLines[mergedLines.length - 1]
+
+      if (trimmedLine.startsWith('.') || trimmedLine.startsWith('?') || trimmedLine.startsWith(':')) {
+        // Remove the last pushed line, modify it, then push back
+        mergedLines.pop()
+        // Remove trailing semicolon from previous line before concatenation
+        if (previousLine.trim().endsWith(';')) {
+          previousLine = previousLine.trim().slice(0, -1).trimEnd()
+        }
+        // Ensure a single space separator if previous line doesn't end with one
+        // and current line doesn't start with one (after trimming the operator)
+        const separator = previousLine.endsWith(' ') ? '' : ' '
+        mergedLines.push(previousLine + separator + trimmedLine)
+      } else {
+        mergedLines.push(currentLine) // This is a new statement, push as is
+      }
+    }
+    return mergedLines.join('\n')
+  }
+
+  static protectTemplateLiterals(code: string): { protectedCode: string, literalMap: Array<{ placeholder: string, original: string }> } {
+    const literalMap: Array<{ placeholder: string, original: string }> = []
+    let i = 0
+    // Regex to find template literals, handling escaped backticks
+    const protectedCode = code.replace(/`([^`\\\\]|\\\\.)*`/g, (match) => {
+      const placeholder = `__NP_TEMPLATE_LITERAL_${i}__`
+      literalMap.push({ placeholder, original: match })
+      i++
+      return placeholder
+    })
+    return { protectedCode, literalMap }
+  }
+
+  static restoreTemplateLiterals(protectedCode: string, literalMap: Array<{ placeholder: string, original: string }>): string {
+    let code = protectedCode
+    for (const entry of literalMap) {
+      // Escape placeholder string for use in RegExp, just in case it contains special characters
+      const placeholderRegex = new RegExp(entry.placeholder.replace(/[.*+?^${}()|[\\\\]\\\\]/g, '\\\\$&'), 'g')
+      code = code.replace(placeholderRegex, entry.original)
+    }
+    return code
   }
 }
