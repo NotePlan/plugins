@@ -1,1 +1,0 @@
-[# <%- eventDate("YYYY-MM-DD") %>
