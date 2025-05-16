@@ -231,7 +231,9 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     }
     clo(args, `🤵 DBWDELETEME NPTemplating.templateNew templateTitle=${templateTitle} _folder=${_folder || ''} newNoteTitle=${newNoteTitle} args= ${typeof args}=`)
     let selectedTemplate // will be a filename
-    if (templateTitle?.trim().length) {
+    if (/<current>/i.test(templateTitle)) {
+      selectedTemplate = Editor.filename
+    } else if (templateTitle?.trim().length) {
       const options = await NPTemplating.getTemplateList()
       const chosenOpt = options.find((option) => option.label === templateTitle)
       if (chosenOpt) {

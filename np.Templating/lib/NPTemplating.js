@@ -962,6 +962,18 @@ export default class NPTemplating {
     const endDelim = tag.endsWith('-%>') ? '-%>' : '%>'
     const codeContent = tag.substring(startDelim.length, tag.length - endDelim.length).trim()
 
+    // If the entire content is a template literal assignment, return it unchanged
+    if (codeContent.includes('const ') && codeContent.includes('`') && codeContent.includes('=')) {
+      const parts = codeContent.split('=')
+      if (parts.length > 1) {
+        const value = parts[1].trim()
+        if (value.startsWith('`')) {
+          // This is a template literal assignment, return unchanged
+          return
+        }
+      }
+    }
+
     // Split by lines to process each line individually
     const lines = codeContent.split('\n')
     const processedLines: Array<string> = []
@@ -1046,6 +1058,11 @@ export default class NPTemplating {
           if (pos > 0) {
             const varDecl = statement.substring(0, pos + 1)
             let value = statement.substring(pos + 1).trim()
+
+            // Skip processing if the value is a template literal (starts with backtick)
+            if (value.startsWith('`')) {
+              return statement
+            }
 
             // Only add await if the value part looks like a function call
             if (value.includes('(') && value.includes(')') && !value.startsWith('(')) {

@@ -140,6 +140,7 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
       }"`,
     )
     if (selectedTemplate.length !== 0) {
+      logDebug(`templateRunnerExecute selectedTemplate:${selectedTemplate} openInEditor:${String(openInEditor)} args:"${args || ''}"`)
       //TODO: call overrideSettingsWithTypedArgs() for JSON inputs from form
       const argObj = args && typeof args === 'string' && args.includes('__isJSON__') ? JSON.parse(args) : overrideSettingsWithStringArgs({}, args || '')
       clo(argObj, `templateRunnerExecute argObj`)

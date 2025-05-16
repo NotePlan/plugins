@@ -185,6 +185,8 @@ async function renderTemplateForEvent(selectedEvent, templateFilename): Object {
     templateContent = DataStore.projectNoteByFilename(templateFilename)?.content || ''
   }
   const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
+  clo(frontmatterBody, 'renderTemplateForEvent frontmatterBody:')
+  clo(frontmatterAttributes, 'renderTemplateForEvent frontmatterAttributes:')
   const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
   return { result, attrs: frontmatterAttributes }
 }
@@ -317,6 +319,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
   logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: got selectedEvent and templateFilename`)
   const { result, attrs } = await renderTemplateForEvent(selectedEvent, templateFilename)
   logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: rendered template`)
+  clo(result, 'rendered template:')
   await createNoteAndLinkEvent(selectedEvent, result, attrs, forceNewNote)
   logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: created note and linked event`)
 }
