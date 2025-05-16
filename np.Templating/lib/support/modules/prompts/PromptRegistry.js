@@ -459,6 +459,7 @@ export function isPromptTag(tag: string): boolean {
   const escapedNames = promptNames.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   // Join names with | for alternation in regex
   const promptPattern = escapedNames.join('|')
-  const promptRegex = new RegExp(`(?:${promptPattern})\\s*\\(`, 'i')
+  // Add word boundary checks to ensure we only match standalone prompt type names
+  const promptRegex = new RegExp(`(?:^|\\s|\\()(?:${promptPattern})\\s*\\(`, 'i')
   return promptRegex.test(tag)
 }

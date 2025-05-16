@@ -13,6 +13,7 @@ import { getService } from './data/service'
 import { getDailyQuote } from './quote'
 import { getAffirmation } from './affirmation'
 import { getWeatherSummary } from './weatherSummary'
+import { journalingQuestion } from './journal'
 
 export default class WebModule {
   async advice(): Promise<string> {
@@ -46,5 +47,9 @@ export default class WebModule {
   async wotd(templateConfig: any, params: any = ''): Promise<string> {
     const confg = { ...templateConfig, ...params }
     return await getWOTD(confg)
+  }
+
+  async journalingQuestion(): Promise<string> {
+    return await journalingQuestion()
   }
 }

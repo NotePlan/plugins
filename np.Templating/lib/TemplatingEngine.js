@@ -379,6 +379,9 @@ export default class TemplatingEngine {
         services: async (url: string = '', key: string = '') => {
           return await new WebModule().service(this.templateConfig, url, key)
         },
+        journalingQuestion: async (params: string = '') => {
+          return await new WebModule().journalingQuestion(this.templateConfig, params)
+        },
       },
     }
 

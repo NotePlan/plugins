@@ -131,7 +131,17 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
 
       // $FlowIgnore
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
-      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      let templateData
+      if (/<current>/i.test(selectedTemplate)) {
+        if (!Editor.filename.startsWith(`@Templates`)) {
+          logError(pluginJson, `You cannot use the <current> prompt in a template that is not located in the @Templates folder`)
+          await showMessage(pluginJson, `You cannot use the <current> prompt in a template that is not located in the @Templates folder`)
+          return
+        }
+        templateData = Editor.content
+      } else {
+        templateData = await NPTemplating.getTemplate(selectedTemplate)
+      }
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
       let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
 

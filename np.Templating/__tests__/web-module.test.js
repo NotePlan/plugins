@@ -52,5 +52,11 @@ describe(`${PLUGIN_NAME}`, () => {
       await moduleInstance.service()
       expect(service).toBeCalled()
     })
+
+    it(`should fetch journal prompt`, async () => {
+      const service = jest.spyOn(moduleInstance, 'journalingQuestion')
+      await moduleInstance.journalingQuestion()
+      expect(service).toBeCalled()
+    })
   })
 })
