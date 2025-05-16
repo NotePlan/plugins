@@ -1829,6 +1829,10 @@ export default class NPTemplating {
       let previousLine = mergedLines[mergedLines.length - 1]
 
       if (trimmedLine.startsWith('.') || trimmedLine.startsWith('?') || trimmedLine.startsWith(':')) {
+        logWarn(
+          pluginJson,
+          `NPTemplating._mergeMultiLineStatements :: This line: "${currentLine}" in the template starts with a character ("${trimmedLine[0]}") that may cause the templating processor to fail. Will try to fix it automatically, but if you get failures, put multi-line statements on one line.`,
+        )
         // Remove the last pushed line, modify it, then push back
         mergedLines.pop()
         // Remove trailing semicolon from previous line before concatenation
