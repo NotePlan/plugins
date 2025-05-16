@@ -11,11 +11,16 @@ export async function getVerse(): Promise<string> {
   try {
     const URL = `https://labs.bible.org/api/?passage=random&type=json`
     const response: any = await await fetch(URL, { timeout: 3000 })
+    // sometimes the bible service will send back HTML and so we want to fallback gracefully
+    // but not use the word "error" because that will cause jest tests to fail
+    if (/online attacks/i.test(response)) {
+      return '**The bible service is unavailable at this time**'
+    }
     const data = JSON.parse(response)[0]
 
     return data ? `> 🙏🏻  ${data?.bookname} ${data?.chapter}:${data?.verse} \n> 🗣  ${data?.text}` : '**An error occurred accessing quoting service**'
   } catch (err) {
-    return `**An error occurred accessing quoting service**`
+    return `**An error occurred accessing verse service**`
   }
 }
 

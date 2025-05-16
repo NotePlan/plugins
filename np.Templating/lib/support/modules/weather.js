@@ -8,7 +8,10 @@
 export async function getWeather(): Promise<string> {
   try {
     // $FlowFixMe
-    const response: any = await await fetch(`https://wttr.in?format=3`, { timeout: 3000 })
+    let response: any = await await fetch(`https://wttr.in?format=3`, { timeout: 3000 })
+    if (response) {
+      response = response.startsWith('not found:') ? '**The weather service could not automatically determine your location from your IP address**' : response
+    }
     return response ? response : '**An error occurred accessing weather service**'
   } catch (error) {
     return '**An error occurred accessing weather service**'
