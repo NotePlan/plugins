@@ -347,9 +347,6 @@ export async function updateTagMentionCache(): Promise<void> {
 
 export function generateTagMentionCacheSummary(): string {
   const cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
-  if (!cache) {
-    return `## Tag/Mention Cache Stats:\nNo tag/mention cache found`
-  }
   const parsedCache = JSON.parse(cache)
   const summary = `## Tag/Mention Cache Stats:
 - Wanted items: ${getTagMentionCacheDefinitions().join(', ')}
