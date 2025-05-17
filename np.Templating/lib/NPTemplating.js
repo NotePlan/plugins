@@ -1004,6 +1004,9 @@ export default class NPTemplating {
       'CommandBar.prompt',
       'CommandBar.chooseOption',
       'CommandBar.textInput',
+      'date8601',
+      'now',
+      'timestamp',
     ]
 
     const lines = mergedProtectedCode.split('\n')

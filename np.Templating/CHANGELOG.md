@@ -22,6 +22,8 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 - Fix templaterunner bug where the file was not opening in the Editor
 - Add <current> to templateAppend command for easy testing of templates
 - Add `journalingQuestion` commands to WebModule per Tim Shaker - https://discord.com/channels/763107030223290449/963950027946999828/1051665188648132648
+- Add `date.daysUntil` to DateModule
+- Fix bug in promises in date shorthand codes
 
 ## [1.12.0] 2025-03-09 @dwertheimer
 

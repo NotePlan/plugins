@@ -84,31 +84,44 @@ export default class DateModule {
     return this.now(nowFormat)
   }
 
-  format(format = '', date = '') {
-    format = format ?? '' // coerce if null passed
+  format(formatInput = '', dateInput = '') {
+    const effectiveFormat = formatInput !== null && formatInput !== undefined && String(formatInput).length > 0 ? String(formatInput) : this.config?.dateFormat || 'YYYY-MM-DD'
+    const locale = this.config?.templateLocale || 'en-US'
     this.setLocale()
 
-    // Use the date provided or today if none was provided
-    let dateValue = date.length > 0 ? moment(date).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
-    if (date.length === 10) {
-      dateValue = moment(date).format('YYYY-MM-DD')
+    let dateToFormat // This will be a Date object
+
+    if (dateInput instanceof moment) {
+      dateToFormat = dateInput.toDate() // Convert moment object to Date
+    } else if (typeof dateInput === 'string' && dateInput.length > 0) {
+      const m = moment(dateInput) // Moment is robust for parsing various string formats
+      if (m.isValid()) {
+        dateToFormat = m.toDate()
+      } else {
+        // console.warn(`DateModule.format: Invalid date string '${dateInput}' received. Defaulting to now.`);
+        dateToFormat = new Date() // Fallback
+      }
+    } else if (dateInput instanceof Date && isFinite(dateInput.getTime())) {
+      dateToFormat = dateInput // Already a valid Date object
+    } else {
+      // Default to current date if dateInput is empty, invalid, or unexpected type
+      dateToFormat = new Date()
     }
 
-    if (date instanceof moment) {
-      dateValue = new Date(date)
+    // Ensure dateToFormat is a valid, finite Date object for Intl.DateTimeFormat
+    if (!(dateToFormat instanceof Date) || !isFinite(dateToFormat.getTime())) {
+      // console.warn(`DateModule.format: dateToFormat is not a finite Date after processing input:`, dateInput, `. Defaulting to now.`);
+      dateToFormat = new Date() // Final fallback
     }
 
-    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
-    const locale = this.config?.templateLocale || 'en-US'
-    format = format.length > 0 ? format : configFormat
-
-    let formattedDate = moment(dateValue).format(format)
-
-    if (format === 'short' || format === 'medium' || format === 'long' || format === 'full') {
-      formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: format }).format(dateValue)
+    let formattedDateString
+    if (effectiveFormat === 'short' || effectiveFormat === 'medium' || effectiveFormat === 'long' || effectiveFormat === 'full') {
+      formattedDateString = new Intl.DateTimeFormat(locale, { dateStyle: effectiveFormat }).format(dateToFormat)
+    } else {
+      // Use moment to format the Date object for other specific formats
+      formattedDateString = moment(dateToFormat).format(effectiveFormat)
     }
-
-    return formattedDate
+    return formattedDateString
   }
 
   now(format = '', offset = '') {
@@ -174,14 +187,44 @@ export default class DateModule {
     return this.format(format, dateValue)
   }
 
+  /**
+   * Returns a date by adding or subtracting a number of business days from a pivot date.
+   *
+   * @param {string} [format=''] - Desired date format. Uses config.dateFormat or 'YYYY-MM-DD' if empty.
+   * @param {number} [offset=1] - Number of business days to add (positive) or subtract (negative).
+   * @param {string} [pivotDate=''] - The starting date in 'YYYY-MM-DD' format. Defaults to the current date.
+   * @returns {string} Formatted date string.
+   */
   weekday(format = '', offset = 1, pivotDate = '') {
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
-    format = format.length > 0 ? format : configFormat
-    const offsetValue = typeof offset === 'number' ? offset : parseInt(offset)
+    const finalFormat = format !== null && format !== undefined && String(format).length > 0 ? String(format) : configFormat
 
-    const dateValue = pivotDate.length === 0 ? new Date() : new Date(this.createDateTime(pivotDate))
+    const numBusinessDays = typeof offset === 'number' ? offset : parseInt(offset, 10)
 
-    return moment(dateValue).weekday(offsetValue).format(format)
+    if (isNaN(numBusinessDays)) {
+      // console.error("DateModule.weekday: Invalid offset provided. Expected a number.");
+      // Fallback or throw error? For now, let's try to format the pivotDate or today if offset is invalid.
+      const baseDateForInvalidOffset = pivotDate && pivotDate.length === 10 ? this.createDateTime(pivotDate) : new Date()
+      return this.format(finalFormat, baseDateForInvalidOffset)
+    }
+
+    const baseDate =
+      pivotDate && pivotDate.length === 10
+        ? this.createDateTime(pivotDate) // Returns a Date object
+        : new Date() // Defaults to now, local time (Date object)
+
+    // Wrap with momentBusiness to get access to businessAdd/businessSubtract
+    const baseMomentBusinessDate = momentBusiness(baseDate)
+
+    let targetMomentDate
+    if (numBusinessDays >= 0) {
+      targetMomentDate = baseMomentBusinessDate.businessAdd(numBusinessDays).toDate() // Convert back to Date for consistency with this.format
+    } else {
+      // businessSubtract expects a positive number, so take the absolute value
+      targetMomentDate = baseMomentBusinessDate.businessSubtract(Math.abs(numBusinessDays)).toDate() // Convert back to Date
+    }
+
+    return this.format(finalFormat, targetMomentDate) // this.format expects a Date or string
   }
 
   weekNumber(pivotDate = '') {
@@ -230,25 +273,30 @@ export default class DateModule {
     return !this.isWeekend(pivotDate)
   }
 
-  weekOf(startDay = 0, endDay = 6, userPivotDate = '') {
-    // if only pivotDate supplied, apply defaults
-    let startDayNumber = 0
-    let endDayNumber = 6
-    let pivotDate = ''
-    if (typeof startDay === 'string') {
-      // this will occur when pivotDate passed as first parameter
-      pivotDate = startDay
+  weekOf(startDayOpt = 0, endDayOpt = 6, userPivotDate = '') {
+    // Determine pivotDate and the first day of the week to use
+    let firstDayOfWeekToUse = 0
+    let pivotDateToUse = ''
+
+    if (typeof startDayOpt === 'string') {
+      // This occurs when pivotDate is passed as the first parameter, e.g., date.weekOf('2023-01-01')
+      pivotDateToUse = startDayOpt
+      // firstDayOfWeekToUse remains 0 (default for Sunday start, assuming startOfWeek/endOfWeek handle this)
     } else {
-      startDayNumber = startDay ? startDay : 0
-      endDayNumber = endDay ? endDay : 6
-      pivotDate = userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
+      firstDayOfWeekToUse = startDayOpt !== null && startDayOpt !== undefined ? startDayOpt : 0
+      pivotDateToUse = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD') // Default to today if no pivotDate
     }
 
-    const startDate = this.weekday('YYYY-MM-DD', startDayNumber, pivotDate)
-    const endDate = this.weekday('YYYY-MM-DD', endDayNumber, pivotDate)
-    const weekNumber = this.weekNumber(pivotDate)
+    // Get the start and end of the week using the class's own methods
+    // Pass 'YYYY-MM-DD' for internal calculations, final formatting is via this.format inside those methods
+    const startDate = this.startOfWeek('YYYY-MM-DD', pivotDateToUse, firstDayOfWeekToUse)
+    const endDate = this.endOfWeek('YYYY-MM-DD', pivotDateToUse, firstDayOfWeekToUse)
 
-    return `W${weekNumber} (${startDate}..${endDate})`
+    // weekNumber calculation might need revisiting for full consistency with firstDayOfWeekToUse
+    // For now, using the existing weekNumber method.
+    const weekNum = this.weekNumber(pivotDateToUse)
+
+    return `W${weekNum} (${startDate}..${endDate})`
   }
 
   startOfWeek(format = '', userPivotDate = '', firstDayOfWeek = 0) {
@@ -404,6 +452,44 @@ export default class DateModule {
 
   fromNow(pivotDate = '', offset = '') {
     return 'INCOMPLETE'
+  }
+
+  /**
+   * Calculates the number of days from today until the target date.
+   * Uses local time for calculations.
+   *
+   * @param {string} targetDateString - The target date in 'YYYY-MM-DD' format.
+   * @param {boolean} [includeToday=false] - Whether to include today in the count.
+   * @returns {number} The number of days until the target date. Returns 0 if the target date is in the past.
+   */
+  daysUntil(targetDateString, includeToday = false) {
+    this.setLocale() // Ensure locale is set
+
+    if (!targetDateString || typeof targetDateString !== 'string' || targetDateString.length !== 10) {
+      // console.error("DateModule.daysUntil: Invalid targetDateString provided. Expected 'YYYY-MM-DD'.");
+      // Consider what to return or throw for invalid input. For now, returning 0 similar to past dates.
+      return 0
+    }
+
+    const targetMoment = moment(targetDateString, 'YYYY-MM-DD').startOf('day')
+    const todayMoment = moment().startOf('day')
+
+    if (!targetMoment.isValid()) {
+      // console.error("DateModule.daysUntil: targetDateString is not a valid date.");
+      return 0
+    }
+
+    if (targetMoment.isBefore(todayMoment)) {
+      return 0 // Target date is in the past
+    }
+
+    let diff = targetMoment.diff(todayMoment, 'days')
+
+    if (includeToday) {
+      diff += 1
+    }
+
+    return diff
   }
 
   isValid(dateObj = null) {
