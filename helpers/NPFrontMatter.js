@@ -120,14 +120,26 @@ export function noteHasFrontMatter(note: CoreNoteFields): boolean {
 }
 
 /**
- * get the front matter attributes from a note (uses NP API note.frontmatterAttributes) or an empty object if the note has no front matter
+ * Get all frontmatter attributes from a note (uses NP API note.frontmatterAttributes) or an empty object if the note has no front matter
  * NOTE: previously this returned false if the note had no front matter, but now it returns an empty object to correspond with the behavior of the NP API
  * @param {TNote} note
  * @returns object of attributes or empty object if the note has no front matter
  */
 export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: string } => note.frontmatterAttributes || {}
-// previous version using fm library
-// export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: string } | false => (hasFrontMatter(note?.content || '') ? getAttributes(note.content) : false)
+
+/**
+ * Gets the value of a given field ('attribute') from frontmatter if it exists
+ * @param {TNote} note - The note to check
+ * @param {string} attribute - The attribute/field to get the value of
+ * @returns {string|null} The value of the attribute/field or null if not found
+ */
+export function getFrontMatterAttribute(note: TNote, attribute: string): string | null {
+  const fmAttributes = getFrontMatterAttributes(note)
+  // Note: fmAttributes returns an empty object {} if there are not frontmatter fields
+  return Object.keys(fmAttributes).length > 0 && fmAttributes[attribute]
+    ? fmAttributes[attribute]
+    : null
+}
 
 /**
  * Get the paragraphs that include the front matter (optionally with the separators)

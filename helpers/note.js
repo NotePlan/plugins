@@ -264,8 +264,8 @@ export async function getNote(name: string, onlyLookInRegularNotes: boolean | nu
 }
 
 /**
+ * WARNING: Deprecated: use similar function in NPNote.js which is teamspace-aware.
  * Get a note using filename (will try by Notes first, then Calendar)
- * Probably FIXME: need to update to support Teamspace notes
  * @author @jgclark, building on @dwertheimer
  * @param {string} filename of either Calendar or Notes type
  * @returns {?TNote} - the note that was opened
@@ -886,6 +886,7 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
  * @tests in jest file
  */
 export function isNoteFromAllowedFolder(note: TNote, allowedFolderList: Array<string>, allowAllCalendarNotes: boolean = true): boolean {
+  try {
   // Calendar note check
   if (note.type === 'Calendar') {
     // logDebug('isNoteFromAllowedFolder', `-> Calendar note ${allowAllCalendarNotes ? 'allowed' : 'NOT allowed'} as a result of allowAllCalendarNotes`)
@@ -897,7 +898,11 @@ export function isNoteFromAllowedFolder(note: TNote, allowedFolderList: Array<st
   // Test if allowedFolderList includes noteFolder
   const matchFound = allowedFolderList.includes(noteFolder)
   // logDebug('isNoteFromAllowedFolder', `- ${matchFound ? 'match' : 'NO match'} to '${note.filename}' folder '${noteFolder}' from ${String(allowedFolderList.length)} folders`)
-  return matchFound
+    return matchFound
+  } catch (err) {
+    logError('note/isNoteFromAllowedFolder', err)
+    return false
+  }
 }
 
 /**

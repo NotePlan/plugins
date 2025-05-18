@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-05-01 for v2.2.2, @jgclark
+// Last updated 2025-05-15 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -18,11 +18,12 @@ import { filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTi
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import { displayTitle } from '@helpers/general'
-import { noteHasFrontMatter } from '@helpers/NPFrontMatter'
+// import { displayTitle } from '@helpers/general'
+import { getFrontMatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { getNoteByFilename } from '@helpers/note'
-import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers/NPnote'
+import { getHeadingsFromNote } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
+import { caseInsensitiveMatch } from '@helpers/search'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
 //-----------------------------------------------------------------
@@ -30,7 +31,7 @@ import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
  * Generate data for a section for items with a Tag/Mention.
  * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future.
  * Now also uses all the 'ignore' settings, other than any that are the same as this particular tag/mention.
- * Now also uses FFlag_UseNoteTags to include all open items in a note, based on tag in frontmatter.
+ * Now also implmenets noteTags feature to include all open items in a note, based on 'note-tag' attribute in frontmatter.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
@@ -68,8 +69,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       // Get notes with matching hashtag or mention (as can't get list of paras directly)
       // const notesWithTagFromCache: Array<TNote> = []
       let notesWithTag: Array<TNote> = []
-      if (config?.FFlag_UseTagCache) {
-        // TODO: this is the only place this function is called, so it could be refactored to return Notes, not their filenames
+      // if (config?.FFlag_UseTagCache) {
         const filenamesWithTagFromCache = await getFilenamesOfNotesWithTagOrMentions([sectionDetail.sectionName], true)
         logInfo('getTaggedSectionData', `- found ${filenamesWithTagFromCache.length} filenames: [${filenamesWithTagFromCache.join(',')}]`)
 
@@ -84,57 +84,45 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
             logError('getTaggedSectionData', `- failed to get note by filename ${filename}`)
           }
         })
-        // $FlowIgnore[unsafe-arithmetic]
         logTimer('getTaggedSectionData', thisStartTime, `- from CACHE filename list looked up ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
         // $FlowIgnore[unsafe-arithmetic]
         // cacheLookupTime = new Date() - cachedOperationStartTime
-      } else {
-        // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes).
-        // Though JGC has also seen 9,900ms for all notes in the system, so its variable.
-        const thisStartTime = new Date()
-        notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true, true, true)
-        // $FlowIgnore[unsafe-arithmetic]
-        // const APILookupTime = new Date() - thisStartTime
-        logTimer('getTaggedSectionData', thisStartTime, `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName} from API in ${timer(thisStartTime)}`)
-      }
+      // } else {
+      //   // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes).
+      //   // Though JGC has also seen 9,900ms for all notes in the system, so its variable.
+      //   const thisStartTime = new Date()
+      //   notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true, true, true)
+      //   // $FlowIgnore[unsafe-arithmetic]
+      //   // const APILookupTime = new Date() - thisStartTime
+      //   logTimer('getTaggedSectionData', thisStartTime, `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName} from API in ${timer(thisStartTime)}`)
+      // }
 
       for (const n of notesWithTag) {
-        logTimer('getTaggedSectionData', thisStartTime, `- start of processing for note "${n.filename}"`)
+        // logTimer('getTaggedSectionData', thisStartTime, `- start of processing for note "${n.filename}"`)
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
         if (stringListOrArrayToArray(config.excludedFolders, ',').includes(thisNoteFolder)) {
-          // logDebug('getTaggedSectionData', `- ignoring note '${n.filename}' as it is in an ignored folder`)
+          // logDebug('getTaggedSectionData', `  - ignoring note '${n.filename}' as it is in an ignored folder`)
           continue
         }
 
         // Get the relevant paras from this note
         const paras = n.paragraphs ?? []
-        if (paras.length > 500) {
-          logTimer('getTaggedSectionData', thisStartTime, `  - found ${paras.length} paras in "${n.filename}"`)
-          const content = n.content ?? ''
-          logTimer('getTaggedSectionData', thisStartTime, `  - to pull content from note`)
-          const pp = content.split('\n')
-          logTimer('getTaggedSectionData', thisStartTime, `  - to split content into ${pp.length} lines`)
-        }
 
         // If we want to use note tags, and the note has a 'note-tag' field in its FM, then work out if the note-tag matches this particular tag/mention.
-        let noteTagMatches = false
-        logDebug('getTaggedSectionData', `- '${displayTitle(n)}' has FM? ${String(noteHasFrontMatter(n))}, FFlag_UseNoteTags: ${String(config.FFlag_UseNoteTags)}`)
-        if (config.FFlag_UseNoteTags && noteHasFrontMatter(n)) {
-          logInfo('getTaggedSectionData', `- note "${n.filename}" has FM`)
-          const frontmatterAttributes = n.frontmatterAttributes
-          clo(frontmatterAttributes, 'getTaggedSectionData fm attributes')
-          if (frontmatterAttributes && 'note-tag' in frontmatterAttributes) {
-            logInfo('getTaggedSectionData', `- note "${n.filename}" has noteTag(s) "${frontmatterAttributes['note-tag']}"`)
-            const noteTags = frontmatterAttributes['note-tag'].split(',')
-            if (noteTags.includes(sectionDetail.sectionName)) {
-              noteTagMatches = true
-              logInfo('getTaggedSectionData', `-> noteTag is a match for ${sectionDetail.sectionName}`)
-            }
+        let hasMatchingNoteTag = false
+        if (/* config.FFlag_UseNoteTags && */ noteHasFrontMatter(n)) {
+          // logDebug('getTaggedSectionData', `- note "${n.filename}" has FM`)
+          const noteTagAttribute = getFrontMatterAttribute(n, 'note-tag')
+          const noteTagList = noteTagAttribute ? stringListOrArrayToArray(noteTagAttribute, ',') : []
+          if (noteTagList.length > 0) {
+            hasMatchingNoteTag = noteTagList && noteTagList.some(tag => caseInsensitiveMatch(tag, sectionDetail.sectionName))
+
+            logInfo('getTaggedSectionData', `-> noteTag(s) '${String(noteTagList)}' is ${hasMatchingNoteTag ? 'a' : 'NOT a'} match for ${sectionDetail.sectionName}`)
           }
         }
-        // Add the paras that contain the tag/mention, unless FFlag_UseNoteTags is true, in which case add all paras if FM field 'note-tag' matches. (Later we filter down to open non-scheduled items).
-        const tagParasFromNote = (noteTagMatches)
+        // Add the paras that contain the tag/mention, unless this is a noteTag, in which case add all paras if FM field 'note-tag' matches. (Later we filter down to open non-scheduled items).
+        const tagParasFromNote = (hasMatchingNoteTag)
           ? paras
           : paras.filter((p) => p.content?.includes(sectionDetail.sectionName))
         logTimer('getTaggedSectionData', thisStartTime, `- found ${tagParasFromNote.length} paras containing ${sectionDetail.sectionName} in "${n.filename}"`)
@@ -207,15 +195,15 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
   }
 
   // Return section details, even if no items found
-  let tagSectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
-  if (config?.FFlag_ShowSectionTimings) tagSectionDescription += ` in ${timer(thisStartTime)}`
-  if (config?.FFlag_UseTagCache) tagSectionDescription += `, using CACHE` // TODO(later): remove note about the tag cache
+  let sectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
+  if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
+  // if (config?.FFlag_UseTagCache) sectionDescription += `, using CACHE` // TODO(later): remove note about the tag cache
   const section: TSection = {
     ID: sectionNumStr,
     name: sectionDetail.sectionName,
     showSettingName: sectionDetail.showSettingName,
     sectionCode: thisSectionCode,
-    description: tagSectionDescription,
+    description: sectionDescription,
     FAIconClass: isHashtag ? 'fa-light fa-hashtag' : 'fa-light fa-at',
     sectionTitleColorPart: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
     sectionFilename: '',

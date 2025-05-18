@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2025-05-01 for v2.2.2, @jgclark
+// last updated 2025-05-15 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -13,25 +13,21 @@
 // }
 //-----------------------------------------------------------------------------
 
-/**
- * Note: In a weird development (literally), I (JGC) found that a refactor of the original findNotesWithMatchingHashtag() suddenly made it now as fast, if not faster, as this new Cache.
- * I didn't take out any code, so I'm mystified. 
- * But not complaining, particularly as this still had some work required.
- */
-
 import moment from 'moment/min/moment-with-locales'
 import { getDashboardSettings } from './dashboardHelpers'
 import type { TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { CaseInsensitiveSet, displayTitle, percent } from '@helpers/general'
-import { noteHasFrontMatter } from '@helpers/NPFrontMatter'
+import { getFrontMatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { findNotesMatchingHashtagOrMention, getNotesChangedInInterval } from '@helpers/NPnote'
 import {
   caseInsensitiveIncludes,
+  caseInsensitiveMatch,
   caseInsensitiveStartsWith,
   caseInsensitiveSubstringMatch,
 } from '@helpers/search'
+
 //--------------------------------------------------------------------------
 // Constants
 
@@ -91,7 +87,7 @@ export function setTagMentionCacheDefinitions(items: Array<string>): void {
  * Set the tag and mentions to the wantedTagMentionsList.json file based on the current perspectives.
  */
 export function setTagMentionCacheDefinitionsFromAllPerspectives(allPerspectiveDefs: Array<TPerspectiveDef>): void {
-  const wantedItems = getWantedTagsAndMentionsFromAllPerspectives(allPerspectiveDefs)
+  const wantedItems = getListOfWantedTagsAndMentionsFromAllPerspectives(allPerspectiveDefs)
   setTagMentionCacheDefinitions(wantedItems)
 }
 
@@ -105,13 +101,13 @@ export function setTagMentionCacheDefinitionsFromAllPerspectives(allPerspectiveD
  */
 export async function getFilenamesOfNotesWithTagOrMentions(tagOrMentions: Array<string>, firstUpdateCache: boolean = true): Promise<Array<string>> {
   try {
-    logDebug('getFilenamesOfNotesWithTagOrMentions', `Starting for tag/mention(s) [${String(tagOrMentions)}]${firstUpdateCache ? '. (First update cache)' : ''}`)
+    logInfo('getFilenamesOfNotesWithTagOrMentions', `Starting for tag/mention(s) [${String(tagOrMentions)}]${firstUpdateCache ? '. (First update cache)' : ''}`)
 
     // Warn if we're asked for a tag/mention that's not in the wantedTagMentionsList.json file, and if so, add it to the list and then regenrate the cache.
     const wantedItems = getTagMentionCacheDefinitions()
     const missingItems = tagOrMentions.filter((item) => !wantedItems.includes(item))
     if (missingItems.length > 0) {
-      logWarn('getFilenamesOfNotesWithTagOrMentions', `Warning: the following tags/mentions are not in the wantedTagMentionsList.json filename: [${String(missingItems)}]. I will add them to the list and then regenrate the cache.`)
+      logWarn('getFilenamesOfNotesWithTagOrMentions', `Warning: the following tags/mentions are not in the wantedTagMentionsList.json filename: [${String(missingItems)}]. I will add them to the list and then regenerate the cache.`)
       setTagMentionCacheDefinitions(wantedItems.concat(missingItems))
       await generateTagMentionCache(true)
     } else {
@@ -129,22 +125,22 @@ export async function getFilenamesOfNotesWithTagOrMentions(tagOrMentions: Array<
     const calNoteItems = parsedCache.calendarNotes
     const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
 
-    // Get from Calendar notes using Cache
+    // Get matching Calendar notes using Cache
     let matchingNoteFilenamesFromCache = calNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename)
 
-    // Get from Regular notes using Cache
+    // Get matching Regular notes using Cache
     // eslint-disable-next-line max-len
     matchingNoteFilenamesFromCache = matchingNoteFilenamesFromCache.concat(regularNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename))
     // $FlowIgnore[unsafe-arithmetic]
     const cacheLookupTime = new Date() - startTime
     logTimer('getFilenamesOfNotesWithTagOrMentions', startTime, `-> found ${String(matchingNoteFilenamesFromCache.length)} notes from CACHE with wanted tags/mentions [${String(tagOrMentions)}]:`, 500)
 
-    // Now for interest get from the API instead, and compare the results (depending on turnOffAPILookups)
+    // During Dev, get from the API instead, and compare the results (depending on turnOffAPILookups)
     if (!turnOffAPILookups) {
       const thisStartTime = new Date()
       let matchingNotesFromAPI: Array<TNote> = []
       for (const tagOrMention of tagOrMentions) {
-        matchingNotesFromAPI = matchingNotesFromAPI.concat(findNotesMatchingHashtagOrMention(tagOrMention, true, true, true))
+        matchingNotesFromAPI = matchingNotesFromAPI.concat(findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, []))
       }
       // $FlowIgnore[unsafe-arithmetic]
       const APILookupTime = new Date() - thisStartTime
@@ -181,7 +177,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     const startTime = new Date()
     const wantedItems = getTagMentionCacheDefinitions()
     const config = await getDashboardSettings()
-    logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}]${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' ONLY FOR OPEN ITEMS' : ''} ${config.FFlag_UseNoteTags ? ' and USING NOTE TAGS' : ''}`)
+    logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}]${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' ONLY FOR OPEN ITEMS' : ''}`)
 
     const wantedParaTypes = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
 
@@ -211,27 +207,30 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     logTimer('generateTagMentionCache', startTime, `- processing ${allCalNotes.length} calendar notes + ${allRegularNotes.length} regular notes ...`)
 
     // Iterate over all notes and get all open paras with tags and mentions
+    // First, get all calendar notes ...
     const calWantedItems = []
     let ccal = 0
     logDebug('generateTagMentionCache', `- Processing ${allCalNotes.length} calendar notes ...`)
     for (const note of allCalNotes) {
-      const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, config.FFlag_UseNoteTags) : []
+      const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, true) : []
       if (foundWantedItems.length > 0) {
+        ccal++
         logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}]`)
         calWantedItems.push({ filename: note.filename, items: foundWantedItems })
-        ccal++
       }
     }
 
+    // ... then all regular notes.
     const regularWantedItems = []
     let creg = 0
     logDebug('generateTagMentionCache', `- Processing ${allRegularNotes.length} regular notes ...`)
     for (const note of allRegularNotes) {
-      const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, config.FFlag_UseNoteTags) : []
+      if (note.filename.startsWith('%%')) logInfo('generateTagMentionCache', `- Processing ${note.filename}`)
+      const foundWantedItems = (wantedItems.length > 0) ? getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, true) : []
       if (foundWantedItems.length > 0) {
+        creg++
         logDebug('generateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}]`)
         regularWantedItems.push({ filename: note.filename, items: foundWantedItems })
-        creg++
       }
     }
     logTimer('generateTagMentionCache', startTime, `to find ${ccal} calendar notes with wanted items / ${creg} regular notes with wanted items`)
@@ -300,9 +299,9 @@ export async function updateTagMentionCache(): Promise<void> {
     logTimer('updateTagMentionCache', startTime, `Found ${recentlychangedNotes.length} changed notes in that time`)
 
     // For each note, get wanted tags and mentions, and overwrite the existing cache details
+    // Possible TODO: Idea: don't do filtering by wantedItems; it probably costs very little to keep track of them all, and then avoids more generations later
     let c = 0
     for (const note of recentlychangedNotes) {
-      // Work out if this note is a calendar note or a regular note
       const isCalendarNote = note.type === 'Calendar'
 
       // First clear existing details for this note
@@ -314,7 +313,7 @@ export async function updateTagMentionCache(): Promise<void> {
       }
 
       // Then get wanted tags and mentions, and add them
-      const foundWantedItems = getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, config.FFlag_UseNoteTags)
+      const foundWantedItems = getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, true)
       if (foundWantedItems.length > 0) logDebug('updateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}] calWantedItems`)
       if (foundWantedItems.length > 0) {
         if (isCalendarNote) {
@@ -348,6 +347,9 @@ export async function updateTagMentionCache(): Promise<void> {
 
 export function generateTagMentionCacheSummary(): string {
   const cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
+  if (!cache) {
+    return `## Tag/Mention Cache Stats:\nNo tag/mention cache found`
+  }
   const parsedCache = JSON.parse(cache)
   const summary = `## Tag/Mention Cache Stats:
 - Wanted items: ${getTagMentionCacheDefinitions().join(', ')}
@@ -360,23 +362,30 @@ export function generateTagMentionCacheSummary(): string {
 }
 
 /**
- * Get list of any of the 'wantedItems' tags/mentions that appear in this note. Does filtering by para type, if 'wantedParaTypes' is provided, and is not empty.
- * If FFlag_UseNoteTags is true, include matching frontmatter tags in the results.
+ * Get list of any of the 'wantedTagsOrMentions' tags/mentions that appear in this note.
+ * Does filtering by para type, if 'wantedParaTypes' is provided, and is not empty.
+ * If 'includeNoteTags' is true, include matching frontmatter tags in the results.
  * @param {TNote} note 
- * @param {Array<string>} wantedItems 
+ * @param {Array<string>} wantedTagsOrMentions 
  * @param {Array<string>?} wantedParaTypes?
  * @param {boolean?} includeNoteTags?
- * @returns 
+ * @returns {Array<string>} list of wanted tags/mentions found in the note
  */
-export function getWantedTagOrMentionListFromNote(note: TNote, wantedItems: Array<string>, wantedParaTypes: Array<string> = [], includeNoteTags: boolean = false): Array<string> {
+export function getWantedTagOrMentionListFromNote(
+  note: TNote,
+  wantedTagsOrMentions: Array<string>,
+  wantedParaTypes: Array<string> = [],
+  includeNoteTags: boolean = false,
+): Array<string> {
   try {
-    if (wantedItems.length === 0) {
-      logWarn('getWantedTagListFromNote', `Starting, with empty wantedItems params`)
+    if (wantedTagsOrMentions.length === 0) {
+      logWarn('getWantedTagListFromNote', `Starting, with empty wantedTagsOrMentions params`)
       return []
     }
+    const seenWantedTagsOrMentions: Array<string> = []
 
-    const seenWantedItems: Array<string> = []
-  // Ask API for all seen tags in this note, and reverse them
+    // TAGS: 
+    // Ask API for all seen tags in this note, and reverse them
     const allTagsInNote = note.hashtags.slice().reverse()
     let lastTag = ''
     for (const tag of allTagsInNote) {
@@ -386,29 +395,19 @@ export function getWantedTagOrMentionListFromNote(note: TNote, wantedItems: Arra
       }
       else {
         // check this is one of the ones we're after, then add
-        if (caseInsensitiveIncludes(tag, wantedItems)) {
+        if (caseInsensitiveIncludes(tag, wantedTagsOrMentions)) {
           // logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${tag} on date ${n.filename}`)
-          seenWantedItems.push(tag)
+          seenWantedTagsOrMentions.push(tag)
         }
       }
       lastTag = tag
     }
 
     // Now create (case-insensitive) deduped list of the tags
-    const tagSet = new CaseInsensitiveSet(seenWantedItems)
-    let distinctTags: Array<string> = [...tagSet]
-    // const distinctTagsInitialCount = distinctTags.length
+    const tagSet = new CaseInsensitiveSet(seenWantedTagsOrMentions)
+    const distinctTags: Array<string> = [...tagSet]
 
-    // If we want to restrict to certain para types, do so now
-    if (wantedParaTypes.length > 0) {
-      distinctTags = filterItemsInNoteToWantedParaTypes(note, distinctTags, wantedParaTypes)
-      // logDebug('getWantedTagListFromNote', `-> filtered out ${distinctTagsInitialCount - distinctTags.length} tags that didn't match the wanted para types`)
-    }
-
-    if (distinctTags.length > 0) {
-      logDebug('getWantedTagListFromNote', `-> ${String(distinctTags.length)} distinct tags found from ${String(distinctTags.length)} instances in ${String(note.filename)}`)
-    }
-
+    // MENTIONS:
     // Now ask API for all seen mentions in this note, and reverse them
     const allMentionsInNote = note.mentions.slice().reverse()
     let lastMention = ''
@@ -419,43 +418,45 @@ export function getWantedTagOrMentionListFromNote(note: TNote, wantedItems: Arra
       }
       else {
         // check this is one of the ones we're after, then add
-        if (caseInsensitiveIncludes(mention, wantedItems)) {
+        if (caseInsensitiveIncludes(mention, wantedTagsOrMentions)) {
           // logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${mention} on date ${n.filename}`)
-          seenWantedItems.push(mention)
+          seenWantedTagsOrMentions.push(mention)
         }
       }
       lastMention = mention
     }
 
     // If FFlag_UseNoteTags is true, include the frontmatter tags in the results
-    // FIXME: something isn't right here, as the noteTags are not being added to the list of wanted items
     if (includeNoteTags && noteHasFrontMatter(note)) {
       const frontmatterAttributes = note.frontmatterAttributes
       if (frontmatterAttributes && 'note-tag' in frontmatterAttributes) {
         const seenNoteTags = frontmatterAttributes['note-tag'].split(',')
-        seenWantedItems.push(...seenNoteTags.map((t) => t.trim()))
+        seenWantedTagsOrMentions.push(...seenNoteTags.map((t) => t.trim()))
         logInfo('getWantedTagOrMentionListFromNote', `-> found and added ${String(seenNoteTags)} noteTags from FM in ${displayTitle(note)}`)
       }
     }
 
     // Now create (case-insensitive) set of the mentions
-    const mentionSet = new CaseInsensitiveSet(seenWantedItems)
-    let distinctMentions: Array<string> = [...mentionSet]
-    // const distinctMentionsInitialCount = distinctMentions.length
+    const mentionSet = new CaseInsensitiveSet(seenWantedTagsOrMentions)
+    const distinctMentions: Array<string> = [...mentionSet]
 
-    // If we want to restrict to certain para types, do so now
+    let tagsAndMentions = distinctTags.concat(distinctMentions)
+
+    // Restrict to certain para types, if wanted
     if (wantedParaTypes.length > 0) {
-      distinctMentions = filterItemsInNoteToWantedParaTypes(note, distinctMentions, wantedParaTypes)
-      // logDebug('getWantedTagListFromNote', `-> filtered out ${distinctMentionsInitialCount - distinctMentions.length} mentions that didn't match the wanted para types`)
+      tagsAndMentions = filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(note, tagsAndMentions, wantedParaTypes, includeNoteTags)
     }
 
-    if (distinctMentions.length > 0) {
-      logDebug('getWantedTagOrMentionListFromNote', `-> ${String(distinctMentions.length)} distinct mentions found from ${String(seenWantedItems.length)} instances in ${String(note.filename)}`)
+    if (tagsAndMentions.length > 0) {
+      const distinctTagsAndMentions = [...new Set(tagsAndMentions)]
+      // logDebug('getWantedTagOrMentionListFromNote', `-> ${String(distinctTagsAndMentions.length)} distinct tags/mentions found from ${String(seenWantedTagsOrMentions.length)} instances in ${String(note.filename)}`)
+      return distinctTagsAndMentions
+    } else {
+      // logDebug('getWantedTagOrMentionListFromNote', `-> No wanted tags/mentions found in ${String(note.filename)}`)
+      return []
     }
-
-    return distinctTags.concat(distinctMentions)
   } catch (err) {
-    logError('getWantedTagListFromNote', JSP(err))
+    logError('getWantedTagOrMentionListFromNote', JSP(err))
     return []
   }
 }
@@ -463,30 +464,60 @@ export function getWantedTagOrMentionListFromNote(note: TNote, wantedItems: Arra
 //-----------------------------------------------------------------
 // private helper functions
 
-function filterItemsInNoteToWantedParaTypes(note: TNote, initialItems: Array<string>, wantedParaTypes: Array<string>): Array<string> {
-  // Filter out any items where every paragraph in the note that contains the tag has a para type that doesn't match the wanted para types
-  const filteredItems = initialItems.filter((t) => {
-    const paragraphsWithTag = note.paragraphs.filter((p) => caseInsensitiveSubstringMatch(t, p.content))
-    return paragraphsWithTag.every((p) => wantedParaTypes.includes(p.type))
-  })
-  // logDebug('filterItemsInNoteToWantedParaTypes', `-> filtered out ${initialItems.length - filteredItems.length} tags that didn't match the wanted para types`)
+/**
+ * Filters tags or mentions ('items') seen in note to:
+ * - wantedParagraphTypes
+ * - matching note tags (i.e. frontmatter attribute 'note-tag') that matches the wanted tags or mentions
+ * @param {TNote} note - The note to process
+ * @param {Array<string>} items - The list of tags or mentions to filter
+ * @param {Array<string>} wantedParaTypes - The paragraph types to allow
+ * @param {boolean} allowNoteTags - Whether to allow tagsOrMentions from note tags
+ * @returns {Array<string>} Filtered tagsOrMentions that match the criteria
+ */
+function filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(
+  note: TNote,
+  tagsOrMentions: Array<string>,
+  wantedParaTypes: Array<string>,
+  allowNoteTags: boolean = false,
+): Array<string> {
+  try {
+    // Get note tag from frontmatter if it exists
+    const noteTagAttribute = getFrontMatterAttribute(note, 'note-tag')
+    const noteTagList = noteTagAttribute ? stringListOrArrayToArray(noteTagAttribute, ',') : []
+    if (noteTagList.length > 0) {
+      logInfo('filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags', `Found noteTag(s): '${String(noteTagList)}' in ${note.filename}`)
+    }
 
-  if (filteredItems.length > 0) {
-    logDebug('filterItemsInNoteToWantedParaTypes', `-> ${String(filteredItems.length)} distinct tags found from ${String(initialItems.length)} instances in ${String(note.filename)}`)
+    // Filter items based on paragraph types and note tags
+    const filteredItems = tagsOrMentions.filter(item => {
+      const paragraphsWithItem = note.paragraphs.filter(p => caseInsensitiveSubstringMatch(item, p.content))
+      const hasValidParagraphType = paragraphsWithItem.some(p => wantedParaTypes.includes(p.type))
+      const hasMatchingNoteTag = allowNoteTags && noteTagList && noteTagList.some(tag => caseInsensitiveMatch(item, tag))
+
+      return hasValidParagraphType || hasMatchingNoteTag
+    })
+
+    if (filteredItems.length > 0) {
+      // logDebug('filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags', `Found ${filteredItems.length} distinct items from ${tagsOrMentions.length} instances in ${note.filename}`)
+    }
+
+    return filteredItems
+  } catch (error) {
+    logError('filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags', `Error filtering items in note ${note.filename}: ${error.message}`)
+    return []
   }
-
-  return filteredItems
 }
 
 /**
  * Get the list of wanted tags and mentions from all perspectives.
  * Note: moved from perspectiveHelpers.js to here to avoid circular dependency.
+ * @param {Array<TPerspectiveDef>} allPerspectives
  * @returns {Array<string>} An array containing the list of mentions and tags
  */
-function getWantedTagsAndMentionsFromAllPerspectives(allPerspectives: Array<TPerspectiveDef>): Array<string> {
+function getListOfWantedTagsAndMentionsFromAllPerspectives(allPerspectives: Array<TPerspectiveDef>): Array<string> {
   const wantedItems = new Set < string > ()
   for (const perspective of allPerspectives) {
-    logDebug('getWantedTagsAndMentionsFromAllPerspectives', `- reading perspective: [${String(perspective.name)}]`)
+    logDebug('getListOfWantedTagsAndMentionsFromAllPerspectives', `- reading perspective: [${String(perspective.name)}]`)
     const tagsAndMentionsStr = perspective.dashboardSettings.tagsToShow ?? ''
     const tagsAndMentionsArr = stringListOrArrayToArray(tagsAndMentionsStr, ',')
     tagsAndMentionsArr.forEach((torm) => {

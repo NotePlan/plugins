@@ -79,7 +79,8 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     if (note.backlinks?.length > 0) {
       console.log(`Backlinks`)
       console.log(`- ${String(note.backlinks.length)} backlinked notes`)
-      const flatBacklinkParas = getFlatListOfBacklinks(note) // Note: this requires DataStore
+      // $FlowIgnore[prop-missing]
+      const flatBacklinkParas = getFlatListOfBacklinks(note) ?? [] // Note: this requires DataStore
       console.log(`- ${String(flatBacklinkParas.length)} backlink paras:`)
       for (let i = 0; i < flatBacklinkParas.length; i++) {
         const p = flatBacklinkParas[i]
@@ -91,12 +92,12 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
       try { // without catch, so just continue
         const p0 = note.paragraphs[0]
         console.log(`\nExtra Teamspace tests using p[0] {${p0.content}}:`)
-        console.log(`- p0.note.type: ${String(p0.note.type)}`)
-        console.log(`- p0.note.isTeamspaceNote: ${String(p0.note.isTeamspaceNote)}`)
-        console.log(`- p0.note.teamspaceTitle: ${String(p0.note.teamspaceTitle)}`)
-        console.log(`- p0.note.teamspaceID: ${String(p0.note.teamspaceID)}`)
-        console.log(`- p0.note.filename: ${String(p0.note.filename)}`)
-        console.log(`- p0.note.resolvedFilename: ${String(p0.note.resolvedFilename)}`)
+        console.log(`- p0.note.type: ${String(p0.note?.type)}`)
+        console.log(`- p0.note.isTeamspaceNote: ${String(p0.note?.isTeamspaceNote)}`)
+        console.log(`- p0.note.teamspaceTitle: ${String(p0.note?.teamspaceTitle)}`)
+        console.log(`- p0.note.teamspaceID: ${String(p0.note?.teamspaceID)}`)
+        console.log(`- p0.note.filename: ${String(p0.note?.filename)}`)
+        console.log(`- p0.note.resolvedFilename: ${String(p0.note?.resolvedFilename)}`)
       } catch (e) {
         logError('note/printNote', `Teamspace Error: ${e.message}`)
       }
@@ -599,6 +600,7 @@ export function scrollToParagraphWithContent(content: string): boolean {
 
 /**
  * Return list of all notes of type ['Notes'] or ['Calendar'] or both (default).
+ * Note: .slice() is used to avoid mutating the original arrays. This doesn't appear to affect performance, so I'm leaving them in.
  * @author @jgclark
  * @param {Array<string>} noteTypesToInclude
  * @returns {Array<TNote>}
@@ -609,11 +611,14 @@ export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar
       throw new Error(`No note types given. Returning empty array.`)
     }
     let allNotesToCheck: Array<TNote> = []
-    if (noteTypesToInclude.includes('Calendar')) {
+    if (noteTypesToInclude === ['Calendar', 'Notes'] || noteTypesToInclude === ['Notes', 'Calendar']) {
+      allNotesToCheck = DataStore.calendarNotes.slice().concat(DataStore.projectNotes)
+    }
+    else if (noteTypesToInclude.includes('Calendar')) {
       allNotesToCheck = DataStore.calendarNotes.slice()
     }
-    if (noteTypesToInclude.includes('Notes')) {
-      allNotesToCheck = allNotesToCheck.concat(DataStore.projectNotes.slice())
+    else if (noteTypesToInclude.includes('Notes')) {
+      allNotesToCheck = DataStore.projectNotes.slice()
     }
     return allNotesToCheck
   } catch (err) {
@@ -698,7 +703,7 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
 
 /**
  * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on etc.
- * Note: in Feb 2025 there @jgclark developed almost all of a newer mechanism for this: the tagMentionCache. But then this suddenly seemed to speed up, after a little refactoring. Mystifying.
+ * Note: since Feb 2025 @jgclark has developed a newer, faster, mechanism for this: the tagMentionCache. But leaving this here for now.
  * @author @jgclark
  * @param {string} item - tag/mention name to look for
  * @param {boolean} caseInsensitiveMatch? - whether to ignore case when matching
@@ -706,8 +711,7 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
  * @param {boolean} excludeSpecialFolders? - whether to ignore regular notes in special folders, i.e. those starting with '@', including @Templates, @Archive and @Trash (optional, defaults to true)
  * @param {Array<string>} itemsToExclude - optional list of tags/mentions that if found in the note, excludes the note
  * @param {string?} folder - optional folder to limit to
- * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @param {boolean?} includeTeamspaceNotes? - whether to include teamspace notes in the search (optional, defaults to false)
+ * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to true)
  * @return {Array<TNote>}
  */
 export function findNotesMatchingHashtagOrMention(
@@ -717,10 +721,10 @@ export function findNotesMatchingHashtagOrMention(
   excludeSpecialFolders: boolean,
   itemsToExclude: Array<string> = [],
   folder: ?string,
-  includeSubfolders?: boolean = false,
-  includeTeamspaceNotes?: boolean = false, // TODO(later): remove this once Teamspace support is no longer behind FFlag_IncludeTeamspaceNotes
+  includeSubfolders?: boolean = true,
 ): Array<TNote> {
   try {
+    const includeTeamspaceNotes = true
     // Check for special conditions first
     if (item === '') {
       logError('NPnote/findNotesMatchingHashtagOrMention', `No hashtag given. Stopping`)
@@ -729,7 +733,7 @@ export function findNotesMatchingHashtagOrMention(
     const isHashtag = item.startsWith('#')
     let notesToSearch = excludeSpecialFolders ? DataStore.projectNotes.filter((n) => !n.filename.startsWith('@')) : DataStore.projectNotes
 
-    // WARNING: Currently needs a FF to turn this on, as there are too many problems in the API in build 1368
+    // WARNING: Currently needs a flag to turn this on, as there are too many problems in the API in build 1368
     if (!includeTeamspaceNotes) {
       notesToSearch = notesToSearch.filter((note) => !note.isTeamspaceNote)
     }
@@ -766,13 +770,12 @@ export function findNotesMatchingHashtagOrMention(
       )} notes`,
     )
 
-    // Filter by tag (and now mentions as well, if requested)
+    // Filter by tag and/or mentions
     // Note: now using the cut-down list of hashtags as the API returns partial duplicates
     let projectNotesWithItem: Array<TNote>
     if (caseInsensitiveMatch) {
       projectNotesWithItem = projectNotesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
-        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMention', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
         return isHashtag
           ? caseInsensitiveIncludes(item, correctedHashtags)
@@ -782,7 +785,6 @@ export function findNotesMatchingHashtagOrMention(
     } else {
       projectNotesWithItem = projectNotesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
-        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMention', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
         return isHashtag
           ? caseInsensitiveIncludes(item, correctedHashtags)
@@ -791,7 +793,6 @@ export function findNotesMatchingHashtagOrMention(
       })
     }
     if (projectNotesWithItem.length > 0) {
-      // logDebug('NPnote/findNotesMatchingHashtagOrMention',`In folder '${folder ?? '<all>'}' found ${projectNotesWithItem.length} notes matching '${tag}': [${String(projectNotesWithItem.map((a) => a.title ?? a.filename ?? '?'))}]`)
       logDebug('NPnote/findNotesMatchingHashtagOrMention', `In folder '${folder ?? '<all>'}' found ${projectNotesWithItem.length} notes matching '${item}'`)
     }
 

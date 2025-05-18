@@ -2,17 +2,17 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-04-30 for v2.2.2
+// last updated 2025-05-14 for v2.3.0
 // ----------------------------------------------------------------------------
 
 /**
  * Imports
  */
 import pluginJson from '../plugin.json'
+import { generateTagMentionCache } from './tagMentionCache'
 import { renameKeys } from '@helpers/dataManipulation'
 import { clo, compareObjects, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import {
-  // updateSettingData,
   pluginUpdated,
   saveSettings
 } from '@helpers/NPConfiguration'
@@ -54,7 +54,7 @@ export {
   setSetting,
   setSettings,
   makeSettingsAsCallback,
-  reactWindowInitialised,
+  reactWindowInitialisedSoStartGeneratingData,
 } from './reactMain.js'
 
 export {
@@ -110,6 +110,10 @@ export async function onUpdateOrInstall(): Promise<void> {
       const result = await saveSettings(pluginID, migratedSettings)
       logInfo(`onUpdateOrInstall`, `- Changes detected. Saved settings with result: ${JSP(result)}`)
     }
+
+    // Now get the tagMentionCache up to date. 
+    // Note: Deliberately don't await this, because it can take 15+ seconds.
+    const _cachePromise = generateTagMentionCache(true)
 
     await pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
 

@@ -48,21 +48,24 @@ export async function scheduleAllThisWeekNextWeek(data: MessageDataObject): Prom
 
     // Get paras for all open items in yesterday's note
     const thisWeekDateStr = getNPWeekStr(today)
-    const nextWeekDateStr = calcOffsetDateStr(thisWeekDateStr, '1w')
     const thisWeekNote = DataStore.calendarNoteByDate(today, 'week')
+    const nextWeekDateStr = calcOffsetDateStr(thisWeekDateStr, '1w')
+    const nextWeekNote = DataStore.calendarNoteByDateString(nextWeekDateStr)
 
     if (!thisWeekNote) {
       logWarn('scheduleAllThisWeekNextWeek', `Oddly I can't find a weekly note for today (${thisWeekDateStr})`)
       return { success: false }
-    } else {
-      logDebug('scheduleAllThisWeekNextWeek', `Starting with this week's note${thisWeekDateStr}`)
     }
-    logDebug('scheduleAllThisWeekNextWeek', `Starting with this week's note ${thisWeekDateStr} -> ${nextWeekDateStr}`)
+    if (!nextWeekNote) {
+      logWarn('scheduleAllThisWeekNextWeek', `I can't get next week's weekly note (${nextWeekDateStr}). Does it exist yet?`)
+      return { success: false }
+    }
+    logDebug('scheduleAllThisWeekNextWeek', `Starting with this week's note (${thisWeekDateStr}) -> (${nextWeekDateStr})`)
 
     // Get list of open tasks/checklists from this calendar note
     // First, override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod('week', thisWeekNote, config)
+    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod(thisWeekNote.filename, 'week', config)
     const initialTotalToMove = combinedSortedParas.length + sortedRefParas.length
 
     // Remove child items from the two lists of paras
@@ -200,15 +203,15 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject): Prom
       return { success: false }
     }
     if (!thisWeekNote) {
-      logWarn('scheduleAllLastWeekThisWeek', `I can't find this week's weekly note for today (${thisWeekDateStr})`)
+      logWarn('scheduleAllLastWeekThisWeek', `I can't get this week's weekly note (${thisWeekDateStr}). Does it exist yet?`)
       return { success: false }
     }
-    logDebug('scheduleAllLastWeekThisWeek', `Starting for last week's note ${lastWeekDateStr} -> ${thisWeekDateStr}`)
+    logDebug('scheduleAllLastWeekThisWeek', `Starting for last week's note (${lastWeekDateStr} -> ${thisWeekDateStr}`)
 
     // Get list of open tasks/checklists from this calendar note
     // First, override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod('week', lastWeekNote, config)
+    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod(lastWeekNote.filename, 'week', config)
     const initialTotalToMove = combinedSortedParas.length + sortedRefParas.length
 
     // Remove child items from the two lists of paras

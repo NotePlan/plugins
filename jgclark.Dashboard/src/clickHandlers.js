@@ -428,19 +428,12 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
  * Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line.
  * If ⌘ (command) key is clicked, then open in a new floating window.
  * If option key is clicked, then open in a new split view.
+ * Note: Handles Teamspace notes from b1375 (v3.17.0).
  * @param {MessageDataObject} data with details of item
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
 export async function doShowLineInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, modifierKey } = validateAndFlattenMessageObject(data)
-  // logDebug('showLineInEditorFromFilename', `${filename} /  ${content}`)
-  if (isTeamspaceNoteFromFilename(filename)) {
-    logWarn('doShowLineInEditorFromFilename', `Can't yet open Teamspace note in Editor: please ask Eduard to implement this.`)
-    await showMessage(`Sorry; the Dashboard can't yet open Teamspace notes in the Editor. Please ask Eduard to implement this.`)
-    return handlerResult(true)
-  }
-
-  // TODO(@EduardMe): this doesn't work for Teamspace notes
   const note = await Editor.openNoteByFilename(filename, modifierKey === 'meta', 0, 0, modifierKey === 'alt')
   if (note) {
     const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
@@ -481,6 +474,8 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
       logDebug(`doDashboardSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
       if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
         // Clean up the settings before then comparing them with the active perspective settings
+        // $FlowIgnore[prop-missing]
+        // $FlowIgnore[incompatible-call]
         const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettings)
         const diff = compareObjects(activePerspDef.dashboardSettings, cleanedSettings, ['lastModified', 'lastChange'])
         clo(diff, `doDashboardSettingsChanged: diff`)

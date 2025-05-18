@@ -1,22 +1,26 @@
 # 🎛 Dashboard plugin
-<img alt="Example of Dashboard window" src="dashboard-medium-2.1.0.png" width="700px"/>
+<img alt="Example of Dashboard window" src="dashboard-medium-2.3.0.png" width="700px"/>
 
 This plugin provides a **dashboard window** for your NotePlan data that in one place shows a compact list of:
 - open tasks and checklists from today's note
 - scheduled open tasks and checklists from other notes to today
 - similarly for yesterday's note, tomorrow's note, this week's and last week's notes, and monthly and quarterly notes too (if used)
-- all open tasks and checklists that contain a particular  `#tags` or `@mention`s of your choosing. This can give "deferred date" functionality (see below).
+- all open tasks and checklists that contain a particular  `#tags` or `@mention`s of your choosing -- for example things tagged with the name of a family member of colleague. This can give "deferred date" functionality (see below).
 - all overdue tasks
 - all open items with an added priority
 - the next Project notes ready to review (if you have the "Projects and Reviews" plugin installed)
 - it shows any currently-active time block you've set
-- (and from v2.2) you can now 'Search' to show all open items that match a search. 
+- plus a 'Search' field to show all open items that match a search.
 
-... and then gives you many controls, mostly in an "edit dialog", that let you quickly edit, complete, cancel or move any of these items to be due on different days/week/months etc.
+This avoids you having to keep _copying_ tasks into your Today note to see them, but instead you can _see_ them all in one place in the Dashboard window.  From there you can quickly edit, complete, cancel or move any of these items to be due on different days/week/months, with the pop-up Edit Dialog.
+<img src="task-dialog-2.1.8.png" width="600px" margin="8px" alt="dialog showing task + checklist action buttons" />
 
 Here's a [great video from user George Crump](https://youtu.be/_lj8osSOvQc) that shows v2.0 in action, and how he lives in the Dashboard throughout his day:
 
 [<img width="500px" alt="thumbnail" src="./dashboard-v2-GC-video-title.jpeg">](https://youtu.be/_lj8osSOvQc)
+
+My suggestion is to think ahead. You may want to see overdue from yesterday now, but as your use grows you probably want to see more things from more places. E.g. I have a tag of things that I need to discuss with my Administrator, but these are spread across 30 different projects/areas. So I have a Section to show me them from whichever note they live in.
+That’s why Dashboard is as it is: don’t keep *copying* things into Today, but *see* them all in one place in the Dashboard window.  Yes, it means keeping it open most of the time, but that’s much easier than continually navigating around different notes.
 
 To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It automatically picks up the Theme from NotePlan and mimics it as far as possible (you're welcome).
 
@@ -26,7 +30,7 @@ To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It aut
 <img src="header-bar-2.2.0.png" width="500px" border="1pt solid" margin="8px" alt="Top right buttons"/>
 
 From left to right these are:
-- the **Perspective menu**, showing the currently-active Perspective. See [Search section](#search-section) below for more details.
+- the **Perspective menu**, showing the currently-active [Perspective](#perspectives) (see below for more details).
 - the **Refresh** button, which re-generates the whole display. If you [configure the setting](#configuration-settings) "Automatic Update interval" to any number > 0 minutes, then this should rarely be needed.
 - a **Search** button that opens up a Search bar. See [Search section](#search-section) below for more details.
 - an **Add new task** button, which then opens the NotePlan command bar to ask for task text to add, and then to which note and section within than note to add it to.  (Shortcut key: <kbd>^⌥a</kbd>)
@@ -127,6 +131,11 @@ The top bar has a **count of tasks done today** (apart from on narrow windows an
 
 The display will **automatically refresh** in the background if you set the "Automatic Update interval" to any number > 0. This number is the number of minutes after the window is idle when it will refresh the sections you want to display. You can also press the 'Refresh' button at any point, and/or you can set a trigger (see below).
 
+(From v2.3) The Dashboard will show notes held in a **Teamspace** (if you are part of one). It shows with the title of the Teamspace in green with the Teamspace icon, before the note title:
+
+<img src="teamspace-title-2.3.0.png" width="300px" margin="8px" border="1px solid grey" alt="example of Teamspace title" align="center"/>
+
+
 ### Current Time Block section
 [Time blocks in NotePlan](https://help.noteplan.co/article/121-time-blocking) are a helpful way to help you plan your days. If you define some, they appear in the calendar sidebar.  If the current time is within a time block, then this section appears at the top of the Dashboard. For example:
 
@@ -148,7 +157,20 @@ There are 2 specific settings for this section:
 _I plan to introduce more search options in later releases. In this release the searches are case-insensitive and match on part-words, which is the same as the NotePlan app. Unless, that is, you have the Search Extensions plugin installed, in which case it will use those settings._
 
 ### #tag/@mention sections
-The "#tag/@mention Section" will show all open tasks/checklists that include this #tag or @mention. This is a good way of showing all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.
+The "#tag/@mention Section" will show all open tasks/checklists that include the #tag or @mention of interest. This is a good way of showing all `#next` actions, for example, or all which involve `@007`.
+
+v2.3 introduces '**noteTags**'. These allow you to treat all the open items in a whole note as having a particular tag or mention applied to it. To use this, simply add a `note-tag` field in the frontmatter for the note, with the tag(s)/mention(s) in a list. 
+For example in this note:
+```md
+---
+title: Bring down the SPECTRE organisation
+note-tag: #ProjectSPECTRE, @007
+---
+* High speed chase to find the SPECTRE HQ
+* Listen in on the SPECTRE Head briefing his operatives
+* Use @Q's latest device to put most of the operatives out of action
+```
+all three tasks will be included in a `#ProjectSPECTRE` Section.
 
 You can use the '#Tags' section to create a "deferred date" function. To do this tag something as (for example) `#next` and then schedule it with a day in the future.On that future date, it will show up in this `#next` section. (Thanks to @george65 for spotting this use case.)
 
@@ -292,7 +314,7 @@ For the `setSetting` callbacks, the names of the possible settings (described ab
 | ignoreChecklistItems | true / false |
 | includedFolders | comma-separated values |
 | excludedFolders | comma-separated values |
-| includeFolderName | true / false |
+| showFolderName | true / false |
 | includeTaskContext | true / false |
 | rescheduleNotMove | true / false |
 | useLiteScheduleMethod | true / false |

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-05-02 for v2.2.2, @jgclark
+// Last updated 2025-05-15 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -30,7 +30,7 @@ export type TDashboardSettings = {
   // Note: add all of these to the list of items in cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
   usePerspectives: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
-  FFlag_UseTagCache?: boolean,
+  // FFlag_UseTagCache?: boolean,
   FFlag_ShowSearchPanel?: boolean,
   // searchSettings?: TSearchOptions, // an object holding a number of settings TODO: add from 2.3.0
   // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings
@@ -38,8 +38,9 @@ export type TDashboardSettings = {
   FFlag_ShowTestingPanel?: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
-  FFlag_IncludeTeamspaceNotes?: boolean,
-  FFlag_UseNoteTags?: boolean,
+  FFlag_ShowSectionTimings?: boolean,
+  // FFlag_IncludeTeamspaceNotes?: boolean,
+  // FFlag_UseNoteTags?: boolean,
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
   defaultFileExtension?: string,

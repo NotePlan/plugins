@@ -85,19 +85,19 @@ describe(`${FILE}`, () => {
     test('rename multiple keys using a mapping object', () => {
       const testObj = {
         perspectivesEnabled: true,
-        includeFolderName: true,
+        showFolderName: true,
         showTaskContext: false,
         includeScheduledDates: false,
         otherSetting: 'value',
         nested: {
           perspectivesEnabled: false,
-          includeFolderName: true,
+          showFolderName: true,
         },
       }
 
       const keysMap = {
         perspectivesEnabled: 'usePerspectives',
-        includeFolderName: 'showFolderName',
+        showFolderName: 'showFolderName',
         includeScheduledDates: 'showScheduledDates',
         showTaskContext: 'showTaskContext',
       }
@@ -121,7 +121,7 @@ describe(`${FILE}`, () => {
     test('sequential renaming using the old function approach still works with new plural function', () => {
       const testObj = {
         perspectivesEnabled: true,
-        includeFolderName: true,
+        showFolderName: true,
         showTaskContext: false,
         includeScheduledDates: false,
         FFlag_ShowSearchPanel: true,
@@ -147,7 +147,7 @@ describe(`${FILE}`, () => {
       // Using the new plural version with a mapping object
       const keysMap = {
         perspectivesEnabled: 'usePerspectives',
-        includeFolderName: 'showFolderName',
+        showFolderName: 'showFolderName',
         includeScheduledDates: 'showScheduledDates',
         showTaskContext: 'showTaskContext',
       }
@@ -220,7 +220,6 @@ describe(`${FILE}`, () => {
           newTaskSectionHeading: 'Home',
           separateSectionForReferencedNotes: '',
           showQuarterSection: false,
-          FFlag_UseTagCache: false,
           excludeTasksWithTimeblocks: false,
           excludeChecklistsWithTimeblocks: false,
           includeScheduledDates: true,
@@ -229,7 +228,7 @@ describe(`${FILE}`, () => {
           FFlag_ShowTestingPanel: false,
           showTaskContext: true,
           showSearchSection: true,
-          includeFolderName: '',
+          showFolderName: '',
           autoUpdateAfterIdleTime: 15,
           includedFolders: 'Home, NotePlan',
           ignoreChecklistItems: false,
@@ -287,7 +286,6 @@ describe(`${FILE}`, () => {
           newTaskSectionHeading: 'Home',
           separateSectionForReferencedNotes: '',
           showQuarterSection: false,
-          FFlag_UseTagCache: false,
           excludeTasksWithTimeblocks: false,
           excludeChecklistsWithTimeblocks: false,
           parentChildMarkersEnabled: true,
@@ -340,7 +338,7 @@ describe(`${FILE}`, () => {
       }
       const keysMap = {
         perspectivesEnabled: 'usePerspectives',
-        includeFolderName: 'showFolderName',
+        showFolderName: 'showFolderName',
         includeScheduledDates: 'showScheduledDates',
         showTaskContext: 'showTaskContext',
       }

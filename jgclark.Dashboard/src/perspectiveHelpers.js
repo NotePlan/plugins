@@ -2,10 +2,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-04-30 for v2.2.0.a13+
+// Last updated 2025-05-14 for v2.2.2
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+// import { generateProjectListsAndRenderIfOpen } from '../../jgclark.Reviews/src/reviews.js'
 import { getDashboardSettings, getOpenItemParasForTimePeriod, setPluginData } from './dashboardHelpers.js'
 import { dashboardSettingsDefaults } from './react/support/settingsHelpers'
 import { getTagSectionDetails, showSectionSettingItems } from './react/components/Section/sectionHelpers'
@@ -14,6 +15,7 @@ import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type { TDashboardSettings, TDashboardPluginSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { getPeriodOfNPDateStr } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
@@ -437,7 +439,7 @@ export async function logPerspectiveFiltering(filenameArg?: string): Promise<voi
     if (note.type === 'Calendar') {
       // Force generation of separate lists for testing purposes
       dashboardSettings.separateSectionForReferencedNotes = true
-      const [openDashboardParas, refOpenDashboardParas] = getOpenItemParasForTimePeriod('<testing>', note, dashboardSettings, false)
+      const [openDashboardParas, refOpenDashboardParas] = getOpenItemParasForTimePeriod(note.filename, getPeriodOfNPDateStr(note.filename), dashboardSettings, false)
       logInfo('', `There are ${String(openDashboardParas.length)} lines valid for this perspective in this note:`)
       openDashboardParas.forEach((p) => {
         console.log(`  - ${p.lineIndex}: ${p.type}: ${p.content}`)
@@ -470,7 +472,7 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
   try {
     // Check if perspective exists
     logDebug('switchToPerspective', `Starting looking for name ${name} in ...`)
-    logPerspectives(allDefs)
+    // logPerspectives(allDefs)
 
     const newPerspectiveSettings = setActivePerspective(name, allDefs).map((p) => ({
       ...p,
@@ -480,8 +482,8 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
       dashboardSettings: cleanDashboardSettingsInAPerspective(p.dashboardSettings),
     }))
 
-    logDebug('switchToPerspective', `New perspectiveSettings:`)
-    logPerspectives(newPerspectiveSettings)
+    // logDebug('switchToPerspective', `New perspectiveSettings:`)
+    // logPerspectives(newPerspectiveSettings)
     const newPerspectiveDef = getPerspectiveNamed(name, newPerspectiveSettings)
     if (!newPerspectiveDef) {
       logError('switchToPerspective', `Couldn't find definition for perspective "${name}"`)
@@ -495,19 +497,21 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
     )
 
     // SAVE IT!
-    // TEST: use helper to save settings from now on
-    // DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) }
-    let res = await saveSettings(pluginID, { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) })
+    const res = await saveSettings(pluginID, { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) })
     if (!res) {
       throw new Error(`saveSettings failed for perspective ${name}`)
     }
-    clo(
-      newPerspectiveSettings.map((p) => ({ name: p.name, isModified: p.isModified })),
-      'switchToPerspective: newPerspectiveSettings saved to DataStore.settings',
-    )
+    logDebug('switchToPerspective', `Saved new perspectiveSettings for ${name}`)
+    // clo(
+    //   newPerspectiveSettings.map((p) => ({ name: p.name, isModified: p.isModified })),
+    //   'switchToPerspective: newPerspectiveSettings saved to DataStore.settings',
+    // )
 
-    // Send message to Reviews (if open) to re-generate the Projects list and render it (if that window is already open)
-    res = await DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])
+    // Send message to Reviews (if that window is open) to re-generate the Projects list and render it
+    // TEST: Now not await-ing this, because it can take a long time and we don't want to block the main thread. FIXME: still taking a long time, and appears to be blocking the main thread.
+    logDebug('switchToPerspective', `Sending message to Reviews to regenerate the Projects List and render it`)
+    const _promise = DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])
+    // const _promise = generateProjectListsAndRenderIfOpen()
 
     return newPerspectiveSettings
   } catch (error) {
@@ -597,7 +601,7 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPlugi
       if (!shouldRemoveKey(key)) {
         acc[key] = settingsIn[key]
       } else {
-        logInfo('cleanDashboardSettingsInAPerspective', `- Removing key '${key}'`)
+        logDebug('cleanDashboardSettingsInAPerspective', `- Removing key '${key}'`)
       }
       return acc
     }, {})

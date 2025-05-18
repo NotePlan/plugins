@@ -105,7 +105,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     // set default return value for each call; mostly overridden below with success
     let result: TBridgeClickHandlerResult = { success: false }
 
-    logDebug(`************* bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} *************`)
+    logInfo(`************* bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} *************`)
     // clo(data, 'bridgeClickDashboardItem received data object; data=')
     if (!actionType === 'refreshEnabledSections' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 

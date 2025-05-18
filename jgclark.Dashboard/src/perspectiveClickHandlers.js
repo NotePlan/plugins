@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-04-10 for v2.2.0.a13
+// Last updated 2025-05-14 for v2.2.2
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
@@ -137,13 +137,14 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
     return handlerResult(false, [], { errorMsg: `No perspectiveName provided.` })
   }
   const ps = await getPerspectiveSettings()
-  logPerspectiveNames(ps, 'doSwitchToPerspective: Persp settings before switch:')
+  // logPerspectiveNames(ps, 'doSwitchToPerspective: Persp settings before switch:')
   const revisedDefs = await switchToPerspective(switchToName, ps)
-  logPerspectiveNames(revisedDefs || [], 'doSwitchToPerspective: Persp settings after switch:')
+  // logPerspectiveNames(revisedDefs || [], 'doSwitchToPerspective: Persp settings after switch:')
   if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective failed` })
   const activeDef = getActivePerspectiveDef(revisedDefs)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
   const prevDashboardSettings = await getDashboardSettings()
+
   // each perspective has its own tagged sections so we don't want to keep old ones around
   // so we will remove all keys from prevDS that start with showTagSection_
   if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
@@ -151,8 +152,9 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   const dashboardFilterDefaults = dashboardFilterDefs.filter((f) => f.key !== 'includedFolders')
   const nonFilterDefaults = dashboardSettingDefs.filter((f) => f.key)
   const dashboardSettingsDefaults = [...dashboardFilterDefaults, ...nonFilterDefaults].reduce((acc, curr) => {
-    if (curr.default && curr.key) {
-      // $FlowIgnore
+    // logDebug('doSwitchToPerspective', `doSwitchToPerspective: curr.key='${String(curr.key)}' curr.default='${String(curr.default)}'`)
+    if (curr.key && curr.default !== undefined) {
+    // $FlowIgnore[prop-missing]
       acc[curr.key] = curr.default
     } else {
       logError('doSwitchToPerspective', `doSwitchToPerspective: default value for ${String(curr.key)} is not set in dashboardSettings file defaults.`)
@@ -177,7 +179,8 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   }
 
   const afterPerspSettings = await getPerspectiveSettings(true)
-  logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Persp settings reading back from DataStore.settings:')
+  // logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Persp settings reading back from DataStore.settings:')
+
   // TODO: @jgclark resetting sections to [] on perspective switch forces a refresh of all enabled sections
   // You may or may not want to get fancy and try to delete the sections that are no longer enabled (e.g. tags)
   // and only refresh the sections that are new
@@ -195,7 +198,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
       newDashboardSettings.excludedFolders ? newDashboardSettings.excludedFolders : 'not set'
     }`,
   )
-  logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Sending these perspectiveSettings to react window in pluginData')
+  // logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Sending these perspectiveSettings to react window in pluginData')
   await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
   return handlerResult(true, ['PERSPECTIVE_CHANGED'])
 }
