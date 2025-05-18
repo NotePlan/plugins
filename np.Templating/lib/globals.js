@@ -253,7 +253,7 @@ export const asyncFunctions = [
   'format',
   'getNote',
   'getValuesForKey',
-  'invokeCommandByName',
+  'invokePluginCommandByName',
   'journalingQuestion',
   'listEvents',
   'listMatchingEvents',

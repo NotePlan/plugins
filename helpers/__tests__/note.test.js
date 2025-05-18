@@ -479,9 +479,9 @@ describe(`${PLUGIN_NAME}`, () => {
         return str
       })
 
-      const result = await n.getNote('2023-01-01', false)
+      const result = await n.getNote('2023-01-01')
 
-      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('20230101')
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2023-01-01')
       expect(result).toEqual(mockNote)
     })
 
@@ -805,7 +805,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(DataStore.projectNoteByTitle).not.toHaveBeenCalled()
 
       // Should call calendarNoteByDateString with the converted name since isProjectNote is null
-      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('20240101')
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2024-01-01')
 
       // Should return the calendar note
       expect(result).toEqual(mockCalendarNote)

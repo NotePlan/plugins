@@ -183,16 +183,17 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
   }
   // formerly noteOpener
   // Convert ISO date format (YYYY-MM-DD) to NotePlan format (YYYYMMDD) if needed
-  let noteName = name
-  const convertedName = convertISOToYYYYMMDD(noteName) // convert ISO 8601 date to NotePlan format if needed/otherwise returns original string
-  if (convertedName !== noteName) {
-    logDebug('note/getNote', `  Converting ISO date ${noteName} to NotePlan format ${convertedName}`)
-    noteName = convertedName
-  }
+  const noteName = name
+  // const convertedName = convertISOToYYYYMMDD(noteName) // convert ISO 8601 date to NotePlan format if needed/otherwise returns original string
+  // if (convertedName !== noteName) {
+  //   logDebug('note/getNote', `  Converting ISO date ${noteName} to NotePlan format ${convertedName}`)
+  //   noteName = convertedName
+  // }
 
   const hasExtension = noteName.endsWith('.md') || noteName.endsWith('.txt')
   const hasFolder = noteName.includes('/')
   const isCalendarNote = isValidCalendarNoteFilename(noteName) || isValidCalendarNoteTitleStr(noteName)
+  logDebug('note/getNote', `  isCalendarNote=${String(isCalendarNote)} ${isValidCalendarNoteFilename(noteName)} ${isValidCalendarNoteTitleStr(noteName)}`)
   logDebug(
     'note/getNote',
     `  Will try to open filename: "${name} (${noteName})" using ${onlyLookInRegularNotes ? 'projectNoteByFilename' : 'noteByFilename'} ${hasExtension ? '' : ' (no extension)'} ${
@@ -212,15 +213,23 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
     }
   } else {
     // not a filename, so try to find a note by title
-    if (!isCalendarNote) {
+    logDebug('note/getNote', `  Trying to find note by title ${noteName} ${isCalendarNote ? ' (calendar note)' : ''}`)
+    if (isCalendarNote) {
+      logDebug('note/getNote', `  Trying to find calendar note by title ${noteName}`)
       if (onlyLookInRegularNotes) {
+        logDebug('note/getNote', `  Trying to find calendar note by title ${name}`)
         // deal with the edge case of someone who has a project note with a title that could be a calendar note
         const potentialNotes = DataStore.projectNoteByTitle(name)
         if (potentialNotes && potentialNotes.length > 0) {
           theNote = potentialNotes.find((n) => n.filename.startsWith(filePathStartsWith))
         }
       } else {
+        logDebug('note/getNote', `  Trying to find calendar note by date string ${noteName}`)
         theNote = await DataStore.calendarNoteByDateString(noteName)
+        if (!theNote) {
+          logDebug('note/getNote', `  Trying to find calendar note by date string ${name}`)
+          theNote = await DataStore.calendarNoteByDateString(name)
+        }
       }
     } else {
       const pathParts = noteName.split('/')
