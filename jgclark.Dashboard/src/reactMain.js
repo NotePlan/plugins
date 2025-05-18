@@ -357,6 +357,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
 export async function reactWindowInitialisedSoStartGeneratingData(): Promise<void> {
   logDebug('reactWindowInitialisedSoStartGeneratingData', `--> React Window reported back to plugin that it has loaded <--`)
   const config = await getDashboardSettings()
+  const logSettings = await getLogSettings()
   const enabledSections = getListOfEnabledSections(config)
 
   // Start generating data for the enabled sections
@@ -369,7 +370,7 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
   // ---------------------------------------------------------------
 
   // Rebuild the tag mention cache. (Ideally this would be triggered by NotePlan once a day, but for now we will do it here.)
-  await generateTagMentionCache()
+  if (config.FFlag_UseTagCache && (logSettings._logLevel !== 'DEV' || NotePlan.environment.machineName !== 'mm5.local')) await generateTagMentionCache()
 }
 
 /**

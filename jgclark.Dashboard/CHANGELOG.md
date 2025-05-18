@@ -11,6 +11,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.3.0.b2] 2025-05-15
 ### DEV notes
 - restored the FFlag for tagMentionCache
+- turned off full cache generation just for JGC on Hard Refresh
 
 ## [2.3.0.b1] 2025-05-15
 ### Added

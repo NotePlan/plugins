@@ -72,9 +72,6 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       let notesWithTag: Array<TNote> = []
       if (config?.FFlag_UseTagCache) {
         const filenamesWithTagFromCache = await getFilenamesOfNotesWithTagOrMentions([sectionDetail.sectionName], true)
-        logInfo('getTaggedSectionData', `- found ${filenamesWithTagFromCache.length} filenames: [${filenamesWithTagFromCache.join(',')}]`)
-
-        // TODO: try moving the folder-filtering here, and see if it makes enough of a time difference
 
         // This is taking about 2ms per note for JGC
         filenamesWithTagFromCache.forEach((filename) => {
@@ -85,7 +82,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
             logError('getTaggedSectionData', `- failed to get note by filename ${filename}`)
           }
         })
-        logTimer('getTaggedSectionData', thisStartTime, `- from CACHE filename list looked up ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
+        logTimer('getTaggedSectionData', thisStartTime, `- from CACHE found ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
         // $FlowIgnore[unsafe-arithmetic]
         // cacheLookupTime = new Date() - cachedOperationStartTime
       } else {
@@ -95,15 +92,17 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true, true, true)
         // $FlowIgnore[unsafe-arithmetic]
         // const APILookupTime = new Date() - thisStartTime
-        logTimer('getTaggedSectionData', thisStartTime, `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName} from API in ${timer(thisStartTime)}`)
+        logTimer('getTaggedSectionData', thisStartTime, `- from API only found ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
       }
 
+      const excludedFolders = config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',').map((folder) => folder.trim()) : []
+
       for (const n of notesWithTag) {
-        logTimer('getTaggedSectionData', thisStartTime, `- start of processing for note "${n.filename}"`)
+        // logTimer('getTaggedSectionData', thisStartTime, `- start of processing for note "${n.filename}"`)
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
-        if (stringListOrArrayToArray(config.excludedFolders, ',').includes(thisNoteFolder)) {
-          // logDebug('getTaggedSectionData', `  - ignoring note '${n.filename}' as it is in an ignored folder`)
+        if (excludedFolders.includes(thisNoteFolder)) {
+          logDebug('getTaggedSectionData', `  - ignoring note '${n.filename}' as it is in an ignored folder`)
           continue
         }
 
@@ -112,8 +111,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
         // If we want to use note tags, and the note has a 'note-tag' field in its FM, then work out if the note-tag matches this particular tag/mention.
         let hasMatchingNoteTag = false
-        if (/* config.FFlag_UseNoteTags && */ noteHasFrontMatter(n)) {
-          // logDebug('getTaggedSectionData', `- note "${n.filename}" has FM`)
+        if (noteHasFrontMatter(n)) {
           const noteTagAttribute = getFrontMatterAttribute(n, 'note-tag')
           const noteTagList = noteTagAttribute ? stringListOrArrayToArray(noteTagAttribute, ',') : []
           if (noteTagList.length > 0) {
@@ -126,7 +124,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         const tagParasFromNote = (hasMatchingNoteTag)
           ? paras
           : paras.filter((p) => p.content?.includes(sectionDetail.sectionName))
-        logTimer('getTaggedSectionData', thisStartTime, `- found ${tagParasFromNote.length} paras containing ${sectionDetail.sectionName} in "${n.filename}"`)
+        logTimer('getTaggedSectionData', thisStartTime, `- found ${tagParasFromNote.length} ${sectionDetail.sectionName} items in "${n.filename}"`)
 
         // Further filter out checklists and otherwise empty items
         const filteredTagParasFromNote = config.ignoreChecklistItems
@@ -157,11 +155,17 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         // Remove possible dupes from these sync'd lines. Note: this is a quick operation, as we aren't using the 'most recent' option (which does a sort)
         filteredTagParas = eliminateDuplicateSyncedParagraphs(filteredTagParas)
         logTimer('getTaggedSectionData', thisStartTime, `- after sync dedupe -> ${filteredTagParas.length}`)
+
         // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
+        const beforeFilterCount = filteredTagParas.length
         // Note: this is a quick operation
         // $FlowIgnore[class-object-subtyping]
         filteredTagParas = removeDuplicates(filteredTagParas, ['content', 'filename'])
         logTimer('getTaggedSectionData', thisStartTime, `- after removeDuplicates -> ${filteredTagParas.length}`)
+        const afterFilterCount = filteredTagParas.length
+        if (beforeFilterCount !== afterFilterCount) {
+          logDebug('getTaggedSectionData', `  - filtered out (${beforeFilterCount - afterFilterCount}) duplicate items`)
+        }
 
         // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
         // Note: this is a pretty quick operation (3-4ms / item)
@@ -209,7 +213,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
     sectionTitleColorPart: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
     sectionFilename: '',
     sectionItems: items,
-    totalCount: totalCount, // Note: Now not sure how this is used (if it is)
+    totalCount: totalCount,
     generatedDate: new Date(),
     isReferenced: false,
     actionButtons: [],
