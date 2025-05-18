@@ -26,7 +26,8 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 - Fix bug in promises in date shorthand codes
 - add note.currentNote() to NoteModule
 - fixed formattedDateTime to work with strftime format (what it was) or moment (what we use everywhere else)
-
+- added `moment` to globals
+- fixed `now` which did not match the documentation -- now works with simple offsetDays
 
 ## [1.12.0] 2025-03-09 @dwertheimer
 

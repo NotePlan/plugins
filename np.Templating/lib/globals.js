@@ -6,12 +6,14 @@
 // @flow
 /* eslint-disable */
 
+import moment from 'moment/min/moment-with-locales'
+
 import pluginJson from '../plugin.json'
 
 import { datePicker, askDateInterval } from '@helpers/userInput'
 import { getFormattedTime } from '@helpers/dateTime'
 import DateModule from './support/modules/DateModule'
-import { now, timestamp, format } from './support/modules/DateModule'
+import { format } from './support/modules/DateModule'
 import { time } from './support/modules/TimeModule'
 import { getAffirmation } from './support/modules/affirmation'
 import { getAdvice } from './support/modules/advice'
@@ -88,6 +90,8 @@ async function invokePluginCommandByName(pluginId: string = '', pluginCommand: s
 */
 
 const globals = {
+  moment: moment,
+
   affirmation: async (): Promise<string> => {
     return await getAffirmation()
   },
@@ -183,12 +187,18 @@ const globals = {
     return await invokePluginCommandByName('dwertheimer.DateAutomations', 'getWeekDates', [JSON.stringify(params)])
   },
 
-  now: async (): Promise<string> => {
-    return now()
+  now: async (format?: string, offset?: string | number): Promise<string> => {
+    const dateModule = new DateModule() // Use default config for global helper
+    // $FlowFixMe[incompatible-call] - DateModule.now expects (string, string|number) but offset could be undefined if not passed.
+    // The class method now(format = '', offset = '') handles undefined/empty string for format/offset.
+    return dateModule.now(format, offset)
   },
 
-  timestamp: async (): Promise<string> => {
-    return timestamp()
+  timestamp: async (format?: string): Promise<string> => {
+    const dateModule = new DateModule()
+    // $FlowFixMe[incompatible-call] - DateModule.timestamp expects (string) but format could be undefined.
+    // The class method timestamp(format = '') handles undefined/empty string.
+    return dateModule.timestamp(format)
   },
 
   currentTime: async (): Promise<string> => {
@@ -196,7 +206,9 @@ const globals = {
   },
 
   currentDate: async (): Promise<string> => {
-    return now()
+    // Calls the 'now' function defined within this same globals object.
+    // It will use default format and no offset.
+    return globals.now()
   },
 
   selection: async (): Promise<string> => {

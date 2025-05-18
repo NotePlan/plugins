@@ -571,13 +571,13 @@
                 if (token && token[1]) {
                   // Check current line first
                   if (lineNo > 0 && lineNo <= lines.length && lines[lineNo - 1].includes(token[1])) {
-                    errorContext = `Unexpected syntax on line ${lineNo} involving "${token[1]}".`
+                    errorContext = `Unexpected syntax on line ${lineNo} (or before) involving "${token[1]}".`
                     suggestedFix = `Check for mismatched brackets, parentheses, or missing semicolons.`
                   } else {
                     // Look through nearby lines
                     for (let i = Math.max(0, lineNo - 3); i <= lineNo; i++) {
                       if (i < lines.length && lines[i].includes(token[1])) {
-                        errorContext = `Unexpected syntax on line ${i + 1} involving "${token[1]}".`
+                        errorContext = `Unexpected syntax on line ${i + 1} (or before) involving "${token[1]}".`
                         suggestedFix = `Check for mismatched brackets, parentheses, or missing semicolons.`
                         updatedLineNo = i + 1
                         break

@@ -25,7 +25,7 @@ describe('EJS Error Handling', () => {
   })
 
   afterEach(() => {
-    console.log = originalConsoleLog
+    // console.log = originalConsoleLog
     consoleOutput = []
   })
 
@@ -45,16 +45,16 @@ describe('EJS Error Handling', () => {
       expect(true).toBe(false) // Alternative to fail()
     } catch (err) {
       // Print debugging information
-      console.error('\n\n=== TEST DEBUG INFO ===')
-      console.error(`Error object: ${JSON.stringify(err, null, 2)}`)
-      console.error(`Error message: ${err.message}`)
-      console.error(`Expected line: ${expectation.lineNo}, Actual line: ${err.lineNo}`)
+      // console.error('\n\n=== TEST DEBUG INFO ===')
+      // console.error(`Error object: ${JSON.stringify(err, null, 2)}`)
+      // console.error(`Error message: ${err.message}`)
+      // console.error(`Expected line: ${expectation.lineNo}, Actual line: ${err.lineNo}`)
 
       // Print marker line information
       const errorLines = err.message.split('\n')
       const markerLine = errorLines.find((line) => line.includes('>>'))
-      console.error(`Marker line: "${markerLine}"`)
-      console.error('=== END DEBUG INFO ===\n\n')
+      // console.error(`Marker line: "${markerLine}"`)
+      // console.error('=== END DEBUG INFO ===\n\n')
 
       // Check line number in error if provided
       if (expectation.lineNo !== undefined) {
@@ -262,7 +262,7 @@ Line 7`
         // For syntax errors, we only verify that an error was thrown
         // The specific format and content may vary across environments
         expect(err).toBeDefined()
-        console.log('Syntax error test passed with error:', err.message)
+        // console.log('Syntax error test passed with error:', err.message)
       }
     })
   })
@@ -275,7 +275,7 @@ Line 7`
         expect(true).toBe(false)
       } catch (err) {
         expect(err).toBeDefined()
-        console.log('Syntax error test passed with error:', err.message)
+        // console.log('Syntax error test passed with error:', err.message)
       }
     })
   })

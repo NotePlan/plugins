@@ -10,7 +10,6 @@ import { log, clo, logDebug, logError } from '@helpers/dev'
 import { getCodeBlocksOfType } from '@helpers/codeblocks'
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
-import { timestamp } from '@templatingModules/DateModule'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
 
 import { getTemplateFolder } from 'NPTemplating'
@@ -445,7 +444,7 @@ export async function templateMeetingNote(templateName: string = '', templateDat
           newNoteTitle = frontmatterAttributes.newNoteTitle
         } else {
           const format = await getSetting('np.Templating', 'timestampFormat')
-          const info = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', timestamp(format))
+          const info = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', new DateModule().timestamp(format))
           newNoteTitle = info ? info : ''
           if (typeof newNoteTitle === 'boolean' || newNoteTitle.length === 0) {
             return // user did not provide note title (Cancel) abort

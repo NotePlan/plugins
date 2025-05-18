@@ -4,7 +4,7 @@ import colors from 'chalk'
 import DateModule from '../lib/support/modules/DateModule'
 import moment from 'moment-business-days'
 
-import { currentDate, now, format, timestamp, date8601 } from '../lib/support/modules/DateModule'
+import { currentDate, format, date8601 } from '../lib/support/modules/DateModule'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
@@ -104,12 +104,42 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(moment(new Date()).format('YYYY-MM'))
     })
 
-    it(`should render ${method('.timestamp')} using configuration with timestampFormat defined`, async () => {
-      const testConfig = {
-        timestampFormat: 'YYYY-MM-DD h:mm A',
-      }
-      const result = new DateModule(testConfig).timestamp()
-      expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD h:mm A'))
+    it(`should render ${method('.timestamp')} default (no format) as local ISO8601 string`, () => {
+      const dm = new DateModule()
+      const result = dm.timestamp()
+      const expected = moment().format() // e.g., "2023-10-27T17:30:00-07:00"
+      expect(result).toEqual(expected)
+      // Check it contains a T and a timezone offset (+/-HH:mm or Z)
+      expect(result).toMatch(/T.*([+-]\d{2}:\d{2}|Z)/)
+    })
+
+    it(`should render ${method('.timestamp')} with a custom format string`, () => {
+      const dm = new DateModule()
+      const formatStr = 'dddd, MMMM Do YYYY, h:mm:ss a'
+      const result = dm.timestamp(formatStr)
+      const expected = moment().format(formatStr)
+      expect(result).toEqual(expected)
+    })
+
+    it(`should render ${method('.timestamp')} with 'UTC_ISO' format as UTC ISO8601 string`, () => {
+      const dm = new DateModule()
+      const result = dm.timestamp('UTC_ISO')
+      const expected = moment.utc().format() // e.g., "2023-10-27T23:30:00Z"
+      expect(result).toEqual(expected)
+      expect(result.endsWith('Z')).toBe(true)
+    })
+
+    it(`should render ${method('.timestamp')} respecting locale from config for formatted strings`, () => {
+      // LLLL format is locale-sensitive, e.g. "Montag, 21. Oktober 2024 15:30"
+      const dm = new DateModule({ templateLocale: 'de-DE' })
+      const formatStr = 'LLLL'
+      // Moment global locale is changed by dm.setLocale() inside timestamp(), so direct moment().format() will use it.
+      const result = dm.timestamp(formatStr)
+      // To get the expected value, we explicitly set locale for this moment instance before formatting.
+      const expected = moment().locale('de-DE').format(formatStr)
+      expect(result).toEqual(expected)
+      // Reset locale for subsequent tests if necessary, though DateModule usually sets it per call.
+      moment.locale('en') // Reset to default for other tests
     })
 
     it(`should render ${method('.now')} using positive offset`, async () => {
@@ -754,61 +784,27 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     describe(`${block('helpers')}`, () => {
-      it(`should render ${method('now')} helper using default format`, async () => {
-        const result = now()
-
-        expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
-      })
-
-      it(`should render ${method('now')} helper using custom format`, async () => {
-        const result = now('YYYY-MM')
-
-        expect(result).toEqual(moment(new Date()).format('YYYY-MM'))
-      })
-
       it(`should use ${method('format')} helper with default format`, async () => {
         const result = format(null, '2021-10-16')
-
         const assertValue = moment('2021-10-16').format('YYYY-MM-DD')
-
         expect(result).toEqual(assertValue)
       })
 
       it(`should use ${method('format')} helper with custom format`, async () => {
         const result = format('YYYY-MM', '2021-10-16')
-
         const assertValue = moment('2021-10-16').format('YYYY-MM')
-
         expect(result).toEqual(assertValue)
       })
 
-      it(`should use ${method('timestamp')} helper`, async () => {
-        const result = new DateModule().timestamp()
-
-        const assertValue = timestamp()
-
-        expect(result).toEqual(assertValue)
-      })
-
-      it(`should use ${method('timestamp')} helper with custom format`, async () => {
-        const result = new DateModule({ timestampFormat: 'YYYY MM DD hh:mm:ss' }).timestamp()
-
-        const assertValue = timestamp('YYYY MM DD hh:mm:ss')
-
-        expect(result).toEqual(assertValue)
-      })
-
-      it(`should use ${method('date8601')} helper`, async () => {
-        const result = new DateModule().date8601()
-
-        const assertValue = date8601()
-
-        expect(result).toEqual(assertValue)
+      it(`should use ${method('date8601')} helper correctly`, async () => {
+        const instanceResult = new DateModule().date8601()
+        const helperResult = date8601() // This calls the modified helper
+        expect(helperResult).toEqual(instanceResult)
+        expect(helperResult).toEqual(moment(new Date()).format('YYYY-MM-DD'))
       })
 
       it(`should render ${method('currentDate')} helper using default format`, async () => {
         const result = currentDate()
-
         expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
       })
     })
@@ -877,5 +873,60 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(dateModule.daysUntil('')).toBe(0)
       })
     })
+
+    // Start of new comprehensive tests for DateModule.prototype.now()
+    describe(`${method('.now() class method with offsets and Intl formats')}`, () => {
+      it("should respect numeric offset with 'short' Intl format", () => {
+        const dm = new DateModule()
+        const offsetDate = moment().add(7, 'days').toDate()
+        const expected = new Intl.DateTimeFormat('en-US', { dateStyle: 'short' }).format(offsetDate)
+        expect(dm.now('short', 7)).toEqual(expected)
+      })
+
+      it("should respect negative shorthand offset with 'medium' Intl format", () => {
+        const dm = new DateModule()
+        const offsetDate = moment().subtract(1, 'week').toDate()
+        const expected = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(offsetDate)
+        expect(dm.now('medium', '-1w')).toEqual(expected)
+      })
+
+      it("should respect shorthand offset with 'long' Intl format and custom locale from config", () => {
+        const dm = new DateModule({ templateLocale: 'de-DE' })
+        const offsetDate = moment().add(2, 'months').toDate()
+        const expected = new Intl.DateTimeFormat('de-DE', { dateStyle: 'long' }).format(offsetDate)
+        expect(dm.now('long', '+2M')).toEqual(expected)
+      })
+
+      it('should use config.dateFormat with a positive numerical offset', () => {
+        const dm = new DateModule({ dateFormat: 'MM/DD/YY' })
+        const expected = moment().add(5, 'days').format('MM/DD/YY')
+        expect(dm.now('', 5)).toEqual(expected)
+      })
+
+      it('should handle positive day shorthand with custom format', () => {
+        const dm = new DateModule()
+        const expected = moment().add(3, 'days').format('YYYY/MM/DD')
+        expect(dm.now('YYYY/MM/DD', '+3d')).toEqual(expected)
+      })
+
+      it('should handle negative year shorthand with default format', () => {
+        const dm = new DateModule()
+        const expected = moment().subtract(1, 'year').format('YYYY-MM-DD')
+        expect(dm.now('', '-1y')).toEqual(expected)
+      })
+
+      it('should handle zero offset correctly with Intl format', () => {
+        const dm = new DateModule()
+        const expected = new Intl.DateTimeFormat('en-US', { dateStyle: 'full' }).format(moment().toDate())
+        expect(dm.now('full', 0)).toEqual(expected)
+      })
+
+      it('should handle empty string offset as no offset with custom format', () => {
+        const dm = new DateModule()
+        const expected = moment().format('ddd, MMM D, YYYY')
+        expect(dm.now('ddd, MMM D, YYYY', '')).toEqual(expected)
+      })
+    })
+    // End of new comprehensive tests
   })
 })
