@@ -135,7 +135,12 @@ export function getJSDateStartOfToday(): Date {
 // Note: there are others in NPdateTime.js that use locale settings
 
 // Get current time in various ways
-export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
+export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => {
+  if (format.includes('%')) {
+    return strftime(format)
+  }
+  return moment().format(format)
+}
 
 // Note: there are others in NPdateTime.js that use locale settings
 
@@ -184,7 +189,7 @@ export function getCalendarNoteTimeframe(note: TNote): false | 'day' | 'week' | 
   return false // all other cases
 }
 
-export const isDailyDateStr = (dateStr: string): boolean => (new RegExp(RE_DATE).test(dateStr) || new RegExp(RE_NP_DAY_SPEC).test(dateStr))
+export const isDailyDateStr = (dateStr: string): boolean => new RegExp(RE_DATE).test(dateStr) || new RegExp(RE_NP_DAY_SPEC).test(dateStr)
 
 export const isWeeklyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_WEEK_SPEC).test(dateStr)
 
@@ -256,10 +261,7 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
   }
   // logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith ? replaceWith : 'null'}, repl=${repl ? repl : 'null'}`)
   while (str && isScheduled(str)) {
-    str = str
-      .replace(RE_SCHEDULED_DATES_G, '')
-      .replace(/ {2,}/g, ' ')
-      .trim()
+    str = str.replace(RE_SCHEDULED_DATES_G, '').replace(/ {2,}/g, ' ').trim()
   }
   // logDebug(`replaceArrowDatesInString: AFTER will return ${repl && repl.length > 0 ? `${str} ${repl}` : str}`)
   return repl && repl.length > 0 ? `${str} ${repl}` : str
@@ -295,7 +297,7 @@ export type HourMinObj = { h: number, m: number }
  * Change YYYY-MM-DD to YYYYMMDD, if needed. Leave the rest of the string (which is expected to be a filename) unchanged.
  * Note: updated in Apr 2025 to cope with Teamspace Calendar notes (with leading %%NotePlanCloud%%/UUID/) as well as private daily notes.
  * @param {string} dailyNoteFilename
- * @returns {string} with YYYYMMDD in place of YYYY-MM-DD where found. 
+ * @returns {string} with YYYYMMDD in place of YYYY-MM-DD where found.
  */
 export function convertISODateFilenameToNPDayFilename(dailyNoteFilename: string): string {
   const matches = dailyNoteFilename.match(RE_ISO_DATE)
@@ -1031,14 +1033,14 @@ export function getNPDateFormatForFilenameFromOffsetUnit(unit: string): string {
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_DAY // = YYYYMMDD not display format
       : unit === 'w'
-        ? MOMENT_FORMAT_NP_WEEK
-        : unit === 'm'
-          ? MOMENT_FORMAT_NP_MONTH
-          : unit === 'q'
-            ? MOMENT_FORMAT_NP_QUARTER
-            : unit === 'y'
-              ? MOMENT_FORMAT_NP_WEEK
-              : ''
+      ? MOMENT_FORMAT_NP_WEEK
+      : unit === 'm'
+      ? MOMENT_FORMAT_NP_MONTH
+      : unit === 'q'
+      ? MOMENT_FORMAT_NP_QUARTER
+      : unit === 'y'
+      ? MOMENT_FORMAT_NP_WEEK
+      : ''
   return momentDateFormat
 }
 
@@ -1053,14 +1055,14 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_ISO // = YYYY-MM-DD not filename format
       : unit === 'w'
-        ? MOMENT_FORMAT_NP_WEEK
-        : unit === 'm'
-          ? MOMENT_FORMAT_NP_MONTH
-          : unit === 'q'
-            ? MOMENT_FORMAT_NP_QUARTER
-            : unit === 'y'
-              ? MOMENT_FORMAT_NP_YEAR
-              : ''
+      ? MOMENT_FORMAT_NP_WEEK
+      : unit === 'm'
+      ? MOMENT_FORMAT_NP_MONTH
+      : unit === 'q'
+      ? MOMENT_FORMAT_NP_QUARTER
+      : unit === 'y'
+      ? MOMENT_FORMAT_NP_YEAR
+      : ''
   return momentDateFormat
 }
 
@@ -1441,7 +1443,9 @@ export function includesScheduledFurtherFutureDate(line: string, futureStartsInD
  */
 export function filenameIsInFuture(filename: string, fromYYYYMMDDDateStringFromDate: string = getTodaysDateUnhyphenated()): boolean {
   const today = new Date(
-    parseInt(fromYYYYMMDDDateStringFromDate.slice(0, 4)), parseInt(fromYYYYMMDDDateStringFromDate.slice(4, 6), 10) - 1, parseInt(fromYYYYMMDDDateStringFromDate.slice(6, 8), 10)
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(0, 4)),
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(4, 6), 10) - 1,
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(6, 8), 10),
   )
 
   // Test for daily notes

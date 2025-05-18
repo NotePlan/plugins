@@ -153,6 +153,7 @@ export function getNoteLinkForDisplay(filename: string, dateStyle: string): stri
  * - an ISO date (YYYY-MM-DD or YYYYMMDD) of a calendar note
  * @author @dwertheimer
  * @param {string} name - The note identifier, can be:
+ *   - An empty string, in which case the current note in the Editorwill be returned
  *   - A filename with extension (e.g., "myNote.md" or "20240101.md")
  *   - A title without extension (e.g., "My Note" or "January 1, 2024")
  *   - A path and title (e.g., "folder/My Note")
@@ -176,7 +177,10 @@ export function getNoteLinkForDisplay(filename: string, dateStyle: string): stri
  * // Get a note with a specific path and title, ensuring it's in a specific folder
  * const note = await getNote('Snippets/Import Item', false, '@Templates');
  */
-export async function getNote(name: string, onlyLookInRegularNotes: boolean | null = null, filePathStartsWith: string = ''): Promise<?TNote> {
+export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | null, filePathStartsWith?: string): Promise<?TNote> {
+  if (!name) {
+    return Editor.note
+  }
   // formerly noteOpener
   // Convert ISO date format (YYYY-MM-DD) to NotePlan format (YYYYMMDD) if needed
   let noteName = name
@@ -191,7 +195,7 @@ export async function getNote(name: string, onlyLookInRegularNotes: boolean | nu
   const isCalendarNote = isValidCalendarNoteFilename(noteName) || isValidCalendarNoteTitleStr(noteName)
   logDebug(
     'note/getNote',
-    `  Will try to open filename: "${noteName}" using ${onlyLookInRegularNotes ? 'projectNoteByFilename' : 'noteByFilename'} ${hasExtension ? '' : ' (no extension)'} ${
+    `  Will try to open filename: "${name} (${noteName})" using ${onlyLookInRegularNotes ? 'projectNoteByFilename' : 'noteByFilename'} ${hasExtension ? '' : ' (no extension)'} ${
       hasFolder ? '' : ' (no folder)'
     } ${isCalendarNote ? ' (calendar note)' : ''}`,
   )
@@ -208,7 +212,7 @@ export async function getNote(name: string, onlyLookInRegularNotes: boolean | nu
     }
   } else {
     // not a filename, so try to find a note by title
-    if (isCalendarNote) {
+    if (!isCalendarNote) {
       if (onlyLookInRegularNotes) {
         // deal with the edge case of someone who has a project note with a title that could be a calendar note
         const potentialNotes = DataStore.projectNoteByTitle(name)
@@ -887,17 +891,17 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
  */
 export function isNoteFromAllowedFolder(note: TNote, allowedFolderList: Array<string>, allowAllCalendarNotes: boolean = true): boolean {
   try {
-  // Calendar note check
-  if (note.type === 'Calendar') {
-    // logDebug('isNoteFromAllowedFolder', `-> Calendar note ${allowAllCalendarNotes ? 'allowed' : 'NOT allowed'} as a result of allowAllCalendarNotes`)
-    return allowAllCalendarNotes
-  }
+    // Calendar note check
+    if (note.type === 'Calendar') {
+      // logDebug('isNoteFromAllowedFolder', `-> Calendar note ${allowAllCalendarNotes ? 'allowed' : 'NOT allowed'} as a result of allowAllCalendarNotes`)
+      return allowAllCalendarNotes
+    }
 
-  // Is regular note's filename in allowedFolderList?
-  const noteFolder = getFolderFromFilename(note.filename)
-  // Test if allowedFolderList includes noteFolder
-  const matchFound = allowedFolderList.includes(noteFolder)
-  // logDebug('isNoteFromAllowedFolder', `- ${matchFound ? 'match' : 'NO match'} to '${note.filename}' folder '${noteFolder}' from ${String(allowedFolderList.length)} folders`)
+    // Is regular note's filename in allowedFolderList?
+    const noteFolder = getFolderFromFilename(note.filename)
+    // Test if allowedFolderList includes noteFolder
+    const matchFound = allowedFolderList.includes(noteFolder)
+    // logDebug('isNoteFromAllowedFolder', `- ${matchFound ? 'match' : 'NO match'} to '${note.filename}' folder '${noteFolder}' from ${String(allowedFolderList.length)} folders`)
     return matchFound
   } catch (err) {
     logError('note/isNoteFromAllowedFolder', err)

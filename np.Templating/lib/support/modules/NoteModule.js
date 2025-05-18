@@ -25,8 +25,12 @@ export default class NoteModule {
     if (filename == null) {
       return null
     }
-    const note = DataStore.noteByFilename(filename, Editor.type ?? 'Notes')
+    const note = Editor.note
     return note
+  }
+
+  currentNote(): ?Note {
+    return Editor.note
   }
 
   setCursor(line: number = 0, position: number = 0): string {

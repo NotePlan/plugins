@@ -81,6 +81,20 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
+    it(`should format current time when no date is supplied`, () => {
+      const timeModule = new TimeModule()
+      const formatString = 'h:mm:ss A'
+      const result = timeModule.format(formatString)
+      // We expect it to format the current time, so we compare against moment() with the same format.
+      // To avoid issues with the exact second the test runs, we can either:
+      // 1. Mock the date (more complex for a single test here)
+      // 2. Check if the format is correct and it roughly matches the current time.
+      // For simplicity, let's check if it matches moment's formatting of now.
+      // Note: this could still rarely fail if the second ticks over between the call and the expect.
+      const expected = moment().format(formatString)
+      expect(result).toEqual(expected)
+    })
+
     describe(block(`TimeModule helpers`), () => {
       it(`time`, () => {
         // replacing 0x202F with a space because for some reason, in node 18

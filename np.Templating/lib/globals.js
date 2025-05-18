@@ -11,7 +11,7 @@ import pluginJson from '../plugin.json'
 import { datePicker, askDateInterval } from '@helpers/userInput'
 import { getFormattedTime } from '@helpers/dateTime'
 import DateModule from './support/modules/DateModule'
-import { now, timestamp } from './support/modules/DateModule'
+import { now, timestamp, format } from './support/modules/DateModule'
 import { time } from './support/modules/TimeModule'
 import { getAffirmation } from './support/modules/affirmation'
 import { getAdvice } from './support/modules/advice'
@@ -24,7 +24,7 @@ import { getSetting } from '../../helpers/NPConfiguration'
 import { log, logError, clo } from '@helpers/dev'
 import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 import { getNote } from '@helpers/note'
-
+import { journalingQuestion } from './support/modules/journal'
 export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
   logDebug(`globals::processDate: ${dateParams} as ${JSON.stringify(config)}`)
   const defaultConfig = config?.date ?? {}
@@ -89,19 +89,27 @@ async function invokePluginCommandByName(pluginId: string = '', pluginCommand: s
 
 const globals = {
   affirmation: async (): Promise<string> => {
-    return getAffirmation()
+    return await getAffirmation()
   },
 
   advice: async (): Promise<string> => {
-    return getAdvice()
+    return await getAdvice()
   },
 
   quote: async (): Promise<string> => {
-    return getDailyQuote()
+    return await getDailyQuote()
+  },
+
+  format: async (formatstr: string = '%Y-%m-%d %I:%M:%S %P'): Promise<string> => {
+    return await format(formatstr)
   },
 
   wotd: async (): Promise<string> => {
-    return getWOTD()
+    return await getWOTD()
+  },
+
+  journalingQuestion: async (): Promise<string> => {
+    return await journalingQuestion()
   },
 
   legacyDate: async (params: any = ''): Promise<string> => {
@@ -146,19 +154,19 @@ const globals = {
   },
 
   events: async (dateParams?: any): Promise<string> => {
-    return invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(dateParams)])
+    return await invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(dateParams)])
   },
 
   listTodaysEvents: async (params?: any = ''): Promise<string> => {
-    return invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(params)])
+    return await invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(params)])
   },
 
   matchingEvents: async (params: ?any = ''): Promise<string> => {
-    return invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
+    return await invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
   },
 
   listMatchingEvents: async (params: ?any = ''): Promise<string> => {
-    return invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
+    return await invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
   },
 
   sweepTasks: async (params: any = ''): Promise<string> => {
@@ -172,7 +180,7 @@ const globals = {
 
   weekDates: async (params: any): Promise<string> => {
     // $FlowIgnore
-    return invokePluginCommandByName('dwertheimer.DateAutomations', 'getWeekDates', [JSON.stringify(params)])
+    return await invokePluginCommandByName('dwertheimer.DateAutomations', 'getWeekDates', [JSON.stringify(params)])
   },
 
   now: async (): Promise<string> => {
@@ -192,7 +200,7 @@ const globals = {
   },
 
   selection: async (): Promise<string> => {
-    return Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
+    return await Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
   },
 
   clo: (obj: any, preamble: string = '', space: string | number = 2): void => {
@@ -221,9 +229,54 @@ const globals = {
 
   // general purpose getNote helper
   getNote: async (...params: any): Promise<TNote | null> => {
+    if (params.length === 0) return Editor.note
     return (await getNote(...params)) || null
   },
 }
 
 // module.exports = globals
 export default globals
+
+export const asyncFunctions = [
+  'CommandBar.chooseOption',
+  'CommandBar.prompt',
+  'CommandBar.textInput',
+  'DataStore.invokePluginCommandByName',
+  'advice',
+  'affirmation',
+  'currentDate',
+  'currentTime',
+  'date8601',
+  'doSomethingElse',
+  'events',
+  'existingAwait',
+  'format',
+  'getNote',
+  'getValuesForKey',
+  'invokeCommandByName',
+  'journalingQuestion',
+  'listEvents',
+  'listMatchingEvents',
+  'listTodaysEvents',
+  'logError',
+  'matchingEvents',
+  'note.content',
+  'note.selection',
+  'now',
+  'processData',
+  'progressUpdate',
+  'todayProgressFromTemplate',
+  'quote',
+  'selection',
+  'timestamp',
+  'verse',
+  'weather',
+  'web.advice',
+  'web.affirmation',
+  'web.journalingQuestion',
+  'web.quote',
+  'web.verse',
+  'web.weather',
+  'weekDates',
+  'wotd',
+]

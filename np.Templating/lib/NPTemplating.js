@@ -11,7 +11,7 @@ import FrontmatterModule from './support/modules/FrontmatterModule'
 import DateModule from './support/modules/DateModule'
 import { debug, helpInfo } from './helpers'
 
-import globals from './globals'
+import globals, { asyncFunctions as globalAsyncFunctions } from './globals' // Import asyncFunctions
 import { chooseOption } from '@helpers/userInput'
 import { clo, log, logError, logDebug, logWarn, timer, clof } from '@helpers/dev'
 import { datePicker, askDateInterval, chooseFolder } from '@helpers/userInput'
@@ -979,36 +979,6 @@ export default class NPTemplating {
 
     let mergedProtectedCode = NPTemplating._mergeMultiLineStatements(protectedCode)
 
-    const asyncFunctions = [
-      'invokeCommandByName',
-      'journalingQuestion',
-      'advice',
-      'affirmation',
-      'quote',
-      'verse',
-      'weather',
-      'web.journalingQuestion',
-      'web.advice',
-      'web.affirmation',
-      'web.quote',
-      'web.verse',
-      'web.weather',
-      'DataStore.invokePluginCommandByName',
-      'events',
-      'listTodaysEvents',
-      'note.content',
-      'logError',
-      'processData',
-      'existingAwait',
-      'doSomethingElse',
-      'CommandBar.prompt',
-      'CommandBar.chooseOption',
-      'CommandBar.textInput',
-      'date8601',
-      'now',
-      'timestamp',
-    ]
-
     const lines = mergedProtectedCode.split('\n')
     const processedLines: Array<string> = []
 
@@ -1030,7 +1000,7 @@ export default class NPTemplating {
           let statement = statements[i]
           // Avoid processing empty strings that resulted from multiple semicolons, e.g. foo();;bar()
           if (statement.length > 0) {
-            processedStatements.push(NPTemplating.processStatementForAwait(statement, asyncFunctions))
+            processedStatements.push(NPTemplating.processStatementForAwait(statement, globalAsyncFunctions)) // Use imported asyncFunctions
           } else if (i < statements.length - 1) {
             // if it's an empty string but not the last one (e.g. foo();;) keep it so join works
             processedStatements.push('')
@@ -1048,7 +1018,7 @@ export default class NPTemplating {
           processedLines.push(joinedStatements)
         }
       } else {
-        processedLines.push(NPTemplating.processStatementForAwait(line, asyncFunctions))
+        processedLines.push(NPTemplating.processStatementForAwait(line, globalAsyncFunctions)) // Use imported asyncFunctions
       }
     }
 

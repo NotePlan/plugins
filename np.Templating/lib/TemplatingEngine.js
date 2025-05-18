@@ -464,7 +464,10 @@ export default class TemplatingEngine {
       logDebug(`\n\nrender: AFTER render`)
       ouputData('after render')
       result = (result && result?.replace(/undefined/g, '')) || ''
-
+      result = result.replace(
+        /\[object Promise\]/g,
+        `[object Promise] (**Templating was not able to get the result of this tag. Try adding an 'await' before the function call. See documentation for more information.**)`,
+      )
       return this._replaceDoubleDashes(result)
     } catch (error) {
       logDebug(`render CAUGHT np.Templating error: ${typeof error === 'object' ? JSON.stringify(error, null, 2) : error}`)
