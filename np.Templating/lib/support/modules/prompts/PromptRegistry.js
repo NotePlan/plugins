@@ -149,6 +149,12 @@ function findMatchingPromptType(tagContent: string): ?{ promptType: Object, name
  */
 export async function processPromptTag(tag: string, sessionData: any, tagStart: string, tagEnd: string): Promise<string | false> {
   ;/prompt/i.test(tag) && logDebug(pluginJson, `processPromptTag starting with tag: ${tag}...`)
+
+  // Check for comment tags first - if it's a comment tag, return it unchanged
+  if (tag.startsWith(`${tagStart}#`)) {
+    return tag
+  }
+
   let content = ''
 
   if (tag.startsWith(`${tagStart}-`)) {

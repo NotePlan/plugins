@@ -856,16 +856,18 @@ export default class NPTemplating {
     // Get all template tags
     const tags = (await this.getTags(context.templateData)) || []
 
-    // Process each tag in a single pass
+    // First pass: Process all comment tags
     for (const tag of tags) {
-      logDebug(pluginJson, `preProcessing tag: ${tag}`)
-
-      // Process different tag types
       if (isCommentTag(tag)) {
         logDebug(pluginJson, `preProcess: found comment in tag: ${tag}`)
         await this._processCommentTag(tag, context)
-        continue
       }
+    }
+
+    // Second pass: Process remaining tags
+    const remainingTags = (await this.getTags(context.templateData)) || []
+    for (const tag of remainingTags) {
+      logDebug(pluginJson, `preProcessing tag: ${tag}`)
 
       if (tag.includes('note(')) {
         logDebug(pluginJson, `preProcess: found note() in tag: ${tag}`)
