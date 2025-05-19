@@ -8,7 +8,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 -->
 
-## [2.3.0] 2025-05-14
+## [2.3.0.b2] 2025-05-15
+### DEV notes
+- restored the FFlag for tagMentionCache
+- turned off full cache generation just for JGC on Hard Refresh
+
+## [2.3.0.b1] 2025-05-15
 ### Added
 - start of support for Teamspaces: open items in its calendar and regular notes are now included, and are shown with the name of the its Teamspace.
 - new **backupSettings** command, which can be run from an x-callback as well: `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=backupSettings` See README for details.

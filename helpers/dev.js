@@ -687,7 +687,7 @@ export function logDebug(pluginInfo: any, message: any = ''): string {
 
 /**
  * Time a function
- * @param {*} startTime - the date object from when timer started (using Date.now())
+ * @param {Date} startTime - the date object from when timer started (using Date.now())
  * @returns {string} - the formatted elapsed time
  * @author @dwertheimer
  * @example
@@ -700,8 +700,6 @@ export function timer(startTime: Date): string {
   const timeEnd = new Date()
   // $FlowIgnore[unsafe-arithmetic]
   const difference = timeEnd - timeStart
-  // const d = new Date(difference)
-  // const diffText = `${d.getMinutes()}m${d.getSeconds()}.${d.getMilliseconds()}s`
   const diffText = `${difference.toLocaleString()}ms`
   return diffText
 }
@@ -724,14 +722,18 @@ export function logTimer(functionName: string, startTime: Date, explanation: str
   const diffTimeText = `${difference.toLocaleString()}ms`
   const output = `${diffTimeText} ${explanation}`
   if (warningThreshold && difference > warningThreshold) {
-    const msg = `${dt().padEnd(19)} | ⏱️ ⚠️ ${functionName} | ${output}`
-    console.log(msg)
+    // const msg = `${dt().padEnd(19)} | ⏱️ ⚠️ ${functionName} | ${output}`
+    const msg = `⏱️ ⚠️ ${output}`
+    // console.log(msg)
+    log(functionName, msg, 'DEBUG')
   } else {
     const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
     // const timerSetting = pluginSettings['_logTimer'] ?? false
     if (pluginSettings && pluginSettings.hasOwnProperty('_logTimer') && pluginSettings['_logTimer'] === true) {
-      const msg = `${dt().padEnd(19)} | ⏱️ ${functionName} | ${output}`
-      console.log(msg)
+      // const msg = `${dt().padEnd(19)} | ⏱️ ${functionName} | ${output}`
+      const msg = `⏱️ ${output}`
+      // console.log(msg)
+      log(functionName, msg, 'DEBUG')
     }
   }
 }
