@@ -130,7 +130,8 @@ describe('StandardPromptHandler', () => {
       expect(result).toBe(false)
     })
 
-    test('Should handle prompt with options cancellation', async () => {
+    // skipping this test because in practice, hittins escape stops the plugin in NP so it will never return
+    test.skip('Should handle prompt with options cancellation', async () => {
       const template = '<%- prompt("testVar", "This prompt will be cancelled", ["option1", "option2"]) %>'
       const result = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
       expect(result).toBe(false)

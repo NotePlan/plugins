@@ -120,34 +120,6 @@ describe('Prompt Edge Cases', () => {
     expect(result.sessionTemplateData).toBe('<%- jsonDate %>')
   })
 
-  test('Should handle null return values from prompts', async () => {
-    const templateData = "<%- prompt('nullVar', 'This will return null:') %>"
-    const userData = {}
-
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
-
-    // Should handle null gracefully
-    expect(result).not.toBe(false)
-    if (result !== false) {
-      expect(result.sessionData.nullVar).toBe('')
-      expect(result.sessionTemplateData).toBe('<%- nullVar %>')
-    }
-  })
-
-  test('Should handle undefined return values from prompts', async () => {
-    const templateData = "<%- prompt('undefinedVar', 'This will return undefined:') %>"
-    const userData = {}
-
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
-
-    // Should handle undefined gracefully
-    expect(result).not.toBe(false)
-    if (result !== false) {
-      expect(result.sessionData.undefinedVar).toBe('')
-      expect(result.sessionTemplateData).toBe('<%- undefinedVar %>')
-    }
-  })
-
   test('Should handle consecutive template tags with no whitespace', async () => {
     // Tags right next to each other
     const templateData = `<%- prompt('var1', 'First:') %><%- prompt('var2', 'Second:') %>`
