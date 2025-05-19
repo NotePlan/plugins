@@ -112,7 +112,7 @@ export default class StandardPromptHandler {
    * @param {string|string[]} options - Options for the prompt
    * @returns {Promise<string>} The user's response
    */
-  static async getResponse(message: string, options: string | string[]): Promise<string> {
+  static async getResponse(message: string, options: string | string[]): Promise<string | false> {
     logDebug(pluginJson, `StandardPromptHandler.getResponse: Getting response for message="${message}", options=${JSON.stringify(options)}`)
 
     try {
@@ -126,8 +126,10 @@ export default class StandardPromptHandler {
         // Add logging about result to help diagnose escape key issues
         if (result === null) {
           logDebug(pluginJson, `StandardPromptHandler.getResponse: Result is null - likely cancelled with Escape`)
+          return ''
         } else if (result === undefined) {
           logDebug(pluginJson, `StandardPromptHandler.getResponse: Result is undefined - likely cancelled with Escape`)
+          return ''
         } else {
           logDebug(pluginJson, `StandardPromptHandler.getResponse: Result type: ${typeof result}`)
         }
@@ -143,7 +145,7 @@ export default class StandardPromptHandler {
         }
 
         logDebug(pluginJson, `StandardPromptHandler.getResponse: Empty result - user likely cancelled with Escape`)
-        return ''
+        return false
       } else {
         // For string options or no options, use textPrompt
         const defaultText = typeof options === 'string' ? options : ''
@@ -154,16 +156,15 @@ export default class StandardPromptHandler {
         // Add logging about result to help diagnose escape key issues
         if (promptResult === null) {
           logDebug(pluginJson, `StandardPromptHandler.getResponse: TextPrompt result is null - likely cancelled with Escape`)
+          return false
         } else if (promptResult === undefined) {
           logDebug(pluginJson, `StandardPromptHandler.getResponse: TextPrompt result is undefined - likely cancelled with Escape`)
+          return false
         } else if (promptResult === false) {
           logDebug(pluginJson, `StandardPromptHandler.getResponse: TextPrompt result is false - likely cancelled with Escape`)
+          return false
         } else {
           logDebug(pluginJson, `StandardPromptHandler.getResponse: TextPrompt result type: ${typeof promptResult}`)
-        }
-
-        if (promptResult === false || promptResult == null) {
-          return ''
         }
 
         return typeof promptResult === 'string' ? promptResult : String(promptResult)
@@ -179,9 +180,9 @@ export default class StandardPromptHandler {
    * @param {string} tag - The template tag.
    * @param {any} sessionData - The current session data.
    * @param {Object} paramsObj - The parameters from parseParameters.
-   * @returns {Promise<string>} The processed prompt result.
+   * @returns {Promise<string|false>} The processed prompt result or false if cancelled
    */
-  static async process(tag: string, sessionData: any, params: any): Promise<string> {
+  static async process(tag: string, sessionData: any, params: any): Promise<string | false> {
     const { varName, promptMessage, options, forcePrompt } = params
 
     logDebug(
@@ -297,6 +298,10 @@ export default class StandardPromptHandler {
 
       // Standard case - use the getResponse method
       const standardResponse = await StandardPromptHandler.getResponse(promptMessage, options)
+      if (standardResponse === false) {
+        logDebug(pluginJson, `StandardPromptHandler.process: Prompt cancelled - returning false`)
+        return false
+      }
       response = typeof standardResponse === 'string' ? standardResponse : ''
 
       // Store the result in the appropriate places in sessionData

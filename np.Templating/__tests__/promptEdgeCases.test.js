@@ -11,8 +11,26 @@ describe('Prompt Edge Cases', () => {
   beforeEach(() => {
     // Mock CommandBar methods
     global.CommandBar = {
-      textPrompt: jest.fn().mockResolvedValue('Test Response'),
-      showOptions: jest.fn().mockResolvedValue({ index: 0 }),
+      textPrompt: jest.fn<[string, string, string], string | null | void | false>().mockImplementation((title, message, defaultValue) => {
+        console.log('CommandBar.textPrompt called with:', { title, message, defaultValue })
+        if (message.includes('This will return null')) {
+          return null
+        }
+        if (message.includes('This will return undefined')) {
+          return undefined
+        }
+        if (message.includes('cancelled') || message.includes('This prompt will be cancelled')) {
+          return false
+        }
+        return 'Test Response'
+      }),
+      showOptions: jest.fn<[string, Array<any>], any | false>().mockImplementation((title, options) => {
+        console.log('CommandBar.showOptions called with:', { title, options })
+        if (title.includes('cancelled') || title.includes('This prompt will be cancelled')) {
+          return false
+        }
+        return { index: 0, value: 'Test Response' }
+      }),
     }
     global.DataStore = {
       settings: { logLevel: 'none' },
@@ -23,8 +41,8 @@ describe('Prompt Edge Cases', () => {
     jest.mock(
       '@helpers/userInput',
       () => ({
-        datePicker: jest.fn().mockImplementation(() => Promise.resolve('2023-01-15')),
-        askDateInterval: jest.fn().mockImplementation(() => Promise.resolve('2023-01-01 to 2023-01-31')),
+        datePicker: jest.fn<[], Promise<string>>().mockImplementation(() => Promise.resolve('2023-01-15')),
+        askDateInterval: jest.fn<[], Promise<string>>().mockImplementation(() => Promise.resolve('2023-01-01 to 2023-01-31')),
       }),
       { virtual: true },
     )
@@ -103,31 +121,31 @@ describe('Prompt Edge Cases', () => {
   })
 
   test('Should handle null return values from prompts', async () => {
-    // Mock a null return
-    global.CommandBar.textPrompt.mockResolvedValueOnce(null)
-
     const templateData = "<%- prompt('nullVar', 'This will return null:') %>"
     const userData = {}
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
     // Should handle null gracefully
-    expect(result.sessionData.nullVar).toBe('')
-    expect(result.sessionTemplateData).toBe('<%- nullVar %>')
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.nullVar).toBe('')
+      expect(result.sessionTemplateData).toBe('<%- nullVar %>')
+    }
   })
 
   test('Should handle undefined return values from prompts', async () => {
-    // Mock an undefined return
-    global.CommandBar.textPrompt.mockResolvedValueOnce(undefined)
-
     const templateData = "<%- prompt('undefinedVar', 'This will return undefined:') %>"
     const userData = {}
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
     // Should handle undefined gracefully
-    expect(result.sessionData.undefinedVar).toBe('')
-    expect(result.sessionTemplateData).toBe('<%- undefinedVar %>')
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.undefinedVar).toBe('')
+      expect(result.sessionTemplateData).toBe('<%- undefinedVar %>')
+    }
   })
 
   test('Should handle consecutive template tags with no whitespace', async () => {

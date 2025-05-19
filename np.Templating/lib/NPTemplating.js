@@ -1260,19 +1260,16 @@ export default class NPTemplating {
     }
   }
 
-  static async render(inTemplateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
-    const usePrompts = false
-
+  static async render(inputTemplateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
+    let templateData = inputTemplateData
+    let sessionData = { ...userData }
     try {
       await this.setup()
 
-      let sessionData = { ...userData },
-        templateData = ''
-
-      if (inTemplateData?.replace) {
+      if (templateData?.replace) {
         // front-matter doesn't always return strings (e.g. "true" is turned into a boolean)
         // work around an issue when creating templates references on iOS (Smart Quotes Enabled)
-        templateData = inTemplateData.replace(/'/g, `'`).replace(/'/g, `'`).replace(/"/g, `"`).replace(/"/g, `"`)
+        templateData = templateData.replace(/'/g, `'`).replace(/'/g, `'`).replace(/"/g, `"`).replace(/"/g, `"`)
       }
 
       // small edge case, likey never hit
@@ -1306,12 +1303,15 @@ export default class NPTemplating {
       // return templateData
 
       // process all template attribute prompts
-      if (isFrontmatterTemplate && usePrompts) {
+      if (isFrontmatterTemplate) {
         const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           let frontMatterValue = value
           // $FlowIgnore
-          const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
+          const promptData = await processPrompts(value, sessionData, '<%', '%>') // process prompts in frontmatter attributes
+          if (promptData === false) {
+            return '' // Return empty string if any prompt was cancelled
+          }
           frontMatterValue = promptData.sessionTemplateData
 
           logDebug(pluginJson, `render calling preProcess ${key}: ${frontMatterValue}`)
@@ -1338,7 +1338,11 @@ export default class NPTemplating {
       sessionData = { ...newSettingData }
 
       // perform all prompt operations in template body
-      const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
+      // Process prompt data
+      const promptData = await processPrompts(templateData, sessionData, '<%', '%>', this.getTags.bind(this))
+      if (promptData === false) {
+        return '' // Return empty string if any prompt was cancelled
+      }
       templateData = promptData.sessionTemplateData
       sessionData = promptData.sessionData
 
@@ -1450,27 +1454,6 @@ export default class NPTemplating {
     const TAGS_PATTERN = /<%.*?%>/gi
     const items = templateData.match(TAGS_PATTERN)
     return items || []
-  }
-
-  /**
-   * Processes all prompt tags within a template.
-   * @param {string} templateData The full template content.
-   * @param {any} sessionData The session data to update.
-   * @param {string} startTag The starting tag delimiter (default: '<%')
-   * @param {string} endTag The ending tag delimiter (default: '%>')
-   * @returns {Promise<{sessionTemplateData: string, sessionData: any}>}
-   */
-  static async processPrompts(templateData: string, userData: any, startTag: string = '<%', endTag: string = '%>'): Promise<any> {
-    // Prepare the template data by replacing legacy shorthand syntax
-    let sessionTemplateData = templateData
-    sessionTemplateData = sessionTemplateData.replace(/<%@/gi, '<%- prompt')
-    sessionTemplateData = sessionTemplateData.replace(/system.promptDateInterval/gi, 'promptDateInterval')
-    sessionTemplateData = sessionTemplateData.replace(/system.promptDate/gi, 'promptDate')
-    sessionTemplateData = sessionTemplateData.replace(/system.promptKey/gi, 'promptKey')
-    sessionTemplateData = sessionTemplateData.replace(/<%=/gi, '<%-')
-
-    // Delegate to the prompt registry system
-    return processPrompts(sessionTemplateData, userData, startTag, endTag, this.getTags.bind(this))
   }
 
   static async createTemplate(title: string = '', metaData: any, content: string = ''): Promise<mixed> {

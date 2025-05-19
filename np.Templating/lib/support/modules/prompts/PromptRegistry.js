@@ -142,7 +142,8 @@ function findMatchingPromptType(tagContent: string): ?{ promptType: Object, name
 }
 
 /**
- * Processes a single prompt tag using the registered prompt types.
+ * Processes a single prompt tag using the registered prompt types
+ * Sets the sessionData[varName] to the response and returns an EJS tag with the variable name to be placed in the template
  * @param {string} tag The template tag to process.
  * @param {any} sessionData The current session data.
  * @returns {Promise<?{response: string, promptType: string, params: any}>} The prompt response and associated info, or null if none matched.
@@ -223,7 +224,7 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
 
               const response = await promptType.process(fixedTempTag, sessionData, params)
               logDebug(pluginJson, `Prompt response with session value: "${response}"`)
-              if (response === false) return false
+              if (response === false) return false // Immediately return false if prompt was cancelled
 
               // Check if response looks like it's a string representation of the prompt call
               if (typeof response === 'string' && response.startsWith(`${name}(`) && response.endsWith(')')) {
@@ -247,6 +248,7 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
 
                   const fixedResponse = await promptType.process(fixedTag, sessionData, fixedParams)
                   logDebug(pluginJson, `Fixed response: "${fixedResponse}"`)
+                  if (fixedResponse === false) return false // Immediately return false if prompt was cancelled
 
                   // Store the fixed response
                   sessionData[varName] = fixedResponse
@@ -281,6 +283,7 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
           // Process the prompt to get the response
           const response = await promptType.process(tempTag, sessionData, params)
           logDebug(pluginJson, `Prompt response: "${response}"`)
+          if (response === false) return false // Immediately return false if prompt was cancelled
 
           // Check if response looks like it's a string representation of the prompt call
           if (typeof response === 'string' && response.startsWith(`${name}(`) && response.endsWith(')')) {
@@ -304,6 +307,7 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
 
               const fixedResponse = await promptType.process(fixedTag, sessionData, fixedParams)
               logDebug(pluginJson, `Fixed response: "${fixedResponse}"`)
+              if (fixedResponse === false) return false // Immediately return false if prompt was cancelled
 
               // Store the fixed response
               sessionData[varName] = fixedResponse
@@ -324,8 +328,6 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
           // Return a reference to the variable for the template engine unless it's just var setting
           const result = assignmentMatch ? '' : `${tagStart}- ${varName} ${tagEnd}`
           logDebug(pluginJson, `Returning variable reference: "${result}"`)
-          if (response === false) throw 'user stopped prompts with esc keypress'
-
           return result
         } catch (error) {
           logError(pluginJson, `Error processing prompt type ${name} in variable assignment: ${error.message}`)
@@ -362,7 +364,7 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
 
           // Process the prompt
           const response = await promptType.process(tag, sessionData, params)
-          if (response === false) return false // user canceled loop
+          if (response === false) return false // Immediately return false if prompt was cancelled
 
           // Store the response in sessionData if a variable name is provided
           if (params.varName) {
@@ -377,7 +379,6 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
           }
 
           // If no variable name, return the response directly
-          if (response === false) throw 'user stopped prompts with esc keypress'
           return response
         } catch (error) {
           logError(pluginJson, `Error processing prompt type ${name}: ${error.message}`)
@@ -417,16 +418,16 @@ export async function processPrompts(
     // Ensure tags is an array
     const tagsArray = Array.isArray(tags) ? tags : tags && typeof tags.then === 'function' ? await tags : []
 
-    let stop = false
     for (const tag of tagsArray) {
-      if (stop) return false
       try {
+        logDebug(pluginJson, `processPrompts Processing tag: ${tag}`)
         const processedTag = await processPromptTag(tag, sessionData, tagStart, tagEnd)
         if (processedTag === false) {
-          stop = true
-        } else {
-          sessionTemplateData = sessionTemplateData.replace(tag, processedTag)
+          logDebug(pluginJson, 'Prompt was cancelled, returning false')
+          return false // Immediately return false if any prompt is cancelled
         }
+        logDebug(pluginJson, `processPrompts Processed tag: ${tag}; not false. Continuing...`)
+        sessionTemplateData = sessionTemplateData.replace(tag, processedTag)
       } catch (error) {
         logError(pluginJson, `Error processing prompt tag: ${error.message}`)
         // Replace the problematic tag with an error comment
@@ -436,6 +437,7 @@ export async function processPrompts(
     }
   } catch (error) {
     logError(pluginJson, `Error processing prompts: ${error.message}`)
+    return false // Return false on any error to ensure consistent behavior
   }
 
   return { sessionTemplateData, sessionData }

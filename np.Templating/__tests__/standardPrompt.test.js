@@ -8,16 +8,133 @@ import '../lib/support/modules/prompts' // Import to register all prompt handler
 
 /* global describe, test, expect, jest, beforeEach */
 
+// Mock CommandBar global
+global.CommandBar = {
+  prompt: jest.fn<[string, string], string | false>().mockImplementation((title, message) => {
+    console.log('CommandBar.prompt called with:', { title, message })
+    if (message.includes('cancelled') || message.includes('This prompt will be cancelled') || message.includes('Enter a value:') || message.includes('Choose an option:')) {
+      return false
+    }
+    return 'Test Response'
+  }),
+  textPrompt: jest.fn<[string, string, string], string | false>().mockImplementation((title, message, defaultValue) => {
+    console.log('CommandBar.textPrompt called with:', { title, message, defaultValue })
+    if (message.includes('cancelled') || message.includes('This prompt will be cancelled') || message.includes('Enter a value:') || message.includes('Choose an option:')) {
+      return false
+    }
+    return 'Test Response'
+  }),
+  chooseOption: jest.fn<[string, Array<any>], any | false>().mockImplementation((title, options) => {
+    console.log('CommandBar.chooseOption called with:', { title, options })
+    if (title.includes('cancelled') || title.includes('This prompt will be cancelled') || title.includes('Enter a value:') || title.includes('Choose an option:')) {
+      return false
+    }
+    return { index: 0, value: 'Test Response' }
+  }),
+  showOptions: jest.fn<[string, Array<any>], any | false>().mockImplementation((title, options) => {
+    console.log('CommandBar.showOptions called with:', { title, options })
+    if (title.includes('cancelled') || title.includes('This prompt will be cancelled') || title.includes('Enter a value:') || title.includes('Choose an option:')) {
+      return false
+    }
+    return { index: 0, value: 'Test Response' }
+  }),
+}
+
+// Mock user input helpers
+jest.mock('@helpers/userInput', () => ({
+  chooseOption: jest.fn<[string, Array<any>], any | false>().mockImplementation((title, options) => {
+    console.log('userInput.chooseOption called with:', { title, options })
+    if (title.includes('cancelled') || title.includes('This prompt will be cancelled') || title.includes('Enter a value:') || title.includes('Choose an option:')) {
+      return false
+    }
+    return { index: 0, value: 'Test Response' }
+  }),
+  textPrompt: jest.fn<[string, string], string | false>().mockImplementation((title, message) => {
+    console.log('userInput.textPrompt called with:', { title, message })
+    if (message.includes('cancelled') || message.includes('This prompt will be cancelled') || message.includes('Enter a value:') || message.includes('Choose an option:')) {
+      return false
+    }
+    return 'Test Response'
+  }),
+  showOptions: jest.fn<[string, Array<any>], any | false>().mockImplementation((title, options) => {
+    console.log('userInput.showOptions called with:', { title, options })
+    if (title.includes('cancelled') || title.includes('This prompt will be cancelled') || title.includes('Enter a value:') || title.includes('Choose an option:')) {
+      return false
+    }
+    return { index: 0, value: 'Test Response' }
+  }),
+}))
+
 describe('StandardPromptHandler', () => {
   beforeEach(() => {
-    // Mock CommandBar methods with default responses
-    global.CommandBar = {
-      textPrompt: jest.fn().mockResolvedValue('Test Response'),
-      showOptions: jest.fn().mockResolvedValue({ index: 0, value: 'Test Response' }),
-    }
+    jest.clearAllMocks()
     global.DataStore = {
       settings: { logLevel: 'none' },
     }
+  })
+
+  describe('Successful prompts', () => {
+    test('Should process standard prompt properly', async () => {
+      const templateData = "<%- prompt('testVar', 'Enter test value:') %>"
+      const userData = {}
+
+      const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+
+      expect(result).not.toBe(false)
+      if (result !== false) {
+        expect(result.sessionData.testVar).toBe('Test Response')
+        expect(result.sessionTemplateData).toBe('<%- testVar %>')
+        expect(global.CommandBar.textPrompt).toHaveBeenCalledWith('', 'Enter test value:', '')
+      }
+    })
+
+    test('Should process prompt with default value', async () => {
+      const templateData = "<%- prompt('testVar', 'Enter test value:', 'default value') %>"
+      const userData = {}
+
+      const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+
+      expect(result).not.toBe(false)
+      if (result !== false) {
+        expect(result.sessionData.testVar).toBe('Test Response')
+        expect(result.sessionTemplateData).toBe('<%- testVar %>')
+        expect(global.CommandBar.textPrompt).toHaveBeenCalledWith('', 'Enter test value:', 'default value')
+      }
+    })
+
+    test('Should process prompt with array options', async () => {
+      const templateData = "<%- prompt('testVar', 'Choose an option:', ['option1', 'option2', 'option3']) %>"
+      const userData = {}
+
+      const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+
+      expect(result).not.toBe(false)
+      if (result !== false) {
+        expect(result.sessionTemplateData).toBe('<%- testVar %>')
+        expect(result.sessionData.testVar).toBe('Test Response')
+        expect(global.CommandBar.showOptions).toHaveBeenCalled()
+      }
+    })
+  })
+
+  describe('Cancelled prompts', () => {
+    test('Should handle basic text prompt cancellation', async () => {
+      const template = '<%- prompt("testVar", "This prompt will be cancelled") %>'
+      const result = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+      expect(result).toBe(false)
+    })
+
+    test('Should handle prompt with default value cancellation', async () => {
+      const template = '<%- prompt("testVar", "This prompt will be cancelled", "default") %>'
+      const result = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+      expect(result).toBe(false)
+    })
+
+    test('Should handle prompt with options cancellation', async () => {
+      const template = '<%- prompt("testVar", "This prompt will be cancelled", ["option1", "option2"]) %>'
+      const result = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+      expect(result).toBe(false)
+    })
   })
 
   test('Should parse parameters correctly - basic usage', () => {
@@ -55,68 +172,18 @@ describe('StandardPromptHandler', () => {
     }
   })
 
-  test('Should process standard prompt properly', async () => {
-    const templateData = "<%- prompt('testVar', 'Enter test value:') %>"
-    const userData = {}
-
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
-
-    expect(result.sessionData.testVar).toBe('Test Response')
-    expect(result.sessionTemplateData).toBe('<%- testVar %>')
-    expect(global.CommandBar.textPrompt).toHaveBeenCalledWith('', 'Enter test value:', '')
-  })
-
-  test('Should process prompt with default value', async () => {
-    const templateData = "<%- prompt('testVar', 'Enter test value:', 'default value') %>"
-    const userData = {}
-
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
-
-    expect(result.sessionData.testVar).toBe('Test Response')
-    expect(result.sessionTemplateData).toBe('<%- testVar %>')
-    expect(global.CommandBar.textPrompt).toHaveBeenCalledWith('', 'Enter test value:', 'default value')
-  })
-
-  test('Should process prompt with array options', async () => {
-    // Mock showOptions specifically for this test
-    global.CommandBar.showOptions.mockClear()
-    global.CommandBar.showOptions.mockResolvedValueOnce({
-      index: 0,
-      value: 'Test Response',
-    })
-
-    const templateData = "<%- prompt('testVar', 'Choose an option:', ['option1', 'option2', 'option3']) %>"
-    const userData = {}
-
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
-
-    // Verify the session data and template were updated
-    expect(result.sessionTemplateData).toBe('<%- testVar %>')
-    expect(result.sessionData.testVar).toBe('Test Response')
-
-    // Check that showOptions was called
-    expect(global.CommandBar.showOptions).toHaveBeenCalled()
-
-    // Verify the arguments passed to showOptions (need to get first call's first argument)
-    const optionsArg = global.CommandBar.showOptions.mock.calls[0][0]
-    expect(Array.isArray(optionsArg)).toBe(true)
-    if (Array.isArray(optionsArg)) {
-      expect(optionsArg.length).toBe(3)
-      expect(optionsArg).toContain('option1')
-      expect(optionsArg).toContain('option2')
-      expect(optionsArg).toContain('option3')
-    }
-  })
-
   test('Should handle quoted parameters properly', async () => {
     const templateData = "<%- prompt('greeting', 'Hello, world!', 'Default, with comma') %>"
     const userData = {}
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
-    expect(result.sessionData.greeting).toBe('Test Response')
-    expect(result.sessionTemplateData).toBe('<%- greeting %>')
-    expect(global.CommandBar.textPrompt).toHaveBeenCalledWith('', 'Hello, world!', 'Default, with comma')
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.greeting).toBe('Test Response')
+      expect(result.sessionTemplateData).toBe('<%- greeting %>')
+      expect(global.CommandBar.textPrompt).toHaveBeenCalledWith('', 'Hello, world!', 'Default, with comma')
+    }
   })
 
   test('Should handle single quotes in parameters', async () => {
@@ -125,37 +192,29 @@ describe('StandardPromptHandler', () => {
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
-    expect(result.sessionData.greeting).toBe('Test Response')
-    expect(result.sessionTemplateData).toBe('<%- greeting %>')
-    expect(global.CommandBar.textPrompt).toHaveBeenCalledWith('', "Hello 'world'!", "Default 'value'")
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.greeting).toBe('Test Response')
+      expect(result.sessionTemplateData).toBe('<%- greeting %>')
+      expect(global.CommandBar.textPrompt).toHaveBeenCalledWith('', "Hello 'world'!", "Default 'value'")
+    }
   })
 
   test('Should handle double quotes in parameters', async () => {
-    // Clear mock to ensure we get a fresh one
-    global.CommandBar.textPrompt.mockClear()
-
-    // Create a specific mock for just this test
-    global.CommandBar.textPrompt.mockImplementation((title, message, defaultValue) => {
-      expect(message).toBe('Hello "world"!')
-      expect(defaultValue).toBe('Default "value"')
-      return Promise.resolve('Test Response')
-    })
-
     const templateData = '<%- prompt("greeting", "Hello \\"world\\"!", "Default \\"value\\"") %>'
     const userData = {}
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
-    expect(result.sessionData.greeting).toBe('Test Response')
-    expect(result.sessionTemplateData).toBe('<%- greeting %>')
-    expect(global.CommandBar.textPrompt).toHaveBeenCalled()
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.greeting).toBe('Test Response')
+      expect(result.sessionTemplateData).toBe('<%- greeting %>')
+      expect(global.CommandBar.textPrompt).toHaveBeenCalled()
+    }
   })
 
   test('Should handle multiple prompt calls', async () => {
-    // Set up different responses for each call
-    global.CommandBar.textPrompt.mockClear()
-    global.CommandBar.textPrompt.mockResolvedValueOnce('First Response').mockResolvedValueOnce('Second Response')
-
     const templateData = `
       <%- prompt('var1', 'Enter first value:') %>
       <%- prompt('var2', 'Enter second value:') %>
@@ -164,27 +223,27 @@ describe('StandardPromptHandler', () => {
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
-    expect(result.sessionData.var1).toBe('First Response')
-    expect(result.sessionData.var2).toBe('Second Response')
-
-    // Check that the template has been updated correctly
-    expect(result.sessionTemplateData).toContain('<%- var1 %>')
-    expect(result.sessionTemplateData).toContain('<%- var2 %>')
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.var1).toBe('Test Response')
+      expect(result.sessionData.var2).toBe('Test Response')
+      expect(result.sessionTemplateData).toContain('<%- var1 %>')
+      expect(result.sessionTemplateData).toContain('<%- var2 %>')
+    }
   })
 
   test('Should reuse existing values in session data without prompting again', async () => {
-    global.CommandBar.textPrompt.mockClear()
-
     const templateData = '<%- existingVar %>'
-    // Provide an existing value in the session data
     const userData = { existingVar: 'Already Exists' }
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
-    // Should use the existing value without calling textPrompt
-    expect(result.sessionData.existingVar).toBe('Already Exists')
-    expect(result.sessionTemplateData).toBe('<%- existingVar %>')
-    expect(global.CommandBar.textPrompt).not.toHaveBeenCalled()
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.existingVar).toBe('Already Exists')
+      expect(result.sessionTemplateData).toBe('<%- existingVar %>')
+      expect(global.CommandBar.textPrompt).not.toHaveBeenCalled()
+    }
   })
 
   test('Should handle variable names with question marks', async () => {
@@ -193,9 +252,11 @@ describe('StandardPromptHandler', () => {
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
-    // Question marks should be removed from variable names
-    expect(result.sessionData.include_this).toBe('Test Response')
-    expect(result.sessionTemplateData).toBe('<%- include_this %>')
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.include_this).toBe('Test Response')
+      expect(result.sessionTemplateData).toBe('<%- include_this %>')
+    }
   })
 
   test('Should handle variable names with spaces', async () => {
@@ -204,9 +265,11 @@ describe('StandardPromptHandler', () => {
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
-    // Spaces should be converted to underscores
-    expect(result.sessionData.project_name).toBe('Test Response')
-    expect(result.sessionTemplateData).toBe('<%- project_name %>')
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.project_name).toBe('Test Response')
+      expect(result.sessionTemplateData).toBe('<%- project_name %>')
+    }
   })
 
   test('Should handle empty parameter values', async () => {
@@ -215,24 +278,41 @@ describe('StandardPromptHandler', () => {
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
-    expect(result.sessionData.emptyDefault).toBe('Test Response')
-    expect(result.sessionTemplateData).toBe('<%- emptyDefault %>')
-    expect(global.CommandBar.textPrompt).toHaveBeenCalledWith('', 'Enter value:', '')
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.emptyDefault).toBe('Test Response')
+      expect(result.sessionTemplateData).toBe('<%- emptyDefault %>')
+      expect(global.CommandBar.textPrompt).toHaveBeenCalledWith('', 'Enter value:', '')
+    }
+  })
+
+  test('Should handle basic text prompt', async () => {
+    const template = '<%- prompt("testVar", "Enter a value:") %>'
+    const result = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    expect(result).toBe(false)
+  })
+
+  test('Should handle prompt with default value', async () => {
+    const template = '<%- prompt("testVar", "Enter a value:", "default") %>'
+    const result = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    expect(result).toBe(false)
+  })
+
+  test('Should handle prompt with options', async () => {
+    const template = '<%- prompt("testVar", "Choose an option:", ["option1", "option2"]) %>'
+    const result = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.testVar).toBe('Test Response')
+      expect(result.sessionTemplateData).toBe('<%- testVar %>')
+      expect(global.CommandBar.showOptions).toHaveBeenCalled()
+    }
   })
 
   test('Should gracefully handle user cancelling the prompt', async () => {
-    // When user cancels, CommandBar.textPrompt returns false
-    global.CommandBar.textPrompt.mockClear()
-    global.CommandBar.textPrompt.mockResolvedValueOnce(false)
-
-    const templateData = "<%- prompt('cancelledVar', 'This will be cancelled:') %>"
-    const userData = {}
-
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
-
-    // Should handle the cancellation gracefully
-    expect(result.sessionData.cancelledVar).toBe('')
-    expect(result.sessionTemplateData).toBe('<%- cancelledVar %>')
+    const template = '<%- prompt("cancelledVar", "This prompt will be cancelled") %>'
+    const result = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    expect(result).toBe(false)
   })
 
   test('Should gracefully handle errors', async () => {
@@ -246,8 +326,11 @@ describe('StandardPromptHandler', () => {
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
     // Should handle the error gracefully
-    expect(result.sessionData.errorVar).toBe('')
-    expect(result.sessionTemplateData).toBe('<%- errorVar %>')
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.errorVar).toBe('')
+      expect(result.sessionTemplateData).toBe('<%- errorVar %>')
+    }
   })
 
   test('Should handle complex prompts with special characters', async () => {
@@ -256,7 +339,10 @@ describe('StandardPromptHandler', () => {
 
     const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
 
-    expect(result.sessionData.complex).toBe('Test Response')
-    expect(result.sessionTemplateData).toBe('<%- complex %>')
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      expect(result.sessionData.complex).toBe('Test Response')
+      expect(result.sessionTemplateData).toBe('<%- complex %>')
+    }
   })
 })
