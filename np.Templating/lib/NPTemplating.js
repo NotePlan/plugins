@@ -22,7 +22,7 @@ import { processPrompts } from './support/modules/prompts'
 import { getRegisteredPromptNames, isPromptTag } from './support/modules/prompts/PromptRegistry'
 
 // - if a new module has been added, make sure it has been added to this list
-const TEMPLATE_MODULES = ['calendar', 'date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
+const TEMPLATE_MODULES = ['calendar', 'date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility', 'tasks']
 
 const CODE_BLOCK_COMMENT_TAGS = ['/* template: ignore */', '// template: ignore']
 

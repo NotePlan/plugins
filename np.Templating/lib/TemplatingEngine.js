@@ -13,6 +13,7 @@ import NoteModule from '@templatingModules/NoteModule'
 import UtilityModule from '@templatingModules/UtilityModule'
 import SystemModule from '@templatingModules/SystemModule'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
+import TasksModule from '@templatingModules/TasksModule'
 
 import pluginJson from '../plugin.json'
 import { clo, log } from '@helpers/dev'
@@ -349,6 +350,7 @@ export default class TemplatingEngine {
       utility: new UtilityModule(this.templateConfig),
       system: new SystemModule(this.templateConfig),
       note: new NoteModule(this.templateConfig),
+      tasks: new TasksModule(this.templateConfig),
       frontmatter: {},
       user: {
         first: this.templateConfig?.userFirstName || '',

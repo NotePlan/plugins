@@ -280,6 +280,7 @@ export const asyncFunctions = [
   'todayProgressFromTemplate',
   'quote',
   'selection',
+  'tasks.getSyncedOpenTasksFrom',
   'timestamp',
   'verse',
   'weather',
