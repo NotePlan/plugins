@@ -1,8 +1,6 @@
 // @flow
 import { jest, describe, expect, test, beforeEach } from '@jest/globals'
 import NPTemplating from '../lib/NPTemplating'
-import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
-import pluginJson from '../plugin.json'
 import { logDebug } from '@helpers/dev'
 
 // Mock CommandBar global

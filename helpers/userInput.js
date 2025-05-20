@@ -389,7 +389,7 @@ export async function datePicker(dateParams: string | Object, config?: { [string
     }
 
     // $FlowIgnore[incompatible-type]
-    logDebug('userInput / datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
+    logDebug('userInput / datePicker', `params: ${JSON.stringify(dateParams)} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
       // $FlowIgnore[exponential-spread] known to be very small objects
@@ -398,7 +398,7 @@ export async function datePicker(dateParams: string | Object, config?: { [string
     }
     // logDebug('userInput / datePicker', allSettings.toString())
     // grab just question parameter, or provide a default
-    let { question, defaultValue, canBeEmpty } = (allSettings: any)
+    let { question, defaultValue } = (allSettings: any)
     // logDebug('userInput / datePicker', `defaultValue: ${defaultValue}`)
     question = question ? question : 'Please enter a date'
     defaultValue = defaultValue ? defaultValue : 'YYYY-MM-DD'
@@ -406,15 +406,17 @@ export async function datePicker(dateParams: string | Object, config?: { [string
     // Ask question (newer style)
     // const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
     const reply = await CommandBar.textPrompt('Date Picker', question, defaultValue)
-    if (typeof reply === 'string' && !canBeEmpty) {
-      const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
-      if (!reply2.match(RE_DATE)) {
-        await showMessage(`Sorry: ${reply2} wasn't a date of form YYYY-MM-DD`, `OK`, 'Error')
-        return ''
+    if (typeof reply === 'string') {
+      if (!allSettings.canBeEmpty) {
+        const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
+        if (!reply2.match(RE_DATE)) {
+          await showMessage(`Sorry: ${reply2} wasn't a date of form YYYY-MM-DD`, `OK`, 'Error')
+          return ''
+        }
       }
-      return reply2
+      return reply
     } else {
-      logWarn('userInput / datePicker', 'User cancelled date input')
+      logWarn('userInput / datePicker', `User cancelled date input: ${typeof reply}: "${String(reply)}"`)
       return false
     }
   } catch (e) {
