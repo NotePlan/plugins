@@ -624,6 +624,7 @@ declare class DataStore {
   /**
    * Returns the regular note with the given filename (including file-extension).
    * The filename has to include the relative folder such as folder/filename.txt` but without leading slash. Use no leading slash if it's in the root folder.
+   * WARNING: @jgclark reports that this doesn't work for Teamspace notes.
    */
   static projectNoteByFilename(filename: string): ?TNote;
   /**

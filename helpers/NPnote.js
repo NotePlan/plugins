@@ -142,7 +142,6 @@ export function getTeamspaceDetailsFromNote(note: TNote): TTeamspace | null {
 
 /**
  * Get a note from its full filename, coping with Teamspace notes.
- * TEST:
  * @author @jgclark for 3.17 for Teamspace notes
  * @param {string} filename
  * @returns {TNote?} note if found, or null
@@ -151,13 +150,15 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
   try {
     let foundNote: TNote | null = null
     const { filename, isTeamspace, teamspaceID } = parseTeamspaceFilename(filenameIn)
+    logInfo('NPnote/getNoteFromFilename', `- filenameIn: ${filenameIn} / filename: ${filename} / isTeamspace: ${String(isTeamspace)} /  teamspaceID: ${String(teamspaceID)}`)
     if (isTeamspace) {
       if (!teamspaceID) {
         throw new Error(`Note ${filenameIn} is a teamspace note but cannot get valid ID for it.`)
       }
-      const nonTeamspaceFilename = filename
-      foundNote = DataStore.projectNoteByFilename(nonTeamspaceFilename)
-        ?? DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filenameIn), teamspaceID)
+      // FIXME(Eduard): projectNoteByFilename() is not working for teamspace notes
+      // So we have to do it this way ...
+      foundNote = DataStore.noteByFilename(filenameIn, 'Notes', teamspaceID)
+        ?? DataStore.noteByFilename(filenameIn, 'Calendar', teamspaceID)
         ?? null
       logInfo('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
     } else {
