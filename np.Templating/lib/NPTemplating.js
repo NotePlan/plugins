@@ -1094,6 +1094,7 @@ export default class NPTemplating {
     if (statement.includes('(') && statement.includes(')') && !statement.trim().startsWith('prompt(')) {
       const funcOrMethodMatch = statement.match(/^([\w.]+)\(/)
       if (funcOrMethodMatch && asyncFunctions.includes(funcOrMethodMatch[1])) {
+        logDebug(pluginJson, `processStatementForAwait: adding await before async function: ${statement}`)
         return `await ${statement}`
       }
     }
@@ -1300,20 +1301,17 @@ export default class NPTemplating {
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (isFrontmatterTemplate) {
         const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateData, sessionData)
-        // templateData = frontmatterBody //.replace(/---/gi, '*****')
         sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
       }
 
       // import templates/code snippets (if there are any)
       templateData = await this.importTemplates(templateData)
-      // return templateData
 
       // process all template attribute prompts
       if (isFrontmatterTemplate) {
         const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           let frontMatterValue = value
-          // $FlowIgnore
           const promptData = await processPrompts(value, sessionData, '<%', '%>') // process prompts in frontmatter attributes
           if (promptData === false) {
             return '' // Return empty string if any prompt was cancelled
@@ -1321,14 +1319,12 @@ export default class NPTemplating {
           frontMatterValue = promptData.sessionTemplateData
 
           logDebug(pluginJson, `render calling preProcess ${key}: ${frontMatterValue}`)
-          // $FlowIgnore
           const { newTemplateData, newSettingData } = await this.preProcess(frontMatterValue, sessionData)
 
           sessionData = { ...sessionData, ...newSettingData }
           logDebug(pluginJson, `render calling render`)
           const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(newTemplateData, promptData.sessionData, userOptions)
 
-          // $FlowIgnore
           templateData = templateData.replace(`${key}: ${value}`, `${key}: ${renderedData}`)
         }
         if (userOptions?.qtn) {
@@ -1338,14 +1334,13 @@ export default class NPTemplating {
 
       templateData = convertJavaScriptBlocksToTags(templateData)
 
-      // $FlowIgnore
+      // Process the template once and store the result
       const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
-
       sessionData = { ...newSettingData }
 
       // perform all prompt operations in template body
       // Process prompt data
-      const promptData = await processPrompts(templateData, sessionData, '<%', '%>', this.getTags.bind(this))
+      const promptData = await processPrompts(newTemplateData, sessionData, '<%', '%>', this.getTags.bind(this))
       if (promptData === false) {
         return '' // Return empty string if any prompt was cancelled
       }
@@ -1361,8 +1356,7 @@ export default class NPTemplating {
         templateData = templateData.replace(ignoredCodeBlocks[index], `__codeblock:${index}__`)
       }
 
-      // template ready for final rendering, this is where most of the magic happens
-      // FIXME: DBW note to self: MAYBE CHANGE THIS BACK TO RENDER if incrementalRender won't work?
+      // template ready for final rendering
       logDebug(`NPTemplating::render: STARTING incrementalRender`)
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).incrementalRender(templateData, sessionData, userOptions)
       logDebug(`NPTemplating::render: FINISHED incrementalRender`)
@@ -1929,12 +1923,6 @@ export default class NPTemplating {
 
   async render(templateData: string, data: any = {}): Promise<string> {
     try {
-      // First validate the template tags
-      const tagError = NPTemplating.validateTemplateTags(templateData)
-      if (tagError) {
-        return tagError
-      }
-
       // Process the template
       const processedTemplate = await this.processTemplate(templateData, data)
       return processedTemplate
@@ -1946,12 +1934,6 @@ export default class NPTemplating {
 
   async processTemplate(templateData: string, data: any = {}): Promise<string> {
     try {
-      // First validate the template tags
-      const tagError = NPTemplating.validateTemplateTags(templateData)
-      if (tagError) {
-        return tagError
-      }
-
       // Continue with template processing...
       // ... rest of the method
       return templateData // Temporary return until implementation is complete
