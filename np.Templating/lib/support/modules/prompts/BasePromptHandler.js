@@ -429,7 +429,11 @@ export default class BasePromptHandler {
           // Remove outer quotes *before* checking if it's an array literal
           const potentiallyUnquotedFirstOption = BasePromptHandler.removeQuotes(firstOptionParam)
 
-          if (potentiallyUnquotedFirstOption.startsWith('[') && potentiallyUnquotedFirstOption.endsWith(']')) {
+          // Special handling for date strings in YYYY-MM-DD format
+          if (/^\d{4}-\d{2}-\d{2}$/.test(potentiallyUnquotedFirstOption)) {
+            options = potentiallyUnquotedFirstOption
+            logDebug(pluginJson, `BasePromptHandler: Preserving date string in options: ${options}`)
+          } else if (potentiallyUnquotedFirstOption.startsWith('[') && potentiallyUnquotedFirstOption.endsWith(']')) {
             // If the second param is an array string (after quote removal), parse it directly
             options = BasePromptHandler.parseOptions(params[1], quotedTexts, arrayPlaceholders)
             // Ensure it's converted to an array if parsing resulted in a string representation
@@ -469,15 +473,35 @@ export default class BasePromptHandler {
         // First parameter is the variable name
         const varName = BasePromptHandler.cleanVarName(params[0] ? String(BasePromptHandler.parseOptions(params[0], quotedTexts, arrayPlaceholders)) : 'unnamed')
         const promptMessage = params.length > 1 ? BasePromptHandler.parseOptions(params[1], quotedTexts, arrayPlaceholders) : ''
-        let options: string | Array<string> = params.length > 2 ? BasePromptHandler.parseOptions(params[2], quotedTexts, arrayPlaceholders) : ''
-        // Convert string array representations to actual arrays
-        if (typeof options === 'string' && options.startsWith('[') && options.endsWith(']')) {
-          try {
-            options = BasePromptHandler.convertToArrayIfNeeded(options)
-          } catch (e) {
-            logDebug(pluginJson, `Error parsing array options: ${e.message}, keeping as string`)
+        let options: string | Array<string> = ''
+
+        if (params.length > 2) {
+          // Check if the third parameter is a date string or array
+          let thirdParam = params[2]
+          // Restore placeholders to check the actual value
+          quotedTexts.forEach((text, index) => {
+            thirdParam = thirdParam.replace(`__QUOTED_TEXT_${index}__`, text)
+          })
+          arrayPlaceholders.forEach(({ placeholder, value }) => {
+            thirdParam = thirdParam.replace(placeholder, value)
+          })
+
+          // Remove outer quotes and check if it's a date string or array
+          const potentiallyUnquotedThirdParam = BasePromptHandler.removeQuotes(thirdParam)
+          if (/^\d{4}-\d{2}-\d{2}$/.test(potentiallyUnquotedThirdParam)) {
+            options = potentiallyUnquotedThirdParam
+            logDebug(pluginJson, `BasePromptHandler: Preserving date string in options: ${options}`)
+          } else if (potentiallyUnquotedThirdParam.startsWith('[') && potentiallyUnquotedThirdParam.endsWith(']')) {
+            // If it's an array, parse it and ensure it's converted to an array
+            options = BasePromptHandler.parseOptions(params[2], quotedTexts, arrayPlaceholders)
+            if (typeof options === 'string') {
+              options = BasePromptHandler.convertToArrayIfNeeded(options)
+            }
+          } else {
+            options = BasePromptHandler.parseOptions(params[2], quotedTexts, arrayPlaceholders)
           }
         }
+
         // Deal with arbitrary more params and send options back as an array
         if (params.length > 3) {
           if (!Array.isArray(options)) {

@@ -20,27 +20,38 @@ export default class PromptDateHandler {
    * @param {Object|string} options - Optional parameters for the date picker
    * @returns {Promise<string>} - The selected date
    */
-  static async promptDate(tag: string, message: string, options: Array<string | boolean> = []): Promise<string | false> {
+  static async promptDate(tag: string, message: string, options: Array<string | boolean> | string = []): Promise<string> {
     try {
       // Process the message to handle escape sequences
       const processedMessage = typeof message === 'string' ? message.replace(/\\"/g, '"').replace(/\\'/g, "'") : message
-      const [defaultValue, canBeEmpty] = options
+
+      // Handle options whether it's a string or array
+      let defaultValue: string = ''
+      let canBeEmpty: boolean = false
+
+      if (Array.isArray(options)) {
+        const [defaultVal, canBeEmptyVal] = options
+        defaultValue = typeof defaultVal === 'string' ? defaultVal : ''
+        canBeEmpty = typeof canBeEmptyVal === 'string' ? /true/i.test(canBeEmptyVal) : Boolean(canBeEmptyVal)
+      } else if (typeof options === 'string') {
+        defaultValue = options
+      }
+
       const dateOptions = {
         question: processedMessage,
         defaultValue: defaultValue,
-        canBeEmpty: (typeof canBeEmpty === 'string' && /true/i.test(canBeEmpty)) || false,
+        canBeEmpty: canBeEmpty,
       }
 
-      // Call the datePicker with the processed message and options
-      // export async function datePicker(dateParams: string, config?: { [string]: ?mixed } = {}): Promise<string> {
-      // dateParams is a JSON string with question and defaultValue parameters
-      // config is an object with date properties
+      logDebug(pluginJson, `PromptDateHandler::promptDate: dateOptions=${JSON.stringify(dateOptions)}`)
 
+      // Call the datePicker with the processed message and options
       const response = await datePicker(dateOptions)
 
       // Ensure we have a valid response
       if (typeof response !== 'string') {
         logDebug(pluginJson, `PromptDateHandler::promptDate: datePicker returned response: ${String(response)} (typeof: ${typeof response})`)
+        return ''
       }
       return response
 
