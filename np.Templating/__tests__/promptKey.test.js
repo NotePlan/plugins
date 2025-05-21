@@ -17,6 +17,12 @@ describe('promptKey functionality', () => {
     global.DataStore = {
       settings: { logLevel: 'none' },
     }
+    // Mock CommandBar
+    global.CommandBar = {
+      showOptions: jest.fn(),
+      showInput: jest.fn(),
+      prompt: jest.fn(),
+    }
   })
   describe('parsePromptKeyParameters', () => {
     it('should parse a basic promptKey tag with only tagKey parameter', () => {
@@ -163,6 +169,54 @@ describe('promptKey functionality', () => {
       expect(result.caseSensitive).toBe(true)
       expect(result.folderString).toBe('folder1')
       expect(result.fullPathMatch).toBe(false)
+    })
+  })
+
+  describe('regex pattern handling', () => {
+    it('should parse regex patterns with flags', () => {
+      const tag = "<%- promptKey('/^NOTE/i', 'Choose a NOTE') -%>"
+      const result = NPTemplating.parsePromptKeyParameters(tag)
+      expect(result.tagKey).toBe('/^NOTE/i')
+    })
+
+    it('should parse regex patterns with multiple flags', () => {
+      const tag = "<%- promptKey('/Project.*/gi', 'Choose a project') -%>"
+      const result = NPTemplating.parsePromptKeyParameters(tag)
+      expect(result.tagKey).toBe('/Project.*/gi')
+    })
+
+    it('should parse regex patterns with special characters', () => {
+      const tag = "<%- promptKey('/Task(?!.*Done)/', 'Choose a task') -%>"
+      const result = NPTemplating.parsePromptKeyParameters(tag)
+      expect(result.tagKey).toBe('/Task(?!.*Done)/')
+    })
+  })
+
+  describe('prompt cancellation handling', () => {
+    it('should handle cancelled prompts', async () => {
+      // Mock chooseOptionWithModifiers to return false
+      const originalChooseOption = global.chooseOptionWithModifiers
+      // $FlowFixMe: Mock function type
+      global.chooseOptionWithModifiers = jest.fn().mockResolvedValue({ value: '' })
+
+      const result = await NPTemplating.render("<%- promptKey('test-key', 'Choose a value') -%>", {})
+      expect(result).toBe('')
+
+      // Restore original function
+      global.chooseOptionWithModifiers = originalChooseOption
+    })
+
+    it('should handle null responses', async () => {
+      // Mock chooseOptionWithModifiers to return null
+      const originalChooseOption = global.chooseOptionWithModifiers
+      // $FlowFixMe: Mock function type
+      global.chooseOptionWithModifiers = jest.fn().mockResolvedValue({ value: '' })
+
+      const result = await NPTemplating.render("<%- promptKey('test-key', 'Choose a value') -%>", {})
+      expect(result).toBe('')
+
+      // Restore original function
+      global.chooseOptionWithModifiers = originalChooseOption
     })
   })
 })

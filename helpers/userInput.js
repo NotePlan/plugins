@@ -318,13 +318,14 @@ export async function chooseHeading(
  * Ask for a date interval from user, using CommandBar
  * @author @jgclark
  *
- * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
+ * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter in a JSON string. if it's a normal string, it will be treated as the question.
  * @return {string} - the returned interval string, or empty if an invalid string given
  */
 export async function askDateInterval(dateParams: string): Promise<string> {
   // logDebug('askDateInterval', `starting with '${dateParams}':`)
   const dateParamsTrimmed = dateParams?.trim() || ''
-  const paramConfig = dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? parseJSON5(dateParams) : dateParamsTrimmed !== '' ? parseJSON5(`{${dateParams}}`) : {}
+  const isJSON = dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
+  const paramConfig = isJSON ? parseJSON5(dateParams) : dateParamsTrimmed !== '' ? { question: dateParams } : {}
   // logDebug('askDateInterval', `param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }

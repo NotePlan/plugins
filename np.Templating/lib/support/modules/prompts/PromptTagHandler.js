@@ -21,7 +21,6 @@ export default class PromptTagHandler {
    */
   static parsePromptTagParameters(tag: string = ''): {
     promptMessage: string,
-    varName: string,
     includePattern: string,
     excludePattern: string,
     allowCreate: boolean,
@@ -74,27 +73,15 @@ export default class PromptTagHandler {
    * @returns {Promise<string>} The processed prompt result.
    */
   static async process(tag: string, sessionData: any, params: any): Promise<string> {
-    const { varName, promptMessage, includePattern, excludePattern, allowCreate } = params
-
-    // Check if the variable already exists in session data and is valid
-    if (varName && sessionData[varName] && BasePromptHandler.isValidSessionValue(sessionData[varName], 'promptTag', varName)) {
-      // Value already exists in session data and is not a function call representation
-      logDebug(pluginJson, `PromptTagHandler.process: Using existing value from session data: ${sessionData[varName]}`)
-      return sessionData[varName]
-    }
+    const { promptMessage, includePattern, excludePattern, allowCreate } = params
 
     try {
       const response = await PromptTagHandler.promptTag(promptMessage || 'Choose #tag', includePattern, excludePattern, allowCreate)
 
-      // Store the result in session data if a variable name is provided
-      if (varName) {
-        sessionData[varName] = response
-      }
-
       // Add # prefix if not already present
       return response && !response.startsWith('#') ? `#${response}` : response
     } catch (error) {
-      logError(pluginJson, `Error processing promptTag: ${error.message}`)
+      logError(pluginJson, `Error in PromptTagHandler.process: ${error.message}`)
       return ''
     }
   }

@@ -6,6 +6,7 @@
 import pluginJson from '../../../../plugin.json'
 import BasePromptHandler from './BasePromptHandler'
 import { registerPromptType } from './PromptRegistry'
+import { parseStringOrRegex } from './sharedPromptFunctions'
 import { log, logError, logDebug } from '@helpers/dev'
 import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 import { chooseOptionWithModifiers } from '@helpers/userInput'
@@ -28,6 +29,35 @@ export default class PromptKeyHandler {
   }
 
   /**
+   * Splits a parameter string into an array, handling quoted strings and commas inside quotes.
+   * @param {string} paramString
+   * @returns {string[]}
+   */
+  static splitParams(paramString: string): string[] {
+    const result = []
+    let current = ''
+    let inSingle = false
+    let inDouble = false
+    for (let i = 0; i < paramString.length; i++) {
+      const char = paramString[i]
+      if (char === "'" && !inDouble) {
+        inSingle = !inSingle
+        current += char
+      } else if (char === '"' && !inSingle) {
+        inDouble = !inDouble
+        current += char
+      } else if (char === ',' && !inSingle && !inDouble) {
+        result.push(current.trim())
+        current = ''
+      } else {
+        current += char
+      }
+    }
+    if (current) result.push(current.trim())
+    return result
+  }
+
+  /**
    * Parse parameters from a promptKey tag.
    * @param {string} tag - The template tag containing the promptKey call.
    * @returns {Object} The parsed parameters for promptKey.
@@ -43,10 +73,21 @@ export default class PromptKeyHandler {
   } {
     logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters starting with tag: "${tag}"`)
 
-    // First extract the raw params string
-    const paramsMatch = tag.match(/promptKey\(([^)]+)\)/)
-    const paramsString = paramsMatch ? paramsMatch[1] : ''
-    logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: tag="${tag}" paramsMatch=${JSON.stringify(paramsMatch)} paramsString=${paramsString}`)
+    // First extract the raw params string, handling regex patterns specially
+    let paramsString = ''
+    if (tag.includes('/') && tag.indexOf('/') < tag.indexOf(')')) {
+      // If we have a regex pattern, extract everything between promptKey( and the last )
+      const startIndex = tag.indexOf('promptKey(') + 'promptKey('.length
+      const endIndex = tag.lastIndexOf(')')
+      if (startIndex !== -1 && endIndex !== -1) {
+        paramsString = tag.slice(startIndex, endIndex)
+      }
+    } else {
+      // For non-regex patterns, use the original regex
+      const paramsMatch = tag.match(/promptKey\(([^)]+)\)/)
+      paramsString = paramsMatch ? paramsMatch[1] : ''
+    }
+    logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: tag="${tag}" paramsString=${paramsString}`)
 
     // Check if there are recursive promptKey patterns like "promptKey(promptKey(...))"
     const recursiveMatch = paramsString.match(/promptKey\(([^)]+)\)/)
@@ -61,36 +102,40 @@ export default class PromptKeyHandler {
       return PromptKeyHandler.parsePromptKeyParameters(`promptKey(${fixedParam})`)
     }
 
-    // Check if the parameter is unquoted - might be a variable reference
-    const isUnquotedParam = /^\s*(\w+)\s*$/.test(paramsString)
-    if (isUnquotedParam) {
-      logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: Found unquoted parameter "${paramsString}" - could be a variable reference`)
+    // Helper to remove quotes
+    function stripQuotes(s: string): string {
+      if (!s) return ''
+      if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+        return s.slice(1, -1)
+      }
+      return s
     }
 
-    // Split parameters by comma, but only if the comma is not inside quotes
-    // This regex handles quotes properly
-    const params = paramsString.split(/,(?=(?:[^"']*["'][^"']*["'])*[^"']*$)/).map((p) => p.trim())
+    // Parse all parameters first
+    const params = PromptKeyHandler.splitParams(paramsString).map(stripQuotes)
     logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: params=${JSON.stringify(params)}`)
 
-    // First parameter is tagKey, no separate varName parameter
-    // Ensure that unquoted parameters are treated as string literals
-    // If the parameter doesn't start with a quote, it's likely an unquoted string or variable name
-    // In a template context, we should treat it as a string literal
-    const tagKey = params[0] ? params[0].replace(/^["'](.*)["']$/, '$1') : ''
-    logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: processed tagKey="${tagKey}" (original param: "${params[0]}")`)
+    // Special handling for regex patterns
+    let tagKey = params[0] || ''
+    if (tagKey.startsWith('/') && tagKey.includes('/')) {
+      // If it's a regex pattern, keep it as is without any additional processing
+      logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: Detected regex pattern, keeping as is: ${tagKey}`)
+    } else {
+      // For non-regex patterns, use parseStringOrRegex
+      tagKey = parseStringOrRegex(tagKey)
+    }
+    logDebug(pluginJson, `PromptKeyHandler.parsePromptKeyParameters: tagKey after processing: ${JSON.stringify(tagKey)}`)
 
     // Set varName
     const varName = ''
 
     // Adjust remaining parameters to their correct positions
-    const promptMessage = params[1]?.replace(/^["'](.*)["']$/, '$1') || ''
-
-    const rawNoteType = params[2]?.replace(/^["'](.*)["']$/, '$1') || 'All'
+    const promptMessage = params[1] || ''
+    const rawNoteType = params[2] || 'All'
     // Make sure noteType is one of the allowed values
     const noteType: 'Notes' | 'Calendar' | 'All' = rawNoteType === 'Notes' ? 'Notes' : rawNoteType === 'Calendar' ? 'Calendar' : 'All'
-
     const caseSensitive = params[3] === 'true' || false
-    const folderString = params[4]?.replace(/^["'](.*)["']$/, '$1') || ''
+    const folderString = params[4] || ''
     const fullPathMatch = params[5] === 'true' || false
 
     logDebug(
@@ -128,12 +173,12 @@ export default class PromptKeyHandler {
     caseSensitive: boolean = false,
     folderString?: string,
     fullPathMatch: boolean = false,
-  ): Promise<string> {
+  ): Promise<string | false> {
     logDebug(
       pluginJson,
       `PromptKeyHandler.promptKey: starting tag="${tag}" message="${message}" noteType="${noteType}" caseSensitive="${String(caseSensitive)}" folderString="${String(
         folderString,
-      )}" fullPathMatch="${String(fullPathMatch)} `,
+      )}" fullPathMatch="${String(fullPathMatch)}"`,
     )
 
     try {
@@ -158,19 +203,45 @@ export default class PromptKeyHandler {
       const tags = valuesList || (await getValuesForFrontmatterTag(tagToUse, noteType, caseSensitive, folderString, fullPathMatch))
       logDebug(pluginJson, `PromptKeyHandler.promptKey after getValuesForFrontmatterTag for tag="${tagToUse}": found ${tags.length} values`)
 
-      if (tags.length > 0) {
-        logDebug(pluginJson, `PromptKeyHandler.promptKey: ${tags.length} values found for key "${tagToUse}"; Will ask user to select one`)
+      // If tagToUse looks like a regex pattern (starts with / and contains another /), use it to filter the results
+      let filteredTags = tags
+      if (tagToUse.startsWith('/')) {
+        try {
+          // Find the last / in the string to handle flags
+          const lastSlashIndex = tagToUse.lastIndexOf('/')
+          if (lastSlashIndex > 0) {
+            const regexPattern = tagToUse.slice(1, lastSlashIndex)
+            const flags = tagToUse.slice(lastSlashIndex + 1)
+            const regex = new RegExp(regexPattern, flags)
+            filteredTags = tags.filter((tag) => regex.test(tag))
+            logDebug(pluginJson, `PromptKeyHandler.promptKey: Applied regex pattern "${regexPattern}" with flags "${flags}", filtered to ${filteredTags.length} values`)
+          }
+        } catch (error) {
+          logError(pluginJson, `Invalid regex pattern in tagKey: ${error.message}`)
+          // If regex is invalid, use all tags
+          filteredTags = tags
+        }
+      }
+
+      if (filteredTags.length > 0) {
+        logDebug(pluginJson, `PromptKeyHandler.promptKey: ${filteredTags.length} values found for key "${tagToUse}"; Will ask user to select one`)
         const promptMessage = message || `Choose a value for "${tagToUse}"`
 
         try {
           // Prepare options for selection
-          const optionsArray = tags.map((item) => ({ label: item, value: item }))
+          const optionsArray = filteredTags.map((item) => ({ label: item, value: item }))
 
           // $FlowFixMe: Flow doesn't understand chooseOptionWithModifiers return type
           const response = await chooseOptionWithModifiers(promptMessage, optionsArray, true)
 
+          // Handle cancelled prompt
+          if (!response) {
+            logDebug(pluginJson, `PromptKeyHandler.promptKey: Prompt cancelled, returning empty string`)
+            return false
+          }
+
           // $FlowFixMe: Flow doesn't understand the response object structure
-          if (response && typeof response === 'object' && response.value) {
+          if (typeof response === 'object' && response.value) {
             // $FlowFixMe: We know response.value exists
             const chosenTag = String(response.value)
             logDebug(pluginJson, `PromptKeyHandler.promptKey: Returning selected tag="${chosenTag}"`)

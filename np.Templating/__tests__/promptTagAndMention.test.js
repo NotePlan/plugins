@@ -49,7 +49,6 @@ describe('promptTag and promptMention functionality', () => {
 
         expect(result).toMatchObject({
           promptMessage: '',
-          varName: '',
         })
 
         // Make sure these properties exist but don't check values
@@ -64,7 +63,6 @@ describe('promptTag and promptMention functionality', () => {
 
         expect(result).toMatchObject({
           promptMessage: 'Select a hashtag:',
-          varName: '',
         })
 
         // Make sure these properties exist but don't check values
@@ -73,73 +71,52 @@ describe('promptTag and promptMention functionality', () => {
         expect(result).toHaveProperty('allowCreate')
       })
 
-      it('should parse a tag with promptMessage and varName (2 parameters)', () => {
-        const tag = "<%- promptTag('Select a hashtag:', 'tagVar') %>"
+      it('should parse a tag with promptMessage and includePattern (2 parameters)', () => {
+        const tag = "<%- promptTag('Select a hashtag:', 'project|important') %>"
         const result = HashtagPromptHandler.parsePromptTagParameters(tag)
 
         expect(result).toMatchObject({
           promptMessage: 'Select a hashtag:',
-          varName: '',
+          includePattern: 'project|important',
         })
 
-        // Make sure these properties exist but don't check values
-        expect(result).toHaveProperty('includePattern')
+        // Check other properties
         expect(result).toHaveProperty('excludePattern')
         expect(result).toHaveProperty('allowCreate')
       })
 
-      it('should parse a tag with promptMessage, varName, and includePattern (3 parameters)', () => {
-        const tag = "<%- promptTag('Select a hashtag:', 'tagVar', 'project|important') %>"
+      it('should parse a tag with promptMessage, includePattern, and excludePattern (3 parameters)', () => {
+        const tag = "<%- promptTag('Select a hashtag:', 'project|important', 'follow') %>"
         const result = HashtagPromptHandler.parsePromptTagParameters(tag)
 
         expect(result).toMatchObject({
           promptMessage: 'Select a hashtag:',
-          varName: '',
+          includePattern: 'project|important',
+          excludePattern: 'follow',
         })
 
-        // Check includePattern
-        expect(result).toHaveProperty('includePattern')
-        expect(result).toHaveProperty('excludePattern')
+        // Check allowCreate
         expect(result).toHaveProperty('allowCreate')
       })
 
-      it('should parse a tag with promptMessage, varName, includePattern, and excludePattern (4 parameters)', () => {
-        const tag = "<%- promptTag('Select a hashtag:', 'tagVar', 'project|important', 'follow') %>"
+      it('should parse a tag with all parameters (4 parameters)', () => {
+        const tag = "<%- promptTag('Select a hashtag:', 'project|important', 'follow', 'true') %>"
         const result = HashtagPromptHandler.parsePromptTagParameters(tag)
 
         expect(result).toMatchObject({
           promptMessage: 'Select a hashtag:',
-          varName: '',
+          includePattern: 'project|important',
+          excludePattern: 'follow',
+          allowCreate: true,
         })
-
-        // Check patterns
-        expect(result).toHaveProperty('includePattern')
-        expect(result).toHaveProperty('excludePattern')
-        expect(result).toHaveProperty('allowCreate')
-      })
-
-      it('should parse a tag with all parameters (5 parameters)', () => {
-        const tag = "<%- promptTag('Select a hashtag:', 'tagVar', 'project|important', 'follow', 'true') %>"
-        const result = HashtagPromptHandler.parsePromptTagParameters(tag)
-
-        expect(result).toMatchObject({
-          promptMessage: 'Select a hashtag:',
-          varName: '',
-        })
-
-        // Check all properties
-        expect(result).toHaveProperty('includePattern')
-        expect(result).toHaveProperty('excludePattern')
-        expect(typeof result.allowCreate).toBe('boolean')
       })
 
       it('should parse a tag with array parameters', () => {
-        const tag = "<%- promptTag('Select a hashtag:', 'tagVar', ['project|important', 'follow', 'true']) %>"
+        const tag = "<%- promptTag('Select a hashtag:', ['project|important', 'follow', 'true']) %>"
         const result = HashtagPromptHandler.parsePromptTagParameters(tag)
 
         expect(result).toMatchObject({
           promptMessage: 'Select a hashtag:',
-          varName: '',
         })
 
         // Just verify that we have the properties, values might vary based on implementation
@@ -149,18 +126,15 @@ describe('promptTag and promptMention functionality', () => {
       })
 
       it('should handle quoted parameters correctly', () => {
-        const tag = '<%- promptTag("Select a hashtag:", "tagVar", "project|important", "follow", "true") %>'
+        const tag = '<%- promptTag("Select a hashtag:", "project|important", "follow", "true") %>'
         const result = HashtagPromptHandler.parsePromptTagParameters(tag)
 
         expect(result).toMatchObject({
           promptMessage: 'Select a hashtag:',
-          varName: '',
+          includePattern: 'project|important',
+          excludePattern: 'follow',
+          allowCreate: true,
         })
-
-        // Make sure these properties exist
-        expect(result).toHaveProperty('includePattern')
-        expect(result).toHaveProperty('excludePattern')
-        expect(typeof result.allowCreate).toBe('boolean')
       })
     })
 
@@ -191,6 +165,68 @@ describe('promptTag and promptMention functionality', () => {
         expect(result).toContain('personal')
         expect(result).not.toContain('project')
       })
+
+      // Updated regex tests to use simpler patterns
+      it('should handle regex special characters in include pattern', () => {
+        const hashtags = ['work', 'personal', 'project', 'important', 'follow-up']
+        const result = HashtagPromptHandler.filterHashtags(hashtags, 'pro.*')
+
+        expect(result).toContain('project')
+        expect(result).not.toContain('work')
+      })
+
+      it('should handle regex start/end anchors in include pattern', () => {
+        const hashtags = ['work', 'personal', 'project', 'important', 'follow-up', 'nopro']
+        const result = HashtagPromptHandler.filterHashtags(hashtags, '^pro')
+
+        expect(result).toContain('project')
+        expect(result).not.toContain('personal')
+        expect(result).not.toContain('nopro')
+      })
+
+      it('should handle regex alternation in include pattern', () => {
+        const hashtags = ['work', 'personal', 'project', 'important', 'follow-up']
+        const result = HashtagPromptHandler.filterHashtags(hashtags, 'work|pro')
+
+        expect(result).toContain('work')
+        expect(result).toContain('project')
+        expect(result).not.toContain('personal')
+      })
+
+      it('should handle regex special characters in exclude pattern', () => {
+        const hashtags = ['work', 'personal', 'project', 'important', 'follow-up']
+        const result = HashtagPromptHandler.filterHashtags(hashtags, '', 'pro.*')
+
+        expect(result).not.toContain('project')
+        expect(result).toContain('work')
+      })
+
+      it('should handle regex start/end anchors in exclude pattern', () => {
+        const hashtags = ['work', 'personal', 'project', 'important', 'follow-up', 'nopro']
+        const result = HashtagPromptHandler.filterHashtags(hashtags, '', 'pro')
+
+        expect(result).not.toContain('project')
+        expect(result).toContain('personal')
+      })
+
+      it('should handle regex alternation in exclude pattern', () => {
+        const hashtags = ['work', 'personal', 'project', 'important', 'follow-up']
+        const result = HashtagPromptHandler.filterHashtags(hashtags, '', 'work|pro')
+
+        expect(result).not.toContain('work')
+        expect(result).not.toContain('project')
+        expect(result).toContain('personal')
+      })
+
+      it('should handle complex regex patterns with both include and exclude', () => {
+        const hashtags = ['work', 'personal', 'project', 'important', 'follow-up']
+        const result = HashtagPromptHandler.filterHashtags(hashtags, '^[a-z]+', 'pro|fol')
+
+        expect(result).toContain('work')
+        expect(result).toContain('personal')
+        expect(result).not.toContain('project')
+        expect(result).not.toContain('follow-up')
+      })
     })
   })
 
@@ -202,7 +238,6 @@ describe('promptTag and promptMention functionality', () => {
 
         expect(result).toMatchObject({
           promptMessage: '',
-          varName: '',
         })
 
         // Make sure these properties exist but don't check values
@@ -217,7 +252,6 @@ describe('promptTag and promptMention functionality', () => {
 
         expect(result).toMatchObject({
           promptMessage: 'Select a mention:',
-          varName: '',
         })
 
         // Make sure these properties exist but don't check values
@@ -226,73 +260,52 @@ describe('promptTag and promptMention functionality', () => {
         expect(result).toHaveProperty('allowCreate')
       })
 
-      it('should parse a tag with promptMessage and varName (2 parameters)', () => {
-        const tag = "<%- promptMention('Select a mention:', 'mentionVar') %>"
+      it('should parse a tag with promptMessage and includePattern (2 parameters)', () => {
+        const tag = "<%- promptMention('Select a mention:', 'john|jane') %>"
         const result = MentionPromptHandler.parsePromptMentionParameters(tag)
 
         expect(result).toMatchObject({
           promptMessage: 'Select a mention:',
-          varName: '',
+          includePattern: 'john|jane',
         })
 
-        // Make sure these properties exist but don't check values
-        expect(result).toHaveProperty('includePattern')
+        // Check other properties
         expect(result).toHaveProperty('excludePattern')
         expect(result).toHaveProperty('allowCreate')
       })
 
-      it('should parse a tag with promptMessage, varName, and includePattern (3 parameters)', () => {
-        const tag = "<%- promptMention('Select a mention:', 'mentionVar', 'john|jane') %>"
+      it('should parse a tag with promptMessage, includePattern, and excludePattern (3 parameters)', () => {
+        const tag = "<%- promptMention('Select a mention:', 'john|jane', 'team') %>"
         const result = MentionPromptHandler.parsePromptMentionParameters(tag)
 
         expect(result).toMatchObject({
           promptMessage: 'Select a mention:',
-          varName: '',
+          includePattern: 'john|jane',
+          excludePattern: 'team',
         })
 
-        // Check includePattern
-        expect(result).toHaveProperty('includePattern')
-        expect(result).toHaveProperty('excludePattern')
+        // Check allowCreate
         expect(result).toHaveProperty('allowCreate')
       })
 
-      it('should parse a tag with promptMessage, varName, includePattern, and excludePattern (4 parameters)', () => {
-        const tag = "<%- promptMention('Select a mention:', 'mentionVar', 'john|jane', 'team') %>"
+      it('should parse a tag with all parameters (4 parameters)', () => {
+        const tag = "<%- promptMention('Select a mention:', 'john|jane', 'team', 'true') %>"
         const result = MentionPromptHandler.parsePromptMentionParameters(tag)
 
         expect(result).toMatchObject({
           promptMessage: 'Select a mention:',
-          varName: '',
+          includePattern: 'john|jane',
+          excludePattern: 'team',
+          allowCreate: true,
         })
-
-        // Check patterns
-        expect(result).toHaveProperty('includePattern')
-        expect(result).toHaveProperty('excludePattern')
-        expect(result).toHaveProperty('allowCreate')
-      })
-
-      it('should parse a tag with all parameters (5 parameters)', () => {
-        const tag = "<%- promptMention('Select a mention:', 'mentionVar', 'john|jane', 'team', 'true') %>"
-        const result = MentionPromptHandler.parsePromptMentionParameters(tag)
-
-        expect(result).toMatchObject({
-          promptMessage: 'Select a mention:',
-          varName: '',
-        })
-
-        // Check all properties
-        expect(result).toHaveProperty('includePattern')
-        expect(result).toHaveProperty('excludePattern')
-        expect(typeof result.allowCreate).toBe('boolean')
       })
 
       it('should parse a tag with array parameters', () => {
-        const tag = "<%- promptMention('Select a mention:', 'mentionVar', ['john|jane', 'team', 'true']) %>"
+        const tag = "<%- promptMention('Select a mention:', ['john|jane', 'team', 'true']) %>"
         const result = MentionPromptHandler.parsePromptMentionParameters(tag)
 
         expect(result).toMatchObject({
           promptMessage: 'Select a mention:',
-          varName: '',
         })
 
         // Just verify that we have the properties, values might vary based on implementation
@@ -302,18 +315,15 @@ describe('promptTag and promptMention functionality', () => {
       })
 
       it('should handle quoted parameters correctly', () => {
-        const tag = '<%- promptMention("Select a mention:", "mentionVar", "john|jane", "team", "true") %>'
+        const tag = '<%- promptMention("Select a mention:", "john|jane", "team", "true") %>'
         const result = MentionPromptHandler.parsePromptMentionParameters(tag)
 
         expect(result).toMatchObject({
           promptMessage: 'Select a mention:',
-          varName: '',
+          includePattern: 'john|jane',
+          excludePattern: 'team',
+          allowCreate: true,
         })
-
-        // Make sure these properties exist
-        expect(result).toHaveProperty('includePattern')
-        expect(result).toHaveProperty('excludePattern')
-        expect(typeof result.allowCreate).toBe('boolean')
       })
     })
 
@@ -344,6 +354,67 @@ describe('promptTag and promptMention functionality', () => {
 
         expect(result).toContain('boss')
         expect(result).not.toContain('john')
+      })
+
+      // Updated regex tests to use simpler patterns
+      it('should handle regex special characters in include pattern', () => {
+        const mentions = ['john', 'jane', 'team', 'boss', 'client']
+        const result = MentionPromptHandler.filterMentions(mentions, 'jo.*')
+
+        expect(result).toContain('john')
+        expect(result).not.toContain('team')
+      })
+
+      it('should handle regex start/end anchors in include pattern', () => {
+        const mentions = ['john', 'jane', 'team', 'boss', 'client']
+        const result = MentionPromptHandler.filterMentions(mentions, '^jo')
+
+        expect(result).toContain('john')
+        expect(result).not.toContain('jane')
+      })
+
+      it('should handle regex alternation in include pattern', () => {
+        const mentions = ['john', 'jane', 'team', 'boss', 'client']
+        const result = MentionPromptHandler.filterMentions(mentions, 'jo|te')
+
+        expect(result).toContain('john')
+        expect(result).toContain('team')
+        expect(result).not.toContain('boss')
+      })
+
+      it('should handle regex special characters in exclude pattern', () => {
+        const mentions = ['john', 'jane', 'team', 'boss', 'client']
+        const result = MentionPromptHandler.filterMentions(mentions, '', 'jo.*')
+
+        expect(result).not.toContain('john')
+        expect(result).toContain('team')
+      })
+
+      it('should handle regex start/end anchors in exclude pattern', () => {
+        const mentions = ['john', 'jane', 'team', 'boss', 'client']
+        const result = MentionPromptHandler.filterMentions(mentions, '', '^jo')
+
+        expect(result).not.toContain('john')
+        expect(result).toContain('jane')
+      })
+
+      it('should handle regex alternation in exclude pattern', () => {
+        const mentions = ['john', 'jane', 'team', 'boss', 'client']
+        const result = MentionPromptHandler.filterMentions(mentions, '', 'jo|te')
+
+        expect(result).not.toContain('john')
+        expect(result).not.toContain('team')
+        expect(result).toContain('boss')
+      })
+
+      it('should handle complex regex patterns with both include and exclude', () => {
+        const mentions = ['john', 'jane', 'team', 'boss', 'client']
+        const result = MentionPromptHandler.filterMentions(mentions, '^[a-z]+', 'jo|te')
+
+        expect(result).toContain('boss')
+        expect(result).toContain('client')
+        expect(result).not.toContain('john')
+        expect(result).not.toContain('team')
       })
     })
   })

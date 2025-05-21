@@ -20,7 +20,6 @@ describe('promptTag and promptMention with single parameter', () => {
       const result = PromptTagHandler.parsePromptTagParameters(tag)
 
       expect(result.promptMessage).toBe('tagMessage')
-      expect(result.varName).toBe('')
     })
 
     it('should correctly parse a tag with single quoted parameter and spaces', () => {
@@ -28,7 +27,6 @@ describe('promptTag and promptMention with single parameter', () => {
       const result = PromptTagHandler.parsePromptTagParameters(tag)
 
       expect(result.promptMessage).toBe('Select a tag:')
-      expect(result.varName).toBe('')
     })
 
     it('should correctly parse a tag with single parameter using single quotes', () => {
@@ -36,7 +34,6 @@ describe('promptTag and promptMention with single parameter', () => {
       const result = PromptTagHandler.parsePromptTagParameters(tag)
 
       expect(result.promptMessage).toBe('tagMessage')
-      expect(result.varName).toBe('')
     })
   })
 
@@ -46,7 +43,6 @@ describe('promptTag and promptMention with single parameter', () => {
       const result = PromptMentionHandler.parsePromptMentionParameters(tag)
 
       expect(result.promptMessage).toBe('mentionMessage')
-      expect(result.varName).toBe('')
     })
 
     it('should correctly parse a tag with single quoted parameter and spaces', () => {
@@ -54,7 +50,6 @@ describe('promptTag and promptMention with single parameter', () => {
       const result = PromptMentionHandler.parsePromptMentionParameters(tag)
 
       expect(result.promptMessage).toBe('Select a mention:')
-      expect(result.varName).toBe('')
     })
 
     it('should correctly parse a tag with single parameter using single quotes', () => {
@@ -62,7 +57,6 @@ describe('promptTag and promptMention with single parameter', () => {
       const result = PromptMentionHandler.parsePromptMentionParameters(tag)
 
       expect(result.promptMessage).toBe('mentionMessage')
-      expect(result.varName).toBe('')
     })
   })
 })

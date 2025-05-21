@@ -20,7 +20,6 @@ export function parsePromptParameters(
   promptType: string,
 ): {
   promptMessage: string,
-  varName: string,
   includePattern: string,
   excludePattern: string,
   allowCreate: boolean,
@@ -81,12 +80,21 @@ export function parsePromptParameters(
 
           if (!hasUnquotedComma) {
             // It's a single parameter, use it as promptMessage
-            promptMessage = BasePromptHandler.removeQuotes(paramsText)
-            logDebug(pluginJson, `${promptType} fallback extraction - single parameter: "${promptMessage}"`)
+            const param = BasePromptHandler.removeQuotes(paramsText)
+            logDebug(pluginJson, `${promptType} fallback extraction - single parameter: "${param}"`)
+
+            // NEW: If the param looks like 'Prompt: pattern', split and treat pattern as includePattern
+            const regexSplit = param.match(/^(.*?):\s*(\S.+)$/)
+            if (regexSplit) {
+              promptMessage = regexSplit[1].trim()
+              includePattern = regexSplit[2].trim()
+              logDebug(pluginJson, `${promptType} detected regex in promptMessage: promptMessage="${promptMessage}", includePattern="${includePattern}"`)
+            } else {
+              promptMessage = param
+            }
 
             return {
               promptMessage,
-              varName: '',
               includePattern,
               excludePattern,
               allowCreate,
@@ -97,7 +105,6 @@ export function parsePromptParameters(
 
       return {
         promptMessage: '',
-        varName: '',
         includePattern,
         excludePattern,
         allowCreate,
@@ -122,31 +129,30 @@ export function parsePromptParameters(
 
       // Process additional parameters from options
       if (Array.isArray(basicParams.options)) {
-        if (basicParams.options.length > 0) includePattern = basicParams.options[0] || ''
-        if (basicParams.options.length > 1) excludePattern = basicParams.options[1] || ''
-        if (basicParams.options.length > 2) allowCreate = basicParams.options[2] === 'true'
+        if (basicParams.options.length > 0) includePattern = BasePromptHandler.removeQuotes(basicParams.options[0]) || ''
+        if (basicParams.options.length > 1) excludePattern = BasePromptHandler.removeQuotes(basicParams.options[1]) || ''
+        if (basicParams.options.length > 2) allowCreate = BasePromptHandler.removeQuotes(basicParams.options[2]) === 'true'
       } else if (typeof basicParams.options === 'string') {
         // Process string options
         const paramRegex = /,(?=(?:[^"']*["'][^"']*["'])*[^"']*$)/
-        const optionParts = basicParams.options.split(paramRegex).map((part) => part.trim())
+        const optionParts = basicParams.options.split(paramRegex).map((part: string) => part.trim())
 
         logDebug(pluginJson, `${promptType} parsed options parts: ${JSON.stringify(optionParts)}`)
 
         // Special case for testing: split a single string with all parameters if the regex didn't work
         if (optionParts.length === 1 && optionParts[0].includes(',')) {
-          const manualParts = optionParts[0].split(',').map((p) => p.trim())
+          const manualParts = optionParts[0].split(',').map((p: string) => p.trim())
+          const filteredManualParts = manualParts.filter((s: string) => s !== '')
           // Use manually split parts if they make more logical sense
-          if (manualParts.length > 1) {
-            logDebug(pluginJson, `${promptType} using manual split: ${JSON.stringify(manualParts)}`)
-            if (manualParts.length > 0) includePattern = BasePromptHandler.removeQuotes(manualParts[0]) || ''
-            if (manualParts.length > 1) excludePattern = BasePromptHandler.removeQuotes(manualParts[1]) || ''
-            if (manualParts.length > 2) allowCreate = BasePromptHandler.removeQuotes(manualParts[2]) === 'true'
-          }
+          if (filteredManualParts.length > 0) includePattern = BasePromptHandler.removeQuotes(filteredManualParts[0]) || ''
+          if (filteredManualParts.length > 1) excludePattern = BasePromptHandler.removeQuotes(filteredManualParts[1]) || ''
+          if (filteredManualParts.length > 2) allowCreate = BasePromptHandler.removeQuotes(filteredManualParts[2]) === 'true'
         } else {
           // Regular case processing
-          if (optionParts.length > 0) includePattern = BasePromptHandler.removeQuotes(optionParts[0]) || ''
-          if (optionParts.length > 1) excludePattern = BasePromptHandler.removeQuotes(optionParts[1]) || ''
-          if (optionParts.length > 2) allowCreate = BasePromptHandler.removeQuotes(optionParts[2]) === 'true'
+          const filteredParts = optionParts.filter((s: string) => s !== '')
+          if (filteredParts.length > 0) includePattern = BasePromptHandler.removeQuotes(filteredParts[0]) || ''
+          if (filteredParts.length > 1) excludePattern = BasePromptHandler.removeQuotes(filteredParts[1]) || ''
+          if (filteredParts.length > 2) allowCreate = BasePromptHandler.removeQuotes(filteredParts[2]) === 'true'
         }
       }
     }
@@ -156,14 +162,11 @@ export function parsePromptParameters(
 
   logDebug(
     pluginJson,
-    `${promptType}.parseParameters: promptMessage="${promptMessage}" varName="" includePattern="${includePattern}" excludePattern="${excludePattern}" allowCreate=${String(
-      allowCreate,
-    )}`,
+    `${promptType}.parseParameters: promptMessage="${promptMessage}" includePattern="${includePattern}" excludePattern="${excludePattern}" allowCreate=${String(allowCreate)}`,
   )
 
   return {
     promptMessage,
-    varName: '', // Set varName to empty string as specified
     includePattern,
     excludePattern,
     allowCreate,
@@ -248,4 +251,48 @@ export async function promptForItem(
     logError(pluginJson, `Error in promptFor${itemType.charAt(0).toUpperCase() + itemType.slice(1)}: ${error.message}`)
     return ''
   }
+}
+
+/**
+ * Parses a string that could be a regex pattern or a normal string
+ * @param {string | null | void} input - The input string to parse
+ * @returns {string} The parsed string, preserving regex patterns and their flags
+ * @example
+ * parseStringOrRegex('/Task(?!.*Done)/') // returns '/Task(?!.*Done)/'
+ * parseStringOrRegex('"Task"') // returns 'Task'
+ * parseStringOrRegex('/Task/i') // returns '/Task/i'
+ */
+export function parseStringOrRegex(input: ?string): string {
+  if (input == null) return ''
+  let trimmed = input.trim()
+
+  // Remove surrounding quotes if present
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    trimmed = trimmed.slice(1, -1)
+  }
+
+  if (!trimmed.startsWith('/')) {
+    return trimmed
+  }
+
+  // Find the last unescaped slash
+  let lastSlashIndex = -1
+  let inEscape = false
+  for (let i = 1; i < trimmed.length; i++) {
+    if (trimmed[i] === '\\' && !inEscape) {
+      inEscape = true
+    } else if (trimmed[i] === '/' && !inEscape) {
+      lastSlashIndex = i
+    } else {
+      inEscape = false
+    }
+  }
+
+  if (lastSlashIndex > 0) {
+    // Return the pattern including flags
+    return trimmed.substring(0, lastSlashIndex + 1) + trimmed.substring(lastSlashIndex + 1)
+  }
+
+  // If no closing slash found, return as is
+  return trimmed
 }
