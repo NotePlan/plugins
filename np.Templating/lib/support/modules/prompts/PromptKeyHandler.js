@@ -194,8 +194,8 @@ export default class PromptKeyHandler {
 
         if (!valuesList || valuesList.length === 0) {
           logDebug(pluginJson, 'PromptKeyHandler.promptKey: No key was selected')
-          const result = await CommandBar.textPrompt('Enter a value:', message || 'Enter a value:', '')
-          return this.safeTextPromptResult(result)
+          const result = await CommandBar.textPrompt('No existing values found. Enter a value:', message || 'Enter a value:', '')
+          return result === false ? false : this.safeTextPromptResult(result)
         }
       }
 
@@ -263,7 +263,7 @@ export default class PromptKeyHandler {
         )
         const result = await CommandBar.textPrompt('', message || `No values found for "${tagToUse}". Enter a value:`, '')
         logDebug(pluginJson, `PromptKeyHandler.promptKey: Returning prompt hand-entered result="${String(result)}"`)
-        return this.safeTextPromptResult(result)
+        return result === false ? false : this.safeTextPromptResult(result)
       }
     } catch (error) {
       logError(pluginJson, `Error in promptKey: ${error.message}`)
@@ -276,9 +276,9 @@ export default class PromptKeyHandler {
    * @param {string} tag - The template tag.
    * @param {any} sessionData - The current session data.
    * @param {Object} params - The parameters from parseParameters.
-   * @returns {Promise<string>} The processed prompt result.
+   * @returns {Promise<string|false>} The processed prompt result, or false if cancelled.
    */
-  static async process(tag: string, sessionData: any, params: any): Promise<string> {
+  static async process(tag: string, sessionData: any, params: any): Promise<string | false> {
     const { varName, tagKey, promptMessage, noteType, caseSensitive, folderString, fullPathMatch } = params
 
     logDebug(pluginJson, `PromptKeyHandler.process: Starting with tagKey="${tagKey}", promptMessage="${promptMessage}"`)
@@ -297,7 +297,7 @@ export default class PromptKeyHandler {
       logDebug(pluginJson, `PromptKeyHandler.process: Executing promptKey with tag="${tagKey}"`)
       const response = await PromptKeyHandler.promptKey(tagKey, promptMessage, noteType, caseSensitive, folderString, fullPathMatch)
 
-      logDebug(pluginJson, `PromptKeyHandler.process: Got response: ${response}`)
+      logDebug(pluginJson, `PromptKeyHandler.process: Got response: ${String(response)}`)
 
       // Store response with appropriate variable name
       sessionData[sessionVarName] = response
@@ -308,7 +308,6 @@ export default class PromptKeyHandler {
     }
   }
 }
-
 // Register the promptKey type
 registerPromptType({
   name: 'promptKey',
