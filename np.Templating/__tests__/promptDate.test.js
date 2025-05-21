@@ -189,4 +189,25 @@ describe('PromptDateHandler', () => {
     expect(result.sessionData.errorDate).toBe('')
     expect(result.sessionTemplateData).toBe('<%- errorDate %>')
   })
+
+  test('Should handle default value correctly', async () => {
+    datePicker.mockClear()
+
+    const templateData = "<%- promptDate('startDate2', 'Enter start date:', '2024-01-01') %>"
+    const userData = {}
+
+    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+
+    expect(result.sessionData.startDate2).toBe('2023-01-15')
+    expect(result.sessionTemplateData).toBe('<%- startDate2 %>')
+
+    // Verify the datePicker was called with the correct default value
+    expect(datePicker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        question: 'Enter start date:',
+        defaultValue: '2024-01-01',
+        canBeEmpty: false,
+      }),
+    )
+  })
 })
