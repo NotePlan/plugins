@@ -426,7 +426,6 @@ export async function processPrompts(
           logDebug(pluginJson, 'Prompt was cancelled, returning false')
           return false // Immediately return false if any prompt is cancelled
         }
-        logDebug(pluginJson, `processPrompts Processed tag: ${tag}; not false. Continuing...`)
         sessionTemplateData = sessionTemplateData.replace(tag, processedTag)
       } catch (error) {
         logError(pluginJson, `Error processing prompt tag: ${error.message}`)
