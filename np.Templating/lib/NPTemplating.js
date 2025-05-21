@@ -1266,6 +1266,12 @@ export default class NPTemplating {
     try {
       await this.setup()
 
+      // Add tag validation before any processing
+      const tagError = this.validateTemplateTags(templateData)
+      if (tagError) {
+        return tagError
+      }
+
       if (templateData?.replace) {
         // front-matter doesn't always return strings (e.g. "true" is turned into a boolean)
         // work around an issue when creating templates references on iOS (Smart Quotes Enabled)
@@ -1829,5 +1835,129 @@ export default class NPTemplating {
       code = code.replace(placeholderRegex, entry.original)
     }
     return code
+  }
+
+  /**
+   * Formats a template error message with consistent styling
+   * @param {string} errorType - The type of error (e.g. "unclosed tag", "unmatched closing tag")
+   * @param {number} lineNumber - The line number where the error occurred
+   * @param {string} context - The context lines around the error
+   * @param {string} description - Optional description of the error
+   * @returns {string} Formatted error message
+   */
+  static _formatTemplateError(errorType: string, lineNumber: number, context: string, description?: string): string {
+    const desc = description ? `\n\`${description}\`` : ''
+    return `==Template error: Found ${errorType} near line ${lineNumber}==${desc}\n\`\`\`\n${context}\n\`\`\`\n`
+  }
+
+  /**
+   * Validates EJS tags in the template data
+   * @param {string} templateData - The template data to validate
+   * @returns {string|null} - Error message if validation fails, null if valid
+   */
+  static validateTemplateTags(templateData: string): string | null {
+    const lines = templateData.split('\n')
+    let openTags = 0
+    let closeTags = 0
+    let lastUnclosedLine = 0
+    let lastUnclosedContent = ''
+
+    // Count opening and closing tags
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      const openCount = (line.match(/<%/g) || []).length
+      const closeCount = (line.match(/%>/g) || []).length
+
+      openTags += openCount
+      closeTags += closeCount
+
+      // Track the last unclosed tag
+      if (openCount > closeCount) {
+        lastUnclosedLine = i + 1
+        lastUnclosedContent = line
+      }
+
+      // Check for unmatched closing tags
+      if (closeTags > openTags) {
+        // Get context around the error
+        const start = Math.max(i - 4, 0)
+        const end = Math.min(lines.length, i + 3)
+        const context = lines
+          .slice(start, end)
+          .map((line, idx) => {
+            const curr = idx + start + 1
+            return (curr === i + 1 ? '>> ' : '   ') + curr + '| ' + line
+          })
+          .join('\n')
+
+        return this._formatTemplateError('unmatched closing tag', i + 1, context, '(showing the line where a closing tag was found without a matching opening tag)')
+      }
+    }
+
+    // Check for unclosed tags at the end
+    if (openTags > closeTags) {
+      // Get context around the error
+      const start = Math.max(lastUnclosedLine - 4, 0)
+      const end = Math.min(lines.length, lastUnclosedLine + 3)
+      const context = lines
+        .slice(start, end)
+        .map((line, idx) => {
+          const curr = idx + start + 1
+          return (curr === lastUnclosedLine ? '>> ' : '   ') + curr + '| ' + line
+        })
+        .join('\n')
+
+      return this._formatTemplateError('unclosed tag', lastUnclosedLine, context, '(showing the line where a tag was opened but not closed)')
+    }
+
+    // Check for any remaining unmatched closing tags at the end
+    if (closeTags > openTags) {
+      const lastLine = lines.length
+      const context = lines
+        .slice(Math.max(0, lastLine - 4), lastLine)
+        .map((line, idx) => {
+          const curr = lastLine - 4 + idx + 1
+          return (curr === lastLine ? '>> ' : '   ') + curr + '| ' + line
+        })
+        .join('\n')
+
+      return this._formatTemplateError('unmatched closing tag', lastLine, context, '(showing the line where a closing tag was found without a matching opening tag)')
+    }
+
+    return null
+  }
+
+  async render(templateData: string, data: any = {}): Promise<string> {
+    try {
+      // First validate the template tags
+      const tagError = NPTemplating.validateTemplateTags(templateData)
+      if (tagError) {
+        return tagError
+      }
+
+      // Process the template
+      const processedTemplate = await this.processTemplate(templateData, data)
+      return processedTemplate
+    } catch (error) {
+      console.error('Error rendering template:', error)
+      return `Template Rendering Error: ${error.message}`
+    }
+  }
+
+  async processTemplate(templateData: string, data: any = {}): Promise<string> {
+    try {
+      // First validate the template tags
+      const tagError = NPTemplating.validateTemplateTags(templateData)
+      if (tagError) {
+        return tagError
+      }
+
+      // Continue with template processing...
+      // ... rest of the method
+      return templateData // Temporary return until implementation is complete
+    } catch (error) {
+      console.error('Error processing template:', error)
+      return `Template Processing Error: ${error.message}`
+    }
   }
 }

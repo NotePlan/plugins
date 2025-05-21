@@ -8,6 +8,7 @@
  */
 
 import TemplatingEngine from '../lib/TemplatingEngine'
+import NPTemplating from '../lib/NPTemplating'
 import { DataStore } from '@mocks/index'
 
 // for Flow errors with Jest
@@ -94,5 +95,85 @@ const isWeekend = !isWeekday
     // Should correctly identify the error
     expect(result).toMatch(/>>.*\d+\|.*dayNum = 6/) // Should mark the error line
     expect(result).toMatch(/Assignment.*variable|TypeError.*Assignment/i) // Should explain the error
+  })
+
+  test('should detect unclosed EJS tags', async () => {
+    const template = `<% const x = 5 %>
+<% if (x > 3) { %>
+  Hello World
+<% } // Missing closing tag`
+
+    const result = await templatingEngine.render(template, {})
+
+    // Should match error format with line numbers and >> indicator
+    expect(result).toContain('## Template Rendering Error')
+    expect(result).toContain('==Rendering failed==')
+    expect(result).toContain('Could not find matching close tag for "<%".')
+  })
+
+  test('should detect unmatched closing tags', () => {
+    const template = `<% const x = 5 %>
+<% if (x > 3) { %>
+  Hello World
+<% } %>
+%> // Extra closing tag`
+
+    const result = NPTemplating.validateTemplateTags(template)
+
+    // Should match error format with line numbers and >> indicator
+    expect(result).toContain('==Template error: Found unmatched closing tag near line')
+    expect(result).toContain('(showing the line where a closing tag was found without a matching opening tag)')
+    expect(result).toMatch(/```\n\s+\d+\|\s*<% const x = 5 %>/)
+    expect(result).toMatch(/>>\s+\d+\|\s*%> \/\/ Extra closing tag/)
+  })
+
+  test('should handle nested tags correctly', async () => {
+    const template = `<% if (true) { %>
+  <% if (false) { %>
+    Nested content
+  <% } %>
+<% } %>`
+
+    const result = await templatingEngine.render(template, {})
+    expect(result).not.toContain('Template error') // Should not find any tag errors
+  })
+
+  test('should handle all EJS tag types', async () => {
+    const template = `<%= "Escaped output" %>
+<%- "Unescaped output" %>
+<%~ "Trimmed output" %>
+<% const x = 5 %>`
+
+    const result = await templatingEngine.render(template, {})
+    expect(result).not.toContain('Template error') // Should not find any tag errors
+  })
+
+  test('should handle complex nested structures', async () => {
+    const template = `<% if (true) { %>
+  <%= "Level 1" %>
+  <% if (false) { %>
+    <%- "Level 2" %>
+    <% if (undefined) { %>
+      <%~ "Level 3" %>
+    <% } %>
+  <% } %>
+<% } %>`
+
+    const result = await templatingEngine.render(template, {})
+    expect(result).not.toContain('Template error') // Should not find any tag errors
+  })
+
+  test('should show context around syntax errors', async () => {
+    const template = `<% const x = 5 %>
+<% if (x > 3) { %>
+  Hello World
+<% } // Missing closing brace`
+
+    const result = await templatingEngine.render(template, {})
+
+    // Should show context with line numbers and >> indicator
+    expect(result).toContain('## Template Rendering Error')
+    expect(result).toContain('==Rendering failed==')
+    expect(result).toContain('Could not find matching close tag for "<%".')
   })
 })
