@@ -203,33 +203,13 @@ export default class PromptKeyHandler {
       const tags = valuesList || (await getValuesForFrontmatterTag(tagToUse, noteType, caseSensitive, folderString, fullPathMatch))
       logDebug(pluginJson, `PromptKeyHandler.promptKey after getValuesForFrontmatterTag for tag="${tagToUse}": found ${tags.length} values`)
 
-      // If tagToUse looks like a regex pattern (starts with / and contains another /), use it to filter the results
-      let filteredTags = tags
-      if (tagToUse.startsWith('/')) {
-        try {
-          // Find the last / in the string to handle flags
-          const lastSlashIndex = tagToUse.lastIndexOf('/')
-          if (lastSlashIndex > 0) {
-            const regexPattern = tagToUse.slice(1, lastSlashIndex)
-            const flags = tagToUse.slice(lastSlashIndex + 1)
-            const regex = new RegExp(regexPattern, flags)
-            filteredTags = tags.filter((tag) => regex.test(tag))
-            logDebug(pluginJson, `PromptKeyHandler.promptKey: Applied regex pattern "${regexPattern}" with flags "${flags}", filtered to ${filteredTags.length} values`)
-          }
-        } catch (error) {
-          logError(pluginJson, `Invalid regex pattern in tagKey: ${error.message}`)
-          // If regex is invalid, use all tags
-          filteredTags = tags
-        }
-      }
-
-      if (filteredTags.length > 0) {
-        logDebug(pluginJson, `PromptKeyHandler.promptKey: ${filteredTags.length} values found for key "${tagToUse}"; Will ask user to select one`)
+      if (tags.length > 0) {
+        logDebug(pluginJson, `PromptKeyHandler.promptKey: ${tags.length} values found for key "${tagToUse}"; Will ask user to select one`)
         const promptMessage = message || `Choose a value for "${tagToUse}"`
 
         try {
           // Prepare options for selection
-          const optionsArray = filteredTags.map((item) => ({ label: item, value: item }))
+          const optionsArray = tags.map((item) => ({ label: item, value: item }))
 
           // $FlowFixMe: Flow doesn't understand chooseOptionWithModifiers return type
           const response = await chooseOptionWithModifiers(promptMessage, optionsArray, true)

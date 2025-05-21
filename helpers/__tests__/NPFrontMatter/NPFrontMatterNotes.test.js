@@ -427,20 +427,6 @@ describe(`${PLUGIN_NAME}`, () => {
         // Reset mock for CommandBar.showOptions
         CommandBar.showOptions.mockReset()
 
-        // Mock getNotesWithFrontmatterTags to avoid implementation issues
-        jest.spyOn(f, 'getNotesWithFrontmatterTags').mockImplementation((tags, noteType, caseSensitive = false) => {
-          const tagsArray = Array.isArray(tags) ? tags : [tags]
-          return DataStore.projectNotes.filter((note) =>
-            tagsArray.some((tag) => {
-              if (!caseSensitive) {
-                const lowerCaseTag = tag.toLowerCase()
-                return Object.keys(note.frontmatterAttributes).some((key) => key.toLowerCase() === lowerCaseTag && note.frontmatterAttributes[key])
-              }
-              return note.frontmatterAttributes[tag]
-            }),
-          )
-        })
-
         // Mock getNotesWithFrontmatter for testing with no tag provided
         jest.spyOn(f, 'getNotesWithFrontmatter').mockImplementation((noteType) => {
           return DataStore.projectNotes
@@ -455,58 +441,11 @@ describe(`${PLUGIN_NAME}`, () => {
         })
         const note2 = new Note({
           filename: 'note2.md',
-          frontmatterAttributes: { Status: 'Active' },
-        })
-        const note3 = new Note({
-          filename: 'note3.md',
           frontmatterAttributes: { status: 'done' },
         })
-        const note4 = new Note({
-          filename: 'note4.md',
-          frontmatterAttributes: { STATUS: 'ACTIVE' },
-        })
-        DataStore.projectNotes = [note1, note2, note3, note4]
+        DataStore.projectNotes = [note1, note2]
 
-        // Completely rewritten mock implementation
-        jest.spyOn(f, 'getValuesForFrontmatterTag').mockImplementation(async (tag, noteType, caseSensitive = false) => {
-          // Add a real await operation to fix the linter error
-          await Promise.resolve()
-
-          const notes = f.getNotesWithFrontmatterTags(tag, noteType, caseSensitive)
-          const values = new Set()
-
-          for (const note of notes) {
-            // Find the matching key based on case sensitivity
-            let matchingKey = tag
-            if (!caseSensitive) {
-              const lowerCaseTag = tag.toLowerCase()
-              matchingKey = Object.keys(note.frontmatterAttributes).find((key) => key.toLowerCase() === lowerCaseTag) || tag
-            }
-
-            // Get the value
-            const value = note.frontmatterAttributes[matchingKey]
-
-            // Handle case sensitivity for string values
-            if (!caseSensitive && typeof value === 'string') {
-              // Check if a case-insensitive equivalent already exists
-              let found = false
-              for (const existingValue of values) {
-                if (typeof existingValue === 'string' && existingValue.toLowerCase() === value.toLowerCase()) {
-                  found = true
-                  break
-                }
-              }
-              if (!found) {
-                values.add(value)
-              }
-            } else {
-              values.add(value)
-            }
-          }
-
-          return Array.from(values)
-        })
-
+        // Test implementation
         const result = await f.getValuesForFrontmatterTag('status')
         expect(result).toHaveLength(2) // Should have 'active' and 'done'
         expect(result).toContainEqual('active')
@@ -651,6 +590,129 @@ describe(`${PLUGIN_NAME}`, () => {
         // Verify
         expect(CommandBar.showOptions).toHaveBeenCalled()
         expect(result).toEqual([])
+      })
+
+      describe('Regex Pattern Tests', () => {
+        beforeEach(() => {
+          // Clear all mocks before each regex test
+          jest.clearAllMocks()
+          // Restore the original implementation for regex tests
+          jest.restoreAllMocks()
+
+          // Setup test notes with various frontmatter keys
+          const note1 = new Note({
+            filename: 'note1.md',
+            frontmatterAttributes: {
+              status: 'active',
+              status_old: 'inactive',
+              task_status: 'pending',
+            },
+          })
+          const note2 = new Note({
+            filename: 'note2.md',
+            frontmatterAttributes: {
+              status: 'done',
+              status_new: 'active',
+              task_status: 'completed',
+            },
+          })
+          const note3 = new Note({
+            filename: 'note3.md',
+            frontmatterAttributes: {
+              priority: 'high',
+              priority_old: 'low',
+              task_priority: 'medium',
+            },
+          })
+          DataStore.projectNotes = [note1, note2, note3]
+
+          // Mock getNotesWithFrontmatter to return our test notes
+          jest.spyOn(f, 'getNotesWithFrontmatter').mockImplementation((noteType) => {
+            return DataStore.projectNotes
+          })
+        })
+
+        test('should find values for keys matching regex pattern /status.*/', async () => {
+          const result = await f.getValuesForFrontmatterTag('/status.*/')
+          expect(result).toHaveLength(5)
+          expect(result).toContain('active')
+          expect(result).toContain('inactive')
+          expect(result).toContain('pending')
+          expect(result).toContain('completed')
+        })
+
+        test('should find values for keys matching regex pattern /.*_status/', async () => {
+          const result = await f.getValuesForFrontmatterTag('/.*_status/')
+          expect(result).toHaveLength(2)
+          expect(result).toContain('pending')
+          expect(result).toContain('completed')
+        })
+
+        test('should handle case-sensitive regex matching', async () => {
+          const result = await f.getValuesForFrontmatterTag('/Status.*/', 'All', true)
+          expect(result).toHaveLength(0) // No matches because case-sensitive
+        })
+
+        test('should handle case-insensitive regex matching', async () => {
+          const result = await f.getValuesForFrontmatterTag('/Status.*/i')
+          expect(result).toHaveLength(5)
+          expect(result).toContain('active')
+          expect(result).toContain('inactive')
+          expect(result).toContain('pending')
+          expect(result).toContain('completed')
+        })
+
+        test('should handle invalid regex patterns gracefully', async () => {
+          const result = await f.getValuesForFrontmatterTag('/[invalid/')
+          expect(result).toHaveLength(0)
+        })
+
+        test('should handle regex with multiple flags', async () => {
+          const result = await f.getValuesForFrontmatterTag('/status.*/gi')
+          expect(result).toHaveLength(5)
+          expect(result).toContain('active')
+          expect(result).toContain('inactive')
+          expect(result).toContain('pending')
+          expect(result).toContain('completed')
+        })
+
+        test('should handle regex with special characters', async () => {
+          const note4 = new Note({
+            filename: 'note4.md',
+            frontmatterAttributes: {
+              'status-1': 'special',
+              'status.2': 'special2',
+            },
+          })
+          DataStore.projectNotes.push(note4)
+
+          const result = await f.getValuesForFrontmatterTag('/status[-.]/')
+          expect(result).toHaveLength(2)
+          expect(result).toContain('special')
+          expect(result).toContain('special2')
+        })
+
+        test('should handle regex with word boundaries', async () => {
+          const result = await f.getValuesForFrontmatterTag('/\\bstatus\\b/')
+          expect(result).toHaveLength(2)
+          expect(result).toContain('active')
+          expect(result).toContain('done')
+        })
+
+        test('should handle regex with quantifiers', async () => {
+          const note5 = new Note({
+            filename: 'note5.md',
+            frontmatterAttributes: {
+              statusss: 'many',
+              stat: 'few',
+            },
+          })
+          DataStore.projectNotes.push(note5)
+
+          const result = await f.getValuesForFrontmatterTag('/status{2,}/')
+          expect(result).toHaveLength(1)
+          expect(result).toContain('many')
+        })
       })
     })
 

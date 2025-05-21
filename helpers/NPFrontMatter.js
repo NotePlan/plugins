@@ -136,9 +136,7 @@ export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: stri
 export function getFrontMatterAttribute(note: TNote, attribute: string): string | null {
   const fmAttributes = getFrontMatterAttributes(note)
   // Note: fmAttributes returns an empty object {} if there are not frontmatter fields
-  return Object.keys(fmAttributes).length > 0 && fmAttributes[attribute]
-    ? fmAttributes[attribute]
-    : null
+  return Object.keys(fmAttributes).length > 0 && fmAttributes[attribute] ? fmAttributes[attribute] : null
 }
 
 /**
@@ -1082,7 +1080,7 @@ export function getNotesWithFrontmatterTagValue(
 
 /**
  * get all unique values used for a specific frontmatter tag across notes
- * @param {string} tagParam - The key to search for.
+ * @param {string} tagParam - The key to search for. Can be a regex pattern starting with / and ending with /.
  * @param {'Notes' | 'Calendar' | 'All'} noteType (optional) - The type of notes to search in
  * @param {boolean} caseSensitive (optional) - Whether to perform case-sensitive matching (default: false)
  * @param {string} folderString (optional) - The string to match in the path
@@ -1098,6 +1096,28 @@ export async function getValuesForFrontmatterTag(
 ): Promise<Array<any>> {
   // Use a mutable variable for the tag
   let tagToUse: string = tagParam || ''
+  let isRegex = false
+  let regex: RegExp | null = null
+
+  // Check if tagToUse is a regex pattern
+  if (tagToUse.startsWith('/') && tagToUse.includes('/')) {
+    try {
+      // Find the last / in the string to handle flags
+      const lastSlashIndex = tagToUse.lastIndexOf('/')
+      if (lastSlashIndex > 0) {
+        const regexPattern = tagToUse.slice(1, lastSlashIndex)
+        const flags = tagToUse.slice(lastSlashIndex + 1).replace('g', '') // don't include global flag b/c it messes with the loop and regex cursor
+        // Add 'i' flag if case-insensitive is requested
+        const finalFlags = caseSensitive ? flags : flags.includes('i') ? flags : `${flags}i`
+        regex = new RegExp(regexPattern, finalFlags)
+        isRegex = true
+        logDebug('getValuesForFrontmatterTag', `Using regex pattern "${regexPattern}" with flags "${finalFlags}"`)
+      }
+    } catch (error) {
+      logError('getValuesForFrontmatterTag', `Invalid regex pattern: ${error.message}`)
+      return []
+    }
+  }
 
   // If no tag is provided, prompt the user to select one
   if (!tagToUse) {
@@ -1152,39 +1172,71 @@ export async function getValuesForFrontmatterTag(
     return []
   }
 
-  // Get all notes with the specified tag, passing along all filtering parameters
-  const notes = getNotesWithFrontmatterTags(tagToUse, noteType, caseSensitive, folderString, fullPathMatch)
+  // Get all notes with frontmatter
+  const notes = getNotesWithFrontmatter(noteType, folderString, fullPathMatch)
 
   // Create a set to store unique values
   const uniqueValuesSet: Set<any> = new Set()
 
   notes.forEach((note) => {
-    // Find the matching key based on case sensitivity
-    let matchingKey = tagToUse
-    if (!caseSensitive) {
-      const lowerCaseTag = tagToUse.toLowerCase()
-      matchingKey = Object.keys(note.frontmatterAttributes || {}).find((key) => key.toLowerCase() === lowerCaseTag) || tagToUse
-    }
+    if (!note.frontmatterAttributes) return
 
-    // Get the value for this key in this note
-    const value = note.frontmatterAttributes[matchingKey]
+    // If using regex, find all matching keys
+    if (isRegex && regex instanceof RegExp) {
+      Object.keys(note.frontmatterAttributes).forEach((key) => {
+        // Test if the key matches the regex pattern
+        if (regex && regex.test(key)) {
+          const value = note.frontmatterAttributes[key]
+          if (value !== null && value !== undefined) {
+            if (!caseSensitive && typeof value === 'string') {
+              // Check if this value (case-insensitive) is already in the set
+              let found = false
+              for (const existingValue of uniqueValuesSet) {
+                if (typeof existingValue === 'string' && existingValue.toLowerCase() === value.toLowerCase()) {
+                  found = true
+                  break
+                }
+              }
+              if (!found) {
+                uniqueValuesSet.add(value)
+              }
+            } else {
+              uniqueValuesSet.add(value)
+            }
+          }
+        }
+      })
+    } else {
+      // Find the matching key based on case sensitivity
+      let matchingKey = tagToUse
+      if (!caseSensitive) {
+        const lowerCaseTag = tagToUse.toLowerCase()
+        matchingKey = Object.keys(note.frontmatterAttributes).find((key) => key.toLowerCase() === lowerCaseTag) || tagToUse
+      }
 
-    // Handle string values with case sensitivity
-    if (!caseSensitive && typeof value === 'string') {
-      // Check if this value (case-insensitive) is already in the set
-      let found = false
-      for (const existingValue of uniqueValuesSet) {
-        if (typeof existingValue === 'string' && existingValue.toLowerCase() === value.toLowerCase()) {
-          found = true
-          break
+      // Get the value for this key in this note
+      const value = note.frontmatterAttributes[matchingKey]
+
+      // Only add non-null values
+      if (value !== null && value !== undefined) {
+        // Handle string values with case sensitivity
+        if (!caseSensitive && typeof value === 'string') {
+          // Check if this value (case-insensitive) is already in the set
+          let found = false
+          for (const existingValue of uniqueValuesSet) {
+            if (typeof existingValue === 'string' && existingValue.toLowerCase() === value.toLowerCase()) {
+              found = true
+              break
+            }
+          }
+          if (!found) {
+            uniqueValuesSet.add(value)
+          }
+        } else {
+          // For non-string values or case-sensitive matching, just add the value
+          uniqueValuesSet.add(value)
         }
       }
-      if (!found) {
-        uniqueValuesSet.add(value)
-      }
-    } else {
-      // For non-string values or case-sensitive matching, just add the value
-      uniqueValuesSet.add(value)
     }
   })
 
