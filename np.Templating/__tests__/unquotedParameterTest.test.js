@@ -2,6 +2,7 @@
 
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
 import NPTemplating from '../lib/NPTemplating'
+import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
 /* global describe, test, expect, jest, beforeEach, beforeAll */
@@ -31,7 +32,7 @@ describe('Unquoted Parameter Tests', () => {
     const template = `<% const category = promptKey(category) -%>\nResult: <%- category %>`
 
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
 
     // Log diagnostic information
     console.log('Session Data:', JSON.stringify(sessionData, null, 2))
@@ -60,7 +61,7 @@ describe('Unquoted Parameter Tests', () => {
     const template = `<% const result = promptKey(existingVar) -%>\nResult: <%- result %>`
 
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, initialSessionData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const { sessionTemplateData, sessionData } = await processPrompts(template, initialSessionData, '<%', '%>', getTags)
 
     // Log diagnostic information
     console.log('Initial Session Data:', JSON.stringify(initialSessionData, null, 2))

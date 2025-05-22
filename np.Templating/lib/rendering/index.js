@@ -11,20 +11,20 @@
 
 // Import and re-export from templateProcessor.js
 export {
-  preProcess,
+  preProcessTags,
   preProcessNote,
   preProcessCalendar,
-  preRender,
+  processFrontmatterTags,
   render,
   renderTemplate,
   importTemplates,
   execute,
-  postProcess,
+  findCursors,
   processStatementForAwait,
   frontmatterError,
   removeWhitespaceFromCodeBlocks,
 } from './templateProcessor'
 
 // Import and re-export from other rendering modules
-export { filterTemplateResult, validateTemplateTags, getErrorContextString } from './templateValidator'
+export { removeEJSDocumentationNotes, validateTemplateTags, getErrorContextString } from './templateValidator'
 export { templateErrorMessage } from './errorHandler'

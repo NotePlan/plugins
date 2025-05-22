@@ -100,12 +100,20 @@ The core `render()` function in `templateProcessor.js` has been completely refac
   - `loadGlobalHelpers()` - For enhancing session data with global functions
   - `processFrontmatter()` - For handling frontmatter-specific processing
   - `processTemplatePrompts()` - For prompts in the main template body
-  - `protectCodeBlocks()` - For temporarily replacing code blocks
+  - `tempSaveIgnoredCodeBlocks()` - For temporarily replacing code blocks
   - `restoreCodeBlocks()` - For restoring original code blocks
 - Improved documentation with step-by-step comments explaining the rendering process
 - Better error isolation and reporting
 
-This refactoring makes the template rendering process much more transparent, maintainable, and easier to extend with new capabilities in the future.
+### 6. More Descriptive Function Names
+
+To improve code readability and self-documentation, we've renamed several key functions to better reflect their purpose:
+
+- `preProcess()` → `preProcessTags()`: This function specifically processes template tags before the main rendering.
+- `preRender()` → `processFrontmatterTags()`: This function specifically handles processing and rendering frontmatter sections.
+- `postProcess()` → `findCursors()`: This function specifically looks for cursor placement markers.
+
+These more descriptive names make the code easier to understand and maintain, providing clearer indications of each function's purpose.
 
 ## Benefits of the New Architecture
 
@@ -114,6 +122,49 @@ This refactoring makes the template rendering process much more transparent, mai
 3. **Extensibility**: New functionality can be added by creating new modules or extending existing ones without modifying core code.
 4. **Readability**: Code is organized by function, making it easier to find and understand specific parts.
 5. **Collaborability**: Multiple developers can work on different modules simultaneously with fewer conflicts.
+
+## Testing Considerations
+
+The refactoring has created both challenges and opportunities for testing:
+
+### Test Updates Required
+
+1. **Import Path Updates**: Many test files need to be updated to import from the new module paths rather than directly from NPTemplating.js.
+
+2. **Mock Updates**: Tests that mock NPTemplating methods may need to be updated to mock the appropriate modules instead.
+
+3. **Private Method Access**: Some tests that were accessing "private" methods with underscores (like `_processIncludeTag`) need to be updated to access these functions from their new module locations.
+
+### New Test Opportunities
+
+The modular architecture provides significant opportunities for improved testing:
+
+1. **Focused Unit Tests**: With smaller, more focused functions, we can create more targeted unit tests with better coverage.
+
+2. **Template Processing Steps**: Each step in the `render()` function can now be tested independently:
+   - `validateTemplateStructure()`
+   - `normalizeTemplateData()`
+   - `loadGlobalHelpers()`
+   - `processFrontmatter()`
+   - `processTemplatePrompts()`
+   - `tempSaveIgnoredCodeBlocks()`
+   - `restoreCodeBlocks()`
+
+3. **Mock Independence**: Better separation of concerns makes it easier to mock dependencies and test components in isolation.
+
+4. **Test-Driven Development**: Future additions can follow TDD practices by testing new module functions independently.
+
+### Recommended New Tests
+
+1. **Renderer Pipeline Tests**: Tests for each step of the render pipeline in isolation
+
+2. **Integration Tests**: Tests that verify the correct interaction between modules
+
+3. **Error Handling Tests**: Tests for the specialized error handling functions
+
+4. **Prompt Registry Tests**: Tests for the prompt registration and discovery system
+
+5. **Tag Processing Tests**: Tests for individual tag processing functions
 
 ## Future Improvements
 

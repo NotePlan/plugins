@@ -48,7 +48,7 @@ export function getErrorContextString(templateData: string, matchStr: string, or
  * @param {string} [templateResult=''] - The rendered template result to filter
  * @returns {string} The filtered template result
  */
-export function filterTemplateResult(templateResult: string = ''): string {
+export function removeEJSDocumentationNotes(templateResult: string = ''): string {
   if (!templateResult) return ''
 
   let result = templateResult

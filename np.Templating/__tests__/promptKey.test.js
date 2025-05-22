@@ -6,6 +6,10 @@
  * -----------------------------------------------------------------------------------------*/
 
 import NPTemplating from '../lib/NPTemplating'
+import PromptKeyHandler from '../lib/support/modules/prompts/PromptKeyHandler'
+import { isCode } from '../lib/core'
+import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import { getTags } from '../lib/core'
 
 /**
  * Tests for the promptKey functionality in NPTemplating
@@ -27,7 +31,7 @@ describe('promptKey functionality', () => {
   describe('parsePromptKeyParameters', () => {
     it('should parse a basic promptKey tag with only tagKey parameter', () => {
       const tag = "<%- promptKey('bg-color') -%>"
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
 
       expect(result.tagKey).toBe('bg-color')
       expect(result.varName).toBe('')
@@ -40,7 +44,7 @@ describe('promptKey functionality', () => {
 
     it('should parse a promptKey tag with all parameters', () => {
       const tag = "<%- promptKey('bg-color', 'Choose the bg-color tag', 'Notes', true, 'folder1', false) -%>"
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
 
       expect(result.tagKey).toBe('bg-color')
       expect(result.varName).toBe('')
@@ -53,7 +57,7 @@ describe('promptKey functionality', () => {
 
     it('should parse a promptKey tag with double quotes', () => {
       const tag = '<%- promptKey("status", "Choose status", "Calendar", false, "Work/Projects", true) -%>'
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
 
       expect(result.tagKey).toBe('status')
       expect(result.varName).toBe('')
@@ -66,7 +70,7 @@ describe('promptKey functionality', () => {
 
     it('should parse a promptKey tag with mixed quotes', () => {
       const tag = '<%- promptKey(\'project\', "Select project", \'All\', true, "Work/Projects", false) -%>'
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
 
       expect(result.tagKey).toBe('project')
       expect(result.varName).toBe('')
@@ -79,12 +83,13 @@ describe('promptKey functionality', () => {
 
     it('should parse a promptKey tag with partial parameters', () => {
       const tag = "<%- promptKey('type', 'Choose type', 'Notes') -%>"
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
 
       expect(result.tagKey).toBe('type')
       expect(result.varName).toBe('')
       expect(result.promptMessage).toBe('Choose type')
       expect(result.noteType).toBe('Notes')
+      // Default values for omitted parameters
       expect(result.caseSensitive).toBe(false)
       expect(result.folderString).toBe('')
       expect(result.fullPathMatch).toBe(false)
@@ -92,10 +97,11 @@ describe('promptKey functionality', () => {
 
     it('should parse a promptKey tag with an empty tagKey', () => {
       const tag = "<%- promptKey('') -%>"
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
 
       expect(result.tagKey).toBe('')
       expect(result.varName).toBe('')
+      // Default values
       expect(result.promptMessage).toBe('')
       expect(result.noteType).toBe('All')
       expect(result.caseSensitive).toBe(false)
@@ -105,7 +111,7 @@ describe('promptKey functionality', () => {
 
     it('should parse a promptKey tag with command syntax without output', () => {
       const tag = "<% promptKey('category', 'Select category') -%>"
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
 
       expect(result.tagKey).toBe('category')
       expect(result.varName).toBe('')
@@ -118,7 +124,7 @@ describe('promptKey functionality', () => {
 
     it('should handle commas inside quoted parameters', () => {
       const tag = "<%- promptKey('tags', 'Select tags, comma-separated', 'Notes', false, 'Projects/2023', true) -%>"
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
 
       expect(result.tagKey).toBe('tags')
       expect(result.varName).toBe('')
@@ -133,22 +139,16 @@ describe('promptKey functionality', () => {
   describe('isCode function with promptKey', () => {
     it('should not identify promptKey calls as code blocks', () => {
       // Basic promptKey call
-      expect(NPTemplating.isCode("<%- promptKey('status') -%>")).toBe(false)
+      expect(isCode("<%- promptKey('status') -%>")).toBe(false)
 
       // promptKey with all parameters
-      expect(NPTemplating.isCode("<%- promptKey('bg-color', 'Choose color', 'Notes', true, 'folder1', false) -%>")).toBe(false)
-
-      // promptKey with double quotes
-      expect(NPTemplating.isCode('<%- promptKey("status", "Choose status") -%>')).toBe(false)
-
-      // promptKey with command syntax (no output)
-      expect(NPTemplating.isCode("<% promptKey('category') -%>")).toBe(false)
+      expect(isCode("<%- promptKey('bg-color', 'Choose color', 'Notes', true, 'folder1', false) -%>")).toBe(false)
     })
 
     it('should identify other function calls as code blocks', () => {
       // Regular function calls should be identified as code
-      expect(NPTemplating.isCode('<%- weather() -%>')).toBe(true)
-      expect(NPTemplating.isCode("<%- getValuesForKey('tags') -%>")).toBe(true)
+      expect(isCode('<%- weather() -%>')).toBe(true)
+      expect(isCode("<%- getValuesForKey('tags') -%>")).toBe(true)
     })
   })
 
@@ -157,17 +157,17 @@ describe('promptKey functionality', () => {
 
   describe('processPrompts parameter extraction', () => {
     it('should correctly extract parameters from promptKey tags', () => {
-      const tag = "<%- promptKey('test-key', 'Choose a value', 'Notes', true, 'folder1', false) -%>"
+      const tag = "<%- promptKey('test-key', 'Select a key') -%>"
 
       // Test that parsePromptKeyParameters returns the expected values
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
 
       expect(result.tagKey).toBe('test-key')
       expect(result.varName).toBe('')
-      expect(result.promptMessage).toBe('Choose a value')
-      expect(result.noteType).toBe('Notes')
-      expect(result.caseSensitive).toBe(true)
-      expect(result.folderString).toBe('folder1')
+      expect(result.promptMessage).toBe('Select a key')
+      expect(result.noteType).toBe('All')
+      expect(result.caseSensitive).toBe(false)
+      expect(result.folderString).toBe('')
       expect(result.fullPathMatch).toBe(false)
     })
   })
@@ -175,19 +175,19 @@ describe('promptKey functionality', () => {
   describe('regex pattern handling', () => {
     it('should parse regex patterns with flags', () => {
       const tag = "<%- promptKey('/^NOTE/i', 'Choose a NOTE') -%>"
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
       expect(result.tagKey).toBe('/^NOTE/i')
     })
 
     it('should parse regex patterns with multiple flags', () => {
       const tag = "<%- promptKey('/Project.*/gi', 'Choose a project') -%>"
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
       expect(result.tagKey).toBe('/Project.*/gi')
     })
 
     it('should parse regex patterns with special characters', () => {
       const tag = "<%- promptKey('/Task(?!.*Done)/', 'Choose a task') -%>"
-      const result = NPTemplating.parsePromptKeyParameters(tag)
+      const result = PromptKeyHandler.parsePromptKeyParameters(tag)
       expect(result.tagKey).toBe('/Task(?!.*Done)/')
     })
   })

@@ -12,7 +12,7 @@ import path from 'path'
 import fs from 'fs/promises'
 import { existsSync } from 'fs'
 import TemplatingEngine from '../lib/TemplatingEngine'
-import NPTemplating from '../lib/NPTemplating'
+import { preProcessTags } from '../lib/rendering/templateProcessor'
 import { DataStore } from '@mocks/index'
 
 // for Flow errors with Jest
@@ -21,6 +21,7 @@ import { DataStore } from '@mocks/index'
 // Add Jest to Flow globals
 declare var describe: any
 declare var beforeEach: any
+declare var afterEach: any
 declare var test: any
 declare var expect: any
 
@@ -33,7 +34,7 @@ const factory = async (factoryName = '') => {
   return 'FACTORY_NOT_FOUND'
 }
 
-describe('NPTemplating.preProcess Checks', () => {
+describe('preProcessTags Function Tests', () => {
   let templatingEngine
 
   beforeEach(() => {
@@ -49,78 +50,78 @@ describe('NPTemplating.preProcess Checks', () => {
 
   test('should return the original content when there are no matches', async () => {
     const template = '<% const x = 5; %>'
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
 
     expect(newTemplateData).toBe(template)
   })
 
   test('should handle null input gracefully', async () => {
-    const { newTemplateData } = await NPTemplating.preProcess(null)
+    const { newTemplateData } = await preProcessTags(null)
     expect(newTemplateData).toEqual('')
   })
 
   test('should handle undefined input gracefully', async () => {
-    const { newTemplateData } = await NPTemplating.preProcess(undefined)
+    const { newTemplateData } = await preProcessTags(undefined)
     expect(newTemplateData).toEqual('')
   })
 
   test('should not modify function calls inside template literals', async () => {
     const template = `<% const eventInfoString = \`eventTitle=\${eventTitle};eventNotes=\${eventNotes};eventLink=\${eventLink};calendarItemLink=\${calendarItemLink};eventAttendees=\${eventAttendees};eventAttendeeNames=\${eventAttendeeNames};eventLocation=\${eventLocation};eventCalendar=\${eventCalendar};eventStart=\${eventDate("YYYY-MM-DD HH:MM")};eventEnd=\${eventEndDate("YYYY-MM-DD HH:MM")}\`.replace("\\n"," "); -%>`
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
     expect(newTemplateData).toBe(template)
   })
 
   test('should handle nested template literals', async () => {
     const template = `<% const nestedTemplate = \`outer \${inner \`nested \${deepest()}\`}\`; -%>`
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
     expect(newTemplateData).toBe(template)
   })
 
   test('should handle template literals with multiple function calls', async () => {
     const template = `<% const multiFunc = \`start \${func1()} middle \${func2()} end \${func3()}\`; -%>`
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
     expect(newTemplateData).toBe(template)
   })
 
   test('should handle template literals with method chains', async () => {
     const template = `<% const chained = \`\${obj.method1().method2().method3()}\`; -%>`
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
     expect(newTemplateData).toBe(template)
   })
 
   test('should handle template literals with ternary operators', async () => {
     const template = `<% const ternary = \`\${condition ? func1() : func2()}\`; -%>`
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
     expect(newTemplateData).toBe(template)
   })
 
   test('should handle template literals with arrow functions', async () => {
     const template = `<% const arrow = \`\${items.map(item => processItem(item))}\`; -%>`
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
     expect(newTemplateData).toBe(template)
   })
 
   test('should handle template literals with async/await expressions', async () => {
     const template = `<% const asyncExpr = \`\${await asyncFunc()}\`; -%>`
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
     expect(newTemplateData).toBe(template)
   })
 
   test('should handle template literals with object destructuring', async () => {
     const template = `<% const destructured = \`\${({ prop1, prop2 } = getProps())}\`; -%>`
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
     expect(newTemplateData).toBe(template)
   })
 
   test('should handle template literals with array methods', async () => {
     const template = `<% const arrayMethods = \`\${items.filter(x => x > 0).map(x => x * 2).reduce((a, b) => a + b)}\`; -%>`
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
     expect(newTemplateData).toBe(template)
   })
 
   test('should handle template literals with template literal tags', async () => {
     const template = `<% const tagged = \`\${tag\`nested template\`}\`; -%>`
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
     expect(newTemplateData).toBe(template)
   })
 })

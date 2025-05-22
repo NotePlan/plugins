@@ -1,17 +1,17 @@
 // @flow
 
+import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import { getTags } from '../lib/core'
 import NPTemplating from '../lib/NPTemplating'
-import { processPrompts } from '../lib/support/modules/prompts'
 import PromptDateHandler from '../lib/support/modules/prompts/PromptDateHandler'
 import BasePromptHandler from '../lib/support/modules/prompts/BasePromptHandler'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
-/* global describe, test, expect, jest, beforeEach */
+/* global describe, test, expect, jest, beforeEach, beforeAll */
 
-// Mock the @helpers/userInput module
-// $FlowIgnore - jest mocking
+// Mock the datePicker from @helpers/userInput
 jest.mock('@helpers/userInput', () => ({
-  datePicker: jest.fn().mockImplementation((msg, config) => {
+  datePicker: jest.fn((firstParam) => {
     // Accept any config, either object or string
     return Promise.resolve('2023-01-15')
   }),
@@ -50,7 +50,7 @@ describe('PromptDateHandler', () => {
     const templateData = "<%- promptDate('selectedDate', 'Select a date:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.selectedDate).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('<%- selectedDate %>')
@@ -63,7 +63,7 @@ describe('PromptDateHandler', () => {
     const templateData = "<%- promptDate('selectedDate', 'Select a date with, comma:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.selectedDate).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('<%- selectedDate %>')
@@ -79,7 +79,7 @@ describe('PromptDateHandler', () => {
     const templateData = "<%- promptDate('selectedDate', \"Select a date with 'quotes':\") %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.selectedDate).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('<%- selectedDate %>')
@@ -95,7 +95,7 @@ describe('PromptDateHandler', () => {
     const templateData = "<%- promptDate('selectedDate', 'Select a date with \"quotes\":') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.selectedDate).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('<%- selectedDate %>')
@@ -113,7 +113,7 @@ describe('PromptDateHandler', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.firstDate).toBe('2023-01-15')
     expect(result.sessionData.secondDate).toBe('2023-01-15')
@@ -127,7 +127,7 @@ describe('PromptDateHandler', () => {
     // Provide an existing value in the session data
     const userData = { existingDate: '2022-12-25' }
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     // Should use the existing value without calling datePicker
     expect(result.sessionData.existingDate).toBe('2022-12-25')
@@ -143,7 +143,7 @@ describe('PromptDateHandler', () => {
     const templateData = "<%- let formattedDate = promptDate('formattedDate', 'Select date XX', '2027-12-12', true) %>"
     const userData = {}
     const expectedFirstParamObject = { question: 'Select date XX', defaultValue: '2027-12-12', canBeEmpty: true }
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.formattedDate).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('')
@@ -156,7 +156,7 @@ describe('PromptDateHandler', () => {
     const templateData = "<%- promptDate('dueDate?', 'Select due date:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     // The question mark should be removed from the variable name
     expect(result.sessionData.dueDate).toBe('2023-01-15')
@@ -167,7 +167,7 @@ describe('PromptDateHandler', () => {
     const templateData = "<%- promptDate('due date', 'When is this due?') %>"
     const userData = {}
     datePicker.mockClear()
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     // Spaces should be converted to underscores
     expect(result.sessionData.due_date).toBe('2023-01-15')
@@ -183,7 +183,7 @@ describe('PromptDateHandler', () => {
     const templateData = "<%- promptDate('errorDate', 'This will cause an error:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     // Should handle the error gracefully
     expect(result.sessionData.errorDate).toBe('')
@@ -196,7 +196,7 @@ describe('PromptDateHandler', () => {
     const templateData = "<%- promptDate('startDate2', 'Enter start date:', '2024-01-01') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.startDate2).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('<%- startDate2 %>')

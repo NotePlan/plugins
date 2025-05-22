@@ -3,6 +3,7 @@
 
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
 import NPTemplating from '../lib/NPTemplating'
+import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
 /* global describe, test, expect, jest, beforeEach, beforeAll */
@@ -40,7 +41,7 @@ Tags: <% const selectedTag = promptTag("Select a tag:") -%><%- selectedTag %>
 `
 
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
 
     // Verify the session data contains our variables
     expect(sessionData).toHaveProperty('category')
@@ -85,7 +86,7 @@ Tags: <% const selectedTag = promptTag("Select a tag:") -%><%- selectedTag %>
 `
 
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
 
     // Verify all variables were set in the session data
     expect(sessionData).toHaveProperty('projectType')

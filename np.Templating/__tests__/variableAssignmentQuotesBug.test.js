@@ -1,7 +1,7 @@
 // @flow
 
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
-import NPTemplating from '../lib/NPTemplating'
+import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
 /* global describe, test, expect, jest, beforeEach, beforeAll */
@@ -32,7 +32,7 @@ Category: <%- category %>
 `
 
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
 
     // Check the actual values in sessionData
     console.log('Session Data:', JSON.stringify(sessionData, null, 2))
@@ -58,7 +58,7 @@ Category: <%- category %>
 `
 
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
 
     // Verify the session data contains our variable
     expect(sessionData).toHaveProperty('category')
@@ -80,7 +80,7 @@ Category: <%- category %>
 `
 
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
 
     // Verify the session data contains our variable
     expect(sessionData).toHaveProperty('category')

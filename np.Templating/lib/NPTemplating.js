@@ -20,7 +20,7 @@ import { chooseTemplate, getTemplateList, getTemplate, getTemplateAttributes, cr
 import { heartbeat, setup as configSetup } from './config'
 
 // Import from rendering
-import { preRender, render, renderTemplate } from './rendering'
+import { processFrontmatterTags, render, renderTemplate } from './rendering/templateProcessor'
 
 import { clo, logError } from '@helpers/dev'
 
@@ -181,7 +181,7 @@ class NPTemplating {
    */
   static async preRender(_templateData: string = '', userData: any = {}): Promise<any> {
     await this.setup()
-    return preRender(_templateData, userData)
+    return processFrontmatterTags(_templateData, userData)
   }
 
   /**

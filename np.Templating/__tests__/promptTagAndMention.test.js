@@ -2,6 +2,7 @@
 // @flow
 
 import NPTemplating from '../lib/NPTemplating'
+import { isCode } from '../lib/core'
 import HashtagPromptHandler from '../lib/support/modules/prompts/PromptTagHandler'
 import MentionPromptHandler from '../lib/support/modules/prompts/PromptMentionHandler'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
@@ -421,19 +422,19 @@ describe('promptTag and promptMention functionality', () => {
 
   describe('NPTemplating integration', () => {
     it('should recognize promptTag as a non-code block', () => {
-      expect(NPTemplating.isCode('<%- promptTag("Select a hashtag:", "tagVar") -%>')).toBe(false)
+      expect(isCode('<%- promptTag("Select a hashtag:", "tagVar") -%>')).toBe(false)
     })
 
     it('should recognize promptMention as a non-code block', () => {
-      expect(NPTemplating.isCode('<%- promptMention("Select a mention:", "mentionVar") -%>')).toBe(false)
+      expect(isCode('<%- promptMention("Select a mention:", "mentionVar") -%>')).toBe(false)
     })
 
     it('should recognize promptTag with just a prompt message as a non-code block', () => {
-      expect(NPTemplating.isCode('<%- promptTag("Select a hashtag:") -%>')).toBe(false)
+      expect(isCode('<%- promptTag("Select a hashtag:") -%>')).toBe(false)
     })
 
     it('should recognize promptMention with just a prompt message as a non-code block', () => {
-      expect(NPTemplating.isCode('<%- promptMention("Select a mention:") -%>')).toBe(false)
+      expect(isCode('<%- promptMention("Select a mention:") -%>')).toBe(false)
     })
   })
 })

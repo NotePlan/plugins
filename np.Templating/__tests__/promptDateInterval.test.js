@@ -1,12 +1,13 @@
 // @flow
 
 import NPTemplating from '../lib/NPTemplating'
-import { processPrompts } from '../lib/support/modules/prompts'
+import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import { getTags } from '../lib/core'
 import PromptDateIntervalHandler from '../lib/support/modules/prompts/PromptDateIntervalHandler'
 import BasePromptHandler from '../lib/support/modules/prompts/BasePromptHandler'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
-/* global describe, test, expect, jest, beforeEach */
+/* global describe, test, expect, jest, beforeEach, beforeAll */
 
 // Mock the @helpers/userInput module
 // $FlowIgnore - jest mocking
@@ -39,7 +40,7 @@ describe('PromptDateIntervalHandler', () => {
     const templateData = "<%- promptDateInterval('dateRange', 'Select date range:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.dateRange).toBe('2023-01-01 to 2023-01-31')
     expect(result.sessionTemplateData).toBe('<%- dateRange %>')
@@ -50,7 +51,7 @@ describe('PromptDateIntervalHandler', () => {
     const templateData = "<%- promptDateInterval('dateRange', 'Select date range with, comma:', '{format: \"YYYY-MM-DD\"}') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.dateRange).toBe('2023-01-01 to 2023-01-31')
     expect(result.sessionTemplateData).toBe('<%- dateRange %>')
@@ -72,7 +73,7 @@ describe('PromptDateIntervalHandler', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.range1).toBe('2023-01-01 to 2023-01-31')
     expect(result.sessionData.range2).toBe('2023-02-01 to 2023-02-28')

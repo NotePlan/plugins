@@ -8,7 +8,7 @@ import pluginJson from '../../plugin.json'
 import FrontmatterModule from '../support/modules/FrontmatterModule'
 import { processPrompts } from '../support/modules/prompts'
 import TemplatingEngine from '../TemplatingEngine'
-import { getTags, isCommentTag, isCode, getCodeBlocks, getIgnoredCodeBlocks, convertJavaScriptBlocksToTags, getTemplate } from '../core'
+import { getTags, isCommentTag, isCode, getCodeBlocks, getIgnoredCodeBlocks, convertTemplateJSBlocksToControlTags, getTemplate } from '../core'
 import { getProperyValue, mergeMultiLineStatements, protectTemplateLiterals, restoreTemplateLiterals, formatTemplateError, extractTitleFromMarkdown } from '../utils'
 import globals, { asyncFunctions as globalAsyncFunctions } from '../globals'
 import { log, logError, logDebug, logWarn, clo } from '@helpers/dev'
@@ -88,12 +88,11 @@ export function processStatementForAwait(statement: string, asyncFunctions: Arra
 
 /**
  * Process comment tags by removing them from the template.
- * @async
  * @param {string} tag - The comment tag to process
  * @param {Object} context - The processing context containing templateData, sessionData, and override
- * @returns {Promise<void>}
+ * @returns {void}
  */
-export async function processCommentTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
+export function processCommentTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): void {
   const regex = new RegExp(`${tag}[\\s\\r\\n]*`, 'g')
   context.templateData = context.templateData.replace(regex, '')
 }
@@ -122,24 +121,22 @@ export async function processCalendarTag(tag: string, context: { templateData: s
 
 /**
  * Process return/carriage return tags by removing them.
- * @async
  * @param {string} tag - The return tag to process
  * @param {Object} context - The processing context containing templateData, sessionData, and override
- * @returns {Promise<void>}
+ * @returns {void}
  */
-export async function processReturnTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
+export function processReturnTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): void {
   context.templateData = context.templateData.replace(tag, '')
 }
 
 /**
  * Process code tags by adding await prefix to function calls that need it.
- * @async
  * @param {string} tag - The code tag to process
  * @param {Object} context - The processing context containing templateData, sessionData, and override
  * @param {Array<string>} asyncFunctions - List of function names that are known to be async
- * @returns {Promise<void>}
+ * @returns {void}
  */
-export async function processCodeTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }, asyncFunctions: Array<string>): Promise<void> {
+export function processCodeTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }, asyncFunctions: Array<string>): void {
   const tagPartsRegex = /^(<%(?:-|~|=)?)([^]*?)((?:-|~)?%>)$/ // Capture 1: start, 2: content, 3: end
   const match = tag.match(tagPartsRegex)
 
@@ -244,9 +241,9 @@ export async function processIncludeTag(tag: string, context: { templateData: st
 
   if (hasFrontmatter && !isCalendarNote) {
     // if the included file has frontmatter, we need to preRender it because it could be a template
-    const { frontmatterAttributes, frontmatterBody } = await preRender(templateContent, context.sessionData)
+    const { frontmatterAttributes, frontmatterBody } = await processFrontmatterTags(templateContent, context.sessionData)
     context.sessionData = { ...frontmatterAttributes }
-    logDebug(pluginJson, `preProcess tag: ${tag} frontmatterAttributes: ${JSON.stringify(frontmatterAttributes, null, 2)}`)
+    logDebug(pluginJson, `processIncludeTag: ${tag} frontmatterAttributes: ${JSON.stringify(frontmatterAttributes, null, 2)}`)
     const renderedTemplate = await render(frontmatterBody, context.sessionData)
 
     // Handle variable assignment
@@ -278,12 +275,11 @@ export async function processIncludeTag(tag: string, context: { templateData: st
 
 /**
  * Process variable declaration tags by extracting variable assignments to session data.
- * @async
  * @param {string} tag - The variable tag to process
  * @param {Object} context - The processing context containing templateData, sessionData, and override
- * @returns {Promise<void>}
+ * @returns {void}
  */
-export async function processVariableTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
+export function processVariableTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): void {
   if (!context.sessionData) return
 
   const tempTag = tag.replace('const', '').replace('let', '').trimLeft().replace('<%', '').replace('-%>', '').replace('%>', '')
@@ -442,7 +438,8 @@ function _removeWhitespaceFromCodeBlocks(str: string = ''): string {
 }
 
 /**
- * Filters and cleans up template result content.
+ * Filters and cleans up template result content, specifically removing EJS-related error messages
+ * that are not relevant to NotePlan templates because we have diverged from stock EJS
  * Performs various replacements to clean up template output, including:
  * - Removing EJS-related error messages
  * - Replacing certain URLs with more NotePlan-friendly references
@@ -450,7 +447,7 @@ function _removeWhitespaceFromCodeBlocks(str: string = ''): string {
  * @param {string} [templateResult=''] - The rendered template result to filter
  * @returns {string} The filtered template result
  */
-export function filterTemplateResult(templateResult: string = ''): string {
+export function removeEJSDocumentationNotes(templateResult: string = ''): string {
   let result = templateResult
   result = result.replace('If the above error is not helpful, you may want to try EJS-Lint:', '')
   result = result.replace('https://github.com/RyanZim/EJS-Lint', 'HTTP_REMOVED')
@@ -515,7 +512,7 @@ export function getErrorContextString(templateData: string, matchStr: string, or
  * @param {Object} [sessionData={}] - Data available during processing
  * @returns {Promise<{newTemplateData: string, newSettingData: Object}>} Processed template data, updated session data
  */
-export async function preProcess(templateData: string, sessionData?: {} = {}): Promise<mixed> {
+export async function preProcessTags(templateData: string, sessionData?: {} = {}): Promise<mixed> {
   // Initialize the processing context
   const context = {
     templateData: templateData || '',
@@ -537,8 +534,8 @@ export async function preProcess(templateData: string, sessionData?: {} = {}): P
   // First pass: Process all comment tags
   for (const tag of tags) {
     if (isCommentTag(tag)) {
-      logDebug(pluginJson, `preProcess: found comment in tag: ${tag}`)
-      await processCommentTag(tag, context)
+      logDebug(pluginJson, `preProcessTags: found comment in tag: ${tag}`)
+      processCommentTag(tag, context)
     }
   }
 
@@ -548,48 +545,48 @@ export async function preProcess(templateData: string, sessionData?: {} = {}): P
     logDebug(pluginJson, `preProcessing tag: ${tag}`)
 
     if (tag.includes('note(')) {
-      logDebug(pluginJson, `preProcess: found note() in tag: ${tag}`)
+      logDebug(pluginJson, `preProcessTags: found note() in tag: ${tag}`)
       await processNoteTag(tag, context)
       continue
     }
 
     if (tag.includes('calendar(')) {
-      logDebug(pluginJson, `preProcess: found calendar() in tag: ${tag}`)
+      logDebug(pluginJson, `preProcessTags: found calendar() in tag: ${tag}`)
       await processCalendarTag(tag, context)
       continue
     }
 
     if (tag.includes('include(') || tag.includes('template(')) {
-      logDebug(pluginJson, `preProcess: found include() or template() in tag: ${tag}`)
+      logDebug(pluginJson, `preProcessTags: found include() or template() in tag: ${tag}`)
       await processIncludeTag(tag, context)
       continue
     }
 
     if (tag.includes(':return:') || tag.toLowerCase().includes(':cr:')) {
-      logDebug(pluginJson, `preProcess: found return() or cr() in tag: ${tag}`)
-      await processReturnTag(tag, context)
+      logDebug(pluginJson, `preProcessTags: found return() or cr() in tag: ${tag}`)
+      processReturnTag(tag, context)
       continue
     }
 
     // Process code tags that need await prefixing
     if (isCode(tag) && tag.includes('(')) {
-      logDebug(pluginJson, `preProcess: found code() in tag: ${tag}`)
-      await processCodeTag(tag, context, globalAsyncFunctions)
+      logDebug(pluginJson, `preProcessTags: found code() in tag: ${tag}`)
+      processCodeTag(tag, context, globalAsyncFunctions)
       continue
     }
 
     // Extract variables
     if (tag.includes('const') || tag.includes('let') || tag.includes('var')) {
-      logDebug(pluginJson, `preProcess: found const, let, or var in tag: ${tag}`)
-      await processVariableTag(tag, context)
+      logDebug(pluginJson, `preProcessTags: found const, let, or var in tag: ${tag}`)
+      processVariableTag(tag, context)
       continue
     }
   }
 
-  logDebug(pluginJson, `preProcess after checking ${tags.length} tags`)
+  logDebug(pluginJson, `preProcessTags after checking ${tags.length} tags`)
   clo(context.sessionData, `preProcessed sessionData`)
   clo(context.override, `preProcessed override`)
-  logDebug(pluginJson, `preProcess templateData:\n${context.templateData}`)
+  logDebug(pluginJson, `preProcessTags templateData:\n${context.templateData}`)
 
   // Merge override variables into session data
   context.sessionData = { ...context.sessionData, ...context.override }
@@ -609,7 +606,7 @@ export async function preProcess(templateData: string, sessionData?: {} = {}): P
  * @param {any} [userData={}] - User data to use in template rendering
  * @returns {Promise<{frontmatterBody: string, frontmatterAttributes: Object}>} Processed frontmatter body and attributes
  */
-export async function preRender(_templateData: string = '', userData: any = {}): Promise<any> {
+export async function processFrontmatterTags(_templateData: string = '', userData: any = {}): Promise<any> {
   // In the original code, this function would call `await this.setup()`
   // which is now handled by the NPTemplating class before it delegates to this function
 
@@ -778,7 +775,7 @@ function normalizeTemplateData(templateData: string): string {
     normalizedData = normalizedData.toString()
   }
 
-  // Convert template prompt tag to `prompt` command
+  // Convert legacy shorthand template prompt tag to `prompt` command
   normalizedData = normalizedData.replace(/<%@/gi, '<%- prompt')
 
   return normalizedData
@@ -818,7 +815,7 @@ async function processFrontmatter(templateData: string, sessionData: Object, use
   }
 
   // Pre-render frontmatter attributes
-  const { frontmatterAttributes, frontmatterBody } = await preRender(templateData, sessionData)
+  const { frontmatterAttributes, frontmatterBody } = await processFrontmatterTags(templateData, sessionData)
   const updatedSessionData = {
     ...sessionData,
     data: { ...sessionData.data, ...frontmatterAttributes },
@@ -841,7 +838,7 @@ async function processFrontmatter(templateData: string, sessionData: Object, use
     frontMatterValue = promptData.sessionTemplateData
 
     logDebug(pluginJson, `processFrontmatter: ${key}: ${frontMatterValue}`)
-    const { newTemplateData, newSettingData } = await preProcess(frontMatterValue, updatedSessionData)
+    const { newTemplateData, newSettingData } = await preProcessTags(frontMatterValue, updatedSessionData)
 
     const mergedSessionData = { ...updatedSessionData, ...newSettingData }
     const renderedData = await new TemplatingEngine().render(newTemplateData, promptData.sessionData, userOptions)
@@ -873,11 +870,11 @@ async function processTemplatePrompts(templateData: string, sessionData: Object)
 }
 
 /**
- * Handles code blocks in the template, temporarily protecting them during processing.
+ * Handles code blocks that should be ignored (not processed) in the template, temporarily protecting them during processing.
  * @param {string} templateData - The template data with code blocks
  * @returns {{templateData: string, codeBlocks: Array<string>}} Template with placeholders and original blocks
  */
-function protectCodeBlocks(templateData: string): { templateData: string, codeBlocks: Array<string> } {
+function tempSaveIgnoredCodeBlocks(templateData: string): { templateData: string, codeBlocks: Array<string> } {
   const ignoredCodeBlocks = getIgnoredCodeBlocks(templateData)
   let processedTemplate = templateData
 
@@ -907,6 +904,8 @@ function restoreCodeBlocks(templateData: string, codeBlocks: Array<string>): str
   return result
 }
 
+const isQuickTemplateNote = (userOptions: any): boolean => Boolean(userOptions?.qtn)
+
 /**
  * Core template rendering function. Processes template data with provided variables.
  * Handles frontmatter, imports, and prompts in templates.
@@ -918,7 +917,7 @@ function restoreCodeBlocks(templateData: string, codeBlocks: Array<string>): str
  */
 export async function render(inputTemplateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
   try {
-    // Step 1: Validate template structure
+    // Step 1: Validate template structure (e.g. matching opening and closing tags)
     const tagError = validateTemplateStructure(inputTemplateData)
     if (tagError) {
       return tagError
@@ -930,13 +929,13 @@ export async function render(inputTemplateData: string, userData: any = {}, user
     // Step 3: Setup session data with global helpers
     let sessionData = loadGlobalHelpers({ ...userData })
 
-    // Step 4: Process frontmatter if present and handle quick template notation
+    // Step 4: Process frontmatter tags first because they can contain prompts that should be set to variables
     const frontmatterResult = await processFrontmatter(templateData, sessionData, userOptions)
     templateData = frontmatterResult.templateData
     sessionData = frontmatterResult.sessionData
 
-    // Check for quick template notation shortcut
-    if (userOptions?.qtn) {
+    // Check for quick template note shortcut
+    if (isQuickTemplateNote(userOptions)) {
       return templateData
     }
 
@@ -944,27 +943,29 @@ export async function render(inputTemplateData: string, userData: any = {}, user
     templateData = await importTemplates(templateData)
 
     // Step 6: Convert JavaScript blocks to template tags
-    templateData = convertJavaScriptBlocksToTags(templateData)
+    templateData = convertTemplateJSBlocksToControlTags(templateData)
 
     // Step 7: Pre-process the template to handle includes, variables, etc.
-    const { newTemplateData, newSettingData } = await preProcess(templateData, sessionData)
+    const { newTemplateData, newSettingData } = await preProcessTags(templateData, sessionData)
     templateData = newTemplateData
     sessionData = { ...newSettingData }
 
     // Step 8: Process prompts in the template body
-    const promptResult = await processTemplatePrompts(templateData, sessionData)
-    if (promptResult === false) {
-      return '' // User canceled a prompt
+    const afterPromptData = await processTemplatePrompts(templateData, sessionData)
+    if (afterPromptData === false) {
+      return '' // User canceled a prompt, so we should stop processing
     }
-    templateData = promptResult.templateData
+    templateData = afterPromptData.templateData
     sessionData = {
-      ...promptResult.sessionData,
-      data: { ...promptResult.sessionData.data, ...userData?.data },
-      methods: { ...promptResult.sessionData.methods, ...userData?.methods },
+      ...afterPromptData.sessionData,
+      data: { ...afterPromptData.sessionData.data, ...userData?.data },
+      methods: { ...afterPromptData.sessionData.methods, ...userData?.methods },
     }
 
-    // Step 9: Protect code blocks during rendering
-    const { templateData: protectedTemplate, codeBlocks } = protectCodeBlocks(templateData)
+    // Step 9: Protect JS ignored code blocks during rendering -- don't let EJS process them
+    // Note: this was more relevant in Mike's original implementation where code blocks were ```javscript
+    // But now that we're using ```templatejs, this is probably not ever used
+    const { templateData: protectedTemplate, codeBlocks: savedIgnoredCodeBlocks } = tempSaveIgnoredCodeBlocks(templateData)
 
     // Step 10: Perform the actual template rendering
     logDebug(pluginJson, `render: STARTING incrementalRender`)
@@ -972,10 +973,10 @@ export async function render(inputTemplateData: string, userData: any = {}, user
     logDebug(pluginJson, `render: FINISHED incrementalRender`)
 
     // Step 11: Post-process the rendered template
-    let finalResult = filterTemplateResult(renderedData)
+    let finalResult = removeEJSDocumentationNotes(renderedData)
 
     // Step 12: Restore code blocks in the final result
-    finalResult = restoreCodeBlocks(finalResult, codeBlocks)
+    finalResult = restoreCodeBlocks(finalResult, savedIgnoredCodeBlocks)
 
     logDebug(pluginJson, `>> renderedData after rendering:\n\t[PRE-RENDER]:${templateData}\n\t[RENDERED]: ${finalResult}`)
 
@@ -997,12 +998,12 @@ export async function render(inputTemplateData: string, userData: any = {}, user
 export async function renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
   try {
     const templateData = await getTemplate(templateName)
-    const { frontmatterBody, frontmatterAttributes } = await preRender(templateData)
+    const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(templateData)
     const data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes }, ...userData }
     logDebug(pluginJson, `renderTemplate calling render`)
     const renderedData = await render(templateData, data, userOptions)
 
-    return filterTemplateResult(renderedData)
+    return removeEJSDocumentationNotes(renderedData)
   } catch (error) {
     clo(error, `renderTemplate found error`)
     return templateErrorMessage('renderTemplate', error)
@@ -1012,11 +1013,10 @@ export async function renderTemplate(templateName: string = '', userData: any = 
 /**
  * Finds cursor placement markers in the rendered template data.
  * Currently focused on finding $NP_CURSOR markers.
- * @async
  * @param {string} templateData - The rendered template data to scan
- * @returns {Promise<{cursors: Array<{start: number}>}>} Information about cursor positions
+ * @returns {{cursors: Array<{start: number}>}} Information about cursor positions
  */
-export async function findCursors(templateData: string): Promise<mixed> {
+export function findCursors(templateData: string): mixed {
   //TODO: Finish implementation cursor support
   const newTemplateData = templateData
   let pos = 0

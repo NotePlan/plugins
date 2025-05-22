@@ -1,10 +1,11 @@
 // @flow
 
 import NPTemplating from '../lib/NPTemplating'
-import { processPrompts } from '../lib/support/modules/prompts'
+import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
-/* global describe, test, expect, jest, beforeEach */
+/* global describe, test, expect, jest, beforeEach, beforeAll */
 
 describe('Prompt Await Issue Tests', () => {
   beforeEach(() => {
@@ -38,7 +39,7 @@ describe('Prompt Await Issue Tests', () => {
     // $FlowIgnore - jest mocked module
     const { askDateInterval } = require('@helpers/userInput')
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     // Log the result for debugging
     console.log('Session data:', JSON.stringify(result.sessionData, null, 2))
@@ -57,7 +58,7 @@ describe('Prompt Await Issue Tests', () => {
     const templateData = "<%- await promptDate('dateVariable01') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData).toHaveProperty('dateVariable01')
     expect(result.sessionData).not.toHaveProperty("await_'dateVariable01'")
@@ -69,7 +70,7 @@ describe('Prompt Await Issue Tests', () => {
     const templateData = "<%- await prompt('standardVariable01', 'Enter value:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData).toHaveProperty('standardVariable01')
     expect(result.sessionData).not.toHaveProperty("await_'standardVariable01'")
@@ -86,7 +87,7 @@ describe('Prompt Await Issue Tests', () => {
       textPrompt: jest.fn().mockResolvedValue('Test Response'),
     }
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData).toHaveProperty('keyVariable01')
     expect(result.sessionData).not.toHaveProperty("await_'keyVariable01'")
@@ -104,7 +105,7 @@ describe('Prompt Await Issue Tests', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData).toHaveProperty('startDate')
     expect(result.sessionData).toHaveProperty('endDate')

@@ -3,13 +3,14 @@
 //TODO: mock the frontmatter of the note to be used by promptKey
 
 import NPTemplating from '../lib/NPTemplating'
-import { processPrompts } from '../lib/support/modules/prompts'
+import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 import { Note } from '@mocks/index'
 
 // import type { Option } from '@helpers/userInput' // Removed this import
 
-/* global describe, test, expect, jest, beforeEach */
+/* global describe, test, expect, jest, beforeEach, beforeAll */
 
 // Define a specific type for options used in mocks
 // Moved OptionObject inside jest.mock factory below
@@ -230,7 +231,7 @@ describe('Prompt Integration Tests', () => {
     // For option selection (isUrgent)
     global.CommandBar.showOptions.mockImplementation(() => Promise.resolve('Yes'))
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     // Replace any quoted text placeholders in the session data
     const cleanedSessionData = replaceQuotedTextPlaceholders(result.sessionData)
@@ -285,7 +286,7 @@ describe('Prompt Integration Tests', () => {
     // Mock functions should not be called for existing values
     global.CommandBar.textPrompt.mockClear()
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     // Replace any quoted text placeholders in the session data
     const cleanedSessionData = replaceQuotedTextPlaceholders(result.sessionData)
@@ -328,7 +329,7 @@ describe('Prompt Integration Tests', () => {
 
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     // Replace any quoted text placeholders in the session data
     const cleanedSessionData = replaceQuotedTextPlaceholders(result.sessionData)

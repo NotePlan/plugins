@@ -11,7 +11,7 @@ import path from 'path'
 import fs from 'fs/promises'
 import { existsSync } from 'fs'
 import TemplatingEngine from '../lib/TemplatingEngine'
-import NPTemplating from '../lib/NPTemplating'
+import { preProcessTags } from '../lib/rendering/templateProcessor'
 import { DataStore } from '@mocks/index'
 
 // for Flow errors with Jest
@@ -26,7 +26,7 @@ const factory = async (factoryName = '') => {
   return 'FACTORY_NOT_FOUND'
 }
 
-describe('NPTemplating preProcess regression tests', () => {
+describe('Template Preprocessor Regression Tests', () => {
   let templatingEngine
   let originalConsoleLog
   let consoleOutput = []
@@ -52,7 +52,7 @@ describe('NPTemplating preProcess regression tests', () => {
 
   test('should not affect regular JavaScript code in template', async () => {
     const template = await factory('day-header-template.ejs')
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
 
     // Should not modify JavaScript variable declarations
     expect(newTemplateData).toContain('const dayNum = date.dayNumber')
@@ -66,7 +66,7 @@ describe('NPTemplating preProcess regression tests', () => {
 <% await DataStore.invokePluginCommandByName('Test', 'plugin', ['{'prop1':'value1'}']) %>
 <% const y = 10; %>
 `
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
 
     // Regular code should be unchanged
     expect(newTemplateData).toContain('const x = 5;')
@@ -82,7 +82,7 @@ describe('NPTemplating preProcess regression tests', () => {
   // But this should be processed
   await DataStore.invokePluginCommandByName('Test', 'plugin', ['{'numDays':14}'])
 %>`
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
 
     // Regular object should be untouched
     expect(newTemplateData).toContain("const data = { numDays: 14, sectionHeading: 'Test' };")
@@ -93,7 +93,7 @@ describe('NPTemplating preProcess regression tests', () => {
 
   test('should handle complex template with mixed code and DataStore calls', async () => {
     const template = await factory('complex-json-template.ejs')
-    const { newTemplateData } = await NPTemplating.preProcess(template)
+    const { newTemplateData } = await preProcessTags(template)
 
     // Regular JavaScript code should be untouched
     expect(newTemplateData).toContain('const dayNum = date.dayNumber')

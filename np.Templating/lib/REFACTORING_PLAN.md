@@ -33,7 +33,7 @@ This plan outlines the steps to refactor the large `NPTemplating.js` and `Templa
 - [x] `blockIsJavaScript()`
 - [x] `getCodeBlocks()`
 - [x] `getIgnoredCodeBlocks()`
-- [x] `convertJavaScriptBlocksToTags()`
+- [x] `convertTemplateJSBlocksToControlTags()`
 - [x] `getTags()`
 - [x] `isCode()`
 - [x] `isTemplateModule()`
@@ -83,8 +83,8 @@ This plan outlines the steps to refactor the large `NPTemplating.js` and `Templa
 - [x] `renderTemplate()`
 - [x] `validateTemplateTags()`
 - [x] `_getErrorContextString()`
-- [x] `postProcess()`
-- [x] `_filterTemplateResult()`
+- [x] `postProcess()` -> [x] `findCursors()`
+- [x] `_removeEJSDocumentationNotes()`
 - [x] `_frontmatterError()`
 - [x] `_removeWhitespaceFromCodeBlocks()`
 - [x] `execute()`
@@ -116,9 +116,15 @@ This plan outlines the steps to refactor the large `NPTemplating.js` and `Templa
 - [x] Centralized prompt functions in prompts/handlers
 - [x] Extracted plugin integration functions to modules/pluginIntegration.js
 - [x] Updated TemplatingEngine.js to use the new modular structure
+- [x] Refactored render() function into modular steps
+- [x] Renamed postProcess() to findCursors() for clarity
+- [x] Fixed execute() function to properly import dependencies
 
 ### In Progress
-- [✓] All refactoring tasks completed
+- [ ] Update Jest tests to use new module structure
+  - [ ] Update import paths
+  - [ ] Update mock implementations
+  - [ ] Fix references to renamed functions
 
 ### Next Steps
 1. ✓ Extract tag handling functions
@@ -127,11 +133,51 @@ This plan outlines the steps to refactor the large `NPTemplating.js` and `Templa
 4. ✓ Extract template processing functions
    - ✓ Add render and preRender functions to templateProcessor.js
    - ✓ Add importTemplates and execute functions
-   - ✓ Add postProcess function
+   - ✓ Rename postProcess function to findCursors
 5. ✓ Update NPTemplating.js to use the new template processor functions
 6. ✓ Extract prompt-related functions to a separate module
 7. ✓ Extract plugin integration functions to a separate module
 8. ✓ Update TemplatingEngine.js to use the new modular structure
+9. [ ] Update Jest tests to work with refactored code structure
+   - [ ] Update template-preprocessor.test.js to import from rendering/
+   - [ ] Update include-tag-processor.test.js to use exported processIncludeTag
+   - [ ] Create new tests for modular render() steps
+
+## Test Update Plan
+
+To complete the refactoring, we need to update the Jest tests to work with our new modular structure:
+
+### Common Test Updates Required
+
+1. **Import Path Updates**: 
+   - Replace imports from NPTemplating.js with direct imports from the specific modules
+   - Example: `import { preProcess } from '../lib/rendering/templateProcessor'`
+
+2. **Mock Updates**:
+   - Update mocks to target specific module functions instead of NPTemplating methods
+   - Example: `jest.spyOn(templateProcessor, 'render').mockImplementation(...)`
+
+3. **Private Method Access**:
+   - Replace references to private NPTemplating methods with direct imports
+   - Example: `import { processIncludeTag } from '../lib/rendering/templateProcessor'`
+
+### New Test Files Needed
+
+1. **Render Pipeline Tests**:
+   - Create tests for each of the modular render steps:
+     - validateTemplateStructure()
+     - normalizeTemplateData()
+     - loadGlobalHelpers()
+     - processFrontmatter()
+     - processTemplatePrompts()
+     - tempSaveIgnoredCodeBlocks()
+     - restoreCodeBlocks()
+
+2. **Error Handling Tests**:
+   - Create tests for the error handling utilities in utils/errorHandling.js
+
+3. **Tag Processing Tests**:
+   - Create specific tests for each tag processor function
 
 ### Technical Challenges
 - Some template processing functions like render, preRender have complex dependencies and interrelationships
@@ -140,6 +186,12 @@ This plan outlines the steps to refactor the large `NPTemplating.js` and `Templa
 
 ## Backward Compatibility
 NPTemplating.js will remain in the root lib directory and act as a facade, re-exporting functionality from the new modular structure to maintain backward compatibility with existing code that imports from the original location. 
+
+### Guidelines for NPTemplating.js
+- NPTemplating should remain as lightweight as possible, acting purely as a facade
+- DO NOT add new functions to NPTemplating.js directly
+- Instead, implement functionality in appropriate modules and only expose through NPTemplating if absolutely necessary for backward compatibility
+- All tests should be updated to import and test functions directly from their module locations rather than through the NPTemplating facade
 
 ## Refactoring Complete
 The refactoring of the NPTemplating codebase is now complete. The system has been restructured into a more maintainable modular architecture with clear separation of concerns:

@@ -132,7 +132,7 @@ export const getIgnoredCodeBlocks = (templateData: string = ''): Array<string> =
  * @returns {string} The modified template data with ```templatejs blocks (if eligible)
  *                   converted to EJS scriptlet tags.
  */
-export const convertJavaScriptBlocksToTags = (templateData: string = ''): string => {
+export const convertTemplateJSBlocksToControlTags = (templateData: string = ''): string => {
   let result = templateData // Start with the original template data
   const codeBlocks = getCodeBlocks(templateData) // Find all ```...``` blocks
 

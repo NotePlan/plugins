@@ -3,6 +3,7 @@
 
 import NPTemplating from '../lib/NPTemplating'
 import { processPrompts, processPromptTag, registerPromptType, getRegisteredPromptNames, cleanVarName } from '../lib/support/modules/prompts/PromptRegistry'
+import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 import BasePromptHandler from '../lib/support/modules/prompts/BasePromptHandler'
 import * as PromptRegistry from '../lib/support/modules/prompts/PromptRegistry'
@@ -110,7 +111,7 @@ describe('PromptRegistry', () => {
     const templateData = "<%- prompt('testVar', 'Enter test value:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.testVar).toBe('Test Response')
     expect(result.sessionTemplateData).toBe('<%- testVar %>')
@@ -126,7 +127,7 @@ describe('PromptRegistry', () => {
     const templateData = "<%- prompt('greeting', 'Hello, world!', 'Default, with comma') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
     expect(result.sessionData.greeting).toBe('Test Response')
     expect(result.sessionTemplateData).toBe('<%- greeting %>')
@@ -403,7 +404,7 @@ describe('PromptRegistry Variable Assignment', () => {
       const tags = mockGetTags(templateData, '<%', '%>')
       console.log('Tags found:', tags)
 
-      const result = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const result = await processPrompts(templateData, {}, '<%', '%>', getTags)
       console.log('After process:', result)
 
       expect(result.sessionData).toHaveProperty('tagVariable')
@@ -413,7 +414,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle let variable assignment', async () => {
       const templateData = '<% let tagVariable = promptTag("foo") %>'
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.tagVariable).toBe(mockPromptTagResponse)
       expect(sessionTemplateData).toBe('<%- tagVariable %>')
@@ -421,7 +422,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle var variable assignment', async () => {
       const templateData = '<% var tagVariable = promptTag("foo") %>'
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.tagVariable).toBe(mockPromptTagResponse)
       expect(sessionTemplateData).toBe('<%- tagVariable %>')
@@ -429,7 +430,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle await with variable assignment', async () => {
       const templateData = '<% const tagVariable = await promptTag("foo") %>'
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.tagVariable).toBe(mockPromptTagResponse)
       expect(sessionTemplateData).toBe('<%- tagVariable %>')
@@ -439,7 +440,7 @@ describe('PromptRegistry Variable Assignment', () => {
   describe('Variable assignment with promptKey', () => {
     test('should handle const variable assignment', async () => {
       const templateData = '<% const keyVariable = promptKey("foo") %>'
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
       expect(sessionTemplateData).toBe('<%- keyVariable %>')
@@ -447,7 +448,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle let variable assignment', async () => {
       const templateData = '<% let keyVariable = promptKey("foo") %>'
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
       expect(sessionTemplateData).toBe('<%- keyVariable %>')
@@ -455,7 +456,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle var variable assignment', async () => {
       const templateData = '<% var keyVariable = promptKey("foo") %>'
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
       expect(sessionTemplateData).toBe('<%- keyVariable %>')
@@ -463,7 +464,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle await with variable assignment', async () => {
       const templateData = '<% const keyVariable = await promptKey("foo") %>'
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
       expect(sessionTemplateData).toBe('<%- keyVariable %>')
@@ -473,7 +474,7 @@ describe('PromptRegistry Variable Assignment', () => {
   describe('Variable assignment with promptMention', () => {
     test('should handle const variable assignment', async () => {
       const templateData = '<% const mentionVariable = promptMention("foo") %>'
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
       expect(sessionTemplateData).toBe('<%- mentionVariable %>')
@@ -481,7 +482,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle let variable assignment', async () => {
       const templateData = '<% let mentionVariable = promptMention("foo") %>'
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
       expect(sessionTemplateData).toBe('<%- mentionVariable %>')
@@ -489,7 +490,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle var variable assignment', async () => {
       const templateData = '<% var mentionVariable = promptMention("foo") %>'
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
       expect(sessionTemplateData).toBe('<%- mentionVariable %>')
@@ -497,7 +498,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle await with variable assignment', async () => {
       const templateData = '<% const mentionVariable = await promptMention("foo") %>'
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
       expect(sessionTemplateData).toBe('<%- mentionVariable %>')
@@ -514,7 +515,7 @@ describe('PromptRegistry Variable Assignment', () => {
       <% const finalVar = await promptTag("final") %>
       `
 
-      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', mockGetTags)
+      const { sessionTemplateData, sessionData } = await processPrompts(templateData, {}, '<%', '%>', getTags)
 
       expect(sessionData.tagVar).toBe(mockPromptTagResponse)
       expect(sessionData.keyVar).toBe(mockPromptKeyResponse)
@@ -540,7 +541,7 @@ describe('PromptRegistry Variable Assignment', () => {
     `
 
     // Process the template with the problematic sessionData
-    const { sessionTemplateData, sessionData } = await processPrompts(template, initialSessionData, '<%', '%>', NPTemplating.getTags.bind(NPTemplating))
+    const { sessionTemplateData, sessionData } = await processPrompts(template, initialSessionData, '<%', '%>', getTags)
 
     // This should fail because it should not preserve "await promptKey(category)"
     expect(sessionData.category).not.toBe('await promptKey(category)')
