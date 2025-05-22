@@ -88,6 +88,25 @@ Error handling has been centralized and improved with:
 - Better context information for template errors
 - Specialized error handling for different types of issues
 
+### 5. Refactored Render Function
+
+The core `render()` function in `templateProcessor.js` has been completely refactored to improve clarity and maintainability:
+
+- Broken down into 12 distinct, logical steps with clear comments
+- Each processing step extracted into its own focused helper function
+- Clear separation of concerns for different aspects of template processing:
+  - `validateTemplateStructure()` - For validating template syntax
+  - `normalizeTemplateData()` - For fixing quotes and ensuring string format
+  - `loadGlobalHelpers()` - For enhancing session data with global functions
+  - `processFrontmatter()` - For handling frontmatter-specific processing
+  - `processTemplatePrompts()` - For prompts in the main template body
+  - `protectCodeBlocks()` - For temporarily replacing code blocks
+  - `restoreCodeBlocks()` - For restoring original code blocks
+- Improved documentation with step-by-step comments explaining the rendering process
+- Better error isolation and reporting
+
+This refactoring makes the template rendering process much more transparent, maintainable, and easier to extend with new capabilities in the future.
+
 ## Benefits of the New Architecture
 
 1. **Maintainability**: Each module has a single responsibility, making changes safer and more focused.
