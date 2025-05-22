@@ -16,48 +16,15 @@ import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import TasksModule from '@templatingModules/TasksModule'
 
 import pluginJson from '../plugin.json'
-import { clo, log } from '@helpers/dev'
+import { clo, log, logDebug, logError } from '@helpers/dev'
+
+// Import utility functions from the new structure
+import { getProperyValue, dt } from './utils'
+import { templateErrorMessage } from './modules'
 
 // this is a customized version of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
 import ejs from './support/ejs'
-import { logDebug, logError } from '../../helpers/dev'
-
-/**
- * Gets a nested property value from an object using a dot-separated key string.
- * For example, given object `obj` and key `"a.b.c"`, it returns `obj.a.b.c`.
- * @param {any} object - The object to traverse
- * @param {string} key - The dot-separated path to the desired property
- * @returns {any} The value of the property if found, otherwise undefined
- */
-const getProperyValue = (object: any, key: string): any => {
-  key.split('.').forEach((token) => {
-    // $FlowIgnorew
-    if (object) object = object[token]
-  })
-
-  return object
-}
-
-/**
- * Returns a formatted string of the current date and time.
- * Used for logging and timestamps.
- * @returns {string} The formatted date and time string in "YYYY-MM-DD HH:MM:SS" format
- */
-const dt = () => {
-  const d = new Date()
-
-  /**
-   * Pads a single-digit number with a leading zero.
-   * @param {number} value - The number to pad
-   * @returns {string|number} The padded number as a string, or the original number if >= 10
-   */
-  const pad = (value: number) => {
-    return value < 10 ? '0' + value : value
-  }
-
-  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString()
-}
 
 /**
  * The main templating engine class that handles rendering templates with EJS.
@@ -92,7 +59,7 @@ export default class TemplatingEngine {
     this.templateModules = []
 
     // override the locale based on plugin settings
-    if (this.templateConfig.templateLocale === '<system>') {
+    if (this.templateConfig.templateLocale === '<s>') {
       this.templateConfig.templateLocale = NotePlan.environment.languageCode
     }
   }
@@ -136,14 +103,7 @@ export default class TemplatingEngine {
    * @returns {Promise<string>} A formatted error message
    */
   async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {
-    const line = '*'.repeat(message.length + 30)
-    console.log(line)
-    console.log(`   ERROR`)
-    console.log(`   Method: ${method}:`)
-    console.log(`   Message: ${message}`)
-    console.log(line)
-    console.log('\n')
-    return `**Error: ${method}**\n- **${message}**`
+    return templateErrorMessage(method, message)
   }
 
   /**
@@ -199,204 +159,136 @@ export default class TemplatingEngine {
       // Update bracket counting
       bracketDepth += openBrackets - closeBrackets
 
-      // Add the line to current chunk
-      currentChunk += (currentChunk ? '\n' : '') + line
-
-      // Check if we can complete this chunk
-      const tagsClosed = hasClosingTag && (line.match(/%>/g) || []).length >= openTags
-      const conditionalClosed = !inConditional || (inConditional && bracketDepth <= 0)
-
-      // Check if we have a complete standalone line with no open tags
-      if ((!hasOpeningTag && !hasClosingTag && openTags === 0 && bracketDepth === 0) || (tagsClosed && conditionalClosed && bracketDepth === 0)) {
-        // Reset tag tracking if we closed all tags
-        if (tagsClosed) {
-          openTags = 0
-          if (bracketDepth <= 0) {
-            inConditional = false
-          }
+      // Update closing tag count
+      if (hasClosingTag) {
+        // Count closing tags
+        if (!hasOpeningTag || line.lastIndexOf('<%') < line.lastIndexOf('%>')) {
+          openTags = Math.max(0, openTags - 1)
         }
 
-        // Add chunk and reset
-        chunks.push(currentChunk)
+        // Check for end of conditional statements
+        if (inConditional && line.includes('%>') && line.match(/<%\s*(}|endif|endfor|endwhile|endswitch)/)) {
+          if (bracketDepth <= 0) inConditional = false
+        }
+      }
+
+      // Update the current chunk with the line
+      currentChunk += line + '\n'
+
+      // If we're at a safe stopping point (no open tags or blocks), finalize the chunk
+      if (openTags === 0 && !inConditional && bracketDepth <= 0) {
+        // Don't add empty chunks
+        if (currentChunk.trim()) {
+          chunks.push(currentChunk)
+        }
         currentChunk = ''
       }
     }
 
-    // Add any remaining content as the final chunk
-    if (currentChunk) {
+    // Add any remaining content as the last chunk
+    if (currentChunk.trim()) {
       chunks.push(currentChunk)
     }
 
-    // Special case handling - scan all chunks for related conditional blocks
-    const finalChunks = []
-    let conditionalBlock = ''
-    let inIfBlock = false
-
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i]
-
-      // Check for conditional starts (if, etc.)
-      if (chunk.match(/<%\s*(if|for|while|switch|try|function)/)) {
-        inIfBlock = true
-        conditionalBlock = chunk
-      }
-      // Check for conditional continuations (else, else if, catch)
-      else if (inIfBlock && chunk.match(/<%\s*(else|else\s+if|catch)/)) {
-        conditionalBlock += '\n' + chunk
-      }
-      // Check for conditional ends
-      else if (inIfBlock && chunk.includes('<%') && chunk.includes('}') && chunk.includes('%>')) {
-        conditionalBlock += '\n' + chunk
-        finalChunks.push(conditionalBlock)
-        conditionalBlock = ''
-        inIfBlock = false
-      }
-      // Add to conditional block if we're in one
-      else if (inIfBlock) {
-        conditionalBlock += '\n' + chunk
-      }
-      // Otherwise just add the chunk
-      else {
-        finalChunks.push(chunk)
-      }
-    }
-
-    // Add any remaining conditional block
-    if (conditionalBlock) {
-      finalChunks.push(conditionalBlock)
-    }
-
-    return finalChunks
+    return chunks
   }
 
   /**
-   * Formats the error report for incremental rendering failures.
-   * Creates a detailed error report showing context around the problematic code.
+   * Formats an error message for incremental template rendering.
+   * Provides detailed context around the error location.
    * @private
-   * @param {number} errorLine - The line number where the error occurred (1-based index).
-   * @param {string[]} templateLines - The template content split into chunks/lines.
-   * @param {string} errorDetails - The detailed error message from the rendering engine.
-   * @param {string} successfulRender - The content successfully rendered before the error.
-   * @returns {string} The formatted error report string.
+   * @param {number} errorLine - The line number where the error occurred
+   * @param {string[]} templateLines - The template split into lines
+   * @param {string} errorDetails - The error message details
+   * @param {string} successfulRender - Content that was successfully rendered before the error
+   * @returns {string} A formatted error message with context
    */
   _formatIncrementalRenderError(errorLine: number, templateLines: string[], errorDetails: string, successfulRender: string): string {
-    let report = ''
+    // Build up the error report
+    let report = '---\n## Template Error\n'
+    report += `==Error at Line ${errorLine}==\n\n`
+    report += `### Error Details\n\`\`\`\n${errorDetails}\n\`\`\`\n\n`
 
-    if (errorLine > 0) {
-      report = `---\n## Template Rendering Error\n`
-      report += `==Rendering failed at line ${errorLine} of ${templateLines.length}==\n`
-      report += errorDetails ? `### Template Processor Result:\n${errorDetails}\n` : ''
+    // Show context lines around the error
+    report += '### Context\n```\n'
+    const startLine = Math.max(1, errorLine - 5)
+    const endLine = Math.min(templateLines.length, errorLine + 5)
 
-      // Show context (previous and next chunks)
-      if (errorLine > 1) {
-        report += `### Line Before Error (Line ${errorLine - 1}):\n\`\`\`\n${templateLines[errorLine - 2]}\n\`\`\`\n`
-      }
+    for (let i = startLine; i <= endLine; i++) {
+      const marker = i === errorLine ? '>> ' : '   '
+      report += `${marker}${i}: ${templateLines[i - 1] || ''}\n`
+    }
+    report += '```\n'
 
-      // Show the problematic chunk
-      report += `### Problematic Code (Line ${errorLine}):\n\`\`\`\n${templateLines[errorLine - 1]}\n\`\`\`\n`
-
-      // Show next line only if it exists and is not empty/whitespace
-      if (errorLine < templateLines.length && templateLines[errorLine]?.trim()) {
-        report += `### Next Line (Line ${errorLine + 1}):\n\`\`\`\n${templateLines[errorLine]}\n\`\`\`\n`
-      }
-
-      // Show what rendered successfully
-      logDebug(`successfulRender (before error): ${successfulRender.length}chars "${successfulRender}"`)
-      if (successfulRender && successfulRender.trim().length > 0) {
-        report += `### Last Successful Rendered Content:\n${
-          successfulRender.length < 500
-            ? successfulRender
-            : successfulRender.substring(0, 250) + '\n... (truncated) ...\n' + successfulRender.substring(successfulRender.length - 250)
-        }\n`
-      }
-      report += '---\n'
-    } else {
-      // This might happen if the template is empty or there's a setup issue
-      report = `Unable to identify error location. Check template structure and data context.`
+    // Show what was successfully rendered (if anything)
+    if (successfulRender && successfulRender.trim()) {
+      report += `### Successful Rendering (up to error)\n\`\`\`\n${successfulRender.substring(0, 500)}${successfulRender.length > 500 ? '...' : ''}\n\`\`\`\n`
     }
 
-    return report.replace(/\n\n/g, '\n')
+    report += '---\n'
+    return report
   }
 
   /**
-   * Try to render the full template normally and if it fails, try to render it line by line to find the error.
-   * Provides detailed error reporting with context when a template fails to render.
+   * Renders a template incrementally, chunk by chunk, to better isolate errors.
+   * This approach helps identify which part of a complex template is causing problems.
    * @async
-   * @param {string} templateData - The template to render
-   * @param {Object} userData - The user data to pass to the template
-   * @param {Object} userOptions - The user options to pass to the template
-   * @returns {Promise<string>} The rendered template or detailed error report
+   * @param {string} templateData - The template string to render
+   * @param {any} userData - User data to be available during template rendering
+   * @param {any} userOptions - Options for the EJS renderer
+   * @returns {Promise<string>} The rendered template or detailed error information
    */
   async incrementalRender(templateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
-    // Split template by lines but preserve EJS tags
-    const templateLines = TemplatingEngine.splitTemplatePreservingTags(templateData)
+    // Split the template into manageable chunks
+    const templateLines = templateData.split('\n')
+    const chunks = TemplatingEngine.splitTemplatePreservingTags(templateData)
+
+    // If there are no chunks, the template is likely empty
+    if (chunks.length === 0) {
+      return ''
+    }
 
     let successfulRender = ''
-    let linesBuildingUp = ''
-    let lastRender = ''
-    let errorLine = 0
+    let errorLine = -1
     let errorDetails = ''
 
-    try {
-      // First try rendering the entire template to see if it works
-      logDebug(`incrementalRender Trying to render entire template first`)
-      lastRender = await this.render(templateData, userData, userOptions)
-      const failed = lastRender.includes('An error occurred rendering template')
-      if (!failed) {
-        logDebug(`incrementalRender fullRender: succeeded`, lastRender)
-        return lastRender
-      } else {
-        logDebug(`incrementalRender fullRender: failed; Will try incremental rendering; lastRender=`, lastRender)
-      }
-    } catch (error) {
-      // If it fails, proceed with incremental rendering
-      logDebug(pluginJson, `IncrementalRender Caught error. Full template rendering failed. Starting incremental rendering to find the error.`)
-    }
-    if (DataStore.settings.hasOwnProperty('incrementalRender') && !DataStore.settings.incrementalRender) {
-      logDebug(pluginJson, `incrementalRender: DISABLED by user setting`)
-      return lastRender
-    }
-    let isErroneousLine1 = false
-    // Attempt to render the template piece by piece
-    for (let i = 0; i < templateLines.length; i++) {
+    // Process each chunk and collect the results
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i]
       try {
-        // Try rendering just this chunk to isolate issues
-        await this.render(templateLines[i], userData, userOptions)
-
-        // If that succeeded, add to our building template
-        linesBuildingUp += (linesBuildingUp ? '\n' : '') + templateLines[i]
-        logDebug(`incrementalRender adding line: [${i}]`, templateLines[i])
-
-        try {
-          // Then try rendering everything up to this point
-          logDebug(`incrementalRender about to render template through line: ${i}`)
-          lastRender = await this.render(linesBuildingUp, userData, userOptions)
-          logDebug(`incrementalRender through line: ${i} result: ${lastRender.length}chars`, lastRender)
-          if (lastRender.includes('ejs error encountered') || lastRender.includes('An error occurred rendering template')) {
-            throw new Error(lastRender)
-          }
-        } catch (error) {
-          // If combining fails, we have context issue between chunks
-          errorLine = i + 1
-          errorDetails = `${error.message || 'Unknown error'}`
-          if (error.line) errorDetails += ` at line ${error.line}, column ${error.column}`
-          logError(`!!! Failed line: [${i}]"`, templateLines[i])
-          logDebug(pluginJson, `Error combining chunks at chunk ${i + 1}: ${errorDetails}`)
-          isErroneousLine1 = errorDetails.includes('>> 1|') && i > 0
-          break
-        }
+        // Try to render this chunk
+        const chunkResult = await this.render(chunk, userData, userOptions)
+        successfulRender += chunkResult
       } catch (error) {
-        // This specific chunk has a problem
-        errorLine = i + 1
-        errorDetails = `Error in line ${i + 1}: ${error.message || 'Unknown error'}`
-        if (error.line) errorDetails += ` at line ${error.line}, column ${error.column}`
-        isErroneousLine1 = errorDetails.includes('>> 1|') && i > 0
-        logDebug(pluginJson, `Error in chunk ${errorLine}: ${errorDetails}`)
+        // If we encounter an error, try to determine which line it occurred on
+        errorDetails = error?.message || 'Unknown error'
+
+        // Parse the error message to extract line number information
+        const lineMatch = errorDetails.match(/line (\d+)/) || error?.line
+        if (lineMatch) {
+          // Line number reported in the error message
+          const reportedLine = parseInt(lineMatch[1] || error.line)
+
+          // Calculate the actual line in the template
+          // We need to:
+          // 1. Count the lines in already processed chunks
+          // 2. Adjust for the reported line within the current chunk
+          const previousChunksLineCount = i > 0 ? chunks.slice(0, i).join('').split('\n').length - 1 : 0
+          errorLine = previousChunksLineCount + reportedLine
+
+          // Adjust for known offsets from EJS processing
+          errorLine = Math.max(1, errorLine - 7) // EJS often adds ~7 lines of boilerplate
+        } else {
+          // If we can't determine the exact line, make an educated guess
+          // Start at the first line of the current chunk
+          const previousChunksLineCount = i > 0 ? chunks.slice(0, i).join('').split('\n').length - 1 : 0
+          errorLine = previousChunksLineCount + 1
+        }
+
+        // Stop processing chunks once we hit an error
         break
       }
     }
-
-    if (isErroneousLine1) errorDetails = '' // override EJS which is wrong about where the error is
 
     // Format detailed error report
     let report = ''

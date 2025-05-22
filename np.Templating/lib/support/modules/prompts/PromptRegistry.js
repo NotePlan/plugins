@@ -131,7 +131,7 @@ export function registerPromptType(promptType: PromptType): void {
  * @param {string} tagContent - The content of the tag to match
  * @returns {?{promptType: Object, name: string}} The matching prompt type and its name, or null if none found
  */
-function findMatchingPromptType(tagContent: string): ?{ promptType: Object, name: string } {
+export function findMatchingPromptType(tagContent: string): ?{ promptType: Object, name: string } {
   for (const [name, promptType] of Object.entries(promptRegistry)) {
     const pattern = promptType.pattern || generatePromptPattern(promptType.name)
     if (pattern.test(tagContent)) {
