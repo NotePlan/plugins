@@ -23,6 +23,13 @@ import { clo, log } from '@helpers/dev'
 import ejs from './support/ejs'
 import { logDebug, logError } from '../../helpers/dev'
 
+/**
+ * Gets a nested property value from an object using a dot-separated key string.
+ * For example, given object `obj` and key `"a.b.c"`, it returns `obj.a.b.c`.
+ * @param {any} object - The object to traverse
+ * @param {string} key - The dot-separated path to the desired property
+ * @returns {any} The value of the property if found, otherwise undefined
+ */
 const getProperyValue = (object: any, key: string): any => {
   key.split('.').forEach((token) => {
     // $FlowIgnorew
@@ -32,9 +39,19 @@ const getProperyValue = (object: any, key: string): any => {
   return object
 }
 
+/**
+ * Returns a formatted string of the current date and time.
+ * Used for logging and timestamps.
+ * @returns {string} The formatted date and time string in "YYYY-MM-DD HH:MM:SS" format
+ */
 const dt = () => {
   const d = new Date()
 
+  /**
+   * Pads a single-digit number with a leading zero.
+   * @param {number} value - The number to pad
+   * @returns {string|number} The padded number as a string, or the original number if >= 10
+   */
   const pad = (value: number) => {
     return value < 10 ? '0' + value : value
   }
@@ -42,10 +59,33 @@ const dt = () => {
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString()
 }
 
+/**
+ * The main templating engine class that handles rendering templates with EJS.
+ * Supports template modules, plugins, and provides error handling.
+ */
 export default class TemplatingEngine {
+  /**
+   * Configuration for the templating engine
+   * @type {any}
+   */
   templateConfig: any
+
+  /**
+   * Array of registered template plugins
+   * @type {any}
+   */
   templatePlugins: any
+
+  /**
+   * Array of registered template modules
+   * @type {any}
+   */
   templateModules: any
+
+  /**
+   * Creates a new instance of the TemplatingEngine
+   * @param {any} config - Configuration settings for the templating engine
+   */
   constructor(config: any) {
     this.templateConfig = config || {}
     this.templatePlugins = []
@@ -57,6 +97,12 @@ export default class TemplatingEngine {
     }
   }
 
+  /**
+   * Replaces double dashes at the beginning and end of a frontmatter block with triple dashes.
+   * This ensures proper YAML frontmatter format.
+   * @param {string} templateData - The template string potentially containing frontmatter
+   * @returns {string} The template with double dashes converted to triple dashes if needed
+   */
   _replaceDoubleDashes(templateData: string): string {
     let returnedData = templateData
     // replace double dashes at top with triple dashes
@@ -71,10 +117,24 @@ export default class TemplatingEngine {
     return returnedData
   }
 
+  /**
+   * Returns a string representation of the current template configuration.
+   * Useful for debugging and status checks.
+   * @async
+   * @returns {Promise<string>} A formatted string containing the current configuration
+   */
   async heartbeat(): Promise<string> {
     return '```\n' + JSON.stringify(this.templateConfig, null, 2) + '\n```\n'
   }
 
+  /**
+   * Formats and logs template error messages.
+   * Creates a consistent error format for display to users.
+   * @async
+   * @param {string} [method=''] - The method name where the error occurred
+   * @param {string} [message=''] - The error message
+   * @returns {Promise<string>} A formatted error message
+   */
   async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {
     const line = '*'.repeat(message.length + 30)
     console.log(line)
@@ -86,11 +146,23 @@ export default class TemplatingEngine {
     return `**Error: ${method}**\n- **${message}**`
   }
 
+  /**
+   * Checks if a template string contains frontmatter.
+   * @async
+   * @param {string} templateData - The template string to check
+   * @returns {Promise<boolean>} True if the template contains frontmatter, false otherwise
+   */
   async isFrontmatter(templateData: string): Promise<boolean> {
     return templateData.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateData.substring(1)) : false
   }
 
-  // Helper method to split template but keep EJS tags intact
+  /**
+   * Splits a template into chunks while preserving EJS tags across lines.
+   * This is critical for proper error reporting and incremental rendering.
+   * @static
+   * @param {string} templateData - The template string to split
+   * @returns {string[]} An array of template chunks, with EJS syntax and code blocks preserved
+   */
   static splitTemplatePreservingTags(templateData: string): string[] {
     // If empty, return empty array
     if (!templateData) return []
@@ -199,6 +271,7 @@ export default class TemplatingEngine {
 
   /**
    * Formats the error report for incremental rendering failures.
+   * Creates a detailed error report showing context around the problematic code.
    * @private
    * @param {number} errorLine - The line number where the error occurred (1-based index).
    * @param {string[]} templateLines - The template content split into chunks/lines.
@@ -246,11 +319,13 @@ export default class TemplatingEngine {
   }
 
   /**
-   * Try to render the full template normally and if it fails, try to render it line by line to find the error
+   * Try to render the full template normally and if it fails, try to render it line by line to find the error.
+   * Provides detailed error reporting with context when a template fails to render.
+   * @async
    * @param {string} templateData - The template to render
    * @param {Object} userData - The user data to pass to the template
    * @param {Object} userOptions - The user options to pass to the template
-   * @returns {Promise<string>} The rendered template
+   * @returns {Promise<string>} The rendered template or detailed error report
    */
   async incrementalRender(templateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
     // Split template by lines but preserve EJS tags
@@ -336,6 +411,16 @@ export default class TemplatingEngine {
     return report
   }
 
+  /**
+   * The core template rendering method.
+   * Processes the template with EJS, handling frontmatter, modules, plugins, and error reporting.
+   * This is the primary method used to convert template strings into final output.
+   * @async
+   * @param {any} [templateData=''] - The template string to render
+   * @param {any} [userData={}] - User data to be available during template rendering
+   * @param {any} [userOptions={}] - Options for the EJS renderer
+   * @returns {Promise<string>} The rendered template or error message
+   */
   async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     const options = { ...{ async: true, rmWhitespace: false }, ...userOptions }
 
@@ -452,8 +537,16 @@ export default class TemplatingEngine {
       renderData[item.name] = item.method
     })
 
+    /**
+     * Helper function to output debug information about the render context data.
+     * @param {string} message - A message to include with the debug output
+     */
     const ouputData = (message: string) => {
-      // $FlowIgnore
+      /**
+       * Gets only the top-level primitive properties from an object for cleaner logging.
+       * @param {Object} obj - The object to extract properties from
+       * @returns {Object} A new object containing only the top-level primitive properties
+       */
       const getTopLevelProps = (obj) => Object.entries(obj).reduce((acc, [key, value]) => (typeof value !== 'object' || value === null ? { ...acc, [key]: value } : acc), {})
       clo(getTopLevelProps(renderData), `198 Templating context object (top level values only) ${message}`)
     }
@@ -557,6 +650,13 @@ export default class TemplatingEngine {
     }
   }
 
+  /**
+   * Gets the default format string for a specific format type.
+   * Currently marked as FIXME and should not be called directly.
+   * @async
+   * @param {string} [formatType='date'] - The type of format to get ('date' or 'time')
+   * @returns {Promise<string>} A promise that resolves to the default format string
+   */
   async getDefaultFormat(formatType: string = 'date'): Promise<string> {
     //FIXME
     log(pluginJson, 'FIXME: TemplatingEngine.getDefaultFormat')
@@ -579,6 +679,14 @@ export default class TemplatingEngine {
     }
   }
 
+  /**
+   * Registers a plugin or module with the templating engine.
+   * Supports functions and objects, but not ES6 classes.
+   * @async
+   * @param {string} [name=''] - The name to register the plugin or module under
+   * @param {any} methodOrModule - The function, object, or module to register
+   * @returns {Promise<void>}
+   */
   async register(name: string = '', methodOrModule: any): Promise<void> {
     let methodOrModuleType = typeof methodOrModule
     if (this.isClass(methodOrModule)) {
@@ -612,6 +720,12 @@ export default class TemplatingEngine {
     }
   }
 
+  /**
+   * Checks if an object is an ES6 class.
+   * Used by the register method to reject class registrations.
+   * @param {any} obj - The object to check
+   * @returns {boolean} True if the object is an ES6 class, false otherwise
+   */
   // $FlowFixMe
   isClass(obj: any): boolean {
     const isCtorClass = obj.constructor && obj.constructor.toString().substring(0, 5) === 'class'

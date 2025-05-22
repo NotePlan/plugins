@@ -8,62 +8,123 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-import DateModule from './support/modules/DateModule'
+// import DateModule from './support/modules/DateModule' // Not used directly, likely used through TemplatingEngine
 import { debug, helpInfo } from './helpers'
 
-import globals, { asyncFunctions as globalAsyncFunctions } from './globals' // Import asyncFunctions
+import globals, { asyncFunctions as globalAsyncFunctions } from './globals' // Import asyncFunctions from globals.js
 import { chooseOption } from '@helpers/userInput'
 import { clo, log, logError, logDebug, logWarn, timer, clof } from '@helpers/dev'
-import { datePicker, askDateInterval, chooseFolder } from '@helpers/userInput'
+// import { datePicker, askDateInterval, chooseFolder } from '@helpers/userInput' // These are likely used indirectly or within specific modules/handlers
 import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
 import { processPrompts } from './support/modules/prompts'
 import { getRegisteredPromptNames, isPromptTag } from './support/modules/prompts/PromptRegistry'
 
-// - if a new module has been added, make sure it has been added to this list
-const TEMPLATE_MODULES = ['calendar', 'date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility', 'tasks']
+/**
+ * List of available template modules. Used to determine if a tag is a module call.
+ * If a new module is added, it must be added to this list.
+ * @const {Array<string>} TEMPLATE_MODULES
+ */
+const TEMPLATE_MODULES: Array<string> = ['calendar', 'date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility', 'tasks']
 
-const CODE_BLOCK_COMMENT_TAGS = ['/* template: ignore */', '// template: ignore']
+/**
+ * Defines comment patterns that, if found within a fenced code block,
+ * will cause the NPTemplating system to ignore that block during processing.
+ * These are typically used for code examples in documentation that should not be executed.
+ * @const {Array<string>} CODE_BLOCK_COMMENT_TAGS
+ */
+const CODE_BLOCK_COMMENT_TAGS: Array<string> = ['/* template: ignore */', '// template: ignore']
 
-const isCommentTag = (tag: string = '') => {
+/**
+ * Checks if a given template tag is an EJS comment tag.
+ * EJS comment tags start with '<%#' and their content is not rendered or executed.
+ * @param {string} [tag=''] - The template tag string to check.
+ * @returns {boolean} True if the tag is a comment tag, false otherwise.
+ */
+const isCommentTag = (tag: string = ''): boolean => {
+  // Check if the tag string includes the EJS comment opening delimiter
   return tag.includes('<%#')
 }
 
-const codeBlockHasComment = (codeBlock: string = '') => {
-  const CODE_BLOCK_COMMENT_TAGS = ['template: ignore', 'template:ignore']
-  return CODE_BLOCK_COMMENT_TAGS.some((tag) => codeBlock.includes(tag))
+/**
+ * Checks if a given fenced code block contains a "template: ignore" comment.
+ * These comments are used to explicitly prevent the NPTemplating system from
+ * processing or executing the content of a code block.
+ * @param {string} [codeBlock=''] - The string content of the fenced code block.
+ * @returns {boolean} True if the code block contains one of the defined ignore comments, false otherwise.
+ */
+const codeBlockHasComment = (codeBlock: string = ''): boolean => {
+  // Defines specific comment strings that signify a code block should be ignored by the templating engine.
+  const IGNORE_PATTERNS = ['template: ignore', 'template:ignore']
+  // Check if any of the ignore patterns are present in the code block string.
+  return IGNORE_PATTERNS.some((ignorePattern) => codeBlock.includes(ignorePattern))
 }
 
-const blockIsJavaScript = (codeBlock: string = '') => {
-  return codeBlock.includes('```templatejs') // change from js/javascript to templatejs
+/**
+ * Determines if a fenced code block is specifically marked as a "templatejs" block.
+ * "templatejs" blocks are intended to contain JavaScript code that can be executed
+ * by the templating engine.
+ * @param {string} [codeBlock=''] - The string content of the fenced code block.
+ * @returns {boolean} True if the code block is a "templatejs" block, false otherwise.
+ */
+const blockIsJavaScript = (codeBlock: string = ''): boolean => {
+  // Check if the code block's language identifier is 'templatejs'.
+  // This was changed from 'js' or 'javascript' to avoid conflicts and be specific to template execution.
+  return codeBlock.includes('```templatejs')
 }
 
-const getCodeBlocks = (templateData: string = '') => {
-  const CODE_BLOCK_TAG = '```'
+/**
+ * Extracts all fenced code blocks (content surrounded by ```) from a given template string.
+ * @param {string} [templateData=''] - The template string to parse for code blocks.
+ * @returns {Array<string>} An array of strings, where each string is a complete fenced code block
+ *                          (including the ``` fences). Returns an empty array if no blocks are found.
+ */
+const getCodeBlocks = (templateData: string = ''): Array<string> => {
+  const CODE_BLOCK_TAG = '```' // Delimiter for fenced code blocks
+  let codeBlocks: Array<string> = [] // Array to store extracted code blocks
 
-  let codeBlocks = []
+  let blockStart = templateData.indexOf(CODE_BLOCK_TAG) // Find the start of the first code block
 
-  let blockStart = templateData.indexOf(CODE_BLOCK_TAG)
+  // Loop through the template data to find all code blocks
   while (blockStart >= 0) {
+    // Find the end of the current code block
+    // Search for the closing ``` starting after the opening ```
     let blockEnd = templateData.indexOf(CODE_BLOCK_TAG, blockStart + CODE_BLOCK_TAG.length)
+
+    // If a closing ``` is not found, assume the block extends to the end of the template data
     if (blockEnd === -1) {
       blockEnd = templateData.length
     }
+
+    // Extract the complete fenced code block, including the fences
     const fencedCodeBlock = templateData.substring(blockStart, blockEnd + CODE_BLOCK_TAG.length)
+
+    // Add the extracted block to the array if it's not empty
     if (fencedCodeBlock.length > 0) {
       codeBlocks.push(fencedCodeBlock)
     }
-    blockStart = templateData.indexOf(CODE_BLOCK_TAG, blockEnd + 1)
+
+    // Find the start of the next code block, searching after the current block's end
+    blockStart = templateData.indexOf(CODE_BLOCK_TAG, blockEnd + CODE_BLOCK_TAG.length)
   }
 
   return codeBlocks
 }
 
-const getIgnoredCodeBlocks = (templateData: string = '') => {
-  let ignoredCodeBlocks = []
-  const codeBlocks = getCodeBlocks(templateData)
-  codeBlocks.forEach((codeBlock) => {
+/**
+ * Extracts all fenced code blocks from template data that contain an "ignore" comment.
+ * These are blocks that should not be processed or executed by the templating engine.
+ * @param {string} [templateData=''] - The template string to parse.
+ * @returns {Array<string>} An array of ignored fenced code block strings.
+ */
+const getIgnoredCodeBlocks = (templateData: string = ''): Array<string> => {
+  let ignoredCodeBlocks: Array<string> = [] // Initialize array for ignored blocks
+  const allCodeBlocks = getCodeBlocks(templateData) // Get all code blocks first
+
+  // Iterate through all found code blocks
+  allCodeBlocks.forEach((codeBlock) => {
+    // If a code block contains an ignore comment, add it to the list
     if (codeBlockHasComment(codeBlock)) {
       ignoredCodeBlocks.push(codeBlock)
     }
@@ -72,43 +133,103 @@ const getIgnoredCodeBlocks = (templateData: string = '') => {
   return ignoredCodeBlocks
 }
 
-const convertJavaScriptBlocksToTags = (templateData: string = '') => {
-  let result = templateData
-  const codeBlocks = getCodeBlocks(templateData) // Finds ```...``` blocks
-  codeBlocks.forEach((codeBlock) => {
-    if (!codeBlockHasComment(codeBlock) && blockIsJavaScript(codeBlock)) {
-      // Check for ```templatejs
-      // Only proceed if the block isn't already using EJS tags internally
-      if (!codeBlock.substring(codeBlock.indexOf('```templatejs') + '```templatejs'.length, codeBlock.lastIndexOf('```')).includes('<%')) {
-        // Extract the pure JS code, excluding the ```templatejs and ``` fences
-        const jsContent = codeBlock.substring(codeBlock.indexOf('```templatejs') + '```templatejs'.length, codeBlock.lastIndexOf('```')).trim()
+/**
+ * Converts ```templatejs fenced code blocks into EJS scriptlet tags (<% ... %>).
+ * This conversion only happens if the block does not already contain EJS tags (<%)
+ * and is not marked with an "ignore" comment. The purpose is to allow users to write
+ * JavaScript within markdown-style code fences and have it treated as executable
+ * EJS scriptlet code.
+ * @param {string} [templateData=''] - The template string containing potential ```templatejs blocks.
+ * @returns {string} The modified template data with ```templatejs blocks (if eligible)
+ *                   converted to EJS scriptlet tags.
+ */
+const convertJavaScriptBlocksToTags = (templateData: string = ''): string => {
+  let result = templateData // Start with the original template data
+  const codeBlocks = getCodeBlocks(templateData) // Find all ```...``` blocks
 
-        // Wrap the entire extracted JS content in a single EJS scriptlet tag
-        // Using <% ... %> ensures it's a scriptlet and not for output.
-        // The NPTemplating.render will use incrementalRender which handles this.
-        const newBlock = `<%\n${jsContent}\n-%>`
-        result = result.replace(codeBlock, newBlock)
+  codeBlocks.forEach((codeBlock) => {
+    // Check if the block is a 'templatejs' block and is not marked for ignore
+    if (!codeBlockHasComment(codeBlock) && blockIsJavaScript(codeBlock)) {
+      // Define the start and end fence markers for templatejs
+      const templateJsStartFence = '```templatejs'
+      const endFence = '```'
+
+      // Calculate start and end indices for the content within the fences
+      const contentStartIndex = codeBlock.indexOf(templateJsStartFence) + templateJsStartFence.length
+      const contentEndIndex = codeBlock.lastIndexOf(endFence)
+
+      // Ensure both indices are valid
+      if (contentStartIndex < contentEndIndex) {
+        const jsBlockContent = codeBlock.substring(contentStartIndex, contentEndIndex)
+
+        // Only proceed if the block doesn't already use EJS tags internally
+        if (!jsBlockContent.includes('<%')) {
+          // Extract the pure JS code, trim whitespace
+          const jsContent = jsBlockContent.trim()
+
+          // Wrap the entire extracted JS content in a single EJS scriptlet tag.
+          // Using <% ... %> ensures it's a scriptlet (code to be executed, not output).
+          // The trailing '-%>' chomp cleans up trailing newline after the scriptlet.
+          const newEjsBlock = `<%\n${jsContent}\n-%>`
+          result = result.replace(codeBlock, newEjsBlock) // Replace the original block with the EJS tag
+        }
       }
     }
   })
   return result
 }
 
+/**
+ * Retrieves a nested property value from an object using a dot-separated key string.
+ * For example, given object `obj` and key `"a.b.c"`, it returns `obj.a.b.c`.
+ * @param {any} object - The object to traverse.
+ * @param {string} key - The dot-separated path to the desired property.
+ * @returns {any} The value of the property if found, otherwise undefined.
+ */
 const getProperyValue = (object: any, key: string): any => {
+  // Split the key string into an array of property names
   key.split('.').forEach((token) => {
-    // $FlowIgnorew
-    if (object) object = object[token]
+    // Traverse the object, updating 'object' to be the next nested object/value
+    // $FlowIgnorew - Flow might complain about dynamic property access, but it's intended.
+    if (object && typeof object === 'object' && token in object) {
+      // Added checks for safety
+      object = object[token]
+    } else {
+      object = undefined // Property not found or object is not traversable
+      return // Exit forEach early if path is broken
+    }
   })
-
   return object
 }
 
+/**
+ * Gets the raw text content of the currently selected paragraphs in the NotePlan editor.
+ * Each paragraph's raw content is joined by a newline character.
+ * @async
+ * @returns {Promise<string>} A promise that resolves to the concatenated raw content of selected paragraphs.
+ */
 export const selection = async (): Promise<string> => {
+  // Access NotePlan's Editor API to get selected paragraphs
+  // Map each paragraph to its 'rawContent'
+  // Join the raw content of all selected paragraphs with newline characters
   return Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
 }
 
-// Important: Replicate _configuration.templates object in TEMPLATE_CONFIG_BLOCK
-// NOTE: When adding new properties, make sure the `plugin.json/plugin.settings` are updated
+/**
+ * Default configuration values for the NPTemplating system.
+ * It's crucial to keep this synchronized with the structure expected by
+ * `TEMPLATE_CONFIG_BLOCK` and the plugin's settings in `plugin.json`.
+ * @const {object} DEFAULT_TEMPLATE_CONFIG
+ * @property {string} templateFolderName - Default name/path for the templates folder.
+ *                                        Uses NotePlan's environment variable if available.
+ * @property {string} templateLocale - Default locale for date/time formatting (e.g., "en-US").
+ * @property {boolean} templateGroupTemplatesByFolder - Whether to group templates by subfolder
+ *                                                    in the template chooser UI.
+ * @property {string} dateFormat - Default format string for dates (e.g., "YYYY-MM-DD").
+ * @property {string} timeFormat - Default format string for times (e.g., "HH:mm").
+ * @property {object} defaultFormats - Container for other specific default formats.
+ * @property {string} defaultFormats.now - Default format for the "now" timestamp.
+ */
 export const DEFAULT_TEMPLATE_CONFIG: {
   templateFolderName: string,
   templateLocale: string,
@@ -129,6 +250,24 @@ export const DEFAULT_TEMPLATE_CONFIG: {
   },
 }
 
+/**
+ * Flow type definition for the template configuration object (read-only).
+ * This defines the expected structure and types for template settings.
+ * @type {TemplateConfig}
+ * @property {string} templateFolderName - The folder where templates are stored.
+ * @property {string} [templateLocale] - Optional locale for localization (e.g., date formats).
+ * @property {boolean} [templateGroupTemplatesByFolder] - Optional flag to group templates by folder in UI.
+ * @property {string} [userFirstName] - Optional user's first name.
+ * @property {string} [userLastName] - Optional user's last name.
+ * @property {string} [userEmail] - Optional user's email.
+ * @property {string} [userPhone] - Optional user's phone number.
+ * @property {string} [dateFormat] - Optional default date format.
+ * @property {string} [timeFormat] - Optional default time format.
+ * @property {boolean} [nowFormat] - Optional: This seems like a typo or legacy field.
+ *                                   `DEFAULT_TEMPLATE_CONFIG` uses `defaultFormats.now` (string).
+ * @property {string} [weatherFormat] - Optional format for weather information.
+ * @property {mixed} [services] - Optional configuration for external services.
+ */
 type TemplateConfig = $ReadOnly<{
   templateFolderName: string,
   templateLocale?: string,
@@ -139,51 +278,78 @@ type TemplateConfig = $ReadOnly<{
   userPhone?: string,
   dateFormat?: string,
   timeFormat?: string,
-  nowFormat?: boolean,
+  nowFormat?: boolean, // Typo? Consider changing to string or aligning with defaultFormats.now
   weatherFormat?: string,
   services?: mixed,
 }>
 
-const dt = () => {
-  const d = new Date()
+/**
+ * Helper function to get a formatted string of the current date and time.
+ * Primarily used for logging or debugging purposes.
+ * @returns {string} Formatted current date and time (e.g., "2023-10-27 10:30:00 AM").
+ * @private
+ */
+const dt = (): string => {
+  const d = new Date() // Get current date and time
 
-  const pad = (value: number) => {
-    return value < 10 ? '0' + value : value
+  // Helper function to pad single-digit numbers with a leading zero
+  const pad = (value: number): string => {
+    return value < 10 ? '0' + value : String(value)
   }
 
-  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString()
+  // Construct and return the formatted date and time string
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.toLocaleTimeString()}`
 }
 
-export async function getDefaultTemplateConfig(): any {
+/**
+ * Returns the default template configuration object.
+ * @async
+ * @returns {Promise<typeof DEFAULT_TEMPLATE_CONFIG>} A promise that resolves to the default template configuration.
+ */
+export async function getDefaultTemplateConfig(): Promise<typeof DEFAULT_TEMPLATE_CONFIG> {
+  // More specific return type
   return DEFAULT_TEMPLATE_CONFIG
 }
 
+/**
+ * Generates a string block representing the template configuration,
+ * suitable for inclusion in a settings file (e.g., _configuration note).
+ * It attempts to migrate some values from potentially older config structures if found in `DEFAULT_TEMPLATE_CONFIG`.
+ * @async
+ * @returns {Promise<string>} A promise that resolves to the formatted configuration string.
+ */
 export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
-  const config = DEFAULT_TEMPLATE_CONFIG
+  const config = DEFAULT_TEMPLATE_CONFIG // Start with the current default configuration
 
-  // migrate existing configuration values
+  // Attempt to migrate legacy configuration values if they were structured differently.
+  // These lookups (e.g., config?.date?.locale) are speculative and depend on how
+  // 'config' (which is DEFAULT_TEMPLATE_CONFIG here) might have been structured in the past
+  // or if it's dynamically augmented elsewhere (unlikely for this constant).
+  // For DEFAULT_TEMPLATE_CONFIG, these legacy paths (?.date?.locale) will likely be undefined.
 
+  // $FlowFixMe - Accessing potentially non-existent nested properties.
+  const locale = config?.date?.locale || '' // Legacy: config.date.locale
   // $FlowFixMe
-  const locale = config?.date?.locale || ''
+  const first = config?.tagValue?.me?.firstName || '' // Legacy: config.tagValue.me.firstName
   // $FlowFixMe
-  const first = config?.tagValue?.me?.firstName || ''
-  // $FlowFixMe
-  const last = config?.tagValue?.me?.lastName || ''
-
-  // $FlowFixMe
-  const dateFormat = config?.date?.dateStyle || DEFAULT_TEMPLATE_CONFIG.dateFormat
-
-  // $FlowFixMe
-  const timeFormat = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.timeFormat
+  const last = config?.tagValue?.me?.lastName || '' // Legacy: config.tagValue.me.lastName
 
   // $FlowFixMe
-  const timestampFormat = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.timestampFormat
+  const dateFormatToUse = config?.date?.dateStyle || DEFAULT_TEMPLATE_CONFIG.dateFormat
+  // $FlowFixMe
+  const timeFormatToUse = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.timeFormat
 
+  // $FlowFixMe - timestampFormat seems to be derived from date.timeStyle or defaults to 'now' format.
+  // This specific migration for 'timestampFormat' seems to be mapping a legacy 'timeStyle' to it,
+  // or defaulting to the 'now' format from default settings if not found.
+  const timestampFormat = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.defaultFormats.now
+
+  // Construct the configuration string using current and potentially migrated values.
   return `  templates: {
     locale: "${locale}",
     defaultFormats: {
-      date: "${dateFormat}",
-      time: "${timeFormat}",
+      date: "${dateFormatToUse}",
+      time: "${timeFormatToUse}",
       now: "${DEFAULT_TEMPLATE_CONFIG.defaultFormats.now}"
     },
     user: {
@@ -198,6 +364,11 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
   `
 }
 
+/**
+ * Retrieves the path to NotePlan's main template folder from the environment.
+ * @async
+ * @returns {Promise<string>} A promise that resolves to the template folder path.
+ */
 export async function getTemplateFolder(): Promise<string> {
   return NotePlan.environment.templateFolder
 }
@@ -210,6 +381,13 @@ export default class NPTemplating {
     // constructor method required to access instance config (see setup method)
   }
 
+  /**
+   * Formats frontmatter-related error messages to be more user-friendly.
+   * Specifically handles common YAML parsing errors in templates.
+   * @static
+   * @param {any} error - The error object from the YAML parser
+   * @returns {string} Formatted error message string
+   */
   static _frontmatterError(error: any): string {
     if (error.reason === 'missed comma between flow collection entries') {
       return `**Frontmatter Template Parsing Error**\n\nWhen using template tags in frontmatter attributes, the entire block must be wrapped in quotes\n${error.mark}`
@@ -217,6 +395,14 @@ export default class NPTemplating {
     return error
   }
 
+  /**
+   * Removes whitespace from fenced code blocks in a string.
+   * This was originally used to clean up code blocks in template output,
+   * but has been modified to preserve code blocks as users may want them in templates.
+   * @static
+   * @param {string} [str=''] - The string containing code blocks to process
+   * @returns {string} The string with whitespace removed from code blocks
+   */
   static _removeWhitespaceFromCodeBlocks(str: string = ''): string {
     let result = str
     getCodeBlocks(str).forEach((codeBlock) => {
@@ -230,6 +416,16 @@ export default class NPTemplating {
     return result.replace(/\n\n\n/gi, '\n')
   }
 
+  /**
+   * Filters and cleans up template result content.
+   * Performs various replacements to clean up template output, including:
+   * - Removing EJS-related error messages
+   * - Replacing certain URLs with more NotePlan-friendly references
+   * - Adding helpful information for template syntax when errors are detected
+   * @static
+   * @param {string} [templateResult=''] - The rendered template result to filter
+   * @returns {string} The filtered template result
+   */
   static _filterTemplateResult(templateResult: string = ''): string {
     // NOTE: @codedungeon originally had this filterTemplateResult to remove code blocks from final output
     // assuming the only reason someone would use code blocks was to create multi-line templating code
@@ -251,6 +447,15 @@ export default class NPTemplating {
     return result
   }
 
+  /**
+   * Updates plugin settings to the latest version or installs default settings if none exist.
+   * Applies version-specific updates to settings as needed when upgrading between versions.
+   * @static
+   * @async
+   * @param {any} currentSettings - The current plugin settings object
+   * @param {string} currentVersion - The current plugin version
+   * @returns {Promise<TemplateConfig>} A promise that resolves to the updated settings
+   */
   static async updateOrInstall(currentSettings: any, currentVersion: string): Promise<TemplateConfig> {
     const settingsData = { ...currentSettings }
 
@@ -289,7 +494,11 @@ export default class NPTemplating {
   }
 
   /**
-   * Initializes the instance with `templateConfig` from settings, and list of global methods (as defined in `globals.js`)
+   * Initializes the templating system by loading settings and global functions.
+   * Sets up the template configuration and global method list for use in templates.
+   * @static
+   * @async
+   * @returns {Promise<void>}
    */
   static async setup() {
     try {
@@ -311,6 +520,13 @@ export default class NPTemplating {
     }
   }
 
+  /**
+   * Loads the templating settings from the settings.json file.
+   * If the settings file doesn't exist, creates it with default values.
+   * @static
+   * @async
+   * @returns {Promise<any>} The loaded settings object
+   */
   static async getSettings(): any {
     let data = DataStore.loadJSON('../np.Templating/settings.json')
     if (!data) {
@@ -321,6 +537,14 @@ export default class NPTemplating {
     return data
   }
 
+  /**
+   * Retrieves a specific setting value by key.
+   * @static
+   * @async
+   * @param {string} [key=''] - The key of the setting to retrieve
+   * @param {string} [defaultValue=''] - The default value to return if the key is not found
+   * @returns {Promise<string>} The setting value or default value
+   */
   static async getSetting(key: string = '', defaultValue?: string = ''): Promise<string> {
     const data = this.getSettings()
     if (data) {
@@ -329,10 +553,26 @@ export default class NPTemplating {
     return defaultValue
   }
 
+  /**
+   * Saves a setting value to the settings storage.
+   * Note: This method appears to be a stub that doesn't actually save anything.
+   * @static
+   * @async
+   * @param {string} key - The key of the setting to save
+   * @param {string} value - The value to save
+   * @returns {Promise<boolean>} Always returns true (stub implementation)
+   */
   static async putSetting(key: string, value: string): Promise<boolean> {
     return true
   }
 
+  /**
+   * Provides a diagnostic health check for the templating system.
+   * Returns the current template configuration as a markdown code block.
+   * @static
+   * @async
+   * @returns {Promise<string>} A formatted string containing the current configuration
+   */
   static async heartbeat(): Promise<string> {
     await this.setup()
 
@@ -341,10 +581,26 @@ export default class NPTemplating {
     return '```\n' + JSON.stringify(this.constructor.templateConfig, null, 2) + '\n```\n'
   }
 
+  /**
+   * Normalizes a filename to be compatible with NotePlan's file system.
+   * Removes special characters that are not allowed in NotePlan filenames.
+   * @static
+   * @async
+   * @param {string} [filename=''] - The filename to normalize
+   * @returns {Promise<string>} The normalized filename
+   */
   static async normalizeToNotePlanFilename(filename: string = ''): Promise<string> {
     return filename.replace(/[#()?%*|"<>:]/gi, '')
   }
 
+  /**
+   * Generates a formatted error message for template processing errors.
+   * Handles special case for YAML/frontmatter parsing errors.
+   * @static
+   * @param {string} [method=''] - The method name where the error occurred
+   * @param {any} [message=''] - The error message or object
+   * @returns {string} A formatted error message suitable for display to the user
+   */
   static templateErrorMessage(method: string = '', message: any = ''): string {
     if (message?.name?.indexOf('YAMLException') >= 0) {
       const frontMatterErrorMessage = this._frontmatterError(message)
@@ -361,6 +617,16 @@ export default class NPTemplating {
     return `**Error: ${method}**\n- **${message}**`
   }
 
+  /**
+   * Displays a UI for the user to choose a template from the available templates.
+   * Filters templates based on specified tags, and optionally groups them by folder.
+   * @static
+   * @async
+   * @param {any} [tags='*'] - Tags to filter templates by, defaults to all templates
+   * @param {string} [promptMessage='Choose Template'] - The message to display in the selection UI
+   * @param {any} [userOptions=null] - Additional options to customize selection behavior
+   * @returns {Promise<any>} A promise that resolves to the selected template
+   */
   static async chooseTemplate(tags?: any = '*', promptMessage: string = 'Choose Template', userOptions: any = null): Promise<any> {
     try {
       await this.setup()
@@ -389,6 +655,14 @@ export default class NPTemplating {
     } catch (error) {}
   }
 
+  /**
+   * Gets the filename for a template from its title.
+   * Handles nested templates and ensures the correct template is found in the template folder.
+   * @static
+   * @async
+   * @param {string} [note=''] - The title or path of the template note
+   * @returns {Promise<string>} A promise that resolves to the filename of the template
+   */
   static async getFilenameFromTemplate(note: string = ''): Promise<string> {
     // if nested note, we don't like it
     const parts = note.split('/')
@@ -409,6 +683,14 @@ export default class NPTemplating {
     }
   }
 
+  /**
+   * Gets a list of available templates filtered by type.
+   * Templates can define their types in frontmatter, and this method filters by those types.
+   * @static
+   * @async
+   * @param {any} [types='*'] - The types to filter by, '*' for all types
+   * @returns {Promise<Array<{label: string, value: string}>>} A promise that resolves to the filtered template list
+   */
   static async getTemplateList(types: any = '*'): Promise<any> {
     try {
       await this.setup()
@@ -515,6 +797,14 @@ export default class NPTemplating {
     }
   }
 
+  /**
+   * Gets a list of templates filtered by tags in their frontmatter.
+   * Similar to getTemplateList but uses tags instead of types for filtering.
+   * @static
+   * @async
+   * @param {any} [tags='*'] - The tags to filter by, '*' for all tags
+   * @returns {Promise<Array<{label: string, value: string}>>} A promise that resolves to the filtered template list
+   */
   static async getTemplateListByTags(tags: any = '*'): Promise<any> {
     try {
       await this.setup()
@@ -615,6 +905,17 @@ export default class NPTemplating {
     }
   }
 
+  /**
+   * Retrieves the content of a template by name or filename.
+   * Handles various template location strategies and formats.
+   * @static
+   * @async
+   * @param {string} [templateName=''] - The name or filename of the template to get
+   * @param {Object} [options={ showChoices: true, silent: false }] - Options for template retrieval
+   * @param {boolean} [options.showChoices] - Whether to show UI for choosing between multiple matches
+   * @param {boolean} [options.silent] - Whether to suppress error messages
+   * @returns {Promise<string>} A promise that resolves to the template content
+   */
   static async getTemplate(templateName: string = '', options: any = { showChoices: true, silent: false }): Promise<string> {
     const startTime = new Date()
     const isFilename = templateName.endsWith('.md') || templateName.endsWith('.txt')
@@ -748,16 +1049,39 @@ export default class NPTemplating {
     }
   }
 
+  /**
+   * Retrieves the frontmatter attributes from a template.
+   * Uses the FrontmatterModule to parse and extract attributes.
+   * @static
+   * @async
+   * @param {string} [templateData=''] - The template content to extract attributes from
+   * @returns {Promise<any>} A promise that resolves to the parsed frontmatter attributes
+   */
   static async getTemplateAttributes(templateData: string = ''): Promise<any> {
     return await new FrontmatterModule().attributes(templateData)
   }
 
+  /**
+   * Retrieves the current template configuration.
+   * Ensures the system is set up before returning the configuration.
+   * @static
+   * @async
+   * @returns {Promise<mixed>} A promise that resolves to the template configuration
+   */
   static async getTemplateConfig(): mixed {
     await this.setup()
     return this.constructor.templateConfig
   }
 
-  //TODO: consider using getTemplateNote
+  /**
+   * Retrieves the content of a note by its path.
+   * Supports both full path and relative path formats.
+   * TODO: consider using getTemplateNote
+   * @static
+   * @async
+   * @param {string} [notePath=''] - The path to the note
+   * @returns {Promise<string>} A promise that resolves to the note content
+   */
   static async getNote(notePath: string = ''): Promise<string> {
     let content: string = ''
 
@@ -786,6 +1110,14 @@ export default class NPTemplating {
     return content
   }
 
+  /**
+   * Preprocesses a 'note' tag in a template.
+   * Replaces the tag with the content of the referenced note.
+   * @static
+   * @async
+   * @param {string} [tag=''] - The note tag to process
+   * @returns {Promise<string>} A promise that resolves to the preprocessed content
+   */
   static async preProcessNote(tag: string = ''): Promise<string> {
     if (!isCommentTag(tag)) {
       const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('note', '').replace('(', '').replace(')', '')
@@ -807,6 +1139,14 @@ export default class NPTemplating {
     return ''
   }
 
+  /**
+   * Preprocesses a 'calendar' tag in a template.
+   * Replaces the tag with the content of the referenced calendar note.
+   * @static
+   * @async
+   * @param {string} [tag=''] - The calendar tag to process
+   * @returns {Promise<string>} A promise that resolves to the preprocessed content
+   */
   static async preProcessCalendar(tag: string = ''): Promise<string> {
     if (!isCommentTag(tag)) {
       const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('calendar', '').replace('(', '').replace(')', '')
@@ -831,11 +1171,13 @@ export default class NPTemplating {
   }
 
   /**
-   * Process various tags in the template data that will add variables/values to the session data
+   * Processes various tags in the template data that will add variables/values to the session data
    * to be used later in the template processing.
+   * @static
+   * @async
    * @param {string} templateData - The template string to process
-   * @param {Object} sessionData - Data available during processing
-   * @returns {Object} - Processed template data, updated session data, and any errors
+   * @param {Object} [sessionData={}] - Data available during processing
+   * @returns {Promise<{newTemplateData: string, newSettingData: Object}>} Processed template data, updated session data
    */
   static async preProcess(templateData: string, sessionData?: {} = {}): Promise<mixed> {
     // Initialize the processing context
@@ -924,8 +1266,13 @@ export default class NPTemplating {
   }
 
   /**
-   * Process comment tags by removing them from the template
+   * Process comment tags by removing them from the template.
+   * @static
    * @private
+   * @async
+   * @param {string} tag - The comment tag to process
+   * @param {Object} context - The processing context containing templateData, sessionData, and override
+   * @returns {Promise<void>}
    */
   static async _processCommentTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     const regex = new RegExp(`${tag}[\\s\\r\\n]*`, 'g')
@@ -933,32 +1280,52 @@ export default class NPTemplating {
   }
 
   /**
-   * Process note tags by replacing them with the note content
+   * Process note tags by replacing them with the note content.
+   * @static
    * @private
+   * @async
+   * @param {string} tag - The note tag to process
+   * @param {Object} context - The processing context containing templateData, sessionData, and override
+   * @returns {Promise<void>}
    */
   static async _processNoteTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     context.templateData = context.templateData.replace(tag, await this.preProcessNote(tag))
   }
 
   /**
-   * Process calendar tags by replacing them with the calendar note content
+   * Process calendar tags by replacing them with the calendar note content.
+   * @static
    * @private
+   * @async
+   * @param {string} tag - The calendar tag to process
+   * @param {Object} context - The processing context containing templateData, sessionData, and override
+   * @returns {Promise<void>}
    */
   static async _processCalendarTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     context.templateData = context.templateData.replace(tag, await this.preProcessCalendar(tag))
   }
 
   /**
-   * Process return/carriage return tags by removing them
+   * Process return/carriage return tags by removing them.
+   * @static
    * @private
+   * @async
+   * @param {string} tag - The return tag to process
+   * @param {Object} context - The processing context containing templateData, sessionData, and override
+   * @returns {Promise<void>}
    */
   static async _processReturnTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     context.templateData = context.templateData.replace(tag, '')
   }
 
   /**
-   * Process code tags by adding await prefix to function calls
+   * Process code tags by adding await prefix to function calls that need it.
+   * @static
    * @private
+   * @async
+   * @param {string} tag - The code tag to process
+   * @param {Object} context - The processing context containing templateData, sessionData, and override
+   * @returns {Promise<void>}
    */
   static async _processCodeTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     const tagPartsRegex = /^(<%(?:-|~|=)?)([^]*?)((?:-|~)?%>)$/ // Capture 1: start, 2: content, 3: end
@@ -1034,7 +1401,14 @@ export default class NPTemplating {
     }
   }
 
-  // Make sure processStatementForAwait accepts asyncFunctions as a parameter
+  /**
+   * Analyzes a JavaScript statement and adds 'await' prefix to async function calls when needed.
+   * Handles various code structures like control statements, variable declarations, and function calls.
+   * @static
+   * @param {string} statement - The JavaScript statement to process
+   * @param {Array<string>} asyncFunctions - List of function names that are known to be async
+   * @returns {string} The processed statement with 'await' added where needed
+   */
   static processStatementForAwait(statement: string, asyncFunctions: Array<string>): string {
     if (statement.includes('await ')) {
       return statement
@@ -1102,8 +1476,14 @@ export default class NPTemplating {
   }
 
   /**
-   * Process include/template tags by replacing them with the included template content
+   * Process include/template tags by replacing them with the included template content.
+   * Handles variable assignment and frontmatter rendering.
+   * @static
    * @private
+   * @async
+   * @param {string} tag - The include tag to process
+   * @param {Object} context - The processing context containing templateData, sessionData, and override
+   * @returns {Promise<void>}
    */
   static async _processIncludeTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     if (isCommentTag(tag)) return
@@ -1161,8 +1541,13 @@ export default class NPTemplating {
   }
 
   /**
-   * Process variable declaration tags
+   * Process variable declaration tags by extracting variable assignments to session data.
+   * @static
    * @private
+   * @async
+   * @param {string} tag - The variable tag to process
+   * @param {Object} context - The processing context containing templateData, sessionData, and override
+   * @returns {Promise<void>}
    */
   static async _processVariableTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
     if (!context.sessionData) return
@@ -1187,8 +1572,11 @@ export default class NPTemplating {
   }
 
   /**
-   * Helper method to determine the type of a value
+   * Helper method to determine the type of a value from its string representation.
+   * @static
    * @private
+   * @param {string} value - The string value to analyze
+   * @returns {string} The determined type ('array', 'object', or 'string')
    */
   static _getValueType(value: string): string {
     if (value.includes('[')) {
@@ -1203,8 +1591,14 @@ export default class NPTemplating {
   }
 
   /**
-   * Provides context around errors by showing the surrounding lines of code
+   * Provides context around errors by showing the surrounding lines of code.
+   * Helps debug template errors by showing the line with the error and a few lines before and after.
+   * @static
    * @private
+   * @param {string} templateData - The template content
+   * @param {string} matchStr - The string to match in the template
+   * @param {number} originalLineNumber - The line number of the error (if known)
+   * @returns {string} Formatted error context with line numbers
    */
   static _getErrorContextString(templateData: string, matchStr: string, originalLineNumber: number): string {
     const lines = templateData.split('\n')
@@ -1243,6 +1637,15 @@ export default class NPTemplating {
     return context
   }
 
+  /**
+   * Renders a template by name, processing its content with provided data.
+   * @static
+   * @async
+   * @param {string} [templateName=''] - The name of the template to render
+   * @param {any} [userData={}] - User data to use in template rendering
+   * @param {any} [userOptions={}] - Options for template rendering
+   * @returns {Promise<string>} A promise that resolves to the rendered template content
+   */
   static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     const usePrompts = true
     try {
@@ -1261,6 +1664,16 @@ export default class NPTemplating {
     }
   }
 
+  /**
+   * Core template rendering function. Processes template data with provided variables.
+   * Handles frontmatter, imports, and prompts in templates.
+   * @static
+   * @async
+   * @param {string} inputTemplateData - The template content to render
+   * @param {any} [userData={}] - User data to use in template rendering
+   * @param {any} [userOptions={}] - Options for template rendering
+   * @returns {Promise<string>} A promise that resolves to the rendered template content
+   */
   static async render(inputTemplateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
     let templateData = inputTemplateData
     let sessionData = { ...userData }
@@ -1380,6 +1793,7 @@ export default class NPTemplating {
   /**
    * Extracts the title from a markdown string if it starts with a markdown title pattern.
    * Otherwise, sets the title to a default value.
+   * @static
    * @param {string} markdown - The markdown string to process.
    * @returns {{ updatedMarkdown: string, title: string }} An object containing the updated markdown without the title line (if applicable) and the extracted or default title.
    */
@@ -1398,7 +1812,15 @@ export default class NPTemplating {
     return { updatedMarkdown, title }
   }
 
-  // preRender will render frontmatter attribute tags, return final attributes and body
+  /**
+   * Pre-renders template frontmatter attributes, processing template tags within frontmatter.
+   * Ensures proper frontmatter structure and handles templates without frontmatter.
+   * @static
+   * @async
+   * @param {string} [_templateData=''] - The template data to prerender
+   * @param {any} [userData={}] - User data to use in template rendering
+   * @returns {Promise<{frontmatterBody: string, frontmatterAttributes: Object}>} Processed frontmatter body and attributes
+   */
   static async preRender(_templateData: string = '', userData: any = {}): Promise<any> {
     await this.setup()
     let templateData = _templateData
@@ -1428,6 +1850,14 @@ export default class NPTemplating {
     return { frontmatterBody, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
   }
 
+  /**
+   * Post-processes rendered template data to handle special markers like cursors.
+   * Currently focused on cursor position marking.
+   * @static
+   * @async
+   * @param {string} templateData - The rendered template data to post-process
+   * @returns {Promise<{cursors: Array<{start: number}>}>} Information about cursor positions
+   */
   static async postProcess(templateData: string): Promise<mixed> {
     //TODO: Finish implementation cursor support
     let newTemplateData = templateData
@@ -1652,6 +2082,13 @@ export default class NPTemplating {
     return new FrontmatterModule().convertProjectNoteToFrontmatter(projectNote)
   }
 
+  /**
+   * Processes import tags in a template, replacing them with the content of referenced templates.
+   * @static
+   * @async
+   * @param {string} [templateData=''] - The template data containing import tags
+   * @returns {Promise<string>} A promise that resolves to the processed template with imports resolved
+   */
   static async importTemplates(templateData: string = ''): Promise<string> {
     let newTemplateData = templateData
     const tags = (await this.getTags(templateData)) || []
@@ -1679,7 +2116,15 @@ export default class NPTemplating {
     return newTemplateData
   }
 
-  // Not sure this is used anywhere; @codedungeon committed it as part of a "wip: template script execution" commit
+  /**
+   * Executes JavaScript code blocks within a template.
+   * This function can process both standard EJS template code and code blocks marked with ```templatejs.
+   * @static
+   * @async
+   * @param {string} [templateData=''] - The template data containing code blocks
+   * @param {any} sessionData - Session data available to the executed code
+   * @returns {Promise<{processedTemplateData: string, processedSessionData: any}>} The results after execution
+   */
   static async execute(templateData: string = '', sessionData: any): Promise<any> {
     let processedTemplateData = templateData
     let processedSessionData = sessionData
@@ -1720,18 +2165,40 @@ export default class NPTemplating {
     return { processedTemplateData, processedSessionData }
   }
 
+  /**
+   * Displays a date picker prompt to the user.
+   * @static
+   * @async
+   * @param {string} message - The message to display in the prompt
+   * @param {string} defaultValue - The default date value
+   * @returns {Promise<any>} A promise that resolves to the selected date
+   */
   static async promptDate(message: string, defaultValue: string): Promise<any> {
     // This method is kept for backward compatibility
     // Import the PromptDateHandler to use its implementation
     return require('./support/modules/prompts/PromptDateHandler').default.promptDate(message, defaultValue)
   }
 
+  /**
+   * Displays a date interval picker prompt to the user.
+   * @static
+   * @async
+   * @param {string} message - The message to display in the prompt
+   * @param {string} defaultValue - The default date interval value
+   * @returns {Promise<any>} A promise that resolves to the selected date interval
+   */
   static async promptDateInterval(message: string, defaultValue: string): Promise<any> {
     // This method is kept for backward compatibility
     // Import the PromptDateIntervalHandler to use its implementation
     return require('./support/modules/prompts/PromptDateIntervalHandler').default.promptDateInterval(message, defaultValue)
   }
 
+  /**
+   * Parses parameters from a prompt key tag.
+   * @static
+   * @param {string} [tag=''] - The prompt key tag to parse
+   * @returns {Object} The parsed parameters
+   */
   static parsePromptKeyParameters(tag: string = ''): {
     varName: string,
     tagKey: string,
@@ -1746,18 +2213,39 @@ export default class NPTemplating {
     return require('./support/modules/prompts/PromptKeyHandler').default.parsePromptKeyParameters(tag)
   }
 
+  /**
+   * Shows a prompt to the user with optional configuration.
+   * @static
+   * @async
+   * @param {string} message - The message to display in the prompt
+   * @param {any} [options=null] - Options for the prompt
+   * @returns {Promise<any>} A promise that resolves to the user's response
+   */
   static async prompt(message: string, options: any = null): Promise<any> {
     // This method is kept for backward compatibility
     // Import the StandardPromptHandler to use its implementation
     return require('./support/modules/prompts/StandardPromptHandler').default.prompt(message, options)
   }
 
+  /**
+   * Extracts parameters from a prompt tag.
+   * @static
+   * @async
+   * @param {string} [promptTag=''] - The prompt tag to extract parameters from
+   * @returns {Promise<mixed>} A promise that resolves to the extracted parameters
+   */
   static async getPromptParameters(promptTag: string = ''): mixed {
     // This method is kept for backward compatibility
     // Import the BasePromptHandler to use its implementation
     return require('./support/modules/prompts/BasePromptHandler').default.getPromptParameters(promptTag)
   }
 
+  /**
+   * Checks if a tag is a template module tag (referring to a built-in template module).
+   * @static
+   * @param {string} [tag=''] - The tag to check
+   * @returns {boolean} True if the tag is a template module tag, false otherwise
+   */
   static isTemplateModule(tag: string = ''): boolean {
     const tagValue = tag.replace('<%=', '').replace('<%-', '').replace('%>', '').trim()
     const pos = tagValue.indexOf('.')
@@ -1768,6 +2256,13 @@ export default class NPTemplating {
     return false
   }
 
+  /**
+   * Merges multi-line JavaScript statements into single statements when they span multiple lines.
+   * Particularly important for method chaining patterns that might be split across lines.
+   * @static
+   * @param {string} codeContent - The code content to process
+   * @returns {string} The processed code with merged multi-line statements
+   */
   static _mergeMultiLineStatements(codeContent: string): string {
     if (!codeContent || typeof codeContent !== 'string') {
       return ''
@@ -1808,6 +2303,14 @@ export default class NPTemplating {
     return mergedLines.join('\n')
   }
 
+  /**
+   * Protects template literals in code by replacing them with placeholders.
+   * This prevents the template literals from being processed as EJS tags.
+   * @static
+   * @param {string} code - The code containing template literals to protect
+   * @returns {{protectedCode: string, literalMap: Array<{placeholder: string, original: string}>}}
+   *          The code with protected literals and a map to restore them
+   */
   static protectTemplateLiterals(code: string): { protectedCode: string, literalMap: Array<{ placeholder: string, original: string }> } {
     const literalMap: Array<{ placeholder: string, original: string }> = []
     let i = 0
@@ -1821,6 +2324,14 @@ export default class NPTemplating {
     return { protectedCode, literalMap }
   }
 
+  /**
+   * Restores template literals from their placeholders.
+   * Used after processing code that contains template literals.
+   * @static
+   * @param {string} protectedCode - The code with template literal placeholders
+   * @param {Array<{placeholder: string, original: string}>} literalMap - The map of placeholders to original literals
+   * @returns {string} The code with original template literals restored
+   */
   static restoreTemplateLiterals(protectedCode: string, literalMap: Array<{ placeholder: string, original: string }>): string {
     let code = protectedCode
     for (const entry of literalMap) {
@@ -1832,11 +2343,12 @@ export default class NPTemplating {
   }
 
   /**
-   * Formats a template error message with consistent styling
-   * @param {string} errorType - The type of error (e.g. "unclosed tag", "unmatched closing tag")
+   * Formats a template error message with consistent styling.
+   * @static
+   * @param {string} errorType - The type of error (e.g. "unclosed tag")
    * @param {number} lineNumber - The line number where the error occurred
    * @param {string} context - The context lines around the error
-   * @param {string} description - Optional description of the error
+   * @param {string} [description] - Optional description of the error
    * @returns {string} Formatted error message
    */
   static _formatTemplateError(errorType: string, lineNumber: number, context: string, description?: string): string {
@@ -1845,9 +2357,10 @@ export default class NPTemplating {
   }
 
   /**
-   * Validates EJS tags in the template data
+   * Validates EJS tags in the template data for proper opening and closing.
+   * @static
    * @param {string} templateData - The template data to validate
-   * @returns {string|null} - Error message if validation fails, null if valid
+   * @returns {string|null} Error message if validation fails, null if valid
    */
   static validateTemplateTags(templateData: string): string | null {
     const lines = templateData.split('\n')
@@ -1921,6 +2434,13 @@ export default class NPTemplating {
     return null
   }
 
+  /**
+   * Instance method for rendering a template.
+   * @async
+   * @param {string} templateData - The template data to render
+   * @param {any} [data={}] - Data to use in rendering
+   * @returns {Promise<string>} A promise that resolves to the rendered template
+   */
   async render(templateData: string, data: any = {}): Promise<string> {
     try {
       // Process the template
@@ -1932,6 +2452,13 @@ export default class NPTemplating {
     }
   }
 
+  /**
+   * Instance method for processing a template.
+   * @async
+   * @param {string} templateData - The template data to process
+   * @param {any} [data={}] - Data to use in processing
+   * @returns {Promise<string>} A promise that resolves to the processed template
+   */
   async processTemplate(templateData: string, data: any = {}): Promise<string> {
     try {
       // Continue with template processing...
