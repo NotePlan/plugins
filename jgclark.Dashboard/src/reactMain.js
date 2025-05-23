@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2025-05-14 for v2.2.2
+// Last updated 2025-05-23 for v2.3.0.b2
 //-----------------------------------------------------------------------------
 
 import { getGlobalSharedData, sendToHTMLWindow } from '../../helpers/HTMLView'
@@ -15,7 +15,7 @@ import { getAllSectionsData } from './dataGeneration'
 import { getPerspectiveSettings, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
-import { generateTagMentionCache } from './tagMentionCache'
+import { generateTagMentionCache, isTagMentionCacheGenerationScheduled } from './tagMentionCache'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
@@ -355,22 +355,36 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
  * @returns {Promise<void>}
  */
 export async function reactWindowInitialisedSoStartGeneratingData(): Promise<void> {
-  logDebug('reactWindowInitialisedSoStartGeneratingData', `--> React Window reported back to plugin that it has loaded <--`)
-  const config = await getDashboardSettings()
-  const logSettings = await getLogSettings()
-  const enabledSections = getListOfEnabledSections(config)
+  try {
+    logDebug('reactWindowInitialisedSoStartGeneratingData', `--> React Window reported back to plugin that it has loaded <--`)
+    const config = await getDashboardSettings()
+    const logSettings = await getLogSettings()
+    const enabledSections = getListOfEnabledSections(config)
 
-  // Start generating data for the enabled sections
-  if (!config.FFlag_ForceInitialLoadForBrowserDebugging) {
-    await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
+    // Start generating data for the enabled sections
+    if (!config.FFlag_ForceInitialLoadForBrowserDebugging) {
+      await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
+    }
+    logInfo('reactWindowInitialisedSoStartGeneratingData', `----- END OF GENERATION ------`)
+
+    // ---------------------------------------------------------------
+    // Now is the time to do any other background processing after the initial display is done
+    // ---------------------------------------------------------------
+
+    // Rebuild the tag mention cache. (Ideally this would be triggered by NotePlan once a day, but for now we will do it here.)
+    // if (config.FFlag_UseTagCache && (logSettings._logLevel !== 'DEV' || NotePlan.environment.machineName !== 'mm5.local')) {
+    if (isTagMentionCacheGenerationScheduled()) {
+      logInfo('reactWindowInitialisedSoStartGeneratingData', `- now generating tag mention cache`)
+      await generateTagMentionCache()
+      // Now that the cache is generated, we want to re-generate any enabled tag section(s), just in case
+      if (enabledSections.length > 0 && enabledSections.includes('TAG')) {
+        logInfo('reactWindowInitialisedSoStartGeneratingData', `- now re-generating tag section(s)`)
+        await incrementallyRefreshSomeSections({ sectionCodes: ['TAG'], actionType: 'incrementallyRefreshSomeSections' }, false, true)
+      }
+    }
+  } catch (error) {
+    logError('reactWindowInitialisedSoStartGeneratingData', error.message)
   }
-
-  // ---------------------------------------------------------------
-  // Now is the time to do any other background processing after the initial display is done
-  // ---------------------------------------------------------------
-
-  // Rebuild the tag mention cache. (Ideally this would be triggered by NotePlan once a day, but for now we will do it here.)
-  if (config.FFlag_UseTagCache && (logSettings._logLevel !== 'DEV' || NotePlan.environment.machineName !== 'mm5.local')) await generateTagMentionCache()
 }
 
 /**

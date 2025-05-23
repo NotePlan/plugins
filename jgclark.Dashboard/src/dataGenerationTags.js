@@ -1,19 +1,19 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-05-16 for v2.3.0, @jgclark
+// Last updated 2025-05-23 for v2.3.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import type { TDashboardSettings, TSection, TSectionItem, TSectionDetails } from './types'
-import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
+import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionItemObject,
   isLineDisallowedByExcludedTerms,
   makeDashboardParas,
 } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
-import { getFilenamesOfNotesWithTagOrMentions } from './tagMentionCache'
+import { getFilenamesOfNotesWithTagOrMentions, isTagMentionCacheAvailable, scheduleTagMentionCacheGeneration, WANTED_PARA_TYPES } from './tagMentionCache'
 import { filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
@@ -26,6 +26,10 @@ import { sortListBy } from '@helpers/sorting'
 import { caseInsensitiveMatch } from '@helpers/search'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
+
+//-----------------------------------------------------------------
+
+const turnOnAPIComparison = true // TODO(later): remove this in time
 
 //-----------------------------------------------------------------
 /**
@@ -47,7 +51,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
   const items: Array<TSectionItem> = []
   let isHashtag = false
   let isMention = false
-  // const thisStartTime = new Date()
+  let source = ''
 
   const ignoreTermsMinusTagCSV: string = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
     .filter((t) => t !== sectionDetail.sectionName)
@@ -61,17 +65,24 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       items.push({ ID: thisID, ...item })
       itemCount++
     })
+    source = 'using DEMO data'
   } else {
     isHashtag = sectionDetail.sectionName.startsWith('#')
     isMention = sectionDetail.sectionName.startsWith('@')
-    if (isHashtag || isMention) {
+    if (!isHashtag && !isMention) {
+      logError('getTaggedSectionData', `- sectionDetail.sectionName '${sectionDetail.sectionName}' is not a hashtag or mention. Stopping generation of this section.`)
+    } else {
       let filteredTagParas: Array<TParagraph> = []
 
       // Get notes with matching hashtag or mention (as can't get list of paras directly)
-      // const notesWithTagFromCache: Array<TNote> = []
+      // Use Cache if wanted (and available), otherwise the API.
+
       let notesWithTag: Array<TNote> = []
-      if (config?.FFlag_UseTagCache) {
-        const filenamesWithTagFromCache = await getFilenamesOfNotesWithTagOrMentions([sectionDetail.sectionName], true)
+      const cacheIsAvailable = isTagMentionCacheAvailable()
+      if (config.FFlag_UseTagCache && cacheIsAvailable) {
+        // Use Cache
+        logInfo('getTaggedSectionData', `- using cache for ${sectionDetail.sectionName}`)
+        const filenamesWithTagFromCache = await getFilenamesOfNotesWithTagOrMentions([sectionDetail.sectionName], true, turnOnAPIComparison)
 
         // This is taking about 2ms per note for JGC
         filenamesWithTagFromCache.forEach((filename) => {
@@ -85,14 +96,23 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         logTimer('getTaggedSectionData', thisStartTime, `- from CACHE found ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
         // $FlowIgnore[unsafe-arithmetic]
         // cacheLookupTime = new Date() - cachedOperationStartTime
+        source = (turnOnAPIComparison) ? 'using CACHE (+API comparison)' : 'using just CACHE'
       } else {
-        // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes).
-        // Though JGC has also seen 9,900ms for all notes in the system, so its variable.
+        // Use API
+
+        // Note: this is slow (1-3ms per note, so 3-9s for 3250 notes).
         const thisStartTime = new Date()
-        notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true, true, true)
+        notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true, true, true, [], WANTED_PARA_TYPES)
         // $FlowIgnore[unsafe-arithmetic]
         // const APILookupTime = new Date() - thisStartTime
         logTimer('getTaggedSectionData', thisStartTime, `- from API only found ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
+        source = 'using API'
+      }
+
+      // if we wanted to use the cache but it wasn't available, now schedule it to be generated at the next opportunity
+      if (config?.FFlag_UseTagCache && !cacheIsAvailable) {
+        scheduleTagMentionCacheGeneration()
+        source = 'using API as cache not available'
       }
 
       const excludedFolders = config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',').map((folder) => folder.trim()) : []
@@ -208,7 +228,8 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
   // Return section details, even if no items found
   let sectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
   if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
-  if (config?.FFlag_UseTagCache) sectionDescription += `, using CACHE` // TODO(later): remove note about the tag cache
+  // TODO(later): remove note about the tag cache
+  sectionDescription += `, ${source}`
   const section: TSection = {
     ID: sectionNumStr,
     name: sectionDetail.sectionName,

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2025-05-15 for v2.3.0, @jgclark
+// last updated 2025-05-23 for v2.3.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -34,16 +34,39 @@ import {
 const wantedTagMentionsListFile = 'wantedTagMentionsList.json'
 const tagMentionCacheFile = 'tagMentionCache.json'
 const lastTimeThisWasRunPref = 'jgclark.Dashboard.tagMentionCache.lastTimeUpdated'
+const regenerateTagMentionCachePref = 'jgclark.Dashboard.tagMentionCache.regenerateTagMentionCache'
 
-// TODO(later): remove these in time
-const turnOnAPIComparison = true
-const TAG_CACHE_ONLY_FOR_OPEN_ITEMS = false
-const TAG_CACHE_ON_ALL_OPEN_ITEMS = false // if true, then will cache all open items, otherwise will cache only the wanted items
-// If TAG_CACHE_ON_ALL_OPEN_ITEMS is true, then will use this 'blacklist' of tags/mentions
-const EXCLUDED_TAGS_OR_MENTIONS = ['@done', '@start', '@review', '@completed']
+// TODO(later): remove some of these in time
+const TAG_CACHE_ONLY_FOR_OPEN_ITEMS = true // WARNING: if false, then for JGC the cache file is 20x larger.
+const TAG_CACHE_FOR_ALL_TAGS = true // if true, then will cache all tags, otherwise will cache only the wanted items
+// If TAG_CACHE_FOR_ALL_TAGS is true, then will use this 'blacklist' of tags/mentions
+const EXCLUDED_TAGS_OR_MENTIONS = ['@done', '@start', '@review', '@reviewed', '@completed', '@cancelled']
+
+export const WANTED_PARA_TYPES: Array<string> = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
+
+//-----------------------------------------------------------------
+// private functions
+
+function clearTagMentionCacheGeneration(): void {
+  logInfo('clearTagMentionCacheGeneration', `Clearing tag mention cache generation.`)
+  DataStore.setPreference(regenerateTagMentionCachePref, null)
+}
 
 //-----------------------------------------------------------------
 // exported Getter and setter functions
+
+export function isTagMentionCacheAvailable(): boolean {
+  return DataStore.fileExists(tagMentionCacheFile)
+}
+
+export function isTagMentionCacheGenerationScheduled(): boolean {
+  return DataStore.preference(regenerateTagMentionCachePref) === true
+}
+
+export function scheduleTagMentionCacheGeneration(): void {
+  logInfo('scheduleTagMentionCacheGeneration', `Scheduling tag mention cache generation.`)
+  DataStore.setPreference(regenerateTagMentionCachePref, true)
+}
 
 /**
  * Get the list of wanted mentions and tags from the wantedTagMentionsList.json file.
@@ -100,22 +123,32 @@ export function setTagMentionCacheDefinitionsFromAllPerspectives(allPerspectiveD
  * It does not do any filtering by para type.
  * @param {Array<string>} tagOrMentions The tags and/or mentions to search for.
  * @param {boolean} firstUpdateCache If true, the cache will be updated before the search is done. (Default: true)
+ * @param {boolean} turnOnAPIComparison? default: true
  * @returns {Array<string>} An array of note filenames that contain the tag or mention.
  */
-export async function getFilenamesOfNotesWithTagOrMentions(tagOrMentions: Array<string>, firstUpdateCache: boolean = true): Promise<Array<string>> {
+export async function getFilenamesOfNotesWithTagOrMentions(
+  tagOrMentions: Array<string>,
+  firstUpdateCache: boolean = true,
+  turnOnAPIComparison: boolean = true,
+): Promise<Array<string>> {
   try {
-    logInfo('getFilenamesOfNotesWithTagOrMentions', `Starting for tag/mention(s) [${String(tagOrMentions)}]${firstUpdateCache ? '. (First update cache)' : ''}`)
+    logInfo('getFilenamesOfNotesWithTagOrMentions', `Starting for tag/mention(s) [${String(tagOrMentions)}]${firstUpdateCache ? '. (First update cache)' : ''}. TAG_CACHE_ONLY_FOR_OPEN_ITEMS: ${String(TAG_CACHE_ONLY_FOR_OPEN_ITEMS)}. TAG_CACHE_FOR_ALL_TAGS: ${String(TAG_CACHE_FOR_ALL_TAGS)}`)
 
-    // Warn if we're asked for a tag/mention that's not in the wantedTagMentionsList.json file, and if so, add it to the list and then regenrate the cache.
-    const wantedItems = getTagMentionCacheDefinitions()
-    const missingItems = tagOrMentions.filter((item) => !wantedItems.includes(item))
-    if (missingItems.length > 0) {
-      logWarn('getFilenamesOfNotesWithTagOrMentions', `Warning: the following tags/mentions are not in the wantedTagMentionsList.json filename: [${String(missingItems)}]. I will add them to the list and then regenerate the cache.`)
-      setTagMentionCacheDefinitions(wantedItems.concat(missingItems))
-      await generateTagMentionCache(true)
+    // If we're not caching all tags, then warn if we're asked for a tag/mention that's not in the wantedTagMentionsList.json file, and if so, add it to the list and then regenerate the cache.
+    if (!TAG_CACHE_FOR_ALL_TAGS) {
+      const wantedItems = getTagMentionCacheDefinitions()
+      const missingItems = tagOrMentions.filter((item) => !wantedItems.includes(item))
+      if (missingItems.length > 0) {
+        logWarn('getFilenamesOfNotesWithTagOrMentions', `Warning: the following tags/mentions are not in the wantedTagMentionsList.json filename: [${String(missingItems)}]. Will use the API instead, and then regenerate the cache.`)
+        setTagMentionCacheDefinitions(wantedItems.concat(missingItems))
+        scheduleTagMentionCacheGeneration()
+        // Update the cache, in case that does pick up a few of this new item
+        await updateTagMentionCache()
+      }
     } else {
       // Update the cache if requested
       if (firstUpdateCache) {
+        logInfo('getFilenamesOfNotesWithTagOrMentions', `- updating cache before looking for notes with tags/mentions [${String(tagOrMentions)}]`)
         await updateTagMentionCache()
       }
     }
@@ -143,27 +176,28 @@ export async function getFilenamesOfNotesWithTagOrMentions(tagOrMentions: Array<
       const thisStartTime = new Date()
       let matchingNotesFromAPI: Array<TNote> = []
       for (const tagOrMention of tagOrMentions) {
-        matchingNotesFromAPI = matchingNotesFromAPI.concat(findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, []))
+        matchingNotesFromAPI = matchingNotesFromAPI.concat(findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, [], WANTED_PARA_TYPES))
       }
       // $FlowIgnore[unsafe-arithmetic]
       const APILookupTime = new Date() - thisStartTime
       logTimer('getFilenamesOfNotesWithTagOrMentions', thisStartTime, `-> found ${matchingNotesFromAPI.length} notes from API with wanted tags/mentions [${String(tagOrMentions)}]`)
 
       logInfo('getFilenamesOfNotesWithTagOrMentions', `- CACHE took ${percent(cacheLookupTime, APILookupTime)} compared to API (${String(APILookupTime)}ms)`)
-      // Compare the two lists and warn if different
+      // Compare the two lists and note if different
       if (matchingNoteFilenamesFromCache.length !== matchingNotesFromAPI.length) {
-        logError('getFilenamesOfNotesWithTagOrMentions', `- # notes from CACHE (${matchingNoteFilenamesFromCache.length}) !== API (${matchingNotesFromAPI.length})`)
+        logWarn('getFilenamesOfNotesWithTagOrMentions', `- # notes from CACHE (${matchingNoteFilenamesFromCache.length}) !== API (${matchingNotesFromAPI.length}).`)
         // Write a list of filenames that are in one but not the other
         const filenamesInCache = matchingNoteFilenamesFromCache
         const filenamesInAPI = matchingNotesFromAPI.map((n) => n.filename)
         // const filenamesInBoth = filenamesInCache.filter((f) => filenamesInAPI.includes(f))
-        logError('getFilenamesOfNotesWithTagOrMentions', `- filenames in CACHE but not in API: ${filenamesInCache.filter((f) => !filenamesInAPI.includes(f)).join(', ')}`)
-        logError('getFilenamesOfNotesWithTagOrMentions', `- filenames in API but not in CACHE: ${filenamesInAPI.filter((f) => !filenamesInCache.includes(f)).join(', ')}`)
+        logInfo('getFilenamesOfNotesWithTagOrMentions', `- filenames in CACHE but not in API: ${filenamesInCache.filter((f) => !filenamesInAPI.includes(f)).join(', ')}`)
+        logInfo('getFilenamesOfNotesWithTagOrMentions', `- filenames in API but not in CACHE: ${filenamesInAPI.filter((f) => !filenamesInCache.includes(f)).join(', ')}`)
       }
       else {
         logInfo('getFilenamesOfNotesWithTagOrMentions', `- 😃 # notes from CACHE (${matchingNoteFilenamesFromCache.length}) === API (${matchingNotesFromAPI.length})`)
       }
     }
+
     return matchingNoteFilenamesFromCache
   }
   catch (err) {
@@ -176,7 +210,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(tagOrMentions: Array<
  * Generate the mention tag cache from scratch.
  * Writes all instances of wanted mentions and tags (from the wantedTagMentionsList) to the tagMentionCacheFile, by filename.
  * Note: this includes all calendar notes, and all regular notes, apart from those in special folders (starts with '@'), including @Templates, @Archive and @Trash folders.
- * @param {boolean} forceRebuild If true, the cache will be rebuilt from scratch, otherwise it will revert to the quicker 'updateTagMentionCache' function if the wantedParaTypes are all already in the cache.
+ * @param {boolean} forceRebuild If true, the cache will be rebuilt from scratch, otherwise it will revert to the quicker 'updateTagMentionCache' function if the WANTED_PARA_TYPES are all already in the cache.
  */
 export async function generateTagMentionCache(forceRebuild: boolean = true): Promise<void> {
   try {
@@ -185,9 +219,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     // const config = await getDashboardSettings()
     logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}]${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' ONLY FOR OPEN ITEMS' : ' ON ANY PARA TYPE'}`)
 
-    const wantedParaTypes = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
-
-    // If we're not forcing a rebuild, and the wantedParaTypes are the same as (or less than) what is in the cache, then use the quicker 'updateTagMentionCache' function
+    // If we're not forcing a rebuild, and the WANTED_PARA_TYPES are the same as (or less than) what is in the cache, then use the quicker 'updateTagMentionCache' function
     if (!forceRebuild) {
       // Get wantedItems from the cache
       const existingCache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
@@ -195,7 +227,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
       const cachedWantedItems = parsedCache.wantedItems ?? []
       logInfo('generateTagMentionCache', `- cachedWantedItems: [${String(cachedWantedItems)}]`)
       if (wantedItems.every((item, index) => item === cachedWantedItems[index])) {
-        logInfo('generateTagMentionCache', `- Not forcing a rebuild, and wantedParaTypes are all present already in the cache, so calling updateTagMentionCache() instead.`)
+        logInfo('generateTagMentionCache', `- Not forcing a rebuild, and WANTED_PARA_TYPES are all present already in the cache, so calling updateTagMentionCache() instead.`)
         await updateTagMentionCache()
         return
       } else {
@@ -220,18 +252,14 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     for (const note of allCalNotes) {
       // Then get wanted/all tags and mentions, and add them
       let foundItems: Array<string> = []
-      if (TAG_CACHE_ON_ALL_OPEN_ITEMS) {
-        foundItems = getWantedTagOrMentionListFromNote(note, [], wantedParaTypes, true)
-        // Remove any items that are in the blacklist
-        if (EXCLUDED_TAGS_OR_MENTIONS.length > 0) {
-          foundItems = foundItems.filter((item) => !EXCLUDED_TAGS_OR_MENTIONS.includes(item))
-        }
+      if (TAG_CACHE_FOR_ALL_TAGS) {
+        foundItems = getWantedTagOrMentionListFromNote(note, [], EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
       } else {
-        foundItems = getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, true)
+        foundItems = getWantedTagOrMentionListFromNote(note, wantedItems, EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
       }
       if (foundItems.length > 0) {
         ccal++
-        logDebug('generateTagMentionCache', `-> ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
+        // logDebug('generateTagMentionCache', `-> ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
         calWantedItems.push({ filename: note.filename, items: foundItems })
       }
     }
@@ -244,19 +272,15 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
       if (note.filename.includes('CCC Projects')) logInfo('generateTagMentionCache', `- Processing ${note.filename}`)
       // Then get wanted/all tags and mentions, and add them
       let foundItems: Array<string> = []
-      if (TAG_CACHE_ON_ALL_OPEN_ITEMS) {
-        foundItems = getWantedTagOrMentionListFromNote(note, [], wantedParaTypes, true)
+      if (TAG_CACHE_FOR_ALL_TAGS) {
+        foundItems = getWantedTagOrMentionListFromNote(note, [], EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
         if (note.filename.includes('CCC Projects')) logDebug('generateTagMentionCache', `  - ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
-        // Remove any items that are in the blacklist
-        if (EXCLUDED_TAGS_OR_MENTIONS.length > 0) {
-          foundItems = foundItems.filter((item) => !EXCLUDED_TAGS_OR_MENTIONS.includes(item))
-        }
       } else {
-        foundItems = getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, true)
+        foundItems = getWantedTagOrMentionListFromNote(note, wantedItems, EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
       }
       if (foundItems.length > 0) {
         creg++
-        logDebug('generateTagMentionCache', `-> ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
+        // logDebug('generateTagMentionCache', `-> ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
         regularWantedItems.push({ filename: note.filename, items: foundItems })
       }
     }
@@ -276,6 +300,9 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
 
     DataStore.saveData(JSON.stringify(cache), tagMentionCacheFile, true)
     logTimer('generateTagMentionCache', startTime, `- after saving to mentionTagCacheFile`)
+
+    // Clear the preference that was set to trigger a regeneration
+    clearTagMentionCacheGeneration()
   } catch (err) {
     logError('generateTagMentionCache', JSP(err))
   }
@@ -285,6 +312,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
  * Update the tagMentionCacheFile.
  * It works smartly: it only recalculates notes that have been updated since the last time this was run, according to JS date saved in 'lastTimeThisWasRunPref'.
  */
+// eslint-disable-next-line require-await
 export async function updateTagMentionCache(): Promise<void> {
   try {
     // const config = await getDashboardSettings()
@@ -293,15 +321,13 @@ export async function updateTagMentionCache(): Promise<void> {
     // Read current list from tagMentionCacheFile, and get time of it.
     // Note: can't get a timestamp from plugin files, so need to use a separate preference
     logDebug('updateTagMentionCache', `About to read ${tagMentionCacheFile} ...`)
-    if (!DataStore.fileExists(tagMentionCacheFile)) {
-      logWarn('updateTagMentionCache', `${tagMentionCacheFile} file does not exist, so re-generating the cache from scratch.`)
-      await generateTagMentionCache(true)
+    if (!isTagMentionCacheAvailable()) {
+      logWarn('updateTagMentionCache', `${tagMentionCacheFile} file does not exist, so will schedule a re-generation of the cache from scratch.`)
+      scheduleTagMentionCacheGeneration()
       return
     }
     // Get the list of wanted tags, mentions, and para types
     const wantedItems = getTagMentionCacheDefinitions()
-    const wantedParaTypes = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
-
     const data = DataStore.loadData(tagMentionCacheFile, true) ?? ''
     const cache = JSON.parse(data)
 
@@ -314,8 +340,8 @@ export async function updateTagMentionCache(): Promise<void> {
     const momNow = moment()
     const fileAgeMins = momNow.diff(momPrevious, 'minutes')
     logDebug('updateTagMentionCache', `Last updated ${fileAgeMins.toFixed(3)} mins ago (previous time: ${momPrevious.format()} / now time: ${momNow.format()})`)
-    if (momNow.diff(momPrevious, 'seconds') < 3) {
-      logInfo('updateTagMentionCache', `- Not updating cache as it was updated less than 3 seconds ago`)
+    if (momNow.diff(momPrevious, 'seconds') < 5) {
+      logInfo('updateTagMentionCache', `- Not updating cache as it was updated less than 5 seconds ago`)
       return
     }
 
@@ -342,14 +368,10 @@ export async function updateTagMentionCache(): Promise<void> {
 
       // Then get either just-wanted or all-except-blacklist tags and mentions, and add them
       let foundWantedItems: Array<string> = []
-      if (TAG_CACHE_ON_ALL_OPEN_ITEMS) {
-        foundWantedItems = getWantedTagOrMentionListFromNote(note, [], wantedParaTypes, true)
-        // Remove any items that are in the blacklist
-        if (EXCLUDED_TAGS_OR_MENTIONS.length > 0) {
-          foundWantedItems = foundWantedItems.filter((item) => !EXCLUDED_TAGS_OR_MENTIONS.includes(item))
-        }
+      if (TAG_CACHE_FOR_ALL_TAGS) {
+        foundWantedItems = getWantedTagOrMentionListFromNote(note, [], EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
       } else {
-        foundWantedItems = getWantedTagOrMentionListFromNote(note, wantedItems, wantedParaTypes, true)
+        foundWantedItems = getWantedTagOrMentionListFromNote(note, wantedItems, EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
       }
       if (foundWantedItems.length > 0) logDebug('updateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}] calWantedItems`)
       if (foundWantedItems.length > 0) {
@@ -382,7 +404,7 @@ export async function updateTagMentionCache(): Promise<void> {
   }
 }
 
-export function generateTagMentionCacheSummary(): string {
+export function getTagMentionCacheSummary(): string {
   const cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
   const parsedCache = JSON.parse(cache)
   const summary = `## Tag/Mention Cache Stats:
@@ -397,18 +419,20 @@ export function generateTagMentionCacheSummary(): string {
 
 /**
  * Get list of any of the 'wantedTagsOrMentions' tags/mentions that appear in this note. If this is empty, then will return all tags/mentions in the note.
- * Does filtering by para type, if 'wantedParaTypes' is provided, and is not empty.
+ * Does filtering by para type, if 'WANTED_PARA_TYPES' is provided, and is not empty.
  * If 'includeNoteTags' is true, include matching frontmatter tags in the results.
  * @param {TNote} note 
  * @param {Array<string>} wantedTagsOrMentions -- if empty array, then will return all tags/mentions in the note
- * @param {Array<string>?} wantedParaTypes?
+ * @param {Array<string>} excludedTagsOrMentions -- if empty array, then will not exclude any tags/mentions
+ * @param {Array<string>?} WANTED_PARA_TYPES?
  * @param {boolean?} includeNoteTags?
  * @returns {Array<string>} list of wanted tags/mentions found in the note
  */
 export function getWantedTagOrMentionListFromNote(
   note: TNote,
   wantedTagsOrMentions: Array<string>,
-  wantedParaTypes: Array<string> = [],
+  excludedTagsOrMentions: Array<string> = [],
+  WANTED_PARA_TYPES: Array<string> = [],
   includeNoteTags: boolean = false,
 ): Array<string> {
   try {
@@ -429,7 +453,8 @@ export function getWantedTagOrMentionListFromNote(
       }
       else {
         // check this is one of the ones we're after, then add
-        if (wantedTagsOrMentions.length === 0 || caseInsensitiveIncludes(tag, wantedTagsOrMentions)) {
+        if ((wantedTagsOrMentions.length === 0 || caseInsensitiveIncludes(tag, wantedTagsOrMentions))
+          && (excludedTagsOrMentions.length === 0 || !caseInsensitiveIncludes(tag, excludedTagsOrMentions))) {
           // logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${tag} on date ${n.filename}`)
           seenWantedTags.push(tag)
         }
@@ -452,10 +477,13 @@ export function getWantedTagOrMentionListFromNote(
         // logDebug('getWantedTagOrMentionListFromNote', `- Found ${mention} but ignoring as part of a longer mention of the same name`)
       }
       else {
+        // trim the mention to remove any trailing parentheses
+        const trimmedMention = mention.replace(/\s*\(.*\)$/, '')
         // check this is one of the ones we're after, then add
-        if (wantedTagsOrMentions.length === 0 || caseInsensitiveIncludes(mention, wantedTagsOrMentions)) {
+        if ((wantedTagsOrMentions.length === 0 || caseInsensitiveIncludes(trimmedMention, wantedTagsOrMentions))
+          && (excludedTagsOrMentions.length === 0 || !caseInsensitiveIncludes(trimmedMention, excludedTagsOrMentions))) {
           // logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${mention} on date ${n.filename}`)
-          seenWantedMentions.push(mention)
+          seenWantedMentions.push(trimmedMention)
         }
       }
       lastMention = mention
@@ -479,8 +507,8 @@ export function getWantedTagOrMentionListFromNote(
     let tagsAndMentions = distinctTags.concat(distinctMentions).concat(seenWantedNoteTagsOrMentions)
 
     // Restrict to certain para types, if wanted
-    if (wantedParaTypes.length > 0) {
-      tagsAndMentions = filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(note, tagsAndMentions, wantedParaTypes, includeNoteTags)
+    if (WANTED_PARA_TYPES.length > 0) {
+      tagsAndMentions = filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(note, tagsAndMentions, WANTED_PARA_TYPES, includeNoteTags)
     }
 
     if (tagsAndMentions.length > 0) {
@@ -503,17 +531,18 @@ export function getWantedTagOrMentionListFromNote(
 /**
  * Filters tags or mentions ('items') seen in note to:
  * - wantedParagraphTypes
- * - matching note tags (i.e. frontmatter attribute 'note-tag') that matches the wanted tags or mentions
+ * - matching note tags (i.e. frontmatter attribute 'note-tag') that matches the wanted tags or mentions.
+ * Note: there is a simpler version of this in NPnote.js
  * @param {TNote} note - The note to process
  * @param {Array<string>} items - The list of tags or mentions to filter
- * @param {Array<string>} wantedParaTypes - The paragraph types to allow
+ * @param {Array<string>} WANTED_PARA_TYPES - The paragraph types to allow
  * @param {boolean} allowNoteTags - Whether to allow tagsOrMentions from note tags
  * @returns {Array<string>} Filtered tagsOrMentions that match the criteria
  */
 function filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(
   note: TNote,
   tagsOrMentions: Array<string>,
-  wantedParaTypes: Array<string>,
+  WANTED_PARA_TYPES: Array<string>,
   allowNoteTags: boolean = false,
 ): Array<string> {
   try {
@@ -527,7 +556,7 @@ function filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(
     // Filter items based on paragraph types and note tags
     const filteredItems = tagsOrMentions.filter(item => {
       const paragraphsWithItem = note.paragraphs.filter(p => caseInsensitiveSubstringMatch(item, p.content))
-      const hasValidParagraphType = paragraphsWithItem.some(p => wantedParaTypes.includes(p.type))
+      const hasValidParagraphType = paragraphsWithItem.some(p => WANTED_PARA_TYPES.includes(p.type))
       const hasMatchingNoteTag = allowNoteTags && noteTagList && noteTagList.some(tag => caseInsensitiveMatch(item, tag))
 
       return hasValidParagraphType || hasMatchingNoteTag
