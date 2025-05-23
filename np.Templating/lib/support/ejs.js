@@ -385,302 +385,197 @@
           function analyzeJavaScriptError(err, templateText, lineNo, opts = {}) {
             let errorContext = ''
             let suggestedFix = ''
-            let updatedLineNo = lineNo
+            let updatedLineNo = lineNo || 1
             let errorInFunction = false
 
             const lines = templateText.split('\n')
 
-            // Look for specific identifiers mentioned in the error message
+            // Simple approach: if we have a syntax error with a clear identifier, find it in the template
             if (err instanceof SyntaxError) {
-              // Extract identifiers from the error message
-              let identifiers = []
+              // Extract the problematic identifier from common error patterns
+              let problemIdentifier = null
 
-              // Match for "Unexpected identifier 'X'" pattern
-              const unexpectedIdentifier = err.message.match(/Unexpected identifier ['"]?([^'"\s]+)['"]?/)
-              if (unexpectedIdentifier && unexpectedIdentifier[1]) {
-                identifiers.push(unexpectedIdentifier[1])
-              }
+              // Common patterns: "Unexpected identifier 'X'" or "Cannot use the keyword 'X'"
+              const patterns = [/Unexpected identifier ['"]?([^'"\s\)]+)['"]?/, /Cannot use the keyword ['"]?([^'"\s\)]+)['"]?/, /Unexpected token ['"]?([^'"\s\)]+)['"]?/]
 
-              // Match for "Cannot use the keyword 'X'" pattern
-              const cannotUseKeyword = err.message.match(/Cannot use the keyword ['"]?([^'"\s]+)['"]?/)
-              if (cannotUseKeyword && cannotUseKeyword[1]) {
-                identifiers.push(cannotUseKeyword[1])
-              }
-
-              // Search for these identifiers in the template
-              let foundInTemplate = false
-              let identifierLineNo = 0
-
-              if (identifiers.length > 0) {
-                for (let identifier of identifiers) {
-                  for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].includes(identifier)) {
-                      foundInTemplate = true
-                      identifierLineNo = i + 1
-                      break
-                    }
-                  }
-                  if (foundInTemplate) break
-                }
-
-                // If we found the identifier in the template, use that line
-                if (foundInTemplate) {
-                  updatedLineNo = identifierLineNo
-                }
-                // If we didn't find the identifier in the template, it's likely in a function call
-                else {
-                  errorInFunction = true
-
-                  // Find function calls in the template that might contain the error
-                  let functionCalls = []
-                  for (let i = 0; i < lines.length; i++) {
-                    // Look for function call patterns
-                    const matches = lines[i].match(/(\w+\.\w+\()|(\w+\()/g)
-                    if (matches) {
-                      functionCalls.push({ line: i + 1, calls: matches })
-                    }
-                  }
-
-                  // If we have function calls and we're on the first line by default,
-                  // use the first function call's line instead
-                  if (functionCalls.length > 0 && lineNo <= 1) {
-                    updatedLineNo = functionCalls[0].line
-
-                    // Find the identifier mentioned in error message
-                    const identifier = identifiers[0]
-                    errorContext = `Syntax error mentioning "${identifier}" - this error is occurring inside a function call, not in your template code directly.`
-                    suggestedFix = `Check the arguments passed to functions on this line.`
-                  }
-                }
-              }
-            }
-
-            // Mapping from syntax error patterns to possible locations in template
-            const syntaxErrorMapping = {
-              'Unexpected token': (err, lines) => {
-                // Find code blocks in template
-                let blockStartLines = []
-                let lineCounter = 0
-                let inJsBlock = false
-
-                lines.forEach((line, i) => {
-                  if (line.includes('<%') && !line.includes('<%=') && !line.includes('<%-')) {
-                    blockStartLines.push(i + 1)
-                    inJsBlock = true
-                  } else if (line.includes('%>') && inJsBlock) {
-                    inJsBlock = false
-                  }
-                })
-
-                // Look for the token in error message
-                const tokenMatch = err.message.match(/Unexpected token '?([\[\]{}(),.;:+\-*\/=<>!&|^%]|[a-zA-Z0-9_$]+)'?/)
-                if (!tokenMatch) return lineNo
-
-                const token = tokenMatch[1]
-
-                // Search for the token in each JS block
-                for (let startLine of blockStartLines) {
-                  let currentLine = startLine
-                  while (currentLine < lines.length && !lines[currentLine - 1].includes('%>')) {
-                    if (lines[currentLine - 1].includes(token)) {
-                      return currentLine
-                    }
-                    currentLine++
-                  }
-                }
-
-                return lineNo
-              },
-              'Unexpected identifier': (err, lines) => {
-                // Similar to Unexpected token logic
-                return findTokenInTemplate(err, lines, /[a-zA-Z0-9_$]+/)
-              },
-              'Cannot use the keyword': (err, lines) => {
-                const keywordMatch = err.message.match(/Cannot use the keyword '([^']+)'/)
-                if (!keywordMatch) return lineNo
-
-                const keyword = keywordMatch[1]
-
-                // Find the line using the keyword
-                for (let i = 0; i < lines.length; i++) {
-                  if (lines[i].includes('<%') && lines[i].includes(keyword)) {
-                    return i + 1
-                  }
-                }
-
-                return lineNo
-              },
-            }
-
-            /**
-             * Helper to find a token in template lines
-             */
-            function findTokenInTemplate(err, lines, tokenPattern) {
-              // Extract token from error message or use pattern to find it
-              let token = ''
-              const tokenMatch = err.message.match(/token '?([^']+)'?/)
-              if (tokenMatch) {
-                token = tokenMatch[1]
-              }
-
-              // Find code blocks in template
-              for (let i = 0; i < lines.length; i++) {
-                if (lines[i].includes('<%') && (token ? lines[i].includes(token) : tokenPattern.test(lines[i]))) {
-                  return i + 1
-                }
-              }
-
-              return lineNo
-            }
-
-            // Only try to infer a different line if we don't have a clear indication
-            // and we haven't already identified an error in a function call
-            if (!errorInFunction && err instanceof SyntaxError) {
-              // Try to find a more accurate line number for syntax errors
-              for (const pattern in syntaxErrorMapping) {
-                if (err.message.includes(pattern)) {
-                  updatedLineNo = syntaxErrorMapping[pattern](err, lines)
+              for (const pattern of patterns) {
+                const match = err.message.match(pattern)
+                if (match && match[1]) {
+                  problemIdentifier = match[1]
                   break
                 }
               }
 
-              // Check for reserved word errors
-              if (err.message.includes('Cannot use the keyword')) {
-                const keyword = err.message.match(/Cannot use the keyword '([^']+)'/)
-                if (keyword && keyword[1]) {
-                  // First check current line for the keyword
-                  if (lineNo > 0 && lineNo <= lines.length && lines[lineNo - 1].includes(keyword[1] + ' ')) {
-                    errorContext = `Found "${keyword[1]}" used as a variable name on line ${lineNo}.`
-                    suggestedFix = `Change the variable name ${keyword[1]} to avoid conflict with JavaScript reserved keywords.`
-                  } else {
-                    // Search nearby lines for the keyword
-                    for (let i = Math.max(0, lineNo - 5); i < Math.min(lines.length, lineNo + 5); i++) {
-                      if (lines[i].includes(keyword[1] + ' ')) {
-                        errorContext = `Found "${keyword[1]}" used as a variable name on line ${i + 1}.`
-                        suggestedFix = `Change the variable name ${keyword[1]} to avoid conflict with JavaScript reserved keywords.`
+              // Special case: if the problem identifier is something EJS-internal like '__line'
+              // then we need to look more carefully at the actual template syntax
+              if (problemIdentifier === '__line' || problemIdentifier === '__append' || problemIdentifier === '__output') {
+                // This indicates a syntax error in user's JavaScript code, not our generated code
+                // Look for common JavaScript syntax errors in the template
+                let inJSBlock = false
+                let jsBlockStartLine = -1
+
+                for (let i = 0; i < lines.length; i++) {
+                  const line = lines[i].trim()
+
+                  // Detect start of JavaScript code blocks (not comments or output tags)
+                  if (line.startsWith('<%') && !line.startsWith('<%=') && !line.startsWith('<%-') && !line.startsWith('<%#')) {
+                    inJSBlock = true
+                    jsBlockStartLine = i
+                    continue
+                  }
+
+                  // Detect end of JavaScript code blocks
+                  if (line.includes('%>')) {
+                    inJSBlock = false
+                    continue
+                  }
+
+                  // If we're inside a JavaScript block, look for syntax errors
+                  if (inJSBlock && line.length > 0) {
+                    // Check for missing closing parenthesis in if statements
+                    if (line.includes('if') && line.includes('(') && !line.includes(')')) {
+                      updatedLineNo = i + 1
+                      errorContext = `Syntax error: missing closing parenthesis in if statement on line ${i + 1}`
+                      suggestedFix = `Check for unmatched parentheses in the if statement.`
+                      break
+                    }
+                    // Check for missing closing parenthesis in function declarations
+                    if (line.includes('function') && line.includes('(') && !line.includes(')')) {
+                      updatedLineNo = i + 1
+                      errorContext = `Syntax error: missing closing parenthesis in function declaration on line ${i + 1}`
+                      suggestedFix = `Check for unmatched parentheses in the function declaration.`
+                      break
+                    }
+                    // Check for missing closing braces
+                    if ((line.includes('if') || line.includes('for') || line.includes('while')) && line.includes('{') && !line.includes('}')) {
+                      // Look ahead for the closing brace
+                      let foundClosingBrace = false
+                      for (let j = i + 1; j < lines.length && j < i + 10; j++) {
+                        if (lines[j].includes('}')) {
+                          foundClosingBrace = true
+                          break
+                        }
+                      }
+                      if (!foundClosingBrace) {
                         updatedLineNo = i + 1
+                        errorContext = `Syntax error: missing closing brace for control structure on line ${i + 1}`
+                        suggestedFix = `Check for unmatched braces in control structures.`
                         break
+                      }
+                    }
+                    // Check for missing semicolons or other common syntax issues
+                    if (line.includes('=') && !line.includes('==') && !line.includes('===') && !line.includes('!=') && !line.includes('<=') && !line.includes('>=')) {
+                      // This looks like an assignment, check if it's properly terminated
+                      if (!line.endsWith(';') && !line.endsWith('{') && !line.endsWith('}')) {
+                        // Look for the next line to see if it might be a continuation
+                        if (i + 1 < lines.length) {
+                          const nextLine = lines[i + 1].trim()
+                          if (nextLine.length > 0 && !nextLine.startsWith('//') && !nextLine.startsWith('/*')) {
+                            // Check if next line looks like it should be part of this statement
+                            if (nextLine.startsWith('.') || nextLine.startsWith('+') || nextLine.startsWith('-') || nextLine.startsWith('*') || nextLine.startsWith('/')) {
+                              // This might be a valid continuation, skip it
+                              continue
+                            } else {
+                              updatedLineNo = i + 1
+                              errorContext = `Syntax error: possible missing semicolon or invalid syntax on line ${i + 1}`
+                              suggestedFix = `Check for missing semicolons or proper statement termination.`
+                              break
+                            }
+                          }
+                        }
                       }
                     }
                   }
                 }
+
+                // If we didn't find a specific issue but we know we're in JS blocks, point to the first one
+                if (!errorContext && jsBlockStartLine >= 0) {
+                  updatedLineNo = jsBlockStartLine + 1
+                  errorContext = `Syntax error in JavaScript code block starting around line ${jsBlockStartLine + 1}`
+                  suggestedFix = `Check JavaScript syntax in template code blocks.`
+                }
               }
-              // Check for unexpected token errors
-              else if (err.message.includes('Unexpected token')) {
-                const token = err.message.match(/Unexpected token '?([\[\]{}(),.;:+\-*\/=<>!&|^%]|[a-zA-Z0-9_$]+)'?/)
-                if (token && token[1]) {
-                  // Check current line first
-                  if (lineNo > 0 && lineNo <= lines.length && lines[lineNo - 1].includes(token[1])) {
-                    errorContext = `Unexpected syntax on line ${lineNo} (or before) involving "${token[1]}".`
-                    suggestedFix = `Check for mismatched brackets, parentheses, or missing semicolons.`
-                  } else {
-                    // Look through nearby lines
-                    for (let i = Math.max(0, lineNo - 3); i <= lineNo; i++) {
-                      if (i < lines.length && lines[i].includes(token[1])) {
-                        errorContext = `Unexpected syntax on line ${i + 1} (or before) involving "${token[1]}".`
-                        suggestedFix = `Check for mismatched brackets, parentheses, or missing semicolons.`
-                        updatedLineNo = i + 1
-                        break
-                      }
+              // If we found a problem identifier, look for it in the template
+              else if (problemIdentifier) {
+                let foundLine = -1
+
+                // Look for the identifier in template tags (most likely location)
+                for (let i = 0; i < lines.length; i++) {
+                  const line = lines[i]
+                  if ((line.includes('<%') || line.includes('%>')) && line.includes(problemIdentifier)) {
+                    foundLine = i + 1
+                    break
+                  }
+                }
+
+                // If not found in template tags, look anywhere in the template
+                if (foundLine === -1) {
+                  for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].includes(problemIdentifier)) {
+                      foundLine = i + 1
+                      break
                     }
                   }
                 }
-              }
-              // Check for unexpected identifier
-              else if (err.message.includes('Unexpected identifier') && !errorContext) {
-                // We only set this if we haven't already set a more specific error context above
-                errorContext = `Unexpected identifier on line ${updatedLineNo}.`
-                suggestedFix = `Check for incorrect or unbalanced quotation marks, incorrect JSON parameters, or missing operators, semicolons, or commas.`
-                console.log(`EJS ERRROR LIENEE: updatedLineNo: ${updatedLineNo}`)
-                // Look for common mistakes like missing semicolons or operators
-                if (updatedLineNo > 0 && updatedLineNo <= lines.length) {
-                  const matches = lines[updatedLineNo - 1].match(/(\w+)(\s+)(\w+)/g)
-                  if (matches && matches.length) {
-                    errorContext += ` Found "${matches[0]}".`
-                    suggestedFix += ` You might be missing an operator or semicolon between words.`
+
+                if (foundLine > 0) {
+                  updatedLineNo = foundLine
+                  errorContext = `Found syntax error with "${problemIdentifier}" on line ${foundLine}`
+
+                  // Provide specific guidance based on error type
+                  if (err.message.includes('Cannot use the keyword')) {
+                    suggestedFix = `"${problemIdentifier}" is a JavaScript reserved word. Please use a different variable name.`
+                  } else if (err.message.includes('Unexpected identifier')) {
+                    suggestedFix = `Check for missing operators, commas, or semicolons near "${problemIdentifier}".`
+                  } else if (err.message.includes('Unexpected token')) {
+                    suggestedFix = `Check for syntax errors near "${problemIdentifier}".`
                   }
+                } else {
+                  // Identifier not found in template - likely in a function call
+                  errorInFunction = true
+                  errorContext = `Syntax error with "${problemIdentifier}" - likely in a function call or data structure`
+                  suggestedFix = `Check function arguments and data structures for syntax errors.`
                 }
-              }
-              // Missing closing brackets/parentheses
-              else if (err.message.includes('Unexpected end of input')) {
-                errorContext = `Your code has unclosed brackets, braces, or parentheses.`
-                suggestedFix = `Check for matching pairs of (), [], and {}.`
+              } else {
+                // Generic syntax error without clear identifier
+                errorContext = `Syntax error detected`
+                suggestedFix = `Check template for missing brackets, quotes, or semicolons.`
               }
             }
-            // Handle reference errors
+            // Handle reference errors (undefined variables)
             else if (err.name === 'ReferenceError') {
-              const varName = err.message.match(/(\w+) is not defined/)
-              if (varName && varName[1]) {
-                errorContext = `Reference to undefined variable "${varName[1]}" on line ${updatedLineNo}.`
-                suggestedFix = `Make sure "${varName[1]}" is properly defined before use or check for typos.`
+              const varMatch = err.message.match(/(\w+) is not defined/)
+              if (varMatch && varMatch[1]) {
+                const varName = varMatch[1]
+                errorContext = `Variable "${varName}" is not defined`
+                suggestedFix = `Make sure "${varName}" is defined before use, or check for typos.`
 
-                // Look through nearby lines for similar variable names (typo detection)
-                const similarVars = []
-                const searchPattern = new RegExp(`\\b${varName[1].substring(0, Math.max(3, varName[1].length - 1))}\\w+\\b`, 'g')
-
-                for (let i = Math.max(0, updatedLineNo - 5); i < Math.min(lines.length, updatedLineNo + 5); i++) {
-                  const matches = lines[i].match(searchPattern)
-                  if (matches) {
-                    matches.forEach((match) => {
-                      if (match !== varName[1] && !similarVars.includes(match)) {
-                        similarVars.push(match)
-                      }
-                    })
-                  }
-                }
-
-                if (similarVars.length) {
-                  suggestedFix += ` Did you mean: ${similarVars.join(', ')}?`
-                }
-              }
-            }
-            // Handle type errors
-            else if (err.name === 'TypeError') {
-              // Cannot read property of undefined/null
-              if (err.message.includes('Cannot read') && (err.message.includes('undefined') || err.message.includes('null'))) {
-                const prop = err.message.match(/property '?(\w+)'? of/)
-                if (prop && prop[1]) {
-                  errorContext = `Trying to access property "${prop[1]}" of undefined or null on line ${updatedLineNo}.`
-                  suggestedFix = `Make sure the object is properly defined before accessing its properties.`
-                }
-              }
-              // Not a function
-              else if (err.message.includes('is not a function')) {
-                const func = err.message.match(/(\w+) is not a function/)
-                if (func && func[1]) {
-                  errorContext = `Trying to call "${func[1]}" as a function on line ${updatedLineNo}, but it's not a function.`
-                  suggestedFix = `Check the spelling of the function name or make sure it's properly defined.`
-                }
-              }
-            }
-
-            // If we have source code, try to extract line info from stack trace
-            if (opts.source && err.stack && (updatedLineNo === 1 || !updatedLineNo) && !errorInFunction) {
-              const sourceLines = opts.source.split('\n')
-              const stackLines = err.stack.split('\n')
-
-              // Look for line references in the stack trace
-              for (const stackLine of stackLines) {
-                const lineMatch = stackLine.match(/<anonymous>:(\d+):(\d+)/)
-                if (lineMatch) {
-                  const errorLineInSource = parseInt(lineMatch[1], 10)
-
-                  // Now find the corresponding __line assignment before this line
-                  let templateLine = 1
-                  for (let i = 0; i < errorLineInSource; i++) {
-                    const lineAssignment = sourceLines[i]?.match(/__line = (\d+)/)
-                    if (lineAssignment) {
-                      templateLine = parseInt(lineAssignment[1], 10)
-                    }
-                  }
-
-                  if (templateLine > 1) {
-                    updatedLineNo = templateLine
+                // Look for the variable in the template to get a better line number
+                for (let i = 0; i < lines.length; i++) {
+                  if (lines[i].includes(varName)) {
+                    updatedLineNo = i + 1
                     break
                   }
                 }
               }
             }
+            // Handle type errors
+            else if (err.name === 'TypeError') {
+              if (err.message.includes('is not a function')) {
+                const funcMatch = err.message.match(/(\w+) is not a function/)
+                if (funcMatch && funcMatch[1]) {
+                  errorContext = `"${funcMatch[1]}" is not a function`
+                  suggestedFix = `Check that "${funcMatch[1]}" is correctly defined as a function.`
+                }
+              } else if (err.message.includes('Cannot read property')) {
+                errorContext = `Trying to access property of undefined or null value`
+                suggestedFix = `Make sure the object is defined before accessing its properties.`
+              }
+            }
+
+            // Ensure line number is within reasonable bounds
+            if (updatedLineNo < 1) updatedLineNo = 1
+            if (updatedLineNo > lines.length) updatedLineNo = lines.length
 
             return {
               lineNo: updatedLineNo,
@@ -1751,7 +1646,7 @@
         },
         {},
       ],
-      3: [function (require, module, exports) {}, {}],
+      3: [function (require, module, exports) {}, { _process: 5 }],
       4: [
         function (require, module, exports) {
           ;(function (process) {

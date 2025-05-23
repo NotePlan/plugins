@@ -50,9 +50,9 @@ describe('Prompt Safety Checks', () => {
 
       const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
 
-      // The hyphen should be removed as it's not valid in JS identifiers
-      expect(result.sessionData).toHaveProperty('variablewithhyphens')
-      expect(result.sessionTemplateData).toBe('<%- variablewithhyphens %>')
+      // The hyphen should be converted to underscore as it's not valid in JS identifiers
+      expect(result.sessionData).toHaveProperty('variable_with_hyphens')
+      expect(result.sessionTemplateData).toBe('<%- variable_with_hyphens %>')
     })
 
     test('Should sanitize JavaScript reserved words as variable names', async () => {
@@ -303,15 +303,15 @@ describe('Prompt Safety Checks', () => {
       const testCases = [
         { input: 'normal', expected: 'normal' },
         { input: 'with spaces', expected: 'with_spaces' },
-        { input: 'with-hyphens', expected: 'with-hyphens' },
-        { input: 'with.dots', expected: 'with.dots' },
+        { input: 'with-hyphens', expected: 'with_hyphens' },
+        { input: 'with.dots', expected: 'with_dots' },
         { input: '123starts_with_number', expected: 'var_123starts_with_number' },
         { input: 'class', expected: 'var_class' }, // Reserved word
         { input: 'αβγ', expected: 'αβγ' }, // Greek letters are valid
         { input: null, expected: 'unnamed' }, // Null check
         { input: undefined, expected: 'unnamed' }, // Undefined check
         { input: '', expected: 'unnamed' }, // Empty string check
-        { input: '!@#$%^&*()', expected: 'var_!@#$%^&*()' },
+        { input: '!@#$%^&*()', expected: '_$' },
       ]
 
       testCases.forEach(({ input, expected }) => {

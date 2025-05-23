@@ -22,6 +22,9 @@ import { clo, log, logDebug, logError } from '@helpers/dev'
 import { getProperyValue, dt } from './utils'
 import { templateErrorMessage } from './modules'
 
+// Import prompt registry to get all registered prompt names
+import { getRegisteredPromptNames } from './support/modules/prompts/PromptRegistry'
+
 // this is a customized version of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
 import ejs from './support/ejs'
@@ -384,6 +387,18 @@ export default class TemplatingEngine {
     }
 
     let renderData = { ...helpers, ...userData }
+
+    // Dynamically add error handlers for all registered prompt types
+    // This prevents nested prompt calls and provides helpful error messages
+    const registeredPromptNames = getRegisteredPromptNames()
+    registeredPromptNames.forEach((promptType) => {
+      renderData[promptType] = (...args) => {
+        const message = args[0] || 'unknown'
+        throw new Error(
+          `Nested ${promptType}() calls are not allowed. Found ${promptType}("${message}"). This usually happens when a user's prompt answer contains template syntax like "<%- ${promptType}(...) %>". Prompts should only be used at the top level of templates, not as responses to other prompts.`,
+        )
+      }
+    })
 
     renderData = userData.data ? { ...userData.data, ...renderData } : { ...renderData }
     renderData = userData.methods ? { ...userData.methods, ...renderData } : renderData

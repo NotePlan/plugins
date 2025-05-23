@@ -32,27 +32,98 @@ export default class BasePromptHandler {
    */
   static cleanVarName(varName: string): string {
     // If varName is null, undefined, or empty string, return 'unnamed'
-    if (!varName) return 'unnamed'
+    if (!varName || (typeof varName === 'string' && varName.trim() === '')) return 'unnamed'
 
     // First remove question marks specifically
     const noQuestionMarks = varName.replace(/\?/g, '')
 
-    // Replace spaces with underscores but preserve Unicode characters and alphanumeric chars
-    let cleaned = noQuestionMarks.replace(/\s+/g, '_')
+    // Replace all invalid characters with underscores
+    // Valid chars: letters (including Unicode), digits, underscore, dollar sign
+    // Invalid chars: everything else gets replaced with underscore
+    let cleaned = noQuestionMarks.replace(/[^\p{L}\p{N}_$]/gu, '_')
 
-    // Ensure it starts with a letter, underscore, or Unicode letter
+    // Replace multiple consecutive underscores with single underscore
+    cleaned = cleaned.replace(/_+/g, '_')
+
+    // Don't remove trailing underscores if that's all we have (underscore is valid JS)
+    // Only remove trailing underscores if there are other characters
+    if (cleaned.length > 1) {
+      cleaned = cleaned.replace(/_+$/g, '')
+    }
+
+    // Special case: if we're left with empty string, use 'unnamed'
+    if (!cleaned) return 'unnamed'
+
+    // Ensure it starts with a letter, underscore, or Unicode letter (not digit)
     if (!/^[\p{L}_$]/u.test(cleaned)) {
-      // Add prefix for invalid starting characters
+      // Add prefix for invalid starting characters (like digits)
       cleaned = `var_${cleaned}`
     }
 
     // Handle reserved keywords by prefixing with 'var_'
-    const reservedKeywords = ['class', 'function', 'var', 'let', 'const', 'if', 'else', 'for', 'while', 'return']
-    if (reservedKeywords.includes(cleaned)) {
+    // Complete list of JavaScript reserved keywords and literals
+    const reservedKeywords = [
+      // Reserved keywords
+      'break',
+      'case',
+      'catch',
+      'class',
+      'const',
+      'continue',
+      'debugger',
+      'default',
+      'delete',
+      'do',
+      'else',
+      'export',
+      'extends',
+      'finally',
+      'for',
+      'function',
+      'if',
+      'import',
+      'in',
+      'instanceof',
+      'let',
+      'new',
+      'return',
+      'super',
+      'switch',
+      'this',
+      'throw',
+      'try',
+      'typeof',
+      'var',
+      'void',
+      'while',
+      'with',
+      'yield',
+      // Async/await keywords
+      'async',
+      'await',
+      // Strict mode reserved words
+      'implements',
+      'interface',
+      'package',
+      'private',
+      'protected',
+      'public',
+      'static',
+      // Literals
+      'null',
+      'undefined',
+      'true',
+      'false',
+      // Global objects that should be avoided
+      'NaN',
+      'Infinity',
+    ]
+
+    if (reservedKeywords.includes(cleaned.toLowerCase())) {
       cleaned = `var_${cleaned}`
     }
 
-    // If we ended up with an empty string after all the cleaning, use 'unnamed'
+    // Final validation - if we still have an empty string, use 'unnamed'
     return cleaned || 'unnamed'
   }
 
