@@ -262,6 +262,7 @@ export default class TemplatingEngine {
       } catch (error) {
         // If we encounter an error, try to determine which line it occurred on
         errorDetails = error?.message || 'Unknown error'
+        logDebug(pluginJson, `incrementalRender errorDetails: ${errorDetails} line: ${chunks[i]}`)
 
         // Parse the error message to extract line number information
         const lineMatch = errorDetails.match(/line (\d+)/) || error?.line
@@ -297,7 +298,7 @@ export default class TemplatingEngine {
       report = this._formatIncrementalRenderError(errorLine, templateLines, errorDetails, successfulRender)
     } else {
       // This might happen if the template is empty or there's a setup issue
-      report = `Unable to identify error location. Check template structure and data context.`
+      report = `==Error Rendering templateData.==\n\nUnable to identify error location. Check template structure and data context.`
     }
 
     return report

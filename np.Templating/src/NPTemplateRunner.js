@@ -15,7 +15,7 @@ import { getNPWeekData } from '@helpers/NPdateTime'
 import { getNote } from '@helpers/note'
 import { chooseNote } from '@helpers/userInput'
 
-import NPTemplating from 'NPTemplating'
+import NPTemplating from '../lib/NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
 import pluginJson from '../plugin.json'
@@ -23,7 +23,7 @@ import { hyphenatedDate } from '@helpers/dateTime'
 import { selectFirstNonTitleLineInEditor, getNoteFromIdentifier } from '@helpers/NPnote'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { chooseHeading, showMessage } from '@helpers/userInput'
-import { render } from './Templating'
+import { render } from '../lib/rendering'
 
 /**
  * Write out the contents to either Today's Calendar note or the Note which was opened
@@ -46,7 +46,7 @@ export async function writeNoteContents(
 ): Promise<void> {
   logDebug(
     pluginJson,
-    `NPEditor::writeNoteContents note:${note?.title || ''} headingName:${headingName} location:${location} options:${JSP(
+    `NPTemplateRunner::writeNoteContents note:${note?.title || ''} headingName:${headingName} location:${location} options:${JSP(
       options,
     )} renderedTemplate:\n---\n${renderedTemplate}\n---`,
   )
@@ -57,17 +57,17 @@ export async function writeNoteContents(
       `writeNoteContents title:"${note.title || ''}" writeUnderHeading:${writeUnderHeading} location:${location} options:${JSP(options)} renderedTemplate:"${renderedTemplate}"`,
     )
     if (renderedTemplate.trim().length === 0) {
-      logDebug(pluginJson, `NPEditor::writeNoteContents renderedTemplate is empty, skipping`)
+      logDebug(pluginJson, `NPTemplateRunner::writeNoteContents renderedTemplate is empty, skipping`)
       return
     }
     if (options.replaceNoteContents) {
-      logDebug(pluginJson, `NPEditor::writeNoteContents replacing note contents (options.replaceNoteContents === true)`)
+      logDebug(pluginJson, `NPTemplateRunner::writeNoteContents replacing note contents (options.replaceNoteContents === true)`)
       const startIndex = findStartOfActivePartOfNote(note)
-      logDebug(pluginJson, `NPEditor::writeNoteContents deleting everything after line #${startIndex}`)
+      logDebug(pluginJson, `NPTemplateRunner::writeNoteContents deleting everything after line #${startIndex}`)
       const parasToKeep = note.paragraphs.filter((p) => p.lineIndex < startIndex)
       const parasToRemove = note.paragraphs.filter((p) => p.lineIndex >= startIndex)
       const strToKeep = parasToKeep.map((p) => p.rawContent).join('\n')
-      logDebug(pluginJson, `NPEditor::adding in renderedTemplate (${renderedTemplate.split('\n').length} lines)`)
+      logDebug(pluginJson, `NPTemplateRunner::adding in renderedTemplate (${renderedTemplate.split('\n').length} lines)`)
       note.content = `${strToKeep}\n${renderedTemplate}`
       // note.insertParagraph(renderedTemplate, startIndex, 'text') // Note: not dealing with headings due to race conditions after delete
       // options.createMissingHeading = true
@@ -112,7 +112,7 @@ export async function writeNoteContents(
       }
     }
   } else {
-    logDebug(pluginJson, `NPEditor::writeNoteContents -- there was no note to write to`)
+    logDebug(pluginJson, `NPTemplateRunner::writeNoteContents -- there was no note to write to`)
   }
 }
 

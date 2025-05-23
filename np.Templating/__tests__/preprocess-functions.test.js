@@ -619,7 +619,7 @@ processData(data);
       const template = `
 <%# This is a comment %>
 <% :return: %>
-<% const myVar = "test value" %>
+        <% const myVar = "test value" %>
 <% DataStore.invokePluginCommandByName("cmd") %>
 `
       // Process the template

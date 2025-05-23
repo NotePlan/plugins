@@ -12,7 +12,7 @@ import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
 
-import { getTemplateFolder } from 'NPTemplating'
+import { getTemplateFolder } from '../lib/config/configManager'
 import { helpInfo } from '../lib/helpers'
 import { getSetting } from '@helpers/NPConfiguration'
 import { smartPrependPara, smartAppendPara } from '@helpers/paragraph'
@@ -34,7 +34,7 @@ import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
 
 // Editor
-import { templateRunnerExecute } from './NPEditor'
+import { templateRunnerExecute } from './NPTemplateRunner'
 import { getNoteByFilename } from '../../helpers/note'
 
 export async function init(): Promise<void> {

@@ -18,6 +18,7 @@ import { chooseTemplate, getTemplateList, getTemplate, getTemplateAttributes, cr
 
 // Import from config
 import { heartbeat, setup as configSetup } from './config'
+import { getTemplateFolder as getTemplateFolderImpl } from './config/configManager'
 
 // Import from rendering
 import { processFrontmatterTags, render, renderTemplate } from './rendering/templateProcessor'
@@ -138,6 +139,18 @@ class NPTemplating {
   }
 
   /**
+   * Gets the folder where templates are stored.
+   * This is a wrapper for the config function with the same name.
+   * @static
+   * @async
+   * @returns {Promise<string>} A promise that resolves to the template folder path
+   */
+  static async getTemplateFolder(): Promise<string> {
+    await this.setup()
+    return getTemplateFolderImpl()
+  }
+
+  /**
    * Retrieves the frontmatter attributes from a template.
    * This is a wrapper for the template management function with the same name.
    * @static
@@ -224,4 +237,10 @@ class NPTemplating {
   }
 }
 
+// Export the class as the default export
 export default NPTemplating
+
+// Method to directly access getTemplateFolder from external modules without creating circular dependencies
+export function getTemplateFolder(): Promise<string> {
+  return getTemplateFolderImpl()
+}
