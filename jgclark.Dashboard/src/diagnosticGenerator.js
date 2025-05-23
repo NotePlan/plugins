@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate diagnostics file for Dashboard plugin to help with debugging
-// Last updated 2025-05-04 for v2.2.3
+// Last updated 2025-05-23 for v2.3.0
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -13,7 +13,7 @@ import {
 } from './dashboardHelpers'
 import { logPerspectives, logPerspectiveNames, getActivePerspectiveName, getPerspectiveSettings } from './perspectiveHelpers'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
-import { generateTagMentionCacheSummary } from './tagMentionCache'
+import { getTagMentionCacheSummary } from './tagMentionCache'
 import type { TPerspectiveDef } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getOrMakeNote } from '@helpers/note'
@@ -75,7 +75,7 @@ export async function generateDiagnosticsFile() {
     output.push(`- ${foldersCount.toLocaleString()} Folders: [${String(DataStore.folders)}]`)
     if (ds.FFlag_UseTagCache) {
       output.push('')
-      output.push(generateTagMentionCacheSummary())
+      output.push(getTagMentionCacheSummary())
     }
     output.push('')
     output.push('## Current NotePlan settings for Dashboard')

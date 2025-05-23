@@ -1,10 +1,10 @@
 /* CSS specific to Section components and their children.
-/* Last updated 2025-05-04 for v2.2.2, @jgclark */
+/* Last updated 2025-05-16 for v2.3.0, @jgclark */
 
 /* The main grid for a section: sectionInfo then sectionGrid. */
 .section {
 	display: grid;
-	grid-template-columns: [info] /* 12rem */ 12.5rem [items] auto;
+	grid-template-columns: [info] 13rem [items] auto;
 	grid-template-rows: min-content;
 	/* turn on top border (from theme CSS) */
 	border-bottom: 1px solid var(--divider-color);
@@ -55,12 +55,27 @@
 }
 
 /* Next part of sectionInfo. */
-.sectionDescription {
-	/* a bit smaller */
+.sectionInfoSecondLine {
+	/* contains DIVs, so need to flex to keep in the same line */
+	display: flex;
+	flex-direction: row;
+	gap: 0.3rem;
 	font-size: 0.9rem;
+}
+
+.sectionDescription {
+	align-self: start;
+	flex-grow: 1;
+	/* a bit smaller */
 	padding-top: 0.1rem;
 	/* Ensure we don't get a single word orphan on a line. Not sure if it is supported in NotePlan's version of Safari. */
 	text-wrap: pretty;
+}
+
+.sectionCompletionCircle {
+	padding-top: 3px;
+	padding-right: 1px;
+	justify-self: end;
 }
 
 /* If very narrow -- for small iPhone drop .sectionDescription */
@@ -140,9 +155,10 @@
 	}
 
 	/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
+	/* And https://www.joshwcomeau.com/snippets/react-components/shift-by/ might be useful if tiny tweaks are still needed. */
 	.buttonsWithoutBordersOrBackground {
 		justify-self: start;
-		padding-top: 2px;
+		/* padding-top: 1px; */
 	}
 }
 

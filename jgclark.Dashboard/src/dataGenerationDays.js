@@ -7,7 +7,7 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
-import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
+import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionItemObject,
   createSectionOpenItemsFromParas,
@@ -91,7 +91,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')
     const nextPeriodFilename = nextPeriodNote?.filename ?? '(errorthisFilename'
     logDebug('getTodaySectionData', `- nextPeriodFilename = ${nextPeriodFilename}`)
-    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
@@ -121,10 +121,9 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           ]
         : [],
     )
-    const anyDayFormFields: Array<TSettingItem> = formFieldsBase.concat([{ type: 'calendarpicker', label: 'Date:', key: 'date', numberOfMonths: 2 }])
 
-    let sectionDescription = `{count} from ${todayDateLocale}`
-    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(startTime)}`
+    let sectionDescription = `{count} of {totalCount} from ${todayDateLocale}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
       ID: sectionNumStr,
@@ -138,6 +137,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       sectionItems: items,
       generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
       doneCounts: doneCountData,
+      totalCount: items.length,
       isReferenced: false,
       actionButtons: [
         {
@@ -184,18 +184,6 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           submitOnEnter: true,
           submitButtonText: 'Add & Close',
         },
-        // Removing this button for now, and instead trying a new 'add item' button to the Header
-        // {
-        //   actionName: 'addTaskToFuture',
-        //   actionParam: thisFilename,
-        //   actionPluginID: `${pluginJson['plugin.id']}`,
-        //   display: '<i class= "fa-regular fa-calendar-plus sidebarDaily" ></i> ',
-        //   tooltip: 'Add a new task to future note',
-        //   postActionRefresh: [], // Note: very likely to go to a note that isn't going to be shown in the dashboard, but can't be guaranteed
-        //   formFields: anyDayFormFields,
-        //   submitOnEnter: true,
-        //   submitButtonText: 'Add & Close',
-        // },
         {
           actionName: 'moveAllTodayToTomorrow',
           actionPluginID: `${pluginJson['plugin.id']}`,
@@ -368,9 +356,9 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         logDebug('getYesterdaySectionData', `No yesterday note found using filename '${thisFilename}'`)
       }
     }
-    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
-    let sectionDescription = `{count} from ${yesterdayDateLocale}`
-    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(startTime)}`
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    let sectionDescription = `{count} of {totalCount} from ${yesterdayDateLocale}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
       ID: sectionNumStr,
@@ -384,6 +372,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       sectionItems: items,
       generatedDate: new Date(),
       doneCounts: doneCountData,
+      totalCount: items.length + doneCountData.completedTasks, // FIXME: deal with checklists as well
       isReferenced: false,
       actionButtons: [
         {
@@ -523,7 +512,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     )
 
     let sectionDescription = `{count} from ${tomorrowDateLocale}`
-    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(startTime)}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
       ID: sectionNumStr,
@@ -536,6 +525,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
+      totalCount: items.length,
       isReferenced: false,
       actionButtons: [
         {

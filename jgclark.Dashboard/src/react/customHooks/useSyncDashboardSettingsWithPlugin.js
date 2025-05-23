@@ -34,7 +34,7 @@ export const useSyncDashboardSettingsWithPlugin = (
   pluginDataDSettings: any,
   dispatch: (action: DispatchAction) => void,
   sendActionToPlugin: SendActionToPlugin,
-  pluginData: TPluginData, // for tracking serverPush
+  pluginData: TPluginData, // for tracking pushFromServer
   updatePluginData: (data: any, msg: string) => void,
   compareFn: CompareFn = compareObjects,
 ) => {
@@ -45,7 +45,7 @@ export const useSyncDashboardSettingsWithPlugin = (
   useEffect(() => {
     const pluginDataDSettingsChanged = pluginDataDSettings && compareFn(lastpluginDataDSettingsRef.current, pluginDataDSettings) !== null
     logDebug(
-      `useSyncDashboardSettingsWithPlugin effect1 PLUGIN->REACT checking pluginData?.serverPush?.dashboardSettings=${String(pluginData?.serverPush?.dashboardSettings) || ''}`,
+      `useSyncDashboardSettingsWithPlugin effect1 PLUGIN->REACT checking pluginData?.pushFromServer?.dashboardSettings=${String(pluginData?.pushFromServer?.dashboardSettings) || ''}`,
     )
     if (pluginDataDSettingsChanged) {
       logDebug(
@@ -79,15 +79,15 @@ export const useSyncDashboardSettingsWithPlugin = (
         `useSyncDashboardSettingsWithPlugin dashboardSettings in REACT changed BB dashboardSettingsChanged: ${String(
           dashboardSettingsChanged,
         )} pluginData.perspectiveChanging:${String(pluginData.perspectiveChanging)}`,
-        { dashboardSettings, realDiff, serverPush: pluginData?.serverPush?.dashboardSettings },
+        { dashboardSettings, realDiff, pushFromServer: pluginData?.pushFromServer?.dashboardSettings },
       )
-      if (pluginData?.serverPush?.dashboardSettings) {
+      if (pluginData?.pushFromServer?.dashboardSettings) {
         logDebug(
-          `useSyncDashboardSettingsWithPlugin pluginData changed; serverPush=${JSON.stringify(
-            pluginData.serverPush,
-          )} changing serverPush.dashboardSettings to false; not sending to server`,
+          `useSyncDashboardSettingsWithPlugin pluginData changed; pushFromServer=${JSON.stringify(
+            pluginData.pushFromServer,
+          )} changing pushFromServer.dashboardSettings to false; not sending to server`,
         )
-        const newPluginData = { ...pluginData, serverPush: { ...pluginData.serverPush, dashboardSettings: false } }
+        const newPluginData = { ...pluginData, pushFromServer: { ...pluginData.pushFromServer, dashboardSettings: false } }
         updatePluginData(newPluginData, `acknowledging server push`)
         // was a server push so don't need to send to server
       } else {
@@ -117,12 +117,12 @@ export const useSyncDashboardSettingsWithPlugin = (
   }, [dashboardSettings, sendActionToPlugin, compareFn, pluginData])
 
   useEffect(() => {
-    if (pluginData.serverPush.dashboardSettings) {
-      logDebug(`useSyncDashboardSettingsWithPlugin pluginData.serverPush.dashboardSettings is true; resetting it`, {
+    if (pluginData.pushFromServer.dashboardSettings) {
+      logDebug(`useSyncDashboardSettingsWithPlugin pluginData.pushFromServer.dashboardSettings is true; resetting it`, {
         pluginData,
       })
-      const newPluginData = { ...pluginData, serverPush: { ...pluginData.serverPush, dashboardSettings: false } }
+      const newPluginData = { ...pluginData, pushFromServer: { ...pluginData.pushFromServer, dashboardSettings: false } }
       updatePluginData(newPluginData, `acknowledging server push`)
     }
-  }, [pluginData.serverPush.dashboardSettings])
+  }, [pluginData.pushFromServer.dashboardSettings])
 }

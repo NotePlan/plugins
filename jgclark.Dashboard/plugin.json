@@ -199,12 +199,23 @@
       ]
     },
     {
+      "comment": "TODO: remove me in time",
       "hidden": false,
       "name": "testTagCache",
       "description": "test tag cache for Dashboard",
       "jsFunction": "testTagCache",
       "alias": [
         "ttc"
+      ]
+    },
+    {
+      "comment": "TODO: remove me in time",
+      "hidden": false,
+      "name": "buildListOfDoneTasksToday",
+      "description": "build list of done tasks today",
+      "jsFunction": "buildListOfDoneTasksToday",
+      "alias": [
+        "blodtt"
       ]
     },
     {

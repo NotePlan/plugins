@@ -8,16 +8,20 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 -->
 
-## [2.3.0.b2] 2025-05-15
-### DEV notes
-- restored the FFlag for tagMentionCache
-- turned off full cache generation just for JGC on Hard Refresh
+## [2.3.0.b2] 2025-05-23
+- restored the tagMentionCache FFlag for DBW
+- turned off full cache generation on startup (or Hard Refresh) if logging mode is DEV (or for JGC)
+- lots of re-work of tagMentionCache
+- TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
+- show TAG sections that have no items
+- added little circles for task completion in section headings, and tweaked the text after it
 
 ## [2.3.0.b1] 2025-05-15
 ### Added
 - start of support for Teamspaces: open items in its calendar and regular notes are now included, and are shown with the name of the its Teamspace.
 - new **backupSettings** command, which can be run from an x-callback as well: `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=backupSettings` See README for details.
 - new 'noteTags' that extend Tag sections: this includes all open items in a note, based on 'note-tag' field in frontmatter (e.g. `note-tag: #teamspace, #CTI`)
+- new % complete pie charts in Section areas for Calendar notes
 ### Changed
 - big speed-up of Tag/Mention Sections
 - improved way note links are shown in sections and the task dialog
@@ -26,6 +30,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - (hopefully) avoid situation where the 'Switching Perspectives' spinner never goes away
 ### Dev notes
 - added FF for including Teamspace notes, by default turned off.
+- fixed more Teamspace handling
 
 ## [2.2.1] 2025-04-16
 ### Changed

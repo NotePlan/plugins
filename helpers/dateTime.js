@@ -90,8 +90,9 @@ export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
 export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
 
 /**
- * Get today's date
+ * Get today's date.
  * This uses local time, so shouldn't get TZ problems.
+ * WARNING: Deprecated in favour of clearer named function 'todaysDateISOString' below.
  * @author @jgclark
  * @returns {string} YYYY-MM-DD
  */

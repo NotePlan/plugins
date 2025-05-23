@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate Project section data
-// Last updated 2025-05-09 for v2.2.2
+// Last updated 2025-05-16 for v2.3.0
 //-----------------------------------------------------------------------------
 
 import { getNextProjectsToReview } from '../../jgclark.Reviews/src/allProjectsListHelpers'
@@ -112,6 +112,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
     sectionCode: thisSectionCode,
     description: sectionDescription,
     sectionItems: items,
+    totalCount: items.length,
     FAIconClass: 'fa-regular fa-chart-gantt',
     // FAIconClass: 'fa-light fa-square-kanban',
     // NP has no sectionTitleColorPart, so will use default
