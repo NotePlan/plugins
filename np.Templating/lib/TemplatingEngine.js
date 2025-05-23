@@ -244,7 +244,15 @@ export default class TemplatingEngine {
     try {
       logDebug(pluginJson, `renderWithFallback START: template to render: "${templateData}"`)
       logDebug(pluginJson, `renderWithFallback First try to render the template in one shot`)
-      return await this.render(templateData, userData, ejsOptions)
+      const result = await this.render(templateData, userData, ejsOptions)
+      if (result.includes('Error:')) {
+        logError(pluginJson, `renderWithFallback ERROR: ${result}`)
+        logDebug(pluginJson, `renderWithFallback Now will try to render the template incrementally to better isolate the error`)
+        // TODO: Incremental rendering had a lot of edge cases, so backburning for now (dbw: 2025-05-23)
+        // It's not far off. Just needs some more testing and refinement.
+        // return await this.incrementalRender(templateData, userData, ejsOptions)
+      }
+      return result
     } catch (error) {
       logError(pluginJson, `renderWithFallback ERROR: ${error.message}`)
       logDebug(pluginJson, `renderWithFallback Now will try to render the template incrementally to better isolate the error`)
@@ -491,7 +499,8 @@ export default class TemplatingEngine {
        * @param {Object} obj - The object to extract properties from
        * @returns {Object} A new object containing only the top-level primitive properties
        */
-      const getTopLevelProps = (obj) => Object.entries(obj).reduce((acc, [key, value]) => (typeof value !== 'object' || value === null ? { ...acc, [key]: value } : acc), {})
+      const getTopLevelProps = (obj) =>
+        Object.entries(obj).reduce((acc, [key, value]) => (typeof value !== 'object' || value === null || typeof value === 'function' ? { ...acc, [key]: value } : acc), {})
       clo(getTopLevelProps(renderData), `198 Templating context object (top level values only) ${message}`)
     }
 
