@@ -164,8 +164,8 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
       const isFrontmatter = failed ? false : new FrontmatterModule().isFrontmatterTemplate(templateData)
       logDebug(pluginJson, `templateRunnerExecute: "${theNote?.title || ''}": isFrontmatter:${String(isFrontmatter)}`)
       if (!failed && isFrontmatter) {
-        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, argObj)
-        clo(frontmatterAttributes, `templateRunnerExecute frontMatterAttributes after preRender`)
+        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData, argObj)
+        clo(frontmatterAttributes, `templateRunnerExecute frontMatterAttributes after renderFrontmatter`)
         let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
         if (data['newNoteTitle']) {
           // if form or template has a newNoteTitle field then we need to call templateNew

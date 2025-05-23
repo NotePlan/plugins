@@ -216,8 +216,8 @@ describe('Render Pipeline Functions', () => {
       },
     }
 
-    // Set up the mock for preRender
-    global.preRender = jest.fn().mockResolvedValue({
+    // Set up the mock for renderFrontmatter
+    global.renderFrontmatter = jest.fn().mockResolvedValue({
       frontmatterAttributes: { title: 'Test', type: 'example' },
       frontmatterBody: 'Body content',
     })

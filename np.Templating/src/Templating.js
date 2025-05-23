@@ -109,7 +109,7 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
-      const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+      const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
       // $FlowIgnore
       const renderedTemplate = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
@@ -141,7 +141,7 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
       } else {
         templateData = await NPTemplating.getTemplate(selectedTemplate)
       }
-      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
       let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
 
       let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
@@ -177,7 +177,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
       // $FlowIgnore
       const selectedTemplate = selectedTemplateFilename ?? (await NPTemplating.chooseTemplate())
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
-      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
       let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
       const templateResult = await NPTemplating.render(frontmatterBody, data)
 
@@ -248,7 +248,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
 
     let folder = _folder ?? ''
 
-    let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, args)
+    let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData, args)
     frontmatterAttributes = { ...frontmatterAttributes, ...args }
 
     if (/<select>|<choose>/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {
@@ -336,7 +336,7 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
       let folder = ''
 
       if (isFrontmatter) {
-        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
         let folder = frontmatterAttributes?.folder?.trim() ?? ''
         if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
@@ -432,7 +432,7 @@ export async function templateMeetingNote(templateName: string = '', templateDat
       let folder = ''
 
       if (isFrontmatter) {
-        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
         let folder = frontmatterAttributes?.folder.trim() ?? ''
         if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
@@ -702,8 +702,8 @@ export async function getTemplate(templateName: string = '', options: any = { sh
   return await NPTemplating.getTemplate(templateName, options)
 }
 
-export async function preRender(templateData: string = '', userData: any = {}): Promise<any> {
-  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, userData)
+export async function renderFrontmatter(templateData: string = '', userData: any = {}): Promise<any> {
+  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData, userData)
 
   return { frontmatterBody, frontmatterAttributes }
 }

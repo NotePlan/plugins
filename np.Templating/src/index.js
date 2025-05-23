@@ -32,7 +32,7 @@ export { templateTest } from './Templating'
 
 // exported to support DataStore.invokePluginCommandByName
 export { getTemplate } from './Templating'
-export { preRender } from './Templating'
+export { renderFrontmatter } from './Templating'
 export { render } from './Templating'
 export { renderTemplate } from './Templating'
 

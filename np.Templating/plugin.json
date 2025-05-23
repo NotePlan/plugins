@@ -159,9 +159,9 @@
       "hidden": true
     },
     {
-      "name": "preRender",
-      "description": "NPTemplating.preRender export",
-      "jsFunction": "preRender",
+      "name": "renderFrontmatter",
+      "description": "NPTemplating.renderFrontmatter export",
+      "jsFunction": "renderFrontmatter",
       "hidden": true
     },
     {

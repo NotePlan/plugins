@@ -49,10 +49,7 @@ class NPTemplating {
    */
   static async setup() {
     try {
-      await configSetup({
-        constructor: this.constructor,
-        globals: {},
-      })
+      await configSetup(this)
     } catch (error) {
       await CommandBar.prompt('Template Error', error)
     }
@@ -67,7 +64,7 @@ class NPTemplating {
    */
   static async heartbeat(): Promise<string> {
     await this.setup()
-    return heartbeat(this.constructor.templateConfig)
+    return heartbeat(this.templateConfig)
   }
 
   /**
@@ -192,7 +189,7 @@ class NPTemplating {
    * @param {any} [userData={}] - User data to use in template rendering
    * @returns {Promise<{frontmatterBody: string, frontmatterAttributes: Object}>} Processed frontmatter body and attributes
    */
-  static async preRender(_templateData: string = '', userData: any = {}): Promise<any> {
+  static async renderFrontmatter(_templateData: string = '', userData: any = {}): Promise<any> {
     await this.setup()
     return processFrontmatterTags(_templateData, userData)
   }
@@ -210,7 +207,7 @@ class NPTemplating {
   static async render(inputTemplateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
     try {
       await this.setup()
-      return render(inputTemplateData, userData, userOptions)
+      return render(inputTemplateData, userData, userOptions, this.templateConfig)
     } catch (error) {
       clo(error, `NPTemplating.render found error dbw2`)
       return this.templateErrorMessage('NPTemplating.render', error)

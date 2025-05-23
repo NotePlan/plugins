@@ -230,15 +230,36 @@ export default class TemplatingEngine {
   }
 
   /**
+   * Renders a template with a fallback to incremental rendering if the template fails rendering.
+   * @async
+   * @param {string} templateData - The template string to render
+   * @param {any} userData - User data to be available during template rendering
+   * @param {any} ejsOptions - Options for the EJS renderer
+   * @returns {Promise<string>} The rendered template or detailed error information
+   */
+  async renderWithFallback(templateData: string, userData: any = {}, ejsOptions: any = {}): Promise<string> {
+    try {
+      logDebug(pluginJson, `renderWithFallback START: template to render: "${templateData}"`)
+      logDebug(pluginJson, `renderWithFallback First try to render the template in one shot`)
+      return await this.render(templateData, userData, ejsOptions)
+    } catch (error) {
+      logError(pluginJson, `renderWithFallback ERROR: ${error.message}`)
+      logDebug(pluginJson, `renderWithFallback Now will try to render the template incrementally to better isolate the error`)
+      return await this.incrementalRender(templateData, userData, ejsOptions)
+    }
+  }
+
+  /**
    * Renders a template incrementally, chunk by chunk, to better isolate errors.
    * This approach helps identify which part of a complex template is causing problems.
    * @async
    * @param {string} templateData - The template string to render
    * @param {any} userData - User data to be available during template rendering
-   * @param {any} userOptions - Options for the EJS renderer
+   * @param {any} ejsOptions - Options for the EJS renderer
    * @returns {Promise<string>} The rendered template or detailed error information
    */
-  async incrementalRender(templateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
+  async incrementalRender(templateData: string, userData: any = {}, ejsOptions: any = {}): Promise<string> {
+    logDebug(pluginJson, `incrementalRender START: templateData: ${templateData}`)
     // Split the template into manageable chunks
     const templateLines = templateData.split('\n')
     const chunks = TemplatingEngine.splitTemplatePreservingTags(templateData)
@@ -257,7 +278,8 @@ export default class TemplatingEngine {
       const chunk = chunks[i]
       try {
         // Try to render this chunk
-        const chunkResult = await this.render(chunk, userData, userOptions)
+        logDebug(pluginJson, `incrementalRender chunk: "${chunk}"`)
+        const chunkResult = await this.render(chunk, userData, ejsOptions)
         successfulRender += chunkResult
       } catch (error) {
         // If we encounter an error, try to determine which line it occurred on
@@ -305,17 +327,13 @@ export default class TemplatingEngine {
   }
 
   /**
-   * The core template rendering method.
-   * Processes the template with EJS, handling frontmatter, modules, plugins, and error reporting.
-   * This is the primary method used to convert template strings into final output.
-   * @async
-   * @param {any} [templateData=''] - The template string to render
-   * @param {any} [userData={}] - User data to be available during template rendering
-   * @param {any} [userOptions={}] - Options for the EJS renderer
-   * @returns {Promise<string>} The rendered template or error message
+   * Add
+   * @param {*} userData
+   * @returns
    */
-  async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    const options = { ...{ async: true, rmWhitespace: false }, ...userOptions }
+  async getRenderDataWithMethods(templateData: string, userData: any = {}) {
+    // if a previous render has already set all the methods, return the userData
+    if (userData.hasOwnProperty('utility') && userData.hasOwnProperty('web')) return userData
 
     let useClipoard = templateData.includes('system.clipboard')
     if (templateData.indexOf('system.clipboard') > 0) {
@@ -397,6 +415,24 @@ export default class TemplatingEngine {
     })
 
     renderData.np = { ...renderData }
+    logDebug(pluginJson, `getRenderDataWithMethods returning renderData keys: ${Object.keys(renderData)}`)
+    return renderData
+  }
+
+  /**
+   * The core template rendering method.
+   * Processes the template with EJS, handling frontmatter, modules, plugins, and error reporting.
+   * This is the primary method used to convert template strings into final output.
+   * @async
+   * @param {any} [templateData=''] - The template string to render
+   * @param {any} [userData={}] - User data to be available during template rendering
+   * @param {any} [ejsOptions={}] - Options for the EJS renderer
+   * @returns {Promise<string>} The rendered template or error message
+   */
+  async render(templateData: any = '', userData: any = {}, ejsOptions: any = {}): Promise<string> {
+    const options = { ...{ async: true, rmWhitespace: false }, ...ejsOptions }
+
+    const renderData = await this.getRenderDataWithMethods(templateData, userData)
 
     let processedTemplateData = templateData
 
@@ -434,7 +470,7 @@ export default class TemplatingEngine {
      * Helper function to output debug information about the render context data.
      * @param {string} message - A message to include with the debug output
      */
-    const ouputData = (message: string) => {
+    const ouputData = (message: string, renderData: any = {}) => {
       /**
        * Gets only the top-level primitive properties from an object for cleaner logging.
        * @param {Object} obj - The object to extract properties from
@@ -446,11 +482,11 @@ export default class TemplatingEngine {
 
     try {
       logDebug(pluginJson, `render: BEFORE render`)
-      ouputData('before render top level renderData')
-
+      ouputData('TemplatingEngine.render before render top level renderData', renderData)
+      logDebug(pluginJson, `render: just before ejs.render renderData keys: ${Object.keys(renderData)}`)
       let result = await ejs.render(processedTemplateData, renderData, options)
       logDebug(`\n\nrender: AFTER render`)
-      ouputData('after render')
+      ouputData('TemplatingEngine.render after render')
       result = (result && result?.replace(/undefined/g, '')) || ''
       result = result.replace(
         /\[object Promise\]/g,

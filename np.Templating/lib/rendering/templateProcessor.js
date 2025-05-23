@@ -8,10 +8,48 @@ import pluginJson from '../../plugin.json'
 import FrontmatterModule from '../support/modules/FrontmatterModule'
 import { processPrompts } from '../support/modules/prompts'
 import TemplatingEngine from '../TemplatingEngine'
-import { getTags, isCommentTag, isCode, getCodeBlocks, getIgnoredCodeBlocks, convertTemplateJSBlocksToControlTags, getTemplate } from '../core'
+import {
+  getTags,
+  isCommentTag,
+  isCode,
+  getCodeBlocks,
+  getIgnoredCodeBlocks,
+  convertTemplateJSBlocksToControlTags,
+  getTemplate,
+  getNote,
+  codeBlockHasComment,
+  blockIsJavaScript,
+} from '../core'
 import { getProperyValue, mergeMultiLineStatements, protectTemplateLiterals, restoreTemplateLiterals, formatTemplateError, extractTitleFromMarkdown } from '../utils'
 import globals, { asyncFunctions as globalAsyncFunctions } from '../globals'
 import { log, logError, logDebug, logWarn, clo } from '@helpers/dev'
+
+/**
+ * Logs the progress of template rendering at each step.
+ * Provides detailed debugging information about template data and session state.
+ * @param {string} stepDescription - Description of the current step
+ * @param {string} templateData - Current template data
+ * @param {Object} [sessionData] - Current session data (optional)
+ * @param {Object} [userOptions] - User options (optional)
+ */
+export function logProgress(stepDescription: string, templateData: string, sessionData?: Object, userOptions?: Object): void {
+  logDebug(pluginJson, `🔄 RENDER PROGRESS: ${stepDescription}`)
+  logDebug(pluginJson, `📄 Template Data (${templateData.length} chars): ${templateData.substring(0, 200)}${templateData.length > 200 ? '...' : ''}`)
+
+  if (sessionData) {
+    const sessionKeys = Object.keys(sessionData)
+    logDebug(pluginJson, `📊 Session Data Keys: [${sessionKeys.join(', ')}]`)
+    if (sessionKeys.length > 0) {
+      logDebug(`📊 Session Data Details: ${JSON.stringify(sessionData)}`)
+    }
+  }
+
+  if (userOptions) {
+    clo(userOptions, `⚙️ User Options`)
+  }
+
+  logDebug(pluginJson, `🔄 END STEP: ${stepDescription}`)
+}
 
 /**
  * Analyzes a JavaScript statement and adds 'await' prefix to async function calls when needed.
@@ -240,7 +278,7 @@ export async function processIncludeTag(tag: string, context: { templateData: st
   const isCalendarNote = /^\d{8}|\d{4}-\d{2}-\d{2}$/.test(templateName)
 
   if (hasFrontmatter && !isCalendarNote) {
-    // if the included file has frontmatter, we need to preRender it because it could be a template
+    // if the included file has frontmatter, we need to renderFrontmatter it because it could be a template
     const { frontmatterAttributes, frontmatterBody } = await processFrontmatterTags(templateContent, context.sessionData)
     context.sessionData = { ...frontmatterAttributes }
     logDebug(pluginJson, `processIncludeTag: ${tag} frontmatterAttributes: ${JSON.stringify(frontmatterAttributes, null, 2)}`)
@@ -374,11 +412,6 @@ export async function preProcessCalendar(tag: string = ''): Promise<string> {
     }
   }
   return ''
-}
-
-// Import this from core
-async function getNote(notePath: string = ''): Promise<string> {
-  return await import('../core').then((module) => module.getNote(notePath))
 }
 
 /**
@@ -587,7 +620,7 @@ export async function preProcessTags(templateData: string, sessionData?: {} = {}
   clo(context.sessionData, `preProcessed sessionData`)
   clo(context.override, `preProcessed override`)
   logDebug(pluginJson, `preProcessTags templateData:\n${context.templateData}`)
-
+  clo(context, `preProcessTags full context`)
   // Merge override variables into session data
   context.sessionData = { ...context.sessionData, ...context.override }
 
@@ -602,7 +635,7 @@ export async function preProcessTags(templateData: string, sessionData?: {} = {}
  * Pre-renders template frontmatter attributes, processing template tags within frontmatter.
  * Ensures proper frontmatter structure and handles templates without frontmatter.
  * @async
- * @param {string} [_templateData=''] - The template data to prerender
+ * @param {string} [_templateData=''] - The template data to renderFrontmatter
  * @param {any} [userData={}] - User data to use in template rendering
  * @returns {Promise<{frontmatterBody: string, frontmatterAttributes: Object}>} Processed frontmatter body and attributes
  */
@@ -610,28 +643,42 @@ export async function processFrontmatterTags(_templateData: string = '', userDat
   // In the original code, this function would call `await this.setup()`
   // which is now handled by the NPTemplating class before it delegates to this function
 
+  // Log the initial state
+  logProgress('FRONTMATTER PROCESSING START', _templateData, userData)
+
   let templateData = _templateData
   const sectionData = { ...userData }
+
+  // Step 1: Check if template has frontmatter and add if missing
   if (!new FrontmatterModule().isFrontmatterTemplate(templateData)) {
     const extractedData = extractTitleFromMarkdown(templateData)
     if (!extractedData.title) extractedData.title = 'Untitled (no title found in template)'
     templateData = `---\ntitle: ${extractedData.title}\n---\n${extractedData.updatedMarkdown}`
     logDebug(pluginJson, `Template is not frontmatter, adding extracted title:"${extractedData.title}" to content:${extractedData.updatedMarkdown}`)
   }
+  logProgress('Step 1: Frontmatter structure validation/creation', templateData, sectionData)
 
+  // Step 2: Parse frontmatter and extract attributes
   const frontmatterData = new FrontmatterModule().parse(templateData)
   const frontmatterAttributes = frontmatterData?.attributes || {}
   const data = { frontmatter: frontmatterAttributes }
   const frontmatterBody = frontmatterData.body
   const attributeKeys = Object.keys(frontmatterAttributes)
+  logProgress('Step 2: Frontmatter parsing and attribute extraction', frontmatterBody, { frontmatterAttributes, sectionData })
 
+  // Step 3: Process each frontmatter attribute for template tags
   for (const item of attributeKeys) {
     const value = frontmatterAttributes[item]
     const attributeValue = typeof value === 'string' && value.includes('<%') ? await render(value, sectionData) : value
     sectionData[item] = attributeValue
     frontmatterAttributes[item] = attributeValue
   }
-  return { frontmatterBody, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
+  logProgress('Step 3: Frontmatter attribute processing complete', frontmatterBody, { frontmatterAttributes: { ...userData, ...frontmatterAttributes } })
+
+  const result = { frontmatterBody, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
+  logProgress('FRONTMATTER PROCESSING COMPLETE', frontmatterBody, result.frontmatterAttributes)
+
+  return result
 }
 
 /**
@@ -806,9 +853,15 @@ function loadGlobalHelpers(sessionData: Object): Object {
  * @param {string} templateData - The template data with frontmatter
  * @param {Object} sessionData - Current session data
  * @param {Object} userOptions - User options for rendering
+ * @param {TemplatingEngine} templatingEngine - The templating engine instance to use
  * @returns {Promise<{templateData: string, sessionData: Object}>} Updated template and session data
  */
-async function processFrontmatter(templateData: string, sessionData: Object, userOptions: Object): Promise<{ templateData: string, sessionData: Object }> {
+async function processFrontmatter(
+  templateData: string,
+  sessionData: Object,
+  userOptions: Object,
+  templatingEngine: TemplatingEngine,
+): Promise<{ templateData: string, sessionData: Object }> {
   const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
   if (!isFrontmatterTemplate) {
     return { templateData, sessionData }
@@ -841,7 +894,7 @@ async function processFrontmatter(templateData: string, sessionData: Object, use
     const { newTemplateData, newSettingData } = await preProcessTags(frontMatterValue, updatedSessionData)
 
     const mergedSessionData = { ...updatedSessionData, ...newSettingData }
-    const renderedData = await new TemplatingEngine().render(newTemplateData, promptData.sessionData, userOptions)
+    const renderedData = await templatingEngine.render(newTemplateData, promptData.sessionData, userOptions)
     updatedTemplateData = updatedTemplateData.replace(`${key}: ${value}`, `${key}: ${renderedData}`)
     newSessionData = mergedSessionData
   }
@@ -907,52 +960,69 @@ function restoreCodeBlocks(templateData: string, codeBlocks: Array<string>): str
 const isQuickTemplateNote = (userOptions: any): boolean => Boolean(userOptions?.qtn)
 
 /**
- * Core template rendering function. Processes template data with provided variables.
- * Handles frontmatter, imports, and prompts in templates.
+ * Internal template rendering function with configuration support.
+ * This is the actual implementation that accepts templateConfig.
  * @async
  * @param {string} inputTemplateData - The template content to render
  * @param {any} [userData={}] - User data to use in template rendering
  * @param {any} [userOptions={}] - Options for template rendering
+ * @param {any} [templateConfig={}] - Template configuration including helper modules
  * @returns {Promise<string>} A promise that resolves to the rendered template content
  */
-export async function render(inputTemplateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
+async function _renderWithConfig(inputTemplateData: string, userData: any = {}, userOptions: any = {}, templateConfig: any = {}): Promise<string> {
   try {
+    // Log the initial state
+    logProgress('RENDER START', inputTemplateData, userData, userOptions)
+
     // Step 1: Validate template structure (e.g. matching opening and closing tags)
     const tagError = validateTemplateStructure(inputTemplateData)
     if (tagError) {
+      logProgress('VALIDATION FAILED', tagError, userData, userOptions)
       return tagError
     }
+    logProgress('Step 1: Template structure validation', inputTemplateData, userData, userOptions)
 
     // Step 2: Normalize template data (fix quotes, ensure string type)
     let templateData = normalizeTemplateData(inputTemplateData)
+    logProgress('Step 2: Template data normalization', templateData, userData, userOptions)
 
     // Step 3: Setup session data with global helpers
-    let sessionData = loadGlobalHelpers({ ...userData })
+    let sessionData = { ...loadGlobalHelpers({ ...userData }), ...templateConfig }
+    logProgress('Step 3: Global helpers loaded', templateData, sessionData, userOptions)
+
+    // Create a single TemplatingEngine instance with the templateConfig
+    const templatingEngine = new TemplatingEngine(templateConfig)
 
     // Step 4: Process frontmatter tags first because they can contain prompts that should be set to variables
-    const frontmatterResult = await processFrontmatter(templateData, sessionData, userOptions)
+    const frontmatterResult = await processFrontmatter(templateData, sessionData, userOptions, templatingEngine)
     templateData = frontmatterResult.templateData
     sessionData = frontmatterResult.sessionData
+    logProgress('Step 4: Frontmatter processing', templateData, sessionData, userOptions)
 
     // Check for quick template note shortcut
     if (isQuickTemplateNote(userOptions)) {
+      logProgress('QUICK TEMPLATE NOTE SHORTCUT', templateData, sessionData, userOptions)
       return templateData
     }
 
     // Step 5: Import any referenced templates
     templateData = await importTemplates(templateData)
+    logProgress('Step 5: Template imports', templateData, sessionData, userOptions)
 
     // Step 6: Convert JavaScript blocks to template tags
     templateData = convertTemplateJSBlocksToControlTags(templateData)
+    logProgress('Step 6: JavaScript blocks conversion', templateData, sessionData, userOptions)
 
     // Step 7: Pre-process the template to handle includes, variables, etc.
     const { newTemplateData, newSettingData } = await preProcessTags(templateData, sessionData)
     templateData = newTemplateData
     sessionData = { ...newSettingData }
+    logProgress('Step 7: Template pre-processing', templateData, sessionData, userOptions)
 
     // Step 8: Process prompts in the template body
     const afterPromptData = await processTemplatePrompts(templateData, sessionData)
     if (afterPromptData === false) {
+      logProgress('PROMPT CANCELED - USER ABORTED', '', sessionData, userOptions)
       return '' // User canceled a prompt, so we should stop processing
     }
     templateData = afterPromptData.templateData
@@ -961,30 +1031,84 @@ export async function render(inputTemplateData: string, userData: any = {}, user
       data: { ...afterPromptData.sessionData.data, ...userData?.data },
       methods: { ...afterPromptData.sessionData.methods, ...userData?.methods },
     }
+    logProgress('Step 8: Template prompts processing', templateData, sessionData, userOptions)
 
     // Step 9: Protect JS ignored code blocks during rendering -- don't let EJS process them
     // Note: this was more relevant in Mike's original implementation where code blocks were ```javscript
     // But now that we're using ```templatejs, this is probably not ever used
     const { templateData: protectedTemplate, codeBlocks: savedIgnoredCodeBlocks } = tempSaveIgnoredCodeBlocks(templateData)
+    logProgress('Step 9: Code blocks protection', protectedTemplate, sessionData, userOptions)
 
     // Step 10: Perform the actual template rendering
-    logDebug(pluginJson, `render: STARTING incrementalRender`)
-    const renderedData = await new TemplatingEngine().incrementalRender(protectedTemplate, sessionData, userOptions)
-    logDebug(pluginJson, `render: FINISHED incrementalRender`)
+    logDebug(pluginJson, `render: STARTING render sequence`)
+    logDebug(pluginJson, `Template content being sent to TemplatingEngine: "${protectedTemplate}"`)
+    logDebug(pluginJson, `Template has EJS tags: ${protectedTemplate.includes('<%')}`)
+    logDebug(pluginJson, `Template length: ${protectedTemplate.length}`)
+
+    let renderedData
+
+    // Fast path: if template has no EJS tags, return as-is (no need for TemplatingEngine)
+    // Exception: if template contains backtick-wrapped code like `<%- something %>`, still process it
+    const hasEJSTags = protectedTemplate.includes('<%')
+    const hasBacktickWrappedEJS = /`[^`]*<%.*?%>.*?`/.test(protectedTemplate)
+
+    if (!hasEJSTags && !hasBacktickWrappedEJS) {
+      logDebug(pluginJson, `Fast path: Template has no EJS tags, returning as plain text`)
+      renderedData = protectedTemplate
+    } else {
+      // Template has EJS tags, use the single TemplatingEngine instance
+      try {
+        renderedData = await templatingEngine.renderWithFallback(protectedTemplate, sessionData, userOptions)
+      } catch (templateEngineError) {
+        logError(pluginJson, `TemplatingEngine.renderWithFallback failed with error:`)
+        clo(templateEngineError, `TemplatingEngine Error Details`)
+        logError(pluginJson, `Template data that caused the error: ${protectedTemplate}`)
+        logError(pluginJson, `Session data keys: ${Object.keys(sessionData).join(', ')}`)
+
+        // Return more detailed error information
+        const errorMessage = `Template rendering failed: ${
+          templateEngineError.message || templateEngineError
+        }\n\nTemplate content:\n${protectedTemplate}\n\nAvailable data: ${Object.keys(sessionData).join(', ')}`
+        logProgress('TEMPLATE ENGINE ERROR', errorMessage, sessionData, userOptions)
+        return templateErrorMessage('TemplatingEngine.renderWithFallback', errorMessage)
+      }
+    }
+
+    logDebug(pluginJson, `render: FINISHED renderWithFallback`)
+    logDebug(pluginJson, `TemplatingEngine returned: "${renderedData}"`)
+    logProgress('Step 10: Template engine rendering', renderedData, sessionData, userOptions)
 
     // Step 11: Post-process the rendered template
     let finalResult = removeEJSDocumentationNotes(renderedData)
+    logProgress('Step 11: Post-processing (EJS cleanup)', finalResult, sessionData, userOptions)
 
     // Step 12: Restore code blocks in the final result
     finalResult = restoreCodeBlocks(finalResult, savedIgnoredCodeBlocks)
+    logProgress('Step 12: Code blocks restoration', finalResult, sessionData, userOptions)
 
     logDebug(pluginJson, `>> renderedData after rendering:\n\t[PRE-RENDER]:${templateData}\n\t[RENDERED]: ${finalResult}`)
+    logProgress('RENDER COMPLETE', finalResult, sessionData, userOptions)
 
     return finalResult
   } catch (error) {
     clo(error, `render found error`)
+    logProgress('RENDER ERROR', '', {}, userOptions)
     return templateErrorMessage('render', error)
   }
+}
+
+/**
+ * Core template rendering function. Processes template data with provided variables.
+ * Handles frontmatter, imports, and prompts in templates.
+ * @async
+ * @param {string} inputTemplateData - The template content to render
+ * @param {any} [userData={}] - User data to use in template rendering
+ * @param {any} [userOptions={}] - Options for template rendering
+ * @param {any} [templateConfig={}] - Template configuration including helper modules (internal use)
+ * @returns {Promise<string>} A promise that resolves to the rendered template content
+ */
+export async function render(inputTemplateData: string, userData: any = {}, userOptions: any = {}, templateConfig: any = {}): Promise<string> {
+  return await _renderWithConfig(inputTemplateData, userData, userOptions, templateConfig)
 }
 
 /**
@@ -1043,14 +1167,15 @@ export function findCursors(templateData: string): mixed {
  * @async
  * @param {string} [templateData=''] - The template data containing code blocks
  * @param {any} sessionData - Session data available to the executed code
+ * @param {any} [templateConfig={}] - Template configuration for the TemplatingEngine
  * @returns {Promise<{processedTemplateData: string, processedSessionData: any}>} The results after execution
  */
-export async function execute(templateData: string = '', sessionData: any): Promise<any> {
+export async function execute(templateData: string = '', sessionData: any, templateConfig: any = {}): Promise<any> {
   let processedTemplateData = templateData
   let processedSessionData = sessionData
 
-  // Import the needed functions from core
-  const { codeBlockHasComment, blockIsJavaScript } = await import('../core')
+  // Create a single TemplatingEngine instance for all code block processing
+  const templatingEngine = new TemplatingEngine(templateConfig)
 
   const blocks = getCodeBlocks(templateData)
   for (const codeBlock of blocks) {
@@ -1062,7 +1187,7 @@ export async function execute(templateData: string = '', sessionData: any): Prom
 
         if (executeCodeBlock.includes('<%')) {
           logDebug(pluginJson, `executeCodeBlock using EJS renderer: ${executeCodeBlock}`)
-          result = await new TemplatingEngine().render(executeCodeBlock, processedSessionData)
+          result = await templatingEngine.render(executeCodeBlock, processedSessionData)
           processedTemplateData = processedTemplateData.replace(codeBlock, result)
         } else {
           logDebug(pluginJson, `executeCodeBlock using Function.apply (does not include <%): ${executeCodeBlock}`)

@@ -457,16 +457,16 @@ describe(`${PLUGIN_NAME}`, () => {
 
     //FIXME: (@codedungeon): - I added this test to illustrate an edge case that a user was running into
     // Even though the above test on .render passes using Jest, in the real NotePlan app,
-    // if the templateBody starts with three dashes, then for some reason, preRender gets called on that body as if it's frontmatter and fails
+    // if the templateBody starts with three dashes, then for some reason, renderFrontmatter gets called on that body as if it's frontmatter and fails
     // in the same way it fails in this test
-    it.skip(`should preRender with multiple frontmatter-like separators in document (even number) - esp when the first line in the template content is a separator`, async () => {
+    it.skip(`should renderFrontmatter with multiple frontmatter-like separators in document (even number) - esp when the first line in the template content is a separator`, async () => {
       const templateData = `---\n<%- date.now("Do MMMM YYYY") %>\n\n---`
       const sessionData = {
         title: 'Daily Note Test',
         type: 'meeting-note, empty-note',
         methods: {},
       }
-      let result = await NPTemplating.preRender(templateData, sessionData)
+      let result = await NPTemplating.renderFrontmatter(templateData, sessionData)
       const lines = result.split('\n')
       expect(lines[0]).toEqual(`---`)
       // date on line 1

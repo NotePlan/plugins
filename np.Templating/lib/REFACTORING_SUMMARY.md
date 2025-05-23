@@ -34,7 +34,7 @@ np.Templating/lib/
 │   ├── pluginIntegration.js    # Plugin command integration
 │   └── FrontmatterModule.js    # Frontmatter handling
 ├── rendering/          # Template rendering
-│   ├── preRender.js        # Pre-rendering operations
+│   ├── renderFrontmatter.js        # Pre-rendering operations
 │   ├── execute.js          # JavaScript execution in templates
 │   ├── templateProcessor.js # Template processing
 │   ├── templateValidator.js # Template validation
@@ -110,7 +110,7 @@ The core `render()` function in `templateProcessor.js` has been completely refac
 To improve code readability and self-documentation, we've renamed several key functions to better reflect their purpose:
 
 - `preProcess()` → `preProcessTags()`: This function specifically processes template tags before the main rendering.
-- `preRender()` → `processFrontmatterTags()`: This function specifically handles processing and rendering frontmatter sections.
+- `renderFrontmatter()` → `processFrontmatterTags()`: This function specifically handles processing and rendering frontmatter sections.
 - `postProcess()` → `findCursors()`: This function specifically looks for cursor placement markers.
 
 These more descriptive names make the code easier to understand and maintain, providing clearer indications of each function's purpose.

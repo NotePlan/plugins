@@ -28,6 +28,8 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 - fixed formattedDateTime to work with strftime format (what it was) or moment (what we use everywhere else)
 - added `moment` to globals
 - fixed `now` which did not match the documentation -- now works with simple offsetDays
+### Developer
+- Massively refactored rendering pipeline (NPTemplating) to make it easier to understand and maintain
 
 ## [1.12.0] 2025-03-09 @dwertheimer
 
@@ -196,7 +198,7 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 ## [2.0.0-alpha.05] - 2022-07-17 (mikeerickson)
 
-- Added preRender code to `NPTemplating.renderTemplate`
+- Added renderFrontmatter code to `NPTemplating.renderTemplate`
 
 ## [2.0.0-alpha.04] - 2022-07-17 (mikeerickson)
 
@@ -261,7 +263,7 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 ## [1.2.0-beta.07] - 2022-05-26 (mikeerickson)
 
 - added `NPTemplating.getTemplate` export, supporting `DataStore.invokePluginCommandByName`
-- added `NPTemplating.preRender` export, supporting `DataStore.invokePluginCommandByName`
+- added `NPTemplating.renderFrontmatter` export, supporting `DataStore.invokePluginCommandByName`
 - added `NPTemplating.render` export, supporting `DataStore.invokePluginCommandByName`
 
 ## [1.2.0-beta.06] - 2022-05-24 (mikeerickson)
@@ -424,11 +426,11 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 
 ## [1.0.0-beta.38] - 2022-04-12 (mikeerickson)
 
-- fixed second regression, spreading `userData` from `.preRender` to `frontmatterAttributes` (@EduardMe)
+- fixed second regression, spreading `userData` from `.renderFrontmatter` to `frontmatterAttributes` (@EduardMe)
 
 ## [1.0.0-beta.37] - 2022-04-12 (mikeerickson)
 
-- fixed regression in `np.Templating.preRender` (@EduardMe)
+- fixed regression in `np.Templating.renderFrontmatter` (@EduardMe)
 
 ## [1.0.0-beta.36] - 2022-04-12 (mikeerickson)
 
@@ -471,9 +473,9 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 
 ## [1.0.0-beta.31] - 2022-04-09 (mikeerickson)
 
-- Added `NPTemplating.preRender` which will render frontmatter attributes
+- Added `NPTemplating.renderFrontmatter` which will render frontmatter attributes
 - Refactored `FrontMatter.render` to `FrontMatter.parse`
-- Updated `np:qtn` and `np:mtn` to use new `NPTemplating.preRender` method
+- Updated `np:qtn` and `np:mtn` to use new `NPTemplating.renderFrontmatter` method
 
 ## [1.0.0-beta.30] - 2022-04-05 (mikeerickson)
 

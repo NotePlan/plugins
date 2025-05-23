@@ -77,7 +77,7 @@ This plan outlines the steps to refactor the large `NPTemplating.js` and `Templa
 - [x] `_getValueType()`
 - [x] `preProcessNote()`
 - [x] `preProcessCalendar()`
-- [x] `preRender()`
+- [x] `renderFrontmatter()`
 - [x] `importTemplates()`
 - [x] `render()`
 - [x] `renderTemplate()`
@@ -131,7 +131,7 @@ This plan outlines the steps to refactor the large `NPTemplating.js` and `Templa
 2. ✓ Extract configuration functions
 3. ✓ Extract template management functions
 4. ✓ Extract template processing functions
-   - ✓ Add render and preRender functions to templateProcessor.js
+   - ✓ Add render and renderFrontmatter functions to templateProcessor.js
    - ✓ Add importTemplates and execute functions
    - ✓ Rename postProcess function to findCursors
 5. ✓ Update NPTemplating.js to use the new template processor functions
@@ -180,7 +180,7 @@ To complete the refactoring, we need to update the Jest tests to work with our n
    - Create specific tests for each tag processor function
 
 ### Technical Challenges
-- Some template processing functions like render, preRender have complex dependencies and interrelationships
+- Some template processing functions like render, renderFrontmatter have complex dependencies and interrelationships
 - Many functions reference this.constructor.templateConfig, which needs to be handled differently in the modular approach
 - Complex stateful operations in original code that need careful refactoring to preserve behavior
 
