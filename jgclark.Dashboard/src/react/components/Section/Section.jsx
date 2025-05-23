@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2025-04-06 for v2.2.0.a11
+// Last updated 2025-05-23 for v2.3.0.b2
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -15,7 +15,9 @@ import CommandButton from '../CommandButton.jsx'
 import ItemGrid from '../ItemGrid.jsx'
 import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
+import CircularProgressBar from '../CircularProgressBar.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
+import { percent } from '@helpers/general'
 import { logDebug, logError, logInfo, JSP, clo } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import './Section.css'
@@ -71,6 +73,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         case 'W':
         case 'M':
         case 'Q':
+        case 'TAG':
           logDebug('Section', `Section ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
@@ -106,14 +109,13 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     setItems(sectionItems)
   }, [section, dashboardSettings])
 
-  const refresh = useCallback(() => {
+  const refreshTimeBlockSection = useCallback(() => {
     const detailsMessageObject = { actionType: 'refreshSomeSections', sectionCodes: ['TB'] }
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'TBTimer fired refreshSomeSections', true)
   }, [section.sectionCode, sendActionToPlugin])
 
   /**
    * Set a timer to refresh the TB section every ~1 minute.
-   * FIXME(dwertheimer): this is what Cursor added on my second attempt -- just trying to keep it all in this file. But doesn't work.
    */
   useEffect(() => {
     const refreshInterval = 54000 // A little less than 1 minute -- don't want it to collide with the IdleTimer if possible
@@ -121,7 +123,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
     if (section.sectionCode === 'TB') {
       timerId = setInterval(() => {
-        refresh()
+        refreshTimeBlockSection()
       }, refreshInterval)
     }
 
@@ -130,7 +132,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         clearInterval(timerId)
       }
     }
-  }, [section.sectionCode, refresh])
+  }, [section.sectionCode, refreshTimeBlockSection])
 
   //----------------------------------------------------------------------
   // Hooks
@@ -180,6 +182,10 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // const isDesktop = pluginData.platform === 'macOS'
   let numItemsToShow = itemsToShow.length
 
+  // Figure out colours for section title
+  const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
+  titleStyle.color = section.sectionTitleColorPart ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})` : 'var(--item-icon-color)'
+
   const buttonsWithoutBordersOrBackground = section.actionButtons?.filter((b) => b.actionName.startsWith('add') || b.actionName.startsWith('close'))
   let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add') && !b.actionName.startsWith('close'))
 
@@ -196,38 +202,75 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   // Replace {count} and {totalCount} placeholders
   let descriptionToUse = section.description
-  if (descriptionToUse.includes('{count}')) {
-    const totalNumItems = items.length
-    if (numFilteredOut > 0) {
-      if (descriptionToUse.includes('first')) {
-        descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(numItemsToShow)} of ${String(totalNumItems)}</span >`)
-      } else {
-        descriptionToUse = descriptionToUse.replace(
-          '{count}',
-          `<span id='section${section.ID}Count'>${numItemsToShow > 0 ? 'first ' : ''}${String(numItemsToShow)} of ${String(totalNumItems)}</span >`,
-        )
-      }
-    } else if (limitApplied) {
-      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}TotalCount'}>${String(numItemsToShow)} of ${String(totalNumItems)}</span>`)
+  // let totalCountString = ''
+  // if (descriptionToUse.includes('{count}')) {
+  //   const totalNumItems = items.length
+  //   if (numFilteredOut > 0) {
+  //     if (descriptionToUse.includes('first')) {
+  //       // descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(numItemsToShow)} of ${String(totalNumItems)}</span >`)
+  //       descriptionToUse = descriptionToUse.replace('{count}', `${String(numItemsToShow)} of ${String(totalNumItems)}`)
+  //     } else {
+  //       // descriptionToUse = descriptionToUse.replace('{count}',
+  //       //   `<span id='section${section.ID}Count'>${numItemsToShow > 0 ? 'first ' : ''}${String(numItemsToShow)} of ${String(totalNumItems)}</span >`,
+  //       descriptionToUse = descriptionToUse.replace('{count}', `${numItemsToShow > 0 ? 'first ' : ''}${String(numItemsToShow)} of ${String(totalNumItems)}`)
+  //     }
+  //   } else if (limitApplied) {
+  //     // descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}TotalCount'}>${String(numItemsToShow)} of ${String(totalNumItems)}</span>`)
+  //     descriptionToUse = descriptionToUse.replace('{count}', `${String(numItemsToShow)} of ${String(totalNumItems)}`)
+  //   } else {
+  //     // descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}TotalCount'}>${String(numItemsToShow)}</span>`)
+  //     descriptionToUse = descriptionToUse.replace('{count}', `${String(numItemsToShow)}`)
+  //   }
+  // }
+  // if (descriptionToUse.includes('{totalCount}')) {
+  //   totalCountString = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(totalCount)}</span>`)
+  //   descriptionToUse = descriptionToUse.replace('{totalCount}', '')
+  // }
+  descriptionToUse = descriptionToUse.replace('{count}', section.totalCount ? String(section.totalCount) : '')
+  // Pluralise item in description if neccesary
+  if (descriptionToUse.includes('{s}')) {
+    // if (numItemsToShow !== 0) {
+    if (section.totalCount === 1) {
+      descriptionToUse = descriptionToUse.replace('{s}', ``)
     } else {
-      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}TotalCount'}>${String(numItemsToShow)}</span>`)
+      descriptionToUse = descriptionToUse.replace('{s}', `s`)
     }
   }
   if (descriptionToUse.includes('{totalCount}')) {
-    descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(totalCount)}</span>`)
+    descriptionToUse = descriptionToUse.replace('{totalCount}', `${String((totalCount ?? 0) + (section.doneCounts?.completedTasks ?? 0))} open`)
   }
 
-  // Pluralise item in description if neccesary
-  if (descriptionToUse.includes('{s}')) {
-    if (numItemsToShow !== 0) {
-      descriptionToUse = descriptionToUse.replace('{s}', `s`)
-    } else {
-      descriptionToUse = descriptionToUse.replace('{s}', ``)
-    }
+  // Prep a task-completion circle to the description for calendar non-referenced sections
+  let completionCircle = null
+  if (numItemsToShow > 0 && ['DT', 'DY', 'W', 'LW', 'M', 'Q', 'Y'].includes(section.sectionCode) && section.doneCounts) {
+    const percentComplete = section.doneCounts.completedTasks / (section.doneCounts.completedTasks + items.length) * 100.0
+    completionCircle =
+      <span className="sectionCompletionCircle" title={`${section.doneCounts.completedTasks} of ${section.doneCounts.completedTasks + items.length} tasks completed`} style={{ justifySelf: 'end' }}>
+        <CircularProgressBar
+          size="0.9rem" // TODO: this only works as "Nrem" despite number being expected
+          progress={percentComplete}
+          backgroundColor="var(--bg-sidebar-color)"
+          trackWidth={8} // outer border width
+          trackColor="rgb(from var(--fg-main-color) r g b/0.6)" // "var(--fg-done-color)" // {titleStyle.color}
+          indicatorRadius={25} // (% of container) of middle of indicator
+          indicatorWidth={50} // (% of container)
+          indicatorColor="rgb(from var(--fg-main-color) r g b/0.6)" // "var(--fg-done-color)" // {titleStyle.color}
+          indicatorCap="butt"
+          label=""
+          spinnerMode={false}
+        />{' '}
+      </span>
   }
 
   // If we have no data items to show (other than a congrats message), don't show description
-  const descriptionDiv = numItemsToShow > 0 ? <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div> : <div></div>
+  // const descriptionDiv = numItemsToShow > 0 ? <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div> : null
+  const descriptionDiv = numItemsToShow > 0 ?
+    (<div className="sectionInfoSecondLine">
+      {completionCircle}
+      {/* <span id='section${section.ID}Count'>{descriptionToUse}</span> */}
+      <span className="sectionDescription">{descriptionToUse}</span>
+      {/* <span id='section${section.ID}TotalCount'>{totalCountString}</span> */}
+    </div>) : null
 
   // Decide whether to show interactiveProcessing button
   // TODO(later): enable again for PROJ
@@ -237,9 +280,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     !treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType) &&
     section.sectionCode !== 'TB' &&
     section.sectionCode !== 'PROJ'
-
-  const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
-  titleStyle.color = section.sectionTitleColorPart ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})` : 'var(--item-icon-color)'
 
   // TB section can show up blank, without this extra check
   if (itemsToShow.length === 0) {

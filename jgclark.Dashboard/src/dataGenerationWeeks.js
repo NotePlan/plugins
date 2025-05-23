@@ -7,7 +7,7 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
-import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
+import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionOpenItemsFromParas,
   getNotePlanSettings,
@@ -72,7 +72,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'week').toDate(), 'week')
     const nextPeriodFilename = nextPeriodNote?.filename ?? '(error)'
-    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
@@ -113,8 +113,8 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           ]
         : [],
     )
-    let sectionDescription = `{count} from ${dateStr}`
-    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(startTime)}`
+    let sectionDescription = `{count} of {totalCount} from ${dateStr}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
       ID: sectionNumStr,
@@ -127,6 +127,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
+      totalCount: items.length,
       doneCounts: doneCountData,
       actionButtons: [
         {
@@ -275,9 +276,9 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
       }
     }
 
-    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
-    let sectionDescription = `{count} from ${dateStr}`
-    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(startTime)}`
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    let sectionDescription = `{count} of {totalCount} from ${dateStr}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
       ID: sectionNumStr,
@@ -291,6 +292,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
       sectionItems: items,
       generatedDate: new Date(),
       doneCounts: doneCountData,
+      totalCount: items.length,
       actionButtons: [
         {
           actionName: 'moveAllLastWeekThisWeek',

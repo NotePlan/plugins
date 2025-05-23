@@ -30,7 +30,7 @@ function CircularProgressBar(props: ProgressBarProps): Node {
     size = 100,
     progress = 0,
     backgroundColor = `#eee`,
-    trackWidth = 10,
+    trackWidth = 8,
     trackColor = `#ddd`,
     indicatorRadius = 25,
     indicatorWidth = 20,

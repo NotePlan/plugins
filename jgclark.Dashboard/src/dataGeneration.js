@@ -1,14 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-05-01 for v2.2.2, @jgclark
+// Last updated 2025-05-16 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import type { TDashboardSettings, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSettingItem } from './types'
 import { allSectionCodes } from './constants.js'
-import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
+import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionOpenItemsFromParas,
   createSectionItemObject,
@@ -183,7 +183,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'month').toDate(), 'month')
     const nextPeriodFilename = nextPeriodNote?.filename ?? '(error)'
-    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
@@ -224,18 +224,22 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         : [],
     )
 
+    let sectionDescription = `{count} of {totalCount} from ${dateStr}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
+
     const section: TSection = {
       ID: sectionNumStr,
       name: 'This Month',
       showSettingName: 'showMonthSection',
       sectionCode: thisSectionCode,
-      description: `{count} from ${dateStr}`,
+      description: sectionDescription,
       FAIconClass: 'fa-light fa-calendar-range',
       sectionTitleColorPart: 'sidebarMonthly',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
       doneCounts: doneCountData,
+      totalCount: items.length,
       actionButtons: [
         {
           actionName: 'addTask',
@@ -379,7 +383,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'quarter').toDate(), 'quarter')
     const nextPeriodFilename = nextPeriodNote?.filename ?? ''
-    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
@@ -420,18 +424,22 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         : [],
     )
 
+    let sectionDescription = `{count} of {totalCount} from ${dateStr}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
+
     const section: TSection = {
       ID: sectionNumStr,
       name: 'This Quarter',
       showSettingName: 'showQuarterSection',
       sectionCode: thisSectionCode,
-      description: `{count} from ${dateStr}`,
+      description: sectionDescription,
       FAIconClass: 'fa-light fa-calendar-days',
       sectionTitleColorPart: 'sidebarQuarterly',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
       doneCounts: doneCountData,
+      totalCount: items.length,
       actionButtons: [
         {
           actionName: 'addTask',
@@ -600,10 +608,12 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       logDebug('getOverdueSectionData', `- Sorted ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
 
       // Apply limit to set of ordered results
-      // Note: there is also filtering in the Section component
+      // Note: This is normally done in the Section component, but as JGC has hundreds of items, we'll do some limiting here first.
       // Note: this doesn't attempt to calculate parentIDs. TODO: Should it?
-      const overdueTaskParasLimited = totalOverdue > maxInSection ? sortedOverdueTaskParas.slice(0, maxInSection) : sortedOverdueTaskParas
-      logDebug('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} items to show`)
+      const overdueTaskParasLimited = totalOverdue > (maxInSection * 2)
+        ? sortedOverdueTaskParas.slice(0, maxInSection * 2)
+        : sortedOverdueTaskParas
+      logInfo('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} of ${totalOverdue} items will be passed to React`)
       overdueTaskParasLimited.map((p) => {
         const thisID = `${sectionNumStr}-${itemCount}`
         items.push(createSectionItemObject(thisID, p))
@@ -612,12 +622,15 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     }
     logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
-    let sectionDescription =
-      totalOverdue > itemCount
-        ? `first {count} of {totalCount} ${config.lookBackDaysForOverdue > 0 ? `from last ${String(config.lookBackDaysForOverdue)} days ` : ''}ordered by ${
-            config.overdueSortOrder
-          }`
-        : `{count} ordered by ${config.overdueSortOrder}`
+    // let sectionDescription =
+    //   totalOverdue > itemCount
+    //     ? `first {count} of {totalCount} ${config.lookBackDaysForOverdue > 0 ? `from last ${String(config.lookBackDaysForOverdue)} days ` : ''}ordered by ${
+    //         config.overdueSortOrder
+    //       }`
+    //     : `{count} ordered by ${config.overdueSortOrder}`
+    let sectionDescription = `{count} ${config.lookBackDaysForOverdue > 0
+      ? `from last ${String(config.lookBackDaysForOverdue)} days `
+      : ''}ordered by ${config.overdueSortOrder}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
 
     const section: TSection = {
