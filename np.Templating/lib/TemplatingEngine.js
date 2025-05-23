@@ -59,14 +59,14 @@ export default class TemplatingEngine {
     this.templateModules = []
 
     // override the locale based on plugin settings
-    if (this.templateConfig.templateLocale === '<s>') {
+    if (this.templateConfig.templateLocale === '<system>') {
       this.templateConfig.templateLocale = NotePlan.environment.languageCode
     }
   }
 
   /**
    * Replaces double dashes at the beginning and end of a frontmatter block with triple dashes.
-   * This ensures proper YAML frontmatter format.
+   * This allows for a template to render a new note with a frontmatter block.
    * @param {string} templateData - The template string potentially containing frontmatter
    * @returns {string} The template with double dashes converted to triple dashes if needed
    */
