@@ -74,7 +74,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
     // clo(pluginList)
 
     const version = await DataStore.invokePluginCommandByName('np:about', 'np.Templating', [{}])
-    console.log(version)
+    logDebug(version)
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -600,7 +600,7 @@ export async function templateSamples(): Promise<void> {
   const numSamples = 10
   const result = await CommandBar.prompt(`This will create ${numSamples} template samples in your Templates folder`, 'Are you sure you wish to continue?', ['Continue', 'Cancel'])
   if (result === 0) {
-    console.log('Create Samples')
+    logDebug('Create Samples')
   }
 }
 

@@ -62,7 +62,7 @@ export default class FrontmatterModule {
 
       return fmData && fmData?.attributes ? fmData.attributes : {}
     } catch (error) {
-      // console.log(error)
+      // logDebug(error)
       return {}
     }
   }

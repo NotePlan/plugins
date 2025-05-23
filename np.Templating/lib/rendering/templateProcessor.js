@@ -426,12 +426,12 @@ export function templateErrorMessage(method: string = '', message: any = ''): st
   }
 
   const line = '*'.repeat(message.length + 30)
-  console.log(line)
-  console.log(`   ERROR`)
-  console.log(`   Method: ${method}:`)
-  console.log(`   Message: ${message}`)
-  console.log(line)
-  console.log('\n')
+  logDebug(line)
+  logDebug(`   ERROR`)
+  logDebug(`   Method: ${method}:`)
+  logDebug(`   Message: ${message}`)
+  logDebug(line)
+  logDebug('\n')
   return `**Error: ${method}**\n- **${message}**`
 }
 

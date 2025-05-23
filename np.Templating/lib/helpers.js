@@ -97,6 +97,6 @@ export function debug(debugInfo: any, preamble: string = '', logInfo: string = '
       clo(debugInfo, preamble, 4)
     }
     log(pluginJson, premambe, 'DEBUG')
-    console.log('') // add a little visual space
+    logDebug('') // add a little visual space
   }
 }
