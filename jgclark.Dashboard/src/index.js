@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-05-14 for v2.3.0
+// last updated 2025-05-18 for v2.3.0
 // ----------------------------------------------------------------------------
 
 /**
@@ -70,6 +70,10 @@ export {
 export {
   backupSettings
 } from './backupSettings'
+
+export {
+  buildListOfDoneTasksToday
+} from './countDoneTasks'
 
 export { externallyStartSearch } from './dataGenerationSearch.js'
 

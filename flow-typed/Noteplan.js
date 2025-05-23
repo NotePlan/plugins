@@ -514,9 +514,9 @@ declare class DataStore {
    * Change a saved preference or create a new one.
    * It will most likely be picked up by NotePlan after a restart, if you use one of the keys utilized by NotePlan.
    *
-   * To change a NotePlan preference, use the keys found in the description of the function `.preference(key)`.
+   * To change a NotePlan preference, use the keys found in the description of the function `.preference(key)` above.
    * You can also save custom preferences specific to the plugin, if you need any.
-   * repend it with the plugin id or similar to avoid collisions with existing keys.
+   * Note: @jgclark asks you prepend 'key' with the plugin id or similar to avoid collisions with keys from other plugins.
    * Note: these keys and values do not sync across a user's devices; they are only local.
    * Note: Available from v3.1
    * @param {string}
