@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-05-15 for v2.3.0.b2, @jgclark
+// Last updated 2025-05-18 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -149,7 +149,7 @@ export type TSection = {
   actionButtons?: Array<TActionButton>,
   generatedDate?: Date, // note different from lastFullRefresh on whole project
   totalCount?: number, // for when not all possible items are passed in pluginData
-  doneCounts?: TDoneCount, // number of tasks and checklists completed today etc.
+  doneCounts?: TDoneCount, // number of tasks (and potentially checklists) completed in the relevant calendar note
   showColoredBackground?: boolean, // whether to show a colored background for the section
 }
 
@@ -379,8 +379,9 @@ export type TPluginData = {
   themeName: string /* the theme name used when generating the dashboard */,
   platform: string /* the platform used when generating the dashboard */,
   version: string /* version of this plugin */,
-  serverPush: {
-    /* see below for documentation */ dashboardSettings?: boolean,
+  pushFromServer: {
+    /* see below for documentation */
+    dashboardSettings?: boolean,
     perspectiveSettings?: boolean,
   },
   demoMode: boolean /* use fake content for demo/test purposes */,
@@ -389,11 +390,11 @@ export type TPluginData = {
 }
 
 /**
- * serverPush was designed especially for dashboardSettings, because dashboardSettings can change in the front-end (via user action) which then need to be noticed and sent to the back-end, or can be sent to the front end from the back-end (plugin) in which case they should just be accepted but not sent back to the plugin.
+ * pushFromServer was designed especially for dashboardSettings, because dashboardSettings can change in the front-end (via user action) which then need to be noticed and sent to the back-end, or can be sent to the front end from the back-end (plugin) in which case they should just be accepted but not sent back to the plugin.
  * Initially I was doing this with the  lastChange  message, and if that message started with a "_" it meant this is coming from the plugin and should not be sent back.
- * But that seemed too non-obvious. So I added this serverPush variable which is set when the plugin wants to send updates to the front-end but does not want those updates to be sent back erroneously.
+ * But that seemed too non-obvious. So I added this pushFromServer variable which is set when the plugin wants to send updates to the front-end but does not want those updates to be sent back erroneously.
  * Specifically,
- * - the initial data send in reactMain or the clickHandlers in clickHandlers and perspectiveClickHandlers set data that is changed and then set pluginData.serverPush.dashboardData = true  and send it to the front-end using setPluginData()
+ * - the initial data send in reactMain or the clickHandlers in clickHandlers and perspectiveClickHandlers set data that is changed and then set pluginData.pushFromServer.dashboardData = true  and send it to the front-end using setPluginData()
  * - the change is picked up by the first useEffect in useSyncDashboardSettingsWithPlugin and then that var is set to false and stored locally in pluginData without sending it back to the plugin
  */
 

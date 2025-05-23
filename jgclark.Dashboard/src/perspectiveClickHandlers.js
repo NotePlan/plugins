@@ -188,7 +188,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   const updatesToPluginData = {
     perspectiveSettings: revisedDefs,
     dashboardSettings: newDashboardSettings,
-    serverPush: { dashboardSettings: true, perspectiveSettings: true },
+    pushFromServer: { dashboardSettings: true, perspectiveSettings: true },
     sections: [],
     lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
   }
@@ -232,7 +232,7 @@ export async function doPerspectiveSettingsChanged(data: MessageDataObject): Pro
   // after (potential) multi-editing in the PerspectivesTable, we need to clean the dashboardSettings for each perspective
   // because the tagsToShow may have been changed, so we need to clean out the showSection* vars
   const cleanedPerspSettings = newSettings.map((p) => ({ ...p, dashboardSettings: cleanDashboardSettingsInAPerspective(p.dashboardSettings) }))
-  const updatedPluginData = { perspectiveSettings: cleanedPerspSettings, dashboardSettings, serverPush: { perspectiveSettings: true, dashboardSettings: true } }
+  const updatedPluginData = { perspectiveSettings: cleanedPerspSettings, dashboardSettings, pushFromServer: { perspectiveSettings: true, dashboardSettings: true } }
   if (dashboardSettings.usePerspectives) {
     const currentPerspDef = getActivePerspectiveDef(cleanedPerspSettings)
     if (currentPerspDef && currentPerspDef.name !== '-') {

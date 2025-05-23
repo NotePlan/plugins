@@ -540,7 +540,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     platform: NotePlan.environment.platform, // used in dialog positioning
     themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
     version: pluginJson['plugin.version'],
-    serverPush: {
+    pushFromServer: {
       dashboardSettings: true,
       perspectiveSettings: true,
     },

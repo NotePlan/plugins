@@ -524,9 +524,9 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
 
   // DataStore.settings = combinedUpdatedSettings
   const res = await saveSettings(pluginID, combinedUpdatedSettings)
-  const updatedPluginData = { [settingName]: newSettings } // was also: serverPush: { [settingName]: true }
+  const updatedPluginData = { [settingName]: newSettings } // was also: pushFromServer: { [settingName]: true }
   if (perspectivesToSave) {
-    // updatedPluginData.serverPush ? updatedPluginData.serverPush.perspectiveSettings = true
+    // updatedPluginData.pushFromServer ? updatedPluginData.pushFromServer.perspectiveSettings = true
     // $FlowFixMe(incompatible-type)
     updatedPluginData.perspectiveSettings = perspectivesToSave
   }
