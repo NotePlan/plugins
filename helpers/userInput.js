@@ -411,7 +411,7 @@ export async function datePicker(dateParams: string | Object, config?: { [string
       if (!allSettings.canBeEmpty) {
         const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
         if (!reply2.match(RE_DATE)) {
-          await showMessage(`Sorry: ${reply2} wasn't a date of form YYYY-MM-DD`, `OK`, 'Error')
+          await showMessage(`FYI: ${reply2} wasn't a date in the preferred form YYYY-MM-DD`, `OK`, 'Warning')
           return ''
         }
       }
