@@ -42,7 +42,7 @@ describe('Error handling in template rendering', () => {
   let templatingEngine
 
   beforeEach(() => {
-    templatingEngine = new TemplatingEngine()
+    templatingEngine = new TemplatingEngine({}, '')
 
     // Mock console functions
     consoleLogMock = jest.spyOn(console, 'log').mockImplementation()

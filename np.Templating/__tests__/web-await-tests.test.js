@@ -67,17 +67,7 @@ describe(`${PLUGIN_NAME} - ${section('Web Await Tests')}`, () => {
   let templateInstance
 
   beforeEach(() => {
-    templateInstance = new TemplatingEngine({
-      locale: 'en-US',
-      dateFormat: 'YYYY-MM-DD',
-      timeFormat: 'h:mm A',
-      timestampFormat: 'YYYY-MM-DD h:mm:ss A',
-      userFirstName: '',
-      userLastName: '',
-      userEmail: '',
-      userPhone: '',
-      services: {},
-    })
+    templateInstance = new TemplatingEngine({}, '')
 
     // No need to reassign asyncFunctions as it's now imported directly
   })

@@ -32,7 +32,7 @@ describe('Template Preprocessor Regression Tests', () => {
   let consoleOutput = []
 
   beforeEach(() => {
-    templatingEngine = new TemplatingEngine()
+    templatingEngine = new TemplatingEngine({}, '')
 
     originalConsoleLog = console.log
     console.log = jest.fn((...args) => {

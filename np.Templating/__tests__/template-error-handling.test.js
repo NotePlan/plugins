@@ -21,7 +21,7 @@ describe('TemplatingEngine error handling', () => {
   let consoleOutput = []
 
   beforeEach(() => {
-    templatingEngine = new TemplatingEngine()
+    templatingEngine = new TemplatingEngine('', '')
 
     originalConsoleLog = console.log
     console.log = jest.fn((...args) => {

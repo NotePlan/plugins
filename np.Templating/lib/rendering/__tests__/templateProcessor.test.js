@@ -76,7 +76,7 @@ describe('Template Processor', () => {
       }
 
       // Test TemplatingEngine directly to avoid config override issues
-      const engine = new TemplatingEngine(mockConfig)
+      const engine = new TemplatingEngine(mockConfig, '')
       const result = await engine.render(templateData, {}, {})
 
       // Should not be an error message
@@ -130,7 +130,7 @@ describe('Template Processor', () => {
         },
       }
 
-      const engine = new TemplatingEngine(mockConfig)
+      const engine = new TemplatingEngine(mockConfig, '')
       const result = await engine.render(templateData, sessionData, {})
 
       console.log('Complex variable names test result:', result)
@@ -191,7 +191,7 @@ describe('Template Processor', () => {
         userPhone: '(714) 555-1212',
       }
 
-      const engine = new TemplatingEngine(mockConfig)
+      const engine = new TemplatingEngine(mockConfig, '')
       const result = await engine.render(templateData, sessionData, {})
 
       console.log('Real-world template test result:', result)
@@ -356,7 +356,7 @@ User input: <%- promptKey('fieldName', 'What is your name?') %>
           },
         }
 
-        const engine = new TemplatingEngine(mockConfig)
+        const engine = new TemplatingEngine(mockConfig, '')
         const result = await engine.render(templateData, sessionData, {})
 
         console.log('Nested prompt test result:', result)
@@ -380,7 +380,7 @@ Result: <%- nonExistentFunction() %>
           templateLocale: 'en-US',
         }
 
-        const engine = new TemplatingEngine(mockConfig)
+        const engine = new TemplatingEngine(mockConfig, '')
         const result = await engine.render(templateData, {}, {})
 
         console.log('Undefined function test result:', result)

@@ -31,7 +31,7 @@ describe('Template preprocessing integration', () => {
   let consoleOutput = []
 
   beforeEach(() => {
-    templatingEngine = new TemplatingEngine()
+    templatingEngine = new TemplatingEngine({}, '')
 
     // Mock console functions
     originalConsoleLog = console.log

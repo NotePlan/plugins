@@ -35,7 +35,7 @@ import ejs from './support/ejs'
  */
 export default class TemplatingEngine {
   /**
-   * Configuration for the templating engine
+   * Template configuration object
    * @type {any}
    */
   templateConfig: any
@@ -53,13 +53,21 @@ export default class TemplatingEngine {
   templateModules: any
 
   /**
+   * Original user script for error reporting
+   * @type {string}
+   */
+  originalScript: string
+
+  /**
    * Creates a new instance of the TemplatingEngine
    * @param {any} config - Configuration settings for the templating engine
+   * @param {string} originalScript - Original user script for error reporting
    */
-  constructor(config: any) {
+  constructor(config: any, originalScript: string = '') {
     this.templateConfig = config || {}
     this.templatePlugins = []
     this.templateModules = []
+    this.originalScript = originalScript
 
     // override the locale based on plugin settings
     if (this.templateConfig.templateLocale === '<system>') {
@@ -595,6 +603,11 @@ export default class TemplatingEngine {
       // Note: This might duplicate some info but ensures test compatibility
       if (errorMessage.includes('JSON') || errorMessage.toLowerCase().includes('unexpected identifier')) {
         result += `**Template contains critical errors.**\n` // Append this specific message
+      }
+
+      // Include original script in error message if available
+      if (this.originalScript && this.originalScript.trim()) {
+        result += `\n**Original Script:**\n\`\`\`\n${this.originalScript}\n\`\`\`\n`
       }
 
       result += '---\n'

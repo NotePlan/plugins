@@ -60,7 +60,7 @@ beforeAll(() => {
 describe(`${PLUGIN_NAME}`, () => {
   let templateInstance
   beforeEach(() => {
-    templateInstance = new TemplatingEngine(DEFAULT_TEMPLATE_CONFIG)
+    templateInstance = new TemplatingEngine(DEFAULT_TEMPLATE_CONFIG, '')
     global.DataStore = DataStore
     DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
   })

@@ -991,7 +991,7 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     logProgress('Step 3: Global helpers loaded', templateData, sessionData, userOptions)
 
     // Create a single TemplatingEngine instance with the templateConfig
-    const templatingEngine = new TemplatingEngine(templateConfig)
+    const templatingEngine = new TemplatingEngine(templateConfig, inputTemplateData)
 
     // Step 4: Process frontmatter tags first because they can contain prompts that should be set to variables
     const frontmatterResult = await processFrontmatter(templateData, sessionData, userOptions, templatingEngine)
@@ -1175,7 +1175,7 @@ export async function execute(templateData: string = '', sessionData: any, templ
   let processedSessionData = sessionData
 
   // Create a single TemplatingEngine instance for all code block processing
-  const templatingEngine = new TemplatingEngine(templateConfig)
+  const templatingEngine = new TemplatingEngine(templateConfig, templateData)
 
   const blocks = getCodeBlocks(templateData)
   for (const codeBlock of blocks) {
