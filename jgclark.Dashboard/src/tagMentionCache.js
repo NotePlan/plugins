@@ -66,7 +66,7 @@ export function isTagMentionCacheAvailableforItem(item: string): boolean {
     const wantedItems = parsedCache.wantedItems
 
     const result = wantedItems.includes(item)
-    logInfo('isTagMentionCacheAvailableforItem', `-> ${item}): ${result}`)
+    logInfo('isTagMentionCacheAvailableforItem', `-> ${item}: ${result}`)
     return result
   } else {
     return false
@@ -195,6 +195,8 @@ export async function getFilenamesOfNotesWithTagOrMentions(
     const parsedCache = JSON.parse(cache)
     const regularNoteItems = parsedCache.regularNotes
     const calNoteItems = parsedCache.calendarNotes
+    logInfo('getFilenamesOfNotesWithTagOrMentions', `Regular notes in cache: ${String(regularNoteItems.length)}`)
+    logInfo('getFilenamesOfNotesWithTagOrMentions', `Calendar notes in cache: ${String(calNoteItems.length)}`)
     const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
 
     // Get matching Calendar notes using Cache
@@ -209,6 +211,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(
 
     // If wanted, compare the Cache results with API results
     if (turnOnAPIComparison) {
+      logInfo('getFilenamesOfNotesWithTagOrMentions', `- getting matching notes from API ready for comparison`)
       const thisStartTime = new Date()
       let matchingNotesFromAPI: Array<TNote> = []
       for (const tagOrMention of tagOrMentions) {
@@ -529,6 +532,13 @@ export function getWantedTagOrMentionListFromNote(
     const mentionSet = new CaseInsensitiveSet(seenWantedMentions)
     const distinctMentions: Array<string> = [...mentionSet]
 
+    let tagsAndMentions = distinctTags.concat(distinctMentions)
+
+    // Restrict to certain para types, if wanted
+    if (WANTED_PARA_TYPES.length > 0) {
+      tagsAndMentions = filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(note, tagsAndMentions, WANTED_PARA_TYPES, includeNoteTags)
+    }
+
     // If FFlag_UseNoteTags is true, include the frontmatter tags in the results
     const seenWantedNoteTagsOrMentions: Array<string> = []
     if (includeNoteTags && noteHasFrontMatter(note)) {
@@ -540,12 +550,7 @@ export function getWantedTagOrMentionListFromNote(
       }
     }
 
-    let tagsAndMentions = distinctTags.concat(distinctMentions).concat(seenWantedNoteTagsOrMentions)
-
-    // Restrict to certain para types, if wanted
-    if (WANTED_PARA_TYPES.length > 0) {
-      tagsAndMentions = filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(note, tagsAndMentions, WANTED_PARA_TYPES, includeNoteTags)
-    }
+    tagsAndMentions = tagsAndMentions.concat(seenWantedNoteTagsOrMentions)
 
     if (tagsAndMentions.length > 0) {
       const distinctTagsAndMentions = [...new Set(tagsAndMentions)]

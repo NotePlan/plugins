@@ -154,7 +154,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   if (!pluginData.dashboardSettings.separateSectionForReferencedNotes) {
     logDebug('refreshSomeSections', `Removing any referenced sections from inherited set of sections. Started with ${existingSections.length} sections [${getDisplayListOfSectionCodes(existingSections)}]`)
     existingSections = existingSections.filter((section) => !section.isReferenced)
-    logDebug('refreshSomeSections', `removal → ${existingSections.length} sections [${getDisplayListOfSectionCodes(existingSections)}]`)
+    logDebug('refreshSomeSections', `removal -> ${existingSections.length} sections [${getDisplayListOfSectionCodes(existingSections)}]`)
   }
 
   // force the section refresh for the wanted sections
