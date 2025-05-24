@@ -13,7 +13,7 @@ import {
   makeDashboardParas,
 } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
-import { getFilenamesOfNotesWithTagOrMentions, isTagMentionCacheAvailable, scheduleTagMentionCacheGeneration, WANTED_PARA_TYPES } from './tagMentionCache'
+import { getFilenamesOfNotesWithTagOrMentions, isTagMentionCacheAvailable, isTagMentionCacheAvailableforItem, scheduleTagMentionCacheGeneration, WANTED_PARA_TYPES } from './tagMentionCache'
 import { filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
@@ -78,7 +78,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       // Use Cache if wanted (and available), otherwise the API.
 
       let notesWithTag: Array<TNote> = []
-      const cacheIsAvailable = isTagMentionCacheAvailable()
+      const cacheIsAvailable = isTagMentionCacheAvailableforItem(sectionDetail.sectionName)
       if (config.FFlag_UseTagCache && cacheIsAvailable) {
         // Use Cache
         logInfo('getTaggedSectionData', `- using cache for ${sectionDetail.sectionName}`)

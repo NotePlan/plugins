@@ -13,6 +13,7 @@ import { getTagSectionDetails, showSectionSettingItems } from './react/component
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings.js'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
+import { updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentionCache'
 import type { TDashboardSettings, TDashboardPluginSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getPeriodOfNPDateStr } from '@helpers/dateTime'
@@ -334,6 +335,8 @@ function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, name:
 export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): Promise<boolean> {
   try {
     logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
+    // TODO(later): we need to update the tagMentionCache with the new list of wanted tags and mentions
+    updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)
     const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ''
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     pluginSettings.perspectiveSettings = perspectiveSettingsStr
