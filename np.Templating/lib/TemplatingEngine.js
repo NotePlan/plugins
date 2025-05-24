@@ -615,7 +615,7 @@ export default class TemplatingEngine {
 
       // Include original script in error message if available
       if (this.originalScript && this.originalScript.trim()) {
-        result += `\n**Original Script:**\n\`\`\`\n${this.originalScript}\n\`\`\`\n`
+        result += `\n**Original Template Body:**\n\`\`\`\n${this.originalScript}\n\`\`\`\n`
       }
 
       // Try to get AI analysis of the error
@@ -627,10 +627,30 @@ export default class TemplatingEngine {
         if (aiAnalysis && aiAnalysis.trim() && aiAnalysis !== errorMessage) {
           result = aiAnalysis
         } else {
+          // AI analysis failed or returned original error - include previous phase errors
+          if (this.previousPhaseErrors && this.previousPhaseErrors.length > 0) {
+            result += `\n**Errors from previous rendering phases:**\n`
+            this.previousPhaseErrors.forEach((err) => {
+              result += `### ${err.phase}:\n`
+              result += `Error: ${err.error}\n`
+              result += `Context: ${err.context}\n\n`
+            })
+          }
           result += '---\n'
         }
       } catch (aiError) {
         logError(pluginJson, `AI error analysis failed: ${aiError.message}`)
+
+        // Include previous phase errors in the final message when AI analysis fails
+        if (this.previousPhaseErrors && this.previousPhaseErrors.length > 0) {
+          result += `\n**Errors from previous rendering phases:**\n`
+          this.previousPhaseErrors.forEach((err) => {
+            result += `### ${err.phase}:\n`
+            result += `Error: ${err.error}\n`
+            result += `Context: ${err.context}\n\n`
+          })
+        }
+
         result += '---\n'
       }
 

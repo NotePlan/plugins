@@ -229,7 +229,7 @@ describe(`${PLUGIN_NAME}`, () => {
       let renderedData = await templateEngine.render(originalScript)
 
       expect(renderedData).toContain('Error')
-      expect(renderedData).toContain('Original Script')
+      expect(renderedData).toContain('Original Template Body')
       expect(renderedData).toContain('undefinedVariable')
     })
 
@@ -272,6 +272,44 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData).toContain('Template Rendering Error')
       expect(renderedData).not.toContain('AI Enhanced')
       expect(renderedData).toContain('badVariable')
+
+      // Restore original NotePlan
+      global.NotePlan = originalNotePlan
+    })
+
+    it(`should include previous phase errors when AI analysis fails`, async () => {
+      // Mock NotePlan.AI function to throw an error
+      const originalNotePlan = global.NotePlan
+      global.NotePlan = {
+        ...originalNotePlan,
+        ai: jest.fn().mockRejectedValue(new Error('AI service unavailable')),
+      }
+
+      const originalScript = `<% const test = badVariable %>`
+      const templateEngine = new TemplatingEngine(DEFAULT_TEMPLATE_CONFIG, originalScript)
+
+      // Simulate previous phase errors
+      templateEngine.previousPhaseErrors = [
+        {
+          phase: 'preprocessor',
+          error: 'Variable transformation failed',
+          context: 'line 3: undefined variable reference',
+        },
+        {
+          phase: 'validation',
+          error: 'Syntax validation failed',
+          context: 'missing closing bracket',
+        },
+      ]
+
+      let renderedData = await templateEngine.render(originalScript)
+
+      expect(renderedData).toContain('Template Rendering Error')
+      expect(renderedData).toContain('Errors from previous rendering phases:')
+      expect(renderedData).toContain('### preprocessor:')
+      expect(renderedData).toContain('Variable transformation failed')
+      expect(renderedData).toContain('### validation:')
+      expect(renderedData).toContain('Syntax validation failed')
 
       // Restore original NotePlan
       global.NotePlan = originalNotePlan
