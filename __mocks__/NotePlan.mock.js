@@ -29,11 +29,20 @@ export class NotePlan {
   // async resetCaches() { return null },
   selectedSidebarFolder = `SelectedFolder`
   // async showConfigurationView() { return null },
-  constructor(data?: any = {}) {
+
+  /**
+   * Mock AI function for testing
+   */
+  static ai(prompt, filenames = [], useStrictFilenames = false, model = 'gpt-4') {
+    // Return a mock AI response for testing
+    return Promise.resolve(`Mock AI Analysis: This appears to be a template error. Please check your variable definitions and syntax.`)
+  }
+
+  constructor(data = {}) {
     this.__update(data)
   }
 
-  __update(data?: any = {}) {
+  __update(data = {}) {
     Object.keys(data).forEach((key) => {
       this[key] = data[key]
     })

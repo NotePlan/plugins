@@ -1,3 +1,4 @@
+// global beforeEach, afterEach
 // @flow
 /**
  * @fileoverview Tests for shared prompt functions
@@ -5,8 +6,11 @@
 
 import { describe, expect, it } from '@jest/globals'
 import { parseStringOrRegex } from '../lib/support/modules/prompts/sharedPromptFunctions'
+import { DataStore } from '@mocks/index'
 
 describe('parseStringOrRegex', () => {
+  global.DataStore = { ...DataStore, settings: { _logLevel: 'none' } }
+
   it('should handle empty input', () => {
     expect(parseStringOrRegex('')).toBe('')
     expect(parseStringOrRegex(null)).toBe('')

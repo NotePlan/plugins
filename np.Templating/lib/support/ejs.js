@@ -436,14 +436,14 @@
                     if (line.includes('if') && line.includes('(') && !line.includes(')')) {
                       updatedLineNo = i + 1
                       errorContext = `Syntax error: missing closing parenthesis in if statement on line ${i + 1}`
-                      suggestedFix = `Check for unmatched parentheses in the if statement.`
+                      suggestedFix = '' // `Check for unmatched parentheses in the if statement.`
                       break
                     }
                     // Check for missing closing parenthesis in function declarations
                     if (line.includes('function') && line.includes('(') && !line.includes(')')) {
                       updatedLineNo = i + 1
                       errorContext = `Syntax error: missing closing parenthesis in function declaration on line ${i + 1}`
-                      suggestedFix = `Check for unmatched parentheses in the function declaration.`
+                      suggestedFix = '' // `Check for unmatched parentheses in the function declaration.`
                       break
                     }
                     // Check for missing closing braces
@@ -459,7 +459,7 @@
                       if (!foundClosingBrace) {
                         updatedLineNo = i + 1
                         errorContext = `Syntax error: missing closing brace for control structure on line ${i + 1}`
-                        suggestedFix = `Check for unmatched braces in control structures.`
+                        suggestedFix = '' // `Check for unmatched braces in control structures.`
                         break
                       }
                     }
@@ -478,7 +478,7 @@
                             } else {
                               updatedLineNo = i + 1
                               errorContext = `Syntax error: possible missing semicolon or invalid syntax on line ${i + 1}`
-                              suggestedFix = `Check for missing semicolons or proper statement termination.`
+                              suggestedFix = '' // `Check for missing semicolons or proper statement termination.`
                               break
                             }
                           }
@@ -492,7 +492,7 @@
                 if (!errorContext && jsBlockStartLine >= 0) {
                   updatedLineNo = jsBlockStartLine + 1
                   errorContext = `Syntax error in JavaScript code block starting around line ${jsBlockStartLine + 1}`
-                  suggestedFix = `Check JavaScript syntax in template code blocks.`
+                  suggestedFix = '' // `Check JavaScript syntax in template code blocks.`
                 }
               }
               // If we found a problem identifier, look for it in the template
@@ -524,22 +524,22 @@
 
                   // Provide specific guidance based on error type
                   if (err.message.includes('Cannot use the keyword')) {
-                    suggestedFix = `"${problemIdentifier}" is a JavaScript reserved word. Please use a different variable name.`
+                    suggestedFix = '' // `"${problemIdentifier}" is a JavaScript reserved word. Please use a different variable name.`
                   } else if (err.message.includes('Unexpected identifier')) {
-                    suggestedFix = `Check for missing operators, commas, or semicolons near "${problemIdentifier}".`
+                    suggestedFix = '' // `Check for missing operators, commas, or semicolons near "${problemIdentifier}".`
                   } else if (err.message.includes('Unexpected token')) {
-                    suggestedFix = `Check for syntax errors near "${problemIdentifier}".`
+                    suggestedFix = '' // `Check for syntax errors near "${problemIdentifier}".`
                   }
                 } else {
                   // Identifier not found in template - likely in a function call
                   errorInFunction = true
                   errorContext = `Syntax error with "${problemIdentifier}" - likely in a function call or data structure`
-                  suggestedFix = `Check function arguments and data structures for syntax errors.`
+                  suggestedFix = '' // `Check function arguments and data structures for syntax errors.`
                 }
               } else {
                 // Generic syntax error without clear identifier
                 errorContext = `Syntax error detected`
-                suggestedFix = `Check template for missing brackets, quotes, or semicolons.`
+                suggestedFix = '' // `Check template for missing brackets, quotes, or semicolons.`
               }
             }
             // Handle reference errors (undefined variables)
@@ -548,7 +548,7 @@
               if (varMatch && varMatch[1]) {
                 const varName = varMatch[1]
                 errorContext = `Variable "${varName}" is not defined`
-                suggestedFix = `Make sure "${varName}" is defined before use, or check for typos.`
+                suggestedFix = '' // `Make sure "${varName}" is defined before use, or check for typos.`
 
                 // Look for the variable in the template to get a better line number
                 for (let i = 0; i < lines.length; i++) {
@@ -565,11 +565,11 @@
                 const funcMatch = err.message.match(/(\w+) is not a function/)
                 if (funcMatch && funcMatch[1]) {
                   errorContext = `"${funcMatch[1]}" is not a function`
-                  suggestedFix = `Check that "${funcMatch[1]}" is correctly defined as a function.`
+                  suggestedFix = '' // `Check that "${funcMatch[1]}" is correctly defined as a function.`
                 }
               } else if (err.message.includes('Cannot read property')) {
                 errorContext = `Trying to access property of undefined or null value`
-                suggestedFix = `Make sure the object is defined before accessing its properties.`
+                suggestedFix = '' // `Make sure the object is defined before accessing its properties.`
               }
             }
 
@@ -728,19 +728,20 @@
               theMessage += '\n' + errorContext
             } else if (!lineReliable && err.message.includes('Unexpected identifier')) {
               // For unreliable line numbers with identifier errors, add specific guidance
-              theMessage += '\n\nThe error is likely in a JSON object or function parameter.'
-              theMessage += '\nCheck for these common issues:'
-              theMessage += '\n- Unbalanced quotes or brackets in JSON objects'
-              theMessage += '\n- Missing commas between properties or mixed quote styles (e.g., using both \' and ")'
-              theMessage += '\n- Invalid syntax in DataStore.invokePluginCommandByName arguments'
-              theMessage += '\n- Nested JSON objects that are not properly formatted'
+              // dbw commenting this out because we are using AI to analyze the error instead
+              // theMessage += '\n\nThe error is likely in a JSON object or function parameter.'
+              // theMessage += '\nCheck for these common issues:'
+              // theMessage += '\n- Unbalanced quotes or brackets in JSON objects'
+              // theMessage += '\n- Missing commas between properties or mixed quote styles (e.g., using both \' and ")'
+              // theMessage += '\n- Invalid syntax in DataStore.invokePluginCommandByName arguments'
+              // theMessage += '\n- Nested JSON objects that are not properly formatted'
             } else if (!lineReliable) {
               // Generic guidance for other unreliable line errors
-              theMessage += '\n\nCheck your template for syntax errors around this area.'
-              theMessage += '\nCommon template issues:'
-              theMessage += '\n- Unbalanced <%= %> tags or <% %> blocks'
-              theMessage += '\n- Unterminated strings or comments'
-              theMessage += '\n- Invalid JavaScript syntax in template expressions'
+              // theMessage += '\n\nCheck your template for syntax errors around this area.'
+              // theMessage += '\nCommon template issues:'
+              // theMessage += '\n- Unbalanced <%= %> tags or <% %> blocks'
+              // theMessage += '\n- Unterminated strings or comments'
+              // theMessage += '\n- Invalid JavaScript syntax in template expressions'
             }
 
             const errObj = {

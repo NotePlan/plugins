@@ -221,6 +221,61 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`should use templating error handler`, async () => {
       expect(true).toEqual(true)
     })
+
+    it(`should include original script in error message when provided to constructor`, async () => {
+      const originalScript = `<% const badVar = undefinedVariable %>`
+      const templateEngine = new TemplatingEngine(DEFAULT_TEMPLATE_CONFIG, originalScript)
+
+      let renderedData = await templateEngine.render(originalScript)
+
+      expect(renderedData).toContain('Error')
+      expect(renderedData).toContain('Original Script')
+      expect(renderedData).toContain('undefinedVariable')
+    })
+
+    it(`should attempt AI analysis when NotePlan.AI is available`, async () => {
+      // Mock NotePlan.AI function
+      const originalNotePlan = global.NotePlan
+      global.NotePlan = {
+        ...originalNotePlan,
+        ai: jest.fn().mockResolvedValue('AI Analysis: The variable "badVariable" is not defined. You should define it before using it in your template.'),
+      }
+
+      const originalScript = `<% const test = badVariable %>`
+      const templateEngine = new TemplatingEngine(DEFAULT_TEMPLATE_CONFIG, originalScript)
+
+      let renderedData = await templateEngine.render(originalScript)
+
+      expect(renderedData).toContain('**Templating Error Found**')
+      expect(renderedData).toContain('AI Analysis')
+
+      // Verify NotePlan.ai was called
+      expect(global.NotePlan.ai).toHaveBeenCalledWith(expect.stringContaining('You are now an expert in EJS Templates'), [], false, 'gpt-4')
+
+      // Restore original NotePlan
+      global.NotePlan = originalNotePlan
+    })
+
+    it(`should fall back to regular error when AI analysis fails`, async () => {
+      // Mock NotePlan.AI function to throw an error
+      const originalNotePlan = global.NotePlan
+      global.NotePlan = {
+        ...originalNotePlan,
+        ai: jest.fn().mockRejectedValue(new Error('AI service unavailable')),
+      }
+
+      const originalScript = `<% const test = badVariable %>`
+      const templateEngine = new TemplatingEngine(DEFAULT_TEMPLATE_CONFIG, originalScript)
+
+      let renderedData = await templateEngine.render(originalScript)
+
+      expect(renderedData).toContain('Template Rendering Error')
+      expect(renderedData).not.toContain('AI Enhanced')
+      expect(renderedData).toContain('badVariable')
+
+      // Restore original NotePlan
+      global.NotePlan = originalNotePlan
+    })
   })
 
   describe(section('Invalid Template'), () => {

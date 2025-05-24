@@ -848,6 +848,38 @@ function loadGlobalHelpers(sessionData: Object): Object {
 }
 
 /**
+ * Detects if frontmatter processing resulted in errors by checking session data for error messages
+ * @param {Object} sessionData - The session data after frontmatter processing
+ * @param {string} originalTemplateData - The original template data before processing
+ * @returns {Array<{phase: string, error: string, context: string}>} Array of detected errors
+ */
+function detectFrontmatterErrors(sessionData: any, originalTemplateData: string): Array<{ phase: string, error: string, context: string }> {
+  const errors = []
+
+  // Check session data for error messages
+  for (const [key, value] of Object.entries(sessionData)) {
+    if (typeof value === 'string') {
+      const valueStr = String(value)
+      if (
+        valueStr.includes('==**Templating Error Found**') ||
+        valueStr.includes('Template Rendering Error') ||
+        valueStr.includes('Error:') ||
+        valueStr.includes('SyntaxError:') ||
+        valueStr.includes('ReferenceError:')
+      ) {
+        errors.push({
+          phase: 'Frontmatter Processing',
+          error: `Variable "${key}" contains error: ${valueStr.substring(0, 200)}${valueStr.length > 200 ? '...' : ''}`,
+          context: `This error occurred while processing frontmatter in the original template.`,
+        })
+      }
+    }
+  }
+
+  return errors
+}
+
+/**
  * Handles frontmatter processing for templates with frontmatter.
  * @async
  * @param {string} templateData - The template data with frontmatter
@@ -999,6 +1031,9 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     sessionData = frontmatterResult.sessionData
     logProgress('Step 4: Frontmatter processing', templateData, sessionData, userOptions)
 
+    // Detect any errors from frontmatter processing
+    const frontmatterErrors = detectFrontmatterErrors(sessionData, inputTemplateData)
+
     // Check for quick template note shortcut
     if (isQuickTemplateNote(userOptions)) {
       logProgress('QUICK TEMPLATE NOTE SHORTCUT', templateData, sessionData, userOptions)
@@ -1056,9 +1091,11 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       logDebug(pluginJson, `Fast path: Template has no EJS tags, returning as plain text`)
       renderedData = protectedTemplate
     } else {
-      // Template has EJS tags, use the single TemplatingEngine instance
+      // Template has EJS tags, create a new TemplatingEngine instance with error context
+      const enhancedTemplatingEngine = new TemplatingEngine(templateConfig, inputTemplateData, frontmatterErrors)
+
       try {
-        renderedData = await templatingEngine.renderWithFallback(protectedTemplate, sessionData, userOptions)
+        renderedData = await enhancedTemplatingEngine.renderWithFallback(protectedTemplate, sessionData, userOptions)
       } catch (templateEngineError) {
         logError(pluginJson, `TemplatingEngine.renderWithFallback failed with error:`)
         clo(templateEngineError, `TemplatingEngine Error Details`)
