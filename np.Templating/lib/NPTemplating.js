@@ -14,7 +14,7 @@ import pluginJson from '../plugin.json'
 import { templateErrorMessage as templateErrorMessageHandler } from './modules'
 
 // Import from core
-import { chooseTemplate, getTemplateList, getTemplate, getTemplateAttributes, createTemplate } from './core'
+import { chooseTemplate, getTemplateList, getTemplate, getTemplateAttributes, createTemplate, getFolder } from './core'
 
 // Import from config
 import { heartbeat, setup as configSetup } from './config'
@@ -230,6 +230,25 @@ class NPTemplating {
     } catch (error) {
       clo(error, `NPTemplating.renderTemplate found error dbw1`)
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
+    }
+  }
+
+  /**
+   * Gets a folder path, either from a specified folder, the current note, or by prompting the user.
+   * This is a wrapper for the template management function with the same name.
+   * @static
+   * @async
+   * @param {string} [folder=''] - The folder to use, or special values like '<select>' or '<current>'
+   * @param {string} [promptMessage='Select folder'] - The message to display when prompting for folder selection
+   * @returns {Promise<string>} A promise that resolves to the selected folder path
+   */
+  static async getFolder(folder: string = '', promptMessage: string = 'Select folder'): Promise<string> {
+    try {
+      await this.setup()
+      return getFolder(folder, promptMessage)
+    } catch (error) {
+      logError(pluginJson, `getFolder error: ${error}`)
+      return ''
     }
   }
 }

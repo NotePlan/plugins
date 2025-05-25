@@ -15,6 +15,7 @@ import NPTemplating from '../lib/NPTemplating'
 import TemplatingEngine from '../lib/TemplatingEngine'
 import DateModule from '../lib/support/modules/DateModule'
 import TimeModule from '../lib/support/modules/TimeModule'
+import { replaceDoubleDashes } from '../lib/engine/templateRenderer'
 
 const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',
@@ -368,7 +369,7 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`_replaceDoubleDashes should replace double dashes with triple dashes for frontmatter`, async () => {
       const templateData = await factory('frontmatter-with-double-dashes.ejs')
 
-      let result = await templateInstance._replaceDoubleDashes(templateData, {}, { extended: true })
+      let result = replaceDoubleDashes(templateData)
       const lines = result.split('\n')
       expect(lines[0]).toEqual(`---`) // converted these
       expect(lines[2]).toEqual(`---`)
@@ -378,7 +379,7 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`_replaceDoubleDashes should leave double dashes in body alone`, async () => {
       const templateData = await factory('double-dashes-in-body.ejs')
 
-      let result = await templateInstance._replaceDoubleDashes(templateData, {}, { extended: true })
+      let result = replaceDoubleDashes(templateData)
       const lines = result.split('\n')
       expect(lines[1]).toEqual(`--`) // left it alone
       expect(lines[3]).toEqual(`--`)

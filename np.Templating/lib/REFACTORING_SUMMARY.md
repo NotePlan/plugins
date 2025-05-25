@@ -45,6 +45,13 @@ np.Templating/lib/
 │       ├── PromptManager.js      # Unified prompt interface
 │       ├── BasePromptHandler.js  # Base functionality for prompts
 │       └── *PromptHandler.js     # Individual prompt type handlers
+├── engine/             # TemplatingEngine modular components
+│   ├── frontmatterProcessor.js   # Frontmatter processing logic
+│   ├── templateRenderer.js       # Core EJS rendering and post-processing
+│   ├── errorProcessor.js         # Error message cleaning and formatting
+│   ├── aiAnalyzer.js             # AI analysis and error enhancement
+│   ├── pluginIntegrator.js       # Plugin integration logic
+│   └── renderOrchestrator.js     # Main render coordination and error handling
 ├── NPTemplating.js     # Main facade class
 └── TemplatingEngine.js # Template processing engine
 ```
@@ -115,6 +122,150 @@ To improve code readability and self-documentation, we've renamed several key fu
 
 These more descriptive names make the code easier to understand and maintain, providing clearer indications of each function's purpose.
 
+## TemplatingEngine Refactoring (Phase 2)
+
+### Overview
+
+Following the successful modularization of NPTemplating.js, we applied the same architectural principles to refactor the massive `TemplatingEngine.render()` method, which had grown to over 200 lines and was handling multiple responsibilities.
+
+### The Problem
+
+The original `TemplatingEngine.render()` method was a monolithic function that:
+
+- **Mixed concerns**: Frontmatter processing, template rendering, error handling, AI analysis all in one method
+- **Hard to test**: Everything was coupled together, making unit testing difficult
+- **Hard to maintain**: Changes required modifying a massive, complex method
+- **Poor error isolation**: Difficult to debug which part of the rendering pipeline was failing
+- **Code duplication**: Error handling logic was repeated and inconsistent
+
+### The Solution: Engine Module Architecture
+
+We created a new `engine/` directory following the same modular principles established in the NPTemplating refactor:
+
+```
+np.Templating/lib/engine/
+├── frontmatterProcessor.js   # Frontmatter extraction and processing
+├── templateRenderer.js       # Core EJS rendering and post-processing  
+├── errorProcessor.js         # Error message cleaning and formatting
+├── aiAnalyzer.js             # AI analysis and error enhancement
+├── pluginIntegrator.js       # Plugin integration logic
+└── renderOrchestrator.js     # Main coordination and error handling
+```
+
+### Modular Components
+
+#### 1. **frontmatterProcessor.js**
+- `processFrontmatter()` - Extracts and processes frontmatter blocks
+- `integrateFrontmatterData()` - Integrates frontmatter attributes into render context
+- Handles EJS rendering within frontmatter blocks
+- Clean separation of frontmatter logic from main rendering
+
+#### 2. **templateRenderer.js**
+- `renderTemplate()` - Core EJS rendering with proper logging
+- `postProcessResult()` - Cleans up undefined values and Promise objects
+- `replaceDoubleDashes()` - Handles frontmatter dash conversion
+- `appendPreviousPhaseErrors()` - Adds frontmatter errors to successful renders
+
+#### 3. **errorProcessor.js**
+- `cleanErrorMessage()` - Removes duplicate text and noisy parts from errors
+- `extractErrorContext()` - Extracts line numbers and context from template errors
+- `buildBasicErrorMessage()` - Creates structured error messages with context
+- `appendPreviousPhaseErrorsToError()` - Integrates previous phase errors into error messages
+
+#### 4. **aiAnalyzer.js**
+- `analyzeErrorWithAI()` - Main AI analysis coordination
+- `prepareContextInfo()` - Filters and formats render context for AI
+- `buildAIErrorTemplate()` - Creates AI analysis prompts
+- `extractProblematicLines()` - Identifies problematic code sections
+- `handleAIAnalysisResult()` - Integrates AI analysis with error messages
+
+#### 5. **pluginIntegrator.js**
+- `integratePlugins()` - Adds custom plugins to render context
+- Simple, focused responsibility for plugin integration
+
+#### 6. **renderOrchestrator.js**
+- `orchestrateRender()` - Main coordination function with clear 7-step pipeline
+- `handleRenderError()` - Comprehensive error handling with 5-step error pipeline
+- `outputDebugData()` - Consistent debug logging
+- Clear step-by-step logging for debugging
+
+### Refactored Render Pipeline
+
+The new `TemplatingEngine.render()` method is now clean and focused:
+
+```javascript
+async render(templateData, userData, ejsOptions) {
+  // Import the render orchestrator
+  const { orchestrateRender } = await import('./engine/renderOrchestrator')
+  
+  // Prepare rendering options
+  const options = { ...{ async: true, rmWhitespace: false }, ...ejsOptions }
+  
+  // Get render data with all methods and modules
+  const renderData = await this.getRenderDataWithMethods(templateData, userData)
+  
+  // Delegate to the modular render orchestrator
+  return await orchestrateRender(
+    templateData, renderData, options, 
+    this.templatePlugins, this.originalScript, this.previousPhaseErrors
+  )
+}
+```
+
+### Clear Processing Steps
+
+#### **Render Pipeline (7 Steps):**
+1. **Process frontmatter** - Extract and process frontmatter blocks
+2. **Integrate frontmatter data** - Add frontmatter attributes to render context
+3. **Integrate custom plugins** - Add registered plugins to render context
+4. **Render template with EJS** - Core template rendering
+5. **Post-process result** - Clean up undefined values and Promise objects
+6. **Append previous phase errors** - Add frontmatter errors if any exist
+7. **Final formatting** - Handle double-dash conversion and final cleanup
+
+#### **Error Handling Pipeline (5 Steps):**
+1. **Clean error message** - Remove duplicate text and noisy parts
+2. **Extract error context** - Get line numbers and surrounding code
+3. **Build basic error message** - Create structured error with context
+4. **Try AI analysis** - Attempt AI-enhanced error explanation
+5. **Handle AI analysis result** - Integrate AI analysis with previous phase errors
+
+### Benefits Achieved
+
+#### **Maintainability**
+- Each module has a single, clear responsibility
+- Changes can be made to specific aspects without affecting others
+- Code is self-documenting with clear function names
+
+#### **Testability**
+- Individual functions can be unit tested in isolation
+- Error handling can be tested separately from rendering
+- AI analysis can be mocked and tested independently
+
+#### **Debugging**
+- Clear step-by-step logging shows exactly where issues occur
+- Error handling pipeline makes it easy to identify failure points
+- Modular structure allows targeted debugging
+
+#### **Extensibility**
+- New error processing can be added by extending errorProcessor
+- Additional rendering steps can be added to the orchestrator
+- AI analysis can be enhanced without touching core rendering
+
+#### **Consistency**
+- Error message formatting is now consistent across all error types
+- Previous phase errors are handled uniformly
+- Debug logging follows consistent patterns
+
+### Naming Consistency
+
+The TemplatingEngine refactor follows the same naming conventions established in the NPTemplating refactor:
+
+- **Descriptive module names**: `frontmatterProcessor`, `templateRenderer`, `errorProcessor`
+- **Clear function names**: `processFrontmatter()`, `renderTemplate()`, `cleanErrorMessage()`
+- **Consistent directory structure**: `engine/` follows the same pattern as `core/`, `utils/`, `rendering/`
+- **Single responsibility**: Each module handles one specific aspect of template processing
+
 ## Benefits of the New Architecture
 
 1. **Maintainability**: Each module has a single responsibility, making changes safer and more focused.
@@ -122,6 +273,7 @@ These more descriptive names make the code easier to understand and maintain, pr
 3. **Extensibility**: New functionality can be added by creating new modules or extending existing ones without modifying core code.
 4. **Readability**: Code is organized by function, making it easier to find and understand specific parts.
 5. **Collaborability**: Multiple developers can work on different modules simultaneously with fewer conflicts.
+6. **Debugging**: Clear separation and step-by-step logging makes issues easier to isolate and fix.
 
 ## Testing Considerations
 
@@ -150,9 +302,24 @@ The modular architecture provides significant opportunities for improved testing
    - `tempSaveIgnoredCodeBlocks()`
    - `restoreCodeBlocks()`
 
-3. **Mock Independence**: Better separation of concerns makes it easier to mock dependencies and test components in isolation.
+3. **TemplatingEngine Pipeline Tests**: Each step in the TemplatingEngine render pipeline can be tested independently:
+   - `processFrontmatter()`
+   - `integrateFrontmatterData()`
+   - `integratePlugins()`
+   - `renderTemplate()`
+   - `postProcessResult()`
+   - `appendPreviousPhaseErrors()`
 
-4. **Test-Driven Development**: Future additions can follow TDD practices by testing new module functions independently.
+4. **Error Handling Tests**: Each step in the error handling pipeline can be tested independently:
+   - `cleanErrorMessage()`
+   - `extractErrorContext()`
+   - `buildBasicErrorMessage()`
+   - `analyzeErrorWithAI()`
+   - `handleAIAnalysisResult()`
+
+5. **Mock Independence**: Better separation of concerns makes it easier to mock dependencies and test components in isolation.
+
+6. **Test-Driven Development**: Future additions can follow TDD practices by testing new module functions independently.
 
 ### Recommended New Tests
 
@@ -166,6 +333,10 @@ The modular architecture provides significant opportunities for improved testing
 
 5. **Tag Processing Tests**: Tests for individual tag processing functions
 
+6. **TemplatingEngine Module Tests**: Tests for each engine module function
+
+7. **AI Analysis Tests**: Tests for AI error analysis with mocked AI responses
+
 ## Future Improvements
 
 While the current refactoring has significantly improved the architecture, there are opportunities for further enhancements:
@@ -176,7 +347,11 @@ While the current refactoring has significantly improved the architecture, there
 4. **Unit tests** for each module to ensure reliability
 5. **Type system improvements** to provide better static analysis
 6. **Removal of deprecated methods** in a future major version
+7. **Performance optimization** of the modular pipeline
+8. **Enhanced AI analysis** with better context and error detection
 
 ## Conclusion
 
-The refactoring of NPTemplating has transformed it from a monolithic codebase into a modular, maintainable system while preserving backward compatibility. The new architecture provides a solid foundation for future enhancements and makes the codebase more accessible to developers who want to understand or contribute to it. 
+The refactoring of both NPTemplating and TemplatingEngine has transformed the codebase from monolithic, hard-to-maintain files into a modular, maintainable system while preserving backward compatibility. The new architecture provides a solid foundation for future enhancements and makes the codebase more accessible to developers who want to understand or contribute to it.
+
+The consistent naming conventions, clear separation of concerns, and step-by-step processing pipelines make the code self-documenting and easy to debug. The modular structure enables targeted testing, easier maintenance, and safer feature additions. 
