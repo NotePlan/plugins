@@ -229,7 +229,7 @@ describe(`${PLUGIN_NAME}`, () => {
       let renderedData = await templateEngine.render(originalScript)
 
       expect(renderedData).toContain('Error')
-      expect(renderedData).toContain('Original Template Body')
+      expect(renderedData).toContain('Template')
       expect(renderedData).toContain('undefinedVariable')
     })
 

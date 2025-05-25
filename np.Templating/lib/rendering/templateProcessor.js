@@ -869,7 +869,7 @@ function detectFrontmatterErrors(sessionData: any, originalTemplateData: string)
       ) {
         errors.push({
           phase: 'Frontmatter Processing',
-          error: `Variable "${key}" contains error: ${valueStr.substring(0, 200)}${valueStr.length > 200 ? '...' : ''}`,
+          error: `Variable "${key}" contains error:\n${valueStr.substring(0, 200)}${valueStr.length > 200 ? '...' : ''}`,
           context: `This error occurred while processing frontmatter in the original template.`,
         })
       }
@@ -1077,7 +1077,7 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     // Step 10: Perform the actual template rendering
     logDebug(pluginJson, `render: STARTING render sequence`)
     logDebug(pluginJson, `Template content being sent to TemplatingEngine: "${protectedTemplate}"`)
-    logDebug(pluginJson, `Template has EJS tags: ${protectedTemplate.includes('<%')}`)
+    logDebug(pluginJson, `Template has EJS tags: ${String(protectedTemplate.includes('<%'))}`)
     logDebug(pluginJson, `Template length: ${protectedTemplate.length}`)
 
     let renderedData
@@ -1085,9 +1085,9 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     // Fast path: if template has no EJS tags, return as-is (no need for TemplatingEngine)
     // Exception: if template contains backtick-wrapped code like `<%- something %>`, still process it
     const hasEJSTags = protectedTemplate.includes('<%')
-    const hasBacktickWrappedEJS = /`[^`]*<%.*?%>.*?`/.test(protectedTemplate)
+    const hasBacktickWrappedEJS = /`[^`]*<%.*?%>.*?`/.test(protectedTemplate) // This is probably redundant
 
-    if (!hasEJSTags && !hasBacktickWrappedEJS) {
+    if (!hasEJSTags && !hasBacktickWrappedEJS && frontmatterErrors.length === 0) {
       logDebug(pluginJson, `Fast path: Template has no EJS tags, returning as plain text`)
       renderedData = protectedTemplate
     } else {

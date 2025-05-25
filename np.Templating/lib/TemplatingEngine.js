@@ -16,7 +16,7 @@ import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import TasksModule from '@templatingModules/TasksModule'
 
 import pluginJson from '../plugin.json'
-import { clo, log, logDebug, logError } from '@helpers/dev'
+import { clo, log, logDebug, logError, timer } from '@helpers/dev'
 
 // Import utility functions from the new structure
 import { getProperyValue, dt } from './utils'
@@ -532,10 +532,22 @@ export default class TemplatingEngine {
         /\[object Promise\]/g,
         `[object Promise] (**Templating was not able to get the result of this tag. Try adding an 'await' before the function call. See documentation for more information.**)`,
       )
+
+      // Include frontmatter errors in successful renders if they exist
+      if (this.previousPhaseErrors && this.previousPhaseErrors.length > 0) {
+        result += `\n\n---\n**Note: Issues occurred during frontmatter processing:**\n`
+        this.previousPhaseErrors.forEach((err) => {
+          result += `### ${err.phase}:\n`
+          result += `Error: ${err.error}\n`
+          result += `Context: ${err.context}\n\n`
+        })
+        result += '---\n'
+      }
+
       return this._replaceDoubleDashes(result)
     } catch (error) {
-      logDebug(`render CAUGHT np.Templating error: ${typeof error === 'object' ? JSON.stringify(error, null, 2) : error}`)
-      logDebug(`render catch: DETAILED ERROR INFO: line=${error.line}, column=${error.column}, message=${error.message}`)
+      logDebug(`TemplatingEngine::render CAUGHT error: ${typeof error === 'object' ? JSON.stringify(error, null, 2) : error}`)
+      logDebug(`TemplatingEngine::render catch: DETAILED ERROR INFO: line=${error.line}, column=${error.column}, message=${error.message}`)
       ouputData('after catching render error')
 
       // Improved error message formatting
@@ -615,13 +627,15 @@ export default class TemplatingEngine {
 
       // Include original script in error message if available
       if (this.originalScript && this.originalScript.trim()) {
-        result += `\n**Original Template Body:**\n\`\`\`\n${this.originalScript}\n\`\`\`\n`
+        result += `\n**Template:**\n\`\`\`\n${this.originalScript}\n\`\`\`\n`
       }
 
       // Try to get AI analysis of the error
       try {
         logDebug(pluginJson, `Attempting AI analysis of template error`)
+        const startTime = new Date()
         const aiAnalysis = await this.analyzeErrorWithAI(errorMessage, processedTemplateData, renderData)
+        logDebug(pluginJson, `TemplatingEngine::render AI analysis took ${timer(startTime)}`)
 
         // If AI analysis was successful and returned something useful, use it as the primary message
         if (aiAnalysis && aiAnalysis.trim() && aiAnalysis !== errorMessage) {
@@ -636,6 +650,17 @@ export default class TemplatingEngine {
               result += `Context: ${err.context}\n\n`
             })
           }
+          result += '---\n'
+        }
+
+        // Always append previous phase errors in a clear section, even when AI analysis succeeds
+        if (this.previousPhaseErrors && this.previousPhaseErrors.length > 0) {
+          result += `\n**Additional Issues from Previous Processing Phases:**\n`
+          this.previousPhaseErrors.forEach((err) => {
+            result += `### ${err.phase}:\n`
+            result += `**Error:** ${err.error}\n`
+            result += `**Context:** ${err.context}\n\n`
+          })
           result += '---\n'
         }
       } catch (aiError) {
