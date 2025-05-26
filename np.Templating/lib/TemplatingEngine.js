@@ -241,8 +241,7 @@ export default class TemplatingEngine {
    */
   async renderWithFallback(templateData: string, userData: any = {}, ejsOptions: any = {}): Promise<string> {
     try {
-      logDebug(pluginJson, `renderWithFallback START: template to render: "${templateData}"`)
-      logDebug(pluginJson, `renderWithFallback First try to render the template in one shot`)
+      logDebug(pluginJson, `renderWithFallback: attempting single-pass render`)
       const result = await this.render(templateData, userData, ejsOptions)
       if (result.includes('Error:')) {
         logError(pluginJson, `renderWithFallback ERROR: ${result}`)
@@ -437,7 +436,7 @@ export default class TemplatingEngine {
     })
 
     renderData.np = { ...renderData }
-    logDebug(pluginJson, `getRenderDataWithMethods returning renderData keys: ${Object.keys(renderData).join(', ')}`)
+    logDebug(pluginJson, `Loaded ${Object.keys(renderData).length} render data keys`)
     return renderData
   }
 

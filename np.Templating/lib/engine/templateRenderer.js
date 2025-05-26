@@ -18,12 +18,9 @@ import pluginJson from '../../plugin.json'
  * @returns {Promise<string>} The rendered template result
  */
 export async function renderTemplate(processedTemplateData: string, renderData: Object, options: Object): Promise<string> {
-  logDebug(pluginJson, `templateRenderer: BEFORE render`)
-  logDebug(pluginJson, `templateRenderer: just before ejs.render renderData keys: ${Object.keys(renderData).join(', ')}`)
+  logDebug(pluginJson, `EJS render: ${Object.keys(renderData).length} data keys available`)
 
-  let result = await ejs.render(processedTemplateData, renderData, options)
-
-  logDebug(pluginJson, `templateRenderer: AFTER render`)
+  const result = await ejs.render(processedTemplateData, renderData, options)
 
   return result
 }
@@ -72,13 +69,14 @@ export function replaceDoubleDashes(templateData: string): string {
  */
 export function appendPreviousPhaseErrors(result: string, previousPhaseErrors: Array<{ phase: string, error: string, context: string }>): string {
   if (previousPhaseErrors && previousPhaseErrors.length > 0) {
-    result += `\n\n---\n**Note: Issues occurred during frontmatter processing:**\n`
+    let updatedResult = result + `\n\n---\n**Note: Issues occurred during frontmatter processing:**\n`
     previousPhaseErrors.forEach((err) => {
-      result += `### ${err.phase}:\n`
-      result += `Error: ${err.error}\n`
-      result += `Context: ${err.context}\n\n`
+      updatedResult += `### ${err.phase}:\n`
+      updatedResult += `Error: ${err.error}\n`
+      updatedResult += `Context: ${err.context}\n\n`
     })
-    result += '---\n'
+    updatedResult += '---\n'
+    return updatedResult
   }
   return result
 }
