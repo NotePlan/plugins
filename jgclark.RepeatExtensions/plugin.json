@@ -46,20 +46,12 @@
       "description": "If set, it will delete rather than keep the completed repeated item.",
       "type": "bool",
       "default": false,
-        "required": true
-      },
-      {
-        "key": "dontLookForRepeatsInDoneOrArchive",
-        "title": "Don't look for repeats in Done or Archive note sections?",
-        "description": "If set, it will not look for repeats in the ## Done or ## Archive sections of notes.",
-        "type": "bool",
-        "default": false,
       "required": true
     },
     {
-      "key": "runTaskSorter",
-      "title": "Run Task Sorter after changes?",
-      "description": "If set, it will run the '/Tasks Sort by User Default' command (from 'Task Sorting & Tools' plugin) after generating repeats.",
+      "key": "dontLookForRepeatsInDoneOrArchive",
+      "title": "Don't look for repeats in Done or Archive note sections?",
+      "description": "If set, it will not look for repeats in the ## Done or ## Archive sections of notes.",
       "type": "bool",
       "default": false,
       "required": true
