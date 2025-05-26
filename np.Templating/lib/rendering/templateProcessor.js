@@ -31,24 +31,35 @@ import { log, logError, logDebug, logWarn, clo } from '@helpers/dev'
  * @param {string} templateData - Current template data
  * @param {Object} [sessionData] - Current session data (optional)
  * @param {Object} [userOptions] - User options (optional)
+ * @param {boolean} [verbose=false] - Whether to log full details (default: false for less verbosity)
  */
-export function logProgress(stepDescription: string, templateData: string, sessionData?: Object, userOptions?: Object): void {
+export function logProgress(stepDescription: string, templateData: string, sessionData?: Object, userOptions?: Object, verbose: boolean = false): void {
   logDebug(`🔄 TEMPLATE PROCESSOR: ${stepDescription}`)
-  logDebug(`📄 Template Data (${templateData.length} chars): ${templateData.substring(0, 200)}${templateData.length > 200 ? '...' : ''}`)
 
-  if (sessionData) {
+  // Only log template data if verbose mode is on or if it's a key step
+  const isKeyStep = stepDescription.includes('START') || stepDescription.includes('COMPLETE') || stepDescription.includes('ERROR')
+  if (verbose || isKeyStep) {
+    logDebug(`📄 Template Data (${templateData.length} chars): ${templateData.substring(0, 200)}${templateData.length > 200 ? '...' : ''}`)
+  }
+
+  if (sessionData && (verbose || isKeyStep)) {
     const sessionKeys = Object.keys(sessionData)
     logDebug(`📊 Session Data Keys: [${sessionKeys.join(', ')}]`)
-    if (sessionKeys.length > 0) {
+
+    // Only log full session data details in verbose mode
+    if (verbose && sessionKeys.length > 0) {
       logDebug(`📊 Session Data Details: ${JSON.stringify(sessionData)}`)
     }
   }
 
-  if (userOptions) {
+  if (userOptions && verbose) {
     clo(userOptions, `⚙️ User Options`)
   }
 
-  logDebug(`🔄 TEMPLATE PROCESSOR END: ${stepDescription}`)
+  // Only log end marker for key steps or in verbose mode
+  if (verbose || isKeyStep) {
+    logDebug(`🔄 TEMPLATE PROCESSOR END: ${stepDescription}`)
+  }
 }
 
 /**

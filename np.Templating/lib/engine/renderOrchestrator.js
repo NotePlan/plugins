@@ -36,36 +36,34 @@ export async function orchestrateRender(
   previousPhaseErrors: Array<{ phase: string, error: string, context: string }>,
 ): Promise<string> {
   try {
+    logDebug('RENDER ENGINE: Starting template rendering process')
+
     // Step 1: Process frontmatter if present
-    logDebug(`🚒 RENDER ENGINE STEP 1: Processing frontmatter`)
     const { processedTemplateData, frontmatterData } = await processFrontmatter(templateData, renderData)
 
     // Step 2: Integrate frontmatter data into render context
-    logDebug(`🚒 RENDER ENGINE STEP 2: Integrating frontmatter data`)
     const enhancedRenderData = integrateFrontmatterData(renderData, frontmatterData)
 
     // Step 3: Integrate custom plugins
-    logDebug(`🚒 RENDER ENGINE STEP 3: Integrating custom plugins`)
     const finalRenderData = integratePlugins(enhancedRenderData, templatePlugins)
 
     // Step 4: Render the template
-    logDebug(`🚒 RENDER ENGINE STEP 4: Rendering template with EJS`)
     outputDebugData('Before template rendering', finalRenderData)
     let result = await renderTemplate(processedTemplateData, finalRenderData, options)
 
     // Step 5: Post-process the result
-    logDebug(`🚒 RENDER ENGINE STEP 5: Post-processing result`)
     result = postProcessResult(result)
 
     // Step 6: Append previous phase errors if any exist
-    logDebug(`🚒 RENDER ENGINE STEP 6: Checking for previous phase errors`)
-    result = appendPreviousPhaseErrors(result, previousPhaseErrors)
+    if (previousPhaseErrors && previousPhaseErrors.length > 0) {
+      logDebug(`RENDER ENGINE: Appending ${previousPhaseErrors.length} previous phase errors`)
+      result = appendPreviousPhaseErrors(result, previousPhaseErrors)
+    }
 
     // Step 7: Final formatting
-    logDebug(`🚒 RENDER ENGINE STEP 7: Final formatting`)
     result = replaceDoubleDashes(result)
 
-    logDebug(`✅ RENDER ENGINE COMPLETE: Successfully rendered template`)
+    logDebug(`🚒 ✅ RENDER ENGINE COMPLETE: Successfully rendered template`)
     return result
   } catch (error) {
     logDebug(`❌ RENDER ENGINE ERROR: Template rendering failed`)
