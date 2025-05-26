@@ -1,7 +1,8 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
-<!-- - FIXME: new setting "Run Task Sorter after changes?", which use the 'Task Sorting & Tools' Plugin command to sort tasks after generating repeats, using the user's default sort order (set in that plugin's settings). -->
+## [0.9.1] - 2025-??? 
+- FIXME: new setting "Run Task Sorter after changes?", which use the 'Task Sorting & Tools' Plugin command to sort tasks after generating repeats, using the user's default sort order (set in that plugin's settings).
 
 ## [0.9.0] - 2025-05-26
 ### Changed
