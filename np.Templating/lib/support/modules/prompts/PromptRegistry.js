@@ -6,6 +6,7 @@
 
 import pluginJson from '../../../../plugin.json'
 import { log, logError, logDebug } from '@helpers/dev'
+import { escapeRegExp } from '@helpers/regex'
 
 /**
  * @typedef {Object} PromptType
@@ -431,7 +432,12 @@ export async function processPrompts(
           logDebug(pluginJson, 'Prompt was cancelled, returning false')
           return false // Immediately return false if any prompt is cancelled
         }
-        sessionTemplateData = sessionTemplateData.replace(tag, processedTag)
+        // prompts with variable setting but no output and a slurping tag at the end will be processed here
+        // in all other scenarios we can let EJS deal with the slurping
+        // the edge case here is that it will greedy chomp multiple newlines which the user may not want
+        const doChomp = tag.endsWith('-%>') && processedTag === ''
+        const replaceWhat = doChomp ? new RegExp(`${escapeRegExp(tag)}\\s*\\n*`) : tag
+        sessionTemplateData = sessionTemplateData.replace(replaceWhat, processedTag)
       } catch (error) {
         logError(pluginJson, `Error processing prompt tag: ${error.message}`)
         // Replace the problematic tag with an error comment
