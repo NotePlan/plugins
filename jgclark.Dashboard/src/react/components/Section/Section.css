@@ -8,6 +8,7 @@
 	grid-template-rows: min-content;
 	/* turn on top border (from theme CSS) */
 	border-bottom: 1px solid var(--divider-color);
+	position: relative;
 }
 
 .sectionInfo {
@@ -20,6 +21,16 @@
 	color: var(--fg-sidebar-color);
 	background-color: var(--bg-sidebar-color);
 	border-right: 1px solid var(--divider-color);
+}
+
+/* Idea: For referenced sections, e.g. >This Month, add a dashed top border. TODO(later): get this working. See post in KP Discord about it on 26.5.2025 */
+.referencedSectionInfo {
+	border-top: 1px dashed var(--divider-color);
+}
+
+/* Idea: For referenced sections, e.g. >This Month. As above, but indented slightly. TODO(later): decide whether to keep this. */
+.sectionInfoIndented {
+	padding-inline-start: 1.6rem;
 }
 
 /* first part of sectionInfo. Grid to contain sectionIcon, sectionName, .buttonsWithoutBordersOrBackground */
@@ -143,6 +154,10 @@
 		border-bottom: solid 1px var(--divider-color);
 		padding-top: 0.2rem;
 		padding-bottom: 0.1rem;
+	}
+
+	.sectionInfoIndented {
+		padding-inline-start: 1.0rem;
 	}
 
 	.sectionName {

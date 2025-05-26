@@ -102,7 +102,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
     }
   }
   // clo(nextProjectsToReview, "nextProjectsToReview")
-  let sectionDescription = `{count} project{s} ready to review`
+  let sectionDescription = `{countWithLimit} projects ready to review`
   if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
 
   const section = {
