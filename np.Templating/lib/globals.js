@@ -23,7 +23,7 @@ import { getWeather } from './support/modules/weather'
 import { getWeatherSummary } from './support/modules/weatherSummary'
 import { parseJSON5 } from '@helpers/general'
 import { getSetting } from '../../helpers/NPConfiguration'
-import { log, logError, clo } from '@helpers/dev'
+import { log, logError, clo, logDebug } from '@helpers/dev'
 import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 import { getNote } from '@helpers/note'
 import { journalingQuestion } from './support/modules/journal'
@@ -135,7 +135,8 @@ const globals = {
     if (formatParam.length > 0) {
       weatherFormat = formatParam
     }
-    return weatherFormat === 0 ? await getWeather() : await getWeatherSummary(weatherFormat)
+    logDebug(`weather format: "${weatherFormat}", will call ${weatherFormat.length === 0 ? 'getWeather' : 'getWeatherSummary'}`)
+    return weatherFormat.length === 0 ? await getWeather() : await getWeatherSummary(weatherFormat)
   },
 
   date8601: async (): Promise<string> => {

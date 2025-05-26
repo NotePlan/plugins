@@ -266,10 +266,9 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
               sessionData[varName] = response
               logDebug(pluginJson, `Stored response in sessionData[${varName}] = "${response}"`)
 
-              // Return a reference to the variable for the template engine if it's not a var assignment
-              const result = `${tagStart}- ${varName} ${tagEnd}`
-              logDebug(pluginJson, `Returning variable reference: "${result}"`)
-              return result
+              // For variable assignments, return empty string (no output)
+              logDebug(pluginJson, `Variable assignment completed - returning empty string`)
+              return ''
             }
           }
 
@@ -312,10 +311,9 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
               // Store the fixed response
               sessionData[varName] = fixedResponse
 
-              // Return a reference to the variable for the template engine
-              const result = `${tagStart}- ${varName} ${tagEnd}`
-              logDebug(pluginJson, `Returning variable reference: "${result}"`)
-              return result
+              // For variable assignments, return empty string (no output)
+              logDebug(pluginJson, `Variable assignment completed - returning empty string`)
+              return ''
             } catch (fixError) {
               logError(pluginJson, `Error fixing prompt: ${fixError.message}`)
             }
@@ -325,10 +323,9 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
           sessionData[varName] = response
           logDebug(pluginJson, `Stored response in sessionData[${varName}] = "${response}"`)
 
-          // Return a reference to the variable for the template engine unless it's just var setting
-          const result = assignmentMatch ? '' : `${tagStart}- ${varName} ${tagEnd}`
-          logDebug(pluginJson, `Returning variable reference: "${result}"`)
-          return result
+          // For variable assignments, always return empty string (no output)
+          logDebug(pluginJson, `Variable assignment completed - returning empty string`)
+          return ''
         } catch (error) {
           logError(pluginJson, `Error processing prompt type ${name} in variable assignment: ${error.message}`)
           return `<!-- Error processing prompt in variable assignment: ${error.message} -->`
@@ -373,12 +370,20 @@ export async function processPromptTag(tag: string, sessionData: any, tagStart: 
             sessionData[params.varName] = response
             sessionData[cleanedVarName] = response
 
-            // Return the variable reference for the template using the cleaned name
-            logDebug(pluginJson, `PromptRegistry::processPromptTag Creating variable reference: ${cleanedVarName} -- "${tagStart}- ${cleanedVarName} ${tagEnd}"`)
-            return `${tagStart}- ${cleanedVarName} ${tagEnd}`
+            // Check if this is an output tag (<%- ... %>) or execution tag (<% ... %>)
+            const isOutputTag = tag.startsWith(`${tagStart}-`)
+            if (isOutputTag) {
+              // For output tags, return the variable reference to output the value
+              logDebug(pluginJson, `PromptRegistry::processPromptTag Creating variable reference for output: ${cleanedVarName} -- "${tagStart}- ${cleanedVarName} ${tagEnd}"`)
+              return `${tagStart}- ${cleanedVarName} ${tagEnd}`
+            } else {
+              // For execution tags, return empty string (no output)
+              logDebug(pluginJson, `PromptRegistry::processPromptTag Execution tag completed - returning empty string`)
+              return ''
+            }
           }
 
-          // If no variable name, return the response directly
+          // If no variable name, return the response directly (this shouldn't happen for prompts)
           return response
         } catch (error) {
           logError(pluginJson, `Error processing prompt type ${name}: ${error.message}`)
