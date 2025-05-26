@@ -37,38 +37,38 @@ export async function orchestrateRender(
 ): Promise<string> {
   try {
     // Step 1: Process frontmatter if present
-    logDebug(pluginJson, `🔄 RENDER STEP 1: Processing frontmatter`)
+    logDebug(`🚒 RENDER ENGINE STEP 1: Processing frontmatter`)
     const { processedTemplateData, frontmatterData } = await processFrontmatter(templateData, renderData)
 
     // Step 2: Integrate frontmatter data into render context
-    logDebug(pluginJson, `🔄 RENDER STEP 2: Integrating frontmatter data`)
+    logDebug(`🚒 RENDER ENGINE STEP 2: Integrating frontmatter data`)
     const enhancedRenderData = integrateFrontmatterData(renderData, frontmatterData)
 
     // Step 3: Integrate custom plugins
-    logDebug(pluginJson, `🔄 RENDER STEP 3: Integrating custom plugins`)
+    logDebug(`🚒 RENDER ENGINE STEP 3: Integrating custom plugins`)
     const finalRenderData = integratePlugins(enhancedRenderData, templatePlugins)
 
     // Step 4: Render the template
-    logDebug(pluginJson, `🔄 RENDER STEP 4: Rendering template with EJS`)
+    logDebug(`🚒 RENDER ENGINE STEP 4: Rendering template with EJS`)
     outputDebugData('Before template rendering', finalRenderData)
     let result = await renderTemplate(processedTemplateData, finalRenderData, options)
 
     // Step 5: Post-process the result
-    logDebug(pluginJson, `🔄 RENDER STEP 5: Post-processing result`)
+    logDebug(`🚒 RENDER ENGINE STEP 5: Post-processing result`)
     result = postProcessResult(result)
 
     // Step 6: Append previous phase errors if any exist
-    logDebug(pluginJson, `🔄 RENDER STEP 6: Checking for previous phase errors`)
+    logDebug(`🚒 RENDER ENGINE STEP 6: Checking for previous phase errors`)
     result = appendPreviousPhaseErrors(result, previousPhaseErrors)
 
     // Step 7: Final formatting
-    logDebug(pluginJson, `🔄 RENDER STEP 7: Final formatting`)
+    logDebug(`🚒 RENDER ENGINE STEP 7: Final formatting`)
     result = replaceDoubleDashes(result)
 
-    logDebug(pluginJson, `✅ RENDER COMPLETE: Successfully rendered template`)
+    logDebug(`✅ RENDER ENGINE COMPLETE: Successfully rendered template`)
     return result
   } catch (error) {
-    logDebug(pluginJson, `❌ RENDER ERROR: Template rendering failed`)
+    logDebug(`❌ RENDER ENGINE ERROR: Template rendering failed`)
     return await handleRenderError(error, templateData, renderData, originalScript, previousPhaseErrors)
   }
 }
@@ -89,8 +89,8 @@ async function handleRenderError(
   originalScript: string,
   previousPhaseErrors: Array<{ phase: string, error: string, context: string }>,
 ): Promise<string> {
-  logDebug(pluginJson, `🔧 ERROR HANDLING STEP 1: Cleaning error message`)
-  logDebug(pluginJson, `Raw error: ${typeof error === 'object' ? JSON.stringify(error, null, 2) : error}`)
+  logDebug(`🔧 RENDER ENGINE ERROR HANDLING STEP 1: Cleaning error message`)
+  logDebug(`Raw error: ${typeof error === 'object' ? JSON.stringify(error, null, 2) : error}`)
   outputDebugData('Error context render data')
 
   // Step 1: Clean the error message
@@ -98,20 +98,20 @@ async function handleRenderError(
   const cleanedErrorMessage = cleanErrorMessage(rawErrorMessage)
 
   // Step 2: Extract error context
-  logDebug(pluginJson, `🔧 ERROR HANDLING STEP 2: Extracting error context`)
+  logDebug(`🔧 RENDER ENGINE ERROR HANDLING STEP 2: Extracting error context`)
   const { contextLines, lineInfo, adjustedLine } = extractErrorContext(error, processedTemplateData)
 
   // Step 3: Build basic error message
-  logDebug(pluginJson, `🔧 ERROR HANDLING STEP 3: Building basic error message`)
+  logDebug(`🔧 RENDER ENGINE ERROR HANDLING STEP 3: Building basic error message`)
   const basicErrorMessage = buildBasicErrorMessage(cleanedErrorMessage, lineInfo, contextLines, originalScript)
 
   // Step 4: Try AI analysis
-  logDebug(pluginJson, `🔧 ERROR HANDLING STEP 4: Attempting AI analysis`)
+  logDebug(`🔧 RENDER ENGINE ERROR HANDLING STEP 4: Attempting AI analysis`)
   try {
     const aiAnalysis = await analyzeErrorWithAI(rawErrorMessage, processedTemplateData, renderData, originalScript, previousPhaseErrors)
 
     // Step 5: Handle AI analysis result
-    logDebug(pluginJson, `🔧 ERROR HANDLING STEP 5: Processing AI analysis result`)
+    logDebug(`🔧 RENDER ENGINE ERROR HANDLING STEP 5: Processing AI analysis result`)
     const finalResult = handleAIAnalysisResult(aiAnalysis, basicErrorMessage, rawErrorMessage, previousPhaseErrors)
 
     return finalResult.replace(/\n\n/g, '\n')
@@ -119,7 +119,7 @@ async function handleRenderError(
     logError(pluginJson, `AI error analysis failed: ${aiError.message}`)
 
     // Step 5 (fallback): Handle error without AI analysis
-    logDebug(pluginJson, `🔧 ERROR HANDLING STEP 5 (FALLBACK): Processing without AI analysis`)
+    logDebug(`🔧 RENDER ENGINE ERROR HANDLING STEP 5 (FALLBACK): Processing without AI analysis`)
     let result = basicErrorMessage
     result = appendPreviousPhaseErrorsToError(result, previousPhaseErrors)
 
@@ -138,7 +138,7 @@ function outputDebugData(message: string, renderData: Object = {}): void {
    * @param {Object} obj - The object to extract properties from
    * @returns {Object} A new object containing only the top-level primitive properties
    */
-  const getTopLevelProps = (obj) =>
+  const getTopLevelProps = (obj: Object) =>
     Object.entries(obj).reduce((acc, [key, value]) => (typeof value !== 'object' || value === null || typeof value === 'function' ? { ...acc, [key]: value } : acc), {})
 
   clo(getTopLevelProps(renderData), `🔍 Templating context object (top level values only) ${message}`)

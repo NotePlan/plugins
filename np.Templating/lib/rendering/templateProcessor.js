@@ -33,12 +33,12 @@ import { log, logError, logDebug, logWarn, clo } from '@helpers/dev'
  * @param {Object} [userOptions] - User options (optional)
  */
 export function logProgress(stepDescription: string, templateData: string, sessionData?: Object, userOptions?: Object): void {
-  logDebug(pluginJson, `🔄 RENDER PROGRESS: ${stepDescription}`)
-  logDebug(pluginJson, `📄 Template Data (${templateData.length} chars): ${templateData.substring(0, 200)}${templateData.length > 200 ? '...' : ''}`)
+  logDebug(`🔄 TEMPLATE PROCESSOR: ${stepDescription}`)
+  logDebug(`📄 Template Data (${templateData.length} chars): ${templateData.substring(0, 200)}${templateData.length > 200 ? '...' : ''}`)
 
   if (sessionData) {
     const sessionKeys = Object.keys(sessionData)
-    logDebug(pluginJson, `📊 Session Data Keys: [${sessionKeys.join(', ')}]`)
+    logDebug(`📊 Session Data Keys: [${sessionKeys.join(', ')}]`)
     if (sessionKeys.length > 0) {
       logDebug(`📊 Session Data Details: ${JSON.stringify(sessionData)}`)
     }
@@ -48,7 +48,7 @@ export function logProgress(stepDescription: string, templateData: string, sessi
     clo(userOptions, `⚙️ User Options`)
   }
 
-  logDebug(pluginJson, `🔄 END STEP: ${stepDescription}`)
+  logDebug(`🔄 TEMPLATE PROCESSOR END: ${stepDescription}`)
 }
 
 /**
