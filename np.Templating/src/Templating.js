@@ -112,7 +112,7 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
       const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
       // $FlowIgnore
-      const renderedTemplate = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+      const renderedTemplate = await NPTemplating.render(frontmatterBody, frontmatterAttributes, { frontmatterProcessed: true })
 
       Editor.insertTextAtCursor(renderedTemplate)
     } else {
@@ -144,7 +144,7 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
       let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
 
-      let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
+      let renderedTemplate = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
 
       const location = frontmatterAttributes?.location || 'append'
       if (location === 'cursor') {
@@ -179,7 +179,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
       let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
-      const templateResult = await NPTemplating.render(frontmatterBody, data)
+      const templateResult = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
 
       const location = frontmatterAttributes?.location || 'append'
 
@@ -280,7 +280,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
         },
       }
       clo(data, `🤵 DBWDELETEME NPTemplating.templateNew2 before render filename=${filename} args=`)
-      const templateResult = await NPTemplating.render(frontmatterBody, data)
+      const templateResult = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
       logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 templateResult = ${templateResult}`)
 
       await Editor.openNoteByFilename(filename)
@@ -365,7 +365,7 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
           }
 
           // $FlowIgnore
-          let finalRenderedData = await NPTemplating.render(frontmatterBody, data)
+          let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
 
           await Editor.openNoteByFilename(filename)
 
@@ -471,7 +471,7 @@ export async function templateMeetingNote(templateName: string = '', templateDat
             },
           }
 
-          let finalRenderedData = await NPTemplating.render(frontmatterBody, data)
+          let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
 
           await Editor.openNoteByFilename(filename)
 

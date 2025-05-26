@@ -479,7 +479,6 @@ export default class BasePromptHandler {
 
       // Split the parameters by comma, ignoring commas in placeholders
       const params = processedContent.split(/\s*,\s*/)
-      logDebug(pluginJson, `BasePromptHandler params split: ${JSON.stringify(params)}`)
 
       // Validate and assign parameters based on noVar flag
       if (noVar) {
