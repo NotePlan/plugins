@@ -6,13 +6,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component)
 - TODO: ^⌥s triggers the search bar
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
+- TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
 ## [2.3.0.b2] 2025-05-23
 - restored the tagMentionCache FFlag for DBW
 - turned off full cache generation on startup (or Hard Refresh) if logging mode is DEV (or for JGC)
-- lots of re-work of tagMentionCache
-- TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
+- lots of re-work of tagMentionCache. In particular will not to full generate if cache is missing (or incomplete), but instead fall back to use the API, and schedule full generation after the rest of the Dashboard has been generated.
 - show TAG sections that have no items
 - added little circles for task completion in section headings, and tweaked the text after it
 

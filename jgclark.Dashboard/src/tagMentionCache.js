@@ -38,7 +38,7 @@ const regenerateTagMentionCachePref = 'jgclark.Dashboard.tagMentionCache.regener
 
 // TODO(later): remove some of these in time
 const TAG_CACHE_ONLY_FOR_OPEN_ITEMS = true // WARNING: if false, then for JGC the cache file is 20x larger.
-const TAG_CACHE_FOR_ALL_TAGS = true // if true, then will cache all tags, otherwise will cache only the wanted items
+const TAG_CACHE_FOR_ALL_TAGS = false // if true, then will cache all tags, otherwise will cache only the wanted items
 // If TAG_CACHE_FOR_ALL_TAGS is true, then will use this 'blacklist' of tags/mentions
 const EXCLUDED_TAGS_OR_MENTIONS = ['@done', '@start', '@review', '@reviewed', '@completed', '@cancelled']
 
@@ -57,6 +57,20 @@ function clearTagMentionCacheGeneration(): void {
 
 export function isTagMentionCacheAvailable(): boolean {
   return DataStore.fileExists(tagMentionCacheFile)
+}
+
+export function isTagMentionCacheAvailableforItem(item: string): boolean {
+  if (isTagMentionCacheAvailable()) {
+    const cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
+    const parsedCache = JSON.parse(cache)
+    const wantedItems = parsedCache.wantedItems
+
+    const result = wantedItems.includes(item)
+    logInfo('isTagMentionCacheAvailableforItem', `-> ${item}: ${result}`)
+    return result
+  } else {
+    return false
+  }
 }
 
 export function isTagMentionCacheGenerationScheduled(): boolean {
@@ -83,38 +97,59 @@ export function getTagMentionCacheDefinitions(): Array<string> {
 }
 
 /**
- * Add a new mention or tag to the wantedTagMentionsList.json file.
- * @param {string} mentionOrTag The mention or tag to add.
+ * Add new mention(s) and/or tag(s) to the wantedTagMentionsList.json file.
+ * @param {Array<string>} mentionOrTagsIn The mention(s) and/or tag(s) to add
  */
-export function addTagMentionCacheDefinition(mentionOrTagIn: string): void {
-  const mentionOrTag = mentionOrTagIn.trim()
-  const itemList: Array<string> = getTagMentionCacheDefinitions()
+export function addTagMentionCacheDefinitions(mentionOrTagsIn: Array<string>): void {
+  const existingItems: Array<string> = getTagMentionCacheDefinitions()
+  const newItems: Array<string> = existingItems
   // But only add if it's not already in the list
-  if (!itemList.includes(mentionOrTag)) {
-    itemList.push(mentionOrTag)
+  for (const mentionOrTag of mentionOrTagsIn) {
+    const mentionOrTagTrimmed = mentionOrTag.trim()
+    if (!existingItems.includes(mentionOrTagTrimmed)) {
+      newItems.push(mentionOrTagTrimmed)
+    }
   }
-  DataStore.saveData(JSON.stringify({ items: itemList }), wantedTagMentionsListFile, true)
+  DataStore.saveData(JSON.stringify({ items: newItems }), wantedTagMentionsListFile, true)
+
+  // If we have added items, and only want named items, then kick off regeneration of the cache now
+  if (!TAG_CACHE_FOR_ALL_TAGS && newItems.length > existingItems.length) {
+    logInfo('addTagMentionCacheDefinitions', `- added ${newItems.length - existingItems.length} new items, and so need to kick off regeneration of the cache now.`)
+    // eslint-disable-next-line require-await
+    const _promise = generateTagMentionCache()
+  }
 }
 
 /**
- * Set the tag and mentions to the wantedTagMentionsList.json file.
- * Note: see following variant that works out all tags/mentions of interest given the current perspectives.
- * @param {Array<string>} items The items to set.
+ * Set the tag(s) and/or mention(s) by writing to the wantedTagMentionsList.json file.
+ * @param {Array<string>} wantedItems The items to set
  */
-export function setTagMentionCacheDefinitions(items: Array<string>): void {
-  const cache = {
-    items: items,
+export function setTagMentionCacheDefinitions(wantedItems: Array<string>): void {
+  const oldItems = getTagMentionCacheDefinitions()
+  const cacheDefinitions = {
+    items: wantedItems,
   }
-  DataStore.saveData(JSON.stringify(cache), wantedTagMentionsListFile, true)
-  logInfo('setTagMentionCacheDefinitions', `Saved [${String(items)}] items to ${wantedTagMentionsListFile}`)
+  DataStore.saveData(JSON.stringify(cacheDefinitions), wantedTagMentionsListFile, true)
+  logInfo('setTagMentionCacheDefinitions', `Saved [${String(wantedItems)}] items to ${wantedTagMentionsListFile}`)
+
+  // If we only want named items, and there are items in the new list that are not in the old list, then kick off regeneration of the cache now
+  if (!TAG_CACHE_FOR_ALL_TAGS) {
+    const newItems = wantedItems
+    const missingItems = newItems.filter((item) => !oldItems.includes(item))
+    if (missingItems.length > 0) {
+      logInfo('setTagMentionCacheDefinitions', `- ${missingItems.length} new items not in old list, and so need to kick off regeneration of the cache now`)
+      // eslint-disable-next-line require-await
+      const _promise = generateTagMentionCache()
+    }
+  }
 }
 
 /**
  * Set the tag and mentions to the wantedTagMentionsList.json file based on the current perspectives.
  */
-export function setTagMentionCacheDefinitionsFromAllPerspectives(allPerspectiveDefs: Array<TPerspectiveDef>): void {
-  const wantedItems = getListOfWantedTagsAndMentionsFromAllPerspectives(allPerspectiveDefs)
-  setTagMentionCacheDefinitions(wantedItems)
+export function updateTagMentionCacheDefinitionsFromAllPerspectives(allPerspectiveDefs: Array<TPerspectiveDef>): void {
+  const updatedWantedItems = getListOfWantedTagsAndMentionsFromAllPerspectives(allPerspectiveDefs)
+  setTagMentionCacheDefinitions(updatedWantedItems)
 }
 
 /**
@@ -140,9 +175,10 @@ export async function getFilenamesOfNotesWithTagOrMentions(
       const missingItems = tagOrMentions.filter((item) => !wantedItems.includes(item))
       if (missingItems.length > 0) {
         logWarn('getFilenamesOfNotesWithTagOrMentions', `Warning: the following tags/mentions are not in the wantedTagMentionsList.json filename: [${String(missingItems)}]. Will use the API instead, and then regenerate the cache.`)
-        setTagMentionCacheDefinitions(wantedItems.concat(missingItems))
-        scheduleTagMentionCacheGeneration()
-        // Update the cache, in case that does pick up a few of this new item
+        addTagMentionCacheDefinitions(missingItems)
+        // Note: we don't need to schedule a regeneration of the cache here, as the addTagMentionCacheDefinitions() function will do that for us.
+
+        // But we will still do an update of the cache, which is quick, in case that does pick up a few of this new item
         await updateTagMentionCache()
       }
     } else {
@@ -159,6 +195,8 @@ export async function getFilenamesOfNotesWithTagOrMentions(
     const parsedCache = JSON.parse(cache)
     const regularNoteItems = parsedCache.regularNotes
     const calNoteItems = parsedCache.calendarNotes
+    logInfo('getFilenamesOfNotesWithTagOrMentions', `Regular notes in cache: ${String(regularNoteItems.length)}`)
+    logInfo('getFilenamesOfNotesWithTagOrMentions', `Calendar notes in cache: ${String(calNoteItems.length)}`)
     const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
 
     // Get matching Calendar notes using Cache
@@ -173,6 +211,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(
 
     // If wanted, compare the Cache results with API results
     if (turnOnAPIComparison) {
+      logInfo('getFilenamesOfNotesWithTagOrMentions', `- getting matching notes from API ready for comparison`)
       const thisStartTime = new Date()
       let matchingNotesFromAPI: Array<TNote> = []
       for (const tagOrMention of tagOrMentions) {
@@ -326,7 +365,7 @@ export async function updateTagMentionCache(): Promise<void> {
       scheduleTagMentionCacheGeneration()
       return
     }
-    // Get the list of wanted tags, mentions, and para types
+    // Get the list of wanted tags and mentions
     const wantedItems = getTagMentionCacheDefinitions()
     const data = DataStore.loadData(tagMentionCacheFile, true) ?? ''
     const cache = JSON.parse(data)
@@ -348,12 +387,12 @@ export async function updateTagMentionCache(): Promise<void> {
     // Find all notes updated since the last time this was run
     const jsdateToStartLooking = momPrevious.toDate()
     const numDaysBack = momPrevious.diff(momNow, 'days', true) // don't round to nearest integer
-    // Note: This operations takes >500ms for JGC
+    // Note: This operations takes >500ms for JGC.
+    // TODO(later): we have asked @EduardMe for a special API to get notes changed in a given time period, but it's not available yet.
     const recentlychangedNotes = getNotesChangedInInterval(numDaysBack).filter((n) => n.changedDate >= jsdateToStartLooking)
     logTimer('updateTagMentionCache', startTime, `Found ${recentlychangedNotes.length} changed notes in that time`)
 
     // For each note, get wanted tags and mentions, and overwrite the existing cache details
-    // Possible TODO: Idea: don't do filtering by wantedItems; it probably costs very little to keep track of them all, and then avoids more generations later
     let c = 0
     for (const note of recentlychangedNotes) {
       const isCalendarNote = note.type === 'Calendar'
@@ -493,6 +532,13 @@ export function getWantedTagOrMentionListFromNote(
     const mentionSet = new CaseInsensitiveSet(seenWantedMentions)
     const distinctMentions: Array<string> = [...mentionSet]
 
+    let tagsAndMentions = distinctTags.concat(distinctMentions)
+
+    // Restrict to certain para types, if wanted
+    if (WANTED_PARA_TYPES.length > 0) {
+      tagsAndMentions = filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(note, tagsAndMentions, WANTED_PARA_TYPES, includeNoteTags)
+    }
+
     // If FFlag_UseNoteTags is true, include the frontmatter tags in the results
     const seenWantedNoteTagsOrMentions: Array<string> = []
     if (includeNoteTags && noteHasFrontMatter(note)) {
@@ -504,12 +550,7 @@ export function getWantedTagOrMentionListFromNote(
       }
     }
 
-    let tagsAndMentions = distinctTags.concat(distinctMentions).concat(seenWantedNoteTagsOrMentions)
-
-    // Restrict to certain para types, if wanted
-    if (WANTED_PARA_TYPES.length > 0) {
-      tagsAndMentions = filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(note, tagsAndMentions, WANTED_PARA_TYPES, includeNoteTags)
-    }
+    tagsAndMentions = tagsAndMentions.concat(seenWantedNoteTagsOrMentions)
 
     if (tagsAndMentions.length > 0) {
       const distinctTagsAndMentions = [...new Set(tagsAndMentions)]

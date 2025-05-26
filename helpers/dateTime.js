@@ -491,7 +491,7 @@ export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
  */
 export function getDateStringFromCalendarFilename(filenameIn: string, returnISODate: boolean = false): string {
   try {
-    logDebug('gDSFCF', `for ${filenameIn} ...`)
+    // logDebug('gDSFCF', `for ${filenameIn} ...`)
     const parsedDetails = parseTeamspaceFilename(filenameIn)
     const filenameWithoutTeamspaceID = parsedDetails.filename
     // logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)

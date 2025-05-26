@@ -790,15 +790,16 @@ export function findNotesMatchingHashtagOrMention(
             caseInsensitiveIncludes(item, n.mentions)
       })
     }
-    if (notesWithItem.length > 0) {
-      logDebug('NPnote/findNotesMatchingHashtagOrMention', `In folder '${folder ?? '<all>'}' found ${notesWithItem.length} notes matching '${item}'`)
+    if (notesWithItem.length === 0) {
+      logDebug('NPnote/findNotesMatchingHashtagOrMention', `-> no notes matching '${item}'`)
+      return []
     }
+    logDebug('NPnote/findNotesMatchingHashtagOrMention', `In folder '${folder ?? '<all>'}' found ${notesWithItem.length} notes matching '${item}'`)
 
     // Restrict to certain para types, if wanted
     if (wantedParaTypes.length > 0) {
-      logDebug('NPnote/findNotesMatchingHashtagOrMention', `Before filtering to only include notes with wanted para types: ${String(wantedParaTypes)} we have ${String(notesWithItem.length)} notes`)
       notesWithItem = notesWithItem.filter((n) => filterTagsOrMentionsInNoteByWantedParaTypes(n, [item], wantedParaTypes).length > 0)
-      logDebug('NPnote/findNotesMatchingHashtagOrMention', `After filtering, ${String(notesWithItem.length)} notes`)
+      logDebug('NPnote/findNotesMatchingHashtagOrMention', `After filtering to only include notes with wanted para types [${String(wantedParaTypes)}] -> ${String(notesWithItem.length)} notes`)
     }
 
     // If we care about the excluded item, then further filter out notes where it is found
@@ -836,17 +837,17 @@ function filterTagsOrMentionsInNoteByWantedParaTypes(
     // Filter items based on paragraph types and note tags
     const filteredItems = tagsOrMentions.filter(item => {
       const paragraphsWithItem = note.paragraphs.filter(p => caseInsensitiveSubstringMatch(item, p.content))
-      // logDebug('filterTagsOrMentionsInNoteByWantedParaTypes', `Found ${paragraphsWithItem.length} paragraphs with item ${item} in ${note.filename}:`)
+      // logDebug('NPnote/filterTagsOMINBWPT', `Found ${paragraphsWithItem.length} paragraphs with item ${item} in ${note.filename}:`)
       const hasValidParagraphType = paragraphsWithItem.some(p => wantedParaTypes.includes(p.type))
 
       return hasValidParagraphType
     })
 
-    logInfo('filterTagsOrMentionsInNoteByWantedParaTypes', `Found ${filteredItems.length} of ${tagsOrMentions.length} wanted tags/mentions in ${note.filename}: [${String(filteredItems)}]`)
+    // logDebug('NPnote/filterTagsOMINBWPT', `Found ${filteredItems.length} of ${tagsOrMentions.length} wanted tags/mentions in ${note.filename}: [${String(filteredItems)}]`)
 
     return filteredItems
   } catch (error) {
-    logError('filterTagsOrMentionsInNoteByWantedParaTypes', `Error filtering items in note ${note.filename}: ${error.message}`)
+    logError('NPnote/filterTagsOMINBWPT', `Error filtering items in note ${note.filename}: ${error.message}`)
     return []
   }
 }
