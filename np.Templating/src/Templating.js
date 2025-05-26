@@ -20,9 +20,9 @@ import { showMessage } from '@helpers/userInput'
 
 // helpers
 import { getWeatherSummary } from '../lib/support/modules/weatherSummary'
+import { getWeather } from '../lib/support/modules/weather'
 import { getAffirmation } from '../lib/support/modules/affirmation'
 import { getAdvice } from '../lib/support/modules/advice'
-import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 
