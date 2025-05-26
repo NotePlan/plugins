@@ -1,6 +1,11 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.14.8] - 2025-03-18 @cwhittl
+- Introduces a trigger capability that allows generating repeats for notes from the past four days when working within a calendar note. This feature is not recommended for regular notes, refer to the repeat extension for that use case. 
+The trigger line is:
+`triggers: onEditorWillSave => np.Tidy.generateRepeatsFromRecentNotes.`
+
 ## [0.14.7] - 2025-02-18 @jgclark
 - Stop lots of popups appearing when running **/Generate @repeats in recent notes** command (thanks, @kanera).
 - The **/List stubs** command now understands line links (and so ignores the part of the link after the `^` character) (thanks, @ChrisMetcalf).
