@@ -205,7 +205,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(true)
     })
     test('true for a teamspace filename', () => {
-      const result = dt.isDailyDateStr('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250429.md')
+      const result = dt.isDailyDateStr('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250429.md')
       expect(result).toEqual(true)
     })
     test('true for an ISO date', () => {
@@ -474,8 +474,8 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual('20250422')
     })
     test('should return teamspace YYYYMMDD for a valid ISO date string', () => {
-      const result = dt.convertISODateFilenameToNPDayFilename('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-04-22.md')
-      expect(result).toEqual('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
+      const result = dt.convertISODateFilenameToNPDayFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-04-22.md')
+      expect(result).toEqual('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
     })
     test('should return YYYYMMDD for a valid teamspace date string', () => {
       const result = dt.convertISODateFilenameToNPDayFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2020-04-22.txt')
@@ -1051,11 +1051,11 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual('(invalid date)')
     })
     test('should return valid date for teamspace daily calendar filename', () => {
-      const result = dt.getDateStringFromCalendarFilename('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
+      const result = dt.getDateStringFromCalendarFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
       expect(result).toEqual('20250422')
     })
     test('should return valid date for teamspace weekly calendar filename', () => {
-      const result = dt.getDateStringFromCalendarFilename('%%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-W01.txt')
+      const result = dt.getDateStringFromCalendarFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-W01.txt')
       expect(result).toEqual('2025-W01')
     })
   })
