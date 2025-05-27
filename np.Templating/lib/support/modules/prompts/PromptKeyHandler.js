@@ -10,6 +10,7 @@ import { parseStringOrRegex } from './sharedPromptFunctions'
 import { log, logError, logDebug } from '@helpers/dev'
 import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 import { chooseOptionWithModifiers } from '@helpers/userInput'
+import { getRandomUUID } from '@helpers/general'
 
 /**
  * Handler for promptKey functionality.
@@ -263,8 +264,9 @@ export default class PromptKeyHandler {
 
     logDebug(pluginJson, `PromptKeyHandler.process: Starting with tagKey="${tagKey}", promptMessage="${promptMessage}"`)
 
-    // For promptKey, use tagKey as the variable name for storing in session data
-    const sessionVarName = tagKey.replace(/ /gi, '_').replace(/\?/gi, '')
+    // dbw is commenting this out because promptKey is actually not going to have a var. It must return the value.
+    // For promptKey, no variable name is created in session data, so we have to make one up
+    const sessionVarName = `promptKey_${tagKey}_${getRandomUUID()}`.replace(/ /gi, '_').replace(/\?/gi, '')
 
     // Use the common method to check if the value in session data is valid
     if (sessionData[sessionVarName] && BasePromptHandler.isValidSessionValue(sessionData[sessionVarName], 'promptKey', sessionVarName)) {
@@ -279,9 +281,13 @@ export default class PromptKeyHandler {
 
       logDebug(pluginJson, `PromptKeyHandler.process: Got response: ${String(response)}`)
 
-      // Store response with appropriate variable name
-      sessionData[sessionVarName] = response
-      return response
+      // Store response with appropriate variable name -- not used at the moment
+      // sessionData[sessionVarName] = response
+      // const startTag = tag.split(' ')[0]
+      // const endTag = tag.endsWith('-%>') ? '-%>' : '%>'
+      // const replacementTag = `${startTag} ${sessionVarName} ${endTag}` // not returning this for now
+
+      return response // always returns the value
     } catch (error) {
       logError(pluginJson, `Error processing promptKey: ${error.message}`)
       return ''

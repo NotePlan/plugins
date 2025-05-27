@@ -41,7 +41,7 @@ Tags: <% const selectedTag = promptTag("Select a tag:") -%><%- selectedTag %>
 `
 
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
+    const { sessionTemplateData, sessionData } = await processPrompts(template, {})
 
     // Verify the session data contains our variables
     expect(sessionData).toHaveProperty('category')
@@ -86,7 +86,7 @@ Tags: <% const selectedTag = promptTag("Select a tag:") -%><%- selectedTag %>
 `
 
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
+    const { sessionTemplateData, sessionData } = await processPrompts(template, {})
 
     // Verify all variables were set in the session data
     expect(sessionData).toHaveProperty('projectType')

@@ -158,7 +158,7 @@ Example test:
 describe('MyListPrompt', () => {
   test('should handle basic prompt correctly', async () => {
     const templateData = "<%- promptList('Select an item:') %>"
-    const result = await processPrompts(templateData, {}, '<%', '%>')
+    const result = await processPrompts(templateData, {})
     expect(result).toBe(expectedValue)
   })
   

@@ -22,63 +22,63 @@ export type headingLevelType = 1 | 2 | 3 | 4 | 5
  */
 export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
   // This is how private keys work in actual Javascript now.
-  #keysMap: Map<string, string> = new Map < string, string > ()
+  #keysMap: Map<string, string> = new Map<string, string>()
 
-constructor(iterable ?: Iterable < [string, TVal] >) {
-  super()
-  if (iterable) {
-    for (const [key, value] of iterable) {
-      this.set(key, value)
+  constructor(iterable?: Iterable<[string, TVal]>) {
+    super()
+    if (iterable) {
+      for (const [key, value] of iterable) {
+        this.set(key, value)
+      }
     }
   }
-}
 
-set(key: string, value: TVal): this {
-  const keyLowerCase = typeof key === 'string' ? key.toLowerCase() : key
-  if (!this.#keysMap.has(keyLowerCase)) {
-    this.#keysMap.set(keyLowerCase, key) // e.g. 'test': 'TEst'
-    // console.log(`new map entry: public '${keyLowerCase}' and private '${key}'`)
+  set(key: string, value: TVal): this {
+    const keyLowerCase = typeof key === 'string' ? key.toLowerCase() : key
+    if (!this.#keysMap.has(keyLowerCase)) {
+      this.#keysMap.set(keyLowerCase, key) // e.g. 'test': 'TEst'
+      // console.log(`new map entry: public '${keyLowerCase}' and private '${key}'`)
+    }
+    super.set(keyLowerCase, value) // set main Map to use 'test': value
+    return this
   }
-  super.set(keyLowerCase, value) // set main Map to use 'test': value
-  return this
-}
 
-get(key: string): TVal | void {
-  return typeof key === 'string' ? super.get(key.toLowerCase()) : super.get(key)
-}
+  get(key: string): TVal | void {
+    return typeof key === 'string' ? super.get(key.toLowerCase()) : super.get(key)
+  }
 
-has(key: string): boolean {
-  return typeof key === 'string' ? super.has(key.toLowerCase()) : super.has(key)
-}
+  has(key: string): boolean {
+    return typeof key === 'string' ? super.has(key.toLowerCase()) : super.has(key)
+  }
 
-delete (key: string): boolean {
-  const keyLowerCase = typeof key === 'string' ? (key.toLowerCase(): string) : key
-  this.#keysMap.delete(keyLowerCase)
+  delete(key: string): boolean {
+    const keyLowerCase = typeof key === 'string' ? (key.toLowerCase(): string) : key
+    this.#keysMap.delete(keyLowerCase)
 
-  return super.delete(keyLowerCase)
-}
+    return super.delete(keyLowerCase)
+  }
 
-clear(): void {
-  this.#keysMap.clear()
+  clear(): void {
+    this.#keysMap.clear()
     super.clear()
-}
-
-keys(): Iterator < string > {
-  return this.#keysMap.values()
-}
-
-  * entries(): Iterator < [string, TVal] > {
-    for(const [keyLowerCase, value] of super.entries()) {
-  const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
-  yield[key, value]
-}
   }
 
-forEach(callbackfn: (value: TVal, key: string, map: Map<string, TVal>) => mixed): void {
-  for(const [keyLowerCase, value] of super.entries()) {
-  const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
-  callbackfn(value, key, this)
-}
+  keys(): Iterator<string> {
+    return this.#keysMap.values()
+  }
+
+  *entries(): Iterator<[string, TVal]> {
+    for (const [keyLowerCase, value] of super.entries()) {
+      const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
+      yield [key, value]
+    }
+  }
+
+  forEach(callbackfn: (value: TVal, key: string, map: Map<string, TVal>) => mixed): void {
+    for (const [keyLowerCase, value] of super.entries()) {
+      const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
+      callbackfn(value, key, this)
+    }
   }
 }
 
@@ -116,7 +116,6 @@ export class CaseInsensitiveSet extends Set<string> {
     return super.delete(value)
   }
 }
-
 
 //-------------------------------------------------------------------------------
 // Parsing structured data functions
@@ -186,7 +185,9 @@ export function displayTitle(n: ?CoreNoteFields): string {
       return getDateStringFromCalendarFilename(n.filename)
     }
   } else {
-    if (n.title) { return n.title }
+    if (n.title) {
+      return n.title
+    }
   }
   return '(error)'
 }
@@ -564,12 +565,12 @@ export function formatWithFields(templateString: string, fieldValues: { [string]
 }
 
 /**
- * Get a random GUID/UUID.
+ * Get a random GUID/UUID - getRandomUUID
  * @author @dwertheimer
  * @param { number } - string length of the GUID to return (default, all 36 chars)
  * @returns {string} - the GUID, e.g. "95d92b5c-f19b-45d9-bbd1-759e4f2206ea"
  */
-export function CreateUUID(howManyChars: number = 37): string {
+export function getRandomUUID(howManyChars: number = 37): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
     .replace(/[xy]/g, function (c) {
       const r = (Math.random() * 16) | 0,

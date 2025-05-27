@@ -917,7 +917,7 @@ async function processFrontmatter(
 
   for (const [key, value] of Object.entries(attributes)) {
     let frontMatterValue = value
-    const promptData = await processPrompts(value, updatedSessionData, '<%', '%>')
+    const promptData = await processPrompts(value, updatedSessionData)
 
     if (promptData === false) {
       return { templateData: '', sessionData: updatedSessionData }
@@ -945,7 +945,7 @@ async function processFrontmatter(
  * @returns {Promise<{templateData: string, sessionData: Object}|false>} Updated template and session data, or false if canceled
  */
 async function processTemplatePrompts(templateData: string, sessionData: Object): Promise<{ templateData: string, sessionData: Object } | false> {
-  const promptData = await processPrompts(templateData, sessionData, '<%', '%>', getTags)
+  const promptData = await processPrompts(templateData, sessionData)
 
   if (promptData === false) {
     return false

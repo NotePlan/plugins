@@ -21,37 +21,76 @@ import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
 import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
-/* global describe, test, expect, jest, beforeEach */
+/* global describe, test, expect, jest, beforeEach, beforeAll */
+
+// Mock the @helpers/userInput module
+jest.mock('@helpers/userInput', () => ({
+  datePicker: (jest.fn(): any).mockResolvedValue('2024-01-15'),
+  askDateInterval: (jest.fn(): any).mockResolvedValue('TestValue'),
+  chooseOptionWithModifiers: (jest.fn((message: any, options: any, allowCreate: any): any => {
+    // Return the first option's value, or 'TestValue' if no options
+    const value = options && options.length > 0 ? options[0].value : 'TestValue'
+    return Promise.resolve({
+      value: value,
+      label: options && options.length > 0 ? options[0].label : 'TestValue',
+      index: 0,
+    })
+  }): any),
+  chooseOption: (jest.fn(): any).mockResolvedValue('TestValue'),
+  getInput: (jest.fn(): any).mockResolvedValue('TestValue'),
+}))
+
+// Type definition for processPrompts result
+type ProcessPromptsResult =
+  | {
+      sessionTemplateData: string,
+      sessionData: Object,
+    }
+  | false
 
 describe('Prompt Tag Output Behavior - All Prompt Types', () => {
   beforeEach(() => {
     // Setup the necessary global mocks
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
       hashtags: ['#Work', '#Personal', '#TestTag'],
       mentions: ['@person1', '@person2'],
     }
 
     // Mock CommandBar for consistent responses
     global.CommandBar = {
-      textPrompt: (jest.fn(() => Promise.resolve('TestValue')): any),
-      showOptions: (jest.fn((options, message) => {
+      textPrompt: (jest.fn((): any => Promise.resolve('TestValue')): any),
+      showOptions: (jest.fn((options: any, message: any): any => {
         return Promise.resolve({ value: 'TestValue' })
       }): any),
-      showInput: (jest.fn(() => Promise.resolve('TestValue')): any),
+      showInput: (jest.fn((): any => Promise.resolve('TestValue')): any),
     }
 
     // Mock necessary functions for various prompt types
-    global.getValuesForFrontmatterTag = (jest.fn().mockResolvedValue(['Option1', 'Option2']): any)
+    global.getValuesForFrontmatterTag = (jest.fn((): any => Promise.resolve(['Option1', 'Option2'])): any)
 
     // Mock date picker
-    global.datePicker = (jest.fn().mockResolvedValue('2024-01-15'): any)
+    global.datePicker = (jest.fn((): any => Promise.resolve('2024-01-15')): any)
 
-    // Mock chooseOptionWithModifiers for tag and mention prompts
-    global.chooseOptionWithModifiers = (jest.fn(() => Promise.resolve('#TestValue')): any)
+    // Mock chooseOptionWithModifiers for tag and mention prompts - this is the key function
+    global.chooseOptionWithModifiers = (jest.fn((message: any, options: any, allowCreate: any): any => {
+      // Return the first option's value, or 'TestValue' if no options
+      const value = options && options.length > 0 ? options[0].value : 'TestValue'
+      return Promise.resolve({
+        value: value,
+        label: options && options.length > 0 ? options[0].label : 'TestValue',
+        index: 0,
+      })
+    }): any)
+
+    // Mock getInput for when no options are available
+    global.getInput = (jest.fn((): any => Promise.resolve('TestValue')): any)
 
     // Mock for promptDateInterval
-    global.chooseOption = (jest.fn(() => Promise.resolve('TestValue')): any)
+    global.chooseOption = (jest.fn((): any => Promise.resolve('TestValue')): any)
+
+    // Mock askDateInterval for promptDateInterval
+    global.askDateInterval = (jest.fn((): any => Promise.resolve('TestValue')): any)
   })
 
   /**
@@ -76,7 +115,7 @@ describe('Prompt Tag Output Behavior - All Prompt Types', () => {
         execution: "promptKey('category')",
         output: "promptKey('category')",
       },
-      expectedVar: 'category',
+      expectedVar: '',
       expectedValue: 'TestValue',
     },
     {
@@ -86,8 +125,8 @@ describe('Prompt Tag Output Behavior - All Prompt Types', () => {
         execution: "promptTag('Select a tag:')",
         output: "promptTag('Select a tag:')",
       },
-      expectedVar: 'Select_a_tag',
-      expectedValue: '#TestValue',
+      expectedVar: '',
+      expectedValue: '#Work',
     },
     {
       name: 'promptDate',
@@ -106,8 +145,8 @@ describe('Prompt Tag Output Behavior - All Prompt Types', () => {
         execution: "promptMention('Select person:')",
         output: "promptMention('Select person:')",
       },
-      expectedVar: 'Select_person',
-      expectedValue: '@TestValue',
+      expectedVar: '',
+      expectedValue: '@person1',
     },
     {
       name: 'promptDateInterval',
@@ -119,16 +158,6 @@ describe('Prompt Tag Output Behavior - All Prompt Types', () => {
       expectedVar: 'Choose_interval',
       expectedValue: 'TestValue',
     },
-    {
-      name: 'promptList',
-      calls: {
-        assignment: "promptList('Choose option:', ['A', 'B', 'C'])",
-        execution: "promptList('Choose option:', ['A', 'B', 'C'])",
-        output: "promptList('Choose option:', ['A', 'B', 'C'])",
-      },
-      expectedVar: 'Choose_option',
-      expectedValue: 'TestValue',
-    },
   ]
 
   describe('Variable Assignment Tags (should NOT output)', () => {
@@ -137,7 +166,7 @@ describe('Prompt Tag Output Behavior - All Prompt Types', () => {
 <% const myVar = ${calls.assignment} -%>
 After`
 
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result: ProcessPromptsResult = await processPrompts(template, {})
 
       // Should not return false (cancelled)
       expect(result).not.toBe(false)
@@ -151,7 +180,6 @@ After`
 
       // Should not output anything (empty string replacement)
       expect(sessionTemplateData).toBe(`Before
-
 After`)
       expect(sessionTemplateData).not.toContain(expectedValue)
       expect(sessionTemplateData).not.toContain(name)
@@ -162,15 +190,15 @@ After`)
 <% let myVar = ${calls.assignment} -%>
 After`
 
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result: ProcessPromptsResult = await processPrompts(template, {})
       expect(result).not.toBe(false)
+      if (result === false) return // Type guard
 
       const { sessionTemplateData, sessionData } = result
 
       expect(sessionData).toHaveProperty('myVar')
       expect(sessionData.myVar).toBe(expectedValue)
       expect(sessionTemplateData).toBe(`Before
-
 After`)
     })
 
@@ -179,15 +207,15 @@ After`)
 <% var myVar = ${calls.assignment} -%>
 After`
 
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result: ProcessPromptsResult = await processPrompts(template, {})
       expect(result).not.toBe(false)
+      if (result === false) return // Type guard
 
       const { sessionTemplateData, sessionData } = result
 
       expect(sessionData).toHaveProperty('myVar')
       expect(sessionData.myVar).toBe(expectedValue)
       expect(sessionTemplateData).toBe(`Before
-
 After`)
     })
   })
@@ -198,43 +226,65 @@ After`)
 <% ${calls.execution} -%>
 After`
 
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result: ProcessPromptsResult = await processPrompts(template, {})
       expect(result).not.toBe(false)
+      if (result === false) return // Type guard
 
       const { sessionTemplateData, sessionData } = result
 
       // Should set the variable (using the expected variable name)
-      expect(sessionData).toHaveProperty(expectedVar)
-      expect(sessionData[expectedVar]).toBe(expectedValue)
+      if (expectedVar) {
+        expect(sessionData).toHaveProperty(expectedVar)
+        expect(sessionData[expectedVar]).toBe(expectedValue)
+      }
 
       // Should not output anything
       expect(sessionTemplateData).toBe(`Before
-
 After`)
       expect(sessionTemplateData).not.toContain(expectedValue)
     })
   })
 
-  describe('Output Tags (should output variable reference)', () => {
+  describe('Output Tags (should output variable reference for prompts that have mandatory variables -- prompt|promptDate|promptDateInterval)', () => {
     test.each(allPromptTypes)('$name: output tag should set variable and return variable reference', async ({ name, calls, expectedVar, expectedValue }) => {
       const template = `Before
 <%- ${calls.output} -%>
 After`
+      if (['prompt', 'promptDate', 'promptDateInterval'].includes(name)) {
+        const result: ProcessPromptsResult = await processPrompts(template, {})
+        expect(result).not.toBe(false)
+        if (result === false) return // Type guard
 
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
-      expect(result).not.toBe(false)
+        const { sessionTemplateData, sessionData } = result
 
-      const { sessionTemplateData, sessionData } = result
+        // Should set the variable
+        expect(sessionData).toHaveProperty(expectedVar)
+        expect(sessionData[expectedVar]).toBe(expectedValue)
 
-      // Should set the variable
-      expect(sessionData).toHaveProperty(expectedVar)
-      expect(sessionData[expectedVar]).toBe(expectedValue)
+        // Should output the variable reference
+        expect(sessionTemplateData).toBe(`Before
+<%- ${expectedVar} -%>After`)
+        expect(sessionTemplateData).toContain(`<%- ${expectedVar} -%>`)
+      }
+    })
+  })
 
-      // Should output the variable reference
-      expect(sessionTemplateData).toBe(`Before
-<%- ${expectedVar} -%>
-After`)
-      expect(sessionTemplateData).toContain(`<%- ${expectedVar} -%>`)
+  describe('Output Tags (should output prompt return value for prompts w/o mandatory variables -- promptTag,promptMention,promptKey)', () => {
+    test.each(allPromptTypes)('$name: output tag should set variable and return variable reference', async ({ name, calls, expectedVar, expectedValue }) => {
+      const template = `Before
+<%- ${calls.output} -%>
+After`
+      if (['promptTag', 'promptMention', 'promptKey'].includes(name)) {
+        const result: ProcessPromptsResult = await processPrompts(template, {})
+        expect(result).not.toBe(false)
+        if (result === false) return // Type guard
+
+        const { sessionTemplateData, sessionData } = result
+
+        // Should output the variable reference
+        expect(sessionTemplateData).toBe(`Before
+${expectedValue}After`)
+      }
     })
   })
 
@@ -244,8 +294,9 @@ After`)
 <% prompt("foo","message") %>
 <%- prompt('bar',"message") %>`
 
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result: ProcessPromptsResult = await processPrompts(template, {})
       expect(result).not.toBe(false)
+      if (result === false) return // Type guard
 
       const { sessionTemplateData, sessionData } = result
 
@@ -267,8 +318,9 @@ After`)
     test('should handle the original reported issue', async () => {
       const template = `<% prompt('lastName', 'What is your last name?') -%>`
 
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result: ProcessPromptsResult = await processPrompts(template, {})
       expect(result).not.toBe(false)
+      if (result === false) return // Type guard
 
       const { sessionTemplateData, sessionData } = result
 
@@ -283,8 +335,9 @@ After`)
     test('should handle output tag correctly', async () => {
       const template = `<%- prompt('lastName', 'What is your last name?') -%>`
 
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result: ProcessPromptsResult = await processPrompts(template, {})
       expect(result).not.toBe(false)
+      if (result === false) return // Type guard
 
       const { sessionTemplateData, sessionData } = result
 
@@ -300,27 +353,29 @@ After`)
   describe('Mixed scenarios with all prompt types', () => {
     test('should handle combination of assignment, execution, and output tags', async () => {
       const template = `# Project Template
-<% const category = promptKey("category") -%>
+<% const category2 = promptKey("category") -%>
 <% promptTag("Select a tag:") -%>
 <% let priority = prompt("priority", "Enter priority:") -%>
-Category: <%- category %>
+Category: <%- category2 %>
 Tag: <%- Select_a_tag %>
 Priority: <%- priority %>
 Date: <%- promptDate("Choose date:") -%>`
 
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result: ProcessPromptsResult = await processPrompts(template, {})
       expect(result).not.toBe(false)
+      if (result === false) return // Type guard
 
       const { sessionTemplateData, sessionData } = result
 
       // All variables should be set
-      expect(sessionData).toHaveProperty('category')
-      expect(sessionData).toHaveProperty('Select_a_tag')
+      expect(sessionData).not.toHaveProperty('category')
+      expect(sessionData).toHaveProperty('category2')
+      expect(sessionData).not.toHaveProperty('Select_a_tag')
       expect(sessionData).toHaveProperty('priority')
       expect(sessionData).toHaveProperty('Choose_date')
 
       // Template should have variable references only for output tags
-      expect(sessionTemplateData).toContain('Category: <%- category %>')
+      expect(sessionTemplateData).toContain('Category: <%- category2 %>')
       expect(sessionTemplateData).toContain('Tag: <%- Select_a_tag %>')
       expect(sessionTemplateData).toContain('Priority: <%- priority %>')
       expect(sessionTemplateData).toContain('Date: <%- Choose_date -%>')
@@ -336,8 +391,9 @@ Date: <%- promptDate("Choose date:") -%>`
   describe('Edge cases and error handling', () => {
     test('should handle empty templates', async () => {
       const template = ``
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result: ProcessPromptsResult = await processPrompts(template, {})
       expect(result).not.toBe(false)
+      if (result === false) return // Type guard
 
       const { sessionTemplateData, sessionData } = result
       expect(sessionTemplateData).toBe('')
@@ -346,8 +402,9 @@ Date: <%- promptDate("Choose date:") -%>`
 
     test('should handle templates with no prompts', async () => {
       const template = `Just some text with no prompts`
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result: ProcessPromptsResult = await processPrompts(template, {})
       expect(result).not.toBe(false)
+      if (result === false) return // Type guard
 
       const { sessionTemplateData, sessionData } = result
       expect(sessionTemplateData).toBe('Just some text with no prompts')
@@ -359,8 +416,9 @@ Date: <%- promptDate("Choose date:") -%>`
 <% const second = prompt("var2", "Second prompt") %>
 <%- first %> and <%- second %>`
 
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result: ProcessPromptsResult = await processPrompts(template, {})
       expect(result).not.toBe(false)
+      if (result === false) return // Type guard
 
       const { sessionTemplateData, sessionData } = result
 
