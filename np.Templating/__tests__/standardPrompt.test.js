@@ -70,7 +70,7 @@ describe('StandardPromptHandler', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
   })
 

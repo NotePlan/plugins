@@ -10,7 +10,7 @@ describe('Variable Assignment Quotes Bug Test', () => {
   beforeEach(() => {
     // Setup the necessary global mocks
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
 
     // Mock CommandBar for consistent responses

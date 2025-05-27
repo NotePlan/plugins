@@ -22,6 +22,9 @@ describe('Prompt Cancellation Tests', () => {
   beforeEach(() => {
     // Clear all mocks before each test
     jest.clearAllMocks()
+    global.DataStore = {
+      settings: { _logLevel: 'none' },
+    }
   })
 
   test('should stop processing when a prompt is cancelled', async () => {

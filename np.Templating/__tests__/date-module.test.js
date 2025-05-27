@@ -14,7 +14,7 @@ const method = colors.magenta.bold
 describe(`${PLUGIN_NAME}`, () => {
   beforeEach(() => {
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
   })
   describe(section('DateModule'), () => {

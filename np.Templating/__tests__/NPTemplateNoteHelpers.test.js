@@ -47,7 +47,7 @@ jest.mock('@helpers/dev', () => ({
 describe('NPTemplateNoteHelpers', () => {
   beforeEach(() => {
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
   })
   describe('getTemplateNote', () => {

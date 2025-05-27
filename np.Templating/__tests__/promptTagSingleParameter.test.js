@@ -10,7 +10,7 @@ import '../lib/support/modules/prompts' // Import to register all prompt handler
 describe('promptTag and promptMention with single parameter', () => {
   beforeEach(() => {
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
   })
 

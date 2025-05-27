@@ -10,7 +10,7 @@ import * as PromptRegistry from '../lib/support/modules/prompts/PromptRegistry'
 describe('Variable Assignment in Prompt Tags', () => {
   beforeEach(() => {
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
       hashtags: ['ChosenOption'],
     }
 

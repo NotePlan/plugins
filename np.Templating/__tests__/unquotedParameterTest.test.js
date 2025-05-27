@@ -11,7 +11,7 @@ describe('Unquoted Parameter Tests', () => {
   beforeEach(() => {
     // Setup the necessary global mocks
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
       projectNotes: [],
       calendarNotes: [],
     }

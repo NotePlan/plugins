@@ -15,7 +15,7 @@ describe('Prompt Await Issue Tests', () => {
       showOptions: jest.fn().mockResolvedValue({ index: 0 }),
     }
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
 
     // Mock userInput methods

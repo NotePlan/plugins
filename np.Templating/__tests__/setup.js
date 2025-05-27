@@ -8,7 +8,7 @@ global.console = {
 }
 
 global.DataStore = {
-  settings: { logLevel: 'none' },
+  settings: { _logLevel: 'none' },
   projectNotes: [],
   calendarNotes: [],
 }

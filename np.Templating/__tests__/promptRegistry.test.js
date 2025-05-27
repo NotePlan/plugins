@@ -98,7 +98,7 @@ const mockGetTags = jest.fn<any, any>().mockImplementation((templateData, tagSta
 describe('PromptRegistry', () => {
   beforeEach(() => {
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
   })
   test('Should process standard prompt properly', async () => {

@@ -39,7 +39,8 @@ describe('preProcessTags Function Tests', () => {
 
   beforeEach(() => {
     templatingEngine = new TemplatingEngine({}, '')
-
+    global.DataStore = DataStore
+    global.DataStore.settings = { _logLevel: 'none' }
     // Mock DataStore.invokePluginCommandByName
     DataStore.invokePluginCommandByName = jest.fn().mockResolvedValue('mocked result')
   })

@@ -12,7 +12,7 @@ describe('Await Variable Assignment Bug Test', () => {
   beforeEach(() => {
     // Setup the necessary global mocks
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
 
     // Mock CommandBar but don't use the mock in the actual test

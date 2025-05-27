@@ -19,7 +19,7 @@ import { getTags } from '../lib/core'
 describe('promptKey functionality', () => {
   beforeEach(() => {
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
     // Mock CommandBar
     global.CommandBar = {

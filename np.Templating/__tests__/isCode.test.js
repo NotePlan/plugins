@@ -13,7 +13,7 @@ import { isPromptTag } from '../lib/support/modules/prompts/PromptRegistry'
 describe('isCode', () => {
   beforeEach(() => {
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
   })
 

@@ -13,7 +13,7 @@ describe('promptTag and promptMention functionality', () => {
   beforeEach(() => {
     // Mock DataStore
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
       hashtags: ['#work', '#personal', '#project', '#important', '#follow-up'],
       mentions: ['@john', '@jane', '@team', '@boss', '@client'],
     }

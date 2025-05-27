@@ -24,7 +24,7 @@ const { askDateInterval } = require('@helpers/userInput')
 describe('PromptDateIntervalHandler', () => {
   beforeEach(() => {
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
   })
   test('Should parse parameters correctly', () => {

@@ -12,7 +12,7 @@ describe('Template Variable Assignment Integration Tests', () => {
   beforeEach(() => {
     // Setup the necessary global mocks
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
 
     // Mock CommandBar for consistent responses across all prompt types

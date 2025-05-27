@@ -9,7 +9,7 @@ const section = colors.blue
 describe(`${PLUGIN_NAME}`, () => {
   beforeEach(() => {
     global.DataStore = {
-      settings: { logLevel: 'none' },
+      settings: { _logLevel: 'none' },
     }
   })
   let moduleInstance
