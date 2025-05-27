@@ -40,7 +40,7 @@ describe('PromptDateIntervalHandler', () => {
     const templateData = "<%- promptDateInterval('dateRange', 'Select date range:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result.sessionData.dateRange).toBe('2023-01-01 to 2023-01-31')
     expect(result.sessionTemplateData).toBe('<%- dateRange %>')
@@ -51,7 +51,7 @@ describe('PromptDateIntervalHandler', () => {
     const templateData = "<%- promptDateInterval('dateRange', 'Select date range with, comma:', '{format: \"YYYY-MM-DD\"}') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result.sessionData.dateRange).toBe('2023-01-01 to 2023-01-31')
     expect(result.sessionTemplateData).toBe('<%- dateRange %>')
@@ -73,7 +73,7 @@ describe('PromptDateIntervalHandler', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result.sessionData.range1).toBe('2023-01-01 to 2023-01-31')
     expect(result.sessionData.range2).toBe('2023-02-01 to 2023-02-28')

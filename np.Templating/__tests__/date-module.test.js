@@ -813,7 +813,7 @@ describe(`${PLUGIN_NAME}`, () => {
       it(`should return date reference`, async () => {
         const now = new DateModule().ref(new Date())
 
-        console.log(now.format('YYYY-MM-DD'))
+        // console.log(now.format('YYYY-MM-DD'))
       })
     })
 

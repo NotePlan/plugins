@@ -35,8 +35,8 @@ describe('Unquoted Parameter Tests', () => {
     const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
 
     // Log diagnostic information
-    console.log('Session Data:', JSON.stringify(sessionData, null, 2))
-    console.log('Template Output:', sessionTemplateData)
+    // console.log('Session Data:', JSON.stringify(sessionData, null, 2))
+    // console.log('Template Output:', sessionTemplateData)
 
     // Verify the session data contains the variable
     expect(sessionData).toHaveProperty('category')
@@ -64,9 +64,9 @@ describe('Unquoted Parameter Tests', () => {
     const { sessionTemplateData, sessionData } = await processPrompts(template, initialSessionData, '<%', '%>', getTags)
 
     // Log diagnostic information
-    console.log('Initial Session Data:', JSON.stringify(initialSessionData, null, 2))
-    console.log('Final Session Data:', JSON.stringify(sessionData, null, 2))
-    console.log('Template Output:', sessionTemplateData)
+    // console.log('Initial Session Data:', JSON.stringify(initialSessionData, null, 2))
+    // console.log('Final Session Data:', JSON.stringify(sessionData, null, 2))
+    // console.log('Template Output:', sessionTemplateData)
 
     // Verify the session data contains our variable
     expect(sessionData).toHaveProperty('result')

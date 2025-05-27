@@ -93,8 +93,8 @@ describe('Template Processor', () => {
       // This should reproduce the real-world scenario
       const result = await NPTemplating.render(templateData, {}, {})
 
-      console.log('NPTemplating.render result:', result)
-      console.log('NPTemplating.templateConfig:', JSON.stringify(NPTemplating.templateConfig, null, 2))
+      // console.log('NPTemplating.render result:', result)
+      // console.log('NPTemplating.templateConfig:', JSON.stringify(NPTemplating.templateConfig, null, 2))
 
       // Should not be an error message
       expect(result).not.toContain('==Error Rendering templateData.==')
@@ -133,7 +133,7 @@ describe('Template Processor', () => {
       const engine = new TemplatingEngine(mockConfig, '')
       const result = await engine.render(templateData, sessionData, {})
 
-      console.log('Complex variable names test result:', result)
+      // console.log('Complex variable names test result:', result)
 
       // Should not be an error message
       expect(result).not.toContain('==Error Rendering templateData.==')
@@ -194,7 +194,7 @@ describe('Template Processor', () => {
       const engine = new TemplatingEngine(mockConfig, '')
       const result = await engine.render(templateData, sessionData, {})
 
-      console.log('Real-world template test result:', result)
+      // console.log('Real-world template test result:', result)
 
       // Should not be an error message
       expect(result).not.toContain('==Error Rendering templateData.==')
@@ -237,7 +237,7 @@ describe('Template Processor', () => {
 
       const result = await NPTemplating.render(templateData, {}, {})
 
-      console.log('Full pipeline test result:', result)
+      // console.log('Full pipeline test result:', result)
 
       // Should not be an error message
       expect(result).not.toContain('==Error Rendering templateData.==')
@@ -359,7 +359,7 @@ User input: <%- promptKey('fieldName', 'What is your name?') %>
         const engine = new TemplatingEngine(mockConfig, '')
         const result = await engine.render(templateData, sessionData, {})
 
-        console.log('Nested prompt test result:', result)
+        // console.log('Nested prompt test result:', result)
 
         // Should contain a helpful error message about nested prompts
         expect(result).toContain('Error')
@@ -383,7 +383,7 @@ Result: <%- nonExistentFunction() %>
         const engine = new TemplatingEngine(mockConfig, '')
         const result = await engine.render(templateData, {}, {})
 
-        console.log('Undefined function test result:', result)
+        // console.log('Undefined function test result:', result)
 
         // Should contain a helpful error message
         expect(result).toContain('Error')

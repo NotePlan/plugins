@@ -54,7 +54,7 @@ describe('Await Variable Assignment Bug Test', () => {
       [varName]: `await ${name}(${varName})`,
     }
 
-    console.log(`[BEFORE] Test 1 - ${name}: sessionData[${varName}] = "${sessionData[varName]}"`)
+    // console.log(`[BEFORE] Test 1 - ${name}: sessionData[${varName}] = "${sessionData[varName]}"`)
 
     // Create a tag with await
     const tag = `<% const ${varName} = await ${name}(${param}) -%>`
@@ -62,8 +62,8 @@ describe('Await Variable Assignment Bug Test', () => {
     // Process the tag
     const result = await processPromptTag(tag, sessionData, '<%', '%>')
 
-    console.log(`[AFTER] Test 1 - ${name}: sessionData[${varName}] = "${sessionData[varName]}"`)
-    console.log(`[AFTER] Test 1 - ${name}: result = "${result}"`)
+    // console.log(`[AFTER] Test 1 - ${name}: sessionData[${varName}] = "${sessionData[varName]}"`)
+    // console.log(`[AFTER] Test 1 - ${name}: result = "${result}"`)
 
     // This should fail until fixed, because it returns the existing value
     if (name === 'prompt') {
@@ -104,12 +104,12 @@ describe('Await Variable Assignment Bug Test', () => {
     const tagWithAwait = `<% const ${varName} = await ${name}(${param}) -%>`
     const tagWithoutAwait = `<% const ${varName} = ${name}(${param}) -%>`
 
-    console.log(`[BEFORE] Test 3 - ${name}: Processing tags...`)
+    // console.log(`[BEFORE] Test 3 - ${name}: Processing tags...`)
     await processPromptTag(tagWithAwait, sessionWithAwait, '<%', '%>')
     await processPromptTag(tagWithoutAwait, sessionWithoutAwait, '<%', '%>')
 
-    console.log(`[AFTER] Test 3 - ${name}: sessionWithAwait[${varName}] = "${sessionWithAwait[varName]}"`)
-    console.log(`[AFTER] Test 3 - ${name}: sessionWithoutAwait[${varName}] = "${sessionWithoutAwait[varName]}"`)
+    // console.log(`[AFTER] Test 3 - ${name}: sessionWithAwait[${varName}] = "${sessionWithAwait[varName]}"`)
+    // console.log(`[AFTER] Test 3 - ${name}: sessionWithoutAwait[${varName}] = "${sessionWithoutAwait[varName]}"`)
 
     // Both should process successfully
     if (name === 'prompt') {
@@ -139,8 +139,8 @@ describe('Await Variable Assignment Bug Test', () => {
       [`${varName}2`]: `${name}(${varName})`,
     }
 
-    console.log(`[BEFORE] Test 4 - ${name}: sessionWithAwait[${varName}1] = "${sessionWithAwait[`${varName}1`]}"`)
-    console.log(`[BEFORE] Test 4 - ${name}: sessionWithoutAwait[${varName}2] = "${sessionWithoutAwait[`${varName}2`]}"`)
+    // console.log(`[BEFORE] Test 4 - ${name}: sessionWithAwait[${varName}1] = "${sessionWithAwait[`${varName}1`]}"`)
+    // console.log(`[BEFORE] Test 4 - ${name}: sessionWithoutAwait[${varName}2] = "${sessionWithoutAwait[`${varName}2`]}"`)
 
     // Process tags that try to use these variables
     const tagWithAwait = `<% const ${varName}1 = ${name}(${param}) -%>`
@@ -149,8 +149,8 @@ describe('Await Variable Assignment Bug Test', () => {
     await processPromptTag(tagWithAwait, sessionWithAwait, '<%', '%>')
     await processPromptTag(tagWithoutAwait, sessionWithoutAwait, '<%', '%>')
 
-    console.log(`[AFTER] Test 4 - ${name}: sessionWithAwait[${varName}1] = "${sessionWithAwait[`${varName}1`]}"`)
-    console.log(`[AFTER] Test 4 - ${name}: sessionWithoutAwait[${varName}2] = "${sessionWithoutAwait[`${varName}2`]}"`)
+    // console.log(`[AFTER] Test 4 - ${name}: sessionWithAwait[${varName}1] = "${sessionWithAwait[`${varName}1`]}"`)
+    // console.log(`[AFTER] Test 4 - ${name}: sessionWithoutAwait[${varName}2] = "${sessionWithoutAwait[`${varName}2`]}"`)
 
     // Both should be replaced with proper values
     if (name === 'prompt') {

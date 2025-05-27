@@ -111,7 +111,7 @@ describe('PromptRegistry', () => {
     const templateData = "<%- prompt('testVar', 'Enter test value:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result.sessionData.testVar).toBe('Test Response')
     expect(result.sessionTemplateData).toBe('<%- testVar %>')
@@ -127,7 +127,7 @@ describe('PromptRegistry', () => {
     const templateData = "<%- prompt('greeting', 'Hello, world!', 'Default, with comma') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result.sessionData.greeting).toBe('Test Response')
     expect(result.sessionTemplateData).toBe('<%- greeting %>')
@@ -398,14 +398,14 @@ describe('PromptRegistry Variable Assignment', () => {
   describe('Variable assignment with promptTag', () => {
     test('should handle const variable assignment', async () => {
       const templateData = '<% const tagVariable = promptTag("foo") %>'
-      console.log('Before process:', templateData)
+      // console.log('Before process:', templateData)
 
       // Explicitly run mockGetTags to see what it returns
       const tags = mockGetTags(templateData, '<%', '%>')
-      console.log('Tags found:', tags)
+      // console.log('Tags found:', tags)
 
       const result = await processPrompts(templateData, {}, '<%', '%>', getTags)
-      console.log('After process:', result)
+      // console.log('After process:', result)
 
       expect(result.sessionData).toHaveProperty('tagVariable')
       expect(result.sessionData.tagVariable).toBe(mockPromptTagResponse)

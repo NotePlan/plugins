@@ -129,7 +129,7 @@ describe('Prompt Edge Cases', () => {
     const templateData = `<% const testVar = await prompt() %>`
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     // Call the mock directly instead of relying on the implementation
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -145,7 +145,7 @@ describe('Prompt Edge Cases', () => {
     const templateData = `<% const emptyMsg = await prompt('emptyMsg') %>`
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     // Call the mock directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -161,7 +161,7 @@ describe('Prompt Edge Cases', () => {
     const templateData = `<% const complexDefault = await prompt('complexDefault', \`Complex \${1 + 2} default\`) %>`
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     // Call the mock directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -185,7 +185,7 @@ describe('Prompt Edge Cases', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     // Call the mock directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -206,7 +206,7 @@ describe('Prompt Edge Cases', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     // Call the mocks directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -237,7 +237,7 @@ describe('Prompt Edge Cases', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     // Call the mock directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -257,7 +257,7 @@ describe('Prompt Edge Cases', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     // Call the mock directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {

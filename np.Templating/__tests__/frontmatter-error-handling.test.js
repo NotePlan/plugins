@@ -52,7 +52,7 @@ describe(`${PLUGIN_NAME} - Frontmatter Error Handling`, () => {
 
       let renderedData = await templateEngine.render(originalScript)
 
-      console.log('Rendered data:', renderedData)
+      // console.log('Rendered data:', renderedData)
 
       // Body should render successfully AND frontmatter errors should be shown
       expect(renderedData).toContain('Valid body content')
@@ -74,7 +74,7 @@ describe(`${PLUGIN_NAME} - Frontmatter Error Handling`, () => {
 
       let renderedData = await templateEngine.render(originalScript, { user: { first: 'John' } })
 
-      console.log('Rendered data with frontmatter errors:', renderedData)
+      // console.log('Rendered data with frontmatter errors:', renderedData)
 
       // Template should render successfully AND show frontmatter errors
       expect(renderedData).toContain('Hello John!')
@@ -176,7 +176,7 @@ describe(`${PLUGIN_NAME} - Frontmatter Error Handling`, () => {
 
       let renderedData = await templateEngine.render(originalScript)
 
-      console.log('Frontmatter-only error test result:', renderedData)
+      // console.log('Frontmatter-only error test result:', renderedData)
 
       // Content should render successfully AND frontmatter errors should be visible
       expect(renderedData).toContain('This is valid content with no template tags.')
@@ -209,7 +209,7 @@ describe(`${PLUGIN_NAME} - Frontmatter Error Handling`, () => {
 
       let renderedData = await templateEngine.render(originalScript)
 
-      console.log('Real-world scenario test result:', renderedData)
+      // console.log('Real-world scenario test result:', renderedData)
 
       // Should have AI analysis for the body error
       expect(renderedData).toContain('AI Analysis')
@@ -251,7 +251,7 @@ describe(`${PLUGIN_NAME} - Frontmatter Error Handling`, () => {
 
       let renderedData = await templateEngine.render(bodyOnly)
 
-      console.log('Real-world scenario test result:', renderedData)
+      // console.log('Real-world scenario test result:', renderedData)
 
       // Should ALSO clearly show the frontmatter error information
       expect(renderedData).toContain('Issues occurred during frontmatter processing')

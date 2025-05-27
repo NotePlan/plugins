@@ -336,12 +336,12 @@ var result3 = DataStore.invokePluginCommandByName("cmd3");
         override: {},
       }
 
-      console.log('BEFORE processing:', testContext.templateData)
+      // console.log('BEFORE processing:', testContext.templateData)
 
       // Process the entire block at once
       processCodeTag(variableWithFunctionTag, testContext, asyncFunctions)
 
-      console.log('AFTER processing:', testContext.templateData)
+      // console.log('AFTER processing:', testContext.templateData)
 
       // Should place await before the function call, not before the variable declaration
       expect(testContext.templateData).toContain(`const result1 = await DataStore.invokePluginCommandByName("cmd1")`)

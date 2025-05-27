@@ -35,8 +35,8 @@ Category: <%- category %>
     const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
 
     // Check the actual values in sessionData
-    console.log('Session Data:', JSON.stringify(sessionData, null, 2))
-    console.log('Template Output:', sessionTemplateData)
+    // console.log('Session Data:', JSON.stringify(sessionData, null, 2))
+    // console.log('Template Output:', sessionTemplateData)
 
     // Verify the session data contains our variable
     expect(sessionData).toHaveProperty('category')

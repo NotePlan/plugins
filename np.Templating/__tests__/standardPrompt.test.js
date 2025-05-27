@@ -12,28 +12,28 @@ import '../lib/support/modules/prompts' // Import to register all prompt handler
 // Mock CommandBar global
 global.CommandBar = {
   prompt: jest.fn<[string, string], string | false>().mockImplementation((title, message) => {
-    console.log('CommandBar.prompt called with:', { title, message })
+    // console.log('CommandBar.prompt called with:', { title, message })
     if (message.includes('cancelled') || message.includes('This prompt will be cancelled') || message.includes('Enter a value:') || message.includes('Choose an option:')) {
       return false
     }
     return 'Test Response'
   }),
   textPrompt: jest.fn<[string, string, string], string | false>().mockImplementation((title, message, defaultValue) => {
-    console.log('CommandBar.textPrompt called with:', { title, message, defaultValue })
+    // console.log('CommandBar.textPrompt called with:', { title, message, defaultValue })
     if (message.includes('cancelled') || message.includes('This prompt will be cancelled') || message.includes('Enter a value:') || message.includes('Choose an option:')) {
       return false
     }
     return 'Test Response'
   }),
   chooseOption: jest.fn<[string, Array<any>], any | false>().mockImplementation((title, options) => {
-    console.log('CommandBar.chooseOption called with:', { title, options })
+    // console.log('CommandBar.chooseOption called with:', { title, options })
     if (title.includes('cancelled') || title.includes('This prompt will be cancelled') || title.includes('Enter a value:') || title.includes('Choose an option:')) {
       return false
     }
     return { index: 0, value: 'Test Response' }
   }),
   showOptions: jest.fn<[string, Array<any>], any | false>().mockImplementation((title, options) => {
-    console.log('CommandBar.showOptions called with:', { title, options })
+    // console.log('CommandBar.showOptions called with:', { title, options })
     if (title.includes('cancelled') || title.includes('This prompt will be cancelled') || title.includes('Enter a value:') || title.includes('Choose an option:')) {
       return false
     }
@@ -44,21 +44,21 @@ global.CommandBar = {
 // Mock user input helpers
 jest.mock('@helpers/userInput', () => ({
   chooseOption: jest.fn<[string, Array<any>], any | false>().mockImplementation((title, options) => {
-    console.log('userInput.chooseOption called with:', { title, options })
+    // console.log('userInput.chooseOption called with:', { title, options })
     if (title.includes('cancelled') || title.includes('This prompt will be cancelled') || title.includes('Enter a value:') || title.includes('Choose an option:')) {
       return false
     }
     return { index: 0, value: 'Test Response' }
   }),
   textPrompt: jest.fn<[string, string], string | false>().mockImplementation((title, message) => {
-    console.log('userInput.textPrompt called with:', { title, message })
+    // console.log('userInput.textPrompt called with:', { title, message })
     if (message.includes('cancelled') || message.includes('This prompt will be cancelled') || message.includes('Enter a value:') || message.includes('Choose an option:')) {
       return false
     }
     return 'Test Response'
   }),
   showOptions: jest.fn<[string, Array<any>], any | false>().mockImplementation((title, options) => {
-    console.log('userInput.showOptions called with:', { title, options })
+    // console.log('userInput.showOptions called with:', { title, options })
     if (title.includes('cancelled') || title.includes('This prompt will be cancelled') || title.includes('Enter a value:') || title.includes('Choose an option:')) {
       return false
     }
@@ -79,7 +79,7 @@ describe('StandardPromptHandler', () => {
       const templateData = "<%- prompt('testVar', 'Enter test value:') %>"
       const userData = {}
 
-      const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+      const result = await processPrompts(templateData, userData)
 
       expect(result).not.toBe(false)
       if (result !== false) {
@@ -93,7 +93,7 @@ describe('StandardPromptHandler', () => {
       const templateData = "<%- prompt('testVar', 'Enter test value:', 'default value') %>"
       const userData = {}
 
-      const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+      const result = await processPrompts(templateData, userData)
 
       expect(result).not.toBe(false)
       if (result !== false) {
@@ -107,7 +107,7 @@ describe('StandardPromptHandler', () => {
       const templateData = "<%- prompt('testVar', 'Choose an option:', ['option1', 'option2', 'option3']) %>"
       const userData = {}
 
-      const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+      const result = await processPrompts(templateData, userData)
 
       expect(result).not.toBe(false)
       if (result !== false) {
@@ -178,7 +178,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('greeting', 'Hello, world!', 'Default, with comma') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -192,7 +192,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('greeting', \"Hello 'world'!\", \"Default 'value'\") %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -206,7 +206,7 @@ describe('StandardPromptHandler', () => {
     const templateData = '<%- prompt("greeting", "Hello \\"world\\"!", "Default \\"value\\"") %>'
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -223,7 +223,7 @@ describe('StandardPromptHandler', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -238,7 +238,7 @@ describe('StandardPromptHandler', () => {
     const templateData = '<%- existingVar %>'
     const userData = { existingVar: 'Already Exists' }
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -252,7 +252,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('include_this?', 'Include this item?') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -265,7 +265,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('project name', 'Enter project name:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -278,7 +278,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('emptyDefault', 'Enter value:', '') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -325,7 +325,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('errorVar', 'This will error:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     // Should handle the error gracefully
     expect(result).not.toBe(false)
@@ -339,7 +339,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('complex', 'Text with symbols: @#$%^&*_+{}[]|\\:;\"<>,.?/~`', 'Default with symbols: !@#$%^&*') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData, '<%', '%>', getTags)
+    const result = await processPrompts(templateData, userData)
 
     expect(result).not.toBe(false)
     if (result !== false) {
