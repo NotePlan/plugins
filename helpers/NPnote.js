@@ -150,7 +150,7 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
   try {
     let foundNote: TNote | null = null
     const { filename, isTeamspace, teamspaceID } = parseTeamspaceFilename(filenameIn)
-    logInfo('NPnote/getNoteFromFilename', `- filenameIn: ${filenameIn} / filename: ${filename} / isTeamspace: ${String(isTeamspace)} /  teamspaceID: ${String(teamspaceID)}`)
+    // logInfo('NPnote/getNoteFromFilename', `- filenameIn: ${filenameIn} / filename: ${filename} / isTeamspace: ${String(isTeamspace)} /  teamspaceID: ${String(teamspaceID)}`)
     if (isTeamspace) {
       if (!teamspaceID) {
         throw new Error(`Note ${filenameIn} is a teamspace note but cannot get valid ID for it.`)
@@ -164,7 +164,7 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
     } else {
       foundNote = DataStore.projectNoteByFilename(filenameIn) ??
         DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filenameIn)) ?? null
-      logInfo('NPnote/getNoteFromFilename', `Found private note '${displayTitle(foundNote)}' from ${filenameIn}`)
+      // logInfo('NPnote/getNoteFromFilename', `Found private note '${displayTitle(foundNote)}' from ${filenameIn}`)
     }
     return foundNote
   } catch (err) {
