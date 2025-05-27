@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-04-09 for v2.2.0.a12
+// Last updated 2025-05-27 for v2.3.0
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -24,8 +24,9 @@ import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { filenameIsInFuture, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { JSP, clo, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
-import { getNoteByFilename } from '@helpers/note'
 import { getGlobalSharedData } from '@helpers/HTMLView'
+import { getNoteByFilename } from '@helpers/note'
+
 //-----------------------------------------------------------------
 
 /**
@@ -94,6 +95,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     logInfo('getSearchResults', `- setting basic searchOptions ${config.applyCurrentFilteringToSearch ? 'WITH' : 'WITHOUT'} Perspective filtering'}`)
     // clo(searchOptions, 'getSearchResults: searchOptions:')
     const startTime = new Date() // for timing only
+    const maxInSection = config.maxItemsToShowInSection
 
     // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
     const searchResultSet: resultOutputType = await extendedSearch(searchTermsStr, searchOptions)
@@ -159,6 +161,12 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     }
     itemCount += items.length
 
+    // Apply limit to set of ordered results if necessary.
+    // Note: We apply some limiting here, in case there are hundreds of items. There is also display filtering in the Section component via useSectionSortAndFilter.
+    const itemsLimited = itemCount > maxInSection
+      ? items.slice(0, maxInSection)
+      : items
+    logDebug('getSearchResults', `- after limit, now ${itemsLimited.length} of ${itemCount} items will be passed to React`)
     logTimer('getSearchResults', startTime, `- finished post-search processing`)
 
     // If there are no items, then we need to show a message instead of an empty section
@@ -179,7 +187,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
       })
     }
 
-    let sectionDescription = `{count} results for [${searchTermsStr}]`
+    let sectionDescription = `{countWithLimit} results for [${searchTermsStr}]`
     if (searchOptions.fromDateStr) {
       sectionDescription += ` from ${searchOptions.fromDateStr}`
     }
@@ -190,12 +198,13 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     const section: TSection = {
       ID: sectionNumStr,
       name: 'Search',
-      showSettingName: 'showSearchSection', // TODO: remove this?
+      showSettingName: 'showSearchSection',
       sectionCode: thisSectionCode,
       description: sectionDescription,
       FAIconClass: 'fa-regular fa-search',
       sectionTitleColorPart: 'sidebarSearch',
-      sectionItems: items,
+      sectionItems: itemsLimited,
+      totalCount: itemCount,
       generatedDate: new Date(),
       showColoredBackground: true,
       actionButtons: [
@@ -206,9 +215,6 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
           display: '<i class= "fa-solid fa-circle-xmark"></i> ',
           actionParam: 'SEARCH',
           postActionRefresh: [],
-          // formFields: thisMonthFormFields,
-          // submitOnEnter: true,
-          // submitButtonText: 'Add & Close',
         },
       ],
       isReferenced: false,
@@ -216,7 +222,6 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     sections.push(section)
 
     logTimer('getSearchResults', startTime, `- found ${itemCount} items from [${searchTermsRep}]`)
-    // clo(sections, 'sections')
     return sections
   } catch (error) {
     logError('getSearchResults', `ERROR: ${error.message}`)
@@ -250,6 +255,7 @@ export async function getSavedSearchResults(
     let searchTermsStr: string = '?'
     let searchTermsRep: string = '?'
     const startTime = new Date() // for timing only
+    const maxInSection = config.maxItemsToShowInSection
 
     // TODO: rework this, as with function above.
     const searchOptions: TSearchOptions = {
@@ -314,6 +320,13 @@ export async function getSavedSearchResults(
 
       // logTimer('getSavedSearchResults', startTime, `- finished search for [${searchTermsRep}]`)
     }
+    // Apply limit to set of ordered results if necessary.
+    // Note: We apply some limiting here, in case there are hundreds of items. There is also display filtering in the Section component via useSectionSortAndFilter.
+    const itemsLimited = itemCount > maxInSection
+      ? items.slice(0, maxInSection)
+      : items
+    logDebug('getSearchResults', `- after limit, now ${itemsLimited.length} of ${itemCount} items will be passed to React`)
+    logTimer('getSearchResults', startTime, `- finished post-search processing`)
 
     // If there are no items, then we need to show a message instead of an empty section
     if (items.length === 0) {
@@ -351,7 +364,8 @@ export async function getSavedSearchResults(
       description: sectionDescription,
       FAIconClass: 'fa-regular fa-search',
       sectionTitleColorPart: 'sidebarSearch',
-      sectionItems: items,
+      sectionItems: itemsLimited,
+      totalCount: itemCount,
       generatedDate: new Date(),
       isReferenced: false,
       showColoredBackground: true,
@@ -363,16 +377,12 @@ export async function getSavedSearchResults(
           display: '<i class= "fa-solid fa-circle-xmark"></i> ',
           actionParam: 'SEARCH', // TODO: Will need to be smarter if we have multiple 'SAVEDSEARCH' sections
           postActionRefresh: [],
-          // formFields: thisMonthFormFields,
-          // submitOnEnter: true,
-          // submitButtonText: 'Add & Close',
         },
       ],
     }
     sections.push(section)
 
     logTimer('getSavedSearchResults', startTime, `- found ${itemCount} items from [${searchTermsRep}]`)
-    // clo(sections, 'sections')
     return sections
   } catch (error) {
     logError('getSavedSearchResults', `ERROR: ${error.message}`)
