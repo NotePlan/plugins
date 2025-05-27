@@ -35,7 +35,7 @@ const turnOnAPIComparison = true // TODO(later): remove this in time
 /**
  * Generate data for a section for items with a Tag/Mention.
  * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future.
- * Now also uses all the 'ignore' settings, other than any that are the same as this particular tag/mention.
+ * Uses all the 'ignore' settings, other than any that are the same as this particular tag/mention.???
  * Now also implmenets noteTags feature to include all open items in a note, based on 'note-tag' attribute in frontmatter.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
@@ -163,13 +163,15 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       }
       logTimer('getTaggedSectionData', thisStartTime, `- ${filteredTagParas.length} paras after filtering ${notesWithTag.length} notes`)
 
-      // filter out paras in the future
-      const dateToUseUnhyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format('YYYYMMDD') : new moment().format('YYYYMMDD')
-      filteredTagParas = filteredTagParas.filter((p) => !filenameIsInFuture(p.filename || '', dateToUseUnhyphenated))
-      const dateToUseHyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format('YYYY-MM-DD') : new moment().format('YYYY-MM-DD')
-      // Next operation typically takes 1ms
-      filteredTagParas = filteredTagParas.filter((p) => !includesScheduledFutureDate(p.content, dateToUseHyphenated))
-      logTimer('getTaggedSectionData', thisStartTime, `- after filtering for future, ${filteredTagParas.length} paras`)
+      // filter out paras in the future (if wanted)
+      if (!config.includeFutureTagMentions) {
+        const dateToUseUnhyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format('YYYYMMDD') : new moment().format('YYYYMMDD')
+        filteredTagParas = filteredTagParas.filter((p) => !filenameIsInFuture(p.filename || '', dateToUseUnhyphenated))
+        const dateToUseHyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format('YYYY-MM-DD') : new moment().format('YYYY-MM-DD')
+        // Next operation typically takes 1ms
+        filteredTagParas = filteredTagParas.filter((p) => !includesScheduledFutureDate(p.content, dateToUseHyphenated))
+        logTimer('getTaggedSectionData', thisStartTime, `- after filtering for future, ${filteredTagParas.length} paras`)
+      }
 
       if (filteredTagParas.length > 0) {
         // Remove possible dupes from these sync'd lines. Note: this is a quick operation, as we aren't using the 'most recent' option (which does a sort)
@@ -226,8 +228,8 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
   }
 
   // Return section details, even if no items found
-  let sectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
-  if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
+  let sectionDescription = `{countWithLimit} open {itemType} ordered by ${config.overdueSortOrder}`
+  if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
   // TODO(later): remove note about the tag cache
   sectionDescription += `, ${source}`
   const section: TSection = {

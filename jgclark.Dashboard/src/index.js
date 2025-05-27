@@ -100,11 +100,16 @@ export async function onUpdateOrInstall(): Promise<void> {
     const initialDashboardSettings = JSON.parse(initialSettings.dashboardSettings)
     const migratedDashboardSettings = renameKeys(initialDashboardSettings, keysToChange)
 
+    // Add any new settings for 2.3.0
+    logInfo(pluginJson, `- adding new keys for 2.3.0 ...`)
+    migratedDashboardSettings.includeFutureTagMentions = false
+    migratedDashboardSettings.showProgressInSections = 'number closed'
+
     // Note: Workaround for number types getting changed to strings at some point in our Settings system.
-    migratedDashboardSettings.newTaskSectionHeadingLevel = parseInt(migratedDashboardSettings.newTaskSectionHeadingLevel || '2')
-    migratedDashboardSettings.maxItemsToShowInSection = parseInt(migratedDashboardSettings.maxItemsToShowInSection || '24')
-    migratedDashboardSettings.lookBackDaysForOverdue = parseInt(migratedDashboardSettings.lookBackDaysForOverdue || '7')
-    migratedDashboardSettings.autoUpdateAfterIdleTime = parseInt(migratedDashboardSettings.autoUpdateAfterIdleTime || '10')
+    migratedDashboardSettings.newTaskSectionHeadingLevel = parseInt(migratedDashboardSettings.newTaskSectionHeadingLevel || 2)
+    migratedDashboardSettings.maxItemsToShowInSection = parseInt(migratedDashboardSettings.maxItemsToShowInSection || 24)
+    migratedDashboardSettings.lookBackDaysForOverdue = parseInt(migratedDashboardSettings.lookBackDaysForOverdue || 7)
+    migratedDashboardSettings.autoUpdateAfterIdleTime = parseInt(migratedDashboardSettings.autoUpdateAfterIdleTime || 10)
 
     // clo(migratedDashboardSettings, `onUpdateOrInstall - migratedDashboardSettings:`)
 

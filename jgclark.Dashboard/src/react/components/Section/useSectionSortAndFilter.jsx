@@ -2,13 +2,11 @@
 //-----------------------------------------------------------------------------
 // useSectionSortAndFilter.jsx
 // Filters, Limits and Sorts items to be shown in a Section.
-// - Filter = filter out types we don't want to see (e.g. checklists).
-//   Note: Currently some checklists seem to get through to here when not wanted.
-//   Note: In future we probably want checklists to come through, to allow different modes of further processing.
+// - Filter = filter out types we don't want to see (e.g. checklists), or lower-priority items
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2025-01-29 for v2.1.7
+// Last updated 2025-05-26 for v2.3.0
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -35,10 +33,18 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
   const [limitApplied, setLimitApplied] = useState<boolean>(false)
 
   useEffect(() => {
+    if (memoizedItems.length === 0) {
+      setFilteredItems([])
+      setItemsToShow([])
+      setFilteredOut(0)
+      setLimitApplied(false)
+      return
+    }
+
     // Handle TB section differently
     if (section.sectionCode === 'TB') {
       // logDebug('useSectionSortAndFilter/timeblock', `Starting for TB section with ${memoizedItems.length} items`)
-      // Filter out all non-current timeblocks, and show what remains
+      // Filter out all non-current timeblocks
       // Note: assumes they come in (start) time order.
       const currentTBItems = memoizedItems.filter((i) => {
         const currentTimeMom = moment()
@@ -60,21 +66,26 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
     }
     // Handle all other sections
     else {
-      const typeFilteredItems =
-        memoizedDashboardSettings && memoizedDashboardSettings.ignoreChecklistItems && memoizedItems.length
-          ? memoizedItems.filter((si) => !(si.para?.type === 'checklist'))
-          : memoizedItems
+      // Drop checklist items (if 'ignoreChecklistItems' is set)
+      let typeWantedItems = memoizedItems
+      let totalCountToUse = section.totalCount ?? 0
+      if (memoizedItems.length > 0 && memoizedDashboardSettings && memoizedDashboardSettings.ignoreChecklistItems) {
+        typeWantedItems = memoizedItems.filter((si) => !(si.para?.type === 'checklist'))
+        totalCountToUse = totalCountToUse - (memoizedItems.length - typeWantedItems.length)
+      }
 
       // Find highest priority seen
       let maxPrioritySeen = -1
-      for (const i of typeFilteredItems) {
+      for (const i of typeWantedItems) {
         if (i.para?.priority && i.para.priority > maxPrioritySeen) {
           maxPrioritySeen = i.para.priority
         }
       }
       // and then filter out lower-priority items (if wanted)
       const filterByPriority = memoizedDashboardSettings.filterPriorityItems ?? false
-      const filteredItems = filterByPriority ? typeFilteredItems.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen) : typeFilteredItems.slice()
+      const filteredItems = filterByPriority
+        ? typeWantedItems.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen)
+        : typeWantedItems.slice()
       const priorityFilteringHappening = memoizedItems.length > filteredItems.length
       // logDebug('useSectionSortAndFilter', `${section.sectionCode}: ${memoizedItems.length} items; maxPri = ${String(maxPrioritySeen)}; leaves ${String(filteredItems.length)} filteredItems`)
       // clo(filteredItems, 'useSectionSortAndFilter filteredItems:')
@@ -82,16 +93,22 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
       filteredItems.sort(itemSort)
       // logDebug('useSectionSortAndFilter', `sorted: ${String(filteredItems.map(fi => fi.ID).join(','))}`)
 
-      const filteredOrderedItems = reorderChildrenAfterParents(filteredItems)
-      // logDebug('useSectionSortAndFilter', `after reordering children: ${String(filteredOrderedItems.map(fi => fi.ID).join(','))}`)
+      const orderedFilteredItems = reorderChildrenAfterParents(filteredItems)
+      // logDebug('useSectionSortAndFilter', `after reordering children: ${String(orderedFilteredItems.map(fi => fi.ID).join(','))}`)
 
-      // If more than limitToApply, then just keep the first items, otherwise keep all
+      // If more than limitToApply items, then just keep the first 'maxItemsToShowInSection' items, otherwise keep all
       const limitToApply = memoizedDashboardSettings.maxItemsToShowInSection ?? 20
-      const itemsToShow = limitToApply > 0 ? filteredOrderedItems.slice(0, limitToApply) : filteredOrderedItems.slice()
-      const limitApplied = typeFilteredItems.length > itemsToShow.length
+      const itemsToShow = limitToApply > 0 ? orderedFilteredItems.slice(0, limitToApply) : orderedFilteredItems.slice()
+      // TEST: not picking up for PRIORITY
+      // Requirement thinking, with example numbers:
+      // - dataGen finds 100 (totalCount), but it only sends 30 (first limit)
+      // - we then might filter out 10 checklists, so typeWantedItems.length is 20 out of 30
+      // - then we want to say 'first 20 of 90 tasks'
+      // FIXME: but now '4 [open] tasks ...' listed but only showing 3
+      const limitApplied = totalCountToUse > limitToApply
 
       // Add 'filtered out' display line if relevant
-      const numFilteredOut = typeFilteredItems.length - itemsToShow.length
+      const numFilteredOut = typeWantedItems.length - itemsToShow.length
       if (numFilteredOut > 0) {
         itemsToShow.push({
           ID: `${section.ID}-Filter`,
@@ -109,7 +126,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
           },
         })
       }
-      // logDebug('useSectionSortAndFilter', `- numFilteredOut: ${String(numFilteredOut)}; ${limitApplied ? `limitApplied; itemsToShow: ${String(itemsToShow)}` : ''}`)
+      // logInfo('useSectionSortAndFilter', `${section.sectionCode}: typeWantedItems: ${String(typeWantedItems.length)}; numFilteredOut: ${String(numFilteredOut)}; itemsToShow: ${String(itemsToShow)}; totalCountToUse: ${String(totalCountToUse)}; limitToApply: ${String(limitToApply)}`)
 
       setFilteredItems(filteredItems)
       setItemsToShow(itemsToShow)

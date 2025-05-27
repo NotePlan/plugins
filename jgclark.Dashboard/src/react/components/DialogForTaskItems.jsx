@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-04-24 for v2.2.2
+// Last updated 2025-05-26 for v2.3.0
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -95,6 +95,10 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // Now tweak this list if buttons slightly if we're on a weekly or monthly note etc.
   if (sectionCodes) {
+    if (sectionCodes.includes('DT')) {
+      buttons.splice(0, 1) // remove the 'today' item, as its redundant
+      buttons.splice(3, 0, { label: '+3d', controlStr: '+3d' }) // add another one instead
+    }
     if (sectionCodes.includes('W')) {
       buttons.splice(4, 1) // remove the 'this week' item, as its redundant
     }

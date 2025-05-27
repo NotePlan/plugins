@@ -39,11 +39,11 @@ export function parseTeamspaceFilename(filenameIn: string): { filename: string, 
 
   if (match) {
     const filename = filenameIn.split('/')[2]
-    const teamspaceID = match[2]
-    // logDebug('parseTeamspaceFilename', `Teamspace note, with calendar part: ${filename} for teamspaceID ${teamspaceID}`)
+    const teamspaceID = match[1]
+    logDebug('parseTeamspaceFilename', `Teamspace note, with calendar part: ${filename} for teamspaceID ${teamspaceID}`)
     return { filename: filename, isTeamspace: true, teamspaceID }
   } else {
-    // logDebug('parseTeamspaceFilename', `Non-teamspace note with filename ${filenameIn}`)
+    logDebug('parseTeamspaceFilename', `Non-teamspace note with filename ${filenameIn}`)
     return { filename: filenameIn, isTeamspace: false }
   }
 }

@@ -113,7 +113,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           ]
         : [],
     )
-    let sectionDescription = `{count} of {totalCount} from ${dateStr}`
+    let sectionDescription = `{countWithLimit} {itemType} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
@@ -277,7 +277,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
     }
 
     const doneCountData = getNumCompletedTasksFromNote(thisFilename)
-    let sectionDescription = `{count} of {totalCount} from ${dateStr}`
+    let sectionDescription = `{countWithLimit} {itemType} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {

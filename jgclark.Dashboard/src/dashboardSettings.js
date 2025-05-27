@@ -126,21 +126,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: 'Tag/Mention section(s)',
-  },
-  {
-    key: 'tagsToShow',
-    label: '#tag/@mention(s) to show [in dedicated sections]',
-    description:
-      "Optional comma-separated list of #hashtag(s) and/or @mention(s) to show in a separate section(s). This is a good way to show all `#next` actions, or items to discuss with `@Bob` for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. NOTE: These tasks will only show in their separate section, unless you have the 'Hide Duplicates' option turned OFF.",
-    type: 'input',
-    default: '',
-  },
-  {
-    type: 'separator',
-  },
-  {
-    type: 'heading',
     label: 'Moving/Scheduling Items',
   },
   {
@@ -244,6 +229,16 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     refreshAllOnChange: true,
   },
   {
+    key: 'showProgressInSections',
+    label: 'How to show progress in Calendar sections?',
+    description:
+      "If set to 'number closed', then the number of tasks completed in that note will be shown in the section heading area. If set to 'number open', then the number of tasks still open will be shown instead.",
+    type: 'dropdown-select',
+    options: ['none', 'number closed', 'number open'],
+    default: 'number closed',
+    compactDisplay: true,
+  },
+  {
     key: 'overdueSortOrder',
     label: 'Sort order for Tag/Mention and Overdue items',
     description:
@@ -289,6 +284,29 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: 'If set, adds an ellipsis icon on items that have "children" (indented sub-items), whether they are also shown or not.',
     type: 'switch',
     default: true,
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: 'Tag/Mention section(s)',
+  },
+  {
+    key: 'tagsToShow',
+    label: '#tag/@mention(s) to show [in dedicated sections]',
+    description:
+      "Optional comma-separated list of #hashtag(s) and/or @mention(s) to show in a separate section(s). This is a good way to show all `#next` actions, or items to discuss with `@Bob` for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. NOTE: These tasks will only show in their separate section, unless you have the 'Hide Duplicates' option turned OFF.",
+    type: 'input',
+    default: '',
+  },
+  {
+    key: 'includeFutureTagMentions',
+    label: 'Include #tag/@mention(s) scheduled to future dates?',
+    description:
+      "If set, then #tag/@mention(s) scheduled to future dates will be included in the Tag/Mention section. This is useful if you want to see all the #next actions, or items to discuss with `@Bob` for example.",
+    type: 'switch',
+    default: false,
   },
   {
     type: 'separator',

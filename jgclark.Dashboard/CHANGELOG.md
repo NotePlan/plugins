@@ -10,11 +10,15 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 -->
 
 ## [2.3.0.b2] 2025-05-23
+- show TAG sections that have no items
+- hide Referenced calendar sections (e.g. ">Today") that have no items to show
+- added little circles for task completion in section headings, and tweaked the text after it
+- new setting 'Include #tag/@mention(s) scheduled to future dates?' (default: false) (for @Bart De Ruyck)
+- new setting 'How to show progress in Calendar sections?'. If set to 'number closed', then the number of tasks completed in that note will be shown in the section heading area. If set to 'number open', then the number of tasks still open will be shown instead. Or can be set to 'none'. (Default: 'number closed'.)
+### Dev notes
+- lots of re-work of tagMentionCache. In particular will not to full generate if cache is missing (or incomplete), but instead fall back to use the API, and schedule full generation after the rest of the Dashboard has been generated.
 - restored the tagMentionCache FFlag for DBW
 - turned off full cache generation on startup (or Hard Refresh) if logging mode is DEV (or for JGC)
-- lots of re-work of tagMentionCache. In particular will not to full generate if cache is missing (or incomplete), but instead fall back to use the API, and schedule full generation after the rest of the Dashboard has been generated.
-- show TAG sections that have no items
-- added little circles for task completion in section headings, and tweaked the text after it
 
 ## [2.3.0.b1] 2025-05-15
 ### Added

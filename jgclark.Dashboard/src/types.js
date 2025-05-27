@@ -1,13 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-05-18 for v2.3.0, @jgclark
+// Last updated 2025-05-25 for v2.3.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
-// import type { TSearchOptions} from '../../jgclark.SearchExtensions/src/searchHelpers.js'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
-export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog' // for now because it was imported in lots of places
+export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog' 
 
 export type TDashboardLoggingConfig = {
   _logLevel: string,
@@ -80,6 +79,7 @@ export type TDashboardSettings = {
   showFolderName: boolean, // Note: was includeFolderName before 2.2.0.
   showScheduledDates: boolean, // Note: was includeScheduledDates before 2.2.0.rename to show...
   showTaskContext: boolean, // Note: was includeTaskContext before 2.2.0.
+  includeFutureTagMentions: boolean, // from v2.3.0
   interactiveProcessingHighlightTask: boolean,
   lastModified?: string,
   lookBackDaysForOverdue: number,
@@ -92,6 +92,7 @@ export type TDashboardSettings = {
   rescheduleNotMove: boolean,
   separateSectionForReferencedNotes: boolean,
   settingsMigrated: boolean,
+  showProgressInSections: string, // 'none' | 'number completed' | 'number not completed'
   tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
   useLiteScheduleMethod: boolean,
   useTodayDate: boolean,

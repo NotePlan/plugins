@@ -17,7 +17,7 @@ import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
 import CircularProgressBar from '../CircularProgressBar.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
-import { percent } from '@helpers/general'
+// import { percent } from '@helpers/general'
 import { logDebug, logError, logInfo, JSP, clo } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import './Section.css'
@@ -43,22 +43,24 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // State
   //----------------------------------------------------------------------
-  const [items, setItems] = useState<Array<TSectionItem>>([])
+  const [items, setItems] = useState < Array < TSectionItem >> ([])
 
   //----------------------------------------------------------------------
   // Constants
   // ---------------------------------------------------------------------
   const { sectionFilename, totalCount } = section
+  const isReferencedSection = section.isReferenced ?? false
 
   //----------------------------------------------------------------------
   // Effects
   //----------------------------------------------------------------------
   useEffect(() => {
     if (!section) {
-      logError('Section', `❓ No Section passed in.`)
+      logError('Section', `No Section passed in.`)
       return
     }
 
+    // Stop here if this section is not currently wanted by user.
     // $FlowIgnore[invalid-computed-prop]
     if (dashboardSettings && section.showSettingName && dashboardSettings[section.showSettingName] === false) {
       return
@@ -73,6 +75,18 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         case 'W':
         case 'M':
         case 'Q':
+          if (isReferencedSection) {
+            logDebug('Section', `Section ${section.sectionCode} doesn't have any sectionItems, but won't be shown, so no need to display congrats message`)
+          } else {
+            logDebug('Section', `Section ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
+            sectionItems = [
+              {
+                ID: '0-Empty',
+                itemType: 'itemCongrats',
+              },
+            ]
+          }
+          break
         case 'TAG':
           logDebug('Section', `Section ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
@@ -83,7 +97,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           ]
           break
         case 'PROJ':
-          logDebug('Section', `Section 14 (PROJ) doesn't have any sectionItems, so display congrats message`)
+          logDebug('Section', `Section PROJ doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
               ID: '14-Empty',
@@ -137,6 +151,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
+
+  // Note: this is where the display filtering/sorting/limiting happens.
   const { itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
 
   //----------------------------------------------------------------------
@@ -179,7 +195,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // $FlowIgnore[invalid-computed-prop]
   let hideSection = !items.length || (dashboardSettings && dashboardSettings[section.showSettingName] === false) // note this can be updated later
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
-  // const isDesktop = pluginData.platform === 'macOS'
   let numItemsToShow = itemsToShow.length
 
   // Figure out colours for section title
@@ -189,60 +204,70 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   const buttonsWithoutBordersOrBackground = section.actionButtons?.filter((b) => b.actionName.startsWith('add') || b.actionName.startsWith('close'))
   let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add') && !b.actionName.startsWith('close'))
 
+  // Deal with special cases where we don't want to show item counts
   // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
   if (numItemsToShow === 1 && treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)) {
     processActionButtons = []
   }
+  // If we have only one item to show, and it's a single item type that we don't want to count (e.g. 'Nothing left on this list'), set numItemsToShow to 0
+  if (numItemsToShow === 1 && treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)) numItemsToShow = 0
 
-  // Decrement the number of items to show if the last one is the filterIndicator
+  // If the last one is the filterIndicator, decrement the number of items to show
   if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') {
     numItemsToShow--
   }
-  if (numItemsToShow === 1 && treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)) numItemsToShow = 0
 
-  // Replace {count} and {totalCount} placeholders
+  // Form the description to use, replacing {closedOrOpenTaskCount} and {countWithLimit} placeholders with actual values
   let descriptionToUse = section.description
-  // let totalCountString = ''
-  // if (descriptionToUse.includes('{count}')) {
-  //   const totalNumItems = items.length
-  //   if (numFilteredOut > 0) {
-  //     if (descriptionToUse.includes('first')) {
-  //       // descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(numItemsToShow)} of ${String(totalNumItems)}</span >`)
-  //       descriptionToUse = descriptionToUse.replace('{count}', `${String(numItemsToShow)} of ${String(totalNumItems)}`)
-  //     } else {
-  //       // descriptionToUse = descriptionToUse.replace('{count}',
-  //       //   `<span id='section${section.ID}Count'>${numItemsToShow > 0 ? 'first ' : ''}${String(numItemsToShow)} of ${String(totalNumItems)}</span >`,
-  //       descriptionToUse = descriptionToUse.replace('{count}', `${numItemsToShow > 0 ? 'first ' : ''}${String(numItemsToShow)} of ${String(totalNumItems)}`)
-  //     }
-  //   } else if (limitApplied) {
-  //     // descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}TotalCount'}>${String(numItemsToShow)} of ${String(totalNumItems)}</span>`)
-  //     descriptionToUse = descriptionToUse.replace('{count}', `${String(numItemsToShow)} of ${String(totalNumItems)}`)
-  //   } else {
-  //     // descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}TotalCount'}>${String(numItemsToShow)}</span>`)
-  //     descriptionToUse = descriptionToUse.replace('{count}', `${String(numItemsToShow)}`)
-  //   }
-  // }
-  // if (descriptionToUse.includes('{totalCount}')) {
-  //   totalCountString = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(totalCount)}</span>`)
-  //   descriptionToUse = descriptionToUse.replace('{totalCount}', '')
-  // }
-  descriptionToUse = descriptionToUse.replace('{count}', section.totalCount ? String(section.totalCount) : '')
-  // Pluralise item in description if neccesary
-  if (descriptionToUse.includes('{s}')) {
-    // if (numItemsToShow !== 0) {
-    if (section.totalCount === 1) {
-      descriptionToUse = descriptionToUse.replace('{s}', ``)
-    } else {
-      descriptionToUse = descriptionToUse.replace('{s}', `s`)
+  /**
+   * Requirements for the task completion part of descriptions:
+   * - DT etc.: none: {T} from date
+   *            open: {circle} {C} of {T} open from date
+   *            done: {circle} {D} of {T} done from date
+   * - DT(Ref) etc: ANY: {T} scheduled to date
+   *           (otherwise too hard to separate direct from referenced)
+   * - OVERDUE: no limit: {T} open from last ...
+   *             limited: {L} of {T} open from last ...
+   * - PRIORITY: no limit: {T} open
+   *              limited: {L} of {T} open
+   * - TAG: no limit: {T} open
+   *         limited: {L} of {T} open
+   * - PROJ: no limit: {T} projects ready to review
+   *          limited: {L} of {T} projects ready to review
+   */
+  // Replace {countWithLimit} with the number of items, and pluralise it if neccesary
+  descriptionToUse = descriptionToUse.replace('{countWithLimit}', limitApplied
+    ? `first ${items.length} of ${totalCount ?? '?'}`
+    : `${totalCount ?? '?'}`)
+
+  // Replace {count} with the number of items, and pluralise it if neccesary
+  descriptionToUse = descriptionToUse.replace('{count}', `${totalCount ?? '?'} ${getTaskOrItemDisplayString(totalCount ?? 0, dashboardSettings.ignoreChecklistItems ? 'task' : 'item')}`)
+
+  // Replace {closedOrOpenTaskCount} with the number of completed or open tasks, depending on the 'showProgressInSections' setting
+  if (descriptionToUse.includes('{closedOrOpenTaskCount}')) {
+    let closedOrOpenTaskCountString = ''
+    switch (dashboardSettings.showProgressInSections) {
+      case 'number closed':
+        closedOrOpenTaskCountString = `closed ${section.doneCounts?.completedTasks ?? '0'} ${getTaskOrItemDisplayString(section.doneCounts?.completedTasks ?? 0, dashboardSettings.ignoreChecklistItems ? 'task' : 'item')}`
+        break
+      case 'number open':
+        closedOrOpenTaskCountString = `${totalCount ? String(totalCount) : '?'} open ${getTaskOrItemDisplayString(totalCount ?? 0, dashboardSettings.ignoreChecklistItems ? 'task' : 'item')}`
+        break
+      default:
+        closedOrOpenTaskCountString = String(totalCount ?? 0)
+        break
     }
-  }
-  if (descriptionToUse.includes('{totalCount}')) {
-    descriptionToUse = descriptionToUse.replace('{totalCount}', `${String((totalCount ?? 0) + (section.doneCounts?.completedTasks ?? 0))} open`)
+    descriptionToUse = descriptionToUse.replace('{closedOrOpenTaskCount}', closedOrOpenTaskCountString)
   }
 
-  // Prep a task-completion circle to the description for calendar non-referenced sections
+  // Replace {itemType} in description, and pluralise it if neccesary
+  descriptionToUse = descriptionToUse.replace('{itemType}', getTaskOrItemDisplayString(totalCount ?? 0, dashboardSettings.ignoreChecklistItems ? 'task' : 'item'))
+
+  // logInfo('Section', `${section.sectionCode}: limitApplied? ${String(limitApplied)} / numItemsToShow: ${String(numItemsToShow)} / numItems: ${String(items.length)} / numFilteredOut: ${String(numFilteredOut)}. ${section.description} -> ${descriptionToUse}`)
+
+  // Prep a task-completion circle to the description for calendar non-referenced sections (where showProgressInSections !== 'none')
   let completionCircle = null
-  if (numItemsToShow > 0 && ['DT', 'DY', 'W', 'LW', 'M', 'Q', 'Y'].includes(section.sectionCode) && section.doneCounts) {
+  if (numItemsToShow > 0 && ['DT', 'DY', 'W', 'LW', 'M', 'Q', 'Y'].includes(section.sectionCode) && section.doneCounts && dashboardSettings.showProgressInSections !== 'none') {
     const percentComplete = section.doneCounts.completedTasks / (section.doneCounts.completedTasks + items.length) * 100.0
     completionCircle =
       <span className="sectionCompletionCircle" title={`${section.doneCounts.completedTasks} of ${section.doneCounts.completedTasks + items.length} tasks completed`} style={{ justifySelf: 'end' }}>
@@ -286,6 +311,10 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     hideSection = true
   }
 
+  function getTaskOrItemDisplayString(count: number, type: string) {
+    return `${count === 1 ? type : `${type}s`}`
+  }
+
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
@@ -300,7 +329,9 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
    * Then <SectionGrid> which contains the actual data items.
    */
   return hideSection ? null : (
-    <section className="section">
+    <section className={`section`}>
+      {/* TODO: get this working. See post in KP Discord about it on 26.5.2025 */}
+      {/* <section className={`section ${isReferencedSection ? 'referencedSectionInfo' : ''}`}> */}
       <div className="sectionInfo">
         <div className="sectionInfoFirstLine">
           <TooltipOnKeyPress

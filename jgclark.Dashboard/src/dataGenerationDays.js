@@ -122,7 +122,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         : [],
     )
 
-    let sectionDescription = `{count} of {totalCount} from ${todayDateLocale}`
+    let sectionDescription = `{closedOrOpenTaskCount} from ${todayDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
@@ -235,6 +235,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,
+        totalCount: items.length,
         generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
         isReferenced: true,
         actionButtons: [],
@@ -357,7 +358,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       }
     }
     const doneCountData = getNumCompletedTasksFromNote(thisFilename)
-    let sectionDescription = `{count} of {totalCount} from ${yesterdayDateLocale}`
+    let sectionDescription = `{closedOrOpenTaskCount} from ${yesterdayDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
@@ -372,7 +373,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       sectionItems: items,
       generatedDate: new Date(),
       doneCounts: doneCountData,
-      totalCount: items.length + doneCountData.completedTasks, // FIXME: deal with checklists as well
+      totalCount: items.length,
       isReferenced: false,
       actionButtons: [
         {
@@ -424,6 +425,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,
+        totalCount: items.length,
         generatedDate: new Date(),
         isReferenced: true,
         actionButtons: [],
@@ -589,6 +591,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,
+        totalCount: items.length,
         generatedDate: new Date(),
         isReferenced: true,
         actionButtons: [],

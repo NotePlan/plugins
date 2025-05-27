@@ -224,7 +224,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         : [],
     )
 
-    let sectionDescription = `{count} of {totalCount} from ${dateStr}`
+    let sectionDescription = `{closedOrOpenTaskCount} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
@@ -320,6 +320,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         sectionTitleColorPart: 'sidebarMonthly',
         sectionFilename: thisFilename,
         sectionItems: items,
+        totalCount: items.length,
         generatedDate: new Date(),
         actionButtons: [],
         isReferenced: true,
@@ -424,7 +425,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         : [],
     )
 
-    let sectionDescription = `{count} of {totalCount} from ${dateStr}`
+    let sectionDescription = `{countWithLimit} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
@@ -514,6 +515,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         sectionTitleColorPart: 'sidebarQuarterly',
         sectionFilename: thisFilename,
         sectionItems: items,
+        totalCount: items.length,
         generatedDate: new Date(),
         actionButtons: [],
         isReferenced: true,
@@ -608,10 +610,10 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       logDebug('getOverdueSectionData', `- Sorted ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
 
       // Apply limit to set of ordered results
-      // Note: This is normally done in the Section component, but as JGC has hundreds of items, we'll do some limiting here first.
+      // Note: Apply some limiting here, in case there are hundreds of items. There is also display filtering in the Section component via useSectionSortAndFilter.
       // Note: this doesn't attempt to calculate parentIDs. TODO: Should it?
-      const overdueTaskParasLimited = totalOverdue > (maxInSection * 2)
-        ? sortedOverdueTaskParas.slice(0, maxInSection * 2)
+      const overdueTaskParasLimited = totalOverdue > maxInSection
+        ? sortedOverdueTaskParas.slice(0, maxInSection)
         : sortedOverdueTaskParas
       logInfo('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} of ${totalOverdue} items will be passed to React`)
       overdueTaskParasLimited.map((p) => {
@@ -622,16 +624,10 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     }
     logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
-    // let sectionDescription =
-    //   totalOverdue > itemCount
-    //     ? `first {count} of {totalCount} ${config.lookBackDaysForOverdue > 0 ? `from last ${String(config.lookBackDaysForOverdue)} days ` : ''}ordered by ${
-    //         config.overdueSortOrder
-    //       }`
-    //     : `{count} ordered by ${config.overdueSortOrder}`
-    let sectionDescription = `{count} ${config.lookBackDaysForOverdue > 0
+    let sectionDescription = `{countWithLimit} open {itemType} ${config.lookBackDaysForOverdue > 0
       ? `from last ${String(config.lookBackDaysForOverdue)} days `
       : ''}ordered by ${config.overdueSortOrder}`
-    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
 
     const section: TSection = {
       ID: sectionNumStr,
@@ -738,7 +734,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
       logTimer('getPrioritySectionData', thisStartTime, `- Sorted ${sortedPriorityTaskParas.length} items`)
 
       // Apply limit to set of ordered results
-      // Note: there is also filtering in the Section component
+      // Note: Apply some limiting here, in case there are hundreds of items. There is also display filtering in the Section component via useSectionSortAndFilter.
       // Note: this doesn't attempt to calculate parentIDs. TODO: Should it?
       const priorityTaskParasLimited = totalPriority > maxInSection ? sortedPriorityTaskParas.slice(0, maxInSection) : sortedPriorityTaskParas
       logDebug('getPrioritySectionData', `- after limit, now ${priorityTaskParasLimited.length} items to show`)
@@ -750,8 +746,8 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
     }
     logTimer('getPrioritySectionData', thisStartTime, `- finished finding priority items`)
 
-    let sectionDescription = totalPriority > itemCount ? `{count} of {totalCount}` : `{count}`
-    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` in ${timer(thisStartTime)}`
+    let sectionDescription = `{countWithLimit} open {itemType}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
 
     const section: TSection = {
       ID: sectionNumStr,
