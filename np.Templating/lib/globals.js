@@ -294,3 +294,9 @@ export const asyncFunctions = [
   'weekDates',
   'wotd',
 ]
+
+/**
+ * Top-level NotePlan objects available globally in templates
+ * These are the main application objects that plugins can interact with
+ */
+export const notePlanTopLevelObjects = ['Editor', 'DataStore', 'CommandBar', 'Calendar', 'NotePlan', 'HTMLView', 'Clipboard', 'Range', 'CalendarItem', 'fetch', 'globalThis']

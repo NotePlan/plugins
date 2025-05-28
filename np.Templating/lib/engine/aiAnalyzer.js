@@ -9,6 +9,7 @@
 import { logDebug, logError, timer } from '@helpers/dev'
 import pluginJson from '../../plugin.json'
 import { appendPreviousPhaseErrorsToError } from './errorProcessor'
+import { notePlanTopLevelObjects } from '../globals'
 
 /**
  * Uses NotePlan.AI to analyze and rewrite template errors with helpful suggestions.
@@ -68,7 +69,7 @@ export async function analyzeErrorWithAI(
  */
 function prepareContextInfo(renderData: Object): string {
   const contextKeys = Object.keys(renderData)
-  return contextKeys
+  const contextInfo = contextKeys
     .map((key) => {
       const value = renderData[key]
       if (typeof value === 'function') {
@@ -91,6 +92,11 @@ function prepareContextInfo(renderData: Object): string {
       }
     })
     .join('\n')
+
+  // Add NotePlan top-level objects information
+  const topLevelObjectsInfo = `\n\n## Available NotePlan Top-Level Objects:\n${notePlanTopLevelObjects.join(', ')}`
+
+  return contextInfo + topLevelObjectsInfo
 }
 
 /**
