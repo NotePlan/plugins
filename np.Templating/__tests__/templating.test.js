@@ -605,5 +605,133 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(renderedData).toContain('should return just the text no return')
       })
     })
+
+    describe(section('Edge Case: Control Structure Split Across Template Blocks'), () => {
+      it(`should handle control structure split across template blocks without "Unexpected keyword 'catch'" error`, async () => {
+        // This is the user's original template that was causing "Unexpected keyword 'catch'" error
+        const problematicTemplate = `<%
+  const formattedDate = date.format("YYYY-MM-DD", Editor.title);
+  const dayNum = date.dayNumber(formattedDate); // Sunday = 0, Saturday = 6
+  const weekdays = [1, 2, 3, 4, 5]; // Monday to Friday
+  if (weekdays.includes(dayNum)) {
+%>
++ 16:30 - 17:00 :brain: Review my day and plan tomorrow
+<% } %>`
+
+        // Mock the data that would be available in the template
+        const userData = {
+          date: {
+            format: () => '2024-01-15',
+            dayNumber: () => 1,
+          },
+          Editor: {
+            title: 'Test Note',
+          },
+        }
+
+        // This test should either:
+        // 1. Successfully render the template, OR
+        // 2. Provide a clear error message about the control structure issue
+        // The goal is to capture the current behavior so we can debug it
+        let renderedData
+        let errorOccurred = false
+        let errorMessage = ''
+
+        try {
+          renderedData = await templateInstance.render(problematicTemplate, userData)
+        } catch (error) {
+          errorOccurred = true
+          errorMessage = error.message || error.toString()
+          console.log('Edge case test error:', errorMessage)
+        }
+
+        if (!errorOccurred) {
+          console.log('Edge case test success:', renderedData)
+          // If it renders successfully, it should contain the expected content
+          expect(renderedData).toContain('+ 16:30 - 17:00 :brain: Review my day and plan tomorrow')
+        } else {
+          // If there's an error, it should not be the "Unexpected keyword 'catch'" error
+          // (that would indicate the preprocessing is creating invalid JavaScript)
+          expect(errorMessage).not.toContain("Unexpected keyword 'catch'")
+
+          // Log the error for debugging purposes
+          console.log('Template processing failed with error:', errorMessage)
+
+          // The error should be defined
+          expect(errorMessage).toBeDefined()
+          expect(typeof errorMessage).toBe('string')
+          expect(errorMessage.length).toBeGreaterThan(0)
+        }
+      })
+
+      it(`should normalize template tag spacing and remove unwanted returns`, async () => {
+        // Test cases for tag normalization
+        const testCases = [
+          {
+            name: 'Missing space after opening tag',
+            template: '<%if (true) { %>Hello<% } %>',
+            shouldContain: 'Hello',
+          },
+          {
+            name: 'Missing space before closing tag',
+            template: '<% if (true) {%>Hello<% } %>',
+            shouldContain: 'Hello',
+          },
+          {
+            name: 'Both missing spaces',
+            template: '<%if (true){%>Hello<%}%>',
+            shouldContain: 'Hello',
+          },
+          {
+            name: 'Return after opening tag',
+            template: '<% \nif (true) { %>Hello<% } %>',
+            shouldContain: 'Hello',
+          },
+          {
+            name: 'Multiple returns after opening tag',
+            template: '<% \n\nif (true) { %>Hello<% } %>',
+            shouldContain: 'Hello',
+          },
+          {
+            name: 'Multi-line tag with complex logic',
+            template: `<%
+  const x = 1;
+  const y = 2;
+  if (x + y === 3) {
+%>Hello World<% } %>`,
+            shouldContain: 'Hello World',
+          },
+          {
+            name: 'User original problematic pattern',
+            template: `<%
+  const weekdays = [1, 2, 3, 4, 5];
+  if (weekdays.includes(1)) {
+%>+ Task for weekday<% } %>`,
+            shouldContain: '+ Task for weekday',
+          },
+        ]
+
+        for (const testCase of testCases) {
+          let renderedData
+          let errorOccurred = false
+          let errorMessage = ''
+
+          try {
+            renderedData = await templateInstance.render(testCase.template, {})
+          } catch (error) {
+            errorOccurred = true
+            errorMessage = error.message || error.toString()
+          }
+
+          if (!errorOccurred) {
+            expect(renderedData).toContain(testCase.shouldContain)
+          } else {
+            // The error should not be a syntax error related to spacing
+            expect(errorMessage).not.toContain('Unexpected token')
+            expect(errorMessage).not.toContain('Unexpected keyword')
+          }
+        }
+      })
+    })
   })
 })

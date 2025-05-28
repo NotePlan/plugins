@@ -69,34 +69,39 @@ export async function analyzeErrorWithAI(
  */
 function prepareContextInfo(renderData: Object): string {
   const contextKeys = Object.keys(renderData)
-  const contextInfo = contextKeys
-    .map((key) => {
-      const value = renderData[key]
-      if (typeof value === 'function') {
-        return `${key}: [function]`
-      } else if (typeof value === 'object' && value !== null) {
-        return `${key}: [object with keys: ${Object.keys(value).join(', ')}]`
-      } else {
-        const valueStr = String(value)
-        // Filter out context variables that contain error messages from previous phases
-        if (
-          valueStr.includes('==**Templating Error Found**') ||
-          valueStr.includes('Template Rendering Error') ||
-          valueStr.includes('Error:') ||
-          valueStr.includes('SyntaxError:') ||
-          valueStr.includes('ReferenceError:')
-        ) {
-          return `${key}: [ERROR - filtered out polluted error message]`
-        }
-        return `${key}: ${valueStr.substring(0, 50)}${valueStr.length > 50 ? '...' : ''}`
+  const contextEntries = contextKeys.map((key) => {
+    const value = renderData[key]
+    if (typeof value === 'function') {
+      return { key, description: `${key}: [function]` }
+    } else if (typeof value === 'object' && value !== null) {
+      return { key, description: `${key}: [object with keys: ${Object.keys(value).join(', ')}]` }
+    } else {
+      const valueStr = String(value)
+      // Filter out context variables that contain error messages from previous phases
+      if (
+        valueStr.includes('==**Templating Error Found**') ||
+        valueStr.includes('Template Rendering Error') ||
+        valueStr.includes('Error:') ||
+        valueStr.includes('SyntaxError:') ||
+        valueStr.includes('ReferenceError:')
+      ) {
+        return { key, description: `${key}: [ERROR - filtered out polluted error message]` }
       }
-    })
-    .join('\n')
+      return { key, description: `${key}: ${valueStr.substring(0, 50)}${valueStr.length > 50 ? '...' : ''}` }
+    }
+  })
 
-  // Add NotePlan top-level objects information
-  const topLevelObjectsInfo = `\n\n## Available NotePlan Top-Level Objects:\n${notePlanTopLevelObjects.join(', ')}`
+  // Add NotePlan top-level objects to the context entries
+  const notePlanEntries = notePlanTopLevelObjects.map((objectName) => ({
+    key: objectName,
+    description: `${objectName}: [NotePlan top-level object] (includes various props/methods)`,
+  }))
 
-  return contextInfo + topLevelObjectsInfo
+  // Combine all entries and sort alphabetically (case-insensitive)
+  const allEntries = [...contextEntries, ...notePlanEntries]
+  allEntries.sort((a, b) => a.key.toLowerCase().localeCompare(b.key.toLowerCase()))
+
+  return allEntries.map((entry) => entry.description).join('\n')
 }
 
 /**
@@ -140,6 +145,16 @@ Find the error(s) and describe in layman's terms what I should do to fix the err
       backticks\`
 ### What to do to fix the error(s):
   - What specific changes they should make to fix the error(s)
+
+**IMPORTANT COMMON ISSUES TO CHECK FOR:**
+
+1. **Undefined Variables**: Make sure all variables are defined before use.
+
+2. **Function Call Syntax**: Check for missing parentheses, brackets, or quotes.
+
+3. **Template Tag Syntax**: Ensure all template tags are properly opened and closed.
+
+4. **Control Structure Syntax**: Ensure all control structures are properly opened and closed.
 
 *****
 ## Error message I received from EJS. (The line number may or may not be accurate, and therefore the specific code it is showing as context may or may not be accurate either):
@@ -276,6 +291,11 @@ function findProblematicPatterns(originalError: string, originalLines: Array<str
     // Look for assignment in conditions
     if (line.match(/if\s*\([^=]*=\s*[^=]/)) {
       patterns.push({ lineIndex: index, reason: 'Assignment in condition (should be comparison)' })
+    }
+
+    // Check for control structures using 'in' operator with arrays (common mistake)
+    if (line.includes(' in [') && line.includes('if')) {
+      patterns.push({ lineIndex: index, reason: 'Using "in" operator with array (should use .includes() method instead)' })
     }
   })
 

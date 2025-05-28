@@ -177,7 +177,8 @@ export const convertTemplateJSBlocksToControlTags = (templateData: string = ''):
  */
 export const getTags = async (templateData: string = '', startTag: string = '<%', endTag: string = '%>'): Promise<any> => {
   if (!templateData) return []
-  const TAGS_PATTERN = /<%.*?%>/gi
+  // Use the 's' flag (dotAll) to make '.' match newline characters, allowing multi-line tags
+  const TAGS_PATTERN = /<%.*?%>/gis
   const items = templateData.match(TAGS_PATTERN)
   return items || []
 }
@@ -212,16 +213,15 @@ export const isCode = (tag: string): boolean => {
     result = true
   }
 
-  // The original check for spacing (relevant for other basic JS, e.g. <% )
-  // Only apply if the tag has more content than just whitespace
-  if (
-    tag.length >= 3 &&
-    tag
-      .replace(/<%(-|=|~)?/, '')
-      .replace(/%>/, '')
-      .trim().length > 0
-  ) {
-    if (tag[2] === ' ') {
+  // Check for properly spaced tags - handle different tag types
+  // For <%- and <%= tags, check position 3 for space
+  // For <% tags, check position 2 for space
+  if (tag.startsWith('<%=') || tag.startsWith('<%-')) {
+    if (tag.length > 3 && tag[3] === ' ') {
+      result = true
+    }
+  } else if (tag.startsWith('<%')) {
+    if (tag.length > 2 && tag[2] === ' ') {
       result = true
     }
   }
@@ -250,7 +250,7 @@ export const isCode = (tag: string): boolean => {
  * @returns {boolean} True if the tag is a template module tag, false otherwise
  */
 export const isTemplateModule = (tag: string = ''): boolean => {
-  const tagValue = tag.replace('<%=', '').replace('<%-', '').replace('%>', '').trim()
+  const tagValue = tag.replace('<%=', '').replace('<%-', '').replace('<%', '').replace('%>', '').trim()
   const pos = tagValue.indexOf('.')
   if (pos >= 0) {
     const moduleName = tagValue.substring(0, pos)
@@ -267,7 +267,7 @@ export const isTemplateModule = (tag: string = ''): boolean => {
 export const isVariableTag = (tag: string = ''): boolean => {
   // @TODO: @codedungeon the following line had a search for "." in it. This was causing prompts with a period like "e.g." to fail
   // But looking at this code, wouldn't a prompt with a {question: "foo"} also fail because of the loose search for "{"?
-  return tag.indexOf('<% const') > 0 || tag.indexOf('<% let') > 0 || tag.indexOf('<% var') > 0 || tag.indexOf('{') > 0 || tag.indexOf('}') > 0
+  return tag.indexOf('<% const') >= 0 || tag.indexOf('<% let') >= 0 || tag.indexOf('<% var') >= 0 || tag.indexOf('{') >= 0 || tag.indexOf('}') >= 0
 }
 
 /**

@@ -176,6 +176,7 @@ export function processReturnTag(tag: string, context: { templateData: string, s
 
 /**
  * Process code tags by adding await prefix to function calls that need it.
+ * Also normalizes tag spacing and removes unwanted returns.
  * @param {string} tag - The code tag to process
  * @param {Object} context - The processing context containing templateData, sessionData, and override
  * @param {Array<string>} asyncFunctions - List of function names that are known to be async
@@ -190,12 +191,44 @@ export function processCodeTag(tag: string, context: { templateData: string, ses
     return
   }
 
-  const startDelim = match[1]
-  const rawCodeContent = match[2] // Content as it was in the tag, including surrounding internal whitespace
-  const endDelim = match[3]
+  let startDelim = match[1]
+  let rawCodeContent = match[2] // Content as it was in the tag, including surrounding internal whitespace
+  let endDelim = match[3]
 
-  const leadingSpace = rawCodeContent.startsWith(' ') ? ' ' : ''
-  const trailingSpace = rawCodeContent.endsWith(' ') ? ' ' : ''
+  // Normalize opening tag spacing - ensure there's a space after <%, <%-, <%=
+  if (!startDelim.endsWith(' ')) {
+    startDelim += ' '
+  }
+
+  // Normalize closing tag spacing - ensure there's a space before %>, -%>
+  if (!endDelim.startsWith(' ')) {
+    endDelim = ` ${endDelim}`
+  }
+
+  // Remove any returns/newlines immediately after the opening whitespace
+  // This handles cases like "<% \nif (condition)" -> "<% if (condition)"
+  const cleanedCodeContent = rawCodeContent
+
+  // Find leading whitespace
+  const leadingWhitespaceMatch = cleanedCodeContent.match(/^(\s*)/)
+  const leadingWhitespace = leadingWhitespaceMatch ? leadingWhitespaceMatch[1] : ''
+
+  // Remove the leading whitespace temporarily
+  const contentWithoutLeadingWhitespace = cleanedCodeContent.substring(leadingWhitespace.length)
+
+  // Remove any newlines/returns at the start of the actual content
+  const contentWithoutReturns = contentWithoutLeadingWhitespace.replace(/^[\r\n]+/, '')
+
+  // Find trailing whitespace
+  const trailingWhitespaceMatch = cleanedCodeContent.match(/(\s*)$/)
+  const trailingWhitespace = trailingWhitespaceMatch ? trailingWhitespaceMatch[1] : ''
+
+  // Reconstruct with normalized spacing: preserve one space at start and end, but remove unwanted returns
+  const leadingSpace = leadingWhitespace.includes(' ') || leadingWhitespace.includes('\t') ? ' ' : ''
+  const trailingSpace = trailingWhitespace.includes(' ') || trailingWhitespace.includes('\t') ? ' ' : ''
+
+  rawCodeContent = leadingSpace + contentWithoutReturns + trailingSpace
+
   const codeToProcess = rawCodeContent.trim()
 
   const { protectedCode, literalMap } = protectTemplateLiterals(codeToProcess)
@@ -248,9 +281,11 @@ export function processCodeTag(tag: string, context: { templateData: string, ses
   const finalProtectedCodeContent = processedLines.join('\\n')
   const finalCodeContent = restoreTemplateLiterals(finalProtectedCodeContent, literalMap)
 
-  const newTag = `${startDelim}${leadingSpace}${finalCodeContent}${trailingSpace}${endDelim}`
+  // Reconstruct the final tag with normalized spacing
+  const newTag = `${startDelim}${finalCodeContent}${endDelim}`
 
   if (tag !== newTag) {
+    logDebug(pluginJson, `processCodeTag: Normalized tag spacing: "${tag}" -> "${newTag}"`)
     context.templateData = context.templateData.replace(tag, newTag)
   }
 }
@@ -608,7 +643,7 @@ export async function preProcessTags(templateData: string, sessionData?: {} = {}
       continue
     }
 
-    // Process code tags that need await prefixing
+    // Process code tags that need await prefixing and other cleaning up
     if (isCode(tag) && tag.includes('(')) {
       logDebug(pluginJson, `preProcessTags: found code() in tag: ${tag}`)
       processCodeTag(tag, context, globalAsyncFunctions)
