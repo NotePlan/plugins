@@ -159,7 +159,10 @@ export const convertTemplateJSBlocksToControlTags = (templateData: string = ''):
           // Wrap the entire extracted JS content in a single EJS scriptlet tag.
           // Using <% ... %> ensures it's a scriptlet (code to be executed, not output).
           // The trailing '-%>' chomp cleans up trailing newline after the scriptlet.
-          const newEjsBlock = `<%\n${jsContent}\n-%>`
+          // Use actual newlines, not literal \n strings to avoid escape character issues
+          const newEjsBlock = `<%
+${jsContent}
+-%>`
           result = result.replace(codeBlock, newEjsBlock) // Replace the original block with the EJS tag
         }
       }
@@ -207,28 +210,30 @@ export const isCode = (tag: string): boolean => {
     return false
   }
 
+  // Prompts have their own processing, so don't process them as code
+  // Check this FIRST before any other logic
+  if (isPromptTag(tag)) {
+    return false
+  }
+
   // Only consider it a function call if there's a word character followed by parentheses
   // This regex handles whitespace between function name and parentheses
   if (/\w\s*\(/.test(tag) && tag.includes(')')) {
     result = true
   }
 
-  // Check for properly spaced tags - handle different tag types
-  // For <%- and <%= tags, check position 3 for space
-  // For <% tags, check position 2 for space
+  // For output tags (<%- and <%=), only consider them code if they contain function calls
+  // Simple variable references should not be considered code
   if (tag.startsWith('<%=') || tag.startsWith('<%-')) {
-    if (tag.length > 3 && tag[3] === ' ') {
-      result = true
-    }
-  } else if (tag.startsWith('<%')) {
+    // Only return true if it's a function call, not a simple variable reference
+    return /\w\s*\(/.test(tag) && tag.includes(')')
+  }
+
+  // Check for properly spaced tags - only for <% tags (not output tags)
+  if (tag.startsWith('<%') && !tag.startsWith('<%=') && !tag.startsWith('<%-')) {
     if (tag.length > 2 && tag[2] === ' ') {
       result = true
     }
-  }
-
-  // Prompts have their own processing, so don't process them as code
-  if (isPromptTag(tag)) {
-    result = false
   }
 
   // Variable declarations are code
@@ -240,7 +245,6 @@ export const isCode = (tag: string): boolean => {
   if (tag.includes('<%~')) {
     result = true
   }
-
   return result
 }
 
@@ -265,9 +269,30 @@ export const isTemplateModule = (tag: string = ''): boolean => {
  * @returns {boolean} True if the tag is a variable declaration, false otherwise
  */
 export const isVariableTag = (tag: string = ''): boolean => {
-  // @TODO: @codedungeon the following line had a search for "." in it. This was causing prompts with a period like "e.g." to fail
-  // But looking at this code, wouldn't a prompt with a {question: "foo"} also fail because of the loose search for "{"?
-  return tag.indexOf('<% const') >= 0 || tag.indexOf('<% let') >= 0 || tag.indexOf('<% var') >= 0 || tag.indexOf('{') >= 0 || tag.indexOf('}') >= 0
+  // Check for variable declarations - use word boundaries to avoid false positives
+  // like 'variable' matching 'var'
+  if (tag.includes('<% const ') || tag.includes('<% let ') || tag.includes('<% var ')) {
+    return true
+  }
+
+  // Check for object/array literals - but be more specific
+  // Only consider it a variable tag if it looks like an object literal assignment or standalone object
+  const content = tag
+    .replace(/<%(-|=|~)?/, '')
+    .replace(/%>/, '')
+    .trim()
+
+  // Check if it's a standalone object literal (starts with { and ends with })
+  if (content.startsWith('{') && content.endsWith('}')) {
+    return true
+  }
+
+  // Check if it's just a closing brace (part of a control structure)
+  if (content === '}') {
+    return true
+  }
+
+  return false
 }
 
 /**

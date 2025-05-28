@@ -135,6 +135,9 @@ Context: ${err.context}`,
  * @returns {string} The AI error template
  */
 function buildAIErrorTemplate(originalError: string, contextInfo: string, previousPhaseErrorsSection: string, originalScript: string, templateData: string): string {
+  // Convert literal \n strings back to actual newlines for better readability
+  const readableTemplateData = templateData.replace(/\\n/g, '\n')
+
   return `You are now an expert in EJS Templates. I want you to help find the error in an EJS template I ran that failed.
 Find the error(s) and describe in layman's terms what I should do to fix the error(s). Note that if you see  
 - Do not mention EJS in your answer -- Use the word "Templating" instead. 
@@ -167,7 +170,7 @@ ${contextInfo}${previousPhaseErrorsSection}
 ${originalScript || 'No original script available'}
 *****
 ## This was the template after it had been pre-processed (any EJS errors would refer to this pre-processed file):
-${templateData}
+${readableTemplateData}
 `
 }
 

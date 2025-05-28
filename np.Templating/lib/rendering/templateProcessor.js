@@ -124,7 +124,6 @@ export function processStatementForAwait(statement: string, asyncFunctions: Arra
   if (statement.includes('(') && statement.includes(')') && !statement.trim().startsWith('prompt(')) {
     const funcOrMethodMatch = statement.match(/^([\w.]+)\(/)
     if (funcOrMethodMatch && asyncFunctions.includes(funcOrMethodMatch[1])) {
-      logDebug(pluginJson, `processStatementForAwait: adding await before async function: ${statement}`)
       return `await ${statement}`
     }
   }
@@ -175,66 +174,87 @@ export function processReturnTag(tag: string, context: { templateData: string, s
 }
 
 /**
- * Process code tags by adding await prefix to function calls that need it.
- * Also normalizes tag spacing and removes unwanted returns.
- * @param {string} tag - The code tag to process
- * @param {Object} context - The processing context containing templateData, sessionData, and override
- * @param {Array<string>} asyncFunctions - List of function names that are known to be async
- * @returns {void}
+ * Parses a code tag into its component parts (start delimiter, content, end delimiter).
+ * @param {string} tag - The code tag to parse
+ * @returns {{startDelim: string, rawCodeContent: string, endDelim: string} | null} The parsed components or null if parsing fails
  */
-export function processCodeTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }, asyncFunctions: Array<string>): void {
-  const tagPartsRegex = /^(<%(?:-|~|=)?)([^]*?)((?:-|~)?%>)$/ // Capture 1: start, 2: content, 3: end
+export function parseCodeTag(tag: string): { startDelim: string, rawCodeContent: string, endDelim: string } | null {
+  const tagPartsRegex = /^(<%(?:-|~|=|#)?)([^]*?)((?:-|~)?%>)$/ // Capture 1: start, 2: content, 3: end
   const match = tag.match(tagPartsRegex)
 
   if (!match) {
-    logError(pluginJson, `processCodeTag: Could not parse tag: ${tag}`)
-    return
+    logError(pluginJson, `parseCodeTag: Could not parse tag: ${tag}`)
+    return null
   }
 
-  let startDelim = match[1]
-  let rawCodeContent = match[2] // Content as it was in the tag, including surrounding internal whitespace
-  let endDelim = match[3]
+  return {
+    startDelim: match[1],
+    rawCodeContent: match[2],
+    endDelim: match[3],
+  }
+}
 
+/**
+ * Normalizes the spacing in tag delimiters.
+ * @param {string} startDelim - The opening delimiter
+ * @param {string} endDelim - The closing delimiter
+ * @returns {{normalizedStart: string, normalizedEnd: string}} The normalized delimiters
+ */
+export function normalizeTagDelimiters(startDelim: string, endDelim: string): { normalizedStart: string, normalizedEnd: string } {
   // Normalize opening tag spacing - ensure there's a space after <%, <%-, <%=
-  if (!startDelim.endsWith(' ')) {
-    startDelim += ' '
+  // BUT NOT for comment tags (<%#) because that would break the comment functionality
+  let normalizedStart = startDelim
+  if (!startDelim.endsWith(' ') && !startDelim.includes('#')) {
+    normalizedStart += ' '
   }
 
   // Normalize closing tag spacing - ensure there's a space before %>, -%>
+  let normalizedEnd = endDelim
   if (!endDelim.startsWith(' ')) {
-    endDelim = ` ${endDelim}`
+    normalizedEnd = ` ${endDelim}`
   }
 
-  // Remove any returns/newlines immediately after the opening whitespace
-  // This handles cases like "<% \nif (condition)" -> "<% if (condition)"
-  const cleanedCodeContent = rawCodeContent
+  return { normalizedStart, normalizedEnd }
+}
 
+/**
+ * Cleans up code content by removing unwanted returns and normalizing whitespace.
+ * @param {string} rawCodeContent - The raw code content from the tag
+ * @returns {string} The cleaned code content
+ */
+export function cleanCodeContent(rawCodeContent: string): string {
   // Find leading whitespace
-  const leadingWhitespaceMatch = cleanedCodeContent.match(/^(\s*)/)
+  const leadingWhitespaceMatch = rawCodeContent.match(/^(\s*)/)
   const leadingWhitespace = leadingWhitespaceMatch ? leadingWhitespaceMatch[1] : ''
 
   // Remove the leading whitespace temporarily
-  const contentWithoutLeadingWhitespace = cleanedCodeContent.substring(leadingWhitespace.length)
+  const contentWithoutLeadingWhitespace = rawCodeContent.substring(leadingWhitespace.length)
 
   // Remove any newlines/returns at the start of the actual content
   const contentWithoutReturns = contentWithoutLeadingWhitespace.replace(/^[\r\n]+/, '')
 
-  // Find trailing whitespace
-  const trailingWhitespaceMatch = cleanedCodeContent.match(/(\s*)$/)
+  // Find trailing whitespace in the content after removing returns
+  const contentBody = contentWithoutReturns.replace(/\s+$/, '') // Remove all trailing whitespace
+  const trailingWhitespaceMatch = rawCodeContent.match(/(\s*)$/)
   const trailingWhitespace = trailingWhitespaceMatch ? trailingWhitespaceMatch[1] : ''
 
-  // Reconstruct with normalized spacing: preserve one space at start and end, but remove unwanted returns
+  // Reconstruct with normalized spacing: preserve one space at start and end if there was whitespace
   const leadingSpace = leadingWhitespace.includes(' ') || leadingWhitespace.includes('\t') ? ' ' : ''
   const trailingSpace = trailingWhitespace.includes(' ') || trailingWhitespace.includes('\t') ? ' ' : ''
 
-  rawCodeContent = leadingSpace + contentWithoutReturns + trailingSpace
+  return leadingSpace + contentBody + trailingSpace
+}
 
-  const codeToProcess = rawCodeContent.trim()
-
+/**
+ * Processes code lines by adding await prefixes where needed.
+ * @param {string} codeContent - The code content to process
+ * @param {Array<string>} asyncFunctions - List of function names that are known to be async
+ * @returns {string} The processed code content
+ */
+export function processCodeLines(codeContent: string, asyncFunctions: Array<string>): string {
+  const codeToProcess = codeContent.trim()
   const { protectedCode, literalMap } = protectTemplateLiterals(codeToProcess)
-
   const mergedProtectedCode = mergeMultiLineStatements(protectedCode)
-
   const lines = mergedProtectedCode.split('\n')
   const processedLines: Array<string> = []
 
@@ -249,43 +269,94 @@ export function processCodeTag(tag: string, context: { templateData: string, ses
     }
 
     if (line.includes(';')) {
-      const statements = line.split(';').map((s) => s.trim())
-      // .filter((s) => s.length > 0) // Keep empty strings to preserve multiple semicolons if necessary
-      const processedStatements: Array<string> = []
-      for (let i = 0; i < statements.length; i++) {
-        const statement = statements[i]
-        // Avoid processing empty strings that resulted from multiple semicolons, e.g. foo();;bar()
-        if (statement.length > 0) {
-          processedStatements.push(processStatementForAwait(statement, asyncFunctions)) // Use imported asyncFunctions
-        } else if (i < statements.length - 1) {
-          // if it's an empty string but not the last one (e.g. foo();;) keep it so join works
-          processedStatements.push('')
-        }
-      }
-      let joinedStatements = processedStatements.join('; ').trimRight() // trimRight to remove trailing space from join if last was empty
-      // If original line ended with semicolon and processed one doesn't (and it wasn't just empty strings from ;;) add it back
-      if (line.endsWith(';') && !joinedStatements.endsWith(';') && processedStatements.some((ps) => ps.length > 0)) {
-        joinedStatements += ';'
-      }
-      // Special case: if original line was just ';' or ';;', etc. and processing made it empty, restore original line
-      if (line.replace(/;/g, '').trim() === '' && joinedStatements === '') {
-        processedLines.push(line) // push the original line of semicolons
-      } else {
-        processedLines.push(joinedStatements)
-      }
+      const processedLine = processSemicolonSeparatedStatements(line, asyncFunctions)
+      processedLines.push(processedLine)
     } else {
-      processedLines.push(processStatementForAwait(line, asyncFunctions)) // Use imported asyncFunctions
+      processedLines.push(processStatementForAwait(line, asyncFunctions))
     }
   }
 
-  const finalProtectedCodeContent = processedLines.join('\\n')
-  const finalCodeContent = restoreTemplateLiterals(finalProtectedCodeContent, literalMap)
+  const finalProtectedCodeContent = processedLines.join('\n')
+  return restoreTemplateLiterals(finalProtectedCodeContent, literalMap)
+}
 
-  // Reconstruct the final tag with normalized spacing
-  const newTag = `${startDelim}${finalCodeContent}${endDelim}`
+/**
+ * Processes a line containing semicolon-separated statements.
+ * @param {string} line - The line to process
+ * @param {Array<string>} asyncFunctions - List of function names that are known to be async
+ * @returns {string} The processed line
+ */
+export function processSemicolonSeparatedStatements(line: string, asyncFunctions: Array<string>): string {
+  // Special case: if original line was just semicolons, return as-is
+  if (line.replace(/;/g, '').trim() === '') {
+    return line
+  }
 
+  const statements = line.split(';')
+  const processedStatements: Array<string> = []
+
+  for (let i = 0; i < statements.length; i++) {
+    const statement = statements[i].trim()
+    // Process non-empty statements
+    if (statement.length > 0) {
+      processedStatements.push(processStatementForAwait(statement, asyncFunctions))
+    } else {
+      // Keep empty statements for proper semicolon reconstruction
+      processedStatements.push('')
+    }
+  }
+
+  // Join with semicolons, preserving the original structure
+  let result = processedStatements.join(';')
+
+  // Handle spacing: add space after semicolons except for consecutive semicolons
+  result = result.replace(/;(?=[^;])/g, '; ')
+
+  return result
+}
+
+/**
+ * Reconstructs a code tag from its processed components.
+ * @param {string} startDelim - The start delimiter
+ * @param {string} codeContent - The processed code content
+ * @param {string} endDelim - The end delimiter
+ * @returns {string} The reconstructed tag
+ */
+export function reconstructCodeTag(startDelim: string, codeContent: string, endDelim: string): string {
+  return `${startDelim}${codeContent}${endDelim}`
+}
+
+/**
+ * Process code tags by adding await prefix to function calls that need it.
+ * Also normalizes tag spacing and removes unwanted returns.
+ * @param {string} tag - The code tag to process
+ * @param {Object} context - The processing context containing templateData, sessionData, and override
+ * @param {Array<string>} asyncFunctions - List of function names that are known to be async
+ * @returns {void}
+ */
+export function processCodeTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }, asyncFunctions: Array<string>): void {
+  // Step 1: Parse the tag into its components
+  const parsedTag = parseCodeTag(tag)
+  if (!parsedTag) {
+    return
+  }
+
+  const { startDelim, rawCodeContent, endDelim } = parsedTag
+
+  // Step 2: Normalize tag delimiters
+  const { normalizedStart, normalizedEnd } = normalizeTagDelimiters(startDelim, endDelim)
+
+  // Step 3: Clean up the code content
+  const cleanedCodeContent = cleanCodeContent(rawCodeContent)
+
+  // Step 4: Process the code lines for await statements
+  const processedCodeContent = processCodeLines(cleanedCodeContent, asyncFunctions)
+
+  // Step 5: Reconstruct the final tag
+  const newTag = reconstructCodeTag(normalizedStart, processedCodeContent, normalizedEnd)
+
+  // Step 6: Replace the original tag if it changed
   if (tag !== newTag) {
-    logDebug(pluginJson, `processCodeTag: Normalized tag spacing: "${tag}" -> "${newTag}"`)
     context.templateData = context.templateData.replace(tag, newTag)
   }
 }
@@ -360,11 +431,16 @@ export async function processIncludeTag(tag: string, context: { templateData: st
  * @returns {void}
  */
 export function processVariableTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): void {
-  if (!context.sessionData) return
+  if (!context.sessionData) {
+    return
+  }
 
   const tempTag = tag.replace('const', '').replace('let', '').trimLeft().replace('<%', '').replace('-%>', '').replace('%>', '')
+
   const pos = tempTag.indexOf('=')
-  if (pos <= 0) return
+  if (pos <= 0) {
+    return
+  }
 
   const varName = tempTag.substring(0, pos - 1).trim()
   let value = tempTag.substring(pos + 1).trim()
@@ -503,9 +579,7 @@ function _removeWhitespaceFromCodeBlocks(str: string = ''): string {
   let result = str
   getCodeBlocks(str).forEach((codeBlock) => {
     let newCodeBlock = codeBlock
-    logDebug(pluginJson, `_removeWhitespaceFromCodeBlocks codeBlock before: "${newCodeBlock}"`)
     newCodeBlock = newCodeBlock.replace('```javascript\n', '').replace(/```/gi, '').replace(/\n\n/gi, '').replace(/\n/gi, '')
-    logDebug(pluginJson, `_removeWhitespaceFromCodeBlocks codeBlock after: "${newCodeBlock}"`)
     result = result.replace(codeBlock, newCodeBlock)
   })
 
@@ -587,7 +661,7 @@ export function getErrorContextString(templateData: string, matchStr: string, or
  * @param {Object} [sessionData={}] - Data available during processing
  * @returns {Promise<{newTemplateData: string, newSettingData: Object}>} Processed template data, updated session data
  */
-export async function preProcessTags(templateData: string, sessionData?: {} = {}): Promise<mixed> {
+export async function preProcessTags(templateData: string, sessionData?: {} = {}): Promise<{ newTemplateData: string, newSettingData: Object }> {
   // Initialize the processing context
   const context = {
     templateData: templateData || '',
@@ -609,7 +683,6 @@ export async function preProcessTags(templateData: string, sessionData?: {} = {}
   // First pass: Process all comment tags
   for (const tag of tags) {
     if (isCommentTag(tag)) {
-      logDebug(pluginJson, `preProcessTags: found comment in tag: ${tag}`)
       processCommentTag(tag, context)
     }
   }
@@ -617,48 +690,59 @@ export async function preProcessTags(templateData: string, sessionData?: {} = {}
   // Second pass: Process remaining tags
   const remainingTags = (await getTags(context.templateData)) || []
   for (const tag of remainingTags) {
-    logDebug(`preProcessing tag: ${tag}`)
-
     if (tag.includes('note(')) {
-      logDebug(pluginJson, `preProcessTags: found note() in tag: ${tag}`)
       await processNoteTag(tag, context)
       continue
     }
 
     if (tag.includes('calendar(')) {
-      logDebug(pluginJson, `preProcessTags: found calendar() in tag: ${tag}`)
       await processCalendarTag(tag, context)
       continue
     }
 
     if (tag.includes('include(') || tag.includes('template(')) {
-      logDebug(pluginJson, `preProcessTags: found include() or template() in tag: ${tag}`)
       await processIncludeTag(tag, context)
       continue
     }
 
     if (tag.includes(':return:') || tag.toLowerCase().includes(':cr:')) {
-      logDebug(pluginJson, `preProcessTags: found return() or cr() in tag: ${tag}`)
       processReturnTag(tag, context)
       continue
     }
 
     // Process code tags that need await prefixing and other cleaning up
     if (isCode(tag) && tag.includes('(')) {
-      logDebug(pluginJson, `preProcessTags: found code() in tag: ${tag}`)
       processCodeTag(tag, context, globalAsyncFunctions)
       continue
     }
 
-    // Extract variables
+    // Extract variables - but only for simple value assignments, not function calls
     if (tag.includes('const') || tag.includes('let') || tag.includes('var')) {
-      logDebug(pluginJson, `preProcessTags: found const, let, or var in tag: ${tag}`)
+      // Check if this is a function call assignment by looking for parentheses in the value
+      const tempTag = tag
+        .replace(/<%(-|=|~)?/, '')
+        .replace(/%>/, '')
+        .trim()
+
+      const assignmentMatch = tempTag.match(/^\s*(const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(.+)$/i)
+
+      if (assignmentMatch) {
+        const varType = assignmentMatch[1]
+        const varName = assignmentMatch[2]
+        const value = assignmentMatch[3].trim()
+
+        // If the value contains function calls (parentheses), skip processing and leave in template
+        if (value.includes('(') && value.includes(')')) {
+          continue
+        }
+      }
+
+      // Only process simple value assignments
       processVariableTag(tag, context)
       continue
     }
   }
 
-  logDebug(pluginJson, `preProcessTags: processed ${tags.length} tags, ${Object.keys(context.override).length} variables extracted`)
   // Merge override variables into session data
   context.sessionData = { ...context.sessionData, ...context.override }
 
@@ -678,9 +762,6 @@ export async function preProcessTags(templateData: string, sessionData?: {} = {}
  * @returns {Promise<{frontmatterBody: string, frontmatterAttributes: Object}>} Processed frontmatter body and attributes
  */
 export async function processFrontmatterTags(_templateData: string = '', userData: any = {}): Promise<any> {
-  // In the original code, this function would call `await this.setup()`
-  // which is now handled by the NPTemplating class before it delegates to this function
-
   // Log the initial state
   logProgress('FRONTMATTER PROCESSING START', _templateData, userData)
 
@@ -692,7 +773,6 @@ export async function processFrontmatterTags(_templateData: string = '', userDat
     const extractedData = extractTitleFromMarkdown(templateData)
     if (!extractedData.title) extractedData.title = 'Untitled (no title found in template)'
     templateData = `---\ntitle: ${extractedData.title}\n---\n${extractedData.updatedMarkdown}`
-    logDebug(pluginJson, `Template is not frontmatter, adding extracted title:"${extractedData.title}" to content:${extractedData.updatedMarkdown}`)
   }
   logProgress('Frontmatter Step 1 complete: Structure validation/creation', templateData, sectionData)
 
@@ -730,15 +810,12 @@ export async function importTemplates(templateData: string = ''): Promise<string
   const tags = (await getTags(templateData)) || []
   for (const tag of tags) {
     if (!isCommentTag(tag) && tag.includes('import(')) {
-      logDebug(pluginJson, `importTemplates :: ${tag}`)
       const importInfo = tag.replace('<%-', '').replace('<%', '').replace('-%>', '').replace('%>', '').replace('import', '').replace('(', '').replace(')', '')
       const parts = importInfo.split(',')
       if (parts.length > 0) {
         const noteNamePath = parts[0].replace(/['"`]/gi, '').trim()
-        logDebug(pluginJson, `importTemplates :: Importing: noteNamePath :: "${noteNamePath}"`)
         const content = await getTemplate(noteNamePath)
         const body = new FrontmatterModule().body(content)
-        logDebug(pluginJson, `importTemplates :: Content length: ${content.length} | Body length: ${body.length}`)
         if (body.length > 0) {
           newTemplateData = newTemplateData.replace(`\`${tag}\``, body) // adjust fenced formats
           newTemplateData = newTemplateData.replace(tag, body)
@@ -960,7 +1037,6 @@ async function processFrontmatter(
 
     frontMatterValue = promptData.sessionTemplateData
 
-    logDebug(pluginJson, `processFrontmatter: ${key}: ${frontMatterValue}`)
     const { newTemplateData, newSettingData } = await preProcessTags(frontMatterValue, updatedSessionData)
 
     const mergedSessionData = { ...updatedSessionData, ...newSettingData }
@@ -1066,7 +1142,6 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     // Step 4: Process frontmatter tags first because they can contain prompts that should be set to variables
     // (but not if they have already been processed, which they are in all the direct Templating commands)
     if (!userOptions.frontmatterProcessed) {
-      logDebug(`Starting frontmatter processing`)
       const frontmatterResult = await processFrontmatter(templateData, sessionData, userOptions, templatingEngine)
       templateData = frontmatterResult.templateData
       sessionData = frontmatterResult.sessionData
@@ -1119,8 +1194,6 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     logProgress('Render Step 9 complete: Code blocks protection', protectedTemplate, sessionData, userOptions)
 
     // Step 10: Perform the actual template rendering
-    logDebug(pluginJson, `Starting template engine render (${protectedTemplate.length} chars, EJS tags: ${protectedTemplate.includes('<%')})`)
-
     let renderedData
 
     // Fast path: if template has no EJS tags, return as-is (no need for TemplatingEngine)
@@ -1129,7 +1202,6 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     const hasBacktickWrappedEJS = /`[^`]*<%.*?%>.*?`/.test(protectedTemplate) // This is probably redundant
 
     if (!hasEJSTags && !hasBacktickWrappedEJS && frontmatterErrors.length === 0) {
-      logDebug(pluginJson, `Fast path: Template has no EJS tags, returning as plain text`)
       renderedData = protectedTemplate
     } else {
       // Template has EJS tags, create a new TemplatingEngine instance with error context
@@ -1152,7 +1224,6 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       }
     }
 
-    logDebug(pluginJson, `Template engine render complete (${renderedData.length} chars)`)
     logProgress('Render Step 10 complete: Template engine rendering', renderedData, sessionData, userOptions)
 
     // Step 11: Post-process the rendered template
@@ -1163,7 +1234,6 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     finalResult = restoreCodeBlocks(finalResult, savedIgnoredCodeBlocks)
     logProgress('Render Step 12 complete: Code blocks restoration', finalResult, sessionData, userOptions)
 
-    logDebug(pluginJson, `>> renderedData after rendering:\n\t[PRE-RENDER]:${templateData}\n\t[RENDERED]: ${finalResult}`)
     logProgress('RENDER COMPLETE', finalResult, sessionData, userOptions)
 
     return finalResult
@@ -1201,7 +1271,6 @@ export async function renderTemplate(templateName: string = '', userData: any = 
     const templateData = await getTemplate(templateName)
     const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(templateData)
     const data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes }, ...userData }
-    logDebug(pluginJson, `renderTemplate calling render`)
     const renderedData = await render(templateData, data, userOptions)
 
     return removeEJSDocumentationNotes(renderedData)
@@ -1263,11 +1332,9 @@ export async function execute(templateData: string = '', sessionData: any, templ
         let result = ''
 
         if (executeCodeBlock.includes('<%')) {
-          logDebug(pluginJson, `executeCodeBlock using EJS renderer: ${executeCodeBlock}`)
           result = await templatingEngine.render(executeCodeBlock, processedSessionData)
           processedTemplateData = processedTemplateData.replace(codeBlock, result)
         } else {
-          logDebug(pluginJson, `executeCodeBlock using Function.apply (does not include <%): ${executeCodeBlock}`)
           // $FlowIgnore
           const fn = Function.apply(null, ['params', executeCodeBlock])
           result = fn(processedSessionData)
@@ -1275,9 +1342,7 @@ export async function execute(templateData: string = '', sessionData: any, templ
           if (typeof result === 'object') {
             processedTemplateData = processedTemplateData.replace(codeBlock, 'OBJECT').replace('OBJECT\n', '')
             processedSessionData = { ...processedSessionData, ...result }
-            logDebug(pluginJson, `templatejs executeCodeBlock using Function.apply (result was an object):${executeCodeBlock}`)
           } else {
-            logDebug(pluginJson, `templatejs executeCodeBlock using Function.apply (result was a string):\n${result}`)
             processedTemplateData = processedTemplateData.replace(codeBlock, typeof result === 'string' ? result : '')
           }
         }

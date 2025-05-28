@@ -1,6 +1,15 @@
 /* global describe, it, expect, beforeAll, afterAll, jest */
 
-import { render } from '../templateProcessor'
+import {
+  render,
+  parseCodeTag,
+  normalizeTagDelimiters,
+  cleanCodeContent,
+  processCodeLines,
+  processSemicolonSeparatedStatements,
+  reconstructCodeTag,
+  processStatementForAwait,
+} from '../templateProcessor'
 import TemplatingEngine from '../../TemplatingEngine'
 import NPTemplating from '../../NPTemplating'
 
@@ -390,6 +399,396 @@ Result: <%- nonExistentFunction() %>
         // Should mention the undefined function
         expect(result).toContain('nonExistentFunction')
       })
+    })
+  })
+})
+
+describe('Code Tag Processing Functions', () => {
+  describe('parseCodeTag', () => {
+    it('should parse basic EJS tags correctly', () => {
+      const tag = '<% console.log("hello") %>'
+      const result = parseCodeTag(tag)
+
+      expect(result).not.toBeNull()
+      expect(result.startDelim).toBe('<%')
+      expect(result.rawCodeContent).toBe(' console.log("hello") ')
+      expect(result.endDelim).toBe('%>')
+    })
+
+    it('should parse output tags correctly', () => {
+      const tag = '<%- variable %>'
+      const result = parseCodeTag(tag)
+
+      expect(result).not.toBeNull()
+      expect(result.startDelim).toBe('<%-')
+      expect(result.rawCodeContent).toBe(' variable ')
+      expect(result.endDelim).toBe('%>')
+    })
+
+    it('should parse escaped output tags correctly', () => {
+      const tag = '<%=  user.name  %>'
+      const result = parseCodeTag(tag)
+
+      expect(result).not.toBeNull()
+      expect(result.startDelim).toBe('<%=')
+      expect(result.rawCodeContent).toBe('  user.name  ')
+      expect(result.endDelim).toBe('%>')
+    })
+
+    it('should parse chomp tags correctly', () => {
+      const tag = '<%~ someFunction() -%>'
+      const result = parseCodeTag(tag)
+
+      expect(result).not.toBeNull()
+      expect(result.startDelim).toBe('<%~')
+      expect(result.rawCodeContent).toBe(' someFunction() ')
+      expect(result.endDelim).toBe('-%>')
+    })
+
+    it('should parse comment tags correctly', () => {
+      const tag = '<%# someFunction() %>'
+      const result = parseCodeTag(tag)
+
+      expect(result).not.toBeNull()
+      expect(result.startDelim).toBe('<%#')
+      expect(result.rawCodeContent).toBe(' someFunction() ')
+      expect(result.endDelim).toBe('%>')
+    })
+
+    it('should handle multi-line content', () => {
+      const tag = `<%
+        if (condition) {
+          doSomething()
+        }
+      %>`
+      const result = parseCodeTag(tag)
+
+      expect(result).not.toBeNull()
+      expect(result.startDelim).toBe('<%')
+      expect(result.rawCodeContent).toContain('if (condition)')
+      expect(result.rawCodeContent).toContain('doSomething()')
+      expect(result.endDelim).toBe('%>')
+    })
+
+    it('should return null for invalid tags', () => {
+      expect(parseCodeTag('not a tag')).toBeNull()
+      expect(parseCodeTag('<% incomplete')).toBeNull()
+      expect(parseCodeTag('incomplete %>')).toBeNull()
+      expect(parseCodeTag('')).toBeNull()
+    })
+
+    it('should handle edge cases', () => {
+      // Empty tag
+      const emptyTag = '<% %>'
+      const emptyResult = parseCodeTag(emptyTag)
+      expect(emptyResult).not.toBeNull()
+      expect(emptyResult.rawCodeContent).toBe(' ')
+
+      // Tag with special characters
+      const specialTag = '<% "<%test%>" %>'
+      const specialResult = parseCodeTag(specialTag)
+      expect(specialResult).not.toBeNull()
+      expect(specialResult.rawCodeContent).toBe(' "<%test%>" ')
+    })
+  })
+
+  describe('normalizeTagDelimiters', () => {
+    it('should add space after opening delimiter when missing', () => {
+      const result = normalizeTagDelimiters('<%', '%>')
+      expect(result.normalizedStart).toBe('<% ')
+      expect(result.normalizedEnd).toBe(' %>')
+    })
+
+    it('should add space before closing delimiter when missing', () => {
+      const result = normalizeTagDelimiters('<% ', '%>')
+      expect(result.normalizedStart).toBe('<% ')
+      expect(result.normalizedEnd).toBe(' %>')
+    })
+
+    it('should preserve existing spaces', () => {
+      const result = normalizeTagDelimiters('<% ', ' %>')
+      expect(result.normalizedStart).toBe('<% ')
+      expect(result.normalizedEnd).toBe(' %>')
+    })
+
+    it('should handle different tag types', () => {
+      const outputResult = normalizeTagDelimiters('<%=', '%>')
+      expect(outputResult.normalizedStart).toBe('<%= ')
+      expect(outputResult.normalizedEnd).toBe(' %>')
+
+      const chompResult = normalizeTagDelimiters('<%-', '-%>')
+      expect(chompResult.normalizedStart).toBe('<%- ')
+      expect(chompResult.normalizedEnd).toBe(' -%>')
+    })
+
+    it('should NOT add spaces to comment tags (would break comment functionality)', () => {
+      const commentResult = normalizeTagDelimiters('<%#', '%>')
+      expect(commentResult.normalizedStart).toBe('<%#') // Should NOT have space added
+      expect(commentResult.normalizedEnd).toBe(' %>')
+    })
+  })
+
+  describe('cleanCodeContent', () => {
+    it('should preserve simple content with spaces', () => {
+      const content = ' console.log("hello") '
+      const result = cleanCodeContent(content)
+      expect(result).toBe(' console.log("hello") ')
+    })
+
+    it('should remove leading newlines but preserve spaces', () => {
+      const content = ' \nconsole.log("hello") '
+      const result = cleanCodeContent(content)
+      expect(result).toBe(' console.log("hello") ')
+    })
+
+    it('should handle tabs and spaces in leading whitespace', () => {
+      const content = '\t console.log("hello") \t'
+      const result = cleanCodeContent(content)
+      expect(result).toBe(' console.log("hello") ')
+    })
+
+    it('should handle content with no leading/trailing whitespace', () => {
+      const content = 'console.log("hello")'
+      const result = cleanCodeContent(content)
+      expect(result).toBe('console.log("hello")')
+    })
+
+    it('should handle multiple leading returns', () => {
+      const content = '\n\r\nif (condition) { return true; }'
+      const result = cleanCodeContent(content)
+      expect(result).toBe('if (condition) { return true; }')
+    })
+
+    it('should preserve internal spacing and newlines', () => {
+      const content = ' if (condition) {\n  return true;\n} '
+      const result = cleanCodeContent(content)
+      expect(result).toBe(' if (condition) {\n  return true;\n} ')
+    })
+  })
+
+  describe('processSemicolonSeparatedStatements', () => {
+    const mockAsyncFunctions = ['asyncFunc', 'anotherAsync']
+
+    it('should process single statement', () => {
+      const line = 'console.log("hello")'
+      const result = processSemicolonSeparatedStatements(line, mockAsyncFunctions)
+      expect(result).toBe('console.log("hello")')
+    })
+
+    it('should process multiple statements', () => {
+      const line = 'const a = 1; const b = 2'
+      const result = processSemicolonSeparatedStatements(line, mockAsyncFunctions)
+      expect(result).toBe('const a = 1; const b = 2')
+    })
+
+    it('should add await to async function calls', () => {
+      const line = 'asyncFunc(); console.log("done")'
+      const result = processSemicolonSeparatedStatements(line, mockAsyncFunctions)
+      expect(result).toBe('await asyncFunc(); console.log("done")')
+    })
+
+    it('should preserve trailing semicolon', () => {
+      const line = 'console.log("hello");'
+      const result = processSemicolonSeparatedStatements(line, mockAsyncFunctions)
+      expect(result).toBe('console.log("hello");')
+    })
+
+    it('should handle empty statements from multiple semicolons', () => {
+      const line = 'console.log("hello");;console.log("world")'
+      const result = processSemicolonSeparatedStatements(line, mockAsyncFunctions)
+      expect(result).toBe('console.log("hello");; console.log("world")')
+    })
+
+    it('should handle line with only semicolons', () => {
+      const line = ';;;'
+      const result = processSemicolonSeparatedStatements(line, mockAsyncFunctions)
+      expect(result).toBe(';;;')
+    })
+
+    it('should handle multiple async functions', () => {
+      const line = 'asyncFunc(); anotherAsync(); console.log("done")'
+      const result = processSemicolonSeparatedStatements(line, mockAsyncFunctions)
+      expect(result).toBe('await asyncFunc(); await anotherAsync(); console.log("done")')
+    })
+  })
+
+  describe('processCodeLines', () => {
+    const mockAsyncFunctions = ['asyncFunc', 'templateFunc']
+
+    it('should process single line without semicolons', () => {
+      const content = 'console.log("hello")'
+      const result = processCodeLines(content, mockAsyncFunctions)
+      expect(result).toBe('console.log("hello")')
+    })
+
+    it('should add await to async functions', () => {
+      const content = 'asyncFunc()'
+      const result = processCodeLines(content, mockAsyncFunctions)
+      expect(result).toBe('await asyncFunc()')
+    })
+
+    it('should handle multiple lines', () => {
+      const content = `if (condition) {
+  asyncFunc()
+}`
+      const result = processCodeLines(content, mockAsyncFunctions)
+      expect(result).toContain('await asyncFunc()')
+      expect(result).toContain('if (condition)')
+    })
+
+    it('should preserve empty lines in multi-line content', () => {
+      const content = `console.log("start")
+
+console.log("end")`
+      const result = processCodeLines(content, mockAsyncFunctions)
+      expect(result.split('\n')).toHaveLength(3)
+      expect(result.split('\n')[1]).toBe('')
+    })
+
+    it('should handle statements with semicolons', () => {
+      const content = 'asyncFunc(); console.log("done");'
+      const result = processCodeLines(content, mockAsyncFunctions)
+      expect(result).toBe('await asyncFunc(); console.log("done");')
+    })
+
+    it('should handle template literals (protected)', () => {
+      const content = '`Hello ${asyncFunc()}`'
+      const result = processCodeLines(content, mockAsyncFunctions)
+      // Template literals should be protected from await processing
+      expect(result).toBe('`Hello ${asyncFunc()}`')
+    })
+  })
+
+  describe('reconstructCodeTag', () => {
+    it('should reconstruct basic tag', () => {
+      const result = reconstructCodeTag('<% ', 'console.log("hello")', ' %>')
+      expect(result).toBe('<% console.log("hello") %>')
+    })
+
+    it('should handle different tag types', () => {
+      const outputTag = reconstructCodeTag('<%- ', 'variable', ' %>')
+      expect(outputTag).toBe('<%- variable %>')
+
+      const chompTag = reconstructCodeTag('<% ', 'code', ' -%>')
+      expect(chompTag).toBe('<% code -%>')
+    })
+
+    it('should handle multi-line content', () => {
+      const content = `if (condition) {
+  doSomething()
+}`
+      const result = reconstructCodeTag('<% ', content, ' %>')
+      expect(result).toBe(`<% ${content} %>`)
+    })
+  })
+
+  describe('processStatementForAwait', () => {
+    const mockAsyncFunctions = ['getData', 'saveData', 'processAsync']
+
+    it('should not add await if already present', () => {
+      const statement = 'await getData()'
+      const result = processStatementForAwait(statement, mockAsyncFunctions)
+      expect(result).toBe('await getData()')
+    })
+
+    it('should add await to async function calls', () => {
+      const statement = 'getData()'
+      const result = processStatementForAwait(statement, mockAsyncFunctions)
+      expect(result).toBe('await getData()')
+    })
+
+    it('should not add await to control structures', () => {
+      const controlStatements = ['if (condition)', 'else if (condition)', 'for (let i = 0; i < 10; i++)', 'while (condition)', 'switch (value)', 'return result', 'catch (error)']
+
+      controlStatements.forEach((statement) => {
+        const result = processStatementForAwait(statement, mockAsyncFunctions)
+        expect(result).toBe(statement)
+      })
+    })
+
+    it('should handle variable declarations with async function calls', () => {
+      const statement = 'const result = getData()'
+      const result = processStatementForAwait(statement, mockAsyncFunctions)
+      expect(result).toBe('const result = await getData()')
+    })
+
+    it('should not process template literals', () => {
+      const statement = '`Hello ${getData()}`'
+      const result = processStatementForAwait(statement, mockAsyncFunctions)
+      expect(result).toBe('`Hello ${getData()}`')
+    })
+
+    it('should handle ternary operators', () => {
+      const statement = 'condition ? value1 : value2'
+      const result = processStatementForAwait(statement, mockAsyncFunctions)
+      expect(result).toBe('condition ? value1 : value2')
+    })
+
+    it('should not add await to non-async functions', () => {
+      const statement = 'console.log("hello")'
+      const result = processStatementForAwait(statement, mockAsyncFunctions)
+      expect(result).toBe('console.log("hello")')
+    })
+
+    it('should handle method calls on async functions', () => {
+      const statement = 'obj.getData()'
+      const result = processStatementForAwait(statement, mockAsyncFunctions)
+      // Should not add await for method calls unless the full path is in asyncFunctions
+      expect(result).toBe('obj.getData()')
+    })
+
+    it('should handle complex expressions', () => {
+      const statement = 'getData().then(result => console.log(result))'
+      const result = processStatementForAwait(statement, mockAsyncFunctions)
+      expect(result).toBe('await getData().then(result => console.log(result))')
+    })
+  })
+
+  describe('Integration Tests', () => {
+    it('should handle complete tag processing workflow', () => {
+      const originalTag = '<%asyncFunc(); console.log("done")%>'
+      const mockAsyncFunctions = ['asyncFunc']
+
+      // Step 1: Parse
+      const parsed = parseCodeTag(originalTag)
+      expect(parsed).not.toBeNull()
+
+      // Step 2: Normalize delimiters
+      const { normalizedStart, normalizedEnd } = normalizeTagDelimiters(parsed.startDelim, parsed.endDelim)
+      expect(normalizedStart).toBe('<% ')
+      expect(normalizedEnd).toBe(' %>')
+
+      // Step 3: Clean content
+      const cleaned = cleanCodeContent(parsed.rawCodeContent)
+      expect(cleaned).toBe('asyncFunc(); console.log("done")')
+
+      // Step 4: Process code lines
+      const processed = processCodeLines(cleaned, mockAsyncFunctions)
+      expect(processed).toBe('await asyncFunc(); console.log("done")')
+
+      // Step 5: Reconstruct
+      const final = reconstructCodeTag(normalizedStart, processed, normalizedEnd)
+      expect(final).toBe('<% await asyncFunc(); console.log("done") %>')
+    })
+
+    it('should handle edge case with complex multi-line code', () => {
+      const originalTag = `<%
+      if (condition) {
+        asyncFunc();
+        regularFunc();
+      }
+      %>`
+      const mockAsyncFunctions = ['asyncFunc']
+
+      const parsed = parseCodeTag(originalTag)
+      expect(parsed).not.toBeNull()
+
+      const cleaned = cleanCodeContent(parsed.rawCodeContent)
+      const processed = processCodeLines(cleaned, mockAsyncFunctions)
+
+      expect(processed).toContain('await asyncFunc()')
+      expect(processed).toContain('regularFunc()')
+      expect(processed).toContain('if (condition)')
     })
   })
 })

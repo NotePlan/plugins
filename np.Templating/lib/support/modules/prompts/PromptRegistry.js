@@ -136,10 +136,12 @@ export function registerPromptType(promptType: PromptType): void {
 export function findMatchingPromptType(tagContent: string): ?{ promptType: Object, name: string } {
   for (const [name, promptType] of Object.entries(promptRegistry)) {
     const pattern = promptType.pattern || generatePromptPattern(promptType.name)
+
     if (pattern.test(tagContent)) {
       return { promptType, name }
     }
   }
+
   return null
 }
 
@@ -154,16 +156,19 @@ function parseTagContent(tag: string): { content: string, isOutputTag: boolean, 
   let isExecutionTag = false
 
   if (tag.startsWith('<%- ')) {
-    // Extract the content between <% and %>, excluding the '-'
-    content = tag.substring(3, tag.length - 2).trim()
+    // Extract the content between <%- and %> (or -%>)
+    const endOffset = tag.endsWith('-%>') ? 3 : 2
+    content = tag.substring(3, tag.length - endOffset).trim()
     isOutputTag = true
   } else if (tag.startsWith('<%=')) {
-    // Extract the content between <% and %>, excluding the '='
-    content = tag.substring(3, tag.length - 2).trim()
+    // Extract the content between <%= and %> (or -%>)
+    const endOffset = tag.endsWith('-%>') ? 3 : 2
+    content = tag.substring(3, tag.length - endOffset).trim()
     isOutputTag = true
   } else if (tag.startsWith('<%')) {
-    // Extract the content between <% and %>
-    content = tag.substring(2, tag.length - 2).trim()
+    // Extract the content between <% and %> (or -%>)
+    const endOffset = tag.endsWith('-%>') ? 3 : 2
+    content = tag.substring(2, tag.length - endOffset).trim()
     isExecutionTag = true
   }
 
@@ -411,7 +416,14 @@ export async function processPromptTag(tag: string, sessionData: any): Promise<s
     const varName = assignmentMatch[2].trim() // The variable name
     const promptCall = assignmentMatch[3].trim() // The prompt call (e.g., promptKey("category"))
 
-    return await processVariableAssignment(tag, varType, varName, promptCall, sessionData)
+    // Only process if the right-hand side is actually a prompt call
+    const promptTypeInfo = findMatchingPromptType(promptCall)
+    if (promptTypeInfo && promptTypeInfo.promptType) {
+      return await processVariableAssignment(tag, varType, varName, promptCall, sessionData)
+    } else {
+      // This is a regular variable assignment (not a prompt), return the original tag unchanged
+      return tag
+    }
   } else {
     // Standard prompt tag processing (non-assignment)
     const valueToReturn = await processNonAssignmentPrompt(tag, content, sessionData)
@@ -443,13 +455,18 @@ export async function processPrompts(templateData: string, initialSessionData: a
           logDebug(pluginJson, 'Prompt was cancelled, returning false')
           return false // Immediately return false if any prompt is cancelled
         }
-        // prompts with variable setting but no output and a slurping tag at the end will be processed here
-        // in all other scenarios we can let EJS deal with the slurping
-        // the edge case here is that it will greedy chomp multiple newlines which the user may not want
-        const doChomp = tag.endsWith('-%>')
-        const replaceWhat = doChomp ? new RegExp(`${escapeRegExp(tag)}\\s*\\n*`) : tag
-        const replaceWithWhat = tag.startsWith('<% ') ? '' : promptResponseText // do not output if it was a control tag
-        sessionTemplateData = sessionTemplateData.replace(replaceWhat, replaceWithWhat)
+
+        // Only replace the tag if processPromptTag actually processed it (returned something different)
+        if (promptResponseText !== tag) {
+          // prompts with variable setting but no output and a slurping tag at the end will be processed here
+          // in all other scenarios we can let EJS deal with the slurping
+          // the edge case here is that it will greedy chomp multiple newlines which the user may not want
+          const doChomp = tag.endsWith('-%>')
+          const replaceWhat = doChomp ? new RegExp(`${escapeRegExp(tag)}\\s*\\n*`) : tag
+          const replaceWithWhat = tag.startsWith('<% ') ? '' : promptResponseText // do not output if it was a control tag
+          sessionTemplateData = sessionTemplateData.replace(replaceWhat, replaceWithWhat)
+        }
+        // If promptResponseText === tag, don't replace anything (tag was not processed)
       } catch (error) {
         logError(pluginJson, `Error processing prompt tag: ${error.message}`)
         // Replace the problematic tag with an error comment

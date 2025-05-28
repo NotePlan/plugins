@@ -1070,7 +1070,7 @@
                 fn = new ctor(opts.localsName + ', escapeFn, include, rethrow', src)
               } catch (e) {
                 // IMPORTANT: Restore original error line extraction
-                console.log(`EJS: ejs error encountered ${e} ${e.message} ${e.toString()} @ line: ${e.line}`)
+                console.log(`EJS: ejs error encountered ${e} ${e.message} ${e.toString()} @ line: ${e.line}; src="${src}"`)
 
                 // Try to extract the actual template line number
                 let templateLineNo = e.line || 0
@@ -1251,6 +1251,11 @@
                 return line
               }
 
+              // Debug logging to track what's being added as output
+              if (typeof logDebug !== 'undefined') {
+                logDebug({ pluginID: 'np.Templating' }, `EJS _addOutput: processing line "${line}"`)
+              }
+
               // Preserve literal slashes
               line = line.replace(/\\/g, '\\\\')
 
@@ -1272,6 +1277,11 @@
               var newLineCount = 0
 
               newLineCount = line.split('\n').length - 1
+
+              // Debug logging to track what's happening
+              if (typeof logDebug !== 'undefined') {
+                logDebug({ pluginID: 'np.Templating' }, `EJS scanLine: processing line "${line}" in mode ${this.mode}`)
+              }
 
               switch (line) {
                 case o + d:

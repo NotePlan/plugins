@@ -261,8 +261,8 @@ also ignored
 
     it('should identify properly spaced tags as code', () => {
       expect(isCode('<% expression %>')).toBe(true)
-      expect(isCode('<%- output %>')).toBe(true)
-      expect(isCode('<%= value %>')).toBe(true)
+      expect(isCode('<%- output %>')).toBe(false)
+      expect(isCode('<%= value %>')).toBe(false)
     })
 
     it('should not identify empty or whitespace-only tags as code', () => {
