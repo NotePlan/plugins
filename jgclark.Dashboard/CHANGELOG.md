@@ -15,6 +15,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - added little circles for task completion in section headings, and tweaked the text after it
 - new setting 'Include #tag/@mention(s) scheduled to future dates?' (default: false) (for @Bart De Ruyck)
 - new setting 'How to show progress in Calendar sections?'. If set to 'number closed', then the number of tasks completed in that note will be shown in the section heading area. If set to 'number open', then the number of tasks still open will be shown instead. Or can be set to 'none'. (Default: 'number closed'.)
+- fix to display of complex URLs, including x-callback protocols like `readdle-spark://...` (for @SavageBeginnings)
+- made a subtle visual change to more closely tie referenced Calendar sections to their main Calendar section.
+
 ### Dev notes
 - lots of re-work of tagMentionCache. In particular will not to full generate if cache is missing (or incomplete), but instead fall back to use the API, and schedule full generation after the rest of the Dashboard has been generated.
 - restored the tagMentionCache FFlag for DBW

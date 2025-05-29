@@ -329,9 +329,9 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
    * Then <SectionGrid> which contains the actual data items.
    */
   return hideSection ? null : (
-    <section className={`section`}>
-      {/* TODO: get this working. See post in KP Discord about it on 26.5.2025 */}
-      {/* <section className={`section ${isReferencedSection ? 'referencedSectionInfo' : ''}`}> */}
+    // <section className={`section`}>
+    // TODO: get this working. See post in KP Discord about it on 26.5.2025
+    <section className={`section ${isReferencedSection ? 'referencedSectionInfo' : 'nonReferencedSectionInfo'}`}>
       <div className="sectionInfo">
         <div className="sectionInfoFirstLine">
           <TooltipOnKeyPress
