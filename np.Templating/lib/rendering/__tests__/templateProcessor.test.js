@@ -792,3 +792,59 @@ console.log("end")`
     })
   })
 })
+
+describe('Real-world Template Failures', () => {
+  describe('Basic variable assignment and conditional rendering', () => {
+    it('should handle basic const assignment with conditional output', async () => {
+      const template = `<% const tasks = "* real world task should display" -%>
+<% if (tasks?.length) { -%>
+<%- tasks %>
+<% } -%>`
+
+      const result = await render(template, {})
+
+      // The template naturally includes a trailing newline, which is expected EJS behavior
+      expect(result.trim()).toBe('* real world task should display')
+
+      // Also test that it's not empty and contains the expected content
+      expect(result).toContain('* real world task should display')
+    })
+
+    it('should handle const assignment with object conditional', async () => {
+      const template = `<% const tasks = ["task 1", "task 2"] -%>
+<% if (tasks?.length) { -%>
+<%- tasks.join(", ") %>
+<% } -%>`
+
+      const result = await render(template, {})
+
+      expect(result).toBe('task 1, task 2')
+    })
+
+    it('should handle const assignment with null/undefined check', async () => {
+      const template = `<% const tasks = null -%>
+<% if (tasks?.length) { -%>
+<%- tasks %>
+<% } else { -%>
+No tasks found
+<% } -%>`
+
+      const result = await render(template, {})
+
+      expect(result).toBe('No tasks found')
+    })
+
+    it('should handle const assignment with proper newline elimination', async () => {
+      // Using -%> at the end to chomp the trailing newline
+      const template = `<% const tasks = "* real world task should display" -%>
+<% if (tasks?.length) { -%>
+<%- tasks -%>
+<% } -%>`
+
+      const result = await render(template, {})
+
+      // With proper chomp tags, there should be no trailing newline
+      expect(result).toBe('* real world task should display')
+    })
+  })
+})
