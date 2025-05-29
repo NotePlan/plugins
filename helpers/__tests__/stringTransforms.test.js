@@ -1,25 +1,24 @@
-/* globals describe, expect, test */
+/* globals describe, expect, test, beforeAll */
 
 // Last updated: 11.6.2024 by @jgclark
 
 import colors from 'chalk'
 import { getNPWeekStr, getTodaysDateHyphenated } from '../dateTime'
 import * as st from '../stringTransforms'
+import { RE_BARE_URI_MATCH_G } from '../regex'
+import { DataStore } from '@mocks/index'
 
-// TODO: Get following working if its important:
-// import { DataStore /*, Note, Paragraph */ } from '@mocks/index'
+beforeAll(() => {
+  // global.Calendar = Calendar
+  // global.Clipboard = Clipboard
+  // global.CommandBar = CommandBar
+  global.DataStore = DataStore
+  // global.Editor = Editor
+  // global.NotePlan = NotePlan
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
+})
 
-// beforeAll(() => {
-//   // global.Calendar = Calendar
-//   // global.Clipboard = Clipboard
-//   // global.CommandBar = CommandBar
-//   global.DataStore = DataStore
-//   // global.Editor = Editor
-//   // global.NotePlan = NotePlan
-//   DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
-// })
-
-const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateManipulation')}`
+const PLUGIN_NAME = `📙 ${colors.yellow('helpers/stringTransforms')}`
 // const section = colors.blue
 
 describe(`${PLUGIN_NAME}`, () => {
@@ -46,13 +45,20 @@ describe(`${PLUGIN_NAME}`, () => {
       const expectedOutput = '<p>This is a [link](http://example.com) to a…</p>'
       expect(st.truncateHTML(htmlIn, maxLength)).toBe(expectedOutput)
     })
+    test('preserves long markdown link for sparkmail', () => {
+      const htmlIn = '#jgcDR Fix email links for @SavageBeginnings - e.g. [Open in Spark](readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D)'
+      const maxLength = 40
+      const htmlOut = st.truncateHTML(htmlIn, maxLength)
+      expect(htmlOut).toMatch(/^#jgcDR Fix email links for @Savage/)
+      // eslint-disable-next-line max-len
+      expect(htmlOut).toMatch(/\]\(readdle-spark:\/\/bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D\)/)
+    })
     test('adds ellipsis if dots is true', () => {
       const htmlIn = '<p>This is a long paragraph of text that needs to be truncated.</p>'
       const maxLength = 20
       const expectedOutput = '<p>This is a long parag…</p>'
       expect(st.truncateHTML(htmlIn, maxLength, true)).toBe(expectedOutput)
     })
-
     test('does not add ellipsis if dots is false', () => {
       const htmlIn = '<p>This is a long paragraph of text that needs to be truncated.</p>'
       const maxLength = 20
@@ -90,6 +96,61 @@ describe(`${PLUGIN_NAME}`, () => {
         'this has <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>title with spaces</a> with a valid link',
       )
     })
+    test('should produce HTML link for sparkmail', () => {
+      const input = '#jgcDR Fix email links for @SavageBeginnings - e.g. [Open in Spark](readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D)'
+      const result = st.changeMarkdownLinksToHTMLLink(input)
+      expect(result).toEqual(
+        '#jgcDR Fix email links for @SavageBeginnings - e.g. <a class="externalLink" href="readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D"><i class="fa-regular fa-globe pad-right"></i>Open in Spark</a>',
+      )
+    })
+  })
+
+  /*
+   * getLinkDisplayTextFromBareURL()
+   */
+  describe('getLinkDisplayTextFromBareURL()' /* function */, () => {
+    test('should return domain name for valid URI', () => {
+      const input = 'https://www.something.com/with?various&chars%20ok'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('www.something.com')
+    })
+
+    test('should return domain name for valid URI with non-ASCII characters', () => {
+      const input = 'https://sömething.com/with/more/parts'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('sömething.com')
+    })
+
+    test('should return IP/port for valid URI', () => {
+      const input = 'https://127.0.0.1:1234/with/more/parts'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('127.0.0.1:1234')
+    })
+
+    test('should return full mailto: URI for mailto: URI', () => {
+      const input = 'mailto:jgclark@example.com'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('mailto:jgclark@example.com')
+    })
+
+    test('should return full tel: URI for tel: URI', () => {
+      const input = 'tel:+1234567890'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('tel:+1234567890')
+    })
+
+    test('should return just protocol... for spark-mail: protocol', () => {
+      const input = 'spark-mail://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('spark-mail://...')
+    })
+
+    test('should return just protocol... for noteplan: protocol', () => {
+      const input = 'noteplan://doSomething?param=value'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('noteplan://...')
+    })
+
   })
 
   /**
@@ -101,49 +162,62 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual('')
     })
     test('should be no change if no link found', () => {
-      const input = 'this has https a www.domain.com but not together'
+      const input = 'this has https www domain com but not together'
       const result = st.changeBareLinksToHTMLLink(input)
       expect(result).toEqual(input)
     })
-    test('should not produce HTML link from MD link', () => {
+    test('should find www link without http:// protocol', () => {
+      const input = 'this has www.domain.com to find'
+      const result = st.changeBareLinksToHTMLLink(input)
+      expect(result).toEqual('this has <a class="externalLink" href="www.domain.com"><i class="fa-regular fa-globe pad-right"></i>www.domain.com</a> to find')
+    })
+    test('should not touch markdown link (shorter)', () => {
       const input = 'this has [a valid MD link](https://www.something.com/with?various&chars%20ok)'
       const result = st.changeBareLinksToHTMLLink(input)
-      expect(result).toEqual('this has [a valid MD link](https://www.something.com/with?various&chars%20ok)')
+      expect(result).toEqual(input)
     })
-    test('should produce HTML link 1 with icon and no truncation', () => {
+    test('should not touch markdown link (longer for sparkmail)', () => {
+      const input = '#jgcDR Fix email links for @SavageBeginnings - e.g. [Open in Spark](readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D)'
+      const result = st.changeBareLinksToHTMLLink(input, true)
+      expect(result).toEqual(input)
+    })
+
+    test('should produce HTML link 1 with icon and truncation', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
       const result = st.changeBareLinksToHTMLLink(input, true)
       expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long</a> valid bare link',
-      )
-    })
-    test('should produce HTML link 1 with icon and truncation', () => {
-      const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
-      const result = st.changeBareLinksToHTMLLink(input, true, 21)
-      expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something…</a> valid bare link',
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>www.something.com</a> valid bare link',
       )
     })
     test('should produce HTML link 1 without icon', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
       const result = st.changeBareLinksToHTMLLink(input, false)
       expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a> valid bare link',
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok">www.something.com</a> valid bare link',
       )
     })
+
     test('should produce HTML link when a link takes up the whole line with icon', () => {
       const input = 'https://www.something.com/with?various&chars%20ok'
       const result = st.changeBareLinksToHTMLLink(input, true)
       expect(result).toEqual(
-        '<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok</a>',
+        '<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>www.something.com</a>',
       )
     })
+
     test('should produce truncated HTML link with a very long bare link', () => {
       const input =
         'https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0'
-      const result = st.changeBareLinksToHTMLLink(input, false, 50)
+      const result = st.changeBareLinksToHTMLLink(input, false)
       expect(result).toEqual(
-        '<a class="externalLink" href="https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0">https://validation.poweredbypercent.com/validate/v…</a>',
+        '<a class="externalLink" href="https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0">validation.poweredbypercent.com</a>',
+      )
+    })
+    test('should produce HTML link for bare spark-mail:// URI', () => {
+      const input = '#jgcDR Fix email links for @SavageBeginnings - e.g. readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D'
+      const result = st.changeBareLinksToHTMLLink(input, true)
+      expect(result).toEqual(
+        '#jgcDR Fix email links for @SavageBeginnings - e.g. <a class="externalLink" href="readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D"><i class="fa-regular fa-globe pad-right"></i>readdle-spark://…</a>',
       )
     })
   })
@@ -501,6 +575,114 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     test('should work for many items in a line ', () => {
       expect(st.removeDateTagsAndToday(`test >2000-W02 >2020-01-01 <2020-02-02 >2020-09-28`, true)).toEqual('test')
+    })
+  })
+
+  describe('Tests for RE_BARE_URI_MATCH_G', () => {
+    test('should match standard protocols', () => {
+      const text = 'Check out https://example.com/ and http://test.org'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(2)
+      expect(matches[0][2]).toBe('https://example.com/')
+      expect(matches[1][2]).toBe('http://test.org')
+    })
+
+    test('should match sftp protocol', () => {
+      const text = 'Check out sftp://example.com.'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(1)
+      expect(matches[0][2]).toContain('sftp://example.com')
+    })
+
+    test('match strange URI-like protocols', () => {
+      const text = 'Contact mailto:user_bob@example.com or tel:+123-456-7890'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(2)
+      expect(matches[0][2]).toBe('mailto:user_bob@example.com')
+      expect(matches[1][2]).toBe('tel:+123-456-7890')
+    })
+
+    test('should match URIs with paths and query parameters', () => {
+      const text = 'Go to https://example.com/path?query=value&other=123'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(1)
+      expect(matches[0][2]).toBe('https://example.com/path?query=value&other=123')
+    })
+
+    test('should NOT match URIs in markdown links', () => {
+      const text = 'Check [this link](https://example.com) [or this link](https://test.org)'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(0)
+    })
+
+    test('should NOT match this markdown link either', () => {
+      const text = 'this has [a valid MD link](https://www.something.com/with?various&chars%20ok)'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(0)
+    })
+
+    test('should match multiple URIs in text', () => {
+      const text = 'Links: https://a.com, http://b.org, www.c.net'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(3)
+      expect(matches[0][2]).toContain('https://a.com')
+      expect(matches[1][2]).toContain('http://b.org')
+      expect(matches[2][2]).toBe('www.c.net')
+    })
+
+    test('should match URIs with special characters', () => {
+      const text = 'Visit https://example.com/path-with-hyphens/and_underscores?param=value#section ok'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(1)
+      expect(matches[0][2]).toBe('https://example.com/path-with-hyphens/and_underscores?param=value#section')
+    })
+
+    test('should match www domains', () => {
+      const text = 'Visit www.example.com for more info'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(1)
+      expect(matches[0][2]).toBe('www.example.com')
+    })
+
+    test('should match URIs at start of text', () => {
+      const text = 'https://example.com is a website'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(1)
+      expect(matches[0][2]).toBe('https://example.com')
+    })
+
+    test('should match URIs after punctuation', () => {
+      const text = 'See: https://example.com and https://test.org'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(2)
+      expect(matches[0][2]).toBe('https://example.com')
+      expect(matches[1][2]).toBe('https://test.org')
+    })
+
+    test('should match mixed bare URIs and avoid markdown links', () => {
+      const text = 'Visit https://example.com but not [this](https://hidden.com) or https://another.com'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(2)
+      expect(matches[0][2]).toBe('https://example.com')
+      expect(matches[1][2]).toBe('https://another.com')
+    })
+
+    test('should handle URIs in sentences with punctuation', () => {
+      const text = 'Visit https://example.com. Also check www.test.org, okay?'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(2)
+      expect(matches[0][2]).toContain('https://example.com')
+      expect(matches[1][2]).toContain('www.test.org')
+    })
+
+    // Note: Ideally would exclude trailing punctuation from URIs, but this hasn't proved possible yet
+    test.skip('should exclude trailing punctuation from URIs', () => {
+      const text = 'Links: https://example.com, www.test.org; and https://another.com!'
+      const matches = Array.from(text.matchAll(RE_BARE_URI_MATCH_G))
+      expect(matches).toHaveLength(3)
+      expect(matches[0][2]).toBe('https://example.com')
+      expect(matches[1][2]).toBe('www.test.org')
+      expect(matches[2][2]).toBe('https://another.com')
     })
   })
 })

@@ -108,9 +108,18 @@ export const RE_NOTELINK_CAPTURE_TITLE_G: RegExp = /\[\[([^\[]+)\]\]/g
 export const RE_MARKDOWN_LINKS_CAPTURE_G: RegExp = /\[([^\]]+)\]\(([^\)]+)\)/g
 export const RE_MARKDOWN_LINK_PATH_CAPTURE: RegExp = /\[.+?\]\(([^\)]*?)\)/
 export const RE_MARKDOWN_LINK_PATH_CAPTURE_G: RegExp = /\[.+?\]\(([^\)]*?)\)/g
-export const RE_SIMPLE_URI_MATCH: RegExp = /(\w+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/
-export const RE_SIMPLE_URI_MATCH_G: RegExp = /(\w+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/g
-export const RE_SIMPLE_BARE_URI_MATCH_G: RegExp = /((?!([\("'])).|^)(\b\w+:\/{1,3}[\w\.\/\?\#\&\d\-\=\@%*~,]+)/gi // complex because it's still avoiding negative look-behind (though support is apparently coming in Safari 16.4 etc.)
+export const RE_SIMPLE_URI_MATCH: RegExp = /([\w-]+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/
+export const RE_SIMPLE_URI_MATCH_G: RegExp = /([\w-]+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/g
+// FIXME: this is not picking 'spark-mail' protocols
+export const RE_SIMPLE_BARE_URI_MATCH_G: RegExp = /((?!([\("'])).|^)([\b\w-]+:\/{1,3}[\w\.\/\?\#\&\d\-\=\@%*~,]+)/gi // complex because it's still avoiding negative look-behind (though support is apparently coming in Safari 16.4 etc.)
+
+// Comprehensive regex for matching bare URIs not in markdown links, avoiding negative lookbehind
+// Matches URIs that are either: at start of string, after whitespace, or after punctuation (but not after [ or ()
+// And ensures they're not followed by ) which would indicate a markdown link
+// But also specifically allow tel: and mailto: protocols.
+// Capture group 1: the URI
+// Note: trailing punctuation in the URI can land up in the URI.
+export const RE_BARE_URI_MATCH_G: RegExp = /(?:^|[\s\.,;!?:])((www\.[^\s\[\](),;!?'"]+\.[a-z]{2,}[^\s\[\](),;!'"]*)|([a-z][a-z0-9+.-]*:\/\/[^\s\[\]()!]+)|tel:\+?[-\d]+|mailto:[-\d\w_@\.]*)/gi
 
 // Synced lines
 export const RE_SYNC_MARKER: RegExp = /\^[A-Za-z0-9]{6}(?![A-Za-z0-9])/

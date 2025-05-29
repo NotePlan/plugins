@@ -18,7 +18,11 @@ import {
   YEAR_NOTE_LINK,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
-import { RE_MARKDOWN_LINKS_CAPTURE_G, RE_SIMPLE_BARE_URI_MATCH_G, RE_SYNC_MARKER } from '@helpers/regex'
+import {
+  RE_MARKDOWN_LINKS_CAPTURE_G,
+  RE_BARE_URI_MATCH_G,
+  RE_SYNC_MARKER,
+} from '@helpers/regex'
 
 /**
  * Truncate visible part of HTML string, without removing any HTML tags, or markdown links.
@@ -38,17 +42,13 @@ export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = 
   let lengthLeft = maxLength
   // Walk through the htmlIn string a character at a time
   for (let index = 0; index < htmlIn.length; index++) {
-    // if (!lengthLeft || lengthLeft <= 0) {
-    //   // no lengthLeft: stop processing
-    //   continue
-    // }
+    // if we've started an HTML tag (i.e. has a > later) stop counting
     if (htmlIn[index] === '<' && htmlIn.slice(index).includes('>')) {
-      // if we've started an HTML tag (i.e. has a > later) stop counting
       // logDebug('truncateHTML', `started HTML tag at ${String(index)}`)
       inHTMLTag = true
     }
+    // if we've started a MD link tag stop counting
     if (htmlIn[index] === '[' && htmlIn.slice(index).match(/\]\(.*\)/)) {
-      // if we've started a MD link tag stop counting
       // logDebug('truncateHTML', `started MD link at ${String(index)}`)
       inMDLink = true
     }
@@ -91,21 +91,23 @@ export function convertAllLinksToHTMLLinks(original: string): string {
 
 /**
  * Convert bare URLs to display as HTML links. Truncate beyond N characters if 'truncateLength' given.
+ * The link display text is the domain name, not the full URI. E.g. https://example.com/path/to/file.html -> example.com
+ * Note: this doesn't handle every possible case, e.g. trailing punctuation in the URI can land up in the URI
  * @author @jgclark
  * @tests in jest file
  * @param {string} original string
  * @param {boolean?} addWebIcon before the link? (default: true)
- * @param {number?} truncateLength the display of the link? (default: 0 = off)
  */
 export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean = true, truncateLength: number = 0): string {
   let output = original
-  const captures = Array.from(original.matchAll(RE_SIMPLE_BARE_URI_MATCH_G) ?? [])
+
+  const captures = Array.from(original.matchAll(RE_BARE_URI_MATCH_G) ?? [])
   if (captures.length > 0) {
-    // logDebug('changeBareLinksToHTMLLink', `Found link in '${original}' with truncateLength ${String(truncateLength)}${addWebIcon ? ' and addWebIcon' : ''}`)
-    // clo(captures, `${String(captures.length)} results from bare URL matches:`)
+    logDebug('changeBareLinksToHTMLLink', `Found URI in '${original}' with truncateLength ${String(truncateLength)}${addWebIcon ? ' and addWebIcon' : ''}`)
+    clo(captures, `${String(captures.length)} results from bare URL matches:`)
     for (const capture of captures) {
-      const linkURL = capture[3]
-      const URLForDisplay = truncateLength > 0 && linkURL.length > truncateLength ? truncateHTML(linkURL, truncateLength, true) : linkURL
+      const linkURL = capture[1]
+      const URLForDisplay = getLinkDisplayTextFromBareURL(linkURL)
       if (addWebIcon) {
         // not displaying icon
         output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe pad-right"></i>${URLForDisplay}</a>`)
@@ -113,9 +115,40 @@ export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean 
         output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}">${URLForDisplay}</a>`)
       }
     }
-    // logDebug('changeBareLinksToHTMLLink', `=> ${output}`)
+    logDebug('changeBareLinksToHTMLLink', `=> ${output}`)
+  } else {
+    logDebug('', `found NO URI in ${original}`)
   }
   return output
+}
+
+/**
+ * Return a useful short display text for a bare URI.
+ * - if there's a domain name use: E.g. https://example.com/path/to/file.html -> example.com
+ * - if there's a mailto: URI use the full URI
+ * - if there's a tel: URI use the full URI
+ * - if there's a different protocol, just use protocol://...
+ * @param {string} linkURL
+ * @returns {string}
+ */
+export function getLinkDisplayTextFromBareURL(linkURL: string): string {
+  // If there's text between :// and / use that as the display text
+  const parts = linkURL.split('://')
+  if (parts.length > 1 && parts[1].includes('/')) {
+    return parts[1].split('/')[0]
+  }
+  // If there's no protocol, just return the URL up to any first /
+  if (!linkURL.includes('://')) {
+    return linkURL.split('/')[0]
+  }
+  // Return the full URI for mailto: and tel:
+  if (linkURL.startsWith('mailto:')) {
+    return linkURL
+  } else if (linkURL.startsWith('tel:')) {
+    return linkURL
+  }
+  // Otherwise return the protocol...
+  return linkURL.split('://')[0] + '://…'
 }
 
 /**
