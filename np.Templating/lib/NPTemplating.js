@@ -21,7 +21,7 @@ import { heartbeat, setup as configSetup } from './config'
 import { getTemplateFolder as getTemplateFolderImpl } from './config/configManager'
 
 // Import from rendering
-import { processFrontmatterTags, render, renderTemplate } from './rendering/templateProcessor'
+import { processFrontmatterTags, render, renderTemplateByName } from './rendering/templateProcessor'
 
 import { clo, logError } from '@helpers/dev'
 
@@ -226,7 +226,7 @@ class NPTemplating {
   static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     try {
       await this.setup()
-      return renderTemplate(templateName, userData, userOptions)
+      return renderTemplateByName(templateName, userData, userOptions)
     } catch (error) {
       clo(error, `NPTemplating.renderTemplate found error dbw1`)
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)

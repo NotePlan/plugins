@@ -17,7 +17,7 @@ import pluginJson from '../../plugin.json'
  * @param {Object} options - EJS rendering options
  * @returns {Promise<string>} The rendered template result
  */
-export async function renderTemplate(processedTemplateData: string, renderData: Object, options: Object): Promise<string> {
+export async function renderTemplateWithEJS(processedTemplateData: string, renderData: Object, options: Object): Promise<string> {
   logDebug(pluginJson, `EJS render: ${Object.keys(renderData).length} data keys available`)
 
   const result = await ejs.render(processedTemplateData, renderData, options)

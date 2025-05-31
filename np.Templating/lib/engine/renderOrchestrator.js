@@ -11,7 +11,7 @@ import pluginJson from '../../plugin.json'
 
 // Import all the modular components
 import { processFrontmatter, integrateFrontmatterData } from './frontmatterProcessor'
-import { renderTemplate, postProcessResult, replaceDoubleDashes, appendPreviousPhaseErrors } from './templateRenderer'
+import { renderTemplateWithEJS, postProcessResult, replaceDoubleDashes, appendPreviousPhaseErrors } from './templateRenderer'
 import { cleanErrorMessage, extractErrorContext, buildBasicErrorMessage, appendPreviousPhaseErrorsToError } from './errorProcessor'
 import { analyzeErrorWithAI, handleAIAnalysisResult } from './aiAnalyzer'
 import { integratePlugins } from './pluginIntegrator'
@@ -49,7 +49,7 @@ export async function orchestrateRender(
 
     // Step 4: Render the template
     outputDebugData('Before template rendering', finalRenderData)
-    let result = await renderTemplate(processedTemplateData, finalRenderData, options)
+    let result = await renderTemplateWithEJS(processedTemplateData, finalRenderData, options)
 
     // Step 5: Post-process the result
     result = postProcessResult(result)

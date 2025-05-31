@@ -1266,7 +1266,7 @@ export async function render(inputTemplateData: string, userData: any = {}, user
  * @param {any} [userOptions={}] - Options for template rendering
  * @returns {Promise<string>} A promise that resolves to the rendered template content
  */
-export async function renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+export async function renderTemplateByName(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
   try {
     const templateData = await getTemplate(templateName)
     const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(templateData)
@@ -1275,8 +1275,8 @@ export async function renderTemplate(templateName: string = '', userData: any = 
 
     return removeEJSDocumentationNotes(renderedData)
   } catch (error) {
-    clo(error, `renderTemplate found error`)
-    return templateErrorMessage('renderTemplate', error)
+    clo(error, `renderTemplateByName found error`)
+    return templateErrorMessage('renderTemplateByName', error)
   }
 }
 

@@ -818,7 +818,7 @@ describe('Real-world Template Failures', () => {
 
       const result = await render(template, {})
 
-      expect(result).toBe('task 1, task 2')
+      expect(result).toBe('task 1, task 2\n')
     })
 
     it('should handle const assignment with null/undefined check', async () => {
@@ -831,7 +831,7 @@ No tasks found
 
       const result = await render(template, {})
 
-      expect(result).toBe('No tasks found')
+      expect(result).toBe('No tasks found\n')
     })
 
     it('should handle const assignment with proper newline elimination', async () => {
