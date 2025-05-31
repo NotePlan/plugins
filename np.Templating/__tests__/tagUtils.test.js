@@ -20,6 +20,7 @@ import {
 
 beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter)
+  global.DataStore = { settings: { _logLevel: 'none' } }
 })
 
 describe('tagUtils', () => {

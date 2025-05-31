@@ -732,13 +732,14 @@ function generateEventData(selectedEvent: TCalendarItem): { data: Object, method
       eventEndDateValue: selectedEvent.endDate,
     },
     methods: {
-      // NOTE: functions cannot be passed via DataStore.invokePluginCommandByName(), so we will have to create these methods in np.Templating render()
-      eventDate: (format: string = 'YYYY MM DD') => {
-        return moment(selectedEvent.date).format(`${format}`)
-      },
-      eventEndDate: (format: string = 'YYYY MM DD') => {
-        return moment(selectedEvent.endDate).format(`${format}`)
-      },
+      // NOTE: functions cannot be passed via DataStore.invokePluginCommandByName(), so we will have to create these methods in np.Templating render pipeline
+      // If you are looking for them, they are in restoreEventDateMethods() in np.Templating/lib/rendering/templateProcessor.js
+      // eventDate: (format: string = 'YYYY MM DD') => {
+      //   return moment(selectedEvent.date).format(`${format}`)
+      // },
+      // eventEndDate: (format: string = 'YYYY MM DD') => {
+      //   return moment(selectedEvent.endDate).format(`${format}`)
+      // },
     },
   }
 }

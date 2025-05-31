@@ -4,6 +4,7 @@
  * This module handles all template processing operations previously in NPTemplating.js.
  */
 
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../../plugin.json'
 import FrontmatterModule from '../support/modules/FrontmatterModule'
 import { processPrompts } from '../support/modules/prompts'
@@ -949,7 +950,7 @@ function normalizeTemplateData(templateData: string): string {
  * @returns {Object} Enhanced session data with global helpers
  */
 function loadGlobalHelpers(sessionData: Object): Object {
-  const enhancedData = { ...sessionData }
+  let enhancedData = { ...sessionData }
 
   // Load template globals
   const globalData: { [key: string]: any } = {}
@@ -958,6 +959,9 @@ function loadGlobalHelpers(sessionData: Object): Object {
   })
 
   enhancedData.methods = { ...enhancedData.methods, ...globalData }
+
+  // Restore event date methods that may have been dropped during serialization
+  enhancedData = restoreEventDateMethods(enhancedData)
 
   return enhancedData
 }
@@ -1358,3 +1362,40 @@ export async function execute(templateData: string = '', sessionData: any, templ
 // Export functions we want to make available via the rendering index
 export { frontmatterError } from '../utils/errorHandling'
 export { removeWhitespaceFromCodeBlocks } from '../utils/codeProcessing'
+
+/**
+ * Restores eventDate and eventEndDate methods that get dropped during DataStore.invokePluginCommandByName serialization.
+ * These functions are lost because they can't be stringified, but we can recreate them from the
+ * eventDateValue and eventEndDateValue that are provided.
+ * @param {Object} sessionData - The session data that may contain eventDateValue and eventEndDateValue
+ * @returns {Object} Enhanced session data with eventDate and eventEndDate functions restored
+ */
+function restoreEventDateMethods(sessionData: Object): Object {
+  const enhancedData = { ...sessionData }
+
+  // Check for event date values and restore corresponding methods
+  const eventMethods = [
+    { hasValue: sessionData.data?.eventDateValue, methodName: 'eventDate', valuePath: 'eventDateValue' },
+    { hasValue: sessionData.data?.eventEndDateValue, methodName: 'eventEndDate', valuePath: 'eventEndDateValue' },
+  ]
+
+  const methodsToAdd = eventMethods.filter(({ hasValue }) => hasValue)
+
+  if (methodsToAdd.length > 0) {
+    logDebug(pluginJson, `restoreEventDateMethods: Restoring ${methodsToAdd.map((m) => m.methodName).join(', ')}`)
+
+    if (!enhancedData.methods) enhancedData.methods = {}
+
+    methodsToAdd.forEach(({ methodName, valuePath }) => {
+      const method = (format: string = 'YYYY MM DD'): string => moment(sessionData.data[valuePath]).format(format)
+
+      // Add to both methods object and top level for EJS access
+      // $FlowIgnore - We're dynamically adding this method
+      enhancedData.methods[methodName] = method
+      // $FlowIgnore - We're dynamically adding this method
+      enhancedData[methodName] = method
+    })
+  }
+
+  return enhancedData
+}

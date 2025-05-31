@@ -642,20 +642,15 @@ describe(`${PLUGIN_NAME}`, () => {
         } catch (error) {
           errorOccurred = true
           errorMessage = error.message || error.toString()
-          console.log('Edge case test error:', errorMessage)
         }
 
         if (!errorOccurred) {
-          console.log('Edge case test success:', renderedData)
           // If it renders successfully, it should contain the expected content
           expect(renderedData).toContain('+ 16:30 - 17:00 :brain: Review my day and plan tomorrow')
         } else {
           // If there's an error, it should not be the "Unexpected keyword 'catch'" error
           // (that would indicate the preprocessing is creating invalid JavaScript)
           expect(errorMessage).not.toContain("Unexpected keyword 'catch'")
-
-          // Log the error for debugging purposes
-          console.log('Template processing failed with error:', errorMessage)
 
           // The error should be defined
           expect(errorMessage).toBeDefined()

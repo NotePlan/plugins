@@ -847,4 +847,93 @@ No tasks found
       expect(result).toBe('* real world task should display')
     })
   })
+
+  describe('Event Date Methods Restoration', () => {
+    it('should restore eventDate and eventEndDate methods when eventDateValue and eventEndDateValue are present', async () => {
+      const templateData = `Event Start: <%- eventDate('YYYY-MM-DD') %>
+Event End: <%- eventEndDate('YYYY-MM-DD HH:mm') %>`
+
+      const sessionData = {
+        data: {
+          eventDateValue: '2023-12-25T10:00:00Z',
+          eventEndDateValue: '2023-12-25T12:00:00Z',
+        },
+      }
+
+      const result = await render(templateData, sessionData, {})
+
+      // Should not contain error messages
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('eventDate is not defined')
+      expect(result).not.toContain('eventEndDate is not defined')
+
+      // Should contain formatted dates (accounting for timezone conversion)
+      expect(result).toContain('Event Start: 2023-12-25')
+      // The time will be converted from UTC to local timezone, so we just check for the date part
+      expect(result).toMatch(/Event End: 2023-12-25 \d{2}:\d{2}/)
+    })
+
+    it('should work with only eventDateValue present', async () => {
+      const templateData = `Event Start: <%- eventDate('YYYY-MM-DD') %>`
+
+      const sessionData = {
+        data: {
+          eventDateValue: '2023-12-25T10:00:00Z',
+        },
+      }
+
+      const result = await render(templateData, sessionData, {})
+
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).toContain('Event Start: 2023-12-25')
+    })
+
+    it('should work with only eventEndDateValue present', async () => {
+      const templateData = `Event End: <%- eventEndDate('YYYY-MM-DD HH:mm') %>`
+
+      const sessionData = {
+        data: {
+          eventEndDateValue: '2023-12-25T12:00:00Z',
+        },
+      }
+
+      const result = await render(templateData, sessionData, {})
+
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      // The time will be converted from UTC to local timezone, so we just check for the date part
+      expect(result).toMatch(/Event End: 2023-12-25 \d{2}:\d{2}/)
+    })
+
+    it('should handle default format when no format is provided', async () => {
+      const templateData = `Event Start: <%- eventDate() %>
+Event End: <%- eventEndDate() %>`
+
+      const sessionData = {
+        data: {
+          eventDateValue: '2023-12-25T10:00:00Z',
+          eventEndDateValue: '2023-12-25T12:00:00Z',
+        },
+      }
+
+      const result = await render(templateData, sessionData, {})
+
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      // Default format is 'YYYY MM DD'
+      expect(result).toContain('Event Start: 2023 12 25')
+      expect(result).toContain('Event End: 2023 12 25')
+    })
+
+    it('should not interfere when eventDateValue and eventEndDateValue are not present', async () => {
+      const templateData = `Just some text: <%- someVariable %>`
+
+      const sessionData = {
+        someVariable: 'test value',
+      }
+
+      const result = await render(templateData, sessionData, {})
+
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).toContain('Just some text: test value')
+    })
+  })
 })

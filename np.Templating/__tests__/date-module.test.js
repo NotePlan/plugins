@@ -125,8 +125,16 @@ describe(`${PLUGIN_NAME}`, () => {
       const dm = new DateModule()
       const result = dm.timestamp('UTC_ISO')
       const expected = moment.utc().format() // e.g., "2023-10-27T23:30:00Z"
-      expect(result).toEqual(expected)
+
+      // Check that result ends with 'Z' (UTC indicator)
       expect(result.endsWith('Z')).toBe(true)
+
+      // Parse both timestamps and check they're within 5 seconds of each other
+      const resultMoment = moment.utc(result)
+      const expectedMoment = moment.utc(expected)
+      const diffInSeconds = Math.abs(resultMoment.diff(expectedMoment, 'seconds'))
+
+      expect(diffInSeconds).toBeLessThanOrEqual(5)
     })
 
     it(`should render ${method('.timestamp')} respecting locale from config for formatted strings`, () => {
