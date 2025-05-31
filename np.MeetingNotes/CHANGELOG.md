@@ -8,7 +8,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNote
 
 - Add <current> to append/prepend frontmatter tag
 - prepending a recurring meeting note will now accept a folder argument
-- Use Templating 2.0
+- Use Templating 2.0, but...
+- call Templating 2.0 commands via DataStore.invokePluginCommandByName() instead of directly calling them and importing all of np.Templating
+- removed renderNoteTemplate() function which did not do anything
 
 ## [1.2.3] -  2024-02-19 @dwertheimer
 

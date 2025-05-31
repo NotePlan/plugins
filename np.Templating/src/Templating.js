@@ -703,6 +703,7 @@ export async function getTemplate(templateName: string = '', options: any = { sh
 }
 
 export async function renderFrontmatter(templateData: string = '', userData: any = {}): Promise<any> {
+  logDebug(pluginJson, `renderFrontmatter: calling renderFrontmatter() with templateData: "${templateData}" and userData: ${JSON.stringify(userData)}`)
   const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData, userData)
 
   return { frontmatterBody, frontmatterAttributes }

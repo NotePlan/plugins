@@ -158,7 +158,8 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
     }
 
     //TODO: we may not need this step, ask @codedungeon what he thinks
-    const { _, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+    // for now, we'll call renderFrontmatter() via DataStore.invokePluginCommandByName()
+    const { _, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateData])
 
     if (templateFrontmatterAttributes.formFields) {
       // yaml version of formFields

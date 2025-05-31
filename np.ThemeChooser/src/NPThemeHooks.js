@@ -49,7 +49,7 @@ export async function onOpenTheme(note: TNote): Promise<void> {
   try {
     logDebug(pluginJson, `onOpen running with incoming:${String(note.filename)}`)
     logDebug(pluginJson, `onOpen: note is a template, not doing anything`)
-    const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(note.content)
+    const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(note.content)
     clo(frontmatterAttributes, `onOpen: frontmatterAttributes`)
     clo(frontmatterBody, `onOpen: frontmatterBody`)
     if (frontmatterAttributes.themeName) {
