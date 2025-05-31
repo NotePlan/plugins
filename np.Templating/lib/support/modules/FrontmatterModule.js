@@ -6,8 +6,9 @@
  * -----------------------------------------------------------------------------------------*/
 
 import fm from 'front-matter'
+import pluginJson from '../../../plugin.json'
 import { JSP, logError } from '@helpers/dev'
-import { getSanitizedFmParts } from '@helpers/NPFrontMatter'
+import { getSanitizedFmParts, getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 
 export default class FrontmatterModule {
   // $FlowIgnore
@@ -71,6 +72,30 @@ export default class FrontmatterModule {
     const fmData = getSanitizedFmParts(templateData)
 
     return fmData && fmData?.body ? fmData.body : ''
+  }
+
+  /**
+   * Get all the values in frontmatter for all notes for a given key
+   * @param {string} tag - The frontmatter key to search for
+   * @returns {Promise<string>} JSON string representation of the values array
+   */
+  async getValuesForKey(tag: string): Promise<string> {
+    try {
+      // Get the values using the frontmatter helper
+      const values = await getValuesForFrontmatterTag(tag)
+
+      // Convert to string
+      const result = JSON.stringify(values).trim()
+
+      // Return the string result
+      return result
+    } catch (error) {
+      // Log the error but don't throw it - this helps with resilience
+      logError(pluginJson, `FrontmatterModule.getValuesForKey error: ${error}`)
+
+      // Return an empty array string as fallback
+      return ''
+    }
   }
 
   convertProjectNoteToFrontmatter(projectNote: string = ''): any {

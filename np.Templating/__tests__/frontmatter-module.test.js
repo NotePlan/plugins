@@ -201,6 +201,38 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(frontmatterAttributes)
     })
 
+    describe(`${block('.getValuesForKey')}`, () => {
+      it('should return JSON string of values for a given tag', async () => {
+        // Mock getValuesForFrontmatterTag using jest.spyOn
+        const NPFrontMatter = require('@helpers/NPFrontMatter')
+        const mockGetValues = jest.spyOn(NPFrontMatter, 'getValuesForFrontmatterTag')
+        mockGetValues.mockResolvedValue(['value1', 'value2', 'value3'])
+
+        const frontmatterModule = new FrontmatterModule()
+        const result = await frontmatterModule.getValuesForKey('testTag')
+
+        expect(result).toEqual('["value1","value2","value3"]')
+
+        // Restore the mock
+        mockGetValues.mockRestore()
+      })
+
+      it('should return empty string on error', async () => {
+        // Mock getValuesForFrontmatterTag to throw an error
+        const NPFrontMatter = require('@helpers/NPFrontMatter')
+        const mockGetValues = jest.spyOn(NPFrontMatter, 'getValuesForFrontmatterTag')
+        mockGetValues.mockRejectedValue(new Error('Test error'))
+
+        const frontmatterModule = new FrontmatterModule()
+        const result = await frontmatterModule.getValuesForKey('testTag')
+
+        expect(result).toEqual('')
+
+        // Restore the mock
+        mockGetValues.mockRestore()
+      })
+    })
+
     describe(`${block('.convertProjectNoteToFrontmatter')}`, () => {
       it('should return -1', async () => {
         const result = new FrontmatterModule().convertProjectNoteToFrontmatter('')

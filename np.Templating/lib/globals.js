@@ -24,9 +24,10 @@ import { getWeatherSummary } from './support/modules/weatherSummary'
 import { parseJSON5 } from '@helpers/general'
 import { getSetting } from '../../helpers/NPConfiguration'
 import { log, logError, clo, logDebug } from '@helpers/dev'
-import { getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
 import { getNote } from '@helpers/note'
 import { journalingQuestion } from './support/modules/journal'
+import FrontmatterModule from './support/modules/FrontmatterModule'
+
 export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
   logDebug(`globals::processDate: ${dateParams} as ${JSON.stringify(config)}`)
   const defaultConfig = config?.date ?? {}
@@ -223,11 +224,9 @@ const globals = {
   // get all the values in frontmatter for all notes for a given key
   getValuesForKey: async (tag: string): Promise<string> => {
     try {
-      // Get the values using the frontmatter helper
-      const values = await getValuesForFrontmatterTag(tag)
-
-      // Convert to string
-      const result = JSON.stringify(values).trim()
+      // Create an instance of FrontmatterModule and use it to get values
+      const frontmatterModule = new FrontmatterModule()
+      const result = await frontmatterModule.getValuesForKey(tag)
 
       // Return the string result
       return result
