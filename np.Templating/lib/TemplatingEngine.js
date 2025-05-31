@@ -408,12 +408,13 @@ export default class TemplatingEngine {
 
     renderData = userData.data ? { ...userData.data, ...renderData } : { ...renderData }
     renderData = userData.methods ? { ...userData.methods, ...renderData } : renderData
-    if (userData?.data) {
-      renderData.data = { ...userData.data }
-    }
-    if (userData?.methods) {
-      renderData.methods = { ...renderData.methods, ...userData.methods }
-    }
+    // dbw wrote: I think this is redundant. If you're seeing this later, delete it all
+    // if (userData?.data) {
+    //   renderData.data = { ...userData.data }
+    // }
+    // if (userData?.methods) {
+    //   renderData.methods = { ...renderData.methods, ...userData.methods }
+    // }
 
     // apply custom plugin modules
     this.templateModules.forEach((moduleItem) => {
