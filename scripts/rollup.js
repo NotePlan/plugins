@@ -21,7 +21,7 @@ const json = require('@rollup/plugin-json')
 const { nodeResolve } = require('@rollup/plugin-node-resolve')
 
 const { babel } = require('@rollup/plugin-babel')
-// const { terser } = require('rollup-plugin-terser')
+const terser = require('@rollup/plugin-terser')
 const mkdirp = require('mkdirp')
 const { program } = require('commander')
 const ProgressBar = require('progress')
@@ -86,15 +86,15 @@ const defaultPlugins = DEBUGGING
       commonjs(),
       json(),
       nodeResolve({ browser: true, jsnext: true }),
-      // terser({
-      //   compress: true,
-      //   mangle: true,
-      //   output: {
-      //     comments: false,
-      //     beautify: false,
-      //     indent_level: 2,
-      //   },
-      // }),
+      terser({
+        compress: true,
+        mangle: true,
+        output: {
+          comments: false,
+          beautify: false,
+          indent_level: 2,
+        },
+      }),
     ]
   : [
       alias({
@@ -104,15 +104,15 @@ const defaultPlugins = DEBUGGING
       commonjs(),
       json(),
       nodeResolve({ browser: true, jsnext: true }),
-      // terser({
-      //   compress: false,
-      //   mangle: false,
-      //   output: {
-      //     comments: false,
-      //     beautify: true,
-      //     indent_level: 2,
-      //   },
-      // }),
+      terser({
+        compress: false,
+        mangle: false,
+        output: {
+          comments: false,
+          beautify: true,
+          indent_level: 2,
+        },
+      }),
     ]
 
 const reportMemoryUsage = (msg = '') => {
@@ -259,41 +259,6 @@ const dt = () => {
   if (MINIFY) {
     console.log(colors.cyan.bold(`==> Rollup autowatch running. Will use minified output\n`))
   }
-
-  // /**
-  //  * @description Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
-  //  * @param {string} pluginPath
-  //  * @private
-  //  */
-  // async function checkPluginList(pluginPaths) {
-  //   const pluginCommands = {}
-  //   for (const pluginPath of pluginPaths) {
-  //     // console.log(`About to read ${pluginPath}`)
-  //     const pluginFile = await getPluginFileContents(path.join(pluginPath, 'plugin.json')) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
-
-  //     if (pluginFile && pluginFile['plugin.commands']) {
-  //       pluginFile['plugin.commands'].forEach((command) => {
-  //         if (pluginCommands[command.name]) {
-  //           console.log(colors.red.bold(`\n!!!!\nCommand collision: "${command.name}" exists already!`))
-  //           console.log(`\tTrying to add: "${command.name}" from ${path.basename(pluginPath)}`)
-  //           console.log(
-  //             colors.yellow(
-  //               `\tConflicts with "${pluginCommands[command.name].name}" in ${
-  //                 pluginCommands[command.name].folder
-  //               }\nCommand will be added & will work but should should be changed to be unique!!!\n`,
-  //             ),
-  //           )
-  //         } else {
-  //           pluginCommands[command.name] = command
-  //           pluginCommands[command.name].folder = path.basename(pluginPath)
-  //           pluginCommands[command.name].pluginName = pluginFile['plugin.name']
-  //         }
-  //       })
-  //     } else {
-  //       console.log(colors.red(`^^^ checkPluginList: For some reason could not parse file at: ${pluginPath}`))
-  //     }
-  //   }
-  // }
 
   /**
    * Rollup with watch
