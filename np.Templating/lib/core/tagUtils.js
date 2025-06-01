@@ -9,6 +9,7 @@
 import pluginJson from '../../plugin.json'
 import { logDebug, logWarn } from '@helpers/dev'
 import { isPromptTag } from '../support/modules/prompts/PromptRegistry'
+import { getTags } from '../shared/templateUtils'
 
 /**
  * Defines comment patterns that, if found within a fenced code block,
@@ -169,21 +170,6 @@ ${jsContent}
     }
   })
   return result
-}
-
-/**
- * Gets all EJS template tags from a template string.
- * @param {string} [templateData=''] - The template data to search
- * @param {string} [startTag='<%'] - The opening tag delimiter
- * @param {string} [endTag='%>'] - The closing tag delimiter
- * @returns {Promise<Array<string>>} A promise that resolves to an array of found tags
- */
-export const getTags = async (templateData: string = '', startTag: string = '<%', endTag: string = '%>'): Promise<any> => {
-  if (!templateData) return []
-  // Use the 's' flag (dotAll) to make '.' match newline characters, allowing multi-line tags
-  const TAGS_PATTERN = /<%.*?%>/gis
-  const items = templateData.match(TAGS_PATTERN)
-  return items || []
 }
 
 /**

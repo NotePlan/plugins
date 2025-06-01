@@ -11,3 +11,6 @@ export * from './tagUtils'
 
 // Export template management functions
 export * from './templateManager'
+
+// Export shared utilities (for backward compatibility)
+export { getTags } from '../shared/templateUtils'

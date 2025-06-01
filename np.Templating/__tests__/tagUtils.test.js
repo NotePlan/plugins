@@ -2,8 +2,8 @@
 import { CustomConsole } from '@jest/console'
 import { simpleFormatter } from '@mocks/index'
 
+import { getTags } from '../lib/core'
 import {
-  getTags,
   isCommentTag,
   codeBlockHasComment,
   blockIsJavaScript,

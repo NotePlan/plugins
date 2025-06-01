@@ -5,7 +5,7 @@
  */
 
 import pluginJson from '../../../../plugin.json'
-import { getTags } from '../../../core/tagUtils'
+import { getTags } from '../../../shared/templateUtils'
 import { log, logError, logDebug } from '@helpers/dev'
 import { escapeRegExp } from '@helpers/regex'
 
