@@ -8,7 +8,7 @@
 import fm from 'front-matter'
 import pluginJson from '../../../plugin.json'
 import { JSP, logError } from '@helpers/dev'
-import { getSanitizedFmParts, getValuesForFrontmatterTag } from '@helpers/NPFrontMatter'
+import { getSanitizedFmParts, getValuesForFrontmatterTag, updateFrontMatterVars, getFrontMatterAttributes } from '@helpers/NPFrontMatter'
 
 export default class FrontmatterModule {
   // $FlowIgnore
@@ -95,6 +95,70 @@ export default class FrontmatterModule {
 
       // Return an empty array string as fallback
       return ''
+    }
+  }
+
+  /**
+   * Get all frontmatter attributes from a note or an empty object if the note has no front matter
+   * @param {CoreNoteFields} note - The note to get attributes from
+   * @returns {{ [string]: string }} Object of attributes or empty object if the note has no front matter
+   */
+  getFrontMatterAttributes(note: CoreNoteFields): { [string]: string } {
+    try {
+      // Defensive check: ensure the note object exists and has the expected structure
+      if (!note) {
+        logError(pluginJson, `FrontmatterModule.getFrontMatterAttributes: note is null or undefined`)
+        return {}
+      }
+
+      // Call the NPFrontMatter helper, which handles null/undefined frontmatterAttributes
+      return getFrontMatterAttributes(note)
+    } catch (error) {
+      logError(pluginJson, `FrontmatterModule.getFrontMatterAttributes error: ${error}`)
+      return {}
+    }
+  }
+
+  /**
+   * Update existing front matter attributes based on the provided newAttributes
+   * @param {TEditor | TNote} note - The note to update
+   * @param {{ [string]: string }} newAttributes - The complete set of desired front matter attributes
+   * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in newAttributes (default: false)
+   * @returns {boolean} Whether the front matter was updated successfully
+   */
+  updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
+    return updateFrontMatterVars(note, newAttributes, deleteMissingAttributes)
+  }
+
+  /**
+   * Alias for updateFrontMatterVars - Update existing front matter attributes
+   * @param {TEditor | TNote} note - The note to update
+   * @param {{ [string]: string }} newAttributes - The complete set of desired front matter attributes
+   * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in newAttributes (default: false)
+   * @returns {boolean} Whether the front matter was updated successfully
+   */
+  updateFrontmatterAttributes(note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
+    return this.updateFrontMatterVars(note, newAttributes, deleteMissingAttributes)
+  }
+
+  /**
+   * Get all frontmatter properties/attributes from a note as an object
+   * @param {CoreNoteFields} note - The note to get properties from (defaults to Editor.note if not provided)
+   * @returns {{ [string]: string }} Object of all frontmatter properties
+   */
+  properties(note: CoreNoteFields = Editor?.note): { [string]: string } {
+    try {
+      // Defensive check: ensure the note object exists
+      if (!note) {
+        logError(pluginJson, `FrontmatterModule.properties: note is null or undefined`)
+        return {}
+      }
+
+      // Use the existing getFrontMatterAttributes method
+      return this.getFrontMatterAttributes(note)
+    } catch (error) {
+      logError(pluginJson, `FrontmatterModule.properties error: ${error}`)
+      return {}
     }
   }
 

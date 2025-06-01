@@ -264,5 +264,202 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(newNote)
       })
     })
+
+    describe(`${block('.getFrontMatterAttributes')}`, () => {
+      it('should return frontmatter attributes from a note', () => {
+        const mockNote = {
+          frontmatterAttributes: {
+            title: 'Test Note',
+            status: 'active',
+          },
+        }
+
+        const frontmatterModule = new FrontmatterModule()
+        const result = frontmatterModule.getFrontMatterAttributes(mockNote)
+
+        expect(result).toEqual({
+          title: 'Test Note',
+          status: 'active',
+        })
+      })
+
+      it('should return empty object when note has no frontmatter attributes', () => {
+        const mockNote = {
+          frontmatterAttributes: null,
+        }
+
+        const frontmatterModule = new FrontmatterModule()
+        const result = frontmatterModule.getFrontMatterAttributes(mockNote)
+
+        expect(result).toEqual({})
+      })
+    })
+
+    describe(`${block('.updateFrontMatterVars')}`, () => {
+      it('should call the NPFrontMatter updateFrontMatterVars function', () => {
+        // Mock updateFrontMatterVars
+        const NPFrontMatter = require('@helpers/NPFrontMatter')
+        const mockUpdate = jest.spyOn(NPFrontMatter, 'updateFrontMatterVars')
+        mockUpdate.mockReturnValue(true)
+
+        const mockNote = { filename: 'test.md' }
+        const mockAttributes = { status: 'completed' }
+
+        const frontmatterModule = new FrontmatterModule()
+        const result = frontmatterModule.updateFrontMatterVars(mockNote, mockAttributes, false)
+
+        expect(mockUpdate).toHaveBeenCalledWith(mockNote, mockAttributes, false)
+        expect(result).toBe(true)
+
+        // Restore the mock
+        mockUpdate.mockRestore()
+      })
+    })
+
+    describe(`${block('.updateFrontmatterAttributes')}`, () => {
+      it('should be an alias for updateFrontMatterVars', () => {
+        const mockNote = { frontmatterAttributes: {} }
+        const mockAttributes = { title: 'Test', status: 'active' }
+
+        const frontmatterModule = new FrontmatterModule()
+        const updateSpy = jest.spyOn(frontmatterModule, 'updateFrontMatterVars').mockReturnValue(true)
+
+        const result = frontmatterModule.updateFrontmatterAttributes(mockNote, mockAttributes)
+
+        expect(updateSpy).toHaveBeenCalledWith(mockNote, mockAttributes, false)
+        expect(result).toBe(true)
+
+        updateSpy.mockRestore()
+      })
+    })
+
+    describe(`${block('.properties')}`, () => {
+      it('should return all frontmatter properties from a note', () => {
+        const mockNote: any = {
+          frontmatterAttributes: {
+            title: 'Test Note',
+            status: 'active',
+            priority: 'high',
+          },
+        }
+
+        const frontmatterModule = new FrontmatterModule()
+        const result = frontmatterModule.properties(mockNote)
+
+        expect(result).toEqual({
+          title: 'Test Note',
+          status: 'active',
+          priority: 'high',
+        })
+      })
+
+      it('should return empty object when note has no frontmatter', () => {
+        const mockNote: any = {
+          frontmatterAttributes: {},
+        }
+
+        const frontmatterModule = new FrontmatterModule()
+        const result = frontmatterModule.properties(mockNote)
+
+        expect(result).toEqual({})
+      })
+
+      it('should handle null note gracefully', () => {
+        const frontmatterModule = new FrontmatterModule()
+        const result = frontmatterModule.properties(null)
+
+        expect(result).toEqual({})
+      })
+
+      it('should use Editor.note as default when no note provided', () => {
+        // Mock Editor.note
+        global.Editor = {
+          note: {
+            frontmatterAttributes: {
+              title: 'Editor Note',
+              status: 'current',
+            },
+          },
+        }
+
+        const frontmatterModule = new FrontmatterModule()
+        const result = frontmatterModule.properties()
+
+        expect(result).toEqual({
+          title: 'Editor Note',
+          status: 'current',
+        })
+
+        // Clean up
+        delete global.Editor
+      })
+    })
+
+    describe(`${block('Integration: Template with frontmatter methods')}`, () => {
+      it('should preserve frontmatter methods when template has frontmatter', () => {
+        // Test the real-world issue: when a template has frontmatter AND uses frontmatter.* methods,
+        // the frontmatter object should retain its methods while also having the attributes
+
+        // Mock the integrateFrontmatterData function behavior
+        const { integrateFrontmatterData } = require('../lib/engine/frontmatterProcessor')
+
+        // Simulate the render data that would be created by TemplatingEngine
+        const renderData = {
+          frontmatter: new FrontmatterModule(), // This is what TemplatingEngine creates
+        }
+
+        // Check initial state
+        console.log('DEBUG: Initial frontmatter type:', typeof renderData.frontmatter)
+        console.log('DEBUG: Initial frontmatter.getValuesForKey:', typeof renderData.frontmatter.getValuesForKey)
+        console.log('DEBUG: Initial frontmatter.updateFrontmatterAttributes:', typeof renderData.frontmatter.updateFrontmatterAttributes)
+
+        // Simulate frontmatter attributes extracted from template
+        const frontmatterData = {
+          title: 'Template title',
+          status: 'in progress',
+          priority: 'high',
+        }
+
+        // This is what happens during template processing
+        const result = integrateFrontmatterData(renderData, frontmatterData)
+
+        console.log('DEBUG: After integration frontmatter type:', typeof result.frontmatter)
+        console.log('DEBUG: After integration frontmatter.getValuesForKey:', typeof result.frontmatter.getValuesForKey)
+        console.log('DEBUG: After integration frontmatter.updateFrontmatterAttributes:', typeof result.frontmatter.updateFrontmatterAttributes)
+        console.log('DEBUG: After integration frontmatter.title:', result.frontmatter.title)
+
+        // The frontmatter object should still have methods
+        expect(typeof result.frontmatter.updateFrontmatterAttributes).toBe('function')
+        expect(typeof result.frontmatter.getFrontMatterAttributes).toBe('function')
+        expect(typeof result.frontmatter.getValuesForKey).toBe('function')
+        expect(typeof result.frontmatter.properties).toBe('function')
+
+        // AND it should also have the attributes
+        expect(result.frontmatter.title).toBe('Template title')
+        expect(result.frontmatter.status).toBe('in progress')
+        expect(result.frontmatter.priority).toBe('high')
+      })
+
+      it('should handle case where no frontmatter module exists initially', () => {
+        const { integrateFrontmatterData } = require('../lib/engine/frontmatterProcessor')
+
+        // Simulate render data without existing frontmatter module
+        const renderData = {}
+
+        // Simulate frontmatter attributes extracted from template
+        const frontmatterData = {
+          title: 'Template title',
+          status: 'active',
+        }
+
+        // This should fall back to just setting the attributes
+        const result = integrateFrontmatterData(renderData, frontmatterData)
+
+        // Should have the attributes but no methods (fallback behavior)
+        expect(result.frontmatter.title).toBe('Template title')
+        expect(result.frontmatter.status).toBe('active')
+        expect(result.frontmatter.updateFrontmatterAttributes).toBeUndefined()
+      })
+    })
   })
 })

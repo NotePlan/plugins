@@ -6,14 +6,14 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import WebModule from '@templatingModules/WebModule'
-import DateModule from '@templatingModules/DateModule'
-import TimeModule from '@templatingModules/TimeModule'
-import NoteModule from '@templatingModules/NoteModule'
-import UtilityModule from '@templatingModules/UtilityModule'
-import SystemModule from '@templatingModules/SystemModule'
-import FrontmatterModule from '@templatingModules/FrontmatterModule'
-import TasksModule from '@templatingModules/TasksModule'
+import WebModule from './support/modules/WebModule'
+import DateModule from './support/modules/DateModule'
+import TimeModule from './support/modules/TimeModule'
+import NoteModule from './support/modules/NoteModule'
+import UtilityModule from './support/modules/UtilityModule'
+import SystemModule from './support/modules/SystemModule'
+import FrontmatterModule from './support/modules/FrontmatterModule'
+import TasksModule from './support/modules/TasksModule'
 
 import pluginJson from '../plugin.json'
 import { clo, log, logDebug, logError, timer } from '@helpers/dev'
@@ -356,7 +356,7 @@ export default class TemplatingEngine {
       system: new SystemModule(this.templateConfig),
       note: new NoteModule(this.templateConfig),
       tasks: new TasksModule(this.templateConfig),
-      frontmatter: {},
+      frontmatter: new FrontmatterModule(this.templateConfig),
       user: {
         first: this.templateConfig?.userFirstName || '',
         last: this.templateConfig?.userLastName || '',
@@ -387,7 +387,7 @@ export default class TemplatingEngine {
           return await new WebModule().service(this.templateConfig, url, key)
         },
         journalingQuestion: async (params: string = '') => {
-          return await new WebModule().journalingQuestion(this.templateConfig, params)
+          return await new WebModule().journalingQuestion()
         },
       },
     }
@@ -408,13 +408,6 @@ export default class TemplatingEngine {
 
     renderData = userData.data ? { ...userData.data, ...renderData } : { ...renderData }
     renderData = userData.methods ? { ...userData.methods, ...renderData } : renderData
-    // dbw wrote: I think this is redundant. If you're seeing this later, delete it all
-    // if (userData?.data) {
-    //   renderData.data = { ...userData.data }
-    // }
-    // if (userData?.methods) {
-    //   renderData.methods = { ...renderData.methods, ...userData.methods }
-    // }
 
     // apply custom plugin modules
     this.templateModules.forEach((moduleItem) => {

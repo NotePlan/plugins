@@ -54,7 +54,15 @@ export async function processFrontmatter(templateData: string, renderData: Objec
  */
 export function integrateFrontmatterData(renderData: Object, frontmatterData: Object): Object {
   if (Object.keys(frontmatterData).length > 0) {
-    renderData.frontmatter = { ...frontmatterData }
+    // If frontmatter already exists (as a FrontmatterModule instance), merge the attributes into it
+    // Otherwise, just add the frontmatter data
+    if (renderData.frontmatter && typeof renderData.frontmatter === 'object' && typeof renderData.frontmatter.getValuesForKey === 'function') {
+      // frontmatter is a FrontmatterModule instance - merge attributes as properties
+      Object.assign(renderData.frontmatter, frontmatterData)
+    } else {
+      // No existing frontmatter module, just use the attributes
+      renderData.frontmatter = { ...frontmatterData }
+    }
   }
   return renderData
 }

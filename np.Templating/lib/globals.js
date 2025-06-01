@@ -175,10 +175,6 @@ const globals = {
     return await invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
   },
 
-  sweepTasks: async (params: any = ''): Promise<string> => {
-    return invokePluginCommandByName('nmn.sweep', 'sweepTemplate', [JSON.stringify(params)])
-  },
-
   formattedDateTime: (params: any): string => {
     const dateFormat = typeof params === 'object' && params.hasOwnProperty('format') ? params.format : params
     return getFormattedTime(dateFormat)
@@ -239,6 +235,45 @@ const globals = {
     }
   },
 
+  // get frontmatter attributes from a note
+  getFrontmatterAttributes: (note: CoreNoteFields = Editor?.note || null): { [string]: string } => {
+    try {
+      // Defensive check: ensure the note object exists
+      if (!note) {
+        logError(pluginJson, `getFrontmatterAttributes: note is null or undefined`)
+        return {}
+      }
+
+      const frontmatterModule = new FrontmatterModule()
+      return frontmatterModule.getFrontMatterAttributes(note)
+    } catch (error) {
+      logError(pluginJson, `getFrontmatterAttributes error: ${error}`)
+      return {}
+    }
+  },
+
+  // update frontmatter attributes in a note
+  updateFrontmatterVars: (note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean => {
+    try {
+      const frontmatterModule = new FrontmatterModule()
+      return frontmatterModule.updateFrontMatterVars(note, newAttributes, deleteMissingAttributes)
+    } catch (error) {
+      logError(pluginJson, `updateFrontmatterVars error: ${error}`)
+      return false
+    }
+  },
+
+  // alias for updateFrontmatterVars
+  updateFrontmatterAttributes: (note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean => {
+    try {
+      const frontmatterModule = new FrontmatterModule()
+      return frontmatterModule.updateFrontmatterAttributes(note, newAttributes, deleteMissingAttributes)
+    } catch (error) {
+      logError(pluginJson, `updateFrontmatterAttributes error: ${error}`)
+      return false
+    }
+  },
+
   // general purpose getNote helper
   getNote: async (...params: any): Promise<TNote | null> => {
     if (params.length === 0) return Editor.note
@@ -263,6 +298,15 @@ export const asyncFunctions = [
   'events',
   'existingAwait',
   'format',
+  'frontmatter.getValuesForKey',
+  'frontmatter.getFrontmatterAttributes',
+  'frontmatter.updateFrontmatterVars',
+  'frontmatter.updateFrontmatterAttributes',
+  'frontmatter.properties',
+  'frontmatter.getFrontMatterAttributes',
+  'frontmatter.updateFrontMatterVars',
+  'frontmatter.updateFrontMatterAttributes',
+  'getFrontmatterAttributes',
   'getNote',
   'getValuesForKey',
   'invokePluginCommandByName',
@@ -282,6 +326,8 @@ export const asyncFunctions = [
   'selection',
   'tasks.getSyncedOpenTasksFrom',
   'timestamp',
+  'updateFrontmatterVars',
+  'updateFrontmatterAttributes',
   'verse',
   'weather',
   'web.advice',
