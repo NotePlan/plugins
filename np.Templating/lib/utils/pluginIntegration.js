@@ -70,8 +70,8 @@ export async function invokePluginCommandByName(pluginId: string, commandName: s
     // Check if the command is available before attempting to invoke it
     const isAvailable = await isCommandAvailable(pluginId, commandName)
     if (isAvailable) {
-      // Use NotePlan's API to call the command
-      const result = await NotePlan.invokePluginCommandByName(commandName, pluginId, args)
+      // Use DataStore's API to call the command (NotePlan.invokePluginCommandByName doesn't exist)
+      const result = await DataStore.invokePluginCommandByName(commandName, pluginId, args)
       return result
     } else {
       throw new Error(`Command ${commandName} not available in plugin ${pluginId}`)

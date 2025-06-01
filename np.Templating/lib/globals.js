@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------------------------
- * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rig`hts reserved.
+ * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
@@ -27,69 +27,11 @@ import { log, logError, clo, logDebug } from '@helpers/dev'
 import { getNote } from '@helpers/note'
 import { journalingQuestion } from './support/modules/journal'
 import FrontmatterModule from './support/modules/FrontmatterModule'
+import { isCommandAvailable, invokePluginCommandByName, transformInternationalDateFormat } from './utils'
 
-export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
-  logDebug(`globals::processDate: ${dateParams} as ${JSON.stringify(config)}`)
-  const defaultConfig = config?.date ?? {}
-  const dateParamsTrimmed = dateParams?.trim() || ''
-  const paramConfig =
-    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
-  // logDebug(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
-  // ... = "gather the remaining parameters into an array"
-  const finalArguments: { [string]: mixed } = {
-    ...defaultConfig,
-    ...paramConfig,
-  }
-
-  // Grab just locale parameter
-  const { locale, ...otherParams } = (finalArguments: any)
-
-  const localeParam = locale != null ? String(locale) : []
-  const secondParam = {
-    dateStyle: 'short',
-    ...otherParams,
-  }
-
-  return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date())
-}
-
-async function isCommandAvailable(pluginId: string, pluginCommand: string): Promise<boolean> {
-  try {
-    let result = DataStore.installedPlugins().filter((plugin) => {
-      return plugin.id === pluginId
-    })
-
-    let commands = typeof result !== 'undefined' && Array.isArray(result) && result.length > 0 && result[0].commands
-    if (commands) {
-      // $FlowIgnore
-      let command = commands.filter((command) => {
-        return command.name === pluginCommand
-      })
-
-      return Array.isArray(command) && command.length > 0
-    } else {
-      return false
-    }
-  } catch (error) {
-    logError(pluginJson, error)
-    return false
-  }
-}
-
-async function invokePluginCommandByName(pluginId: string = '', pluginCommand: string = '', args: $ReadOnlyArray<mixed> = []) {
-  if (await isCommandAvailable(pluginId, pluginCommand)) {
-    return (await DataStore.invokePluginCommandByName(pluginCommand, pluginId, args)) || ''
-  } else {
-    // const info = helpInfo('Plugin Error')
-    const info = ''
-    return `**Unable to locate "${pluginId} :: ${pluginCommand}".  Make sure "${pluginId}" plugin has been installed.**\n\n${info}`
-  }
-}
-
-/*
-   np.Templating Global Methods
-*/
-
+/**
+ * Collection of global methods available in NotePlan Templating
+ */
 const globals = {
   moment: moment,
 
@@ -118,13 +60,11 @@ const globals = {
   },
 
   legacyDate: async (params: any = ''): Promise<string> => {
-    // $FlowIgnore
-    return await processDate(JSON.stringify(params))
+    return await transformInternationalDateFormat(JSON.stringify(params), {})
   },
 
   progressUpdate: async (params: any): Promise<string> => {
     return await invokePluginCommandByName('jgclark.Summaries', 'progressUpdate', [params])
-    // Note: Previously did JSON.stringify(params), but removing this means we can distinguish between template and callback triggers in the plugin code.
   },
 
   todayProgressFromTemplate: async (params: any): Promise<string> => {
@@ -141,14 +81,11 @@ const globals = {
   },
 
   date8601: async (): Promise<string> => {
-    // $FlowIgnore
     return await invokePluginCommandByName('dwertheimer.DateAutomations', 'date8601', null)
   },
 
-  // NOTE: This specific method would create a collision against DateModule I believe (needs testing)
-  currentDate: async (params: any): string => {
-    // $FlowIgnore
-    return await processDate(JSON.stringify(params))
+  currentDate: async (params: any): Promise<string> => {
+    return await transformInternationalDateFormat(JSON.stringify(params), {})
   },
 
   pickDate: async (dateParams: any = '', config: { [string]: ?mixed }): Promise<string> => {
@@ -181,21 +118,16 @@ const globals = {
   },
 
   weekDates: async (params: any): Promise<string> => {
-    // $FlowIgnore
     return await invokePluginCommandByName('dwertheimer.DateAutomations', 'getWeekDates', [JSON.stringify(params)])
   },
 
   now: async (format?: string, offset?: string | number): Promise<string> => {
-    const dateModule = new DateModule() // Use default config for global helper
-    // $FlowFixMe[incompatible-call] - DateModule.now expects (string, string|number) but offset could be undefined if not passed.
-    // The class method now(format = '', offset = '') handles undefined/empty string for format/offset.
+    const dateModule = new DateModule()
     return dateModule.now(format, offset)
   },
 
   timestamp: async (format?: string): Promise<string> => {
     const dateModule = new DateModule()
-    // $FlowFixMe[incompatible-call] - DateModule.timestamp expects (string) but format could be undefined.
-    // The class method timestamp(format = '') handles undefined/empty string.
     return dateModule.timestamp(format)
   },
 
@@ -204,8 +136,6 @@ const globals = {
   },
 
   currentDate: async (): Promise<string> => {
-    // Calls the 'now' function defined within this same globals object.
-    // It will use default format and no offset.
     return globals.now()
   },
 
@@ -217,42 +147,34 @@ const globals = {
     clo(obj, preamble, space)
   },
 
-  // get all the values in frontmatter for all notes for a given key
   getValuesForKey: async (tag: string): Promise<string> => {
     try {
-      // Create an instance of FrontmatterModule and use it to get values
       const frontmatterModule = new FrontmatterModule()
       const result = await frontmatterModule.getValuesForKey(tag)
-
-      // Return the string result
       return result
     } catch (error) {
-      // Log the error but don't throw it - this helps with resilience
       logError(pluginJson, `getValuesForKey error: ${error}`)
-
-      // Return an empty array string as fallback
       return ''
     }
   },
 
-  // get frontmatter attributes from a note
-  getFrontmatterAttributes: (note: CoreNoteFields = Editor?.note || null): { [string]: string } => {
+  // Fix Flow type error by making parameter optional and handling null case
+  getFrontmatterAttributes: (note?: CoreNoteFields): { [string]: string } => {
     try {
-      // Defensive check: ensure the note object exists
-      if (!note) {
+      const targetNote = note || Editor?.note
+      if (!targetNote) {
         logError(pluginJson, `getFrontmatterAttributes: note is null or undefined`)
         return {}
       }
 
       const frontmatterModule = new FrontmatterModule()
-      return frontmatterModule.getFrontmatterAttributes(note)
+      return frontmatterModule.getFrontmatterAttributes(targetNote)
     } catch (error) {
       logError(pluginJson, `getFrontmatterAttributes error: ${error}`)
       return {}
     }
   },
 
-  // update frontmatter attributes in a note
   updateFrontmatterVars: (note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean => {
     try {
       const frontmatterModule = new FrontmatterModule()
@@ -263,7 +185,6 @@ const globals = {
     }
   },
 
-  // alias for updateFrontmatterVars
   updateFrontmatterAttributes: (note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean => {
     try {
       const frontmatterModule = new FrontmatterModule()
@@ -274,16 +195,20 @@ const globals = {
     }
   },
 
-  // general purpose getNote helper
+  // Fix Flow type error by being more explicit about return type
   getNote: async (...params: any): Promise<TNote | null> => {
-    if (params.length === 0) return Editor.note
+    if (params.length === 0) {
+      return Editor.note || null
+    }
     return (await getNote(...params)) || null
   },
 }
 
-// module.exports = globals
 export default globals
 
+/**
+ * List of async functions that should be awaited when called in templates
+ */
 export const asyncFunctions = [
   'CommandBar.chooseOption',
   'CommandBar.prompt',
@@ -342,6 +267,5 @@ export const asyncFunctions = [
 
 /**
  * Top-level NotePlan objects available globally in templates
- * These are the main application objects that plugins can interact with
  */
 export const notePlanTopLevelObjects = ['Editor', 'DataStore', 'CommandBar', 'Calendar', 'NotePlan', 'HTMLView', 'Clipboard', 'Range', 'CalendarItem', 'fetch', 'globalThis']

@@ -8,3 +8,9 @@
 
 // Export all stringUtils functions
 export * from './stringUtils'
+
+// Export date utilities
+export { transformInternationalDateFormat } from './dateHelpers'
+
+// Export plugin integration utilities
+export { templateErrorMessage, isCommandAvailable, invokePluginCommandByName } from './pluginIntegration'

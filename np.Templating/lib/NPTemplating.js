@@ -11,7 +11,7 @@
 import pluginJson from '../plugin.json'
 
 // Import from modules
-import { templateErrorMessage as templateErrorMessageHandler } from './modules'
+import { templateErrorMessage as templateErrorMessageHandler } from './utils'
 
 // Import from core
 import { chooseTemplate, getTemplateList, getTemplate, getTemplateAttributes, createTemplate, getFolder } from './core'

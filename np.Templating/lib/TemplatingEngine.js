@@ -20,7 +20,7 @@ import { clo, log, logDebug, logError, timer } from '@helpers/dev'
 
 // Import utility functions from the new structure
 import { getProperyValue, dt } from './utils'
-import { templateErrorMessage } from './modules'
+import { templateErrorMessage } from './utils'
 
 // Import prompt registry to get all registered prompt names
 import { getRegisteredPromptNames } from './support/modules/prompts/PromptRegistry'
