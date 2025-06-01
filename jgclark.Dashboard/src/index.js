@@ -72,7 +72,7 @@ export {
 } from './backupSettings'
 
 export {
-  buildListOfDoneTasksToday
+  updateDoneCountsFromChangedNotes
 } from './countDoneTasks'
 
 export { externallyStartSearch } from './dataGenerationSearch.js'

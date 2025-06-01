@@ -211,11 +211,11 @@
     {
       "comment": "TODO: remove me in time",
       "hidden": false,
-      "name": "buildListOfDoneTasksToday",
-      "description": "build list of done tasks today",
-      "jsFunction": "buildListOfDoneTasksToday",
+      "name": "updateDoneCountsFromChangedNotes",
+      "description": "updateDoneCountsFromChangedNotes",
+      "jsFunction": "updateDoneCountsFromChangedNotes",
       "alias": [
-        "blodtt"
+        "udc"
       ]
     },
     {
