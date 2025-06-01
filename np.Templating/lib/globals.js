@@ -245,7 +245,7 @@ const globals = {
       }
 
       const frontmatterModule = new FrontmatterModule()
-      return frontmatterModule.getFrontMatterAttributes(note)
+      return frontmatterModule.getFrontmatterAttributes(note)
     } catch (error) {
       logError(pluginJson, `getFrontmatterAttributes error: ${error}`)
       return {}
@@ -258,7 +258,7 @@ const globals = {
       const frontmatterModule = new FrontmatterModule()
       return frontmatterModule.updateFrontMatterVars(note, newAttributes, deleteMissingAttributes)
     } catch (error) {
-      logError(pluginJson, `updateFrontmatterVars error: ${error}`)
+      logError(pluginJson, `frontmatter.updateFrontMatterVars error: ${error}`)
       return false
     }
   },
@@ -269,7 +269,7 @@ const globals = {
       const frontmatterModule = new FrontmatterModule()
       return frontmatterModule.updateFrontmatterAttributes(note, newAttributes, deleteMissingAttributes)
     } catch (error) {
-      logError(pluginJson, `updateFrontmatterAttributes error: ${error}`)
+      logError(pluginJson, `frontmatter.updateFrontmatterAttributes error: ${error}`)
       return false
     }
   },
@@ -303,7 +303,7 @@ export const asyncFunctions = [
   'frontmatter.updateFrontmatterVars',
   'frontmatter.updateFrontmatterAttributes',
   'frontmatter.properties',
-  'frontmatter.getFrontMatterAttributes',
+  'frontmatter.getFrontmatterAttributes',
   'frontmatter.updateFrontMatterVars',
   'frontmatter.updateFrontMatterAttributes',
   'getFrontmatterAttributes',

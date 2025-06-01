@@ -8,7 +8,7 @@
 import fm from 'front-matter'
 import pluginJson from '../../../plugin.json'
 import { JSP, logError } from '@helpers/dev'
-import { getSanitizedFmParts, getValuesForFrontmatterTag, updateFrontMatterVars, getFrontMatterAttributes } from '@helpers/NPFrontMatter'
+import { getSanitizedFmParts, getValuesForFrontmatterTag, updateFrontMatterVars, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 
 export default class FrontmatterModule {
   // $FlowIgnore
@@ -103,18 +103,18 @@ export default class FrontmatterModule {
    * @param {CoreNoteFields} note - The note to get attributes from
    * @returns {{ [string]: string }} Object of attributes or empty object if the note has no front matter
    */
-  getFrontMatterAttributes(note: CoreNoteFields): { [string]: string } {
+  getFrontmatterAttributes(note: CoreNoteFields): { [string]: string } {
     try {
       // Defensive check: ensure the note object exists and has the expected structure
       if (!note) {
-        logError(pluginJson, `FrontmatterModule.getFrontMatterAttributes: note is null or undefined`)
+        logError(pluginJson, `FrontmatterModule.getFrontmatterAttributes: note is null or undefined`)
         return {}
       }
 
       // Call the NPFrontMatter helper, which handles null/undefined frontmatterAttributes
-      return getFrontMatterAttributes(note)
+      return getFrontmatterAttributes(note)
     } catch (error) {
-      logError(pluginJson, `FrontmatterModule.getFrontMatterAttributes error: ${error}`)
+      logError(pluginJson, `FrontmatterModule.getFrontmatterAttributes error: ${error}`)
       return {}
     }
   }
@@ -154,8 +154,8 @@ export default class FrontmatterModule {
         return {}
       }
 
-      // Use the existing getFrontMatterAttributes method
-      return this.getFrontMatterAttributes(note)
+      // Use the existing getFrontmatterAttributes method
+      return this.getFrontmatterAttributes(note)
     } catch (error) {
       logError(pluginJson, `FrontmatterModule.properties error: ${error}`)
       return {}

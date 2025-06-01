@@ -142,7 +142,13 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
         templateData = await NPTemplating.getTemplate(selectedTemplate)
       }
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
-      let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
+
+      // Create frontmatter object that includes BOTH the attributes AND the methods
+      // This ensures frontmatter.* methods work in templates
+      const frontmatterModule = new FrontmatterModule()
+      const frontmatterWithMethods = Object.assign(frontmatterModule, frontmatterAttributes)
+
+      let data = { ...frontmatterAttributes, frontmatter: frontmatterWithMethods }
 
       let renderedTemplate = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
 
@@ -178,7 +184,13 @@ export async function templateInvoke(templateName?: string): Promise<void> {
       const selectedTemplate = selectedTemplateFilename ?? (await NPTemplating.chooseTemplate())
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
-      let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
+
+      // Create frontmatter object that includes BOTH the attributes AND the methods
+      // This ensures frontmatter.* methods work in templates
+      const frontmatterModule = new FrontmatterModule()
+      const frontmatterWithMethods = Object.assign(frontmatterModule, frontmatterAttributes)
+
+      let data = { ...frontmatterAttributes, frontmatter: frontmatterWithMethods }
       const templateResult = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
 
       const location = frontmatterAttributes?.location || 'append'

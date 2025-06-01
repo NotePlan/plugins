@@ -265,7 +265,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    describe(`${block('.getFrontMatterAttributes')}`, () => {
+    describe(`${block('.getFrontmatterAttributes')}`, () => {
       it('should return frontmatter attributes from a note', () => {
         const mockNote = {
           frontmatterAttributes: {
@@ -275,7 +275,7 @@ describe(`${PLUGIN_NAME}`, () => {
         }
 
         const frontmatterModule = new FrontmatterModule()
-        const result = frontmatterModule.getFrontMatterAttributes(mockNote)
+        const result = frontmatterModule.getFrontmatterAttributes(mockNote)
 
         expect(result).toEqual({
           title: 'Test Note',
@@ -289,7 +289,7 @@ describe(`${PLUGIN_NAME}`, () => {
         }
 
         const frontmatterModule = new FrontmatterModule()
-        const result = frontmatterModule.getFrontMatterAttributes(mockNote)
+        const result = frontmatterModule.getFrontmatterAttributes(mockNote)
 
         expect(result).toEqual({})
       })
@@ -430,7 +430,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
         // The frontmatter object should still have methods
         expect(typeof result.frontmatter.updateFrontmatterAttributes).toBe('function')
-        expect(typeof result.frontmatter.getFrontMatterAttributes).toBe('function')
+        expect(typeof result.frontmatter.getFrontmatterAttributes).toBe('function')
         expect(typeof result.frontmatter.getValuesForKey).toBe('function')
         expect(typeof result.frontmatter.properties).toBe('function')
 
@@ -459,6 +459,62 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result.frontmatter.title).toBe('Template title')
         expect(result.frontmatter.status).toBe('active')
         expect(result.frontmatter.updateFrontmatterAttributes).toBeUndefined()
+      })
+    })
+
+    describe(`${block('Integration: Real-world template rendering')}`, () => {
+      it('should render template with frontmatter.* methods like real-world scenario', async () => {
+        // Simulate the exact real-world scenario where a template has frontmatter
+        // AND uses frontmatter.* methods in the template body
+
+        const templateData = `---
+title: Template title
+type: empty-note
+recipes: 0
+status: in progress
+priority: high
+assignee: Alice
+---
+<% frontmatter.updateFrontmatterAttributes(Editor, { status: "in progress", priority: "high", assignee: "Alice" }) -%>
+<%- JSON.stringify(frontmatter.getFrontmatterAttributes(Editor)) -%>
+---`
+
+        // Mock Editor object like in real scenario
+        global.Editor = {
+          note: {
+            frontmatterAttributes: {
+              title: 'Current Note',
+              status: 'current',
+            },
+          },
+          frontmatterAttributes: {
+            title: 'Editor Note',
+            status: 'draft',
+          },
+        }
+
+        // Import the actual render function from templateProcessor
+        const { render } = require('../lib/rendering/templateProcessor')
+
+        try {
+          console.log('DEBUG: Starting template render with real-world scenario')
+
+          // This is the exact call that happens in real-world
+          const result = await render(templateData, {}, {})
+
+          console.log('DEBUG: Template render result:', result)
+
+          // If it works, the result should not contain error messages
+          expect(result).not.toContain('TypeError')
+          expect(result).not.toContain('frontmatter.updateFrontmatterAttributes is not a function')
+          expect(result).not.toContain('==**Templating Error Found**')
+        } catch (error) {
+          console.log('DEBUG: Template render error:', error.message)
+          throw error
+        } finally {
+          // Clean up
+          delete global.Editor
+        }
       })
     })
   })
