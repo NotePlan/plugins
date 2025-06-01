@@ -19,10 +19,10 @@ beforeAll(() => {
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(`${FILENAME}`, () => {
-    describe('getFrontMatterParagraphs()', () => {
+    describe('getFrontmatterParagraphs()', () => {
       test('should return false if no frontmatter', () => {
         const note = new Note({ paragraphs: [{ content: 'No frontmatter here' }] })
-        const result = f.getFrontMatterParagraphs(note)
+        const result = f.getFrontmatterParagraphs(note)
         expect(result).toEqual(false)
       })
 
@@ -36,7 +36,7 @@ describe(`${PLUGIN_NAME}`, () => {
             { content: 'Body content' },
           ],
         })
-        const result = f.getFrontMatterParagraphs(note, true)
+        const result = f.getFrontmatterParagraphs(note, true)
         expect(result.length).toEqual(4)
         expect(result[0].content).toEqual('---')
         expect(result[1].content).toEqual('title: Test')

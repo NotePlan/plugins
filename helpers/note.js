@@ -26,7 +26,7 @@ import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/d
 import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
-import { noteHasFrontMatter, getFrontMatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { noteHasFrontMatter, getFrontmatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import { sortListBy } from '@helpers/sorting'
@@ -46,7 +46,7 @@ export function setTitle(note: CoreNoteFields, title: string): void {
   logDebug('note/setTitle', `Setting title to ${title} for note ${note.filename} isFrontmatter=${String(isFrontmatterNote)}`)
   let titleIsChanged = false
   if (isFrontmatterNote) {
-    const fmFields = getFrontMatterAttributes(note)
+    const fmFields = getFrontmatterAttributes(note)
     if (fmFields) {
       if (fmFields.hasOwnProperty('title')) {
         const newFmFields = { ...fmFields }

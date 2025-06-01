@@ -2,7 +2,7 @@
 
 /**
  * Key FrontMatter functions:
- * getFrontMatterAttributes() - get the front matter attributes from a note
+ * getFrontmatterAttributes() - get the front matter attributes from a note
  * updateFrontMatterVars() - update the front matter attributes for a note
  * (deprecated) setFrontMatterVars() - set/update the front matter attributes for a note (will create frontmatter if necessary)
  * noteHasFrontMatter() - test whether a Test whether a Note contains front matter
@@ -125,7 +125,7 @@ export function noteHasFrontMatter(note: CoreNoteFields): boolean {
  * @param {TNote} note
  * @returns object of attributes or empty object if the note has no front matter
  */
-export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: string } => note.frontmatterAttributes || {}
+export const getFrontmatterAttributes = (note: CoreNoteFields): { [string]: string } => note.frontmatterAttributes || {}
 
 /**
  * Gets the value of a given field ('attribute') from frontmatter if it exists
@@ -133,8 +133,8 @@ export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: stri
  * @param {string} attribute - The attribute/field to get the value of
  * @returns {string|null} The value of the attribute/field or null if not found
  */
-export function getFrontMatterAttribute(note: TNote, attribute: string): string | null {
-  const fmAttributes = getFrontMatterAttributes(note)
+export function getFrontmatterAttribute(note: TNote, attribute: string): string | null {
+  const fmAttributes = getFrontmatterAttributes(note)
   // Note: fmAttributes returns an empty object {} if there are not frontmatter fields
   return Object.keys(fmAttributes).length > 0 && fmAttributes[attribute] ? fmAttributes[attribute] : null
 }
@@ -147,7 +147,7 @@ export function getFrontMatterAttribute(note: TNote, attribute: string): string 
  * @param {boolean} includeSeparators - whether to include the separator lines (---) in the returned array
  * @returns {Array<TParagraph>} just the paragraphs in the front matter (or false if no frontmatter)
  */
-export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators: boolean = false): Array<TParagraph> | false => {
+export const getFrontmatterParagraphs = (note: CoreNoteFields, includeSeparators: boolean = false): Array<TParagraph> | false => {
   try {
     const paras = note?.paragraphs || []
     if (!paras.length || paras[0].content !== '---') return false
@@ -158,7 +158,7 @@ export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators
     }
     return false
   } catch (err) {
-    logError('NPFrontMatter/getFrontMatterParagraphs()', JSP(err))
+    logError('NPFrontMatter/getFrontmatterParagraphs()', JSP(err))
     return false
   }
 }
@@ -200,7 +200,7 @@ export function getNotesWithFrontmatter(noteType: 'Notes' | 'Calendar' | 'All' =
  * @param {boolean} onlyTemplateNotes - whether to include only template notes (default: false). By default, includes all notes that have frontmatter keys.
  * @returns {Array<CoreNoteFields>} - an array of notes that have front matter (template notes are included only if includeTemplateFolders is true and the note has frontmatter keys)
  */
-export function getFrontMatterNotes(includeTemplateFolders: boolean = false, onlyTemplateNotes: boolean = false): Array<CoreNoteFields> {
+export function getFrontmatterNotes(includeTemplateFolders: boolean = false, onlyTemplateNotes: boolean = false): Array<CoreNoteFields> {
   const start = new Date()
   const templateFolder = NotePlan.environment.templateFolder || '@Templates'
   const returnedNotes = DataStore.projectNotes.filter((note) => {
@@ -209,7 +209,7 @@ export function getFrontMatterNotes(includeTemplateFolders: boolean = false, onl
     if (onlyTemplateNotes) return isTemplate && hasKeys
     return !isTemplate ? hasKeys : includeTemplateFolders && hasKeys
   })
-  logDebug('getFrontMatterNotes', `Found ${returnedNotes.length} (${includeTemplateFolders ? 'including' : 'excluding'} template notes) notes with frontmatter in ${timer(start)}`)
+  logDebug('getFrontmatterNotes', `Found ${returnedNotes.length} (${includeTemplateFolders ? 'including' : 'excluding'} template notes) notes with frontmatter in ${timer(start)}`)
   return returnedNotes
 }
 
@@ -223,11 +223,11 @@ export function getFrontMatterNotes(includeTemplateFolders: boolean = false, onl
  */
 export function removeFrontMatter(note: CoreNoteFields, removeSeparators: boolean = false): boolean {
   try {
-    const fmParas = getFrontMatterParagraphs(note, removeSeparators)
+    const fmParas = getFrontmatterParagraphs(note, removeSeparators)
     // clo(fmParas, 'fmParas')
     // clo(note.paragraphs, 'note.paragraphs')
     if (!fmParas) return false
-    const fm = getFrontMatterAttributes(note || '')
+    const fm = getFrontmatterAttributes(note || '')
     note.removeParagraphs(fmParas)
     if (removeSeparators && fm && fm.title) note.prependParagraph(`# ${fm.title}`, 'text')
     return true
@@ -248,8 +248,8 @@ export function removeFrontMatter(note: CoreNoteFields, removeSeparators: boolea
  */
 export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: string, value: string = '', removeSeparators: boolean = true): boolean {
   try {
-    const fmFields = getFrontMatterAttributes(note)
-    const fmParas = getFrontMatterParagraphs(note, true)
+    const fmFields = getFrontmatterAttributes(note)
+    const fmParas = getFrontmatterParagraphs(note, true)
     if (!fmFields || !fmParas) {
       logWarn('rFMF', `no front matter in note '${displayTitle(note)}'`)
       return false
@@ -630,7 +630,7 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
       throw new Error(`Failed to convert note '${displayTitle(note)}' to have frontmatter. Stopping.`)
     }
     logDebug(pluginJson, `addTrigger() starting to add the ${trigger} / ${pluginID} /  ${commandName} to FM:`)
-    const attributes = getFrontMatterAttributes(note)
+    const attributes = getFrontmatterAttributes(note)
     // clo(attributes, `addTrigger() attributes =`)
     const triggersArray = attributes ? attributes.triggers?.split(',') || [] : []
     const triggersObj = getTriggersByCommand(triggersArray)
@@ -902,7 +902,7 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       return false
     }
 
-    const existingAttributes = { ...getFrontMatterAttributes(note) } || {}
+    const existingAttributes = { ...getFrontmatterAttributes(note) } || {}
     // Normalize newAttributes before comparison
     clo(existingAttributes, `updateFrontMatterVars: existingAttributes`)
     const normalizedNewAttributes = {}
