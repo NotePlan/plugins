@@ -28,8 +28,11 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 - fixed formattedDateTime to work with strftime format (what it was) or moment (what we use everywhere else)
 - added `moment` to globals
 - fixed `now` which did not match the documentation -- now works with simple offsetDays
+- fixed date8601 bug in the date module
 ### Developer
 - Massively refactored rendering pipeline (NPTemplating) to make it easier to understand and maintain
+- Added event methods eventDate and eventEndDate to the templating context object so Meeting Notes could use DataStore.invoke which serializes and otherwise drops functions. this allows Meeting Notes to not need updating but always get the latest Templating
+
 
 ## [1.12.0] 2025-03-09 @dwertheimer
 
