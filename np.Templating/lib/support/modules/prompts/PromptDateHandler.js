@@ -20,7 +20,7 @@ export default class PromptDateHandler {
    * @param {Object|string} options - Optional parameters for the date picker
    * @returns {Promise<string>} - The selected date
    */
-  static async promptDate(tag: string, message: string, options: Array<string | boolean> | string = []): Promise<string> {
+  static async promptDate(tag: string, message: string, options: Array<string | boolean> | string = []): Promise<string | false> {
     try {
       // Process the message to handle escape sequences
       const processedMessage = typeof message === 'string' ? message.replace(/\\"/g, '"').replace(/\\'/g, "'") : message
@@ -51,7 +51,7 @@ export default class PromptDateHandler {
       // Ensure we have a valid response
       if (typeof response !== 'string') {
         logDebug(pluginJson, `PromptDateHandler::promptDate: datePicker returned response: ${String(response)} (typeof: ${typeof response})`)
-        return ''
+        return false
       }
       return response
 
@@ -80,7 +80,7 @@ export default class PromptDateHandler {
 
     try {
       const response = await PromptDateHandler.promptDate(tag, promptMessage, options)
-
+      logDebug(`promptDate process handler return ${typeof response} ${response}`)
       // Store the result in session data
       if (varName) sessionData[varName] = response
 

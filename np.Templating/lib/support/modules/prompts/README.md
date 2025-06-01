@@ -23,7 +23,6 @@ Prompts can be used in templates in several ways:
 
 ```
 <%- promptDate("Choose a date") %>
-<%- promptList(["Option 1", "Option 2", "Option 3"], "Choose an option") %>
 <% const category = await promptKey("category", "Select a category") %>
 ```
 
@@ -85,7 +84,7 @@ The NPTemplating class provides several ways to access prompts:
 
 2. **Generic prompt method**: Use a single method to access any prompt type
    ```javascript
-   const result = await NPTemplating.promptByType("promptList", "Choose an option", ["A", "B", "C"])
+   const result = await NPTemplating.promptByType("prompt", "var1", "Choose an option", ["A", "B", "C"])
    ```
 
 3. **Get registered prompt types**: Get a list of all available prompt types
