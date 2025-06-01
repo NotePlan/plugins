@@ -193,6 +193,58 @@ describe('Prompt Integration Tests', () => {
     jest.clearAllMocks()
   })
 
+  test('Should skip non-prompt tags and only process prompt tags', async () => {
+    const templateData = `
+      # Mixed Template Test
+      
+      ## Regular EJS Tags (should not be processed as prompts)
+      Current Date: <%- new Date().toISOString() %>
+      Math Calculation: <%- 2 + 3 %>
+      Variable: <%- someVariable %>
+      Loop: <% for(let i = 0; i < 3; i++) { %>Item <%- i %><% } %>
+      Conditional: <% if (true) { %>True Block<% } %>
+      
+      ## Prompt Tags (should be processed)
+      Name: <%- prompt('userName', 'Enter your name:') %>
+      Status: <%- promptKey('projectStatus', 'Select status:') %>
+      Date: <%- promptDate('eventDate', 'Select date:') %>
+      
+      ## More Non-Prompt Tags
+      Function Call: <%- Math.random() %>
+      Template Comment: <%# This is a comment %>
+      Array Access: <%- items[0] %>
+    `
+    const userData = {}
+
+    const result = await processPrompts(templateData, userData)
+
+    // Verify prompt tags were processed (converted to variable references)
+    expect(result.sessionTemplateData).toContain('<%- userName %>')
+    expect(result.sessionTemplateData).toContain('Status: Active') // promptKey directly inserts value
+    expect(result.sessionTemplateData).toContain('<%- eventDate %>')
+
+    // Verify non-prompt tags were left unchanged
+    expect(result.sessionTemplateData).toContain('<%- new Date().toISOString() %>')
+    expect(result.sessionTemplateData).toContain('<%- 2 + 3 %>')
+    expect(result.sessionTemplateData).toContain('<%- someVariable %>')
+    expect(result.sessionTemplateData).toContain('<% for(let i = 0; i < 3; i++) { %>')
+    expect(result.sessionTemplateData).toContain('<%- i %>')
+    expect(result.sessionTemplateData).toContain('<% } %>')
+    expect(result.sessionTemplateData).toContain('<% if (true) { %>')
+    expect(result.sessionTemplateData).toContain('True Block')
+    expect(result.sessionTemplateData).toContain('<%- Math.random() %>')
+    expect(result.sessionTemplateData).toContain('<%# This is a comment %>')
+    expect(result.sessionTemplateData).toContain('<%- items[0] %>')
+
+    // Verify session data was populated correctly for prompt tags only
+    expect(result.sessionData.userName).toBe('Text Response')
+    expect(result.sessionData.eventDate).toBe('2023-01-15')
+
+    // Verify no session data was created for non-prompt tags
+    expect(result.sessionData.someVariable).toBeUndefined()
+    expect(result.sessionData.items).toBeUndefined()
+  })
+
   test('Should process multiple prompt types in a single template', async () => {
     const templateData = `
       # Project Setup

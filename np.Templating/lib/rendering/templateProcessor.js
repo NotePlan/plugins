@@ -39,18 +39,22 @@ export function logProgress(stepDescription: string, templateData: string, sessi
   logDebug(`🔄 TEMPLATE PROCESSOR: ${stepDescription}${verbose ? ' (verboseLog)' : ''}`)
 
   // Only log template data if verbose mode is on or if it's a key step
-  const isKeyStep = stepDescription.includes('START') || stepDescription.includes('COMPLETE') || stepDescription.includes('ERROR')
+  const isStart = stepDescription.includes('START')
+  const isCompletion = stepDescription.includes('COMPLETE')
+  const isError = stepDescription.includes('ERROR')
+  const isKeyStep = isStart || isCompletion || isError
+  const msg = isCompletion ? 'COMPLETE ' : isStart ? 'START ' : isError ? 'ERROR ' : ''
   if (verbose || isKeyStep) {
-    logDebug(`📄 Template Data (${templateData.length} chars): ${templateData.substring(0, 200)}${templateData.length > 200 ? '...' : ''}`)
+    logDebug(`📄 ${msg}Template Text (${templateData.length} chars): ${templateData.substring(0, 200)}${templateData.length > 200 ? '...' : ''}`)
   }
 
   if (sessionData && (verbose || isKeyStep)) {
     const sessionKeys = Object.keys(sessionData)
-    logDebug(`📊 Session Data Keys: [${sessionKeys.join(', ')}]`)
+    logDebug(`📊 ${msg}Session Data Keys: [${sessionKeys.join(', ')}]`)
 
     // Only log full session data details in verbose mode
     if (verbose && sessionKeys.length > 0) {
-      logDebug(`📊 Session Data Details: ${JSON.stringify(sessionData)}`)
+      logDebug(`📊 ${msg}Session Data Details: ${JSON.stringify(sessionData)}`)
     }
   }
 

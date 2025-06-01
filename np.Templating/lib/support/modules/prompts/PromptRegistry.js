@@ -448,6 +448,7 @@ export async function processPrompts(templateData: string, initialSessionData: a
     const tagsArray = Array.isArray(tags) ? tags : tags && typeof tags.then === 'function' ? await tags : []
 
     for (const tag of tagsArray) {
+      if (!/prompt/i.test(tag)) continue
       try {
         logDebug(pluginJson, `processPrompts Processing tag: ${tag}`)
         const promptResponseText = await processPromptTag(tag, sessionData)
