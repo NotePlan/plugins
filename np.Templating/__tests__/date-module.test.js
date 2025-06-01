@@ -831,10 +831,10 @@ describe(`${PLUGIN_NAME}`, () => {
         dateModule = new DateModule()
       })
 
-      it('should return 0 for a past date', () => {
-        const pastDate = moment().subtract(5, 'days').format('YYYY-MM-DD')
-        expect(dateModule.daysUntil(pastDate)).toBe(0)
-        expect(dateModule.daysUntil(pastDate, true)).toBe(0)
+      it('should return negative number for a past date', () => {
+        const pastDate = moment().subtract(1, 'days').format('YYYY-MM-DD')
+        expect(dateModule.daysUntil(pastDate)).toBe(-1)
+        expect(dateModule.daysUntil(pastDate, true)).toBe(0) // -1 + 1 = 0 (including today makes it 0 days ago)
       })
 
       it('should return 0 for today if includeToday is false', () => {
@@ -867,18 +867,18 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(dateModule.daysUntil(futureDate, true)).toBe(8)
       })
 
-      it('should return 0 for an invalid date string', () => {
-        expect(dateModule.daysUntil('invalid-date')).toBe(0)
+      it('should return error message for an invalid date string', () => {
+        expect(dateModule.daysUntil('invalid-date')).toBe('days until: invalid date')
       })
 
-      it('should return 0 for a malformed date string', () => {
-        expect(dateModule.daysUntil('2023-13-01')).toBe(0) // Invalid month
+      it('should return error message for a malformed date string', () => {
+        expect(dateModule.daysUntil('2023-13-01')).toBe('days until: invalid date') // Invalid month
       })
 
-      it('should return 0 if no date string is provided', () => {
-        expect(dateModule.daysUntil(null)).toBe(0)
-        expect(dateModule.daysUntil(undefined)).toBe(0)
-        expect(dateModule.daysUntil('')).toBe(0)
+      it('should return error message if no date string is provided', () => {
+        expect(dateModule.daysUntil(null)).toBe('days until: invalid date')
+        expect(dateModule.daysUntil(undefined)).toBe('days until: invalid date')
+        expect(dateModule.daysUntil('')).toBe('days until: invalid date')
       })
     })
 

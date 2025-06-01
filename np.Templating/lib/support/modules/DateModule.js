@@ -481,15 +481,16 @@ export default class DateModule {
    *
    * @param {string} targetDateString - The target date in 'YYYY-MM-DD' format.
    * @param {boolean} [includeToday=false] - Whether to include today in the count.
-   * @returns {number} The number of days until the target date. Returns 0 if the target date is in the past.
+   *   When true, adds 1 to the result to include today in the span.
+   * @returns {number} The number of days until the target date.
+   *   Positive for future dates, negative for past dates.
    */
   daysUntil(targetDateString, includeToday = false) {
     this.setLocale() // Ensure locale is set
 
     if (!targetDateString || typeof targetDateString !== 'string' || targetDateString.length !== 10) {
       // console.error("DateModule.daysUntil: Invalid targetDateString provided. Expected 'YYYY-MM-DD'.");
-      // Consider what to return or throw for invalid input. For now, returning 0 similar to past dates.
-      return 0
+      return 'days until: invalid date'
     }
 
     const targetMoment = moment(targetDateString, 'YYYY-MM-DD').startOf('day')
@@ -497,16 +498,15 @@ export default class DateModule {
 
     if (!targetMoment.isValid()) {
       // console.error("DateModule.daysUntil: targetDateString is not a valid date.");
-      return 0
-    }
-
-    if (targetMoment.isBefore(todayMoment)) {
-      return 0 // Target date is in the past
+      return 'days until: invalid date'
     }
 
     let diff = targetMoment.diff(todayMoment, 'days')
 
     if (includeToday) {
+      // Add 1 to include today in the span calculation
+      // For future dates: includes today in the countdown (3 days -> 4 days)
+      // For past dates: includes today in elapsed time (-3 days -> -2 days)
       diff += 1
     }
 
