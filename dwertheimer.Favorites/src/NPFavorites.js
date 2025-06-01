@@ -3,7 +3,7 @@ import { chooseOption, showMessage } from '../../helpers/userInput'
 import { favoriteNotes, getFaveOptionsArray, getFavoriteDefault, getFavoritedTitle, noteIsFavorite, removeFavoriteFromTitle, type FavoritesConfig } from './favorites'
 import { setTitle } from '@helpers/note'
 import { logDebug, clo, logError, JSP } from '@helpers/dev'
-import { getFrontMatterAttributes, getFrontMatterNotes, updateFrontMatterVars, ensureFrontmatter } from '@helpers/NPFrontMatter'
+import { getFrontmatterAttributes, getFrontmatterNotes, updateFrontMatterVars, ensureFrontmatter } from '@helpers/NPFrontMatter'
 
 export async function getConfig(): Promise<FavoritesConfig> {
   const settings = DataStore.settings
@@ -56,7 +56,7 @@ export async function setFavorite(): Promise<void> {
         ensureFrontmatter(note)
         // In case frontmatter was just added, we need to re-open the note to properly see the frontmatter in the properties and the Editor.frontmatterAttributes
         await Editor.openNoteByFilename(Editor.filename)
-        const fm = getFrontMatterAttributes(note)
+        const fm = getFrontmatterAttributes(note)
         if (typeof fm === 'object' && fm !== null) {
           fm[favoriteKey] = 'true'
           updateFrontMatterVars(note, fm)
@@ -70,7 +70,7 @@ export async function setFavorite(): Promise<void> {
 
 export async function openFavorite(): Promise<void> {
   const config = await getConfig()
-  const notesWithFM = getFrontMatterNotes() // not including template notes
+  const notesWithFM = getFrontmatterNotes() // not including template notes
   const notesWithStars = DataStore.projectNotes.filter((note) => note.title?.includes(config.favoriteIcon))
   const combinedNotes = [...notesWithFM, ...notesWithStars]
   const nonDuplicateNotes = combinedNotes.filter((note, index, self) => self.findIndex((t) => t.filename === note.filename) === index)
@@ -109,7 +109,7 @@ export async function removeFavorite(): Promise<void> {
           }
         }
         if (config.favoriteIdentifier.includes('Frontmatter')) {
-          const fm = { ...getFrontMatterAttributes(note) }
+          const fm = { ...getFrontmatterAttributes(note) }
           if (typeof fm === 'object' && fm !== null && fm[favoriteKey]) {
             delete fm[favoriteKey]
             updateFrontMatterVars(note, fm, true)

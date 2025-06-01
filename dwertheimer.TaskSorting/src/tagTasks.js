@@ -8,7 +8,7 @@ import { clo, JSP, log, logDebug } from '../../helpers/dev'
 import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
 import { getTagsFromString, type TagsList } from '../../helpers/paragraph'
-import { addTrigger, getFrontMatterAttributes } from '../../helpers/NPFrontMatter'
+import { addTrigger, getFrontmatterAttributes } from '../../helpers/NPFrontMatter'
 import { getSelectedParagraph, getParagraphContainingPosition } from '@helpers/NPParagraph'
 
 /**
@@ -198,7 +198,7 @@ export async function copyTagsFromHeadingAbove() {
  *
  */
 function findTagsInFrontMatter(): Array<string> | null {
-  const frontMatter = getFrontMatterAttributes(Editor)
+  const frontMatter = getFrontmatterAttributes(Editor)
   if (frontMatter && frontMatter.noteTags) {
     const tags = frontMatter.noteTags
       .replaceAll(',', ' ')
