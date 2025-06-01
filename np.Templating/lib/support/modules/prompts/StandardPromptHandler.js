@@ -212,7 +212,8 @@ export default class StandardPromptHandler {
       if (typeof value !== 'string') return false
 
       // Test for any prompt function call patterns with or without await
-      const promptTypes = getRegisteredPromptNames ? getRegisteredPromptNames() : ['prompt', 'promptKey', 'promptDate', 'promptTag', 'promptMention', 'promptDateInterval']
+      const promptTypes = getRegisteredPromptNames()
+      // const promptTypes = getRegisteredPromptNames ? getRegisteredPromptNames() : ['prompt', 'promptKey', 'promptDate', 'promptTag', 'promptMention', 'promptDateInterval']
       const promptTypesPattern = promptTypes.join('|')
       const pattern = new RegExp(`^(await\\s+)?(${promptTypesPattern})\\s*\\(.*\\)$`)
 
