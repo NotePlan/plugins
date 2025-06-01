@@ -30,8 +30,7 @@ export function currentDate(format: string = 'YYYY-MM-DD') {
 }
 
 export function date8601() {
-  const dm = new DateModule() // Create an instance to access class methods
-  return dm.now() // Call class 'now' method, which date8601 in class also does
+  return moment().format('YYYY-MM-DD')
 }
 
 export default class DateModule {
@@ -180,7 +179,7 @@ export default class DateModule {
   }
 
   date8601() {
-    return this.now()
+    return moment().format('YYYY-MM-DD')
   }
 
   today(format = '') {
