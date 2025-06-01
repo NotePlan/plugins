@@ -63,18 +63,24 @@ export const extractTitleFromMarkdown = (markdown: string): { updatedMarkdown: s
  */
 export const getProperyValue = (object: any, key: string): any => {
   // Split the key string into an array of property names
-  key.split('.').forEach((token) => {
-    // Traverse the object, updating 'object' to be the next nested object/value
+  const tokens = key.split('.')
+
+  // Use a local variable to traverse the object structure
+  let current = object
+
+  // Use for...of loop instead of forEach to allow proper early return
+  for (const token of tokens) {
+    // Traverse the object, updating 'current' to be the next nested object/value
     // $FlowIgnorew - Flow might complain about dynamic property access, but it's intended.
-    if (object && typeof object === 'object' && token in object) {
+    if (current && typeof current === 'object' && token in current) {
       // Added checks for safety
-      object = object[token]
+      current = current[token]
     } else {
-      object = undefined // Property not found or object is not traversable
-      return // Exit forEach early if path is broken
+      // Property not found or object is not traversable - return immediately
+      return undefined
     }
-  })
-  return object
+  }
+  return current
 }
 
 /**
