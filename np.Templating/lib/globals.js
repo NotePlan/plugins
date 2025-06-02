@@ -43,6 +43,10 @@ const globals = {
     return await getAdvice()
   },
 
+  datePicker: async (params: ?string, config: any): Promise<string | false> => {
+    return await datePicker(params, config)
+  },
+
   quote: async (): Promise<string> => {
     return await getDailyQuote()
   },
@@ -218,6 +222,7 @@ export const asyncFunctions = [
   'affirmation',
   'currentDate',
   'currentTime',
+  'datePicker',
   'date8601',
   'doSomethingElse',
   'events',
