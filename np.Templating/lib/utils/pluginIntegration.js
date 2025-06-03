@@ -31,14 +31,15 @@ export async function isCommandAvailable(pluginId: string, commandName: string):
   try {
     logDebug(pluginJson, `Checking if command ${commandName} is available in plugin ${pluginId}`)
 
-    // Check if DataStore.installedPlugins exists (introduced in NotePlan 3.0.15)
-    if (!DataStore.installedPlugins) {
-      logDebug(pluginJson, 'DataStore.installedPlugins not available in this version of NotePlan')
+    const installedPlugins = await DataStore.installedPlugins()
+
+    if (installedPlugins.length === 0) {
+      logDebug(pluginJson, 'No installed plugins found -- DataStore.installedPlugins.length === 0')
       return false
     }
 
     // Look for the specified plugin in the installed plugins
-    const matchingPlugin = await Promise.resolve(DataStore.installedPlugins.find((p) => p.id === pluginId))
+    const matchingPlugin = installedPlugins.find((p) => p.id === pluginId)
     if (!matchingPlugin) {
       logDebug(pluginJson, `Plugin ${pluginId} not found in installed plugins`)
       return false
