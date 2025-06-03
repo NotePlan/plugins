@@ -1,6 +1,6 @@
 // @flow
 
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 
 // const CHAT_MODEL = 'gpt-3.5-turbo'
 

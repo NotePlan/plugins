@@ -6,7 +6,7 @@
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
 // Last updated 2025-05-02 for v2.2.2, @jgclark
 //-----------------------------------------------------------------------------
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 // import pluginJson from '../plugin.json'
 import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'

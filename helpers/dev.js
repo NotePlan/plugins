@@ -4,7 +4,7 @@
 import isEqual from 'lodash-es/isEqual'
 import isObject from 'lodash-es/isObject'
 import isArray from 'lodash-es/isArray'
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 
 /**
  * NotePlan API properties which should not be traversed when stringifying an object
