@@ -119,6 +119,7 @@ export const RE_SIMPLE_BARE_URI_MATCH_G: RegExp = /((?!([\("'])).|^)([\b\w-]+:\/
 // But also specifically allow tel: and mailto: protocols.
 // Capture group 1: the URI
 // Note: trailing punctuation in the URI can land up in the URI.
+// @tests in __tests__/regex.test.js
 export const RE_BARE_URI_MATCH_G: RegExp = /(?:^|[\s\.,;!?:])((www\.[^\s\[\](),;!?'"]+\.[a-z]{2,}[^\s\[\](),;!'"]*)|([a-z][a-z0-9+.-]*:\/\/[^\s\[\]()!]+)|tel:\+?[-\d]+|mailto:[-\d\w_@\.]*)/gi
 
 // Synced lines
