@@ -9,6 +9,7 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 - add tag function `getValuesForKey` to get all values for a given frontmatter tag
 - add tag function `promptKey` to prompt user for a value with a lot of flexibility on which folders to search for the value etc.
 - add tag function `getNote` to get a note by title, filename, or by id
+- update `date` module to use `momentWrapper` from `helpers/momentWrapper.js` to ensure week numbering compatibility with NotePlan's user-configurable week start day preferences
 - fix promises and lack of await keyword in template tags
 - add openTasks, completedTasks, openChecklists, completedChecklists to NoteModule
 - Change documentation links to point to new documentation site
