@@ -38,7 +38,8 @@ export type TDashboardSettings = {
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
   FFlag_ShowSectionTimings?: boolean,
-  FFlag_UseTagCache?: boolean, // TODO: remove this before v2.3.0 released
+  FFlag_UseTagCache?: boolean, // TODO: remove this in v2.4.0
+  FFlag_UseTagCacheAPIComparison?: boolean, // TODO: remove this in v2.4.0
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
   defaultFileExtension?: string,
