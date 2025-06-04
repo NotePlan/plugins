@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-05-14 for v2.2.2
+// Last updated 2025-06-05 for v2.2.2
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -21,7 +21,7 @@ import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/d
 import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { getNoteByFilename } from '@helpers/note'
-import { saveSettings } from '@helpers/NPConfiguration'
+import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { chooseNote, chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }

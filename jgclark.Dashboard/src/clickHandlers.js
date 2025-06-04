@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-05-02 for v2.2.2, @jgclark
+// Last updated 2025-06-05 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 import moment from 'moment'
 // import pluginJson from '../plugin.json'
@@ -16,14 +16,14 @@ import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings }
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
-import { saveSettings } from '@helpers/NPConfiguration'
+import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { openNoteByFilename } from '@helpers/NPnote'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename, highlightParagraphInEditor } from '@helpers/NPParagraph'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { getWindowFromCustomId, getLiveWindowRectFromWin, rectToString, storeWindowRect } from '@helpers/NPWindows'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
-import { isTeamspaceNoteFromFilename } from '@helpers/teamspace'
-import { showMessage, processChosenHeading } from '@helpers/userInput'
+// import { isTeamspaceNoteFromFilename } from '@helpers/teamspace'
+import { processChosenHeading } from '@helpers/userInput'
 
 /****************************************************************************************************************************
  *                             NOTES
