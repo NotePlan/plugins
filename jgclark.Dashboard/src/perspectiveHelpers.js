@@ -500,7 +500,7 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
     )
 
     // SAVE IT!
-    const res = await saveSettings(pluginID, { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) })
+    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), perspectiveSettings: JSON.stringify(newPerspectiveSettings) })
     if (!res) {
       throw new Error(`saveSettings failed for perspective ${name}`)
     }

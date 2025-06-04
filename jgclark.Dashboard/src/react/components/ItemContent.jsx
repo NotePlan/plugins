@@ -192,12 +192,11 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
 
     // Display markdown links of the form [title](URI) as HTML links
     output = changeMarkdownLinksToHTMLLink(output)
-    logDebug('makeParaContent...', `- after changeMarkdownLinksToHTMLLink: ${output}`)
+    // logDebug('makeParaContent...', `- after changeMarkdownLinksToHTMLLink: ${output}`)
 
     // Display bare URLs as HTML links with web icon
-    // FIXME: this is kicking in on markdown links when it shouldn't.
     output = changeBareLinksToHTMLLink(output, true, truncateLength)
-    logDebug('makeParaContent...', `- after changeBareLinksToHTMLLink: ${output}`)
+    // logDebug('makeParaContent...', `- after changeBareLinksToHTMLLink: ${output}`)
 
     // Display hashtags with .hashtag style
     output = convertHashtagsToHTML(output)
@@ -266,7 +265,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
       }
     }
 
-    logDebug('makeParaContent...', `- before replace note links: ${output}`)
+    // logDebug('makeParaContent...', `- before replace note links: ${output}`)
 
     // Replace [[notelinks]] with HTML equivalent, and coloured
     // Note: needs to go after >date section above

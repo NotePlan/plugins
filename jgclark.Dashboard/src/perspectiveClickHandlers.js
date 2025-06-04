@@ -241,7 +241,7 @@ export async function doPerspectiveSettingsChanged(data: MessageDataObject): Pro
       updatedPluginData.dashboardSettings = dashboardSettings
     }
   }
-  const combinedUpdatedSettings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(cleanedPerspSettings), dashboardSettings: JSON.stringify(dashboardSettings) }
+  const combinedUpdatedSettings = { ...await getSettings('jgclark.Dashboard'), perspectiveSettings: JSON.stringify(cleanedPerspSettings), dashboardSettings: JSON.stringify(dashboardSettings) }
 
   // Note: Use helper to save settings from now on, not unreliable `DataStore.settings = combinedUpdatedSettings`
   const res = await saveSettings(pluginID, combinedUpdatedSettings)

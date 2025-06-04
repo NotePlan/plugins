@@ -482,7 +482,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
         // if !diff or  all the diff keys start with FFlag, then return
         if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
           logDebug(`doDashboardSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
-          const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) })
+          const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(newSettings) })
           return handlerResult(res)
         } else {
           clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings:`)
@@ -506,7 +506,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     }
   }
 
-  const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
+  const combinedUpdatedSettings = { ...await getSettings('jgclark.Dashboard'), [settingName]: JSON.stringify(newSettings) }
 
   if (perspectivesToSave) {
     const debugInfo = perspectivesToSave
