@@ -7,9 +7,18 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: ^⌥s triggers the search bar
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
+- TODO: enlarged default window size on iPads
 -->
 
-## [2.3.0.b2] 2025-05-23
+## [2.3.0.b3] 2025-06-05
+### Dev notes
+- Turned off windowResize for i(Pad)OS devices, to stop spurious windowResize errors from appearing
+- Refactored layout code that avoids the modal dialog close button
+- Show FF icon whenever any FF is turned on as well as when we're in DEV logging mode.
+- New FF 'FFlag_UseTagCacheAPIComparison'
+- Changed from `...DataStore.settings` to `await getSettings('jgclark.Dashboard')` throughout
+
+## [2.3.0.b2] 2025-05-29
 - show TAG sections that have no items
 - hide Referenced calendar sections (e.g. ">Today") that have no items to show
 - added little circles for task completion in section headings, and tweaked the text after it
