@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2025-05-23 for v2.3.0.b2
+// Last updated 2025-06-05 for v2.3.0
 //-----------------------------------------------------------------------------
 
 import { getGlobalSharedData, sendToHTMLWindow } from '../../helpers/HTMLView'
@@ -19,7 +19,7 @@ import { generateTagMentionCache, isTagMentionCacheGenerationScheduled } from '.
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
-import { saveSettings } from '@helpers/NPConfiguration'
+import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { chooseOption, showMessage } from '@helpers/userInput'
@@ -95,8 +95,8 @@ export async function setSetting(key: string, value: string): Promise<void> {
       dashboardSettings[key] = setTo
       // logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo} / ${thisSettingType})`)
       // TEST: use helper to save settings from now on
-      // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
-      const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) })
+      // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
+      const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) })
       if (!res) {
         throw new Error(`saveSettings failed for setting '${key}:${value}'`)
       }
@@ -137,8 +137,8 @@ export async function setSettings(paramsIn: string): Promise<void> {
     }
     logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)
     // TEST: use helper to save settings from now on
-    // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
-    const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) })
+    // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
+    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) })
     if (!res) {
       throw new Error(`saveSettings failed for params: '${paramsIn}'`)
     }
@@ -259,8 +259,8 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
     })
 
     // TEST: use helper to save settings from now on
-    // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
-    const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) })
+    // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
+    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) })
     if (!res) {
       throw new Error(`saveSettings failed for sections '${limitToSections}'`)
     }
@@ -405,7 +405,7 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
     }
 
     // use our more reliable helper to save settings
-    const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(newDashboardSettings) })
+    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(newDashboardSettings) })
     if (!res) {
       throw new Error(`saveSettings failed`)
     }

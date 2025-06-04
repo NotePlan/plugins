@@ -105,7 +105,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'ignoreItemsWithTerms',
     label: 'Ignore items in notes with phrase(s)',
     description:
-      'If set, open tasks/checklists with any of these words or tags/mentions will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control, or you want to ignore it in a particular Perpsective. To include more than one word, separate them by commas.',
+      'If set, open tasks/checklists with any of these words (which many include #tags and @mentions) will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control, or you want to ignore it in a particular Perpsective. To include more than one word, separate them by commas.',
     type: 'input',
     default: '#waiting',
     compactDisplay: false,

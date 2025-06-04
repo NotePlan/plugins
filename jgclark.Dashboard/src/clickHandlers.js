@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-05-02 for v2.2.2, @jgclark
+// Last updated 2025-06-05 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 import moment from 'moment'
 // import pluginJson from '../plugin.json'
@@ -16,14 +16,14 @@ import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings }
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
-import { saveSettings } from '@helpers/NPConfiguration'
+import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { openNoteByFilename } from '@helpers/NPnote'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename, highlightParagraphInEditor } from '@helpers/NPParagraph'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { getWindowFromCustomId, getLiveWindowRectFromWin, rectToString, storeWindowRect } from '@helpers/NPWindows'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
-import { isTeamspaceNoteFromFilename } from '@helpers/teamspace'
-import { showMessage, processChosenHeading } from '@helpers/userInput'
+// import { isTeamspaceNoteFromFilename } from '@helpers/teamspace'
+import { processChosenHeading } from '@helpers/userInput'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -482,7 +482,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
         // if !diff or  all the diff keys start with FFlag, then return
         if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
           logDebug(`doDashboardSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
-          const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(newSettings) })
+          const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(newSettings) })
           return handlerResult(res)
         } else {
           clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings:`)
@@ -506,7 +506,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     }
   }
 
-  const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
+  const combinedUpdatedSettings = { ...await getSettings('jgclark.Dashboard'), [settingName]: JSON.stringify(newSettings) }
 
   if (perspectivesToSave) {
     const debugInfo = perspectivesToSave

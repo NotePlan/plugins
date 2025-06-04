@@ -68,11 +68,11 @@ declare interface TEditor extends CoreNoteFields {
   /**
    * Get the raw selection range (hidden Markdown is considered).
    */
-  +selection: ?Range;
++selection: ?TRange;
   /**
    * Get the rendered selection range (hidden Markdown is NOT considered).
    */
-  +renderedSelection: ?Range;
++renderedSelection: ?TRange;
   /**
    * Get the selected text.
    */
@@ -2134,9 +2134,9 @@ declare class NotePlan {
    * Note: Available from v3.7.2
    * @param {string} version1
    * @param {string} version2
-   * @returns {Array<RangeObject>}
+   * @returns {Array<TRange>}
    */
-  static stringDiff(version1: string, version2: string): Array<RangeObject>;
+  static stringDiff(version1: string, version2: string): Array < TRange >;
   /**
    * Returns a list of all opened editors (in the main view, in split views and in floating windows). See more details in the "Editor" documentation.
    * Note: Available from v3.8.1 build 973
@@ -2242,7 +2242,7 @@ declare class HTMLView {
    * @param { string | undefined } windowId ID of the HTML window to execute it in (undefined for non-desktop platforms)
    * @return { Promise | void }
    */
-  static runJavaScript(code: string, windowId: string | undefined): Promise | void;
+  static runJavaScript(code: string, windowId: string | void): Promise < void>;
   /**
    * Set / get the position and size of an HTMLView window. Returns an object with x, y, width, height values.
    * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.
@@ -2258,7 +2258,7 @@ declare class HTMLView {
 }
 
 /** JGC: I'm not entirely sure about this next line, but Window is some sort of thing. */
-type Window = HTMLView | Editor
+type Window = HTMLView | TEditor
 
 // dbw commenting this out because it doesn't work and causes Flow errors
 // type document = {
