@@ -16,7 +16,30 @@ describe(`${PLUGIN_NAME}`, () => {
     global.DataStore = {
       settings: { _logLevel: 'none' },
     }
+
+    // Mock Calendar methods for consistent testing
+    global.Calendar = {
+      weekNumber: jest.fn((date) => {
+        // Default to moment's ISO week + 1 for Sunday adjustment (mimicking typical NotePlan behavior)
+        const momentWeek = parseInt(moment(date).format('W'))
+        return moment(date).day() === 0 ? momentWeek + 1 : momentWeek
+      }),
+      startOfWeek: jest.fn((date) => {
+        // Default to Sunday start (moment's default with adjustment)
+        return moment(date).startOf('week').toDate()
+      }),
+      endOfWeek: jest.fn((date) => {
+        // Default to Saturday end (moment's default with adjustment)
+        return moment(date).endOf('week').toDate()
+      }),
+    }
   })
+
+  afterEach(() => {
+    jest.clearAllMocks()
+    delete global.Calendar
+  })
+
   describe(section('DateModule'), () => {
     it(`should ${method('.createDateTime')} from pivotDate`, async () => {
       const pivotDate = '2021-11-24'
@@ -583,6 +606,37 @@ describe(`${PLUGIN_NAME}`, () => {
       const dateModule = new DateModule()
       const YYYYMMDD = 'YYYY-MM-DD'
 
+      beforeEach(() => {
+        // Override Calendar methods with specific test behavior
+        global.Calendar.weekNumber = jest.fn((date) => {
+          const dateStr = moment(date).format('YYYY-MM-DD')
+          // Return specific week numbers for test dates
+          if (dateStr === '2021-11-03') return 44
+          if (dateStr === '2021-12-19') return 51
+          // Default behavior for other dates
+          const momentWeek = parseInt(moment(date).format('W'))
+          return moment(date).day() === 0 ? momentWeek + 1 : momentWeek
+        })
+
+        global.Calendar.startOfWeek = jest.fn((date) => {
+          const dateStr = moment(date).format('YYYY-MM-DD')
+          // Return specific start dates for test dates
+          if (dateStr === '2021-11-03') return new Date('2021-10-31T00:00:00') // Sunday
+          if (dateStr === '2021-12-19') return new Date('2021-12-19T00:00:00') // Sunday itself
+          // Default Sunday start behavior
+          return moment(date).startOf('week').toDate()
+        })
+
+        global.Calendar.endOfWeek = jest.fn((date) => {
+          const dateStr = moment(date).format('YYYY-MM-DD')
+          // Return specific end dates for test dates
+          if (dateStr === '2021-11-03') return new Date('2021-11-06T23:59:59') // Saturday
+          if (dateStr === '2021-12-19') return new Date('2021-12-25T23:59:59') // Saturday
+          // Default Saturday end behavior
+          return moment(date).endOf('week').toDate()
+        })
+      })
+
       it('should calculate weekOf based on current date (default Sunday start)', () => {
         const today = moment().format(YYYYMMDD)
         const expectedStartDate = dateModule.startOfWeek(YYYYMMDD, today, 0)
@@ -596,30 +650,31 @@ describe(`${PLUGIN_NAME}`, () => {
         const pivotDate = '2021-11-03' // Wednesday
         const expectedStartDate = '2021-10-31' // Sunday of that week
         const expectedEndDate = '2021-11-06' // Saturday of that week
-        // weekNumber for 2021-11-03: moment('2021-11-03').format('W') is '44'. dayNumber is 3, so no increment.
-        const expectedWeekNumber = dateModule.weekNumber(pivotDate)
+        const expectedWeekNumber = 44 // From our mock
         const result = dateModule.weekOf(pivotDate)
         expect(result).toEqual(`W${expectedWeekNumber} (${expectedStartDate}..${expectedEndDate})`)
+        expect(global.Calendar.weekNumber).toHaveBeenCalled()
+        expect(global.Calendar.startOfWeek).toHaveBeenCalled()
+        expect(global.Calendar.endOfWeek).toHaveBeenCalled()
       })
 
       it('should calculate weekOf for a pivotDate with explicit Sunday start (startDayOpt = 0)', () => {
         const pivotDate = '2021-11-03' // Wednesday
         const expectedStartDate = '2021-10-31'
         const expectedEndDate = '2021-11-06'
-        const expectedWeekNumber = dateModule.weekNumber(pivotDate)
+        const expectedWeekNumber = 44 // From our mock
         const result = dateModule.weekOf(0, 6, pivotDate) // Explicitly startDay 0, endDay 6 (endDay is ignored by new logic)
         expect(result).toEqual(`W${expectedWeekNumber} (${expectedStartDate}..${expectedEndDate})`)
       })
 
       it('should calculate weekOf for a pivotDate with explicit Monday start (startDayOpt = 1)', () => {
         const pivotDate = '2021-11-03' // Wednesday
-        // Assuming startOfWeek with firstDayOfWeek=1 correctly gives Monday
-        const expectedStartDate = dateModule.startOfWeek(YYYYMMDD, pivotDate, 1) // Monday of that week (2021-11-01)
-        const expectedEndDate = dateModule.endOfWeek(YYYYMMDD, pivotDate, 1) // Sunday of that week (2021-11-07)
-        // The weekNumber calculation might be tricky here if it doesn't align with a Monday start.
-        // For consistency, one might argue weekNumber should also take firstDayOfWeek.
-        // moment('2021-11-01').isoWeek() is 44. moment('2021-11-01').week() is 45.
-        const expectedWeekNumber = dateModule.weekNumber(pivotDate) // CORRECTED: Use the module's own logic for pivotDate
+        // With firstDayOfWeek=1, we add 1 day to the NotePlan start/end dates
+        const baseStartDate = dateModule.startOfWeek(YYYYMMDD, pivotDate, 0) // Get NotePlan start
+        const expectedStartDate = moment(baseStartDate).add(1, 'day').format(YYYYMMDD) // Add offset
+        const baseEndDate = dateModule.endOfWeek(YYYYMMDD, pivotDate, 0) // Get NotePlan end
+        const expectedEndDate = moment(baseEndDate).add(1, 'day').format(YYYYMMDD) // Add offset
+        const expectedWeekNumber = 44 // From our mock
         const result = dateModule.weekOf(1, null, pivotDate)
         expect(result).toEqual(`W${expectedWeekNumber} (${expectedStartDate}..${expectedEndDate})`)
       })
@@ -628,13 +683,9 @@ describe(`${PLUGIN_NAME}`, () => {
         const pivotDate = '2021-12-19' // Is a Sunday
         const expectedStartDate = '2021-12-19'
         const expectedEndDate = '2021-12-25'
-        // moment('2021-12-19').format('W') is '51'. dayNumber is 0, so weekNumber() returns 52.
-        const dm = new DateModule()
-        const resultWeekNumber = dm.weekNumber(pivotDate)
-        const result = dm.weekOf(pivotDate)
-        // This assertion depends HEAVILY on the exact behavior of startOfWeek, endOfWeek, and weekNumber with their current implementations.
-        // If startOfWeek(..., 0) for a Sunday returns that Sunday, and endOfWeek(..., 0) returns the following Saturday.
-        expect(result).toEqual(`W${resultWeekNumber} (${expectedStartDate}..${expectedEndDate})`)
+        const expectedWeekNumber = 51 // From our mock
+        const result = dateModule.weekOf(pivotDate)
+        expect(result).toEqual(`W${expectedWeekNumber} (${expectedStartDate}..${expectedEndDate})`)
       })
     })
 
@@ -717,6 +768,50 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`should return ${method('.endOfWeek')} using fixed date with offset`, async () => {
       let endOfWeek = new DateModule().endOfWeek(null, '2022-03-05', 1)
       expect(endOfWeek).toEqual('2022-03-06')
+    })
+
+    describe(`${block('Calendar integration for week methods')}`, () => {
+      it(`should use Calendar.startOfWeek when available`, () => {
+        const dateModule = new DateModule()
+        const testDate = '2023-06-15'
+
+        dateModule.startOfWeek('YYYY-MM-DD', testDate)
+
+        expect(global.Calendar.startOfWeek).toHaveBeenCalledWith(expect.any(Date))
+      })
+
+      it(`should use Calendar.endOfWeek when available`, () => {
+        const dateModule = new DateModule()
+        const testDate = '2023-06-15'
+
+        dateModule.endOfWeek('YYYY-MM-DD', testDate)
+
+        expect(global.Calendar.endOfWeek).toHaveBeenCalledWith(expect.any(Date))
+      })
+
+      it(`should fall back to moment behavior when Calendar not available`, () => {
+        delete global.Calendar
+        const dateModule = new DateModule()
+        const testDate = '2022-03-05' // Saturday
+
+        // Without Calendar, should use moment's startOf('week') which gives Sunday before
+        const result = dateModule.startOfWeek('YYYY-MM-DD', testDate)
+        const expectedMomentResult = moment(testDate).startOf('week').format('YYYY-MM-DD')
+
+        expect(result).toBe(expectedMomentResult)
+      })
+
+      it(`should apply firstDayOfWeek offset to Calendar results`, () => {
+        const dateModule = new DateModule()
+        const testDate = '2023-06-15'
+
+        // Mock Calendar to return a specific date
+        global.Calendar.startOfWeek = jest.fn(() => new Date('2023-06-11T00:00:00')) // Sunday
+
+        const result = dateModule.startOfWeek('YYYY-MM-DD', testDate, 1) // +1 day offset
+        expect(result).toBe('2023-06-12') // Monday
+        expect(global.Calendar.startOfWeek).toHaveBeenCalled()
+      })
     })
 
     describe(`${block('business days')}`, () => {
@@ -822,6 +917,15 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(assertValue)
       })
 
+      it(`should use ${method('format')} helper with NotePlan week tokens`, () => {
+        // Mock Calendar for this specific test
+        global.Calendar.weekNumber = jest.fn(() => 25)
+
+        const result = format('YYYY-[W]w', '2023-06-15')
+        expect(result).toBe('2023-W25')
+        expect(global.Calendar.weekNumber).toHaveBeenCalled()
+      })
+
       it(`should use ${method('date8601')} helper correctly`, async () => {
         const instanceResult = new DateModule().date8601()
         const helperResult = date8601() // This calls the modified helper
@@ -832,6 +936,15 @@ describe(`${PLUGIN_NAME}`, () => {
       it(`should render ${method('currentDate')} helper using default format`, async () => {
         const result = currentDate()
         expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
+      })
+
+      it(`should render ${method('currentDate')} helper with NotePlan week format`, () => {
+        // Mock Calendar for this specific test
+        global.Calendar.weekNumber = jest.fn(() => 42)
+
+        const result = currentDate('YYYY-[W]w')
+        expect(result).toMatch(/^\d{4}-W42$/)
+        expect(global.Calendar.weekNumber).toHaveBeenCalled()
       })
     })
 
@@ -954,6 +1067,49 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
     // End of new comprehensive tests
+  })
+
+  describe(`${block('Direct moment.js access')}`, () => {
+    it(`should provide direct access to moment.js via ${method('.moment')} getter`, () => {
+      const dateModule = new DateModule()
+      expect(typeof dateModule.moment).toBe('function')
+      // Check that it works like moment.js rather than being the exact same object
+      const testDate = '2023-06-15'
+      const result = dateModule.moment(testDate).format('YYYY-MM-DD')
+      expect(result).toBe('2023-06-15')
+    })
+
+    it(`should allow pure moment.js formatting without NotePlan intervention`, () => {
+      const dateModule = new DateModule()
+      const testDate = '2023-06-15'
+
+      // Test that moment.format() gives pure moment.js behavior
+      const pureResult = dateModule.moment(testDate).format('YYYY-[W]ww')
+      const moduleResult = dateModule.format('YYYY-[W]WW', testDate) // Using ISO tokens
+
+      // Both should give ISO week behavior
+      expect(pureResult).toBe(moduleResult)
+    })
+
+    it(`should provide access to all moment.js functionality`, () => {
+      const dateModule = new DateModule()
+      const testDate = '2023-06-15'
+
+      // Test various moment.js features
+      const momentInstance = dateModule.moment(testDate)
+      expect(momentInstance.isValid()).toBe(true)
+      expect(momentInstance.format('dddd')).toBe('Thursday')
+      expect(momentInstance.add(1, 'day').format('YYYY-MM-DD')).toBe('2023-06-16')
+    })
+
+    it(`should work with moment.js localization`, () => {
+      const dateModule = new DateModule()
+      const testDate = '2023-06-15'
+
+      // Test localized formatting
+      const germanFormat = dateModule.moment(testDate).locale('de').format('dddd, MMMM Do YYYY')
+      expect(germanFormat).toContain('Donnerstag') // Thursday in German
+    })
   })
 
   describe(`${block('Mixed Format Testing with NotePlan Week Numbers')}`, () => {

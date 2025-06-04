@@ -71,6 +71,11 @@ export default class DateModule {
     return moment(value)
   }
 
+  // Provide direct access to moment.js formatting without NotePlan week intervention
+  get moment() {
+    return moment
+  }
+
   // convert supplied date value into something that NotePlan can actually handle
   // requiring YYYY-MM-DDThh:mm:ss format
   createDateTime(userDateString = '') {
@@ -346,11 +351,32 @@ export default class DateModule {
 
   startOfWeek(format = '', userPivotDate = '', firstDayOfWeek = 0) {
     let pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
-    pivotDate = this.createDateTime(pivotDate)
 
-    let result = moment(pivotDate).startOf('week')
-    if (firstDayOfWeek > 0) {
-      result = moment(pivotDate).startOf('week').add(firstDayOfWeek, 'days')
+    // Convert to Date object for Calendar.startOfWeek
+    let dateToProcess
+    if (typeof pivotDate === 'string') {
+      dateToProcess = moment(pivotDate).toDate()
+    } else {
+      dateToProcess = this.createDateTime(pivotDate)
+    }
+
+    let result
+    // $FlowFixMe[prop-missing] Calendar will exist inside NotePlan
+    if (typeof Calendar !== 'undefined' && Calendar.startOfWeek) {
+      // Use NotePlan's native startOfWeek which respects user's week start preference
+      result = Calendar.startOfWeek(dateToProcess)
+
+      // Apply additional firstDayOfWeek offset if specified (for backward compatibility)
+      if (firstDayOfWeek > 0) {
+        result = moment(result).add(firstDayOfWeek, 'days').toDate()
+      }
+    } else {
+      // Fallback to moment's behavior for test environments
+      result = moment(dateToProcess).startOf('week')
+      if (firstDayOfWeek > 0) {
+        result = moment(dateToProcess).startOf('week').add(firstDayOfWeek, 'days')
+      }
+      result = result.toDate()
     }
 
     return this.format(format, result)
@@ -360,12 +386,34 @@ export default class DateModule {
     format = format ? format : '' // coerce if user passed null
     let pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
 
-    let endOfWeek = moment(pivotDate).endOf('week')
-    if (firstDayOfWeek > 0) {
-      endOfWeek = moment(pivotDate).endOf('week').add(firstDayOfWeek, 'days')
+    // Convert to Date object for Calendar.endOfWeek
+    let dateToProcess
+    if (typeof pivotDate === 'string') {
+      dateToProcess = moment(pivotDate).toDate()
+    } else {
+      dateToProcess = this.createDateTime(pivotDate)
     }
 
-    return this.format(format, endOfWeek)
+    let result
+    // $FlowFixMe[prop-missing] Calendar will exist inside NotePlan
+    if (typeof Calendar !== 'undefined' && Calendar.endOfWeek) {
+      // Use NotePlan's native endOfWeek which respects user's week start preference
+      result = Calendar.endOfWeek(dateToProcess)
+
+      // Apply additional firstDayOfWeek offset if specified (for backward compatibility)
+      if (firstDayOfWeek > 0) {
+        result = moment(result).add(firstDayOfWeek, 'days').toDate()
+      }
+    } else {
+      // Fallback to moment's behavior for test environments
+      result = moment(dateToProcess).endOf('week')
+      if (firstDayOfWeek > 0) {
+        result = moment(dateToProcess).endOf('week').add(firstDayOfWeek, 'days')
+      }
+      result = result.toDate()
+    }
+
+    return this.format(format, result)
   }
 
   startOfMonth(format = '', userPivotDate = '') {
