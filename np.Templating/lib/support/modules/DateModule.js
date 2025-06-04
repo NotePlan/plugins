@@ -11,9 +11,13 @@
 
 /* eslint-disable */
 
-// Using momentWrapper instead of direct moment import for NotePlan week compatibility
-import { momentWrapper as moment } from '../../../../helpers/momentWrapper'
+// Using original moment import - momentWrapper modifies instances which breaks date arithmetic
+import moment from 'moment/min/moment-with-locales'
+import { formatWithNotePlanWeeks } from '@helpers/notePlanWeekFormatter'
 import { default as momentBusiness } from 'moment-business-days'
+
+// Suppress deprecation warnings for better test output and cleaner logs
+moment.suppressDeprecationWarnings = true
 
 export const DAY_NUMBER_SUNDAY = 0
 export const DAY_NUMBER_MONDAY = 1
@@ -29,11 +33,11 @@ export function createDateTime(userDateString = '') {
 
 export function format(format: string = 'YYYY-MM-DD', dateString: string = '') {
   const dt = dateString ? moment(dateString).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
-  return moment(createDateTime(dt)).format(format && format.length > 0 ? format : 'YYYY-MM-DD')
+  return formatWithNotePlanWeeks(moment(createDateTime(dt)), format && format.length > 0 ? format : 'YYYY-MM-DD')
 }
 
 export function currentDate(format: string = 'YYYY-MM-DD') {
-  return moment(new Date()).format(format && format.length > 0 ? format : 'YYYY-MM-DD')
+  return formatWithNotePlanWeeks(moment(new Date()), format && format.length > 0 ? format : 'YYYY-MM-DD')
 }
 
 export function date8601() {
@@ -81,8 +85,8 @@ export default class DateModule {
       if (formatStr === 'UTC_ISO') {
         return moment.utc().format() // Returns standard UTC ISO8601 string (e.g., YYYY-MM-DDTHH:mm:ssZ)
       }
-      // If any other format string is provided, use it with the local moment object.
-      return moment().format(formatStr)
+      // Use formatWithNotePlanWeeks for NotePlan-compatible week numbering
+      return formatWithNotePlanWeeks(moment(), formatStr)
     } else {
       // Default: local time, full ISO 8601 like timestamp with timezone offset
       return moment().format() // e.g., "2023-10-27T17:30:00-07:00"
@@ -123,8 +127,9 @@ export default class DateModule {
     if (effectiveFormat === 'short' || effectiveFormat === 'medium' || effectiveFormat === 'long' || effectiveFormat === 'full') {
       formattedDateString = new Intl.DateTimeFormat(locale, { dateStyle: effectiveFormat }).format(dateToFormat)
     } else {
-      // Use moment to format the Date object for other specific formats
-      formattedDateString = moment(dateToFormat).format(effectiveFormat)
+      // Use formatWithNotePlanWeeks for NotePlan-compatible week numbering
+      // Convert Date object to moment instance for compatibility
+      formattedDateString = formatWithNotePlanWeeks(moment(dateToFormat), effectiveFormat)
     }
     return formattedDateString
   }
@@ -179,7 +184,8 @@ export default class DateModule {
     if (effectiveFormat === 'short' || effectiveFormat === 'medium' || effectiveFormat === 'long' || effectiveFormat === 'full') {
       formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: effectiveFormat }).format(momentToProcess.toDate())
     } else {
-      formattedDate = momentToProcess.format(effectiveFormat)
+      // Use formatWithNotePlanWeeks for NotePlan-compatible week numbering
+      formattedDate = formatWithNotePlanWeeks(momentToProcess, effectiveFormat)
     }
 
     return this.isValid(formattedDate)
@@ -259,14 +265,25 @@ export default class DateModule {
     this.setLocale()
 
     const dateValue = pivotDate.length === 10 ? pivotDate : new Date()
-    const dateStr = moment(dateValue).format('YYYY-MM-DD')
-    let weekNumber = parseInt(this.format('W', dateStr))
 
-    if (this.dayNumber(pivotDate) === 0) {
-      weekNumber++
+    // Use Calendar.weekNumber directly instead of moment's ISO week calculation
+    let dateToCheck
+    if (typeof dateValue === 'string') {
+      dateToCheck = moment(dateValue).toDate()
+    } else {
+      dateToCheck = dateValue
     }
 
-    return weekNumber
+    // $FlowFixMe[prop-missing] Calendar will exist inside NotePlan
+    // For test environment, fall back to utility function for NotePlan week calculation
+    if (typeof Calendar !== 'undefined' && Calendar.weekNumber) {
+      return Calendar.weekNumber(dateToCheck)
+    } else {
+      // Fallback for test environment: use formatWithNotePlanWeeks utility
+      const momentInstance = moment(dateToCheck)
+      const weekStr = formatWithNotePlanWeeks(momentInstance, 'w')
+      return parseInt(weekStr)
+    }
   }
 
   dayNumber(pivotDate = '') {
@@ -420,7 +437,7 @@ export default class DateModule {
     format = format.length > 0 ? format : configFormat
 
     // DateModule `pivotDate` will be formatted YYYY-MM-DD, need to add the time part
-    const dt = this.createDateTime(userPivotDate)
+    const dt = this.createDateTime(pivotDate)
 
     const shorthandKeys = ['y', 'Q', 'M', 'w', 'd', 'h', 'm', 's', 'ms']
     if (typeof value === 'string') {
@@ -446,7 +463,7 @@ export default class DateModule {
     const dt = pivotDate.length === 10 ? new Date(`${pivotDate}T00:01:00`) : new Date()
     let result = momentBusiness(dt).businessAdd(numDays)
 
-    let formattedDate = result.format(dtFormat)
+    let formattedDate = formatWithNotePlanWeeks(result, dtFormat)
     if (dtFormat === 'short' || dtFormat === 'medium' || dtFormat === 'long' || dtFormat === 'full') {
       formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: dtFormat }).format(result)
     }
@@ -462,7 +479,7 @@ export default class DateModule {
     const dt = pivotDate.length === 10 ? new Date(`${pivotDate}T00:01:00`) : new Date()
     let result = momentBusiness(dt).businessSubtract(numDays)
 
-    let formattedDate = result.format(dtFormat)
+    let formattedDate = formatWithNotePlanWeeks(result, dtFormat)
     if (dtFormat === 'short' || dtFormat === 'medium' || dtFormat === 'long' || dtFormat === 'full') {
       formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: dtFormat }).format(result)
     }

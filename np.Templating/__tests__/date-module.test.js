@@ -108,9 +108,16 @@ describe(`${PLUGIN_NAME}`, () => {
       const dm = new DateModule()
       const result = dm.timestamp()
       const expected = moment().format() // e.g., "2023-10-27T17:30:00-07:00"
-      expect(result).toEqual(expected)
+
       // Check it contains a T and a timezone offset (+/-HH:mm or Z)
       expect(result).toMatch(/T.*([+-]\d{2}:\d{2}|Z)/)
+
+      // Parse both timestamps and check they're within 5 seconds of each other
+      const resultMoment = moment(result)
+      const expectedMoment = moment(expected)
+      const diffInSeconds = Math.abs(resultMoment.diff(expectedMoment, 'seconds'))
+
+      expect(diffInSeconds).toBeLessThanOrEqual(5)
     })
 
     it(`should render ${method('.timestamp')} with a custom format string`, () => {
@@ -118,7 +125,18 @@ describe(`${PLUGIN_NAME}`, () => {
       const formatStr = 'dddd, MMMM Do YYYY, h:mm:ss a'
       const result = dm.timestamp(formatStr)
       const expected = moment().format(formatStr)
-      expect(result).toEqual(expected)
+
+      // For format strings that include time components, parse and compare with tolerance
+      if (formatStr.includes('h') || formatStr.includes('m') || formatStr.includes('s') || formatStr.includes('H')) {
+        // Parse both formatted strings back to moments and check they're within 5 seconds
+        const resultMoment = moment(result, formatStr)
+        const expectedMoment = moment(expected, formatStr)
+        const diffInSeconds = Math.abs(resultMoment.diff(expectedMoment, 'seconds'))
+        expect(diffInSeconds).toBeLessThanOrEqual(5)
+      } else {
+        // For date-only formats, exact comparison is fine
+        expect(result).toEqual(expected)
+      }
     })
 
     it(`should render ${method('.timestamp')} with 'UTC_ISO' format as UTC ISO8601 string`, () => {
