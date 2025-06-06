@@ -1,7 +1,6 @@
 /* globals describe, expect, test */
 
 import { RE_BARE_URI_MATCH_G } from '../regex'
-console.log(`RE_BARE_URI_MATCH_G: ${RE_BARE_URI_MATCH_G}`)
 
 describe('Tests for RE_BARE_URI_MATCH_G', () => {
   test('should match standard protocols', () => {

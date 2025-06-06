@@ -185,12 +185,18 @@ export function getFolderListMinusExclusions(exclusions: Array<string>, excludeS
  * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
  * Except for items in root folder -> '/'.
  * @author @jgclark
+ * @tests in jest file
  * @param {string} fullFilename - full filename to get folder name part from
  * @returns {string} folder/subfolder name
  */
 export function getFolderFromFilename(fullFilename: string): string {
   try {
-    // First deal with special case of file in root -> '/'
+    // If filename is empty, warn and return '(error)'
+    if (!fullFilename) {
+      logWarn('folders/getFolderFromFilename', `Empty filename given. Returning '(error)'`)
+      return '(error)'
+    }
+    // Deal with special case of file in root -> '/'
     if (!fullFilename.includes('/')) {
       return '/'
     }
@@ -206,8 +212,10 @@ export function getFolderFromFilename(fullFilename: string): string {
 
 /**
  * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
- * Optionally remove file extension
+ * Optionally remove file extension.
+ * Note: does not handle hidden files (starting with a dot, e.g. '.gitignore').
  * @author @jgclark
+ * @tests in jest file
  * @param {string} fullFilename - full filename to get folder name part from
  * @param {boolean} removeExtension?
  * @returns {string} folder/subfolder name
