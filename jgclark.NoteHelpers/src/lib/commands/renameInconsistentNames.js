@@ -1,8 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Functions to identify and fix where note names and their filenames are inconsistent.
-// Leo Melo, readied for the plugin by Jonathan Clark
-// Last updated 15.8.2023 for v0.18.1 by @jgclark
+// by Leo Melo, readied for the plugin by @jgclark
+// Last updated 2025-06-06 for v1.1.2 by @jgclark
 //-----------------------------------------------------------------------------
 // TODO:
 // - add a 'foldersToIgnore' option.
@@ -11,7 +11,7 @@ import pluginJson from '../../../plugin.json'
 import { findInconsistentNames } from '../../helpers/findInconsistentNames'
 import { renameNoteToTitle } from '../../helpers/renameNotes'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { chooseFolder, showMessage, showMessageYesNoCancel } from '@helpers/userInput'
+import { chooseFolder, showMessage, showMessageWithList, showMessageYesNoCancel } from '@helpers/userInput'
 
 /**
  * Renames all project notes with inconsistent names (i.e. where the note title and filename are different).
@@ -33,13 +33,11 @@ export async function renameInconsistentNames(): Promise<void> {
     const inconsistentNames = findInconsistentNames(directory)
     if (!Array.isArray(inconsistentNames) || inconsistentNames.length < 1) {
       logDebug(pluginJson, 'renameInconsistentNames(): No inconsistent names found. Stopping.')
-      showMessage('No inconsistent names found. Well done!')
+      showMessage('No inconsistent names found. Well done!', 'OK', 'Rename inconsistent names')
       return
     }
 
-    await showMessage(`Found ${inconsistentNames.length} inconsistent names.
-      ${inconsistentNames.map((note) => note.filename).join('\n')}
-    `)
+    await showMessageWithList(`Found ${inconsistentNames.length} inconsistent names:`, inconsistentNames.map((note) => `- ${note.filename}`), 'OK', 'Rename inconsistent names')
 
     const response = await showMessageYesNoCancel(
       `Would you like to be prompted before renaming each of these note filenames?

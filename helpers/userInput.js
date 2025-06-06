@@ -130,6 +130,26 @@ export async function showMessage(message: string, confirmButton: string = 'OK',
 }
 
 /**
+ * Show a single-button dialog-box like message (modal), with a list of items, that will be truncated if too long.
+ * Note: This is a hack to avoid showing too many items at once, as the CommandBar.prompt() function is not smart and can run off the screen.
+ * @author @jgclark
+ *
+ * @param {string} message - text to display to user
+ * @param {Array<string>} list - array of strings to display to user
+ * @param {?string} confirmButton - the "button" (option) text (default: 'OK')
+ * @param {?string} dialogTitle - title for the dialog (default: empty)
+ */
+export async function showMessageWithList(message: string, list: Array<string>, confirmButton: string = 'OK', dialogTitle: string = ''): Promise<void> {
+  const safeListLimitToDisplay = 25
+  const listToShow = list.slice(0, safeListLimitToDisplay)
+  const listIsLimited = list.length > safeListLimitToDisplay
+  const listToShowString = listToShow.join('\n')
+  const listIsLimitedString = listIsLimited ? `\n  ... and ${ list.length - safeListLimitToDisplay } more` : ''
+  const messageToShow = `${ message } \n${ listToShowString }${ listIsLimitedString }`
+  await CommandBar.prompt(dialogTitle, messageToShow, [confirmButton])
+}
+
+/**
  * Show a simple Yes/No (could be OK/Cancel, etc.) dialog using CommandBar.
  * Returns the text of the chosen option (by default 'Yes' or 'No')
  * Will now use newer native dialog if available (from 3.3.2), which adds a title.
