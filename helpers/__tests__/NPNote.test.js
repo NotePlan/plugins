@@ -1,4 +1,4 @@
-/* global jest, describe, test, expect, beforeAll */
+/* global jest, describe, test, expect, beforeAll, beforeEach */
 import { format } from 'date-fns'
 import * as NPNote from '../NPnote'
 import { DataStore, Paragraph, Note, Editor, Calendar } from '@mocks/index'
@@ -147,6 +147,332 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(headings[0]).toEqual('## First heading')
         expect(headings[1]).toEqual('## L2 heading ')
         expect(headings[2]).toEqual('### L3 heading  ')
+      })
+    })
+  })
+  describe('getFSSafeFilenameFromNoteTitle', () => {
+    beforeEach(() => {
+      DataStore.defaultFileExtension = 'md'
+    })
+
+    describe('Normal cases', () => {
+      test('should return correct filename for simple title in root folder', () => {
+        const mockNote = {
+          filename: 'existing-filename.md',
+          title: 'My Test Note',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('My Test Note.md')
+      })
+
+      test('should return correct filename for title in subfolder', () => {
+        const mockNote = {
+          filename: 'Projects/Work/existing-filename.md',
+          title: 'Project Meeting Notes',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('Projects/Work/Project Meeting Notes.md')
+      })
+
+      test('should return correct filename for note in deeply nested folder', () => {
+        const mockNote = {
+          filename: 'Company/Projects/2024/Q1/old-name.md',
+          title: 'Q1 Planning',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('Company/Projects/2024/Q1/Q1 Planning.md')
+      })
+    })
+
+    describe('Character replacement cases', () => {
+      test('should replace forward slash with underscore', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Meeting/Discussion',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('Meeting_Discussion.md')
+      })
+
+      test('should replace at symbol with underscore', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Email@Work',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('Email_Work.md')
+      })
+
+      test('should replace dollar sign with underscore', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Budget$2024',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('Budget_2024.md')
+      })
+
+      test('should replace colon with underscore', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Time:Management',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('Time_Management.md')
+      })
+
+      test('should replace backslash with underscore', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Path\\To\\File',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('Path_To_File.md')
+      })
+
+      test('should replace double quote with underscore', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Meeting "Important" Notes',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('Meeting _Important_ Notes.md')
+      })
+
+      test('should replace less than symbol with underscore', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Value<10',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('Value_10.md')
+      })
+
+      test('should replace greater than symbol with underscore', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Value>100',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('Value_100.md')
+      })
+
+      test('should replace pipe symbol with underscore', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Option A | Option B',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('Option A _ Option B.md')
+      })
+
+      test('should replace multiple special characters', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Project/@Home:Budget$2024',
+          type: 'Notes'
+        }
+
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('Project__Home_Budget_2024.md')
+      })
+
+      test('should replace all NTFS-disallowed characters', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'File\\Name/With"All<Bad>Chars|Here:And@More$',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('File_Name_With_All_Bad_Chars_Here_And_More_.md')
+      })
+
+      test('should handle multiple instances of same character', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Path/To/File',
+          type: 'Notes'
+        }
+
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('Path_To_File.md')
+      })
+
+      test('should handle multiple instances of different disallowed characters', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'File>>Name<<With||Multiple',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('File__Name__With__Multiple.md')
+      })
+
+      test('should handle mixed valid and invalid characters', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Valid-Name_With.Some"Invalid<Chars',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+        expect(result).toBe('Valid-Name_With.Some_Invalid_Chars.md')
+      })
+    })
+
+    describe('File extension cases', () => {
+      test('should use txt extension when DataStore.defaultFileExtension is txt', () => {
+        DataStore.defaultFileExtension = 'txt'
+
+        const mockNote = {
+          filename: 'test.md',
+          title: 'My Note',
+          type: 'Notes'
+        }
+
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('My Note.txt')
+      })
+
+      test('should use custom extension', () => {
+        DataStore.defaultFileExtension = 'markdown'
+
+        const mockNote = {
+          filename: 'test.md',
+          title: 'My Note',
+          type: 'Notes'
+        }
+
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('My Note.markdown')
+      })
+    })
+
+    describe('Empty title cases', () => {
+      test('should return empty string and log warning for empty title', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: '',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('')
+
+      })
+
+      test('should return empty string and log warning for whitespace-only title', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: '   ',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('')
+
+      })
+    })
+
+    describe('Calendar note cases', () => {
+      test('should handle calendar note with date title', () => {
+        const mockNote = {
+          filename: '20240315.md',
+          title: '2024-03-15',
+          type: 'Calendar'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('20240315.md')
+      })
+
+      test('should handle weekly calendar note', () => {
+        const mockNote = {
+          filename: '2024-W12.md',
+          title: '2024-W12',
+          type: 'Calendar'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('2024-W12.md')
+      })
+    })
+
+    describe('Edge cases', () => {
+      test('should handle title with only special characters', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: '/@:$',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('____.md')
+      })
+
+      test('should handle very long title', () => {
+        const longTitle = 'A'.repeat(255)
+        const mockNote = {
+          filename: 'test.md',
+          title: longTitle,
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe(`${longTitle}.md`)
+      })
+
+      test('should handle title with unicode characters', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'Café ñoño 🌟',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('Café ñoño 🌟.md')
+      })
+
+      test('should handle empty folder path', () => {
+        const mockNote = {
+          filename: 'test.md',
+          title: 'My Note',
+          type: 'Notes'
+        }
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('My Note.md')
+      })
+    })
+
+    describe('Integration with actual folder paths', () => {
+      test('should correctly combine complex folder path with sanitized title', () => {
+        const mockNote = {
+          filename: 'Archive/2023/Projects/old-meeting-notes.md',
+          title: 'Meeting Notes: Q3/Q4 Review @2023',
+          type: 'Notes'
+        }
+
+        const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
+
+        expect(result).toBe('Archive/2023/Projects/Meeting Notes_ Q3_Q4 Review _2023.md')
       })
     })
   })

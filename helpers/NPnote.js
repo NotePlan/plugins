@@ -1019,3 +1019,50 @@ export function getHeadingsFromNote(
   }
   return headingStrings
 }
+
+/**
+ * Return a standardised safe filepath for a regular note, to match its title.
+ * Note: it's not explicity stated (I think), but filenames shouldn't start with a '/' character.
+ * Substitutes '\/:*?@$"<>|' characters in filename with '_' to avoid problems in Apple or NTFS filesystems.
+ * Additionally, filenames cannot end with a period (.) or a space, although these characters can be used within the filename itself.
+ * @author @Leo, improved by @jgclark
+ * @param {TNote} note
+ * @returns {string} filepath
+ */
+export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
+  const { defaultFileExtension } = DataStore
+
+  // If this is a Calendar note, then give a warning, but return the filename as is.
+  if (note.type === 'Calendar') {
+    logWarn('getFSSafeFilenameFromNoteTitle', `Shouldn't be called on Calendar notes. Returning ${note.filename} filename as is.`)
+    return note.filename
+  }
+
+  // Get the folder name from the filename.
+  // Note: if in root folder, then justFolderName will be '/'
+  const justFolderName = getFolderFromFilename(note.filename)
+
+  // Get new title for note, though with any '/:@$' replaced with '_'
+  const filesystemSafeTitle = note.title
+    .trim()
+    .replaceAll('\\', '_')
+    .replaceAll('/', '_')
+    .replaceAll('@', '_')
+    .replaceAll('$', '_')
+    .replaceAll(':', '_')
+    .replaceAll('*', '_')
+    .replaceAll('?', '_')
+    .replaceAll('"', '_')
+    .replaceAll('<', '_')
+    .replaceAll('>', '_')
+    .replaceAll('|', '_')
+  if (filesystemSafeTitle !== '') {
+    const newName = justFolderName !== '/'
+      ? `${justFolderName}/${filesystemSafeTitle}.${defaultFileExtension}`
+      : `${filesystemSafeTitle}.${defaultFileExtension}`
+    return newName
+  } else {
+    logWarn('NPnote.js', `getFSSafeFilenameFromNoteTitle(): No title found in note ${note.filename}. Returning empty string.`)
+    return ''
+  }
+}
