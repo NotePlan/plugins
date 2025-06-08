@@ -34,6 +34,7 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 ### Developer
 - Massively refactored rendering pipeline (NPTemplating) to make it easier to understand and maintain
+- Added a lot of logging to help debug issues with templating that users may encounter
 - Added event methods eventDate and eventEndDate to the templating context object so Meeting Notes could use DataStore.invoke which serializes and otherwise drops functions. this allows Meeting Notes to not need updating but always use the latest Templating
 - Added `init` method to Templating.js to allow for automatic updates to the plugin (crazy that it was not there before)
 
