@@ -1,33 +1,41 @@
 // @flow
 
 // import pluginJson from '../../plugin.json'
-import { newFilepathForNote } from './newNotePath'
-import { logDebug } from '@helpers/dev'
+import { getSettings } from '../noteHelpers'
+import { clo, logDebug, logWarn } from '@helpers/dev'
+import { getRegularNotesInFolder } from '@helpers/note'
+import { getFSSafeFilenameFromNoteTitle } from '@helpers/NPnote'
 
-export function findInconsistentNames(folder?: string = ''): Array<TNote> {
-  const { projectNotes } = DataStore
+/**
+ * Finds notes where the filename doesn't match what it should be based on the note's title.
+ * For example, if a note has title "Meeting Notes" but filename "meeting-notes.md", this would be considered inconsistent.
+ * 
+ * @param {string} folder - Optional folder path to limit the search. If empty string or '/', checks all folders
+ * @returns {Array<TNote>} Array of notes where the current filename differs from what it should be
+ */
+export async function findInconsistentNames(folder: string = ''): Promise<Array<TNote>> {
+  // Work out what files to check, taking note of any folders to ignore
+  const settings = await getSettings()
+  const foldersToIgnoreSetting = settings.foldersToIgnore ?? ''
+  const foldersToIgnore = foldersToIgnoreSetting.split(',').map((folder) => folder.trim())
+  let filesToCheck = getRegularNotesInFolder(folder, foldersToIgnore, true)
+  logDebug('findInconsistentNames', `Will check ${filesToCheck.length} notes in folder '${folder}' and its sub-folders, ignoring [${foldersToIgnore.join(', ')}] folders`)
 
-  // Note: there's a faster way to do this if folder is given ... (which it currently never is)
-  return projectNotes
+  filesToCheck = filesToCheck
     .filter((note) => {
-      const currentFullPath = note.filename
-      if (currentFullPath.substring(0, 1) === '@') {
-        // Ignore Notes in reserved folders
-        return false
-      }
+      const currentFullFilename = note.filename
+      const idealFullFilename = getFSSafeFilenameFromNoteTitle(note)
+      // return currentFullFilename !== idealFullFilename
 
-      // If a folder is specified, only check notes in that folder, ignored if '/' is specified
-      if (folder.length > 0 && folder !== '/') {
-        // Only check notes in the specified folder
-        if (currentFullPath.indexOf(folder) !== 0) {
-          // logDebug(pluginJson, `findInconsistentNames(): Ignoring note ${currentFullPath} as not in specified folder ${folder}`)
-          return false
-        }
-      }
-
-      const newPath = newFilepathForNote(note)
-
-      return currentFullPath !== newPath
+      // Normalize both strings to handle accented characters consistently
+      const normalizedCurrent = currentFullFilename.normalize('NFD')
+      const normalizedIdeal = idealFullFilename.normalize('NFD')
+      return normalizedCurrent !== normalizedIdeal
     })
     .sort()
+  logDebug('findInconsistentNames', `Found ${filesToCheck.length} inconsistent notes:`)
+  filesToCheck.forEach((note) => {
+    logDebug('findInconsistentNames', `- ${note.filename} ${note.filename.length} ${note.filename.normalize('NFD')} // ${getFSSafeFilenameFromNoteTitle(note)} ${getFSSafeFilenameFromNoteTitle(note).length} ${getFSSafeFilenameFromNoteTitle(note).normalize('NFD')}`)
+  })
+  return filesToCheck
 }

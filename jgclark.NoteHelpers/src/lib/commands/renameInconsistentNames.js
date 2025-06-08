@@ -1,8 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Functions to identify and fix where note names and their filenames are inconsistent.
-// by Leo Melo, readied for the plugin by @jgclark
-// Last updated 2025-06-06 for v1.1.2 by @jgclark
+// by Leo Melo, readied for the plugin and maintained by @jgclark
+// Last updated 2025-06-06 for v1.2.0 by @jgclark
 //-----------------------------------------------------------------------------
 // TODO:
 // - add a 'foldersToIgnore' option.
@@ -16,11 +16,9 @@ import { chooseFolder, showMessage, showMessageWithList, showMessageYesNoCancel 
 /**
  * Renames all project notes with inconsistent names (i.e. where the note title and filename are different).
  * Optionally prompts the user before renaming each note.
- *
- * @returns void
  */
 export async function renameInconsistentNames(): Promise<void> {
-  const directory = await chooseFolder('Choose a folder to rename notes in')
+  const directory = await chooseFolder('Choose a folder to rename inconsistent notes in')
 
   if (!directory) {
     logWarn(pluginJson, 'renameInconsistentNames(): No folder chosen. Stopping.')
@@ -30,7 +28,7 @@ export async function renameInconsistentNames(): Promise<void> {
   logDebug(pluginJson, `renameInconsistentNames(): Chosen folder: ${directory}`)
 
   try {
-    const inconsistentNames = findInconsistentNames(directory)
+    const inconsistentNames = await findInconsistentNames(directory)
     if (!Array.isArray(inconsistentNames) || inconsistentNames.length < 1) {
       logDebug(pluginJson, 'renameInconsistentNames(): No inconsistent names found. Stopping.')
       showMessage('No inconsistent names found. Well done!', 'OK', 'Rename inconsistent names')

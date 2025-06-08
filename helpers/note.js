@@ -355,6 +355,61 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string, parti
 }
 
 /**
+ * Check if a note is in a special folder.
+ * @param {TNote} note - the note to check
+ * @returns {boolean} true if the note is in a special folder, false otherwise
+ */
+export function isNoteInSpecialFolder(note: TNote): boolean {
+  return note.filename.substring(0, 1) === '@'
+}
+
+/**
+ * Get all regular notes in a given folder (and any sub-folders):
+ * - matching all folders that include the 'forFolder' parameter
+ * - or just those in the root folder (if forFolder === '/')
+ * - or all regular notes if no folder given
+ * If 'ignoreSpecialFolders' is true, then ignore folders whose folder path starts with '@' (e.g. @Templates)
+ * Note: this is a newer version of getProjectNotesInFolder() that reflects Eduard's updated naming.
+ * @author @dwertheimer + @jgclark
+
+ * @param {string} forFolder optional folder name (e.g. 'myFolderName'), matching all folders that include this string
+ * @param {Array<string>} foldersToIgnore? (default []) ignore folders whose folder path starts with any of these strings
+ * @param {boolean?} ignoreSpecialFolders (default true) ignore folders whose folder path starts with '@' (e.g. @Templates)
+ * @returns {$ReadOnlyArray<TNote>} array of notes in the folder
+ */
+export function getRegularNotesInFolder(
+  forFolder: string = '',
+  ignoreSpecialFolders: boolean = true,
+  foldersToIgnore: Array<string> = [],
+): $ReadOnlyArray<TNote> {
+  const notes: $ReadOnlyArray<TNote> = DataStore.projectNotes
+  let filteredNotes: Array<TNote> = []
+  if (forFolder === '') {
+    filteredNotes = notes.slice() // slice() avoids $ReadOnlyArray mismatch problem
+  } else if (forFolder === '/') {
+    // root folder ('/') has to be treated as a special case
+    filteredNotes = notes.filter((note) => !note.filename.includes('/'))
+  } else {
+    // if last character is a slash, remove it
+    const folderWithoutSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder.slice(0, forFolder.length) : forFolder
+    filteredNotes = notes.filter((note) => getFolderFromFilename(note.filename).startsWith(folderWithoutSlash))
+  }
+
+  // Now, if wanted, filter out any special folders
+  if (ignoreSpecialFolders) {
+    filteredNotes = filteredNotes.filter((note) => !isNoteInSpecialFolder(note))
+  }
+
+  // Finally, if wanted, filter out any of the folders to ignore
+  if (foldersToIgnore.length > 0) {
+    filteredNotes = filteredNotes.filter((note) => !foldersToIgnore.some((folder) => note.filename.startsWith(folder)))
+  }
+
+  // logDebug('note/getRegularNotesInFolder', `Found ${filteredNotes.length} notes in folder '${forFolder}'`)
+  return filteredNotes
+}
+
+/**
  * Get all notes in a given folder:
  * - matching all folders that include the 'forFolder' parameter
  * - or just those in the root folder (if forFolder === '/')
@@ -443,6 +498,7 @@ export function getUniqueNoteTitle(title: string): string {
 
 /**
  * TODO: finish moving refs for this from NPnote to here.
+ * WARNING: Deprecated: use renamed function 'getRegularNotesFromFilteredFolders' instead.
  * Return array of all project notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
@@ -465,6 +521,37 @@ export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>,
     }
   }
   return projectNotesToInclude
+}
+
+/**
+ * Return array of all regular notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
+ * Note: this is a newer version of getRegularNotesInFolder() that reflects Eduard's updated naming.
+ * @author @jgclark
+ * @param {Array<string>} foldersToExclude
+ * @param {boolean} excludeSpecialFolders?
+ * @returns {Array<TNote>} wanted notes
+ */
+export function getRegularNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
+  try {
+    // Get list of wanted folders
+    const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders)
+
+    // Iterate over all project notes and keep the notes in the wanted folders ...
+    const allProjectNotes = DataStore.projectNotes
+    const projectNotesToInclude = []
+    for (const pn of allProjectNotes) {
+      const thisFolder = getFolderFromFilename(pn.filename)
+      if (filteredFolders.includes(thisFolder)) {
+        projectNotesToInclude.push(pn)
+      } else {
+        logDebug('note/getRegularNotesFromFilteredFolders', `- excluded note '${pn.filename}'`)
+      }
+    }
+    return projectNotesToInclude
+  } catch (err) {
+    logError('note/getRegularNotesFromFilteredFolders', err.message)
+    return []
+  }
 }
 
 /**

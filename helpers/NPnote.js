@@ -1043,7 +1043,7 @@ export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
   const justFolderName = getFolderFromFilename(note.filename)
 
   // Get new title for note, though with any '/:@$' replaced with '_'
-  const filesystemSafeTitle = note.title
+  let filesystemSafeTitle = note.title
     .trim()
     .replaceAll('\\', '_')
     .replaceAll('/', '_')
@@ -1056,6 +1056,8 @@ export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
     .replaceAll('<', '_')
     .replaceAll('>', '_')
     .replaceAll('|', '_')
+  // Replace multiple underscores with a single underscore
+  filesystemSafeTitle = filesystemSafeTitle.replace(/_+/g, '_')
   if (filesystemSafeTitle !== '') {
     const newName = justFolderName !== '/'
       ? `${justFolderName}/${filesystemSafeTitle}.${defaultFileExtension}`

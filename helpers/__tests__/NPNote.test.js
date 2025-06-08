@@ -289,7 +289,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
         const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
 
-        expect(result).toBe('Project__Home_Budget_2024.md')
+        expect(result).toBe('Project_Home_Budget_2024.md')
       })
 
       test('should replace all NTFS-disallowed characters', () => {
@@ -321,7 +321,7 @@ describe(`${PLUGIN_NAME}`, () => {
           type: 'Notes'
         }
         const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
-        expect(result).toBe('File__Name__With__Multiple.md')
+        expect(result).toBe('File_Name_With_Multiple.md')
       })
 
       test('should handle mixed valid and invalid characters', () => {
@@ -424,7 +424,7 @@ describe(`${PLUGIN_NAME}`, () => {
         }
         const result = NPNote.getFSSafeFilenameFromNoteTitle(mockNote)
 
-        expect(result).toBe('____.md')
+        expect(result).toBe('_.md')
       })
 
       test('should handle very long title', () => {

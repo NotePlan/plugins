@@ -1,9 +1,9 @@
 // @flow
 
 // -----------------------------------------------------------------------------
-// Note Helpers plugin for NotePlan
+// NoteHelpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2025-02-18 for v1.2.0 by @jgclark
+// Last updated 2025-06-06 for v1.2.0 by @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -16,10 +16,10 @@ import { showMessage } from '@helpers/userInput'
 
 export { countAndAddDays } from './countDays'
 export { indexFolders, updateAllIndexes } from './indexFolders'
-export { listInconsistentNames } from './lib/commands/listInconsistentNames'
-export { titleToFilename } from './lib/commands/titleToFilename'
 export { filenameToTitle } from './lib/commands/filenameToTitle'
+export { listInconsistentNames } from './lib/commands/listInconsistentNames'
 export { renameInconsistentNames } from './lib/commands/renameInconsistentNames'
+export { titleToFilename } from './lib/commands/titleToFilename'
 export { listPublishedNotes } from './listPublishedNotes'
 export { newNote, newNoteFromClipboard, newNoteFromSelection } from './newNote'
 export { addTriggerToNote, convertLocalLinksToPluginLinks, addFrontmatterToNote, moveNote, logEditorNoteDetailed, renameNoteFile, trashNote } from './noteHelpers'

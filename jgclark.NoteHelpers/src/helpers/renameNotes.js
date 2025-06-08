@@ -5,7 +5,7 @@
 // --------------------------------------------------------------
 
 import pluginJson from '../../plugin.json'
-import { newFilepathForNote } from './newNotePath'
+import { getFSSafeFilenameFromNoteTitle } from '@helpers/NPnote'
 import { logDebug, logWarn } from '@helpers/dev'
 import { showMessage, showMessageYesNoCancel } from '@helpers/userInput'
 
@@ -23,7 +23,7 @@ export async function renameNoteToTitle(note: Note, shouldPromptBeforeRenaming: 
 
   const title = note.title
   const currentFilepath = note.filename
-  const newFilepath = newFilepathForNote(note)
+  const newFilepath = getFSSafeFilenameFromNoteTitle(note)
 
   if (newFilepath === '' || title === '') {
     // No title found, so don't do anything.
