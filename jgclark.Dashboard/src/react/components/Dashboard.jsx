@@ -78,7 +78,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
-  useWatchForResizes(sendActionToPlugin) // TEST: is this doing anything?
+  // Resizing window is only possible on macOS.
+  if (pluginData.platform === 'macOS') {
+    useWatchForResizes(sendActionToPlugin)
+  }
   // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs)
   const shortDelayTimerIsOn = logSettings._logLevel !== 'DEV'
   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: shortDelayTimerIsOn })

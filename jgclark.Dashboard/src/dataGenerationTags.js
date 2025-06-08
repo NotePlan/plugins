@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-05-23 for v2.3.0.b2, @jgclark
+// Last updated 2025-06-04 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -31,14 +31,11 @@ import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 
-const turnOnAPIComparison = true // TODO(later): remove this in time
-
-//-----------------------------------------------------------------
 /**
  * Generate data for a section for items with a Tag/Mention.
- * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future.
- * Uses all the 'ignore' settings, other than any that are the same as this particular tag/mention.???
- * Now also implmenets noteTags feature to include all open items in a note, based on 'note-tag' attribute in frontmatter.
+ * Only find paras with this *single* tag/mention which include open tasks, and that by default aren't scheduled in the future.
+ * Uses all the 'ignore' settings, apart from 'ignoreItemsWithTerms' if it includes this particular tag/mention.
+ * Now also implements noteTags feature to include all open items in a note, based on 'note-tag' attribute in frontmatter.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
@@ -54,6 +51,8 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
   let isHashtag = false
   let isMention = false
   let source = ''
+  const turnOnAPIComparison = config.FFlag_UseTagCacheAPIComparison ?? false
+  let comparisonDetails = ''
 
   const ignoreTermsMinusTagCSV: string = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
     .filter((t) => t !== sectionDetail.sectionName)
@@ -83,8 +82,13 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       const cacheIsAvailable = isTagMentionCacheAvailableforItem(sectionDetail.sectionName)
       if (config.FFlag_UseTagCache && cacheIsAvailable) {
         // Use Cache
-        logInfo('getTaggedSectionData', `- using cache for ${sectionDetail.sectionName}`)
-        const filenamesWithTagFromCache = await getFilenamesOfNotesWithTagOrMentions([sectionDetail.sectionName], true, turnOnAPIComparison)
+        logInfo(
+          'getTaggedSectionData',
+          `- using cache for 
+        ${sectionDetail.sectionName}`,
+        )
+        let filenamesWithTagFromCache: Array<string> = []
+        ;[filenamesWithTagFromCache, comparisonDetails] = await getFilenamesOfNotesWithTagOrMentions([sectionDetail.sectionName], true, turnOnAPIComparison)
 
         // This is taking about 2ms per note for JGC
         filenamesWithTagFromCache.forEach((filename) => {
@@ -179,12 +183,13 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         logTimer('getTaggedSectionData', thisStartTime, `- after sync dedupe -> ${filteredTagParas.length}`)
 
         // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
-        const beforeFilterCount = filteredTagParas.length
+        // const beforeFilterCount = filteredTagParas.length
         // Note: this is a quick operation
         const preDedupeCount = filteredTagParas.length
         // $FlowIgnore[class-object-subtyping]
         filteredTagParas = removeDuplicates(filteredTagParas, ['content', 'filename'])
         const postDedupeCount = filteredTagParas.length
+
         // TODO: remove this logging once we find cause of DBW seeing dupes
         if (preDedupeCount !== postDedupeCount) {
           logDebug('getTaggedSectionData', `- de-duped from ${preDedupeCount} to ${postDedupeCount} items`)
@@ -232,6 +237,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
   if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
   // TODO(later): remove note about the tag cache
   sectionDescription += `, ${source}`
+  if (comparisonDetails !== '') sectionDescription += ` [${comparisonDetails}]`
   const section: TSection = {
     ID: sectionNumStr,
     name: sectionDetail.sectionName,

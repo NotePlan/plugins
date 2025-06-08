@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2025-05-09 for v2.2.2 by @jgclark
+// Last updated 2025-06-04 for v2.3.0 by @jgclark
 // --------------------------------------------------------------------------
 
 // --------------------------------------------------------------------------
@@ -261,12 +261,18 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const dashboardSettingsItems = useMemo(() => createDashboardSettingsItems(tempDashboardSettings), [tempDashboardSettings])
   const featureFlagItems = useMemo(() => createFeatureFlagItems(tempDashboardSettings), [tempDashboardSettings])
 
-  const isDevMode = logSettings._logLevel === 'DEV'
+  // Show Feature Flags menu if any FF is set, or we're in DEV logging mode (and not in demo mode)
+  const showFeatureFlagsMenu = (logSettings._logLevel === 'DEV' || dashboardSettings.FFlag_DebugPanel
+    || dashboardSettings.FFlag_ShowTestingPanel
+    || dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging
+    || dashboardSettings.FFlag_HardRefreshButton
+    || dashboardSettings.FFlag_ShowSectionTimings
+    || dashboardSettings.FFlag_UseTagCache) && !pluginData.demoMode
   const showRefreshButton = pluginData.platform !== 'iOS'
   const showHardRefreshButton = dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
   const isMobile = pluginData.platform !== 'macOS'
   const isNarrowWidth = window.innerWidth <= 700
-  const isSearchPanelAvailable = dashboardSettings?.FFlag_ShowSearchPanel
+  const isSearchPanelAvailable = dashboardSettings?.FFlag_ShowSearchPanel // Note: not yet used
 
   // ----------------------------------------------------------------------
   // Render
@@ -332,7 +338,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           </button>
 
           {/* Feature Flags dropdown */}
-          {isDevMode && (
+          {showFeatureFlagsMenu && (
             <DropdownMenu
               onSaveChanges={handleChangesInSettings}
               otherItems={featureFlagItems}
@@ -344,9 +350,6 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
               labelPosition="left"
             />
           )}
-
-          {/* Render the SettingsDialog only when it is open */}
-          {isDialogOpen && <SettingsDialog items={dashboardSettingsItems} className={'dashboard-settings'} onSaveChanges={handleChangesInSettings} />}
 
           {/* Display Filters dropdown menu */}
           <DropdownMenu
@@ -369,6 +372,13 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             title="Open Dashboard Settings dialog">
             <i className="fa-solid fa-gear"></i>
           </button>
+
+          {/* Render the SettingsDialog only when it is open */}
+          {isDialogOpen && <SettingsDialog items={dashboardSettingsItems} className={'dashboard-settings'} onSaveChanges={handleChangesInSettings} />}
+
+          {/* Spacer for the NP-generated close button on modal windows on mobile */}
+          {isMobile && <span className="modalCloseButtonSpacer"></span>}
+
         </div>
       </header>
 

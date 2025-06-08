@@ -154,13 +154,14 @@ export function updateTagMentionCacheDefinitionsFromAllPerspectives(allPerspecti
  * @param {Array<string>} tagOrMentions The tags and/or mentions to search for.
  * @param {boolean} firstUpdateCache If true, the cache will be updated before the search is done. (Default: true)
  * @param {boolean} turnOnAPIComparison? default: true
- * @returns {Array<string>} An array of note filenames that contain the tag or mention.
+ * @returns {[Array<string>, string]} An array of note filenames that contain the tag or mention, and a string with details of the comparison.
+ * TODO(later): remove the second return value in v2.4.0
  */
 export async function getFilenamesOfNotesWithTagOrMentions(
   tagOrMentions: Array<string>,
   firstUpdateCache: boolean = true,
   turnOnAPIComparison: boolean = true,
-): Promise<Array<string>> {
+): Promise<[Array<string>, string]> {
   try {
     logInfo(
       'getFilenamesOfNotesWithTagOrMentions',
@@ -203,6 +204,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(
     logInfo('getFilenamesOfNotesWithTagOrMentions', `Regular notes in cache: ${String(regularNoteItems.length)}`)
     logInfo('getFilenamesOfNotesWithTagOrMentions', `Calendar notes in cache: ${String(calNoteItems.length)}`)
     const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
+    let countComparison = ''
 
     // Get matching Calendar notes using Cache
     let matchingNoteFilenamesFromCache = calNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename)
@@ -236,6 +238,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(
       // Compare the two lists and note if different
       if (matchingNoteFilenamesFromCache.length !== matchingNotesFromAPI.length) {
         logWarn('getFilenamesOfNotesWithTagOrMentions', `- # notes from CACHE (${matchingNoteFilenamesFromCache.length}) !== API (${matchingNotesFromAPI.length}).`)
+        countComparison = `😡 ${matchingNoteFilenamesFromCache.length} CACHE notes != ${matchingNotesFromAPI.length} API notes`
         // Write a list of filenames that are in one but not the other
         const filenamesInCache = matchingNoteFilenamesFromCache
         const filenamesInAPI = matchingNotesFromAPI.map((n) => n.filename)
@@ -244,13 +247,14 @@ export async function getFilenamesOfNotesWithTagOrMentions(
         logInfo('getFilenamesOfNotesWithTagOrMentions', `- filenames in API but not in CACHE: ${filenamesInAPI.filter((f) => !filenamesInCache.includes(f)).join(', ')}`)
       } else {
         logInfo('getFilenamesOfNotesWithTagOrMentions', `- 😃 # notes from CACHE (${matchingNoteFilenamesFromCache.length}) === API (${matchingNotesFromAPI.length})`)
+        countComparison = `😃 notes CACHE = API`
       }
     }
 
     return matchingNoteFilenamesFromCache
   } catch (err) {
     logError('getFilenamesOfNotesWithTagOrMentions', JSP(err))
-    return []
+    return [[], 'error']
   }
 }
 

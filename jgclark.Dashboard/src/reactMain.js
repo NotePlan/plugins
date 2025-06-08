@@ -2,10 +2,9 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2025-05-23 for v2.3.0.b2
+// Last updated 2025-06-05 for v2.3.0
 //-----------------------------------------------------------------------------
 
-import { getGlobalSharedData, sendToHTMLWindow } from '../../helpers/HTMLView'
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
@@ -19,7 +18,8 @@ import { generateTagMentionCache, isTagMentionCacheGenerationScheduled } from '.
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
-import { saveSettings } from '@helpers/NPConfiguration'
+import { getGlobalSharedData, sendToHTMLWindow, type HtmlWindowOptions } from '@helpers/HTMLView'
+import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { chooseOption, showMessage } from '@helpers/userInput'
@@ -44,23 +44,6 @@ export type PassedData = {
   windowID?: string,
 }
 
-// const commsBridge = `
-// <!-- commsBridge scripts -->
-// <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
-// <script>
-// /* you must set this before you import the CommsBridge file */
-// const receivingPluginID = jgclark.Dashboard"; // the plugin ID of the plugin which will receive the comms from HTML
-// // That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
-// // this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
-
-// /* the onMessageFromPlugin function is called when data is received from your plugin and needs to be processed. this function
-//    should not do the work itself, it should just send the data payload to a function for processing. The onMessageFromPlugin function
-//    below and your processing functions can be in your html document or could be imported in an external file. The only
-//    requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
-//    be in your html document or could be imported in an external file */
-// </script>
-// <script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
-// <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
 // ------------------------------------------------------------
 
 /**
@@ -73,7 +56,7 @@ export async function showDemoDashboard(): Promise<void> {
 /**
  * x-callback entry point to change a single setting.
  * (Note: see also setSettings which does many at the same time.)
- * FIXME: doesn't work for show*Sections
+ * FIXME: doesn't work for show*Sections?
  * @param {string} key
  * @param {string} value
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove&arg1=true
@@ -95,8 +78,8 @@ export async function setSetting(key: string, value: string): Promise<void> {
       dashboardSettings[key] = setTo
       // logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo} / ${thisSettingType})`)
       // TEST: use helper to save settings from now on
-      // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
-      const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) })
+      // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
+      const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) })
       if (!res) {
         throw new Error(`saveSettings failed for setting '${key}:${value}'`)
       }
@@ -137,8 +120,8 @@ export async function setSettings(paramsIn: string): Promise<void> {
     }
     logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)
     // TEST: use helper to save settings from now on
-    // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
-    const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) })
+    // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
+    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) })
     if (!res) {
       throw new Error(`saveSettings failed for params: '${paramsIn}'`)
     }
@@ -259,8 +242,8 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
     })
 
     // TEST: use helper to save settings from now on
-    // DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
-    const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) })
+    // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
+    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) })
     if (!res) {
       throw new Error(`saveSettings failed for sections '${limitToSections}'`)
     }
@@ -304,12 +287,6 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     const data = await getInitialDataForReactWindow(perspectiveName, useDemoData)
     // logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
 
-    // these JS functions are inserted as text into the header of the React Window to allow for bi-directional comms (esp BANNER sending)
-    // TEST: removed
-    // const sendMessageToPluginFunction = `
-    //   const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
-    // `
-
     const resourceLinksInHeader = `
       <!-- <link rel="stylesheet" href="../${pluginJson['plugin.id']}/Dashboard.css"> -->
       <!-- <link rel="stylesheet" href="../${pluginJson['plugin.id']}/DashboardDialog.css"> -->
@@ -321,8 +298,10 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
       `
-    const windowOptions = {
-      windowTitle: data.title,
+    const platform = NotePlan.environment.platform
+
+    const windowOptions: HtmlWindowOptions = {
+      windowTitle: data?.title || 'Dashboard',
       customId: WEBVIEW_WINDOW_ID,
       makeModal: false,
       savedFilename: `../../${pluginJson['plugin.id']}/dashboard-react.html` /* for saving a debug version of the html file */,
@@ -331,13 +310,15 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       headerTags: `${resourceLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // set in separate CSS file referenced in header
-      preBodyScript: `        
+      preBodyScript: `
         <script type="text/javascript" >
           // Set DataStore.settings so default logDebug etc. logging works in React
           // This setting comes from ${pluginJson['plugin.id']}
           let DataStore = { settings: {_logLevel: "${DataStore?.settings?._logLevel}" } };
         </script>`,
       postBodyScript: ``,
+      paddingWidth: (platform === 'iPadOS') ? 32 : (platform === 'iOS') ? 0 : 0,
+      paddingHeight: (platform === 'iPadOS') ? 32 : (platform === 'iOS') ? 0 : 0,
     }
     logTimer('showDashboardReact', startTime, `===== Calling React =====`)
     // clo(data, `showDashboardReact data object passed`)
@@ -405,7 +386,7 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
     }
 
     // use our more reliable helper to save settings
-    const res = await saveSettings(pluginID, { ...DataStore.settings, dashboardSettings: JSON.stringify(newDashboardSettings) })
+    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(newDashboardSettings) })
     if (!res) {
       throw new Error(`saveSettings failed`)
     }
@@ -537,7 +518,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     notePlanSettings: NPSettings,
     logSettings: await getLogSettings(),
     demoMode: useDemoData,
-    platform: NotePlan.environment.platform, // used in dialog positioning
+    platform: NotePlan.environment.platform, // used in window/dialog management
     themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
     version: pluginJson['plugin.version'],
     pushFromServer: {
