@@ -12,6 +12,7 @@ import pluginJson from '../../plugin.json'
 import FrontmatterModule from '../support/modules/FrontmatterModule'
 import { normalizeToNotePlanFilename } from '../utils'
 import { getTemplateFolder } from '../config'
+import { clo } from '@helpers/dev'
 
 /**
  * Displays a UI for the user to choose a template from the available templates.
@@ -531,12 +532,19 @@ export async function getFolder(folder: string = '', promptMessage: string = 'Se
         selectedFolder = parts.join('/')
       }
     }
-  } else {
-    if (selectedFolder.length === 0) {
-      selectedFolder = await chooseFolder(promptMessage, false, true)
+  } else if (folder.startsWith('<select ') && folder.endsWith('>')) {
+    // find the value inside the <select> tag
+    const f = folder.slice(7, -1).split(' ')[1].trim()
+    if (folders.includes(f)) {
+      selectedFolder = await chooseFolder(promptMessage, false, true, f)
+    } else {
+      selectedFolder = ''
+      clo(folders, `getFolder: Folder "${f}" not found in ${folders.length} folders`)
     }
   }
-
+  if (selectedFolder.length === 0) {
+    selectedFolder = await chooseFolder(promptMessage, false, true)
+  }
   return selectedFolder
 }
 
