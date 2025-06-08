@@ -9,6 +9,7 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 - add tag function `getValuesForKey` to get all values for a given frontmatter tag
 - add tag function `promptKey` to prompt user for a value with a lot of flexibility on which folders to search for the value etc.
 - add tag function `getNote` to get a note by title, filename, or by id
+- add `<select XXX>` to allow for selecting a folder from a reduced list of folders starting with XXX
 - update `date` module to use `momentWrapper` from `helpers/momentWrapper.js` to ensure week numbering compatibility with NotePlan's user-configurable week start day preferences
 - fix promises and lack of await keyword in template tags
 - add openTasks, completedTasks, openChecklists, completedChecklists to NoteModule
@@ -30,9 +31,11 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 - added `moment` to globals
 - fixed `now` which did not match the documentation -- now works with simple offsetDays
 - fixed date8601 bug in the date module
+
 ### Developer
 - Massively refactored rendering pipeline (NPTemplating) to make it easier to understand and maintain
-- Added event methods eventDate and eventEndDate to the templating context object so Meeting Notes could use DataStore.invoke which serializes and otherwise drops functions. this allows Meeting Notes to not need updating but always get the latest Templating
+- Added event methods eventDate and eventEndDate to the templating context object so Meeting Notes could use DataStore.invoke which serializes and otherwise drops functions. this allows Meeting Notes to not need updating but always use the latest Templating
+- Added `init` method to Templating.js to allow for automatic updates to the plugin (crazy that it was not there before)
 
 
 ## [1.12.0] 2025-03-09 @dwertheimer

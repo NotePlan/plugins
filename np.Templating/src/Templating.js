@@ -37,11 +37,17 @@ import DateModule from '../lib/support/modules/DateModule'
 import { templateRunnerExecute } from './NPTemplateRunner'
 import { getNoteByFilename } from '../../helpers/note'
 
+/**
+ * NotePlan calls this function every time the plugin is run (any command in this plugin, including triggers)
+ * You should not need to edit this function. All work should be done in the commands themselves
+ */
 export async function init(): Promise<void> {
   try {
-    // executes before any np.Templating command
+    // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
+    // DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) => pluginUpdated(pluginJson, r))
+    DataStore.installOrUpdatePluginsByID(['np.Templating'], false, false, false)
   } catch (error) {
-    logError(pluginJson, error)
+    logError(pluginJson, error.message)
   }
 }
 
