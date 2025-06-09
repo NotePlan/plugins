@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.8.0] - 2025-06-09 @dwertheimer
+
+- Added templating specific commands to wizard to reduce confusion
+
 ## [1.7.0] - 2025-04-02 @dwertheimer
 
 - Added open a folder selection to wizard
