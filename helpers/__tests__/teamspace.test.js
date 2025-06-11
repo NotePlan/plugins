@@ -15,7 +15,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = new NotePlan()
-  DataStore.settings['_logLevel'] = 'DEBUG' // change this to DEBUG to get more logging, or 'none' for quiet
+  DataStore.settings['_logLevel'] = 'none' // change this to DEBUG to get more logging, or 'none' for quiet
 })
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/teamspace')}`
@@ -23,8 +23,8 @@ const PLUGIN_NAME = `📙 ${colors.yellow('helpers/teamspace')}`
 
 describe(`${PLUGIN_NAME}`, () => {
   /*
-  * parseTeamspaceFilename()
-  */
+   * parseTeamspaceFilename()
+   */
   describe('parseTeamspaceFilename()' /* function */, () => {
     test('should parse a non-teamspace calendar filename', () => {
       const result = t.parseTeamspaceFilename('20250422.md')
