@@ -305,16 +305,17 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
       commandType = _commandType
     } else {
       const options = [
-        { label: 'Copy URL to NOTE+Heading of current line', value: 'headingLink' },
+        { label: 'COPY URL to NOTE+Heading of current line', value: 'headingLink' },
         { label: 'OPEN a note or folder', value: 'openNote' },
         { label: 'NEW NOTE with title and text', value: 'addNote' },
         { label: 'ADD text to a note', value: 'addText' },
         { label: 'FILTER Notes by Preset', value: 'filter' },
         { label: 'SEARCH for text in notes', value: 'search' },
         { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
+        { label: 'RUN a Templating Command (e.g. new note, insert text, etc.)', value: 'runTemplating' },
+        { label: 'RUN a TemplateRunner type template', value: 'runTemplate' },
         { label: 'RUN a Plugin Command', value: 'runPlugin' },
-        { label: 'RUN a Template', value: 'runTemplate' },
-        { label: 'RUN a Shortcut', value: 'runShortcut' },
+        { label: 'RUN a Mac/iOS Shortcut', value: 'runShortcut' },
         { label: 'DELETE a note by title', value: 'deleteNote' },
         /*
       { label: 'Select a TAG in the sidebar', value: 'selectTag' },
@@ -352,6 +353,13 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
       case 'addNote':
         url = await addNote()
         break
+      case 'runTemplating':
+        runplugin = await chooseRunPluginXCallbackURL(true, /Templating/)
+        if (runplugin) {
+          url = runplugin.url || ''
+        } else {
+          return
+        }
       case 'runTemplate':
         url = await getXcallbackForTemplate()
         break

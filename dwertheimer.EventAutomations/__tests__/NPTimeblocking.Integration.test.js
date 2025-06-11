@@ -35,8 +35,7 @@ const filenameToday = `${filenameDateString(new Date())}.md`
 
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]
 const note = new Note({ paragraphs })
-const npFileDate = moment().format('YYYYMMDD')
-note.filename = `${npFileDate}.md`
+note.filename = `${unhyphenatedDate(new Date())}.md`
 Editor.note = note
 Editor.filename = note.filename
 

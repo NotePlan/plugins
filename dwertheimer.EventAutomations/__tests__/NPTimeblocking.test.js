@@ -4,7 +4,6 @@
 
 // Note: expect(spy).toHaveBeenNthCalledWith(2, expect.stringMatching(/ERROR/))
 
-import moment from 'moment'
 import * as mainFile from '../src/NPTimeblocking'
 import * as timeBlockingShared from '../src/timeblocking-shared'
 import * as configFile from '../src/config'
@@ -31,8 +30,7 @@ beforeAll(() => {
 
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]
 const note = new Note({ paragraphs })
-const npFileDate = moment().format('YYYYMMDD')
-note.filename = `${npFileDate}.md`
+note.filename = `${unhyphenatedDate(new Date())}.md`
 Editor.note = note
 Editor.filename = note.filename
 
@@ -98,14 +96,12 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         expect(result).toEqual(false)
       })
       test('should return false if Editor is open to another day', () => {
-        const npFileDate = moment('2020-01-01').format('YYYYMMDD')
-        Editor.filename = `${npFileDate}.md`
+        Editor.filename = `${unhyphenatedDate(new Date('2020-01-01'))}.md`
         const result = mainFile.editorIsOpenToToday()
         expect(result).toEqual(false)
       })
       test('should return true if Editor is open to is today', () => {
-        const npFileDate = moment().format('YYYYMMDD')
-        Editor.filename = `${npFileDate}.md`
+        Editor.filename = `${unhyphenatedDate(new Date())}.md`
         const result = mainFile.editorIsOpenToToday()
         expect(result).toEqual(true)
       })
