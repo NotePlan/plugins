@@ -32,6 +32,7 @@ export { generateRepeatsFromRecentNotes } from './repeats'
 export { listStubs } from './stubs'
 export { moveTopLevelTasksInEditor } from './topLevelTasks'
 export { listPotentialDoubles } from './doubledNotes'
+export { removeEmptyBlocks } from './emptyBlocks'
 
 /**
  * Other imports/exports

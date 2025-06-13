@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.15.0] - 2025-06-??? @jgclark
+- New command **/Remove empty blocks** which in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line.
+
 ## [0.14.7] - 2025-02-18 @jgclark
 - Stop lots of popups appearing when running **/Generate @repeats in recent notes** command (thanks, @kanera).
 - The **/List stubs** command now understands line links (and so ignores the part of the link after the `^` character) (thanks, @ChrisMetcalf).

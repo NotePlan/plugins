@@ -13,6 +13,7 @@ This plugin provides commands to help tidy up your notes:
 - **/List stubs**: creates a note that lists all your notes that have wikilinks that lead nowhere.
 - **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See section below.
 - **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character.
+- **/Remove empty blocks** (alias; ""): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
 - **/Remove section from recent notes** (alias "rsrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
  - **/Remove section from all notes** (alias "rsan"). Remove a given section (heading + its content block) from _all notes_. Use wisely, as this is dangerous! (original function by @dwertheimer)
