@@ -179,7 +179,8 @@ export function rangeToString(r: TRange): string {
  */
 export function displayTitle(n: ?CoreNoteFields): string {
   if (!n) {
-    return '(no note found)'
+    logError('general/displayTitle', 'No note found')
+    return '(error: no note found)'
   }
   if (n.type === 'Calendar') {
     if (getDateStringFromCalendarFilename(n.filename)) {
@@ -188,7 +189,8 @@ export function displayTitle(n: ?CoreNoteFields): string {
   } else {
     if (n.title) { return n.title }
   }
-  return '(error)'
+  logError('general/displayTitle', 'No title found')
+  return '(error: no title found)'
 }
 
 /**
