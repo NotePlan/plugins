@@ -23,17 +23,14 @@ import {
   convertISOToYYYYMMDD,
 } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/folders'
+import { getFolderListMinusExclusions, getFolderFromFilename, getRegularNotesInFolder, projectNotesFromFilteredFolders } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { noteHasFrontMatter, getFrontMatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import { sortListBy } from '@helpers/sorting'
-import {
-  isOpen,
-  // isClosed, isDone, isScheduled
-} from '@helpers/utils'
+import { isOpen } from '@helpers/utils'
 
 /*
  * Set the title of a note whether it's a frontmatter note or a regular note
@@ -319,7 +316,7 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string, parti
   // If we want to do a partial match, see if matching note(s) have already been created (ignoring @Archive and @Trash)
   if (partialTitleToMatch) {
     const partialTestString = partialTitleToMatch.split('#').join('')
-    const allNotesInFolder = getProjectNotesInFolder(noteFolder)
+    const allNotesInFolder = getRegularNotesInFolder(noteFolder)
     existingNotes = allNotesInFolder.filter((f) => f.title?.startsWith(partialTestString))
     logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing partial '${partialTestString}' note matches`)
   } else {
@@ -355,124 +352,6 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string, parti
 }
 
 /**
- * Check if a note is in a special folder.
- * @param {TNote} note - the note to check
- * @returns {boolean} true if the note is in a special folder, false otherwise
- */
-export function isNoteInSpecialFolder(note: TNote): boolean {
-  return note.filename.substring(0, 1) === '@'
-}
-
-/**
- * Get all regular notes in a given folder (and any sub-folders):
- * - matching all folders that include the 'forFolder' parameter
- * - or just those in the root folder (if forFolder === '/')
- * - or all regular notes if no folder given
- * If 'ignoreSpecialFolders' is true, then ignore folders whose folder path starts with '@' (e.g. @Templates)
- * Note: this is a newer version of getProjectNotesInFolder() that reflects Eduard's updated naming.
- * @author @dwertheimer + @jgclark
-
- * @param {string} forFolder optional folder name (e.g. 'myFolderName'), matching all folders that include this string
- * @param {Array<string>} foldersToIgnore? (default []) ignore folders whose folder path starts with any of these strings
- * @param {boolean?} ignoreSpecialFolders (default true) ignore folders whose folder path starts with '@' (e.g. @Templates)
- * @returns {$ReadOnlyArray<TNote>} array of notes in the folder
- */
-export function getRegularNotesInFolder(
-  forFolder: string = '',
-  ignoreSpecialFolders: boolean = true,
-  foldersToIgnore: Array<string> = [],
-): $ReadOnlyArray<TNote> {
-  const notes: $ReadOnlyArray<TNote> = DataStore.projectNotes
-  let filteredNotes: Array<TNote> = []
-  if (forFolder === '') {
-    filteredNotes = notes.slice() // slice() avoids $ReadOnlyArray mismatch problem
-  } else if (forFolder === '/') {
-    // root folder ('/') has to be treated as a special case
-    filteredNotes = notes.filter((note) => !note.filename.includes('/'))
-  } else {
-    // if last character is a slash, remove it
-    const folderWithoutSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder.slice(0, forFolder.length) : forFolder
-    filteredNotes = notes.filter((note) => getFolderFromFilename(note.filename).startsWith(folderWithoutSlash))
-  }
-
-  // Now, if wanted, filter out any special folders
-  if (ignoreSpecialFolders) {
-    filteredNotes = filteredNotes.filter((note) => !isNoteInSpecialFolder(note))
-  }
-
-  // Finally, if wanted, filter out any of the folders to ignore
-  if (foldersToIgnore.length > 0) {
-    filteredNotes = filteredNotes.filter((note) => !foldersToIgnore.some((folder) => note.filename.startsWith(folder)))
-  }
-
-  // logDebug('note/getRegularNotesInFolder', `Found ${filteredNotes.length} notes in folder '${forFolder}'`)
-  return filteredNotes
-}
-
-/**
- * Get all notes in a given folder:
- * - matching all folders that include the 'forFolder' parameter
- * - or just those in the root folder (if forFolder === '/')
- * - or all project notes if no folder given
- * Note: ignores any sub-folders
- * Now also caters for searches just in root folder.
- * @author @dwertheimer + @jgclark
-
- * @param {string} forFolder optional folder name (e.g. 'myFolderName'), matching all folders that include this string
- * @returns {$ReadOnlyArray<TNote>} array of notes in the folder
- */
-export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<TNote> {
-  const notes: $ReadOnlyArray<TNote> = DataStore.projectNotes
-  let filteredNotes: Array<TNote> = []
-  if (forFolder === '') {
-    filteredNotes = notes.slice() // slice() avoids $ReadOnlyArray mismatch problem
-  } else if (forFolder === '/') {
-    // root folder ('/') has to be treated as a special case
-    filteredNotes = notes.filter((note) => !note.filename.includes('/'))
-  } else {
-    // if last character is a slash, remove it
-    const folderWithoutSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder.slice(0, forFolder.length) : forFolder
-    filteredNotes = notes.filter((note) => getFolderFromFilename(note.filename) === folderWithoutSlash)
-  }
-  // logDebug('note/getProjectNotesInFolder', `Found ${filteredNotes.length} notes in folder '${forFolder}'`)
-  return filteredNotes
-}
-
-/**
- * Get all notes in a given folder (or all project notes if no folder given), sorted by note title.
- * Optionally look in sub-folders as well.
- * @author @jgclark
- *
- * @param {string} folder - folder to scan
- * @param {string} alsoSubFolders? - also look in subfolders under the folder name
- * @return {Array<TNote>} - list of notes
- */
-export function notesInFolderSortedByTitle(folder: string, alsoSubFolders: boolean = false): Array<TNote> {
-  try {
-    // logDebug('note/notesInFolderSortedByTitle', `Starting for folder '${folder}'`)
-    const allNotesInFolder = DataStore.projectNotes.slice()
-    let notesInFolder: Array<TNote>
-    // If folder given (not empty) then filter using it
-    if (folder !== '') {
-      if (alsoSubFolders) {
-        notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename).startsWith(folder))
-      } else {
-        notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename) === folder)
-      }
-    } else {
-      // return all project notes
-      notesInFolder = allNotesInFolder
-    }
-    // Sort alphabetically on note's title
-    const notesSortedByTitle = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
-    return notesSortedByTitle
-  } catch (err) {
-    logError('note/notesInFolderSortedByTitle', err.message)
-    return []
-  }
-}
-
-/**
  * Find a unique note title for the given text (e.g. "Title", "Title 01" (if "Title" exists, etc.))
  * Keep adding numbers to the end of a filename (if already taken) until it works
  * @author @dwertheimer
@@ -493,64 +372,6 @@ export function getUniqueNoteTitle(title: string): string {
   } catch (err) {
     logError('note/notesInFolderSortedByTitle', err.message)
     return ''
-  }
-}
-
-/**
- * TODO: finish moving refs for this from NPnote to here.
- * WARNING: Deprecated: use renamed function 'getRegularNotesFromFilteredFolders' instead.
- * Return array of all project notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
- * @author @jgclark
- * @param {Array<string>} foldersToExclude
- * @param {boolean} excludeSpecialFolders?
- * @returns {Array<TNote>} wanted notes
- */
-export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
-  // Get list of wanted folders
-  const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders)
-
-  // Iterate over all project notes and keep the notes in the wanted folders ...
-  const allProjectNotes = DataStore.projectNotes
-  const projectNotesToInclude = []
-  for (const pn of allProjectNotes) {
-    const thisFolder = getFolderFromFilename(pn.filename)
-    if (filteredFolders.includes(thisFolder)) {
-      projectNotesToInclude.push(pn)
-    } else {
-      // logDebug(pluginJson, `  excluded note '${pn.filename}'`)
-    }
-  }
-  return projectNotesToInclude
-}
-
-/**
- * Return array of all regular notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
- * Note: this is a newer version of getRegularNotesInFolder() that reflects Eduard's updated naming.
- * @author @jgclark
- * @param {Array<string>} foldersToExclude
- * @param {boolean} excludeSpecialFolders?
- * @returns {Array<TNote>} wanted notes
- */
-export function getRegularNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
-  try {
-    // Get list of wanted folders
-    const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders)
-
-    // Iterate over all project notes and keep the notes in the wanted folders ...
-    const allProjectNotes = DataStore.projectNotes
-    const projectNotesToInclude = []
-    for (const pn of allProjectNotes) {
-      const thisFolder = getFolderFromFilename(pn.filename)
-      if (filteredFolders.includes(thisFolder)) {
-        projectNotesToInclude.push(pn)
-      } else {
-        logDebug('note/getRegularNotesFromFilteredFolders', `- excluded note '${pn.filename}'`)
-      }
-    }
-    return projectNotesToInclude
-  } catch (err) {
-    logError('note/getRegularNotesFromFilteredFolders', err.message)
-    return []
   }
 }
 

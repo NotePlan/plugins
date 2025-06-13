@@ -8,8 +8,7 @@
 import { getSettings, type TidyConfig } from './tidyHelpers'
 import pluginJson from '../plugin.json'
 import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFolderListMinusExclusions } from '@helpers/folders'
-import { getProjectNotesInFolder } from '@helpers/note'
+import { getFolderListMinusExclusions, getProjectNotesInFolder } from '@helpers/folders'
 import { appendStringToSettingArray } from '@helpers/NPSettings'
 import { chooseOption, chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 

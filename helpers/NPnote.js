@@ -162,9 +162,21 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
         ?? null
       logInfo('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
     } else {
-      foundNote = DataStore.projectNoteByFilename(filenameIn) ??
-        DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filenameIn)) ?? null
-      // logInfo('NPnote/getNoteFromFilename', `Found private note '${displayTitle(foundNote)}' from ${filenameIn}`)
+      // Check for private notes
+      foundNote = DataStore.projectNoteByFilename(filenameIn) ?? null
+      if (!foundNote) {
+        // Check for calendar notes
+        const isPossibleCalendarFilename = dt.isValidCalendarNoteFilename(filenameIn)
+        if (isPossibleCalendarFilename) {
+          const dateString = dt.getDateStringFromCalendarFilename(filenameIn)
+          foundNote = DataStore.calendarNoteByDateString(dateString) ?? null
+        }
+      }
+      if (foundNote) {
+        logInfo('NPnote/getNoteFromFilename', `Found note '${displayTitle(foundNote)}' from ${filenameIn}`)
+      } else {
+        logInfo('NPnote/getNoteFromFilename', `No note found for ${filenameIn}`)
+      }
     }
     return foundNote
   } catch (err) {
@@ -685,10 +697,11 @@ export function getNotesChangedInIntervalFromList(notesToCheck: $ReadOnlyArray<T
 }
 
 /**
- * Get a note's display title from its filename.
+ * Get a note's display title (optionally enclosed as a [[...]] notelink) from its filename.
  * Handles both Notes and Calendar, matching the latter by regex matches. (Not foolproof though.)
  * @author @jgclark
  * @param {string} filename
+ * @param {boolean} makeLink? - whether to return a link to the note (default false)
  * @returns {string} title of note
  */
 export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = false): string {

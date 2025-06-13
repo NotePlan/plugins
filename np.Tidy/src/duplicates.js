@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2025-02-16 for v0.14.7 by @jgclark
+// Last updated 2025-02-16 for v0.14.7+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,6 +14,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, overrideSettingsWithEn
 import {
   getFolderListMinusExclusions,
   getFolderFromFilename,
+  getProjectNotesInFolder,
   getJustFilenameFromFullFilename
 } from '@helpers/folders'
 import {
@@ -22,7 +23,7 @@ import {
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
-import { getProjectNotesInFolder } from '@helpers/note'
+
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { showMessage } from "@helpers/userInput"
