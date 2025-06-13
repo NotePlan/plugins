@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Functions to list where note names and their filenames are inconsistent.
 // by Leo Melo, readied for the plugin and maintained by @jgclark
-// Last updated 2025-06-06 for v1.2.0 by @jgclark
+// Last updated 2025-06-12 for v1.2.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../../../plugin.json'
@@ -15,12 +15,19 @@ import { chooseFolder, showMessage } from '@helpers/userInput'
 
 /**
  * Shows a list of notes with inconsistent names (i.e. where the note title and filename are different).
+ * @param {string} folderIn - Optional URL-encodedfolder to check for inconsistent names. If not provided, the user will be prompted to choose a folder.
  * @returns void
  */
-export async function listInconsistentNames(): Promise<void> {
+export async function listInconsistentNames(folderIn: string = ''): Promise<void> {
   try {
-    logDebug(pluginJson, 'listInconsistentNames(): Checking for inconsistent names in project notes...')
-    const folder = await chooseFolder('Choose a folder to find inconsistent filenames in')
+    let folder = ''
+    if (folderIn) {
+      logDebug(pluginJson, `listInconsistentNames() for folder '${folderIn}'`)
+      folder = decodeURIComponent(folderIn)
+    } else {
+      logDebug(pluginJson, 'listInconsistentNames(): Checking for inconsistent names in project notes...')
+      folder = await chooseFolder('Choose a folder to find inconsistent filenames in')
+    }
 
     if (!folder) {
       logWarn(pluginJson, 'listInconsistentNames(): No folder chosen. Stopping.')
@@ -29,7 +36,7 @@ export async function listInconsistentNames(): Promise<void> {
 
     logDebug(pluginJson, `listInconsistentNames() for folder '${folder}'`)
 
-    const inconsistentNames = await findInconsistentNames(folder)
+    const inconsistentNames = await findInconsistentNames(folder, true)
     if (inconsistentNames.length > 0) {
       const notesList = inconsistentNames
         .map((note) => {
@@ -38,9 +45,29 @@ export async function listInconsistentNames(): Promise<void> {
           return `<li><strong>${displayTitle(note)}</strong><br><code>${currentFullPath}</code><br>→ <code>${newPath}</code></li>`
         })
         .join('\n')
-      const htmlBody = `
+      const refreshButton = `<a href="noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=list%20inconsistent%20note%20filenames&arg0=${encodeURIComponent(folder)}" class="button">Refresh</a>`
+      const headTags = `<head><style>
+    .button {
+      background-color: var(--bg-apple-button-color);
+      border: 1px solid var(--fg-main-color);
+      color: var(--fg-main-color);
+      padding: 0.2rem 0.4rem;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    
+    .btn:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>`
+      const htmlBody = `${headTags}
       <h1>Inconsistent note names</h1>
-      <p>Found ${inconsistentNames.length} inconsistent names in folder <code>${folder}</code></p>
+      <p>Found ${inconsistentNames.length} inconsistent names in folder <code>${folder}</code>: ${refreshButton}</p>
       <ol>
       ${notesList}
       </ol>

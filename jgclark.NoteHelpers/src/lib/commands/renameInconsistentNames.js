@@ -2,10 +2,8 @@
 //-----------------------------------------------------------------------------
 // Functions to identify and fix where note names and their filenames are inconsistent.
 // by Leo Melo, readied for the plugin and maintained by @jgclark
-// Last updated 2025-06-06 for v1.2.0 by @jgclark
+// Last updated 2025-06-11 for v1.2.0 by @jgclark
 //-----------------------------------------------------------------------------
-// TODO:
-// - add a 'foldersToIgnore' option.
 
 import pluginJson from '../../../plugin.json'
 import { findInconsistentNames } from '../../helpers/findInconsistentNames'
@@ -14,21 +12,21 @@ import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { chooseFolder, showMessage, showMessageWithList, showMessageYesNoCancel } from '@helpers/userInput'
 
 /**
- * Renames all project notes with inconsistent names (i.e. where the note title and filename are different).
+ * Renames all project notes with inconsistent names (i.e. where the note title and filename are different (apart from case)).
  * Optionally prompts the user before renaming each note.
  */
 export async function renameInconsistentNames(): Promise<void> {
-  const directory = await chooseFolder('Choose a folder to rename inconsistent notes in')
-
-  if (!directory) {
-    logWarn(pluginJson, 'renameInconsistentNames(): No folder chosen. Stopping.')
-    return
-  }
-
-  logDebug(pluginJson, `renameInconsistentNames(): Chosen folder: ${directory}`)
-
   try {
-    const inconsistentNames = await findInconsistentNames(directory)
+    const directory = await chooseFolder('Choose a folder to rename inconsistent notes in')
+
+    if (!directory) {
+      logWarn(pluginJson, 'renameInconsistentNames(): No folder chosen. Stopping.')
+      return
+    }
+
+    logDebug(pluginJson, `renameInconsistentNames(): Chosen folder: ${directory}`)
+
+    const inconsistentNames = await findInconsistentNames(directory, true)
     if (!Array.isArray(inconsistentNames) || inconsistentNames.length < 1) {
       logDebug(pluginJson, 'renameInconsistentNames(): No inconsistent names found. Stopping.')
       showMessage('No inconsistent names found. Well done!', 'OK', 'Rename inconsistent names')

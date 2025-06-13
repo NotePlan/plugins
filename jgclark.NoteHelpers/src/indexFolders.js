@@ -19,17 +19,16 @@ import {
   JSP, logDebug, logError, logInfo,
   overrideSettingsWithStringArgs
 } from '@helpers/dev'
-import { getFolderFromFilename } from '@helpers/folders'
+import {
+  getFolderFromFilename,
+  notesInFolderSortedByTitle,
+  projectNotesFromFilteredFolders
+} from '@helpers/folders'
 import {
   createPrettyRunPluginLink,
   displayTitle,
   returnNoteLink,
 } from '@helpers/general'
-import {
-  notesInFolderSortedByTitle,
-  // pastCalendarNotes,
-  projectNotesFromFilteredFolders
-} from '@helpers/note'
 import { openNoteByFilename } from "@helpers/NPnote"
 import {
   chooseFolder,
