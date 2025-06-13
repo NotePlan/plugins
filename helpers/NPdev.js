@@ -1,9 +1,8 @@
 // @flow
 
-import { showMessage } from './userInput'
+import { showMessage, chooseOption, getInput, getInputTrimmed, showMessageYesNo } from './userInput'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
-import { chooseOption, getInput, getInputTrimmed, showMessageYesNo } from '@helpers/userInput'
 
 /**
  * Print to the console log all contents of the environment variable, introduced in v3.3.2
@@ -20,7 +19,16 @@ export function logAllEnvironmentSettings(): void {
   }
 }
 
-export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = true): Promise<boolean | { url: string, pluginID: string, command: string, args: Array<string> }> {
+/**
+ * Choose a plugin command to run, and return the XCallbackURL for it
+ * @param {boolean} showInstalledOnly - if true, only show installed plugins
+ * @param {RegExp} filterCommandRegex - if provided, only show commands that match the regex
+ * @returns {boolean | { url: string, pluginID: string, command: string, args: Array<string> }} - false if user cancels, otherwise the XCallbackURL for the chosen command
+ */
+export async function chooseRunPluginXCallbackURL(
+  showInstalledOnly: boolean = true,
+  filterCommandRegex: RegExp = null,
+): Promise<boolean | { url: string, pluginID: string, command: string, args: Array<string> }> {
   const plugins = showInstalledOnly ? await DataStore.installedPlugins() : await DataStore.listPlugins(true)
 
   let commandMap = []
@@ -28,6 +36,7 @@ export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = t
     if (Array.isArray(plugin.commands)) {
       plugin.commands?.forEach((command) => {
         const show = `${command.name} (${plugin.name})`
+        if (filterCommandRegex && !filterCommandRegex.test(show)) return
         // $FlowIgnore
         commandMap.push({
           name: command.name,

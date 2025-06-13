@@ -23,8 +23,8 @@ const PLUGIN_NAME = `📙 ${colors.yellow('helpers/teamspace')}`
 
 describe(`${PLUGIN_NAME}`, () => {
   /*
-  * parseTeamspaceFilename()
-  */
+   * parseTeamspaceFilename()
+   */
   describe('parseTeamspaceFilename()' /* function */, () => {
     test('should parse a non-teamspace calendar filename', () => {
       const result = t.parseTeamspaceFilename('20250422.md')
