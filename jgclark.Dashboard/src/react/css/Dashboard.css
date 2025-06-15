@@ -1,18 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2025-05-04 for v2.2.2 by @jgclark */
-
-:root {	
-	/* font-size: 16px; this works */
-	/* For MESSAGE_BANNER: Override w3.css which seems to take precedence for reasons unknown */
-	.w3-panel {
-		margin-top: 0px;
-		margin-bottom: 0px;
-		width: 98vw;
-	}
-	.w3-button {
-		margin-right: 20px;
-	}
-}
+/* Last updated 2025-05-31 for v2.3.0.b3 by @jgclark */
 
 html {
 	--itemIndentWidth: 1.5rem;
@@ -21,6 +8,11 @@ html {
 	--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%); /* for subtle colouring - not yet used */
 	/* Add a gutter to the scrollbar to prevent it from overlapping with the content. Available in Safari, but not sure when it becomes available in NotePlan. */
 	scrollbar-gutter: stable;
+
+	/* Define 'Magic Numbers' -------------------------------- */
+
+	/* For the NP-generated close button on modal windows on mobile */
+	--modalCloseButtonSpacerWidth: 20px;
 }
 
 body {
@@ -42,12 +34,15 @@ dialog::backdrop {
   background: rgba(0,0,0,0.4);
 }
 
-/* unused: TEST removal */
-/* .settings {
-	grid-area: settings;
-	justify-self: end;
+/* For MESSAGE_BANNER: Override w3.css which seems to take precedence for reasons unknown */
+.w3-panel {
+	margin-top: 0px;
+	margin-bottom: 0px;
+	width: 98vw;
+}
+.w3-button {
 	margin-right: 20px;
-} */
+}
 
 /* Large rows on page */
 .sections {
