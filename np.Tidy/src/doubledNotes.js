@@ -17,7 +17,7 @@ import {
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
-import { getProjectNotesInFolder } from '@helpers/folders'
+// import { getProjectNotesInFolder } from '@helpers/note'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor, openCalendarNoteInSplit } from '@helpers/NPWindows'
 import { showMessage } from "@helpers/userInput"
