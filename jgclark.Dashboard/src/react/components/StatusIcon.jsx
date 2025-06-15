@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Icon before an item
 // Called by TaskItem component.
-// Last updated for v2.2.0.a10
+// Last updated for v2.3.0.b3
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
@@ -10,7 +10,7 @@ import type { TActionType, TSectionItem, MessageDataObject } from '../../types.j
 import { useAppContext } from './AppContext.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
-import { clo, JSP, logDebug, logInfo } from '@helpers/react/reactDev'
+import { clo, JSP, logDebug, logInfo, logWarn } from '@helpers/react/reactDev'
 
 type Props = {
   item: TSectionItem,
@@ -55,6 +55,8 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr
         return 'fa-regular fa-trash-xmark'
       case 'timeblock': // for non-task/checklist timeblock lines
         return 'fa-regular fa-calendar-clock'
+      case 'info': // for Info section lines
+        return 'fa-regular fa-bullet'
       default:
         return '' // default case if none of the types match
     }
@@ -109,7 +111,7 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr
         return
       }
       default:
-        logDebug(`StatusIcon`, `ERROR - Unknown itemType: ${item.itemType}`)
+        logWarn(`StatusIcon`, `No action defined for itemType: ${item.itemType}`)
         return 'unknown'
     }
   }
