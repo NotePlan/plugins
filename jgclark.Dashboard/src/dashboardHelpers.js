@@ -7,6 +7,7 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID } from './constants'
+import { dashboardSettingDefs } from './dashboardSettings'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type {
@@ -24,10 +25,11 @@ import type {
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { convertISODateFilenameToNPDayFilename, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { getRegularNotesInFolder, projectNotesFromFilteredFolders } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
-import { filterOutParasInExcludeFolders, isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
+import { filterOutParasInExcludeFolders, isNoteFromAllowedFolder, pastCalendarNotes, } from '@helpers/note'
 import { saveSettings } from '@helpers/NPConfiguration'
 import { getFirstDateInPeriod } from '@helpers/NPdateTime'
 import { getReferencedParagraphs } from '@helpers/NPnote'
@@ -80,12 +82,19 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     // additional setting that always starts as true
     parsedDashboardSettings.showSearchSection = true
 
-    // When the underlying issue is tackled, then TEST: to see whether JSON number type handling has been corrected
-    // clvt(parsedDashboardSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedDashboardSettings.newTaskSectionHeadingLevel:`)
+    // Note: I can't find the underlying issue, but we need to ensure number setting types are numbers, and not strings
+    const numberSettingTypes = dashboardSettingDefs.filter((ds) => ds.type === 'number')
+    for (const thisSetting of numberSettingTypes) {
+      parsedDashboardSettings[thisSetting.key] = Number(parsedDashboardSettings[thisSetting.key])
+      clvt(parsedDashboardSettings[thisSetting.key], `- numeric Setting '${thisSetting.key}'`)
+    }
 
-    // Warn if any a sample setting is not a number
+    // TODO(later): remove when the underlying problem is corrected
+    // Warn if 'newTaskSectionHeadingLevel' setting is not a number
     if (typeof parsedDashboardSettings.newTaskSectionHeadingLevel !== 'number') {
-      logWarn('getDashboardSettings', `parsedDashboardSettings.newTaskSectionHeadingLevel is not a number type: ${parsedDashboardSettings.newTaskSectionHeadingLevel}`)
+      logWarn('getDashboardSettings', `At least one parsedDashboardSettings field is not a number type when it should be ...`)
+      clvt(parsedDashboardSettings.maxItemsToShowInSection, `getDashboardSettings - parsedDashboardSettings.maxItemsToShowInSection:`)
+      clvt(parsedDashboardSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedDashboardSettings.newTaskSectionHeadingLevel:`)
     }
 
     return parsedDashboardSettings
