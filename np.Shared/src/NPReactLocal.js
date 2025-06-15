@@ -2,7 +2,7 @@
 
 import pluginJson from '../plugin.json'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { showHTMLWindow, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
+import { showHTMLV2, showHTMLWindow, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
 
 const startTime = new Date()
 
@@ -171,9 +171,9 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
       postBodyScript: addStringOrArrayItems([reactComponents, reactRootComponent, mountAppString], windowOptions.postBodyScript),
       customId: windowOptions.customId ?? pluginJson['plugin.id'],
     }
-    // const title = windowOptions.title ?? windowOptions.windowTitle ?? 'React Window'
-    showHTMLWindow(bodyHTML, { ...windowOptions, ...generatedOptions })
-    // showHTMLV2(bodyHTML, { ...windowOptions, ...generatedOptions })
+
+    showHTMLV2(bodyHTML, { ...windowOptions, ...generatedOptions })
+
     logDebug(pluginJson, `openReactWindow: ---------------------------------------- HTML prep: ${timer(startTime)} | Total so far: ${timer(globalData.startTime)}`)
     return true
   } catch (error) {
