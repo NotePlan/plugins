@@ -1,6 +1,6 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated for v2.2.0.a8 */
-/* FIXME: SearchPanel transition is not working well yet. Not sure if that's because of this file or SearchPanel.css */
+/* Last updated 2025-05-31 for v2.3.0.b3 */
+/* TODO: SearchPanel transition is not working well yet. Not sure if that's because of this file or SearchPanel.css */
 
 /* Container for header and search panel */
 .header-container {
@@ -22,7 +22,7 @@
 	gap: 0.6rem;
 	font-size: 0.95rem;
 	align-items: center;
-	/* Padding around the header content */
+	/* Padding around the header content -- more on the right to accommodate the scrollbar */
 	padding: 5px 1.0rem 4px 0.5rem;
 	border-bottom: solid 1px var(--divider-color);
 	background-color: var(--bg-sidebar-color);
@@ -36,13 +36,6 @@
 	box-shadow: 0 0 2px var(--tint-color);
 	outline: none;
 } */
-
-/* MESSAGE_BANNER w3.css overrides */
-.iOS .header, .iPadOS .header {
-  box-sizing: border-box; /* Ensure the padding is included in the element's total width */
-  /* make room for NP sheet "X" button */
-  padding-right: 2.2rem; 
-}
 
 /* Define minimum widths for the header elements first, and later then decide to hide them based on screen size */
 .perspectiveName {
@@ -106,7 +99,6 @@
 	justify-content: end;
 	padding-top:1px; /* nudge down a bit */
 	float: inline-end; /* a rare use of float! */
-	/* margin-inline-end: 0.5rem; */
 }
 
 /* For icon buttons in header area -- without cascading to child elements */
@@ -123,10 +115,14 @@
 	}
 }
 
-/* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
+/* Widen button gaps on touchscreen interfaces */
 .iOS .headerActionButtons, .iPadOS .headerActionButtons {
 	gap: 1.1rem !important;
-	margin-inline-end: 1.6rem !important;
+}
+
+/* Spacer for the NP-generated close button on modal windows on mobile */
+.modalCloseButtonSpacer {
+	width: var(--modalCloseButtonSpacerWidth);
 }
 
 /* On narrow screens drop the lower priority items */

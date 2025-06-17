@@ -9,11 +9,11 @@ import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 // import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 import {
   // getFolderListMinusExclusions,
-  getFolderFromFilename
+  getFolderFromFilename,
+  // projectNotesFromFilteredFolders
 } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getOrMakeNote, replaceSection } from '@helpers/note'
-// import { projectNotesFromFilteredFolders } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import {
   chooseFolder,

@@ -117,7 +117,7 @@ export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean 
     }
     logDebug('changeBareLinksToHTMLLink', `=> ${output}`)
   } else {
-    logDebug('', `found NO URI in ${original}`)
+    // logDebug('', `found NO URI in ${original}`)
   }
   return output
 }

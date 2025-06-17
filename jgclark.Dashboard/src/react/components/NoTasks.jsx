@@ -3,11 +3,11 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show there are no tasks for today. Called by ItemRow.
 // Last updated for v2.1.0.a
+// Note: no longer used (from v2.2 or v2.3)
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
 // import {random} from 'lodash'
-
 
 /**
  * Component for displaying a message when there are no tasks.

@@ -35,15 +35,15 @@ export function isTeamspaceNoteFromFilename(filenameIn: string): boolean {
  * @returns {{ filename: string, isTeamspace: boolean, teamspaceID?: string }}
  */
 export function parseTeamspaceFilename(filenameIn: string): { filename: string, isTeamspace: boolean, teamspaceID?: string } {
-  const match = filenameIn.match(RE_TEAMSPACE_NOTE_FILENAME)
+  const isPossibleTeamspaceFilename = filenameIn.match(RE_TEAMSPACE_NOTE_FILENAME)
 
-  if (match) {
+  if (isPossibleTeamspaceFilename) {
     const filename = filenameIn.split('/')[2]
-    const teamspaceID = match[1]
-    logDebug('parseTeamspaceFilename', `Teamspace note, with calendar part: ${filename} for teamspaceID ${teamspaceID}`)
+    const teamspaceID = isPossibleTeamspaceFilename[1]
+    logDebug('parseTeamspaceFilename', `Teamspace filename: ${filename} / teamspaceID: ${teamspaceID} (from ${filenameIn})`)
     return { filename: filename, isTeamspace: true, teamspaceID }
   } else {
-    logDebug('parseTeamspaceFilename', `Non-teamspace note with filename ${filenameIn}`)
+    // logDebug('parseTeamspaceFilename', `filename ${filenameIn} is not a teamspace note`)
     return { filename: filenameIn, isTeamspace: false }
   }
 }

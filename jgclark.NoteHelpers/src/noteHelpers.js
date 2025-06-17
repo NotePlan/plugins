@@ -2,13 +2,12 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2024-12-26 for v1.0.0 by @jgclark
+// Last updated 2025-06-06 for v1.2.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-// import { allNotesSortedByChanged } from '@helpers/note'
 import { convertNoteToFrontmatter, printNote } from '@helpers/NPnote' // Note: not the one in 'NPTemplating'
 import { addTrigger, noteHasFrontMatter, updateFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
 import {
@@ -30,6 +29,7 @@ export type noteHelpersConfigType = {
   ignoreCompletedItems: boolean,
   includeSubfolders: boolean,
   indexTitle: string,
+  foldersToIgnore: string,
 }
 
 /**

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2025-05-23 for v2.3.0.b2
+// Last updated 2025-05-23 for v2.3.0.b3
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -10,14 +10,13 @@
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useCallback } from 'react'
 import type { TSection, TSectionItem, TActionButton } from '../../../types.js'
-import { treatSingleItemTypesAsZeroItems } from '../../../constants.js'
+import { interactiveProcessingPossibleSectionTypes, treatSingleItemTypesAsZeroItems } from '../../../constants.js'
 import CommandButton from '../CommandButton.jsx'
 import ItemGrid from '../ItemGrid.jsx'
 import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
 import CircularProgressBar from '../CircularProgressBar.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
-// import { percent } from '@helpers/general'
 import { logDebug, logError, logInfo, JSP, clo } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import './Section.css'
@@ -303,8 +302,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     dashboardSettings.enableInteractiveProcessing &&
     numItemsToShow > 1 &&
     !treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType) &&
-    section.sectionCode !== 'TB' &&
-    section.sectionCode !== 'PROJ'
+    interactiveProcessingPossibleSectionTypes.includes(section.sectionCode)
 
   // TB section can show up blank, without this extra check
   if (itemsToShow.length === 0) {

@@ -162,9 +162,21 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
         ?? null
       logInfo('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
     } else {
-      foundNote = DataStore.projectNoteByFilename(filenameIn) ??
-        DataStore.calendarNoteByDateString(dt.getDateStringFromCalendarFilename(filenameIn)) ?? null
-      // logInfo('NPnote/getNoteFromFilename', `Found private note '${displayTitle(foundNote)}' from ${filenameIn}`)
+      // Check for private notes
+      foundNote = DataStore.projectNoteByFilename(filenameIn) ?? null
+      if (!foundNote) {
+        // Check for calendar notes
+        const isPossibleCalendarFilename = dt.isValidCalendarNoteFilename(filenameIn)
+        if (isPossibleCalendarFilename) {
+          const dateString = dt.getDateStringFromCalendarFilename(filenameIn)
+          foundNote = DataStore.calendarNoteByDateString(dateString) ?? null
+        }
+      }
+      if (foundNote) {
+        logInfo('NPnote/getNoteFromFilename', `Found note '${displayTitle(foundNote)}' from ${filenameIn}`)
+      } else {
+        logInfo('NPnote/getNoteFromFilename', `No note found for ${filenameIn}`)
+      }
     }
     return foundNote
   } catch (err) {
@@ -685,10 +697,11 @@ export function getNotesChangedInIntervalFromList(notesToCheck: $ReadOnlyArray<T
 }
 
 /**
- * Get a note's display title from its filename.
+ * Get a note's display title (optionally enclosed as a [[...]] notelink) from its filename.
  * Handles both Notes and Calendar, matching the latter by regex matches. (Not foolproof though.)
  * @author @jgclark
  * @param {string} filename
+ * @param {boolean} makeLink? - whether to return a link to the note (default false)
  * @returns {string} title of note
  */
 export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = false): string {
@@ -1018,4 +1031,53 @@ export function getHeadingsFromNote(
     headingStrings = headingStrings.map((h) => h.replace(/^#{1,5}\s*/, '')) // remove any markdown heading markers
   }
   return headingStrings
+}
+
+/**
+ * Return a standardised safe filepath for a regular note, to match its title.
+ * Note: it's not explicity stated (I think), but filenames shouldn't start with a '/' character.
+ * Substitutes '\/:*?@$"<>|' characters in filename with '_' to avoid problems in Apple or NTFS filesystems.
+ * Additionally, filenames cannot end with a period (.) or a space, although these characters can be used within the filename itself.
+ * @author @Leo, improved by @jgclark
+ * @param {TNote} note
+ * @returns {string} filepath
+ */
+export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
+  const { defaultFileExtension } = DataStore
+
+  // If this is a Calendar note, then give a warning, but return the filename as is.
+  if (note.type === 'Calendar') {
+    logWarn('getFSSafeFilenameFromNoteTitle', `Shouldn't be called on Calendar notes. Returning ${note.filename} filename as is.`)
+    return note.filename
+  }
+
+  // Get the folder name from the filename.
+  // Note: if in root folder, then justFolderName will be '/'
+  const justFolderName = getFolderFromFilename(note.filename)
+
+  // Get new title for note, though with any '/:@$' replaced with '_'
+  let filesystemSafeTitle = note.title
+    .trim()
+    .replaceAll('\\', '_')
+    .replaceAll('/', '_')
+    .replaceAll('@', '_')
+    .replaceAll('$', '_')
+    .replaceAll(':', '_')
+    .replaceAll('*', '_')
+    .replaceAll('?', '_')
+    .replaceAll('"', '_')
+    .replaceAll('<', '_')
+    .replaceAll('>', '_')
+    .replaceAll('|', '_')
+  // Replace multiple underscores with a single underscore
+  filesystemSafeTitle = filesystemSafeTitle.replace(/_+/g, '_')
+  if (filesystemSafeTitle !== '') {
+    const newName = justFolderName !== '/'
+      ? `${justFolderName}/${filesystemSafeTitle}.${defaultFileExtension}`
+      : `${filesystemSafeTitle}.${defaultFileExtension}`
+    return newName
+  } else {
+    logWarn('NPnote.js', `getFSSafeFilenameFromNoteTitle(): No title found in note ${note.filename}. Returning empty string.`)
+    return ''
+  }
 }

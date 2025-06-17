@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // listStubs function for Tidy
 // Jonathan Clark
-// Last updated 2025-02-16 for v0.14.7 by @jgclark
+// Last updated 2025-02-16 for v0.14.7+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import { getSettings, type TidyConfig } from './tidyHelpers'
@@ -12,7 +12,8 @@ import { isValidCalendarNoteTitleStr } from '@helpers/dateTime'
 import {
   getFolderListMinusExclusions,
   getFolderFromFilename,
-  getJustFilenameFromFullFilename
+  getJustFilenameFromFullFilename,
+  getProjectNotesInFolder,
 } from '@helpers/folders'
 import {
   createOpenOrDeleteNoteCallbackUrl,
@@ -20,10 +21,6 @@ import {
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
-import {
-  getProjectNotesInFolder,
-  // projectNotesSortedByTitle
-} from '@helpers/note'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { appendStringToSettingArray } from '@helpers/NPSettings'
 import { noteOpenInEditor } from '@helpers/NPWindows'
