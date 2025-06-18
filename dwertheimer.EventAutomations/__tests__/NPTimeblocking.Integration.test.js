@@ -11,6 +11,8 @@ import { filenameDateString } from '@helpers/dateTime'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph /*, mockWasCalledWithString */ } from '@mocks/index'
 
+const unhyphenatedDate = (date: Date) => moment(date).format('YYYYMMDD')
+
 beforeAll(() => {
   global.Calendar = Calendar
   global.Clipboard = Clipboard

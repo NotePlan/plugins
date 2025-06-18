@@ -4,11 +4,14 @@
 
 // Note: expect(spy).toHaveBeenNthCalledWith(2, expect.stringMatching(/ERROR/))
 
+import moment from 'moment/min/moment-with-locales'
 import * as mainFile from '../src/NPTimeblocking'
 import * as timeBlockingShared from '../src/timeblocking-shared'
 import * as configFile from '../src/config'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, mockWasCalledWithString } from '@mocks/index'
+
+const unhyphenatedDate = (date: Date) => moment(date).format('YYYYMMDD')
 
 beforeAll(() => {
   global.Calendar = Calendar

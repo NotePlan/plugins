@@ -511,14 +511,14 @@ export async function templateExists(title: string = ''): Promise<boolean> {
 /**
  * Gets a folder path, either from a specified folder, the current note, or by prompting the user.
  * @async
- * @param {string} folder - The folder to use, or special values like '<select>' or '<current>'
+ * @param {string} folder - The folder to use, or special values like '<select>' or '<current>' or <select path/to/search>
  * @param {string} promptMessage - The message to display when prompting for folder selection
  * @returns {Promise<string>} The selected folder path
  */
 export async function getFolder(folder: string = '', promptMessage: string = 'Select folder'): Promise<string> {
   let selectedFolder = folder
   const folders = DataStore.folders
-  if (folder == '<select>' || (Editor?.type === 'Calendar' && selectedFolder.length === 0)) {
+  if (/select|choose/i.test(folder) || Editor?.type === 'Calendar' || selectedFolder.length === 0) {
     selectedFolder = await chooseFolder(promptMessage, false, true)
   } else if (folder == '<current>') {
     const currentFilename = Editor.note?.filename
@@ -532,14 +532,15 @@ export async function getFolder(folder: string = '', promptMessage: string = 'Se
         selectedFolder = parts.join('/')
       }
     }
-  } else if (folder.startsWith('<select ') && folder.endsWith('>')) {
+  } else if ((folder.startsWith('<select ') || folder.startsWith('<SELECT ') || folder.startsWith('<choose ') || folder.startsWith('<CHOOSE ')) && folder.endsWith('>')) {
     // find the value inside the <select> tag
-    const f = folder.slice(7, -1).split(' ')[1].trim()
+    // get everything after <select and before > including spaces
+    const f = folder.slice(7, -1).trim()
     if (folders.includes(f)) {
       selectedFolder = await chooseFolder(promptMessage, false, true, f)
     } else {
       selectedFolder = ''
-      clo(folders, `getFolder: Folder "${f}" not found in ${folders.length} folders`)
+      clo(folders, `ERROR:getFolder: Folder "${f}" not found in ${folders.length} folders. Will prompt for folder from all folders.`)
     }
   }
   if (selectedFolder.length === 0) {
