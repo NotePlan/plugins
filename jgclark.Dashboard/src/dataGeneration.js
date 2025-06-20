@@ -32,6 +32,7 @@ import { getDateStringFromCalendarFilename, getNPMonthStr, getNPQuarterStr } fro
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
+import { getLiveWindowRect, getStoredWindowRect, logWindowsList, rectToString } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------
 
@@ -81,6 +82,7 @@ export async function getSomeSectionsData(
     const config: TDashboardSettings = await getDashboardSettings()
 
     const sections: Array<TSection> = []
+    if (sectionCodesToGet.includes('INFO')) sections.push(...getInfoSectionData(config, useDemoData))
     // v2: for Timeblocks, now done inside getTodaySectionData()
     if (sectionCodesToGet.includes('DT') || sectionCodesToGet.includes('TB')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
@@ -127,6 +129,44 @@ export async function getSomeSectionsData(
     logError('getSomeSectionsData', error.message)
     return []
   }
+}
+
+/**
+ * Get data for the Info section
+ * @param {TDashboardSettings} _config
+ * @param {boolean} _useDemoData?
+ * @returns {Array<TSection>} data
+ */
+export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: boolean = false): Array<TSection> {
+  const sections: Array<TSection> = []
+  const outputLines = []
+  outputLines.push(`Device name '${NotePlan.environment.machineName}' (${NotePlan.environment.platform}). Screen: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}`)
+  const storedWindowRect: Rect | false = getStoredWindowRect('jgclark.Dashboard.main')
+  const liveWindowRect: Rect | false = getLiveWindowRect('')
+  outputLines.push(`stored window rect: ${storedWindowRect ? rectToString(storedWindowRect) : 'no stored window rect'}`)
+  outputLines.push(`live window rect: ${liveWindowRect ? rectToString(liveWindowRect) : 'no live window rect'}`)
+  const sectionNumStr = 'INFO'
+  let itemCount = 0
+  const items: Array<TSectionItem> = outputLines.map((line) => (
+    {
+      ID: `${sectionNumStr}-${itemCount}`,
+      itemType: 'info',
+      message: line,
+    }
+  ))
+  itemCount++
+  sections.push({
+    ID: 'INFO',
+    name: 'Info',
+    showSettingName: 'showInfoSection',
+    sectionCode: 'INFO',
+    description: 'Window Details',
+    FAIconClass: 'fa-light fa-info-circle',
+    sectionTitleColorPart: 'sidebarInfo',
+    sectionItems: items,
+    isReferenced: false,
+  })
+  return sections
 }
 
 /**

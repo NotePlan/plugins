@@ -252,6 +252,11 @@
   color: var(--fg-canceled-color);
 }
 
+.infoItem {
+  font-style: normal;
+  color: var(--fg-main-color);
+}
+
 .noSearchResults {
   font-style: italic;
   color: var(--fg-sidebarSearch);

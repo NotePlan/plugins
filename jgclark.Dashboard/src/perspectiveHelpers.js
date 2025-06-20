@@ -17,7 +17,7 @@ import { updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentio
 import type { TDashboardSettings, TDashboardPluginSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getPeriodOfNPDateStr } from '@helpers/dateTime'
-import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { getNoteByFilename } from '@helpers/note'
@@ -159,9 +159,8 @@ export function logPerspectives(perspectivesArray: Array<TPerspectiveDef>, logAl
         'includedFolders',
         'excludedFolders',
         'ignoreItemsWithTerms',
-        'applyIgnoreTermsToCalendarHeadingSections',
-        'separateSectionForReferencedNotes',
-        'usePerspectives',
+        'maxItemsToShowInSection',
+        'newTaskSectionHeadingLevel',
       ])
     }
   }
@@ -187,14 +186,10 @@ function ensureDefaultPerspectiveExists(perspectiveSettings: Array<TPerspectiveD
 export async function getPerspectiveSettings(logAllKeys: boolean = false): Promise<Array<TPerspectiveDef>> {
   try {
     // Note: we think following (newer API call) is unreliable.
-    // let pluginSettings = DataStore.settings
-    // let perspectiveSettingsStr: string = pluginSettings?.perspectiveSettings
+    // So use the older way:
     let perspectiveSettings: Array<TPerspectiveDef>
-
-    // use the older way:
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     const perspectiveSettingsStr = pluginSettings?.perspectiveSettings
-
 
     if (perspectiveSettingsStr && perspectiveSettingsStr !== '[]') {
       // must parse it because it is stringified JSON (an array of TPerspectiveDef)
@@ -555,6 +550,7 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
 /**
  * Clean a Dashboard settings object of properties we don't want to use or see
  * (we only want things in the perspectiveSettings object that could be set in dashboard settings or filters).
+ * FIXME: some number settings arrive here as strings.
  * TODO: Is it true that sometimes this will be called with a partial object, and sometimes with a full object?
  * It can be called before doing a comparison with the active perspective settings.
  * Note: index.js::onUpdateOrInstall() does the renaming of keys in the settings object.
@@ -563,8 +559,6 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
  * @returns {TDashboardPluginSettings}
  */
 export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPluginSettings, deleteAllShowTagSections?: boolean): Partial<TDashboardPluginSettings> {
-  // logDebug('cleanDashboardSettingsInAPerspective', `Starting for:`)
-  // clo(settingsIn)
   // Define keys to remove
   const patternsToRemove = [
     // the following shouldn't be persisted in the perspectiveSettings object, but only in the top-level dashboardSettings object
@@ -597,6 +591,10 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPlugi
       throw new Error(`No settingsIn found`)
     }
 
+    // logDebug('cleanDashboardSettingsInAPerspective', `Starting for:`)
+    // clvt(settingsIn.newTaskSectionHeadingLevel, 'cleanDashboard...  starting newTaskSectionHeadingLevel')
+    // clvt(settingsIn.maxItemsToShowInSection, 'cleanDashboard...  starting maxItemsToShowInSection')
+
     // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
     const perspSettingsWithoutIrrelevantTags = removeInvalidTagSections(settingsIn) // OK
 
@@ -608,6 +606,7 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPlugi
       }
       return acc
     }, {})
+
     return settingsOut
   } catch (error) {
     logError('cleanDashboardSettingsInAPerspective', `Error: ${error.message}`)

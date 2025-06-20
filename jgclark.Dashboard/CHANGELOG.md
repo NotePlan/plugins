@@ -10,13 +10,17 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
-## [2.3.0.b3] 2025-06-05
+## [2.3.0.b3] 2025-06-15???
+### Improved
+- changed 'Nothing left on this list ' to say 'All _N_ items completed on this list' where relevant
+- stopped spurious "windowResize" message from appearing on iPhones
 ### Dev notes
 - Turned off windowResize for i(Pad)OS devices, to stop spurious windowResize errors from appearing
 - Refactored layout code that avoids the modal dialog close button
 - Show FF icon whenever any FF is turned on as well as when we're in DEV logging mode.
 - New FF 'FFlag_UseTagCacheAPIComparison'
 - Changed from `...DataStore.settings` to `await getSettings('jgclark.Dashboard')` throughout
+- Worked around bug (which I can't isolate) where `number` types in dashboardSettings get saved as `string` types.
 
 ## [2.3.0.b2] 2025-05-29
 - show TAG sections that have no items
