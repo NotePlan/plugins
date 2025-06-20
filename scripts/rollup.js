@@ -260,41 +260,6 @@ const dt = () => {
     console.log(colors.cyan.bold(`==> Rollup autowatch running. Will use minified output\n`))
   }
 
-  // /**
-  //  * @description Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
-  //  * @param {string} pluginPath
-  //  * @private
-  //  */
-  // async function checkPluginList(pluginPaths) {
-  //   const pluginCommands = {}
-  //   for (const pluginPath of pluginPaths) {
-  //     // console.log(`About to read ${pluginPath}`)
-  //     const pluginFile = await getPluginFileContents(path.join(pluginPath, 'plugin.json')) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
-
-  //     if (pluginFile && pluginFile['plugin.commands']) {
-  //       pluginFile['plugin.commands'].forEach((command) => {
-  //         if (pluginCommands[command.name]) {
-  //           console.log(colors.red.bold(`\n!!!!\nCommand collision: "${command.name}" exists already!`))
-  //           console.log(`\tTrying to add: "${command.name}" from ${path.basename(pluginPath)}`)
-  //           console.log(
-  //             colors.yellow(
-  //               `\tConflicts with "${pluginCommands[command.name].name}" in ${
-  //                 pluginCommands[command.name].folder
-  //               }\nCommand will be added & will work but should should be changed to be unique!!!\n`,
-  //             ),
-  //           )
-  //         } else {
-  //           pluginCommands[command.name] = command
-  //           pluginCommands[command.name].folder = path.basename(pluginPath)
-  //           pluginCommands[command.name].pluginName = pluginFile['plugin.name']
-  //         }
-  //       })
-  //     } else {
-  //       console.log(colors.red(`^^^ checkPluginList: For some reason could not parse file at: ${pluginPath}`))
-  //     }
-  //   }
-  // }
-
   /**
    * Rollup with watch
    */
@@ -565,6 +530,8 @@ const dt = () => {
        */
       onwarn: (warning, warn) => {
         if (warning.code === 'EVAL') return
+        // Suppress warnings about module directives like "use client" being ignored
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return
         warn(warning)
       },
     }
