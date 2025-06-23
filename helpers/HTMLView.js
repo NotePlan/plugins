@@ -1075,7 +1075,7 @@ export function convertUnderlinedToHTML(input: string): string {
   // const captures = output.match(/(?:[\s^])~.*?~(?:[\s$])/g)
   const captures = output.match(/~[\w\-'"]*?~/g)
   if (captures) {
-    clo(captures, 'results from underlined matches:')
+    // clo(captures, 'results from underlined matches:')
     for (const capture of captures) {
       const match = capture
       output = output.replace(match, `<span class="underlined">${match.slice(1, -1)}</span>`)
