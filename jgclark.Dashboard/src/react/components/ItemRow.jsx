@@ -29,7 +29,7 @@ function ItemRow({ item, thisSection }: Props): Node {
   const { itemType } = item
 
   let congratsMessage = 'Nothing on this list'
-  if (itemType === 'itemCongrats' && thisSection.doneCounts.completedTasks > 0) {
+  if (itemType === 'itemCongrats' && thisSection.doneCounts?.completedTasks && thisSection.doneCounts.completedTasks > 0) {
     congratsMessage = `All ${thisSection.doneCounts.completedTasks} items completed on this list`
   }
 
