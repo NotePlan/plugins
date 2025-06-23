@@ -530,6 +530,8 @@ const dt = () => {
        */
       onwarn: (warning, warn) => {
         if (warning.code === 'EVAL') return
+        // Suppress warnings about module directives like "use client" being ignored
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return
         warn(warning)
       },
     }

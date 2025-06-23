@@ -251,6 +251,16 @@ function getRollupConfig(options) {
     },
     plugins,
     watch: watchOptions,
+    /**
+     * Suppress specific Rollup warnings.
+     * @param {object} warning - Rollup warning object.
+     * @param {function} warn - Rollup warn function.
+     */
+    onwarn: (warning, warn) => {
+      // Suppress warnings about module directives like "use client" being ignored
+      if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return
+      warn(warning)
+    },
   }
 }
 

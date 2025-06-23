@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2025-02-16 for v0.14.7 by @jgclark
+// Last updated 2025-06-20 for v0.14.7+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -17,7 +17,7 @@ import {
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
-import { getProjectNotesInFolder } from '@helpers/note'
+import { getProjectNotesInFolder } from '@helpers/folders'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor, openCalendarNoteInSplit } from '@helpers/NPWindows'
 import { showMessage } from "@helpers/userInput"

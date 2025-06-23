@@ -97,6 +97,7 @@ export function convertAllLinksToHTMLLinks(original: string): string {
  * @tests in jest file
  * @param {string} original string
  * @param {boolean?} addWebIcon before the link? (default: true)
+ * @param {number?} truncateLength - truncate the link display text to this length
  */
 export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean = true, truncateLength: number = 0): string {
   let output = original
