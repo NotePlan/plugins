@@ -2,16 +2,13 @@
  * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -------------------------------------------------------------------------
- * NOTE: Updated to use momentWrapper from helpers/momentWrapper.js to ensure week numbering
- * compatibility with NotePlan's user-configurable week start day preferences.
- * The wrapper intercepts .format() calls and replaces 'w', 'ww', 'W', 'WW' tokens
+ * NOTE: Updated to intercept .format() calls and replaces 'w', 'ww', 'W', 'WW' tokens
  * with Calendar.weekNumber() calls instead of moment's ISO week calculations.
  * @author @dwertheimer
  * -----------------------------------------------------------------------------------------*/
 
 /* eslint-disable */
 
-// Using original moment import - momentWrapper modifies instances which breaks date arithmetic
 import moment from 'moment/min/moment-with-locales'
 import { formatWithNotePlanWeeks } from '@helpers/notePlanWeekFormatter'
 import { default as momentBusiness } from 'moment-business-days'
