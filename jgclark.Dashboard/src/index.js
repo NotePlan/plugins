@@ -12,10 +12,7 @@ import pluginJson from '../plugin.json'
 import { generateTagMentionCache } from './tagMentionCache'
 import { renameKeys } from '@helpers/dataManipulation'
 import { clo, compareObjects, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import {
-  pluginUpdated,
-  saveSettings
-} from '@helpers/NPConfiguration'
+import { pluginUpdated, saveSettings } from '@helpers/NPConfiguration'
 
 // ----------------------------------------------------------------------------
 
@@ -29,10 +26,7 @@ export { editSettings } from '@helpers/NPSettings'
 /**
  * Other imports/exports
  */
-export {
-  decideWhetherToUpdateDashboard,
-  refreshSectionByCode,
-} from './dashboardHooks.js'
+export { decideWhetherToUpdateDashboard, refreshSectionByCode } from './dashboardHooks.js'
 
 export { generateDiagnosticsFile } from './diagnosticGenerator'
 
@@ -59,21 +53,16 @@ export {
 
 export {
   // onUpdateOrInstall, // Note: a more specialised version of this is below
-  init, onSettingsUpdated, versionCheck
+  init,
+  onSettingsUpdated,
+  versionCheck,
 } from './NPHooks'
 
-export {
-  generateTagMentionCache,
-  updateTagMentionCache
-} from './tagMentionCache'
+export { generateTagMentionCache, updateTagMentionCache } from './tagMentionCache'
 
-export {
-  backupSettings
-} from './backupSettings'
+export { backupSettings } from './backupSettings'
 
-export {
-  updateDoneCountsFromChangedNotes
-} from './countDoneTasks'
+export { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 
 export { externallyStartSearch } from './dataGenerationSearch.js'
 
@@ -120,7 +109,7 @@ export async function onUpdateOrInstall(): Promise<void> {
       logInfo(`onUpdateOrInstall`, `- Changes detected. Saved settings with result: ${JSP(result)}`)
     }
 
-    // Now get the tagMentionCache up to date. 
+    // Now get the tagMentionCache up to date.
     // Note: Deliberately don't await this, because it can take 15+ seconds.
     const _cachePromise = generateTagMentionCache(true)
 

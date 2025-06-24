@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { WEBVIEW_WINDOW_ID } from './constants'
+import { WEBVIEW_WINDOW_ID, allSectionDetails } from './constants'
 import { dashboardSettingDefs, dashboardFilterDefs } from './dashboardSettings'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
@@ -1002,10 +1002,10 @@ export function getDisplayListOfSectionCodes(sections: Array<TSection>): string 
 }
 
 /**
- * Get the default values for the dashboard settings.
- * @returns {Object} The default values for the dashboard settings.
+ * Get the default values for all dashboard settings.
+ * @returns {TDashboardSettings} The default values for all dashboard settings.
  */
-export function getDashboardSettingsDefaults() {
+export function getDashboardSettingsDefaults(): TDashboardSettings {
   const dashboardFilterDefaults = dashboardFilterDefs.filter((f) => f.key !== 'includedFolders')
   const nonFilterDefaults = dashboardSettingDefs.filter((f) => f.key)
   const dashboardSettingsDefaults = [...dashboardFilterDefaults, ...nonFilterDefaults].reduce((acc, curr) => {
@@ -1018,5 +1018,24 @@ export function getDashboardSettingsDefaults() {
     }
     return acc
   }, {})
+  // $FlowIgnore[prop-missing]
   return dashboardSettingsDefaults
+}
+
+/**
+ * Get the default values for the dashboard settings, with all sections set to false.
+ * This is used on update or install to ensure that any new settings or Sections are added to the perspectives.
+ * @param {TDashboardSettings} dashboardSettings - The dashboard settings to update.
+ * @returns {TDashboardSettings} The default values for the dashboard settings, with all sections set to false.
+ */
+export function getDashboardSettingsDefaultsWithSectionsAlsoSetToFalse(): TDashboardSettings {
+  const dashboardSettingsDefaults = getDashboardSettingsDefaults()
+  const sectionList = allSectionDetails.map((s) => s.showSettingName)
+  const sectionsSetToFalse = sectionList.reduce((acc: TAnyObject, curr: string) => {
+    acc[curr] = false
+    return acc
+  }, {})
+  // $FlowIgnore[prop-missing]
+  // $FlowIgnore[cannot-spread-indexer]
+  return { ...dashboardSettingsDefaults, ...sectionsSetToFalse }
 }
