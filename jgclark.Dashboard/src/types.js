@@ -6,7 +6,7 @@
 // Types for Settings
 
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
-export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog' 
+export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 
 export type TDashboardLoggingConfig = {
   _logLevel: string,
@@ -110,6 +110,7 @@ export type TDashboardSettings = {
   showTomorrowSection: boolean,
   showWeekSection: boolean,
   showYesterdaySection: boolean,
+  showInfoSection: boolean,
 }
 
 export type TPerspectiveSettings = Array<TPerspectiveDef>

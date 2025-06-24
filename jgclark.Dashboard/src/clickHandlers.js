@@ -8,7 +8,7 @@
 //-----------------------------------------------------------------------------
 import moment from 'moment'
 // import pluginJson from '../plugin.json'
-import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
+import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettingsInAPerspective } from './perspectiveHelpers'
 import { validateAndFlattenMessageObject } from './shared'
@@ -474,15 +474,18 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
       logDebug(`doDashboardSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
       if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
         // Clean up the settings before then comparing them with the active perspective settings
+        const dashboardSettingsDefaults = getDashboardSettingsDefaults()
+        const newSettingsWithDefaults = { ...dashboardSettingsDefaults, ...newSettings }
+        const activePerspDefDashboardSettingsWithDefaults = { ...dashboardSettingsDefaults, ...activePerspDef.dashboardSettings }
         // $FlowIgnore[prop-missing]
         // $FlowIgnore[incompatible-call]
-        const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettings)
-        const diff = compareObjects(activePerspDef.dashboardSettings, cleanedSettings, ['lastModified', 'lastChange'])
+        const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
+        const diff = compareObjects(activePerspDefDashboardSettingsWithDefaults, cleanedSettings, ['lastModified', 'lastChange'])
         clo(diff, `doDashboardSettingsChanged: diff`)
         // if !diff or  all the diff keys start with FFlag, then return
         if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
           logDebug(`doDashboardSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
-          const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(newSettings) })
+          const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: JSON.stringify(newSettings) })
           return handlerResult(res)
         } else {
           clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings:`)
@@ -506,7 +509,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     }
   }
 
-  const combinedUpdatedSettings = { ...await getSettings('jgclark.Dashboard'), [settingName]: JSON.stringify(newSettings) }
+  const combinedUpdatedSettings = { ...(await getSettings('jgclark.Dashboard')), [settingName]: JSON.stringify(newSettings) }
 
   if (perspectivesToSave) {
     const debugInfo = perspectivesToSave

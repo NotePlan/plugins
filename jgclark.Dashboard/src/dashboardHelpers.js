@@ -7,7 +7,7 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID } from './constants'
-import { dashboardSettingDefs } from './dashboardSettings'
+import { dashboardSettingDefs, dashboardFilterDefs } from './dashboardSettings'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type {
@@ -29,7 +29,7 @@ import { getRegularNotesInFolder, projectNotesFromFilteredFolders } from '@helpe
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
-import { filterOutParasInExcludeFolders, isNoteFromAllowedFolder, pastCalendarNotes, } from '@helpers/note'
+import { filterOutParasInExcludeFolders, isNoteFromAllowedFolder, pastCalendarNotes } from '@helpers/note'
 import { saveSettings } from '@helpers/NPConfiguration'
 import { getFirstDateInPeriod } from '@helpers/NPdateTime'
 import { getReferencedParagraphs } from '@helpers/NPnote'
@@ -194,6 +194,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   if (config.tagsToShow) sectionsToShow.push('TAG')
   if (config.showOverdueSection) sectionsToShow.push('OVERDUE')
   if (config.showPrioritySection) sectionsToShow.push('PRIORITY')
+  if (config.showInfoSection) sectionsToShow.push('INFO')
   sectionsToShow.push('SEARCH')
   logDebug('getListOfEnabledSections', `sectionsToShow: ${String(sectionsToShow)}`)
   return sectionsToShow
@@ -290,7 +291,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           hasChild: hasChild,
           isAChild: isAChild,
           dueDate: dueDateStr,
-          isTeamspace: note.isTeamspaceNote
+          isTeamspace: note.isTeamspaceNote,
         }
         // if (p.content.includes('TEST')) {
         // clo(outputPara, `FYI 👉 makeDashboardParas - outputPara:`)
@@ -369,11 +370,13 @@ export function getOpenItemParasForTimePeriod(
       // If note of interest is open in editor, then use latest version available, as the DataStore version could be stale.
       if (useEditorWherePossible && Editor && Editor.note?.filename === note.filename) {
         thisNoteParas = Editor.paragraphs
-        logTimer('getOpenItemPFCTP', startTime,
+        logTimer(
+          'getOpenItemPFCTP',
+          startTime,
           `Using EDITOR (${Editor.filename}) for the current time period: ${calendarPeriodName} which has ${String(Editor.paragraphs.length)} paras`,
         )
       } else {
-      // read note from DataStore in the usual way
+        // read note from DataStore in the usual way
         thisNoteParas = note.paragraphs
       }
       logDebug('getOpenItemPFCTP', `- found ${String(thisNoteParas.length)} paras for ${note.filename}`)
@@ -466,7 +469,9 @@ export function getOpenItemParasForTimePeriod(
       refOpenParas = alsoReturnTimeblockLines
         ? getReferencedParagraphs(note, false).filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
         : getReferencedParagraphs(note, false).filter((p) => isOpen(p))
-      logTimer('getOpenItemPFCTP', startTime,
+      logTimer(
+        'getOpenItemPFCTP',
+        startTime,
         `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`,
       )
       if (dashboardSettings.ignoreChecklistItems) {
@@ -598,7 +603,7 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
       const numDaysToLookBack = dashboardSettings.lookBackDaysForOverdue
       const cutoffDate = moment().subtract(numDaysToLookBack, 'days').format('YYYY-MM-DD')
       logDebug('getRelevantOverdueTasks', `lookBackDaysForOverdue limiting to last ${String(numDaysToLookBack)} days (from ${cutoffDate})`)
-      filteredOverdueParas = filteredOverdueParas.filter((p) => (getDueDateOrStartOfCalendarDate(p, true) > cutoffDate))
+      filteredOverdueParas = filteredOverdueParas.filter((p) => getDueDateOrStartOfCalendarDate(p, true) > cutoffDate)
     }
 
     // Remove items that appear in this section twice (which can happen if a task is sync'd), based just on their content
@@ -994,4 +999,24 @@ export function getDisplayListOfSectionCodes(sections: Array<TSection>): string 
     }
   })
   return outputList.join(',')
+}
+
+/**
+ * Get the default values for the dashboard settings.
+ * @returns {Object} The default values for the dashboard settings.
+ */
+export function getDashboardSettingsDefaults() {
+  const dashboardFilterDefaults = dashboardFilterDefs.filter((f) => f.key !== 'includedFolders')
+  const nonFilterDefaults = dashboardSettingDefs.filter((f) => f.key)
+  const dashboardSettingsDefaults = [...dashboardFilterDefaults, ...nonFilterDefaults].reduce((acc, curr) => {
+    // logDebug('doSwitchToPerspective', `doSwitchToPerspective: curr.key='${String(curr.key)}' curr.default='${String(curr.default)}'`)
+    if (curr.key && curr.default !== undefined) {
+      // $FlowIgnore[prop-missing]
+      acc[curr.key] = curr.default
+    } else {
+      logError('doSwitchToPerspective', `doSwitchToPerspective: default value for ${String(curr.key)} is not set in dashboardSettings file defaults.`)
+    }
+    return acc
+  }, {})
+  return dashboardSettingsDefaults
 }
