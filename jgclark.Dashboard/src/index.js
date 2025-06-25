@@ -10,6 +10,9 @@
  */
 import pluginJson from '../plugin.json'
 import { generateTagMentionCache } from './tagMentionCache'
+import { getDashboardSettingsDefaultsWithSectionsSetToFalse } from './dashboardHelpers'
+import { showDashboardReact } from './reactMain'
+import { backupSettings } from './backupSettings'
 import { renameKeys } from '@helpers/dataManipulation'
 import { clo, compareObjects, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { pluginUpdated, saveSettings } from '@helpers/NPConfiguration'
@@ -73,7 +76,7 @@ export { externallyStartSearch } from './dataGenerationSearch.js'
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logInfo(pluginJson, `onUpdateOrInstall() starting ...`)
-    const initialSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    const initialSettings = (await DataStore.loadJSON(`../${pluginID}/settings.json`)) || DataStore.settings
     // clo(initialSettings, `onUpdateOrInstall - initialSettings:`)
     // Note: this is deceptive because dashboardSettings is one single JSON stringified key inside initialSettings
 
@@ -87,12 +90,14 @@ export async function onUpdateOrInstall(): Promise<void> {
       includeTaskContext: 'showTaskContext',
     }
     const initialDashboardSettings = JSON.parse(initialSettings.dashboardSettings)
-    const migratedDashboardSettings = renameKeys(initialDashboardSettings, keysToChange)
+    const defaults = getDashboardSettingsDefaultsWithSectionsSetToFalse()
+    const migratedDashboardSettings = { ...defaults, ...renameKeys(initialDashboardSettings, keysToChange) }
 
     // Add any new settings for 2.3.0
-    logInfo(pluginJson, `- adding new keys for 2.3.0 ...`)
-    migratedDashboardSettings.includeFutureTagMentions = false
-    migratedDashboardSettings.showProgressInSections = 'number closed'
+    // TODO: (@jgclark): Hard-coding this should not be necessary anymore, because if they are in the defaults of dashboardSettings, they will be added to the perspectives.
+    // logInfo(pluginJson, `- adding new keys for 2.3.0 ...`)
+    // migratedDashboardSettings.includeFutureTagMentions = false
+    // migratedDashboardSettings.showProgressInSections = 'number closed'
 
     // Note: Workaround for number types getting changed to strings at some point in our Settings system.
     migratedDashboardSettings.newTaskSectionHeadingLevel = parseInt(migratedDashboardSettings.newTaskSectionHeadingLevel || 2)
@@ -100,22 +105,32 @@ export async function onUpdateOrInstall(): Promise<void> {
     migratedDashboardSettings.lookBackDaysForOverdue = parseInt(migratedDashboardSettings.lookBackDaysForOverdue || 7)
     migratedDashboardSettings.autoUpdateAfterIdleTime = parseInt(migratedDashboardSettings.autoUpdateAfterIdleTime || 10)
 
-    // clo(migratedDashboardSettings, `onUpdateOrInstall - migratedDashboardSettings:`)
+    clo(migratedDashboardSettings, `onUpdateOrInstall - migratedDashboardSettings:`)
 
-    // Save the settings back to the DataStore
-    if (compareObjects(migratedDashboardSettings, initialDashboardSettings, [], true) != null) {
-      const migratedSettings = { ...initialSettings, dashboardSettings: JSON.stringify(migratedDashboardSettings) }
-      const result = await saveSettings(pluginID, migratedSettings)
-      logInfo(`onUpdateOrInstall`, `- Changes detected. Saved settings with result: ${JSP(result)}`)
+    clo(initialSettings, `onUpdateOrInstall - initialSettings:`)
+    const perspectiveSettings = await JSON.parse(initialSettings.perspectiveSettings)
+    const newPerspectives = perspectiveSettings.map((p) => ({ ...p, dashboardSettings: { ...defaults, ...p.dashboardSettings } }))
+    const migratedSettings = { ...initialSettings, dashboardSettings: JSON.stringify(migratedDashboardSettings), perspectiveSettings: JSON.stringify(newPerspectives) }
+
+    const diff = compareObjects(migratedDashboardSettings, initialDashboardSettings, [], true)
+    if (diff != null) {
+      // Save the settings back to the DataStore
+      clo(diff, `Dashboard: onUpdateOrInstall - changes detected; diff:`)
+      await backupSettings(true)
+      await saveSettings(pluginID, migratedSettings)
+      await showDashboardReact() // force a refresh of the dashboard with the new settings.
+      // throw new Error('Stop because changes detected (this is not actually an ERROR but we are using a throw statement to stop execution)') // updates were required to be made to the settings.
+    } else {
+      logInfo(`onUpdateOrInstall`, `- no changes detected to settings.`)
     }
-
+    logInfo(`onUpdateOrInstall`, `- finished.`)
+    pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
     // Now get the tagMentionCache up to date.
     // Note: Deliberately don't await this, because it can take 15+ seconds.
-    const _cachePromise = generateTagMentionCache(true)
-
-    await pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
-
-    logInfo(`onUpdateOrInstall`, `- finished.`)
+    // const _cachePromise = generateTagMentionCache(true)
+    // TODO: (@jgclark): If we don't await this, doesn't it stop running at the end of the function? I think NotePlan will kill the thread.
+    // dbw is changing it to await for now so it will run and finish. Should be invisible to the user.
+    await generateTagMentionCache(true)
   } catch (err) {
     logError(pluginJson, `onUpdateOrInstall() error: ${err.message}`)
   }

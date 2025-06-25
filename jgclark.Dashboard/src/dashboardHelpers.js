@@ -1018,6 +1018,7 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
     }
     return acc
   }, {})
+  clo(dashboardSettingsDefaults, `dashboardSettingsDefaults:`)
   // $FlowIgnore[prop-missing]
   return dashboardSettingsDefaults
 }
@@ -1028,13 +1029,14 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
  * @param {TDashboardSettings} dashboardSettings - The dashboard settings to update.
  * @returns {TDashboardSettings} The default values for the dashboard settings, with all sections set to false.
  */
-export function getDashboardSettingsDefaultsWithSectionsAlsoSetToFalse(): TDashboardSettings {
+export function getDashboardSettingsDefaultsWithSectionsSetToFalse(): TDashboardSettings {
   const dashboardSettingsDefaults = getDashboardSettingsDefaults()
-  const sectionList = allSectionDetails.map((s) => s.showSettingName)
+  const sectionList = allSectionDetails.map((s) => s.showSettingName).filter((s) => s !== '' && s !== undefined)
   const sectionsSetToFalse = sectionList.reduce((acc: TAnyObject, curr: string) => {
     acc[curr] = false
     return acc
   }, {})
+  clo(sectionsSetToFalse, `sectionsSetToFalse:`)
   // $FlowIgnore[prop-missing]
   // $FlowIgnore[cannot-spread-indexer]
   return { ...dashboardSettingsDefaults, ...sectionsSetToFalse }
