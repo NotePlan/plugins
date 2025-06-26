@@ -57,4 +57,9 @@ export default class WebModule {
   async journalingQuestion(): Promise<string> {
     return await journalingQuestion()
   }
+
+  async getRandomLine(noteTitle: string): Promise<string> {
+    const noteModule = new (await import('./NoteModule')).default({})
+    return await noteModule.getRandomLine(noteTitle)
+  }
 }

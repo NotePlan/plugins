@@ -392,6 +392,9 @@ export default class TemplatingEngine {
         journalingQuestion: async (params: string = '') => {
           return await new WebModule().journalingQuestion()
         },
+        getRandomLine: async (noteTitle: string) => {
+          return await new WebModule().getRandomLine(noteTitle)
+        },
       },
     }
 

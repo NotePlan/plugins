@@ -157,6 +157,11 @@ const globals = {
     return await Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
   },
 
+  getRandomLine: async (noteTitle: string): Promise<string> => {
+    const noteModule = new (await import('./support/modules/NoteModule')).default({})
+    return await noteModule.getRandomLine(noteTitle)
+  },
+
   clo: (obj: any, preamble: string = '', space: string | number = 2): void => {
     clo(obj, preamble, space)
   },
@@ -257,6 +262,7 @@ export const asyncFunctions = [
   'logError',
   'matchingEvents',
   'note.content',
+  'note.getRandomLine',
   'note.selection',
   'now',
   'processData',

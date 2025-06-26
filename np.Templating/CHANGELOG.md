@@ -7,6 +7,7 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 ## [2.0.2] 2025-06-26 @dwertheimer
 - Add `stoicQuote` to globals and web module
 - Add `verse` to globals and web module
+- Add `note.getRandomLine` to NoteModule
 
 ## [2.0.1] 2025-06-25 @dwertheimer
 - Fix bug @jgclark found where multi-line JS inside a single tag was not working

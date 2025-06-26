@@ -12,7 +12,7 @@ import moment from 'moment/min/moment-with-locales'
 import FrontmatterModule from './FrontmatterModule'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { replaceContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
-import { removeSection } from '@helpers/note'
+import { removeSection, getNote } from '@helpers/note'
 import { getFlatListOfBacklinks } from '@helpers/NPnote'
 export default class NoteModule {
   constructor(config: any) {
@@ -62,6 +62,49 @@ export default class NoteModule {
     }
 
     return content
+  }
+
+  /**
+   * Get a random line from a note specified by title
+   * @param {string} noteTitle - The title of the note to get a random line from
+   * @returns {Promise<string>} A random line from the note, or error message if note not found
+   */
+  async getRandomLine(noteTitle: string): Promise<string> {
+    try {
+      // Find the note by title
+      const note = await getNote(noteTitle)
+      if (!note) {
+        return `**Note not found: "${noteTitle}"**`
+      }
+
+      // Get the note content
+      let fullNoteContent = note.content || ''
+
+      // Always strip frontmatter
+      const content = new FrontmatterModule().body(fullNoteContent)
+
+      // Split content into lines
+      const lines = content.split('\n')
+
+      // Filter lines: exclude empty lines, frontmatter lines, and title lines
+      const eligibleLines = lines.filter((line) => {
+        const trimmedLine = line.trim()
+        return trimmedLine.length > 0 && !trimmedLine.startsWith('---') && !trimmedLine.startsWith('#')
+      })
+
+      // Check if we have any eligible lines
+      if (eligibleLines.length === 0) {
+        return `**No eligible lines found in note: "${noteTitle}"**`
+      }
+
+      // Select a random line
+      const randomIndex = Math.floor(Math.random() * eligibleLines.length)
+      const randomLine = eligibleLines[randomIndex].trim()
+
+      return randomLine
+    } catch (error) {
+      return `**Error getting random line from note "${noteTitle}": ${error.message}**`
+    }
   }
 
   hashtags(): ?string {
