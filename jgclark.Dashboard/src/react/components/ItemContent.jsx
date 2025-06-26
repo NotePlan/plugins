@@ -215,6 +215,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
 
     // Display strikethrough with .strikethrough style
     output = convertStrikethroughToHTML(output)
+    // logDebug('makeParaContent...', `- after convertStrikethroughToHTML: ${output}`)
 
     // Display highlights with .code style
     output = convertHighlightsToHTML(output)
@@ -239,6 +240,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
 
     // Display underline with .underlined style
     output = convertUnderlinedToHTML(output)
+    // logDebug('makeParaContent...', `- after convertUnderlinedToHTML: ${output}`)
 
     // Add suitable colouring to 'arrow' >date< items
     // (Needs to go before match on >date dates)
@@ -265,10 +267,16 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
       }
     }
 
-    // logDebug('makeParaContent...', `- before replace note links: ${output}`)
+    // Truncate the HTML string if wanted (avoiding breaking in middle of HTML tags)
+    // Note: Best done before the note link is added
+    if (truncateLength > 0 && origContent.length > truncateLength) {
+      output = truncateHTML(output, truncateLength, true)
+      // logDebug('makeParaContent...', `- after truncate HTML: ${output}`)
+    }
 
     // Replace [[notelinks]] with HTML equivalent, and coloured
     // Note: needs to go after >date section above
+    // logDebug('makeParaContent...', `- before replace note links: ${output}`)
     captures = output.match(/\[\[(.*?)\]\]/)
     if (captures) {
       // clo(captures, 'results from [[notelinks]] match:')
@@ -278,12 +286,6 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
         const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(capturedTitle, '') // don't want folder part here
         output = output.replace(`[[${capturedTitle}]]`, `</a>${noteTitleWithOpenAction}<a>`)
       }
-    }
-
-    // Truncate the HTML string if wanted (avoiding breaking in middle of HTML tags)
-    // Note: Best done before the note link is added
-    if (truncateLength > 0 && origContent.length > truncateLength) {
-      output = truncateHTML(output, truncateLength, true)
     }
 
     // If we already know (from above) there's a !, !!, !!! or >> in the line add priorityN styling around the whole string. Where it is "working-on", it uses priority4.
