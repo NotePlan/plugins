@@ -4,6 +4,13 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.2] 2025-06-26 @dwertheimer
+- Add `stoicQuote` to globals and web module
+- Add `verse` to globals and web module
+
+## [2.0.1] 2025-06-25 @dwertheimer
+- Fix bug @jgclark found where multi-line JS inside a single tag was not working
+
 ## [2.0.0] 2025-XX-XX @dwertheimer
 - Update `Add Frontmatter/Properties to Template` command name
 - add tag function `getValuesForKey` to get all values for a given frontmatter tag

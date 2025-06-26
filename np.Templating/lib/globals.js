@@ -18,6 +18,8 @@ import { time } from './support/modules/TimeModule'
 import { getAffirmation } from './support/modules/affirmation'
 import { getAdvice } from './support/modules/advice'
 import { getDailyQuote } from './support/modules/quote'
+import { getStoicQuote } from './support/modules/stoicQuotes'
+import { getVerse } from './support/modules/verse'
 import { getWOTD } from './support/modules/wotd'
 import { getWeather } from './support/modules/weather'
 import { getWeatherSummary } from './support/modules/weatherSummary'
@@ -39,6 +41,10 @@ const globals = {
     return await getAffirmation()
   },
 
+  stoicQuote: async (): Promise<string> => {
+    return await getStoicQuote()
+  },
+
   advice: async (): Promise<string> => {
     return await getAdvice()
   },
@@ -49,6 +55,10 @@ const globals = {
 
   quote: async (): Promise<string> => {
     return await getDailyQuote()
+  },
+
+  verse: async (): Promise<string> => {
+    return await getVerse()
   },
 
   format: async (formatstr: string = '%Y-%m-%d %I:%M:%S %P'): Promise<string> => {
@@ -251,6 +261,7 @@ export const asyncFunctions = [
   'now',
   'processData',
   'progressUpdate',
+  'stoicQuote',
   'todayProgressFromTemplate',
   'quote',
   'selection',
@@ -264,6 +275,7 @@ export const asyncFunctions = [
   'web.affirmation',
   'web.journalingQuestion',
   'web.quote',
+  'web.stoicQuote',
   'web.verse',
   'web.weather',
   'weekDates',

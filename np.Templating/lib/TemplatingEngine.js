@@ -374,6 +374,9 @@ export default class TemplatingEngine {
         quote: async () => {
           return await new WebModule().quote()
         },
+        stoicQuote: async () => {
+          return await new WebModule().stoicQuote()
+        },
         verse: async () => {
           return await new WebModule().verse()
         },

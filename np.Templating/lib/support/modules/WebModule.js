@@ -12,6 +12,7 @@ import { getWeather } from './weather'
 import { getService } from './data/service'
 import { getDailyQuote } from './quote'
 import { getAffirmation } from './affirmation'
+import { getStoicQuote } from './stoicQuotes'
 import { getWeatherSummary } from './weatherSummary'
 import { journalingQuestion } from './journal'
 
@@ -26,6 +27,10 @@ export default class WebModule {
 
   async quote(): Promise<string> {
     return await getDailyQuote()
+  }
+
+  async stoicQuote(): Promise<string> {
+    return await getStoicQuote()
   }
 
   async weather(templateConfig: any, params: string = ''): Promise<string> {
