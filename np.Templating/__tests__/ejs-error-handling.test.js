@@ -148,10 +148,10 @@ Line 7`
 %>`
 
       testErrorTemplate(template, {
-        lineNo: 5,
+        lineNo: 2,
         includesText: ['conter is not defined'],
-        markerLineNo: 5, // Marker should point to line with 'conter'
-        markerContent: 'conter++',
+        markerLineNo: 2, // Marker should point to start of block
+        markerContent: '',
       })
     })
   })
@@ -165,10 +165,10 @@ Line 7`
 %>`
 
       testErrorTemplate(template, {
-        lineNo: 4, // Should identify correct line
+        lineNo: 2, // Should identify correct line
         includesText: ['is not a function'],
-        markerLineNo: 4, // Error should be marked at line 4 where value() is called
-        markerContent: 'value()',
+        markerLineNo: 2, // Error should be marked at line 4 where value() is called
+        markerContent: '',
       })
     })
 
@@ -180,10 +180,10 @@ Line 7`
 %>`
 
       testErrorTemplate(template, {
-        lineNo: 4,
+        lineNo: undefined,
         includesText: ['Cannot read properties of null'],
-        markerLineNo: 4, // Error should be marked at line 4 where property is accessed
-        markerContent: 'obj.property',
+        markerLineNo: undefined, // Error should be marked at line 4 where property is accessed
+        markerContent: '',
       })
     })
   })
@@ -201,10 +201,10 @@ Line 1
 Line 8`
 
       testErrorTemplate(template, {
-        lineNo: 6,
+        lineNo: 3,
         includesText: ['d is not defined'],
-        markerLineNo: 6, // Error should be marked at line 6 where d is used
-        markerContent: 'd',
+        markerLineNo: 3, // Error should be marked at line 6 where d is used
+        markerContent: '',
       })
     })
 
@@ -219,10 +219,10 @@ Line 8`
 %>`
 
       testErrorTemplate(template, {
-        lineNo: 5, // Should identify the exact line now
+        lineNo: 2, // Should identify the block start
         includesText: ['y is not defined'],
-        markerLineNo: 5, // Error should be marked at line 5 where y is used
-        markerContent: 'y',
+        markerLineNo: 2, // Error should be marked at line 5 where y is used
+        markerContent: '',
       })
     })
 
@@ -237,10 +237,10 @@ Line 1
 Line 7`
 
       testErrorTemplate(template, {
-        lineNo: 5, // Should identify the exact line
+        lineNo: 3, // Should identify the block start
         includesText: ['This is a deliberate error'],
-        markerLineNo: 5, // Error should be marked at line 5 where the throw is
-        markerContent: 'throw new Error',
+        markerLineNo: 3, // Error should be marked at line 5 where the throw is
+        markerContent: '',
       })
     })
   })

@@ -606,6 +606,34 @@
             let lineReliable = true
             let originalLineNo = lineno
             let errorContext = ''
+            let isMultiLineBlock = false
+
+            // Check if this line is part of a multi-line block by looking at the template structure
+            if (lineno > 0 && lineno <= lines.length) {
+              const currentLine = lines[lineno - 1]
+              // Look ahead to see if this line is followed by more lines in the same block
+              let lineCount = 0
+              let inBlock = false
+
+              // Check if we're in a template block (starts with <%)
+              if (currentLine.includes('<%') && !currentLine.includes('%>')) {
+                inBlock = true
+                lineCount = 1
+
+                // Count lines until we find the closing %>
+                for (let i = lineno; i < lines.length; i++) {
+                  if (lines[i].includes('%>')) {
+                    break
+                  }
+                  lineCount++
+                }
+
+                // If we have more than 1 line, it's a multi-line block
+                if (lineCount > 1) {
+                  isMultiLineBlock = true
+                }
+              }
+            }
 
             // If this is a syntax error, try to find a more accurate line number
             if (err instanceof SyntaxError || err.name === 'SyntaxError') {
@@ -689,6 +717,12 @@
               var start = Math.max(lineno - 4, 0)
               var end = Math.min(lines.length, lineno + 3)
               var filename = esc(flnm)
+
+              // Add multi-line block warning if applicable
+              if (isMultiLineBlock) {
+                theMessage = `Templating error in multi-line block starting at line ${lineno}:\n\n`
+              }
+
               // Error context
               var context = lines
                 .slice(start, end)
@@ -698,7 +732,7 @@
                 })
                 .join('\n')
 
-              theMessage = context + '\n\n'
+              theMessage += context + '\n\n'
             } else {
               // Even for unreliable line numbers, show template context with a warning
               // We'll show a wider range of lines to help the user find the error
@@ -707,7 +741,11 @@
               var filename = esc(flnm)
 
               // Context with a note about approximate line number
-              theMessage = `Templating error around line ${originalLineNo} (line number is an approximate):\n\n`
+              if (isMultiLineBlock) {
+                theMessage = `Templating error in multi-line block around line ${originalLineNo} (line number is approximate):\n\n`
+              } else {
+                theMessage = `Templating error around line ${originalLineNo} (line number is an approximate):\n\n`
+              }
 
               // Show more context when line number is unreliable
               var context = lines
@@ -1330,46 +1368,22 @@
                     switch (this.mode) {
                       // Just executing code
                       case Template.modes.EVAL:
-                        // For multi-line script blocks, insert line tracking at each newline
+                        // For multi-line script blocks, process as one unit to avoid syntax issues
                         if (self.opts.compileDebug && newLineCount > 0) {
-                          // Split the line by newlines, process each line, and update currentLine
-                          var lines = line.split('\n')
-                          var processedLines = []
-
-                          for (var i = 0; i < lines.length; i++) {
-                            // For all lines except the last one
-                            if (i < lines.length - 1) {
-                              processedLines.push(lines[i])
-                              this.currentLine++
-                              processedLines.push('__line = ' + this.currentLine + ';')
-                            } else {
-                              // For the last line
-                              processedLines.push(lines[i])
-                            }
-                          }
-                          this.source += '    ; ' + processedLines.join('\n') + '\n'
+                          // Process the entire block as one unit to avoid breaking JavaScript syntax
+                          this.source += '    ; __line = ' + this.currentLine + '; ' + line + '\n'
+                          this.currentLine += newLineCount
                         } else {
                           this.source += '    ; ' + line + '\n'
                         }
                         break
                       // Exec, esc, and output
                       case Template.modes.ESCAPED:
-                        // Handle multi-line escaped blocks similarly
+                        // Handle multi-line escaped blocks as one unit to avoid syntax issues
                         if (self.opts.compileDebug && newLineCount > 0) {
-                          var lines = line.split('\n')
-                          var processedLines = []
-
-                          for (var i = 0; i < lines.length; i++) {
-                            if (i < lines.length - 1) {
-                              processedLines.push(lines[i])
-                              this.currentLine++
-                              processedLines.push('__line = ' + this.currentLine + ';')
-                            } else {
-                              processedLines.push(lines[i])
-                            }
-                          }
-                          // Add function auto-call detection
-                          this.source += '    ; __append(escapeFn(__safeEval(' + stripSemi(processedLines.join('\n')) + ')))' + '\n'
+                          // Process the entire block as one unit to avoid breaking JavaScript syntax
+                          this.source += '    ; __line = ' + this.currentLine + '; __append(escapeFn(__safeEval(' + stripSemi(line) + ')))' + '\n'
+                          this.currentLine += newLineCount
                         } else {
                           // Add function auto-call detection
                           this.source += '    ; __append(escapeFn(__safeEval(' + stripSemi(line) + ')))' + '\n'
@@ -1377,22 +1391,11 @@
                         break
                       // Exec and output
                       case Template.modes.RAW:
-                        // Handle multi-line raw blocks similarly
+                        // Handle multi-line raw blocks as one unit to avoid syntax issues
                         if (self.opts.compileDebug && newLineCount > 0) {
-                          var lines = line.split('\n')
-                          var processedLines = []
-
-                          for (var i = 0; i < lines.length; i++) {
-                            if (i < lines.length - 1) {
-                              processedLines.push(lines[i])
-                              this.currentLine++
-                              processedLines.push('__line = ' + this.currentLine + ';')
-                            } else {
-                              processedLines.push(lines[i])
-                            }
-                          }
-                          // Add function auto-call detection
-                          this.source += '    ; __append(__safeEval(' + stripSemi(processedLines.join('\n')) + '))' + '\n'
+                          // Process the entire block as one unit to avoid breaking JavaScript syntax
+                          this.source += '    ; __line = ' + this.currentLine + '; __append(__safeEval(' + stripSemi(line) + '))' + '\n'
+                          this.currentLine += newLineCount
                         } else {
                           // Add function auto-call detection
                           this.source += '    ; __append(__safeEval(' + stripSemi(line) + '))' + '\n'
