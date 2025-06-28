@@ -148,8 +148,8 @@ Replace undefined variables with: \`<%- typeof varName !== 'undefined' ? varName
     // Verify the prompt includes context information
     expect(capturedPrompt).toContain('context variables/values that were available')
     expect(capturedPrompt).toContain('user: [object with keys: name, email]')
-    expect(capturedPrompt).toContain('date: [object with keys: now]')
-    expect(capturedPrompt).toContain('someFunction: [function]')
+    expect(capturedPrompt).toContain('date: [object with keys: now()]')
+    expect(capturedPrompt).toContain('someFunction()')
   })
 
   test('should handle templates without original script', async () => {

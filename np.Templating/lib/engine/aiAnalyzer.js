@@ -72,9 +72,45 @@ function prepareContextInfo(renderData: Object): string {
   const contextEntries = contextKeys.map((key) => {
     const value = renderData[key]
     if (typeof value === 'function') {
-      return { key, description: `${key}: [function]` }
+      return { key, description: `${key}()` }
     } else if (typeof value === 'object' && value !== null) {
-      return { key, description: `${key}: [object with keys: ${Object.keys(value).join(', ')}]` }
+      // For objects, show all keys and indicate which ones are functions
+      // Get own properties (enumerable and non-enumerable)
+      const ownPropertyNames = Object.getOwnPropertyNames(value)
+
+      // Also check for prototype methods (for class instances like DateModule)
+      // But filter out built-in Object prototype methods
+      const prototypeMethods: Array<string> = []
+      if (value.constructor && value.constructor.prototype) {
+        const prototypeKeys = Object.getOwnPropertyNames(value.constructor.prototype)
+        const builtInObjectMethods = [
+          '__defineGetter__',
+          '__defineSetter__',
+          '__lookupGetter__',
+          '__lookupSetter__',
+          'hasOwnProperty',
+          'isPrototypeOf',
+          'propertyIsEnumerable',
+          'toString',
+          'valueOf',
+          'toLocaleString',
+          'constructor',
+        ]
+
+        prototypeMethods.push(...prototypeKeys.filter((prop) => !builtInObjectMethods.includes(prop) && typeof value[prop] === 'function'))
+      }
+
+      // Combine own properties and prototype methods, avoiding duplicates
+      const allKeys = [...new Set([...ownPropertyNames, ...prototypeMethods])]
+
+      const keyDescriptions = allKeys.map((objKey) => {
+        const objValue = value[objKey]
+        // Check if it's a function, including inherited ones
+        const isFunction = typeof objValue === 'function' || (value.constructor && value.constructor.prototype && typeof value.constructor.prototype[objKey] === 'function')
+        return isFunction ? `${objKey}()` : objKey
+      })
+
+      return { key, description: `${key}: [object with keys: ${keyDescriptions.join(', ')}]` }
     } else {
       const valueStr = String(value)
       // Filter out context variables that contain error messages from previous phases
