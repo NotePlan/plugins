@@ -4,6 +4,9 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.3] 2025-06-28 @dwertheimer
+- Improve AI error handling analysis to include more context vars/functions in the prompt
+
 ## [2.0.2] 2025-06-26 @dwertheimer
 - Add `stoicQuote` to globals and web module
 - Add `verse` to globals and web module
