@@ -268,4 +268,60 @@ describe('convertBoldAndItalicToHTML()' /* function */, () => {
     const expected = 'foo <em>bar</em> and http://help.noteplan.co/something/this_end with a later_ to ignore'
     expect(result).toEqual(expected)
   })
+
+  describe('convertUnderlinedToHTML()' /* function */, () => {
+    test('with no url or underlined', () => {
+      const orig = 'foo bar and nothing else'
+      const result = h.convertUnderlinedToHTML(orig)
+      expect(result).toEqual(orig)
+    })
+    test('with url', () => {
+      const orig = 'Has a URL [NP Help](http://help.noteplan.co/) and nothing else'
+      const result = h.convertUnderlinedToHTML(orig)
+      expect(result).toEqual(orig)
+    })
+    test('with underlined', () => {
+      const orig = 'foo ~bar~ and nothing else'
+      const result = h.convertUnderlinedToHTML(orig)
+      expect(result).toEqual('foo <span class="underlined">bar</span> and nothing else')
+    })
+    test('with more underlined', () => {
+      const orig = 'foo ~bar and baz~ and nothing else'
+      const result = h.convertUnderlinedToHTML(orig)
+      expect(result).toEqual('foo <span class="underlined">bar and baz</span> and nothing else')
+    })
+    test('with underlined and some in a URL', () => {
+      const orig = 'Listen to [Test Markdown URL](https://clicks.test.com/some/with~underlined~pair-ok/ending)'
+      const result = h.convertUnderlinedToHTML(orig)
+      expect(result).toEqual(orig)
+    })
+    test('with long zoe link', () => {
+      const orig = 'Listen to <a class="externalLink" href="https:\/\/clicks\.zoe\.com\/f\/a\/ZUR-0srQ-voOYivE4-3Cbg~~\/AAAHahA~\/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~"><i class="fa-regular fa-globe pad-right"><\/i>Protein on a plant-based diet | Prof. Tim Spector and Dr. Rupy Aujla ~ ZOE</a>$'
+      const result = h.convertUnderlinedToHTML(orig)
+      expect(result).toEqual(orig)
+    })
+  })
+
+  describe('convertStrikethroughToHTML()' /* function */, () => {
+    test('with no url or strikethrough', () => {
+      const orig = 'foo bar and nothing else'
+      const result = h.convertStrikethroughToHTML(orig)
+      expect(result).toEqual(orig)
+    })
+    test('with url', () => {
+      const orig = 'Has a URL [NP Help](http://help.noteplan.co/) and nothing else'
+      const result = h.convertStrikethroughToHTML(orig)
+      expect(result).toEqual(orig)
+    })
+    test('with strikethrough', () => {
+      const orig = 'foo ~~bar~~ and nothing else'
+      const result = h.convertStrikethroughToHTML(orig)
+      expect(result).toEqual('foo <span class="strikethrough">bar</span> and nothing else')
+    })
+    test('with strikethrough and some in a URL', () => {
+      const orig = 'Listen to [Low-carb diets and sugar spikes | Prof. Tim Spector ~ ZOE](https://clicks.zoe.com/f/a/dAgKh6AB8eEXtAsfVZAruQ~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljfzbxj0fcKOfK3AYKbmVevONgJ47zckYA_4vS_pNxs7JgRkrShVwPCAhgMGMHCRYPhB_HHOjoSolH6GF-1WvM08xMcWon8sQI9tDzxayAenpO0u1CJCyUeKVsDziwbA6RY~)'
+      const result = h.convertStrikethroughToHTML(orig)
+      expect(result).toEqual(orig)
+    })
+  })
 })

@@ -1067,25 +1067,28 @@ export function convertTimeBlockToHTML(input: string, timeblockTextMustContainSt
   return output
 }
 
-// Display underlined with .underlined style
-// TODO: regex isn't quite right. But can't get original one to work for reasons I can't understand
-// But does cope with lone ~ in URLs
+// Change markdown ~underlined~ to HTML with .underlined style
+// Ignores ~ in URLs
 export function convertUnderlinedToHTML(input: string): string {
   let output = input
-  // const captures = output.match(/(?:[\s^])~.*?~(?:[\s$])/g)
-  const captures = output.match(/~[\w\-'"]*?~/g)
+  const captures = output.match(/~[^~]*?~/g)
   if (captures) {
     // clo(captures, 'results from underlined matches:')
     for (const capture of captures) {
-      const match = capture
-      output = output.replace(match, `<span class="underlined">${match.slice(1, -1)}</span>`)
+      // Check if the capture is part of a URL (either markdown links or HTML anchor tags)
+      const isInMarkdownURL = new RegExp(`\\[.*?\\]\\(.*?${capture}.*?\\)`).test(input)
+      const isInHTMLURL = new RegExp(`<a[^>]*href=["'][^"']*${capture}[^"']*["'][^>]*>`).test(input)
+      if (!isInMarkdownURL && !isInHTMLURL) {
+        const match = capture
+        output = output.replace(match, `<span class="underlined">${match.slice(1, -1)}</span>`)
+      }
     }
   }
   return output
 }
 
 // Display strike text with .strikethrough style
-//
+// Ignores ~~ in URLs
 export function convertStrikethroughToHTML(input: string): string {
   let output = input
   const captures = output.match(/~~.*?~~/g)
