@@ -283,4 +283,275 @@ describe('Template processIncludeTag', () => {
     expect(context.templateData).toContain('Before')
     expect(context.templateData).toContain('After')
   })
+
+  // Test case 8: Preserve template strings in include tags
+  test('should preserve template strings in include tag parameters', async () => {
+    const tag = "<%- include('template with ${currentMonth}') %>"
+    const expectedTemplateName = 'template with ${currentMonth}'
+
+    context.templateData = `Before ${tag} After`
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the preserved template string
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
+
+  // Test case 9: Preserve template strings with complex expressions
+  test('should preserve complex template strings in include tags', async () => {
+    const tag = "<%- include('template-${currentMonth}-${currentYear}') %>"
+    const expectedTemplateName = 'template-${currentMonth}-${currentYear}'
+
+    context.templateData = `Before ${tag} After`
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the preserved template string
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
+
+  // Test case 10: Preserve template strings with nested braces
+  test('should preserve template strings with nested braces and objects', async () => {
+    const tag = "<%- include('template with ${user.name} and ${user.settings.theme}') %>"
+    const expectedTemplateName = 'template with ${user.name} and ${user.settings.theme}'
+
+    context.templateData = `Before ${tag} After`
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the preserved template string
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
+
+  // Test case 11: Preserve template strings in template() function calls
+  test('should preserve template strings in template() function calls', async () => {
+    const tag = "<%- template('template-${currentMonth}') %>"
+    const expectedTemplateName = 'template-${currentMonth}'
+
+    context.templateData = `Before ${tag} After`
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the preserved template string
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
+
+  // Test case 12: Handle include tags with parameters containing template strings
+  test('should handle include tags with parameters containing template strings', async () => {
+    const tag = "<%- include('header', { title: '${currentMonth} Report' }) %>"
+    const expectedTemplateName = 'header'
+
+    context.templateData = `Before ${tag} After`
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the correct template name
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
+
+  // Test case 13: Handle variable assignment with template strings
+  test('should handle variable assignment with template strings in include tags', async () => {
+    const tag = "<% let myVar = include('template-${currentMonth}') %>"
+    const expectedTemplateName = 'template-${currentMonth}'
+
+    context.templateData = `Some text ${tag} other text`
+    context.override = {}
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the preserved template string
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Some text')
+    expect(context.templateData).toContain('other text')
+  })
+
+  // Test case 14: Handle malformed include tags gracefully
+  test('should handle malformed include tags gracefully', async () => {
+    const tag = "<%- include('template with ${currentMonth}' %>" // Missing closing parenthesis
+    const initialData = `Before ${tag} After`
+    context.templateData = initialData
+
+    await processIncludeTag(tag, context)
+
+    // Should replace with error message
+    expect(context.templateData).toBe('Before **Unable to parse include** After')
+  })
+
+  // Test case 15: Handle include tags with no content
+  test('should handle include tags with no content between parentheses', async () => {
+    const tag = `<%- include() %>`
+    const initialData = `Before ${tag} After`
+    context.templateData = initialData
+
+    await processIncludeTag(tag, context)
+
+    // Should replace with error message
+    expect(context.templateData).toBe('Before **Unable to parse include** After')
+  })
+
+  // Test case 16: Evaluate template strings in include tag template names
+  test('should evaluate template strings in include tag template names', async () => {
+    const tag = '<%- include(`Monthly Notes/${currentMonth} Monthly Note`) %>'
+    const expectedTemplateName = 'Monthly Notes/July Monthly Note'
+
+    context.templateData = `Before ${tag} After`
+    context.sessionData = { currentMonth: 'July' }
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the evaluated template name
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
+
+  // Test case 17: Handle template strings with complex variable names
+  test('should handle template strings with complex variable names', async () => {
+    const tag = '<%- include(`templates/${user.name}/${user.settings.theme}`) %>'
+    const expectedTemplateName = 'templates/John/dark'
+
+    context.templateData = `Before ${tag} After`
+    context.sessionData = {
+      user: {
+        name: 'John',
+        settings: { theme: 'dark' },
+      },
+    }
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the evaluated template name
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
+
+  // Test case 18: Handle template strings with undefined variables
+  test('should handle template strings with undefined variables gracefully', async () => {
+    const tag = '<%- include(`templates/${undefinedVar}`) %>'
+    const expectedTemplateName = 'templates/${undefinedVar}' // Should preserve the original if variable is undefined
+
+    context.templateData = `Before ${tag} After`
+    context.sessionData = { currentMonth: 'July' } // undefinedVar is not defined
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the original template string (not evaluated)
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
+
+  // Test case 19: Handle complex template expressions (should preserve original)
+  test('should preserve complex template expressions in template names', async () => {
+    const tag = '<%- include(`templates/${user.age > 18 ? "adult" : "minor"}`) %>'
+    const expectedTemplateName = 'templates/${user.age > 18 ? "adult" : "minor"}' // Should preserve complex expressions
+
+    context.templateData = `Before ${tag} After`
+    context.sessionData = { user: { age: 25 } }
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the original template string (complex expressions not evaluated)
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
+
+  // Test case 20: Handle template expressions with default values (should preserve original)
+  test('should preserve template expressions with default values in template names', async () => {
+    const tag = '<%- include(`templates/${user.name || "default"}`) %>'
+    const expectedTemplateName = 'templates/${user.name || "default"}' // Should preserve complex expressions
+
+    context.templateData = `Before ${tag} After`
+    context.sessionData = { user: {} } // user.name is undefined
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the original template string (complex expressions not evaluated)
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
+
+  // Test case 21: Handle template expressions with string methods (should preserve original)
+  test('should preserve template expressions with string methods in template names', async () => {
+    const tag = '<%- include(`templates/${user.name.toUpperCase()}`) %>'
+    const expectedTemplateName = 'templates/${user.name.toUpperCase()}' // Should preserve complex expressions
+
+    context.templateData = `Before ${tag} After`
+    context.sessionData = { user: { name: 'john' } }
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the original template string (complex expressions not evaluated)
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
+
+  // Test case 22: Handle template expressions with array methods (should preserve original)
+  test('should preserve template expressions with array methods in template names', async () => {
+    const tag = '<%- include(`templates/${tags.join("-")}`) %>'
+    const expectedTemplateName = 'templates/${tags.join("-")}' // Should preserve complex expressions
+
+    context.templateData = `Before ${tag} After`
+    context.sessionData = { tags: ['urgent', 'important'] }
+
+    await processIncludeTag(tag, context)
+
+    // Verify getTemplate was called with the original template string (complex expressions not evaluated)
+    expect(getTemplateMock).toHaveBeenCalledWith(expectedTemplateName, { silent: true })
+
+    // Verify templateData has been updated
+    expect(context.templateData).not.toContain(tag)
+    expect(context.templateData).toContain('Before')
+    expect(context.templateData).toContain('After')
+  })
 })

@@ -367,6 +367,73 @@ export function processCodeTag(tag: string, context: { templateData: string, ses
 }
 
 /**
+ * Extracts the content between the outer parentheses of a tag,
+ * preserving template strings and other content within quotes.
+ * @param {string} tag - The tag to parse
+ * @returns {string|null} The extracted content or null if parsing fails
+ */
+function extractTagContent(tag: string): string | null {
+  // Find the outer parentheses first
+  const openParenIndex = tag.indexOf('(')
+  const closeParenIndex = tag.lastIndexOf(')')
+
+  if (openParenIndex === -1 || closeParenIndex === -1 || openParenIndex >= closeParenIndex) {
+    return null
+  }
+
+  // Extract content between parentheses, preserving template strings and other content
+  const content = tag.substring(openParenIndex + 1, closeParenIndex).trim()
+  return content || null
+}
+
+/**
+ * Extracts the content between the outer parentheses of an include/template tag,
+ * preserving template strings and other content within quotes.
+ * @param {string} tag - The include tag to parse
+ * @returns {string|null} The extracted content or null if parsing fails
+ */
+function extractIncludeContent(tag: string): string | null {
+  return extractTagContent(tag)
+}
+
+/**
+ * Evaluates template strings in a string by replacing ${var} with values from session data.
+ * Supports nested object properties like user.name.
+ * @param {string} templateString - The string containing template expressions
+ * @param {Object} sessionData - The session data containing variables
+ * @returns {string} The string with template expressions evaluated
+ */
+function evaluateTemplateStrings(templateString: string, sessionData: Object): string {
+  if (!templateString.includes('${') || !sessionData) {
+    return templateString
+  }
+
+  try {
+    // Simple template string evaluation - replace ${var} with values from session data
+    return templateString.replace(/\${([^}]+)}/g, (match, expression) => {
+      // Handle nested object properties like user.name
+      const parts = expression.split('.')
+      let value = sessionData
+
+      for (const part of parts) {
+        if (value && typeof value === 'object' && part in value) {
+          value = value[part]
+        } else {
+          // If any part is missing, return the original expression
+          return match
+        }
+      }
+
+      return value !== undefined ? String(value) : match
+    })
+  } catch (error) {
+    logDebug(`Error evaluating template string: ${error}`)
+    // If evaluation fails, keep the original string
+    return templateString
+  }
+}
+
+/**
  * Process include/template tags by replacing them with the included template content.
  * Handles variable assignment and frontmatter rendering.
  * @async
@@ -377,20 +444,33 @@ export function processCodeTag(tag: string, context: { templateData: string, ses
 export async function processIncludeTag(tag: string, context: { templateData: string, sessionData: Object, override: Object }): Promise<void> {
   if (isCommentTag(tag)) return
 
-  let includeInfo = tag
-  const keywords = ['<%=', '<%-', '<%', '_%>', '-%>', '%>', 'include', 'template']
-  keywords.forEach((x) => (includeInfo = includeInfo.replace(/[{()}]/g, '').replace(new RegExp(x, 'g'), '')))
+  // Extract the content between the outer parentheses, preserving template strings and other content
+  const includeInfo = extractIncludeContent(tag)
 
-  includeInfo = includeInfo.trim()
   if (!includeInfo) {
     context.templateData = context.templateData.replace(tag, '**Unable to parse include**')
     return
   }
+
   const parts = includeInfo.split(',')
 
-  const templateName = parts[0].replace(/['"`]/gi, '').trim()
+  let templateName = parts[0].trim()
+
+  // Remove outer quotes only (single quotes, double quotes, or backticks)
+  // but preserve quotes inside template expressions
+  if (
+    (templateName.startsWith("'") && templateName.endsWith("'")) ||
+    (templateName.startsWith('"') && templateName.endsWith('"')) ||
+    (templateName.startsWith('`') && templateName.endsWith('`'))
+  ) {
+    templateName = templateName.slice(1, -1)
+  }
   const templateData = parts.length >= 1 ? parts[1] : {}
 
+  // Evaluate template strings in the template name if they exist
+  templateName = evaluateTemplateStrings(templateName, context.sessionData)
+
+  logDebug(`processIncludeTag templateName: ${templateName}`)
   const templateContent = await getTemplate(templateName, { silent: true })
   const hasFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateContent)
   const isCalendarNote = /^\d{8}|\d{4}-\d{2}-\d{2}$/.test(templateName)
@@ -808,17 +888,39 @@ export async function processFrontmatterTags(_templateData: string = '', userDat
  * Processes import tags in a template, replacing them with the content of referenced templates.
  * @async
  * @param {string} [templateData=''] - The template data containing import tags
+ * @param {Object} [sessionData={}] - Session data for template string evaluation
  * @returns {Promise<string>} A promise that resolves to the processed template with imports resolved
  */
-export async function importTemplates(templateData: string = ''): Promise<string> {
+export async function importTemplates(templateData: string = '', sessionData: Object = {}): Promise<string> {
   let newTemplateData = templateData
   const tags = (await getTags(templateData)) || []
   for (const tag of tags) {
     if (!isCommentTag(tag) && tag.includes('import(')) {
-      const importInfo = tag.replace('<%-', '').replace('<%', '').replace('-%>', '').replace('%>', '').replace('import', '').replace('(', '').replace(')', '')
+      // Extract the content between parentheses, preserving template strings
+      const importInfo = extractTagContent(tag)
+
+      if (!importInfo) {
+        newTemplateData = newTemplateData.replace(tag, '**Unable to parse import**')
+        continue
+      }
+
       const parts = importInfo.split(',')
       if (parts.length > 0) {
-        const noteNamePath = parts[0].replace(/['"`]/gi, '').trim()
+        let noteNamePath = parts[0].trim()
+
+        // Remove outer quotes only (single quotes, double quotes, or backticks)
+        // but preserve quotes inside template expressions
+        if (
+          (noteNamePath.startsWith("'") && noteNamePath.endsWith("'")) ||
+          (noteNamePath.startsWith('"') && noteNamePath.endsWith('"')) ||
+          (noteNamePath.startsWith('`') && noteNamePath.endsWith('`'))
+        ) {
+          noteNamePath = noteNamePath.slice(1, -1)
+        }
+
+        // Evaluate template strings in the template name if they exist
+        noteNamePath = evaluateTemplateStrings(noteNamePath, sessionData)
+
         const content = await getTemplate(noteNamePath)
         const body = new FrontmatterModule().body(content)
         if (body.length > 0) {
@@ -1168,7 +1270,7 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     }
 
     // Step 5: Import any referenced templates
-    templateData = await importTemplates(templateData)
+    templateData = await importTemplates(templateData, sessionData)
     logProgress('Render Step 5 complete: Template imports', templateData, sessionData, userOptions)
 
     // Step 6: Convert JavaScript blocks to template tags

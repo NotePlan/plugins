@@ -4,6 +4,9 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.4] 2025-07-03 @dwertheimer
+- Fix limitation where template strings were not being evaluated in include/import tags
+
 ## [2.0.3] 2025-06-28 @dwertheimer
 - Improve AI error handling analysis to include more context vars/functions in the prompt
 
