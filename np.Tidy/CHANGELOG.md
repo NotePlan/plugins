@@ -1,6 +1,10 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.14.8] - 2025-06-24 @jgclark
+- updated **Remove section from all notes** command to show how many sections it will remove, and also to use the 'Type of match for section headings' (`Exact`, `Starts with`, or `Contains`) and 'Folders to exclude' settings
+- code refactoring
+
 ## [0.14.7] - 2025-02-18 @jgclark
 - Stop lots of popups appearing when running **/Generate @repeats in recent notes** command (thanks, @kanera).
 - The **/List stubs** command now understands line links (and so ignores the part of the link after the `^` character) (thanks, @ChrisMetcalf).
