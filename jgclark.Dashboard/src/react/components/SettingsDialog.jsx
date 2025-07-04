@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2025-02-15 for v2.1.10 by @jgclark
+// Last updated 2025-07-04 for v2.3.0.b4 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -13,7 +13,7 @@ import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import type { TSettingItem, TDashboardSettings } from '../../types'
 // import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import { renderItem } from '../support/uiElementRenderHelpers'
-import { setPerspectivesIfJSONChanged, getActivePerspectiveName } from '../../perspectiveHelpers'
+import { setPerspectivesIfJSONChanged } from '../../perspectiveHelpers'
 import { useAppContext } from './AppContext.jsx'
 // import PerspectiveSettings from './PerspectiveSettings.jsx'
 import '../css/SettingsDialog.css' // Import the CSS file
@@ -206,7 +206,7 @@ const SettingsDialog = ({
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
-  logDebug('SettingsDialog/pre-Render', `before render of ${String(items.length)} settings.`)
+  // logDebug('SettingsDialog/pre-Render', `before render of ${String(items.length)} settings.`)
 
   return (
     <Modal
