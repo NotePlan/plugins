@@ -13,7 +13,7 @@ import {
   makeDashboardParas,
 } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
-import { getFilenamesOfNotesWithTagOrMentions, isTagMentionCacheAvailableforItem, scheduleTagMentionCacheGeneration, WANTED_PARA_TYPES } from './tagMentionCache'
+import { addTagMentionCacheDefinitions, getFilenamesOfNotesWithTagOrMentions, isTagMentionCacheAvailableforItem, scheduleTagMentionCacheGeneration, WANTED_PARA_TYPES } from './tagMentionCache'
 import { filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
@@ -220,8 +220,10 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         logDebug('getTaggedSectionData', `- no items to show for ${thisTag}`)
       }
 
-      // if we wanted to use the cache but it wasn't available, now schedule it to be generated at the next opportunity
+      // If we wanted to use the cache but it wasn't available or populated correctly, schedule it to be generated at the next opportunity, and ensure thisTag is in the cache definitions.
       if (config?.FFlag_UseTagCache && !cacheIsAvailable) {
+        logInfo('getTaggedSectionData', `- adding ${thisTag} to the tagCache definitions, and scheduling a rebuild`)
+        addTagMentionCacheDefinitions([thisTag])
         scheduleTagMentionCacheGeneration()
         source = 'using API as cache not available'
       }

@@ -9,10 +9,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 - TODO: enlarged default window size on iPads
 -->
-## [2.3.0.b4] 2025-06-27???
+## [2.3.0.b4] 2025-07-04
 ### Improved
 - Fix edge case on display of URLs with embedded ~ characters
 - Fix tags being missed when they have a different case (only applies when the new cache isn't being used)
+- will now trigger a tagCache rebuild (if scheduled) after a refresh, as well as after first load
+- now rebuilds tagCache after adding a new tag to a perspective before its saved
 - fixes when changing perspective settings (DBW)
 - made settings system more robust when updating versions (DBW)
 
