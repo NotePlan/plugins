@@ -12,7 +12,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   // global.Editor = Editor
   // global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = '_none' //change this to DEBUG to get more logging
 })
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/stringTransforms')}`
@@ -50,6 +50,13 @@ describe(`${PLUGIN_NAME}`, () => {
       // eslint-disable-next-line max-len
       expect(htmlOut).toMatch(/\]\(readdle-spark:\/\/bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D\)/)
     })
+    test('preserves long markdown link for zoe', () => {
+      const htmlIn = 'Listen to <a class="externalLink" href="https:\/\/clicks\.zoe\.com\/f\/a\/ZUR-0srQ-voOYivE4-3Cbg~~\/AAAHahA~\/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~"><i class="fa-regular fa-globe pad-right"><\/i>Protein on a plant-based diet | Prof. Tim Spector and Dr. Rupy Aujla ~ ZOE</a>$'
+      const maxLength = 30
+      const htmlOut = st.truncateHTML(htmlIn, maxLength)
+      // eslint-disable-next-line max-len
+      expect(htmlOut).toMatch(/^Listen to <a class="externalLink" href="https:\/\/clicks\.zoe\.com\/f\/a\/ZUR-0srQ-voOYivE4-3Cbg~~\/AAAHahA~\/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~"><i class="fa-regular fa-globe pad-right"><\/i>Protein on a plant-b…<\/a>$/)
+    })
     test('adds ellipsis if dots is true', () => {
       const htmlIn = '<p>This is a long paragraph of text that needs to be truncated.</p>'
       const maxLength = 20
@@ -63,6 +70,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(st.truncateHTML(htmlIn, maxLength, false)).toBe(expectedOutput)
     })
   })
+
   /*
    * changeMarkdownLinksToHTMLLink()
    */
@@ -98,6 +106,20 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = st.changeMarkdownLinksToHTMLLink(input)
       expect(result).toEqual(
         '#jgcDR Fix email links for @SavageBeginnings - e.g. <a class="externalLink" href="readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D"><i class="fa-regular fa-globe pad-right"></i>Open in Spark</a>',
+      )
+    })
+    test('should produce HTML link for long link', () => {
+      const input = 'Listen to [Protein on a plant-based diet | Prof. Tim Spector and Dr. Rupy Aujla ~ ZOE](https://clicks.zoe.com/f/a/ZUR-0srQ-voOYivE4-3Cbg~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~)'
+      const result = st.changeMarkdownLinksToHTMLLink(input)
+      expect(result).toEqual(
+        'Listen to <a class="externalLink" href="https://clicks.zoe.com/f/a/ZUR-0srQ-voOYivE4-3Cbg~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~"><i class="fa-regular fa-globe pad-right"></i>Protein on a plant-based diet | Prof. Tim Spector and Dr. Rupy Aujla ~ ZOE</a>',
+      )
+    })
+    test('should produce HTML link for long link', () => {
+      const input = 'Listen to [Low-carb diets and sugar spikes | Prof. Tim Spector ~ ZOE](https://clicks.zoe.com/f/a/dAgKh6AB8eEXtAsfVZAruQ~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljfzbxj0fcKOfK3AYKbmVevONgJ47zckYA_4vS_pNxs7JgRkrShVwPCAhgMGMHCRYPhB_HHOjoSolH6GF-1WvM08xMcWon8sQI9tDzxayAenpO0u1CJCyUeKVsDziwbA6RY~)'
+      const result = st.changeMarkdownLinksToHTMLLink(input)
+      expect(result).toEqual(
+        'Listen to <a class="externalLink" href="https://clicks.zoe.com/f/a/dAgKh6AB8eEXtAsfVZAruQ~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljfzbxj0fcKOfK3AYKbmVevONgJ47zckYA_4vS_pNxs7JgRkrShVwPCAhgMGMHCRYPhB_HHOjoSolH6GF-1WvM08xMcWon8sQI9tDzxayAenpO0u1CJCyUeKVsDziwbA6RY~"><i class="fa-regular fa-globe pad-right"></i>Low-carb diets and sugar spikes | Prof. Tim Spector ~ ZOE</a>',
       )
     })
   })
@@ -148,6 +170,16 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual('noteplan://…')
     })
 
+    test('should return domain name for long link 1', () => {
+      const input = 'https://clicks.zoe.com/f/a/ZUR-0srQ-voOYivE4-3Cbg~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('clicks.zoe.com')
+    })
+    test('should return domain name for long link 2', () => {
+      const input = 'https://clicks.zoe.com/f/a/dAgKh6AB8eEXtAsfVZAruQ~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljfzbxj0fcKOfK3AYKbmVevONgJ47zckYA_4vS_pNxs7JgRkrShVwPCAhgMGMHCRYPhB_HHOjoSolH6GF-1WvM08xMcWon8sQI9tDzxayAenpO0u1CJCyUeKVsDziwbA6RY~'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('clicks.zoe.com')
+    })
   })
 
   /**

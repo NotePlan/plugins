@@ -6,7 +6,7 @@
 // Last updated 2025-06-04 for v2.3.0
 //-----------------------------------------------------------------------------
 
-import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
+import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
 import {
   addNewPerspective,
@@ -149,19 +149,9 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   // so we will remove all keys from prevDS that start with showTagSection_
   if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
   // apply the new perspective's settings to the main dashboard settings
-  const dashboardFilterDefaults = dashboardFilterDefs.filter((f) => f.key !== 'includedFolders')
-  const nonFilterDefaults = dashboardSettingDefs.filter((f) => f.key)
-  const dashboardSettingsDefaults = [...dashboardFilterDefaults, ...nonFilterDefaults].reduce((acc, curr) => {
-    // logDebug('doSwitchToPerspective', `doSwitchToPerspective: curr.key='${String(curr.key)}' curr.default='${String(curr.default)}'`)
-    if (curr.key && curr.default !== undefined) {
-    // $FlowIgnore[prop-missing]
-      acc[curr.key] = curr.default
-    } else {
-      logError('doSwitchToPerspective', `doSwitchToPerspective: default value for ${String(curr.key)} is not set in dashboardSettings file defaults.`)
-    }
-    return acc
-  }, {})
-  // $FlowIgnore[prop-missing] // flow doesn't know that it will be complete
+
+  const dashboardSettingsDefaults = getDashboardSettingsDefaults()
+
   let newDashboardSettings = {
     ...dashboardSettingsDefaults, // helps to add settings that may be new since this perspective was last saved
     ...prevDashboardSettings,
@@ -174,7 +164,11 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
 
   // Use helper to save settings from now on, not unreliable `DataStore.settings = {...}`
   // TEST: FIXME: DBW suspects this is not working as expected, because DataStore.settings is not correct here.
-  const res = await saveSettings(pluginID, { ...await (getSettings('jgclark.Dashboard')), perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) })
+  const res = await saveSettings(pluginID, {
+    ...(await getSettings('jgclark.Dashboard')),
+    perspectiveSettings: JSON.stringify(revisedDefs),
+    dashboardSettings: JSON.stringify(newDashboardSettings),
+  })
   if (!res) {
     return handlerResult(false, [], { errorMsg: `saveSettings failed` })
   }
@@ -237,11 +231,15 @@ export async function doPerspectiveSettingsChanged(data: MessageDataObject): Pro
   if (dashboardSettings.usePerspectives) {
     const currentPerspDef = getActivePerspectiveDef(cleanedPerspSettings)
     if (currentPerspDef && currentPerspDef.name !== '-') {
-      dashboardSettings = { ...await (getSettings('jgclark.Dashboard')), ...currentPerspDef.dashboardSettings }
+      dashboardSettings = { ...(await getSettings('jgclark.Dashboard')), ...currentPerspDef.dashboardSettings }
       updatedPluginData.dashboardSettings = dashboardSettings
     }
   }
-  const combinedUpdatedSettings = { ...await getSettings('jgclark.Dashboard'), perspectiveSettings: JSON.stringify(cleanedPerspSettings), dashboardSettings: JSON.stringify(dashboardSettings) }
+  const combinedUpdatedSettings = {
+    ...(await getSettings('jgclark.Dashboard')),
+    perspectiveSettings: JSON.stringify(cleanedPerspSettings),
+    dashboardSettings: JSON.stringify(dashboardSettings),
+  }
 
   // Note: Use helper to save settings from now on, not unreliable `DataStore.settings = combinedUpdatedSettings`
   const res = await saveSettings(pluginID, combinedUpdatedSettings)
