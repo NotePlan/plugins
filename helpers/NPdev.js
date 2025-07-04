@@ -1,7 +1,7 @@
 // @flow
 
 import { showMessage, chooseOption, getInput, getInputTrimmed, showMessageYesNo } from './userInput'
-import { clo, logDebug, logError, logWarn } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 
 /**
@@ -127,17 +127,17 @@ export function logPreference(key: string): void {
   try {
     const value = DataStore.preference(key) ?? undefined
     if (value === undefined) {
-      logDebug(`logPreference`, `"${key}" not found`)
+      logInfo(`logPreference`, `"${key}" not found`)
     } else if (typeof value === 'object') {
       clo(value, `logPreference "${key}" [object]:`)
     } else if (typeof value === 'string') {
-      logDebug('logPreference', `"${key}" [string]: "${value}"`)
+      logInfo('logPreference', `"${key}" [string]: "${value}"`)
     } else if (typeof value === 'number') {
-      logDebug('logPreference', `"${key}" [number]: "${String(value)}"`)
+      logInfo('logPreference', `"${key}" [number]: "${String(value)}"`)
     } else if (typeof value === 'boolean') {
-      logDebug('logPreference', `"${key}" [boolean]: "${String(value)}"`)
+      logInfo('logPreference', `"${key}" [boolean]: "${String(value)}"`)
     } else {
-      logDebug('logPreference', `"${key}": "${String(value)}"`)
+      logInfo('logPreference', `"${key}": "${String(value)}"`)
     }
   } catch (error) {
     logError('logPreference', error.message)
@@ -166,7 +166,7 @@ export async function logPreferenceAskUser(): Promise<void> {
 export function unsetPreference(prefName: string): void {
   try {
     DataStore.setPreference(prefName, null)
-    logDebug('unsetPreference', `Unset local pref ${prefName}`)
+    logInfo('unsetPreference', `Unset local pref ${prefName}`)
   } catch (error) {
     logError('unsetPreference', error.message)
   }
