@@ -9,8 +9,14 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 - TODO: enlarged default window size on iPads
 -->
+## [2.3.0.b4] 2025-06-27???
+### Improved
+- Fix edge case on display of URLs with embedded ~ characters
+- Fix tags being missed when they have a different case (only applies when the new cache isn't being used)
+- fixes when changing perspective settings (DBW)
+- made settings system more robust when updating versions (DBW)
 
-## [2.3.0.b3] 2025-06-15???
+## [2.3.0.b3] 2025-06-15
 ### Improved
 - changed 'Nothing left on this list ' to say 'All _N_ items completed on this list' where relevant
 - stopped spurious "windowResize" message from appearing on iPhones

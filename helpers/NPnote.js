@@ -13,7 +13,7 @@ import { displayTitle, isValidUUID } from '@helpers/general'
 import { endOfFrontmatterLineIndex, ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { noteType } from '@helpers/note'
-import { caseInsensitiveIncludes, caseInsensitiveMatch, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
+import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
 
@@ -742,8 +742,7 @@ export function findNotesMatchingHashtagOrMention(
   try {
     // Check for special conditions first
     if (item === '') {
-      logError('NPnote/findNotesMatchingHashtagOrMention', `No hashtag given. Stopping`)
-      return [] // for completeness
+      throw new Error(`No hashtag given. Stopping`)
     }
     const isHashtag = item.startsWith('#')
     let notesToSearch = excludeSpecialFolders ? DataStore.projectNotes.filter((n) => !n.filename.startsWith('@')) : DataStore.projectNotes
@@ -755,7 +754,7 @@ export function findNotesMatchingHashtagOrMention(
       'NPnote/findNotesMatchingHashtagOrMention',
       `starting with ${notesToSearch.length} notes (${notesToSearch ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${
         alsoSearchCalendarNotes ? '+ calendar notes)' : ')'
-      }`,
+      }. Search is case ${caseInsensitiveMatch ? 'INsensitive' : 'sensitive'} for '${item}'`,
     )
 
     // const startTime = new Date()
@@ -787,7 +786,6 @@ export function findNotesMatchingHashtagOrMention(
     if (caseInsensitiveMatch) {
       notesWithItem = notesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
-        // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
         return isHashtag
           ? caseInsensitiveIncludes(item, correctedHashtags)
           : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
@@ -796,11 +794,9 @@ export function findNotesMatchingHashtagOrMention(
     } else {
       notesWithItem = notesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
-        // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
         return isHashtag
-          ? caseInsensitiveIncludes(item, correctedHashtags)
-          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-            caseInsensitiveIncludes(item, n.mentions)
+          ? correctedHashtags.includes(item)
+          : n.mentions.includes(item)
       })
     }
     if (notesWithItem.length === 0) {
@@ -808,14 +804,16 @@ export function findNotesMatchingHashtagOrMention(
       return []
     }
     logDebug('NPnote/findNotesMatchingHashtagOrMention', `In folder '${folder ?? '<all>'}' found ${notesWithItem.length} notes matching '${item}'`)
+    logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(notesWithItem.map((n) => n.title))}`)
 
     // Restrict to certain para types, if wanted
     if (wantedParaTypes.length > 0) {
       notesWithItem = notesWithItem.filter((n) => filterTagsOrMentionsInNoteByWantedParaTypes(n, [item], wantedParaTypes).length > 0)
       logDebug('NPnote/findNotesMatchingHashtagOrMention', `After filtering to only include notes with wanted para types [${String(wantedParaTypes)}] -> ${String(notesWithItem.length)} notes`)
+      logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(notesWithItem.map((n) => n.title))}`)
     }
 
-    // If we care about the excluded item, then further filter out notes where it is found
+    // If we have 'itemsToExclude' then further filter out notes with these items
     if (itemsToExclude.length > 0) {
       const doesNotMatchItemsToExclude = (e: string) => !itemsToExclude.includes(e)
       const notesWithItemWithoutExclusion = notesWithItem.filter((n) => n.hashtags.some(doesNotMatchItemsToExclude))
