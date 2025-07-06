@@ -44,8 +44,9 @@ export async function moveItemToRegularNote(origFilename: string, paraContent: s
     if (!destNote) return null
 
     // Ask to which heading to add the selectedParas
+    const origNote = getNoteByFilename(origFilename)
     const headingToFind = await chooseHeading(destNote, true, true, false)
-    logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
+    logDebug('moveItemToRegularNote', `- Moving from note '${displayTitle(origNote)}' to '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // If there's a >date in the line, ask whether to remove it
     let paraContentToUse = paraContent

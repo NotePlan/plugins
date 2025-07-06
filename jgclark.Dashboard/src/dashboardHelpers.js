@@ -83,11 +83,11 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     parsedDashboardSettings.showSearchSection = true
 
     // Note: I can't find the underlying issue, but we need to ensure number setting types are numbers, and not strings
-    const numberSettingTypes = dashboardSettingDefs.filter((ds) => ds.type === 'number')
-    for (const thisSetting of numberSettingTypes) {
-      parsedDashboardSettings[thisSetting.key] = Number(parsedDashboardSettings[thisSetting.key])
-      clvt(parsedDashboardSettings[thisSetting.key], `- numeric Setting '${thisSetting.key}'`)
-    }
+    // const numberSettingTypes = dashboardSettingDefs.filter((ds) => ds.type === 'number')
+    // for (const thisSetting of numberSettingTypes) {
+    //   parsedDashboardSettings[thisSetting.key] = Number(parsedDashboardSettings[thisSetting.key])
+    //   clvt(parsedDashboardSettings[thisSetting.key], `- numeric Setting '${String(thisSetting.key)}'`)
+    // }
 
     // TODO(later): remove when the underlying problem is corrected
     // Warn if 'newTaskSectionHeadingLevel' setting is not a number
