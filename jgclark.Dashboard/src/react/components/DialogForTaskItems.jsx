@@ -212,7 +212,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // Effects
   //----------------------------------------------------------------------
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
     // $FlowIgnore[incompatible-call]
     positionDialog(dialogRef)

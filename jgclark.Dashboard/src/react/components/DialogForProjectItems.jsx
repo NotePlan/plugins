@@ -93,7 +93,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     projectButtons = projectButtons.filter((button) => !button.notOnMobile)
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // logDebug(`DialogForProjectItems`, `BEFORE POSITION detailsMessageObject`, detailsMessageObject)
     // $FlowIgnore[incompatible-call]
     if (dialogRef) positionDialog(dialogRef)
