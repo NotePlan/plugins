@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-06-05 for v2.3.0, @jgclark
+// Last updated 2025-07-06 for v2.3.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 import moment from 'moment'
 // import pluginJson from '../plugin.json'
@@ -106,11 +106,10 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     } else {
       coreAddChecklistToNoteHeading(destNote, headingToUse, content, newHeadingLevel, true)
     }
-    // This is now done in previous function call
-    // DataStore.updateCache(destNote, true)
+    // Note: updateCache is now done in previous function call
 
     // update just the section we've added to
-    return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: sectionCodes })
   } catch (err) {
     logError('doAddItem', err.message)
     return handlerResult(false, [], { errorMsg: err.message })
@@ -164,7 +163,7 @@ export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeCl
 
   if (typeof updatedParagraph !== 'boolean') {
     logDebug('doCompleteTask', `-> {${updatedParagraph.content}}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'INCREMENT_DONE_COUNT', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'INCREMENT_DONE_COUNT'], { updatedParagraph })
   } else {
     logWarn('doCompleteTask', `-> failed`)
     return handlerResult(false)
@@ -181,7 +180,7 @@ export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBrid
   const updatedParagraph = await completeItemEarlier(filename, content)
   if (typeof updatedParagraph !== 'boolean') {
     logDebug('doCompleteTaskThen', `-> {${updatedParagraph.content}}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
   } else {
     logWarn('doCompleteTaskThen', `-> failed`)
     return handlerResult(false)
@@ -204,7 +203,7 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
     updatedParagraph = possiblePara || {}
   }
   logDebug('doCancelTask', `-> ${res ? 'success' : 'failed'}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
 /**
@@ -217,7 +216,7 @@ export async function doCompleteChecklist(data: MessageDataObject): Promise<TBri
   const updatedParagraph = await completeItem(filename, content)
   // clo(updatedParagraph, `doCompleteChecklist -> updatedParagraph`)
   // clo(updatedParagraph.note.filename, `doCompleteChecklist -> updatedParagraph.note.filename`)
-  return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+  return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
 /**
@@ -233,7 +232,7 @@ export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClic
   const updatedParagraph = findParaFromStringAndFilename(filename, content)
   const res = await deleteItem(filename, content)
   logDebug('doDeleteItem', `-> ${res ? 'success' : 'failed'}`)
-  return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+  return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
 /**
@@ -252,7 +251,7 @@ export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerR
     updatedParagraph = possiblePara || {}
   }
   logDebug('doCancelChecklist', `-> ${res ? 'success' : 'failed'}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
 /**
@@ -281,7 +280,7 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
     throw new Error(`updateItemContent: No para.note found for filename ${filename} and content ${content}`)
   }
 
-  return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph: para })
+  return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
 }
 
 /**
@@ -315,9 +314,9 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     logDebug('doToggleType', `-> ${updatedType}`)
     thisNote.updateParagraph(updatedParagraph)
     DataStore.updateCache(thisNote, false)
+
     // Refresh the whole section, as we might want to filter out the new item type from the display
-    // return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
-    return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { updatedParagraph: updatedParagraph, sectionCodes: sectionCodes })
   } catch (error) {
     logError('doToggleType', error.message)
     return handlerResult(false)
@@ -330,14 +329,22 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
  * @returns {TBridgeClickHandlerResult} The result
  */
 export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedParagraph = unscheduleItem(filename, content)
-  logDebug('doUnscheduleItem', `-> ${String(updatedParagraph)}`)
+  const { filename, content, sectionCodes } = validateAndFlattenMessageObject(data)
+  const updatedContent = unscheduleItem(filename, content)
+  logDebug('doUnscheduleItem', `-> ${String(updatedContent)}`)
 
-  // logDebug('doUnscheduleItem', `  -> result ${String(res)}`)
-  // Update display in Dashboard too
-  // sendToHTMLWindow(windowId, 'unscheduleItem', data)
-  return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
+  // find the updated para
+  const updatedParagraph: TParagraph | boolean = findParaFromStringAndFilename(filename, updatedContent)
+  if (typeof updatedParagraph === 'boolean') {
+    logError(`doUnscheduleItem`, `couldn't find para for filename ${filename} and content ${updatedContent}. Will update current section ${sectionCodes}`) 
+
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: sectionCodes })
+  } else {
+    logDebug('doUnscheduleItem', `- found updated paragraph, and will update display of the item and section ${sectionCodes}`)
+    // Now ask to update this line in the display
+    // sendToHTMLWindow(windowId, 'unscheduleItem', data)
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'REFRESH_SECTION_IN_JSON'], { updatedParagraph: updatedParagraph, sectionCodes: sectionCodes })
+  }
 }
 
 // Send a request to cyclePriorityStateUp to plugin
@@ -388,12 +395,15 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
 export function doWindowResized(): TBridgeClickHandlerResult {
   logDebug('doWindowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
   const thisWin = getWindowFromCustomId(windowCustomId)
-  const rect = getLiveWindowRectFromWin(thisWin)
-  if (rect) {
-    logDebug('doWindowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
-    storeWindowRect(windowCustomId)
+  if (thisWin !== false) {
+    const rect = getLiveWindowRectFromWin(thisWin)
+    if (rect) {
+      logDebug('doWindowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
+      storeWindowRect(windowCustomId)
+    }
+    return handlerResult(rect ? true : false)
   }
-  return handlerResult(rect ? true : false)
+  return handlerResult(false)
 }
 
 // Handle a show note call simply by opening the note in the main Editor.
@@ -518,12 +528,9 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
   const combinedUpdatedSettings = { ...(await getSettings('jgclark.Dashboard')), [settingName]: JSON.stringify(newSettings) }
 
   if (perspectivesToSave) {
-    const debugInfo = perspectivesToSave
-      .map(
+    const debugInfo = perspectivesToSave.map(
         (ps) =>
-          `${ps.name} excludedFolders=[${ps.dashboardSettings?.excludedFolders && ps.dashboardSettings?.excludedFolders?.toString()}] ${ps.isModified ? 'modified' : ''} ${
-            ps.isActive ? '<active>' : ''
-          }`,
+        `${ps.name} excludedFolders=[${String(ps.dashboardSettings?.excludedFolders) ?? ''} ${ps.isModified ? 'modified' : ''} ${ps.isActive ? '<active>' : ''}`,
       )
       .join(`\n\t`)
     logDebug(`doDashboardSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
@@ -531,11 +538,10 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     combinedUpdatedSettings.perspectiveSettings = JSON.stringify(perspectivesToSave)
   }
 
-  // DataStore.settings = combinedUpdatedSettings
+
   const res = await saveSettings(pluginID, combinedUpdatedSettings)
   const updatedPluginData = { [settingName]: newSettings } // was also: pushFromServer: { [settingName]: true }
   if (perspectivesToSave) {
-    // updatedPluginData.pushFromServer ? updatedPluginData.pushFromServer.perspectiveSettings = true
     // $FlowFixMe(incompatible-type)
     updatedPluginData.perspectiveSettings = perspectivesToSave
   }

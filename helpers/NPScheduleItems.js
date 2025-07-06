@@ -22,9 +22,9 @@ import { findHeading, smartAppendPara, smartCreateSectionsAndPara, smartPrependP
  * @author @jgclark
  * @param {string} filename of note
  * @param {string} content line to identify and change
- * @returns {boolean} success?
+ * @returns {string} updated content
  */
-export function unscheduleItem(filename: string, content: string): boolean {
+export function unscheduleItem(filename: string, content: string): string {
   try {
     // find para
     const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
@@ -38,18 +38,18 @@ export function unscheduleItem(filename: string, content: string): boolean {
 
     // Find and then remove any scheduled dates
     const thisLine = possiblePara.content
-    logDebug('unscheduleItem', `unscheduleItem('${thisLine}'`)
+    logDebug('unscheduleItem', `unscheduleItem('${thisLine}')`)
     thisPara.content = replaceArrowDatesInString(thisLine, '')
-    logDebug('unscheduleItem', `unscheduleItem('${thisPara.content}'`)
+    logDebug('unscheduleItem', `→  '${thisPara.content}'`)
     // And then change type
     if (thisPara.type === 'checklistScheduled') thisPara.type = 'checklist'
     if (thisPara.type === 'scheduled') thisPara.type = 'open'
     // Update to DataStore
     thisNote.updateParagraph(thisPara)
-    return true
+    return thisPara.content
   } catch (error) {
-    logError('unscheduleItem', error.message)
-    return false
+    logError('unscheduleItem', `error: ${error.message} from unscheduleItem('${filename}', '${content}')`)
+    return '(error from unscheduleItem)'
   }
 }
 

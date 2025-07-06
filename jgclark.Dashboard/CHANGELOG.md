@@ -11,6 +11,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 -->
 ## [2.3.0.b4] 2025-07-04
 ### Improved
+- In task dialog don't show 'Unsched' button when task is in a calendar note
+- Fix incorrect display after Unscheduling a task
 - Fix edge case on display of URLs with embedded ~ characters
 - Fix tags being missed when they have a different case (only applies when the new cache isn't being used)
 - will now trigger a tagCache rebuild (if scheduled) after a refresh, as well as after first load

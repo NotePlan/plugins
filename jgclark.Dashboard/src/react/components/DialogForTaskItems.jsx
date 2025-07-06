@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-05-26 for v2.3.0
+// Last updated 2025-07-06 for v2.3.0.b4
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -19,6 +19,7 @@ import { clo, clof, JSP, logDebug, logInfo } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
+
 //----------------------------------------------------------------------
 
 type Props = {
@@ -54,7 +55,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // Constants
   //----------------------------------------------------------------------
 
-  clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
+  // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
   const { ID, item, itemType, para, filename, title, content, noteType, sectionCodes, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
 
   const { sendActionToPlugin, reactSettings, setReactSettings, dashboardSettings, pluginData } = useAppContext()
@@ -66,7 +67,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // We want to open the calendar picker if the meta key was pressed as this was dialog was being triggered.
   const shouldStartCalendarOpen = modifierKey // = boolean for whether metaKey pressed
-  logDebug('DialogForTaskItems', `shouldStartCalendarOpen=${String(shouldStartCalendarOpen)}`)
+  // logDebug('DialogForTaskItems', `shouldStartCalendarOpen=${String(shouldStartCalendarOpen)}`)
 
   // Deduce the action to take when this is a date-changed button
   // - Item in calendar note & move to new calendar note for that picked date: use moveFromCalToCal()
@@ -113,8 +114,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // Note: Extra setup is required for certain buttons:
   // - Cancel button icon circle or square, and function
   // - Toggle Type icon circle or square
-  // Note: Some also cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open
-  const buttonsToHideOnMobile: Array<string> = ['Move to', 'New Task']
   const initialOtherControlButtons: Array<DialogButtonProps> = [
     {
       label: '',
@@ -180,8 +179,14 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     },
   ]
 
-  // Now apply the filter with an explicit return type
-  const otherControlButtons: Array<DialogButtonProps> = initialOtherControlButtons.filter((button): boolean => (isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)))
+  // Now filter out some that cannot be shown:
+  // - on iOS/iPadOS those requiring the CommandBar; this is not available while the window is open
+  const buttonsToHideOnMobile: Array<string> = ['Move to', 'New Task']
+  let otherControlButtons: Array<DialogButtonProps> = initialOtherControlButtons.filter((button): boolean => (isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)))
+  // And 'unsched' button makes no sense on a calendar note
+  if (noteType === 'Calendar') {
+    otherControlButtons = otherControlButtons.filter((button): boolean => button.controlStr !== 'unsched')
+  }
 
   // dbw note 2024-10-08: Trying to keep an eye out for an edge case where changing priority then skipping an item
   // might cause hasChild to be set to true, which seems to make no sense. no idea where it's coming from.
@@ -369,7 +374,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const scheduleClose = (delay: number, forceClose: boolean = false) => {
     logDebug(`DialogForTaskItems`, `scheduleClose() ${String(delay)}ms delay, forceClose=${String(forceClose)}`)
     setTimeout(() => {
-      logDebug('DialogForTaskItems', `scheduleClose() after timeout reactSettings; looking for interactiveProcessing: ${JSP(reactSettings)}`)
+      logDebug('DialogForTaskItems', `scheduleClose() after timeout reactSettings; looking for interactiveProcessing`)
       setReactSettings((prevSettings) => ({
         ...prevSettings,
         dialogData: { isOpen: false, isTask: true },
