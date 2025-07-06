@@ -44,8 +44,8 @@ export async function moveItemToRegularNote(origFilename: string, paraContent: s
     if (!destNote) return null
 
     // Ask to which heading to add the selectedParas
-    const origNote = getNoteByFilename(origFilename)
     const headingToFind = await chooseHeading(destNote, true, true, false)
+    const origNote = getNoteByFilename(origFilename)
     logDebug('moveItemToRegularNote', `- Moving from note '${displayTitle(origNote)}' to '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // If there's a >date in the line, ask whether to remove it
@@ -81,7 +81,6 @@ export async function moveItemToRegularNote(origFilename: string, paraContent: s
     const updatedDestNote = DataStore.updateCache(noteAfterChanges, false)
 
     // delete from existing location
-    const origNote = getNoteByFilename(origFilename)
     const origPara = findParaFromStringAndFilename(origFilename, paraContent)
     if (origNote && origPara) {
       logDebug('moveItemToRegularNote', `- Removing 1 para from original note ${origFilename}`)
