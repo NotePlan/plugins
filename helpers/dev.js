@@ -252,6 +252,33 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
 }
 
 /**
+ * Deeply compares values, potentially recursively if they are objects.
+ * Logs differences with a path to the differing property.
+ * Note: suggested by ChatGPT.
+ * @param {any} value1 The first value to compare.
+ * @param {any} value2 The second value to compare.
+ * @param {string} path The base path to the property being compared.
+ */
+export function deepCompare(value1: any, value2: any, path: string): void {
+  if (isObject(value1) && isObject(value2)) {
+    const keys1 = Object.keys(value1)
+    const keys2 = Object.keys(value2)
+    const allKeys = new Set([...keys1, ...keys2])
+    allKeys.forEach((key) => {
+      if (!(key in value1)) {
+        logDebug('deepCompare', `Property ${path}.${key} is missing in the first object value`)
+      } else if (!(key in value2)) {
+        logDebug('deepCompare', `Property ${path}.${key} is missing in the second object value`)
+      } else {
+        deepCompare(value1[key], value2[key], `${path}.${key}`)
+      }
+    })
+  } else if (value1 !== value2) {
+    logDebug(`Value difference at ${path}: ${value1} vs ${value2}`)
+  }
+}
+
+/**
  * Compares two objects and returns the differences.
  * @param {Object} obj1 - The original object.
  * @param {Object} obj2 - The modified object.

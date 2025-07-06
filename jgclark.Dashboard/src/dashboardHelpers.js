@@ -331,11 +331,7 @@ export function getOpenItemParasForTimePeriod(
       // If note of interest is open in editor, then use latest version available, as the DataStore version could be stale.
       if (useEditorWherePossible && Editor && Editor.note?.filename === note.filename) {
         thisNoteParas = Editor.paragraphs
-        logTimer(
-          'getOpenItemPFCTP',
-          startTime,
-          `Using EDITOR (${Editor.filename}) for the current time period: ${calendarPeriodName} which has ${String(Editor.paragraphs.length)} paras`,
-        )
+        logTimer('getOpenItemPFCTP', startTime, `Using EDITOR (${Editor.filename}) for the current time period: ${calendarPeriodName} which has ${String(Editor.paragraphs.length)} paras`)
       } else {
         // read note from DataStore in the usual way
         thisNoteParas = note.paragraphs
@@ -370,13 +366,7 @@ export function getOpenItemParasForTimePeriod(
     // logTimer('getOpenItemPFCTP', startTime, `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
     // Filter out any blank lines
     openParas = openParas.filter((p) => p.content.trim() !== '')
-    logTimer(
-      'getOpenItemPFCTP',
-      startTime,
-      `- after finding '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} ${
-        alsoReturnTimeblockLines ? '+ timeblocks ' : ''
-      }+ not blank' filter: ${openParas.length} paras`,
-    )
+    logTimer('getOpenItemPFCTP', startTime, `- after finding '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}+ not blank' filter: ${openParas.length} paras`)
 
     // Keep only items not scheduled (other than >today or whatever calendar note we're on)
     const thisNoteDateSched = `>${theNoteDateHyphenated}`
@@ -430,11 +420,7 @@ export function getOpenItemParasForTimePeriod(
       refOpenParas = alsoReturnTimeblockLines
         ? getReferencedParagraphs(note, false).filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
         : getReferencedParagraphs(note, false).filter((p) => isOpen(p))
-      logTimer(
-        'getOpenItemPFCTP',
-        startTime,
-        `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`,
-      )
+      logTimer('getOpenItemPFCTP', startTime, `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`)
       if (dashboardSettings.ignoreChecklistItems) {
         refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist'))
         // logDebug('getOpenItemPFCTP', `- after filtering out referenced checklists: ${refOpenParas.length} para(s)`)
@@ -486,46 +472,8 @@ export function getOpenItemParasForTimePeriod(
 // ---------------------------------------------------
 
 /**
- * Deeply compares values, potentially recursively if they are objects.
- * Logs differences with a path to the differing property.
- * TODO(@dwertheimer): this is not used. Could it be moved to a helper file?
- * Note: suggested by ChatGPT.
- * @param {any} value1 The first value to compare.
- * @param {any} value2 The second value to compare.
- * @param {string} path The base path to the property being compared.
- */
-export function deepCompare(value1: any, value2: any, path: string): void {
-  if (isObject(value1) && isObject(value2)) {
-    const keys1 = Object.keys(value1)
-    const keys2 = Object.keys(value2)
-    const allKeys = new Set([...keys1, ...keys2])
-    allKeys.forEach((key) => {
-      if (!(key in value1)) {
-        logDebug('deepCompare', `Property ${path}.${key} is missing in the first object value`)
-      } else if (!(key in value2)) {
-        logDebug('deepCompare', `Property ${path}.${key} is missing in the second object value`)
-      } else {
-        deepCompare(value1[key], value2[key], `${path}.${key}`)
-      }
-    })
-  } else if (value1 !== value2) {
-    logDebug(`Value difference at ${path}: ${value1} vs ${value2}`)
-  }
-}
-
-/**
- * Helper function to determine if a value is an object.
- * Note: suggested by ChatGPT.
- *
- * @param {any} value The value to check.
- * @return {boolean} True if the value is an object, false otherwise.
- */
-function isObject(value: any): boolean {
-  return value !== null && typeof value === 'object'
-}
-
-/**
- * Get all tasks marked with a priority, filtered and sorted according to various settings. But the number of items returned is not limited.
+ * Get all tasks marked with a priority, filtered and sorted according to various settings.
+ * The number of items returned is not limited.
  * @param {TDashboardSettings} settings
  * @returns {Array<TParagraph>}
  */
@@ -560,15 +508,12 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
     // Filter out anything from 'ignoreItemsWithTerms' setting
     let filteredPriorityParas = priorityParas
     if (config.ignoreItemsWithTerms) {
-      // V1
-      // const phrases: Array<string> = config.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
-      // filteredPriorityParas = filteredPriorityParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
-
-      // V2
       filteredPriorityParas = filteredPriorityParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, config.ignoreItemsWithTerms))
 
       logDebug('getRelevantPriorityTasks', `- after 'config.ignoreItemsWithTerms'(${config.ignoreItemsWithTerms}) filter: ${filteredPriorityParas.length} paras`)
     }
+
+    // TODO: filter out things under wrong heading, like recently added for OVERDUE
 
     // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
     // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time
