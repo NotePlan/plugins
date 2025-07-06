@@ -1,10 +1,9 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-05-14 for v2.3.0, @jgclark
+// Last updated 2025-07-06 for v2.3.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
-import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID, allSectionDetails } from './constants'
 import { dashboardSettingDefs, dashboardFilterDefs } from './dashboardSettings'
@@ -25,11 +24,11 @@ import type {
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { convertISODateFilenameToNPDayFilename, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { getRegularNotesInFolder, projectNotesFromFilteredFolders } from '@helpers/folders'
+import { projectNotesFromFilteredFolders } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
-import { filterOutParasInExcludeFolders, isNoteFromAllowedFolder, pastCalendarNotes } from '@helpers/note'
+import { isNoteFromAllowedFolder, pastCalendarNotes } from '@helpers/note'
 import { saveSettings } from '@helpers/NPConfiguration'
 import { getFirstDateInPeriod } from '@helpers/NPdateTime'
 import { getReferencedParagraphs } from '@helpers/NPnote'
@@ -561,77 +560,6 @@ export function deepCompare(value1: any, value2: any, path: string): void {
  */
 function isObject(value: any): boolean {
   return value !== null && typeof value === 'object'
-}
-
-// ---------------------------------------------------
-
-/**
- * Get all overdue tasks, filtered and sorted according to various settings. But the number of items returned is not limited.
- * If we are showing the Yesterday section, and we have some yesterdaysParas passed, then don't return any ones matching this list.
- * @param {TDashboardSettings} dashboardSettings
- * @param {Array<TParagraph>} yesterdaysParas
- * @returns {Array<TParagraph>}
- */
-export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSettings, yesterdaysParas: Array<TParagraph>): Promise<Array<TParagraph>> {
-  try {
-    const thisStartTime = new Date()
-    const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
-    logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
-
-    // Remove items referenced from items in 'excludedFolders' (but keep calendar note matches)
-    const excludedFolders = dashboardSettings.excludedFolders ? stringListOrArrayToArray(dashboardSettings.excludedFolders, ',').map((folder) => folder.trim()) : []
-    // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
-    let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, excludedFolders, true)
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'excludedFolders'(${String(excludedFolders)}) filter: ${filteredOverdueParas.length} paras`)
-    // Filter out anything from 'ignoreItemsWithTerms' setting
-    if (dashboardSettings.ignoreItemsWithTerms) {
-      filteredOverdueParas = filteredOverdueParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
-    } else {
-      logDebug(
-        'getRelevantOverdueTasks...',
-        `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`,
-      )
-    }
-    logTimer(
-      'getRelevantOverdueTasks',
-      thisStartTime,
-      `- after 'dashboardSettings.ignoreItemsWithTerms'(${dashboardSettings.ignoreItemsWithTerms}) filter: ${filteredOverdueParas.length} paras`,
-    )
-
-    // Limit overdues to last N days for testing purposes
-    if (!Number.isNaN(dashboardSettings.lookBackDaysForOverdue) && dashboardSettings.lookBackDaysForOverdue > 0) {
-      const numDaysToLookBack = dashboardSettings.lookBackDaysForOverdue
-      const cutoffDate = moment().subtract(numDaysToLookBack, 'days').format('YYYY-MM-DD')
-      logDebug('getRelevantOverdueTasks', `lookBackDaysForOverdue limiting to last ${String(numDaysToLookBack)} days (from ${cutoffDate})`)
-      filteredOverdueParas = filteredOverdueParas.filter((p) => getDueDateOrStartOfCalendarDate(p, true) > cutoffDate)
-    }
-
-    // Remove items that appear in this section twice (which can happen if a task is sync'd), based just on their content
-    // Note: this is a quick operation
-    // $FlowFixMe[class-object-subtyping]
-    filteredOverdueParas = removeDuplicates(filteredOverdueParas, ['content'])
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping -> ${filteredOverdueParas.length}`)
-
-    // Remove items already in Yesterday section (if turned on)
-    if (dashboardSettings.showYesterdaySection) {
-      if (yesterdaysParas.length > 0) {
-        // Filter out all items in array filteredOverdueParas that also appear in array yesterdaysParas
-        filteredOverdueParas.map((p) => {
-          if (yesterdaysParas.filter((y) => y.content === p.content).length > 0) {
-            logDebug('getRelevantOverdueTasks', `- removing duplicate item {${p.content}} from overdue list`)
-            filteredOverdueParas.splice(filteredOverdueParas.indexOf(p), 1)
-          }
-        })
-      }
-    }
-
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping with yesterday -> ${filteredOverdueParas.length}`)
-    // $FlowFixMe[class-object-subtyping]
-    return filteredOverdueParas
-  } catch (error) {
-    logError('getRelevantOverdueTasks', error.message)
-    return []
-  }
 }
 
 /**
