@@ -22,7 +22,7 @@ import type {
   TSectionItem,
 } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
-import { convertISODateFilenameToNPDayFilename, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
+import { getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { projectNotesFromFilteredFolders } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
@@ -30,16 +30,15 @@ import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
 import { isNoteFromAllowedFolder, pastCalendarNotes } from '@helpers/note'
 import { saveSettings } from '@helpers/NPConfiguration'
-import { getFirstDateInPeriod } from '@helpers/NPdateTime'
+import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import { isAChildPara } from '@helpers/parentsAndChildren'
-import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { getAllTeamspaceIDsAndTitles, getNoteFromFilename, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
 import { getStartTimeObjFromParaContent, getTimeBlockString, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
-import { hasScheduledDate, isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
+import { isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Settings
@@ -197,43 +196,6 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   sectionsToShow.push('SEARCH')
   logDebug('getListOfEnabledSections', `sectionsToShow: ${String(sectionsToShow)}`)
   return sectionsToShow
-}
-
-/**
- * Get the due date from paragraph content, or if none, then start of period of calendar note, or empty string.
- * @param {TParagraph} p
- * @param {boolean} useISOFormatOutput? if true, then return the date in ISO YYYY-MM-DD format, otherwise YYYYMMDD format
- * @returns {string}
- */
-export function getDueDateOrStartOfCalendarDate(p: TParagraph, useISOFormatOutput: boolean = true): string {
-  try {
-    let dueDateStr = ''
-    const hasDueDate = hasScheduledDate(p.content)
-    if (hasDueDate) {
-      // Get the first scheduled date from the content
-      const dueDateMatch = p.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE)
-      if (dueDateMatch) {
-        dueDateStr = getFirstDateInPeriod(dueDateMatch[1])
-      }
-    } else {
-      // If this is from a calendar note, then use that date instead
-      if (!p.note) {
-        throw new Error(`No note found for para {${p.content}}`)
-      }
-      if (p.note.type === 'Calendar') {
-        // $FlowIgnore[incompatible-call]
-        const dueDate = getFirstDateInPeriod(p.note.title)
-        if (dueDate) {
-          dueDateStr = dueDate
-        }
-      }
-    }
-    // logDebug('getDueDateOrStartOfCalendarDate', `dueDateStr: ${dueDateStr} in note ${note.filename}`)
-    return useISOFormatOutput ? dueDateStr : convertISODateFilenameToNPDayFilename(dueDateStr)
-  } catch (error) {
-    logError('getDueDateOrStartOfCalendarDate', error.message)
-    return ''
-  }
 }
 
 /**
