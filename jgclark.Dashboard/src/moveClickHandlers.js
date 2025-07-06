@@ -21,6 +21,7 @@ import {
   RE_DATE_INTERVAL,
   RE_NP_WEEK_SPEC,
 } from '@helpers/dateTime'
+import { displayTitle } from '@helpers/general'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import {
   moveItemBetweenCalendarNotes,
@@ -100,21 +101,36 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
 }
 
 /**
- * Instruction to move task from a note to a project note.
+ * Instruction to move task from any note to a regular note.
  * Note: Requires user input, so most of the work is done in moveItemToRegularNote() on plugin side.
  * @param {MessageDataObject} data for the item
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, itemType, item } = validateAndFlattenMessageObject(data)
-  logDebug('doMoveToNote', `starting for ID ${item?.ID ?? '?'} (${filename} / ${content} / ${itemType})`)
-  const newNote: TNote | null = await moveItemToRegularNote(filename, content, itemType) // TODO: make a boolean result?
+  if (!(item?.ID)) {
+    logError('doMoveToNote', `- no ID for item: ${JSP(item)}`)
+    return handlerResult(false)
+  }
+  logDebug('doMoveToNote', `starting for ID ${item.ID} (${filename} / ${content} / ${itemType})`)
+  const newNote: TNote | null = await moveItemToRegularNote(filename, content, itemType)
+
+  if (!newNote) {
+    logError('doMoveToNote', `- no new note for ID ${item.ID}`)
+    return handlerResult(false)
+  }
+
+  const newParagraph: TParagraph | boolean = findParaFromStringAndFilename(newNote.filename, content)
+  if (typeof newParagraph === 'boolean') {
+    logError('doMoveToNote', `- no new paragraph for ID ${item.ID}`)
+  }
 
   // If success, then update the display
   if (newNote) {
-    // logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title || ''}"`)
-    logDebug('doMoveToNote', `- Sending remove line request for ID ${item?.ID ?? '?'}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], {})
+    logDebug('doMoveToNote', `Success: moved to -> '${displayTitle(newNote)}'`)
+    // Update the display for this line (as it will probably still be relevant in its section)
+    logDebug('doMoveToNote', `- Sending update line request for ID ${item.ID}`)
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: newParagraph })
   } else {
     return handlerResult(false)
   }
