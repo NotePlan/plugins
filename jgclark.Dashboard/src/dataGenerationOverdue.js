@@ -1,19 +1,16 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2025-07-07 for v2.3.0.b4
+// Last updated 2025-07-08 for v2.3.0.b4
 //-----------------------------------------------------------------------------
 
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { createSectionItemObject, getNotePlanSettings, makeDashboardParas, filterParasByValidFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections } from './dashboardHelpers'
+import { createSectionItemObject, filterParasByValidFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections, makeDashboardParas, getNotePlanSettings, getStartTimeFromPara } from './dashboardHelpers'
+import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
-// import { stringListOrArrayToArray } from '@helpers/dataManipulation'
-// import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
-// import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
-// import { filterOutParasInExcludeFolders } from '@helpers/note'
 import { removeDuplicates } from '@helpers/utils'
 import { sortListBy } from '@helpers/sorting'
 
@@ -38,16 +35,18 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     logInfo('getOverdueSectionData', `------- Gathering Overdue Tasks for section #${String(sectionNumStr)} -------`)
     if (useDemoData) {
       // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
-      for (let c = 0; c < 60; c++) {
+
+      // Add a lot of 'overdue' items (to test the limiting)
+      for (let c = 0; c < 13; c++) {
         // const thisID = `${sectionNumStr}-${String(c)}`
         const thisType = c % 3 === 0 ? 'checklist' : 'open'
-        const priorityPrefix = c % 20 === 0 ? '!!! ' : c % 10 === 0 ? '!! ' : c % 5 === 0 ? '! ' : ''
-        const fakeDateMom = new moment('2023-10-01').add(c, 'days')
+        const priorityPrefix = c % 12 === 0 ? '!! ' : c % 11 === 0 ? '! ' : ''
+        const fakeDateMom = new moment('2025-01-01').add(c, 'days')
         const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
         const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
         const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${NPSettings.defaultFileExtension}` : `fake_note_${String(c % 7)}.${NPSettings.defaultFileExtension}`
         const type = c % 3 < 2 ? 'Calendar' : 'Notes'
-        const content = `${priorityPrefix}test overdue item ${c} >${fakeIsoDateStr}`
+        const content = `${priorityPrefix}test overdue item ${String(c + 1)} >${fakeIsoDateStr}`
         overdueParas.push({
           filename: filename,
           content: content,
@@ -55,12 +54,30 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
           type: thisType,
           note: {
             filename: filename,
-            title: `Overdue Test Note ${c % 10}`,
+            title: `Overdue Test Note ${(c % 10) + 1}`,
             type: type,
             changedDate: fakeDateMom.toDate(),
+            isTeamspace: false,
           },
         })
       }
+
+      // Then add the 'yesterday' items
+      const yesterdayItems = openYesterdayParas.concat(refYesterdayParas)
+      yesterdayItems.forEach((item) => {
+        const thisExtendedPara = {
+          ...item.para,
+          note: {
+            filename: item.para?.filename ?? 'test_filename.md',
+            title: item.para?.title ?? 'TEST Title',
+            type: item.para?.noteType ?? 'Notes',
+            changedDate: item.para?.changedDate ?? new Date('2023-07-06T00:00:00.000Z'),
+            isTeamspace: false,
+          },
+        }
+        overdueParas.push(thisExtendedPara)
+      })
+      clo(yesterdayItems, 'yesterdayItems')
     } else {
       // Get overdue tasks (de-duping any sync'd lines)
       // Note: Cannot move the reduce into here otherwise separate call to this function by scheduleAllOverdueOpenToToday() doesn't have all it needs to work
@@ -97,7 +114,9 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
         ? sortedOverdueTaskParas.slice(0, maxInSection)
         : sortedOverdueTaskParas
       logInfo('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} of ${totalOverdue} items will be passed to React`)
-      overdueTaskParasLimited.map((p) => {
+
+      // Create section items from the limited set of overdue tasks
+      overdueTaskParasLimited.forEach((p) => {
         const thisID = `${sectionNumStr}-${itemCount}`
         items.push(createSectionItemObject(thisID, p))
         itemCount++

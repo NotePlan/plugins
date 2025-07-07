@@ -212,7 +212,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       const note = p.note
       if (note) {
         // Note: seems to be a quick operation (1ms), but leaving a timer for now to indicate if >10ms
-        const anyChildren = p.children()
+        const anyChildren = typeof p.children === 'function' ? p.children() : []
         const hasChild = anyChildren && anyChildren.length > 0
         const isAChild = isAChildPara(p, note)
 
@@ -259,7 +259,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         // }
         return outputPara
       } else {
-        logWarn('makeDashboardParas', `No note found for para {${p.content}} - probably an API teamspacebug`)
+        logWarn('makeDashboardParas', `No note found for para {${p.content}} - probably an API teamspace bug`)
         // $FlowFixMe[incompatible-call]
         return []
       }

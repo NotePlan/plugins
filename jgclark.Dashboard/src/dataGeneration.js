@@ -597,16 +597,16 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
     logInfo('getPrioritySectionData', `------- Gathering Priority Tasks for section #${String(sectionNumStr)} -------`)
     if (useDemoData) {
       // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
-      for (let c = 0; c < 60; c++) {
+      for (let c = 0; c < 30; c++) {
         // const thisID = `${sectionNumStr}-${String(c)}`
         const thisType = c % 3 === 0 ? 'checklist' : 'open'
-        const priorityPrefix = c % 20 === 0 ? '>> ' : c % 10 === 0 ? '!!! ' : c % 5 === 0 ? '!! ' : '! '
+        const priorityPrefix = c % 30 === 0 ? '>> ' : c % 21 === 0 ? '!!! ' : c % 10 === 0 ? '!! ' : '! '
         const fakeDateMom = new moment('2023-10-01').add(c, 'days')
         const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
         const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
         const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${NPSettings.defaultFileExtension}` : `fake_note_${String(c % 7)}.${NPSettings.defaultFileExtension}`
         const type = c % 3 < 2 ? 'Calendar' : 'Notes'
-        const content = `${priorityPrefix}test priority item ${c} >${fakeIsoDateStr}`
+        const content = `${priorityPrefix}test priority item ${String(c + 1)} >${fakeIsoDateStr}`
         priorityParas.push({
           filename: filename,
           content: content,
@@ -614,7 +614,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
           type: thisType,
           note: {
             filename: filename,
-            title: `Priority Test Note ${c % 10}`,
+            title: `Priority Test Note ${(c % 10) + 1}`,
             type: type,
             changedDate: fakeDateMom.toDate(),
           },
