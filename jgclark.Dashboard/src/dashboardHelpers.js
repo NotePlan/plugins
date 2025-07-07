@@ -24,7 +24,7 @@ import type {
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { projectNotesFromFilteredFolders } from '@helpers/folders'
+import { getFoldersMatching, getFolderFromFilename, projectNotesFromFilteredFolders } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
@@ -359,11 +359,13 @@ export function getOpenItemParasForTimePeriod(
       openParas = openParas.filter((p) => !(p.type === 'checklist'))
       logDebug('getOpenItemPFCTP', `- after filtering out checklists: ${openParas.length} para(s)`)
     }
+
     // Filter out checklists with timeblocks, if wanted
     if (dashboardSettings.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
     }
     // logTimer('getOpenItemPFCTP', startTime, `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
+
     // Filter out any blank lines
     openParas = openParas.filter((p) => p.content.trim() !== '')
     logTimer('getOpenItemPFCTP', startTime, `- after finding '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}+ not blank' filter: ${openParas.length} paras`)
@@ -383,9 +385,9 @@ export function getOpenItemParasForTimePeriod(
       logTimer('getOpenItemPFCTP', startTime, `- after 'dashboardSettings.ignoreItemsWithTerms' filter: ${openParas.length} paras`)
 
       // Additionally apply to calendar headings in this note
-      // Now using getHeadingHierarchyForThisPara() to apply to all H4/H3/H2 headings in the hierarchy for this para
       if (dashboardSettings.applyIgnoreTermsToCalendarHeadingSections) {
         openParas = openParas.filter((p) => {
+          // Apply to all H4/H3/H2 headings in the hierarchy for this para
           const theseHeadings = getHeadingHierarchyForThisPara(p)
           let isAllowed = true
           for (const thisHeading of theseHeadings) {
@@ -482,7 +484,8 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
     const thisStartTime = new Date()
 
     await CommandBar.onAsyncThread()
-    // Get list of folders to ignore
+    // Get list of folders to include or ignore
+    const includedFolders = config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',').map((folder) => folder.trim()) : []
     const excludedFolders = config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
     logInfo('getRelevantPriorityTasks', `excludedFolders: ${String(excludedFolders)}`)
     // Reduce list to all notes that are not blank or in @ folders or excludedFolders
@@ -505,15 +508,36 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
     //   console.log(`- ${displayTitle(p.note)} : ${p.content}`)
     // }
 
+    // Filter out items in non-valid folders
+    const validFolders = getFoldersMatching(includedFolders, true, excludedFolders)
+    // logDebug('getRelevantPriorityTasks', `- ${validFolders.length} valid folders: [${String(validFolders)}) paras`)
+    let filteredPriorityParas = priorityParas.filter((p) => validFolders.includes(getFolderFromFilename(p.filename ?? '')))
+    logTimer('getRelevantPriorityTasks', thisStartTime, `- after validFolders filter: ${filteredPriorityParas.length} paras`)
+
     // Filter out anything from 'ignoreItemsWithTerms' setting
-    let filteredPriorityParas = priorityParas
     if (config.ignoreItemsWithTerms) {
       filteredPriorityParas = filteredPriorityParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, config.ignoreItemsWithTerms))
+      logTimer('getRelevantPriorityTasks', thisStartTime, `- after 'config.ignoreItemsWithTerms'(${config.ignoreItemsWithTerms}) filter: ${filteredPriorityParas.length} paras`)
 
-      logDebug('getRelevantPriorityTasks', `- after 'config.ignoreItemsWithTerms'(${config.ignoreItemsWithTerms}) filter: ${filteredPriorityParas.length} paras`)
+      // Also if wanted, and this is a Calendar note,apply to calendar headings in this note
+      if (config.applyIgnoreTermsToCalendarHeadingSections) {
+        filteredPriorityParas = filteredPriorityParas.filter((p) => {
+          // only apply to calendar notes
+          if (p.note?.type !== 'Calendar') return true
+          // Apply to all H4/H3/H2 headings in the hierarchy for this para
+          const theseHeadings = getHeadingHierarchyForThisPara(p)
+          let isAllowed = true
+          for (const thisHeading of theseHeadings) {
+            if (isLineDisallowedByExcludedTerms(thisHeading, config.ignoreItemsWithTerms)) {
+              isAllowed = false
+              break
+            }
+          }
+          return isAllowed
+        })
+        logTimer('getRelevantPriorityTasks', thisStartTime, `- after applying this to headings in calendar notes as well: ${filteredPriorityParas.length} paras`)
+      }
     }
-
-    // TODO: filter out things under wrong heading, like recently added for OVERDUE
 
     // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
     // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time

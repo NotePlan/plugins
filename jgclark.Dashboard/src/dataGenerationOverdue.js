@@ -9,9 +9,11 @@ import pluginJson from '../plugin.json'
 import { createSectionItemObject, isLineDisallowedByExcludedTerms, getNotePlanSettings, makeDashboardParas } from './dashboardHelpers'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
+import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
-import { filterOutParasInExcludeFolders } from '@helpers/note'
+// import { filterOutParasInExcludeFolders } from '@helpers/note'
 import { removeDuplicates } from '@helpers/utils'
 import { sortListBy } from '@helpers/sorting'
 
@@ -160,25 +162,43 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
     logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
 
-    // Remove items referenced from items in 'excludedFolders' (but keep calendar note matches)
+    // Filter out items in non-valid folders
+    const includedFolders = dashboardSettings.includedFolders ? stringListOrArrayToArray(dashboardSettings.includedFolders, ',').map((folder) => folder.trim()) : []
     const excludedFolders = dashboardSettings.excludedFolders ? stringListOrArrayToArray(dashboardSettings.excludedFolders, ',').map((folder) => folder.trim()) : []
-    // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
-    let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, excludedFolders, true)
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'excludedFolders'(${String(excludedFolders)}) filter: ${filteredOverdueParas.length} paras`)
+    const validFolders = getFoldersMatching(includedFolders, true, excludedFolders)
+    // logDebug('getRelevantOverdueTasks', `- ${validFolders.length} valid folders: [${String(validFolders)}) paras`)
+    let filteredOverdueParas = overdueParas.filter((p) => validFolders.includes(getFolderFromFilename(p.filename ?? '')))
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after validFolders filter: ${filteredOverdueParas.length} paras`)
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
       filteredOverdueParas = filteredOverdueParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
-    } else {
-      logDebug(
-        'getRelevantOverdueTasks...',
+      logTimer('getRelevantOverdueTasks', thisStartTime, `- after ignoreItemsWithTerms (${dashboardSettings.ignoreItemsWithTerms}) filter: ${filteredOverdueParas.length} paras`)
+
+      // Also if wanted, and this is a Calendar note,apply to calendar headings in this note
+      if (dashboardSettings.applyIgnoreTermsToCalendarHeadingSections) {
+        filteredOverdueParas = filteredOverdueParas.filter((p) => {
+          // only apply to calendar notes
+          if (p.note?.type !== 'Calendar') return true
+          // Apply to all H4/H3/H2 headings in the hierarchy for this para
+          const theseHeadings = getHeadingHierarchyForThisPara(p)
+          let isAllowed = true
+          for (const thisHeading of theseHeadings) {
+            if (isLineDisallowedByExcludedTerms(thisHeading, dashboardSettings.ignoreItemsWithTerms)) {
+              isAllowed = false
+              break
+            }
+          }
+          return isAllowed
+        })
+        logTimer('getRelevantOverdueTasks', thisStartTime, `- after applying this to headings in calendar notes as well: ${filteredOverdueParas.length} paras`)
+      }
+    }
+    else {
+      logDebug('getRelevantOverdueTasks...',
         `ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`
       )
     }
-    logTimer(
-      'getRelevantOverdueTasks', thisStartTime,
-      `- after ignoreItemsWithTerms (${dashboardSettings.ignoreItemsWithTerms}) filter: ${filteredOverdueParas.length} paras`
-    )
 
     // Limit overdues to last N days
     if (!Number.isNaN(dashboardSettings.lookBackDaysForOverdue) && dashboardSettings.lookBackDaysForOverdue > 0) {
