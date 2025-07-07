@@ -9,7 +9,7 @@ import type { TDashboardSettings, TSection, TSectionItem, TSectionDetails } from
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionItemObject,
-  isLineDisallowedByExcludedTerms,
+  isLineDisallowedByIgnoreTerms,
   makeDashboardParas,
 } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
@@ -147,7 +147,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
         // Save this para, unless in matches the 'ignoreItemsWithTerms' setting (now modified to exclude this tag/mention)
         for (const p of filteredTagParasFromNote) {
-          if (!isLineDisallowedByExcludedTerms(p.content, ignoreTermsMinusTagCSV)) {
+          if (!isLineDisallowedByIgnoreTerms(p.content, ignoreTermsMinusTagCSV)) {
             filteredTagParas.push(p)
           } else {
             // logDebug('getTaggedSectionData', `- ignoring para {${p.content}}`)

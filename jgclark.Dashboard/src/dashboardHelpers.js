@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-07-06 for v2.3.0.b4, @jgclark
+// Last updated 2025-07-07 for v2.3.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -380,27 +380,10 @@ export function getOpenItemParasForTimePeriod(
     logTimer('getOpenItemPFCTP', startTime, `- after 'future' filter: ${openParas.length} paras`)
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
-    if (dashboardSettings.ignoreItemsWithTerms) {
-      openParas = openParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
-      logTimer('getOpenItemPFCTP', startTime, `- after 'dashboardSettings.ignoreItemsWithTerms' filter: ${openParas.length} paras`)
+    openParas = filterParasByIgnoreTerms(openParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
 
-      // Additionally apply to calendar headings in this note
-      if (dashboardSettings.applyIgnoreTermsToCalendarHeadingSections) {
-        openParas = openParas.filter((p) => {
-          // Apply to all H4/H3/H2 headings in the hierarchy for this para
-          const theseHeadings = getHeadingHierarchyForThisPara(p)
-          let isAllowed = true
-          for (const thisHeading of theseHeadings) {
-            if (isLineDisallowedByExcludedTerms(thisHeading, dashboardSettings.ignoreItemsWithTerms)) {
-              isAllowed = false
-              break
-            }
-          }
-          return isAllowed
-        })
-        logTimer('getOpenItemPFCTP', startTime, `- after applying this to calendar headings as well: ${openParas.length} paras`)
-      }
-    }
+    // Additionally apply to calendar headings in this note
+    openParas = filterParasByCalendarHeadingSections(openParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
 
     // for (const p of openParas) {
     //   logDebug('getOpenItemPFCTP', `- 👉 ${p.filename} is ${p.note.isTeamspaceNote ? '' : 'NOT'} a teamspace note`)
@@ -443,10 +426,7 @@ export function getOpenItemParasForTimePeriod(
       // logTimer('getOpenItemPFCTP', startTime, `- after 'eliminate sync dupes' filter: ${refOpenParas.length} para(s)`)
 
       // Filter out anything from 'ignoreItemsWithTerms' setting
-      if (dashboardSettings.ignoreItemsWithTerms) {
-        refOpenParas = refOpenParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
-        // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
-      }
+      refOpenParas = filterParasByIgnoreTerms(refOpenParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
     }
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
@@ -509,35 +489,13 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
     // }
 
     // Filter out items in non-valid folders
-    const validFolders = getFoldersMatching(includedFolders, true, excludedFolders)
-    // logDebug('getRelevantPriorityTasks', `- ${validFolders.length} valid folders: [${String(validFolders)}) paras`)
-    let filteredPriorityParas = priorityParas.filter((p) => validFolders.includes(getFolderFromFilename(p.filename ?? '')))
-    logTimer('getRelevantPriorityTasks', thisStartTime, `- after validFolders filter: ${filteredPriorityParas.length} paras`)
+    let filteredPriorityParas = filterParasByValidFolders(priorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
-    if (config.ignoreItemsWithTerms) {
-      filteredPriorityParas = filteredPriorityParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, config.ignoreItemsWithTerms))
-      logTimer('getRelevantPriorityTasks', thisStartTime, `- after 'config.ignoreItemsWithTerms'(${config.ignoreItemsWithTerms}) filter: ${filteredPriorityParas.length} paras`)
+    filteredPriorityParas = filterParasByIgnoreTerms(filteredPriorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
 
-      // Also if wanted, and this is a Calendar note,apply to calendar headings in this note
-      if (config.applyIgnoreTermsToCalendarHeadingSections) {
-        filteredPriorityParas = filteredPriorityParas.filter((p) => {
-          // only apply to calendar notes
-          if (p.note?.type !== 'Calendar') return true
-          // Apply to all H4/H3/H2 headings in the hierarchy for this para
-          const theseHeadings = getHeadingHierarchyForThisPara(p)
-          let isAllowed = true
-          for (const thisHeading of theseHeadings) {
-            if (isLineDisallowedByExcludedTerms(thisHeading, config.ignoreItemsWithTerms)) {
-              isAllowed = false
-              break
-            }
-          }
-          return isAllowed
-        })
-        logTimer('getRelevantPriorityTasks', thisStartTime, `- after applying this to headings in calendar notes as well: ${filteredPriorityParas.length} paras`)
-      }
-    }
+    // Also if wanted, apply to calendar headings in this note
+    filteredPriorityParas = filterParasByCalendarHeadingSections(filteredPriorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
 
     // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
     // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time
@@ -555,22 +513,103 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
 }
 
 /**
- * Test to see if the current line contents is allowed in the current settings/Perspective, by whether it has a disallowed terms (word/tag/mention).
+ * Test to see if the current line contents is allowed in the current settings/Perspective, by whether it has any 'ignore' terms (word/tag/mention).
  * Note: the match is case insensitive.
  * @param {string} lineContent
  * @param {string} ignoreItemsWithTerms CSV list of terms to ignore
  * @returns {boolean} true if disallowed
  */
-export function isLineDisallowedByExcludedTerms(lineContent: string, ignoreItemsWithTerms: string): boolean {
+export function isLineDisallowedByIgnoreTerms(lineContent: string, ignoreItemsWithTerms: string): boolean {
   // Note: can't use simple .split(',') as it does unexpected things with empty strings
   const ignoreTermsArr = stringListOrArrayToArray(ignoreItemsWithTerms, ',')
-  // logDebug('isLineDisallowedByExcludedTerms', `using ${String(ignoreTermsArr.length)} exclusions [${ignoreTermsArr.toString()}]`)
+  // logDebug('isLineDisallowedByIgnoreTerms', `using ${String(ignoreTermsArr.length)} exclusions [${ignoreTermsArr.toString()}]`)
 
   const matchFound = caseInsensitiveSubstringIncludes(lineContent, ignoreTermsArr)
-  if (matchFound) {
-    // logDebug('isLineDisallowedByExcludedTerms', `- DID find excluding term(s) [${ignoreTermsArr.toString()}] in '${String(lineContent)}'`)
-  }
+  // if (matchFound) {
+  //   logDebug('isLineDisallowedByIgnoreTerms', `- DID find excluding term(s) [${ignoreTermsArr.toString()}] in '${String(lineContent)}'`)
+  // }
   return matchFound
+}
+
+/**
+ * Filter paragraphs to only include those from valid folders based on dashboard settings.
+ * @param {Array<TParagraph>} paras - paragraphs to filter
+ * @param {TDashboardSettings} dashboardSettings - dashboard settings containing folder filters
+ * @param {Date} startTime - timer start time for logging
+ * @param {string} functionName - name of calling function for logging
+ * @returns {Array<TParagraph>} filtered paragraphs
+ */
+export function filterParasByValidFolders(
+  paras: Array<TParagraph>,
+  dashboardSettings: TDashboardSettings,
+  startTime: Date,
+  functionName: string
+): Array<TParagraph> {
+  const includedFolders = dashboardSettings.includedFolders ? stringListOrArrayToArray(dashboardSettings.includedFolders, ',').map((folder) => folder.trim()) : []
+  const excludedFolders = dashboardSettings.excludedFolders ? stringListOrArrayToArray(dashboardSettings.excludedFolders, ',').map((folder) => folder.trim()) : []
+  const validFolders = getFoldersMatching(includedFolders, true, excludedFolders)
+  const filteredParas = paras.filter((p) => validFolders.includes(getFolderFromFilename(p.filename ?? '')))
+  logTimer(functionName, startTime, `- after validFolders filter: ${filteredParas.length} paras`)
+  return filteredParas
+}
+
+/**
+ * Filter paragraphs to exclude those containing terms from ignoreItemsWithTerms setting.
+ * @param {Array<TParagraph>} paras - paragraphs to filter
+ * @param {TDashboardSettings} dashboardSettings - dashboard settings containing ignore terms
+ * @param {Date} startTime - timer start time for logging
+ * @param {string} functionName - name of calling function for logging
+ * @returns {Array<TParagraph>} filtered paragraphs
+ */
+export function filterParasByIgnoreTerms(
+  paras: Array<TParagraph>,
+  dashboardSettings: TDashboardSettings,
+  startTime: Date,
+  functionName: string
+): Array<TParagraph> {
+  if (!dashboardSettings.ignoreItemsWithTerms) {
+    return paras
+  }
+
+  const filteredParas = paras.filter((p) => !isLineDisallowedByIgnoreTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
+  logTimer(functionName, startTime, `- after ignoreItemsWithTerms (${dashboardSettings.ignoreItemsWithTerms}) filter: ${filteredParas.length} paras`)
+  return filteredParas
+}
+
+/**
+ * Filter paragraphs to exclude those with disallowed terms in calendar heading sections.
+ * @param {Array<TParagraph>} paras - paragraphs to filter
+ * @param {TDashboardSettings} dashboardSettings - dashboard settings containing ignore terms
+ * @param {Date} startTime - timer start time for logging
+ * @param {string} functionName - name of calling function for logging
+ * @returns {Array<TParagraph>} filtered paragraphs
+ */
+export function filterParasByCalendarHeadingSections(
+  paras: Array<TParagraph>,
+  dashboardSettings: TDashboardSettings,
+  startTime: Date,
+  functionName: string
+): Array<TParagraph> {
+  if (!dashboardSettings.ignoreItemsWithTerms || !dashboardSettings.applyIgnoreTermsToCalendarHeadingSections) {
+    return paras
+  }
+
+  const filteredParas = paras.filter((p) => {
+    // only apply to calendar notes
+    if (p.note?.type !== 'Calendar') return true
+    // Apply to all H4/H3/H2 headings in the hierarchy for this para
+    const theseHeadings = getHeadingHierarchyForThisPara(p)
+    let isAllowed = true
+    for (const thisHeading of theseHeadings) {
+      if (isLineDisallowedByIgnoreTerms(thisHeading, dashboardSettings.ignoreItemsWithTerms)) {
+        isAllowed = false
+        break
+      }
+    }
+    return isAllowed
+  })
+  logTimer(functionName, startTime, `- after filtering out calendar headings: ${filteredParas.length} paras`)
+  return filteredParas
 }
 
 /**
@@ -604,7 +643,6 @@ function getOpenPriorityItems(note: TNote): Array<TParagraph> {
 
 /**
  * Note: Not currently used.
- * TODO: write tests
  * Extend the paragraph objects with a .startTime property which comes from the start time of a time block, or else 'none' (which will then sort after times).
  * Copes with 'AM' and 'PM' suffixes. Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
