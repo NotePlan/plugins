@@ -62,6 +62,34 @@ export function replaceDoubleDashes(templateData: string): string {
 }
 
 /**
+ * Converts triple dashes at the beginning and end of a frontmatter block to double dashes.
+ * This is the opposite of replaceDoubleDashes and allows for template processing of frontmatter.
+ * Only processes templates that start with "---\n" (three dashes followed by newline).
+ * @param {string} templateData - The template string potentially containing frontmatter with triple dashes
+ * @returns {string} The template with triple dashes converted to double dashes if needed
+ */
+export function convertToDoubleDashesIfNecessary(templateData: string): string {
+  // Only process if template starts with "---\n"
+  if (!templateData.startsWith('---\n')) {
+    return templateData
+  }
+
+  let returnedData = templateData
+  // convert first two occurrences of triple dashes to double dashes
+  const lines = templateData.split('\n')
+  const startBlock = 0 // We know it starts with "---" since we checked above
+  const endBlock = lines.indexOf('---', startBlock + 1)
+
+  if (endBlock > startBlock) {
+    lines[startBlock] = '--'
+    lines[endBlock] = '--'
+    returnedData = lines.join('\n')
+  }
+
+  return returnedData
+}
+
+/**
  * Appends previous phase errors to successful renders if they exist.
  * @param {string} result - The rendered result
  * @param {Array<{phase: string, error: string, context: string}>} previousPhaseErrors - Errors from previous phases

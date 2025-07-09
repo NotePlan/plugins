@@ -4,6 +4,11 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.5] 2025-07-08 @dwertheimer
+- Fix bug where frontmatter was not being processed correctly if it started with "---"
+- Fix bug where templatejs code blocks were not being processed correctly and no other tags
+- Fix bug where template with frontmatter (--) was not being processed when it had no other templating tags
+
 ## [2.0.4] 2025-07-03 @dwertheimer
 - Fix limitation where template strings were not being evaluated in include/import tags
 

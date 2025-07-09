@@ -937,3 +937,363 @@ Event End: <%- eventEndDate() %>`
     })
   })
 })
+
+describe('TemplateJS Code Block Detection', () => {
+  describe('Fast path detection with ```templatejs blocks', () => {
+    it('should use full processing when template contains ```templatejs blocks', async () => {
+      const templateData = `# Test Template
+Some regular text here.
+
+\`\`\`templatejs
+const message = "Hello from templatejs block"
+// This code executes but doesn't output anything
+\`\`\`
+
+More text after the block.`
+
+      const result = await render(templateData, {}, {})
+
+      // Should not be an error message
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // The templatejs block should be processed but not output anything (it's a scriptlet)
+      // The surrounding text should be preserved
+      expect(result).toContain('Some regular text here.')
+      expect(result).toContain('More text after the block.')
+      expect(result).toContain('# Test Template')
+
+      // The templatejs block content should not appear in the output (it's executed, not output)
+      expect(result).not.toContain('```templatejs')
+      expect(result).not.toContain('const message = "Hello from templatejs block"')
+    })
+
+    it('should use full processing when template contains both EJS tags and ```templatejs blocks', async () => {
+      const templateData = `# Test Template
+Current time: <%- time.now() %>
+
+\`\`\`templatejs
+const greeting = "Hello from templatejs"
+// This code executes but doesn't output anything
+\`\`\`
+
+End of template.`
+
+      const result = await render(templateData, {}, {})
+
+      // Should not be an error message
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // Should contain EJS output
+      expect(result).toMatch(/Current time: \d{2}:\d{2}/)
+      expect(result).toContain('End of template.')
+
+      // The templatejs block should be processed but not output anything
+      expect(result).not.toContain('```templatejs')
+      expect(result).not.toContain('const greeting = "Hello from templatejs"')
+    })
+
+    it('should use fast path when template has no EJS tags and no ```templatejs blocks', async () => {
+      const templateData = `# Simple Template
+This is just plain text.
+No EJS tags or templatejs blocks here.
+
+## Section
+- Item 1
+- Item 2`
+
+      const result = await render(templateData, {}, {})
+
+      // Should return the template exactly as-is (fast path)
+      expect(result).toBe(templateData)
+    })
+
+    it('should use fast path when template has only regular code blocks (not templatejs)', async () => {
+      const templateData = `# Template with Regular Code Blocks
+
+\`\`\`javascript
+console.log("This is regular JavaScript")
+\`\`\`
+
+\`\`\`python
+print("This is Python code")
+\`\`\`
+
+End of template.`
+
+      const result = await render(templateData, {}, {})
+
+      // Should return the template exactly as-is (fast path)
+      expect(result).toBe(templateData)
+    })
+
+    it('should handle multiple ```templatejs blocks in the same template', async () => {
+      const templateData = `# Template with Multiple TemplateJS Blocks
+
+\`\`\`templatejs
+const firstBlock = "First block output"
+// This code executes but doesn't output anything
+\`\`\`
+
+Middle text.
+
+\`\`\`templatejs
+const secondBlock = "Second block output"
+// This code executes but doesn't output anything
+\`\`\`
+
+End text.`
+
+      const result = await render(templateData, {}, {})
+
+      // Should not be an error message
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // Should contain the surrounding text
+      expect(result).toContain('Middle text.')
+      expect(result).toContain('End text.')
+      expect(result).toContain('# Template with Multiple TemplateJS Blocks')
+
+      // The templatejs blocks should be processed but not output anything
+      expect(result).not.toContain('```templatejs')
+      expect(result).not.toContain('const firstBlock = "First block output"')
+      expect(result).not.toContain('const secondBlock = "Second block output"')
+    })
+
+    it('should handle ```templatejs blocks with complex JavaScript logic', async () => {
+      const templateData = `# Complex TemplateJS Example
+
+\`\`\`templatejs
+const items = ["apple", "banana", "cherry"]
+const formattedItems = items.map(item => \`- \${item}\`).join('\\n')
+// This code executes but doesn't output anything
+\`\`\`
+
+End of template.`
+
+      const result = await render(templateData, {}, {})
+
+      // Should not be an error message
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // Should contain the surrounding text
+      expect(result).toContain('End of template.')
+      expect(result).toContain('# Complex TemplateJS Example')
+
+      // The templatejs block should be processed but not output anything
+      expect(result).not.toContain('```templatejs')
+      expect(result).not.toContain('const items = ["apple", "banana", "cherry"]')
+    })
+
+    it('should handle ```templatejs blocks that create objects (should not output anything)', async () => {
+      const templateData = `# TemplateJS with Object Creation
+
+\`\`\`templatejs
+const data = { name: "John", age: 30 }
+// This code executes but doesn't output anything
+\`\`\`
+
+End of template.`
+
+      const result = await render(templateData, {}, {})
+
+      // Should not be an error message
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // Should contain the surrounding text
+      expect(result).toContain('End of template.')
+      expect(result).toContain('# TemplateJS with Object Creation')
+
+      // The templatejs block should be processed but not output anything
+      expect(result).not.toContain('```templatejs')
+      expect(result).not.toContain('const data = { name: "John", age: 30 }')
+    })
+
+    it('should handle ```templatejs blocks with async operations', async () => {
+      const templateData = `# TemplateJS with Async Operations
+
+\`\`\`templatejs
+// Simulate async operation
+const asyncResult = await new Promise(resolve => {
+  setTimeout(() => resolve("Async result"), 10)
+})
+// This code executes but doesn't output anything
+\`\`\`
+
+End of template.`
+
+      const result = await render(templateData, {}, {})
+
+      // Should not be an error message
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // Should contain the surrounding text
+      expect(result).toContain('End of template.')
+      expect(result).toContain('# TemplateJS with Async Operations')
+
+      // The templatejs block should be processed but not output anything
+      expect(result).not.toContain('```templatejs')
+      expect(result).not.toContain('const asyncResult = await new Promise')
+    })
+
+    it('should handle ```templatejs blocks with errors gracefully', async () => {
+      const templateData = `# TemplateJS with Error
+
+\`\`\`templatejs
+// This will cause an error
+const result = nonExistentFunction()
+// This code would execute but doesn't output anything
+\`\`\`
+
+End of template.`
+
+      const result = await render(templateData, {}, {})
+
+      // Should not crash the entire template
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // Should still contain the text outside the block
+      expect(result).toContain('End of template.')
+      expect(result).toContain('# TemplateJS with Error')
+    })
+
+    it('should handle mixed content: EJS tags, templatejs blocks, and regular code blocks', async () => {
+      const templateData = `# Mixed Content Template
+Current time: <%- time.now() %>
+
+\`\`\`templatejs
+const templatejsOutput = "From templatejs block"
+// This code executes but doesn't output anything
+\`\`\`
+
+\`\`\`javascript
+// This is regular JavaScript, should not be executed
+console.log("Regular JS")
+\`\`\`
+
+\`\`\`templatejs
+const secondOutput = "Second templatejs block"
+// This code executes but doesn't output anything
+\`\`\`
+
+End of template.`
+
+      const result = await render(templateData, {}, {})
+
+      // Should not be an error message
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // Should contain EJS output
+      expect(result).toMatch(/Current time: \d{2}:\d{2}/)
+
+      // Should contain regular code block as-is
+      expect(result).toContain('```javascript')
+      expect(result).toContain('console.log("Regular JS")')
+
+      // Should contain end text
+      expect(result).toContain('End of template.')
+
+      // The templatejs blocks should be processed but not output anything
+      expect(result).not.toContain('```templatejs')
+      expect(result).not.toContain('const templatejsOutput = "From templatejs block"')
+      expect(result).not.toContain('const secondOutput = "Second templatejs block"')
+    })
+
+    it('should handle edge case: templatejs block with no content', async () => {
+      const templateData = `# Empty TemplateJS Block
+
+\`\`\`templatejs
+
+\`\`\`
+
+End of template.`
+
+      const result = await render(templateData, {}, {})
+
+      // Should not be an error message
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // Should still process the template (not use fast path)
+      expect(result).toContain('End of template.')
+      expect(result).toContain('# Empty TemplateJS Block')
+    })
+
+    it('should handle edge case: templatejs block with only whitespace', async () => {
+      const templateData = `# Whitespace TemplateJS Block
+
+\`\`\`templatejs
+   
+\`\`\`
+
+End of template.`
+
+      const result = await render(templateData, {}, {})
+
+      // Should not be an error message
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // Should still process the template (not use fast path)
+      expect(result).toContain('End of template.')
+      expect(result).toContain('# Whitespace TemplateJS Block')
+    })
+  })
+
+  describe('Backtick-wrapped EJS detection', () => {
+    it('should use full processing when template contains backtick-wrapped EJS tags', async () => {
+      const templateData = `# Template with Backtick-Wrapped EJS
+Regular text.
+
+\`<%- someVariable %>\`
+
+More text.`
+
+      const sessionData = { someVariable: 'test value' }
+      const result = await render(templateData, sessionData, {})
+
+      // Should not be an error message
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // Should contain the rendered value
+      expect(result).toContain('test value')
+      expect(result).toContain('Regular text.')
+      expect(result).toContain('More text.')
+    })
+
+    it('should use full processing when template contains both backtick-wrapped EJS and ```templatejs', async () => {
+      const templateData = `# Mixed Backtick and TemplateJS
+Variable: \`<%- userVariable %>\`
+
+\`\`\`templatejs
+const blockOutput = "From templatejs"
+// This code executes but doesn't output anything
+\`\`\`
+
+End.`
+
+      const sessionData = { userVariable: 'user value' }
+      const result = await render(templateData, sessionData, {})
+
+      // Should not be an error message
+      expect(result).not.toContain('==Error Rendering templateData.==')
+      expect(result).not.toContain('Unable to identify error location')
+
+      // Should contain the backtick-wrapped EJS output
+      expect(result).toContain('user value')
+      expect(result).toContain('End.')
+
+      // The templatejs block should be processed but not output anything
+      expect(result).not.toContain('```templatejs')
+      expect(result).not.toContain('const blockOutput = "From templatejs"')
+    })
+  })
+})

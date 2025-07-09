@@ -23,6 +23,7 @@ import {
 } from '../core'
 import { getProperyValue, mergeMultiLineStatements, protectTemplateLiterals, restoreTemplateLiterals, formatTemplateError, extractTitleFromMarkdown } from '../utils'
 import globals, { asyncFunctions as globalAsyncFunctions } from '../globals'
+import { convertToDoubleDashesIfNecessary } from '../engine/templateRenderer'
 import { log, logError, logDebug, logWarn, clo } from '@helpers/dev'
 
 /**
@@ -1300,7 +1301,8 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     // Step 9: Protect JS ignored code blocks during rendering -- don't let EJS process them
     // Note: this was more relevant in Mike's original implementation where code blocks were ```javscript
     // But now that we're using ```templatejs, this is probably not ever used
-    const { templateData: protectedTemplate, codeBlocks: savedIgnoredCodeBlocks } = tempSaveIgnoredCodeBlocks(templateData)
+    const { templateData: templateDataWithoutIgnoredCodeBlocks, codeBlocks: savedIgnoredCodeBlocks } = tempSaveIgnoredCodeBlocks(templateData)
+    let protectedTemplate = templateDataWithoutIgnoredCodeBlocks
     logProgress('Render Step 9 complete: Code blocks protection', protectedTemplate, sessionData, userOptions)
 
     // Step 10: Perform the actual template rendering
@@ -1308,12 +1310,17 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
 
     // Fast path: if template has no EJS tags, return as-is (no need for TemplatingEngine)
     // Exception: if template contains backtick-wrapped code like `<%- something %>`, still process it
-    const hasEJSTags = protectedTemplate.includes('<%')
+    const hasEJSTags = protectedTemplate.includes('<%') || protectedTemplate.includes('```templatejs')
+    const startsWithFrontmatter = protectedTemplate.startsWith('--')
     const hasBacktickWrappedEJS = /`[^`]*<%.*?%>.*?`/.test(protectedTemplate) // This is probably redundant
 
-    if (!hasEJSTags && !hasBacktickWrappedEJS && frontmatterErrors.length === 0) {
+    if (!hasEJSTags && !hasBacktickWrappedEJS && frontmatterErrors.length === 0 && !startsWithFrontmatter) {
       renderedData = protectedTemplate
     } else {
+      // If the body of the template starts with "---", we need to convert it to "--"
+      // This is because EJS will skip the frontmatter in a template "---"
+      // So we need to convert it to "--" and then will convert it back later
+      protectedTemplate = startsWithFrontmatter ? convertToDoubleDashesIfNecessary(protectedTemplate) : protectedTemplate
       // Template has EJS tags, create a new TemplatingEngine instance with error context
       const enhancedTemplatingEngine = new TemplatingEngine(templateConfig, inputTemplateData, frontmatterErrors)
 
