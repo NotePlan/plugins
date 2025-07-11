@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { WEBVIEW_WINDOW_ID, allSectionDetails } from './constants'
+import { WEBVIEW_WINDOW_ID, allSectionDetails, indexIntoAllSectionCodes } from './constants'
 import { dashboardSettingDefs, dashboardFilterDefs } from './dashboardSettings'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
@@ -937,7 +937,28 @@ export function getDashboardSettingsDefaultsWithSectionsSetToFalse(): TDashboard
   // $FlowIgnore[prop-missing]
   // $FlowIgnore[cannot-spread-indexer]
   return { ...dashboardSettingsDefaults, ...sectionsSetToFalse }
-}/**
+}
+
+/**
+ * Get the section code from an item ID.
+ * Note: might now not be used.
+ * TODO: in time we want to change the ID to start with the section code, so this will be easy.
+ * @param {string} itemID - The ID of the item
+ * @returns {string} The section code
+ */
+export function getSectionCodeFromItemID(itemID: string): string {
+  const sectionNumber = Number(itemID.split('-')[0])
+  // Look up the section code from the section number, based on index into allSectionCodes
+  const sectionCode = indexIntoAllSectionCodes[sectionNumber]
+  if (!sectionCode) {
+    logWarn('getSectionCodeFromItemID', `-> unable to find section code for item ${itemID} (section number ${String(sectionNumber)})`)
+    return ''
+  }
+  logDebug('getSectionCodeFromItemID', `-> sectionCode for ${itemID} is ${sectionCode}`)
+  return sectionCode
+}
+
+/**
  * Finds all items within the provided sections that match the given field/value pairs.
  *
  * @param {Array<TSection>} sections - An array of section objects containing sectionItems.
@@ -945,17 +966,15 @@ export function getDashboardSettingsDefaultsWithSectionsSetToFalse(): TDashboard
  * @param {Object<string, string|RegExp>} fieldValues - An object containing the field values to match against. Values can be strings or regular expressions.
  * @returns {Array<SectionItemIndex>} An array of objects containing the section index and item index for each matching item.
  * @example const indexes = findSectionItems(sections, ['itemType', 'filename', 'para.content'], { itemType: /open|checklist/, filename: oldFilename, 'para.content': oldContent }) // find all references to this content (could be in multiple sections)
-
  * @author @dwertheimer
  */
-
 export function findSectionItems(
   sections: Array<TSection>,
   fieldPathsToMatch: Array<string>,
   fieldValues: { [key: string]: string | RegExp }
 ): Array<{ sectionIndex: number; itemIndex: number }> {
+  logDebug('findSectionItems', `-> looking for items with ${fieldPathsToMatch.join(', ')} = ${JSP(fieldValues)}`)
   const matches: Array<{ sectionIndex: number; itemIndex: number }> = []
-
   sections.forEach((section, sectionIndex) => {
     section.sectionItems.forEach((item, itemIndex) => {
       const isMatch = fieldPathsToMatch.every((fieldPath) => {
@@ -985,4 +1004,3 @@ export function findSectionItems(
 
   return matches
 }
-
