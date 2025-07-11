@@ -21,7 +21,7 @@ import type {
   TSectionCode,
   TSectionItem,
 } from './types'
-import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { getNestedValue, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getFoldersMatching, getFolderFromFilename, projectNotesFromFilteredFolders } from '@helpers/folders'
@@ -770,9 +770,9 @@ export async function setPluginData(changeObject: TAnyObject, changeMessage: str
 }
 
 /**
- * Merge existing sections data with replacement data
- * If the section existed before, it will be replaced with the new data
- * If the section did not exist before, it will be added to the end of sections
+ * Merge existing sections data with replacement data.
+ * If the section existed before, it will be replaced with the new data.
+ * If the section did not exist before, it will be added to the end of sections.
  * @param {Array<TSection>} existingSections
  * @param {Array<TSection>} newSections
  * @returns {Array<TSection>} - merged sections
@@ -937,4 +937,52 @@ export function getDashboardSettingsDefaultsWithSectionsSetToFalse(): TDashboard
   // $FlowIgnore[prop-missing]
   // $FlowIgnore[cannot-spread-indexer]
   return { ...dashboardSettingsDefaults, ...sectionsSetToFalse }
+}/**
+ * Finds all items within the provided sections that match the given field/value pairs.
+ *
+ * @param {Array<TSection>} sections - An array of section objects containing sectionItems.
+ * @param {Array<string>} fieldPathsToMatch - An array of field paths (e.g., 'para.filename', 'itemType') to match against.
+ * @param {Object<string, string|RegExp>} fieldValues - An object containing the field values to match against. Values can be strings or regular expressions.
+ * @returns {Array<SectionItemIndex>} An array of objects containing the section index and item index for each matching item.
+ * @example const indexes = findSectionItems(sections, ['itemType', 'filename', 'para.content'], { itemType: /open|checklist/, filename: oldFilename, 'para.content': oldContent }) // find all references to this content (could be in multiple sections)
+
+ * @author @dwertheimer
+ */
+
+export function findSectionItems(
+  sections: Array<TSection>,
+  fieldPathsToMatch: Array<string>,
+  fieldValues: { [key: string]: string | RegExp }
+): Array<{ sectionIndex: number; itemIndex: number }> {
+  const matches: Array<{ sectionIndex: number; itemIndex: number }> = []
+
+  sections.forEach((section, sectionIndex) => {
+    section.sectionItems.forEach((item, itemIndex) => {
+      const isMatch = fieldPathsToMatch.every((fieldPath) => {
+        const itemFieldValue = getNestedValue(item, fieldPath)
+        if (!itemFieldValue) {
+          logDebug(`findSectionItems: ${fieldPath} is undefined in ${JSP(item)} -- may be ok if you are looking for a task and this is a review item`)
+          return false
+        }
+        const fieldValue = fieldValues[fieldPath]
+        if (fieldValue instanceof RegExp) {
+          return fieldValue.test(itemFieldValue)
+        } else {
+          // logDebug(`findSectionItems:`,
+          //   `${item.ID} itemFieldValue: ${itemFieldValue} ${
+          //     itemFieldValue ? (itemFieldValue === fieldValue ? 'equals' : 'does not equal') : 'is undefined'
+          //   } fieldValue: ${fieldValue}`,
+          // )
+          return itemFieldValue ? itemFieldValue === fieldValue : false
+        }
+      })
+
+      if (isMatch) {
+        matches.push({ sectionIndex, itemIndex })
+      }
+    })
+  })
+
+  return matches
 }
+

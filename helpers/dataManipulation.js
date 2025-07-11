@@ -212,3 +212,47 @@ export function renameKeys(obj: any, keysMap: { [oldKey: string]: string }): any
 
   return result
 }
+
+/**
+ * Helper function to get the value of a nested field in an object.
+ *
+ * @param {Object} obj - The object to search for the nested field.
+ * @param {string} path - The path to the nested field, e.g., 'para.filename'.
+ * @returns {any} The value of the nested field, or undefined if the field doesn't exist.
+ */
+export function getNestedValue(obj: any, path: string): any {
+  const fields = path.split('.')
+  let value = obj
+
+  for (const field of fields) {
+    if (value && typeof value === 'object' && field in value) {
+      value = value[field]
+    } else {
+      return undefined
+    }
+  }
+
+  return value
+}
+
+/**
+ * Helper function to set the value of a nested field in an object.
+ *
+ * @param {Object} obj - The object to set the nested field value in.
+ * @param {string} path - The path to the nested field, e.g., 'para.filename'.
+ * @param {any} value - The value to set for the nested field.
+ */
+export function setNestedValue(obj: any, path: string, value: any): void {
+  const fields = path.split('.')
+  let currentObj = obj
+
+  for (let i = 0; i < fields.length - 1; i++) {
+    const field = fields[i]
+    if (!currentObj.hasOwnProperty(field)) {
+      currentObj[field] = {}
+    }
+    currentObj = currentObj[field]
+  }
+  const finalField = fields[fields.length - 1]
+  currentObj[finalField] = value
+}

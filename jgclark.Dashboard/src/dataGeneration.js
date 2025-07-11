@@ -28,6 +28,7 @@ import { getLastWeekSectionData, getThisWeekSectionData } from './dataGeneration
 import { openMonthParas, refMonthParas, tagParasFromNote } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import { removeInvalidTagSections } from './perspectiveHelpers'
+import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
 import { getDateStringFromCalendarFilename, getNPMonthStr, getNPQuarterStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getHeadingsFromNote } from '@helpers/NPnote'
@@ -145,7 +146,7 @@ export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: bo
   const liveWindowRect: Rect | false = getLiveWindowRect('')
   outputLines.push(`stored window rect: ${storedWindowRect ? rectToString(storedWindowRect) : 'no stored window rect'}`)
   outputLines.push(`live window rect: ${liveWindowRect ? rectToString(liveWindowRect) : 'no live window rect'}`)
-  const sectionNumStr = 'INFO'
+  const sectionNumStr = '20'
   let itemCount = 0
   const items: Array<TSectionItem> = outputLines.map((line) => (
     {
@@ -688,54 +689,6 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
 }
 
 /**
- * Finds all items within the provided sections that match the given field/value pairs.
- *
- * @param {Array<TSection>} sections - An array of section objects containing sectionItems.
- * @param {Array<string>} fieldPathsToMatch - An array of field paths (e.g., 'para.filename', 'itemType') to match against.
- * @param {Object<string, string|RegExp>} fieldValues - An object containing the field values to match against. Values can be strings or regular expressions.
- * @returns {Array<SectionItemIndex>} An array of objects containing the section index and item index for each matching item.
- * @example const indexes = findSectionItems(sections, ['itemType', 'filename', 'para.content'], { itemType: /open|checklist/, filename: oldFilename, 'para.content': oldContent }) // find all references to this content (could be in multiple sections)
-
- * @author @dwertheimer
- */
-export function findSectionItems(
-  sections: Array<TSection>,
-  fieldPathsToMatch: Array<string>,
-  fieldValues: { [key: string]: string | RegExp },
-): Array<{ sectionIndex: number, itemIndex: number }> {
-  const matches: Array<{ sectionIndex: number, itemIndex: number }> = []
-
-  sections.forEach((section, sectionIndex) => {
-    section.sectionItems.forEach((item, itemIndex) => {
-      const isMatch = fieldPathsToMatch.every((fieldPath) => {
-        const itemFieldValue = getNestedValue(item, fieldPath)
-        if (!itemFieldValue) {
-          logDebug(`findSectionItems: ${fieldPath} is undefined in ${JSP(item)} -- may be ok if you are looking for a task and this is a review item`)
-          return false
-        }
-        const fieldValue = fieldValues[fieldPath]
-        if (fieldValue instanceof RegExp) {
-          return fieldValue.test(itemFieldValue)
-        } else {
-          // logDebug(`findSectionItems:`,
-          //   `${item.ID} itemFieldValue: ${itemFieldValue} ${
-          //     itemFieldValue ? (itemFieldValue === fieldValue ? 'equals' : 'does not equal') : 'is undefined'
-          //   } fieldValue: ${fieldValue}`,
-          // )
-          return itemFieldValue ? itemFieldValue === fieldValue : false
-        }
-      })
-
-      if (isMatch) {
-        matches.push({ sectionIndex, itemIndex })
-      }
-    })
-  })
-
-  return matches
-}
-
-/**
  * Copies specified fields from a provided object into the corresponding sectionItems in the sections array.
  *
  * @param {Array<SectionItemIndex>} results - An array of results from the findSectionItems function, containing section and item indices.
@@ -764,48 +717,4 @@ export function copyUpdatedSectionItemData(
   })
 
   return sections
-}
-
-/**
- * Helper function to get the value of a nested field in an object.
- *
- * @param {Object} obj - The object to search for the nested field.
- * @param {string} path - The path to the nested field, e.g., 'para.filename'.
- * @returns {any} The value of the nested field, or undefined if the field doesn't exist.
- */
-function getNestedValue(obj: any, path: string) {
-  const fields = path.split('.')
-  let value = obj
-
-  for (const field of fields) {
-    if (value && typeof value === 'object' && field in value) {
-      value = value[field]
-    } else {
-      return undefined
-    }
-  }
-
-  return value
-}
-
-/**
- * Helper function to set the value of a nested field in an object.
- *
- * @param {Object} obj - The object to set the nested field value in.
- * @param {string} path - The path to the nested field, e.g., 'para.filename'.
- * @param {any} value - The value to set for the nested field.
- */
-function setNestedValue(obj: any, path: string, value: any) {
-  const fields = path.split('.')
-  let currentObj = obj
-
-  for (let i = 0; i < fields.length - 1; i++) {
-    const field = fields[i]
-    if (!currentObj.hasOwnProperty(field)) {
-      currentObj[field] = {}
-    }
-    currentObj = currentObj[field]
-  }
-  const finalField = fields[fields.length - 1]
-  currentObj[finalField] = value
 }
