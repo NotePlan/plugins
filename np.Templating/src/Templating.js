@@ -139,8 +139,8 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
       let templateData
       if (/<current>/i.test(selectedTemplate)) {
         if (!Editor.filename.startsWith(`@Templates`)) {
-          logError(pluginJson, `You cannot use the <current> prompt in a template that is not located in the @Templates folder`)
-          await showMessage(pluginJson, `You cannot use the <current> prompt in a template that is not located in the @Templates folder`)
+          logError(pluginJson, `You cannot use the <current> prompt in a template that is not located in the @Templates folder; Editor.filename=${Editor.filename}`)
+          await showMessage(pluginJson, `OK`, `You cannot use the <current> prompt in a template that is not located in the @Templates folder`)
           return
         }
         templateData = Editor.content
