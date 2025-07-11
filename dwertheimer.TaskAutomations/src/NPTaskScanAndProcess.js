@@ -13,7 +13,7 @@ import { filenameDateString, getDateOptions, replaceArrowDatesInString, RE_DATE,
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { changePriority } from '@helpers/paragraph'
 import { sortListBy } from '@helpers/sorting'
-import { eliminateDuplicateSyncedParagraphs, textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
+import { eliminateDuplicateParagraphs, textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { chooseHeading, chooseNote, chooseOptionWithModifiers, showMessage } from '@helpers/userInput'
 import { isOpen } from '@helpers/utils'
 
@@ -466,7 +466,7 @@ function dedupeSyncedLines(notesWithTasks: Array<Array<TParagraph>>): Array<Arra
   const flatTasks = notesWithTasks.reduce((acc, n) => acc.concat(n), []) //flatten the array
   // clo(flatTasks, `dedupeSyncedLines  flatTasks`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length BEFORE deduping ${flatTasks.length}`)
-  const noDupes = eliminateDuplicateSyncedParagraphs(flatTasks, 'most-recent', true)
+  const noDupes = eliminateDuplicateParagraphs(flatTasks, 'most-recent', true)
   // clo(noDupes, `dedupeSyncedLines  noDupes`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length AFTER deduping ${noDupes.length}`)
   return createArrayOfNotesAndTasks(noDupes)

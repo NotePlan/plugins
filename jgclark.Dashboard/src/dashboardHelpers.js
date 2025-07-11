@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-07-07 for v2.3.0.b4, @jgclark
+// Last updated 2025-07-11 for v2.3.0.b, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -35,7 +35,7 @@ import { getReferencedParagraphs } from '@helpers/NPnote'
 import { isAChildPara } from '@helpers/parentsAndChildren'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
-import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { getAllTeamspaceIDsAndTitles, getNoteFromFilename, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
 import { getStartTimeObjFromParaContent, getTimeBlockString, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
 import { isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
@@ -212,8 +212,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       const note = p.note
       if (note) {
         // Note: seems to be a quick operation (1ms), but leaving a timer for now to indicate if >10ms
-        const anyChildren = typeof p.children === 'function' ? p.children() : []
-        const hasChild = anyChildren && anyChildren.length > 0
+        const anyChildren = p.children() ?? []
+        const hasChild = anyChildren.length > 0
         const isAChild = isAChildPara(p, note)
 
         // Note: debugging why sometimes hasChild is wrong
@@ -389,12 +389,6 @@ export function getOpenItemParasForTimePeriod(
     //   logDebug('getOpenItemPFCTP', `- 👉 ${p.filename} is ${p.note.isTeamspaceNote ? '' : 'NOT'} a teamspace note`)
     // }
 
-    // Extend TParagraph with the task's priority + start/end time from time block (if present)
-    const openDashboardParas = makeDashboardParas(openParas)
-    // clo(openDashboardParas, `getOpenItemPFCTP - openDashboardParas:`)
-
-    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(openDashboardParas.length ?? 0)} cal items for ${calendarPeriodName}`)
-
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
     // A task in today dated for today doesn't show here b/c it's not in backlinks
@@ -417,33 +411,37 @@ export function getOpenItemParasForTimePeriod(
       // Get list of allowed folders (using both include and exlcude settings)
       const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
       // FIXME(EduardMe): I think this is where the .type is failing.
-      // $FlowIgnore[incompatible-call]
+      // $FlowIgnore[incompatible-call] - p.note almost guaranteed to exist
       refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
       logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
 
-      // Remove possible dupes from sync'd lines (returning the first copy found, without doing a sort first)
-      refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
-      // logTimer('getOpenItemPFCTP', startTime, `- after 'eliminate sync dupes' filter: ${refOpenParas.length} para(s)`)
+      // Remove possible dupes from sync'd lines: returning the first Regular note copy found, otherwise the first copy found
+      refOpenParas = eliminateDuplicateParagraphs(refOpenParas, 'first', true)
+      logTimer('getOpenItemPFCTP', startTime, `- after 'eliminate sync dupes' filter: ${refOpenParas.length} para(s)`)
 
       // Filter out anything from 'ignoreItemsWithTerms' setting
       refOpenParas = filterParasByIgnoreTerms(refOpenParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
     }
 
-    // Extend TParagraph with the task's priority + start/end time from time block (if present)
-    const refOpenDashboardParas = makeDashboardParas(refOpenParas)
-    // clo(refOpenDashboardParas, 'getOpenItemPFCTP refOpenDashboardParas after extending paras')
-
-    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(refOpenParas.length ?? 0)} referenced items for ${calendarPeriodName}`)
-
-    // Sort the list by priority then time block, otherwise leaving order the same
-    // Then decide whether to return two separate arrays, or one combined one
+    // Decide whether to return two separate arrays, or one combined one
+    // Note: sorting now happens later in useSectionSortAndFilter
     if (dashboardSettings.separateSectionForReferencedNotes) {
-      // Note: sorting now happens later in useSectionSortAndFilter
+      // Extend TParagraph with the task's priority + start/end time from time block (if present)
+      const openDashboardParas = makeDashboardParas(openParas)
+      const refOpenDashboardParas = makeDashboardParas(refOpenParas)
+      logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(openDashboardParas.length ?? 0)}+${String(refOpenDashboardParas.length ?? 0)} referenced items for ${calendarPeriodName}`)
+
       return [openDashboardParas, refOpenDashboardParas]
     } else {
-      const combinedParas = openDashboardParas.concat(refOpenDashboardParas)
-      // Note: sorting now happens later in useSectionSortAndFilter
-      return [combinedParas, []]
+      let combinedParas = openParas.concat(refOpenParas)
+      // Remove possible dupes from sync'd lines: returning the first Regular note copy found, otherwise the first copy found
+      combinedParas = eliminateDuplicateParagraphs(combinedParas, 'regular-notes', true)
+
+      // Extend TParagraph with the task's priority + start/end time from time block (if present)
+      const combinedDashboardParas = makeDashboardParas(combinedParas)
+      logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(combinedDashboardParas.length ?? 0)} items for ${calendarPeriodName}`)
+
+      return [combinedDashboardParas, []]
     }
   } catch (err) {
     logError('getOpenItemParasForTimePeriod', `Error: ${err.message} from ${NPCalendarFilenameStr}`)

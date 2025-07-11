@@ -638,7 +638,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
       logDebug('getPrioritySectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
 
       // TODO(later): Remove possible dupes from sync'd lines
-      // priorityParas = eliminateDuplicateSyncedParagraphs(priorityParas)
+      // priorityParas = eliminateDuplicateParagraphs(priorityParas)
       // logTimer('getPrioritySectionData', thisStartTime, `- after sync lines dedupe -> ${priorityParas.length}`)
 
       totalPriority = dashboardParas.length
