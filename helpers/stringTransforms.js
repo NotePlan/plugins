@@ -164,7 +164,7 @@ export function changeMarkdownLinksToHTMLLink(original: string, addWebIcon: bool
   let output = original
   const captures = Array.from(original.matchAll(RE_MARKDOWN_LINKS_CAPTURE_G) ?? [])
   if (captures.length > 0) {
-    clo(captures, `${String(captures.length)} results from markdown link matches:`)
+    // clo(captures, `${String(captures.length)} results from markdown link matches:`)
     // Matches come in pairs, so process a pair at a time
     for (const capture of captures) {
       const linkTitle = capture[1]

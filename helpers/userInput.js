@@ -5,7 +5,7 @@
 import json5 from 'json5'
 import { getDateStringFromCalendarFilename, RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { getRelativeDates } from './NPdateTime'
-import { clo, logDebug, logError, logWarn, JSP } from './dev'
+import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 import { getHeadingsFromNote } from './NPnote'
 
@@ -423,7 +423,7 @@ export async function inputInteger(question: string): Promise<number> {
   if (reply != null && isInt(reply)) {
     return Number(reply)
   } else {
-    logError('userInput / inputInteger', `Error trying to get integer answer for question '${question}'`)
+    logInfo('userInput / inputInteger', `Error trying to get integer answer for question '${question}'. -> NaN`)
     return NaN
   }
 }
@@ -444,10 +444,10 @@ export async function inputIntegerBounded(title: string, question: string, upper
     if (value <= upperBound && value >= lowerBound) {
       result = value
     } else {
-      logWarn('userInput / inputInteger', `Value ${reply} is out of bounds for [${String(lowerBound)},${String(upperBound)}] -> NaN`)
+      logInfo('userInput / inputIntegerBounded', `Value ${reply} is out of bounds for [${String(lowerBound)},${String(upperBound)}] -> NaN`)
     }
   } else {
-    logWarn('userInput / inputInteger', `No valid integer answer for question '${question}' -> NaN`)
+    logInfo('userInput / inputIntegerBounded', `No valid integer answer for question '${question}' -> NaN`)
   }
   return result
 }
