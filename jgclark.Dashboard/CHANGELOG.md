@@ -9,8 +9,21 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 - TODO: enlarged default window size on iPads
 -->
+## [2.3.0.b4] 2025-07-06
+### Improved
+- In task dialog don't show 'Unsched' button when task is in a calendar note
+- Fix incorrect display after Unscheduling a task
+- Fix edge case on display of URLs with embedded ~ characters
+- Fix tags being missed when they have a different case (only applies when the new cache isn't being used)
+- Smarter refresh of display after moving an item between notes
+- will now trigger a tagCache rebuild (if scheduled) after a refresh, as well as after first load
+- now rebuilds tagCache after adding a new tag to a perspective before its saved
+- fixes when changing perspective settings (DBW)
+- made settings system more robust when updating versions (DBW)
+### Dev notes
+- remove most START_DELAYED_REFRESH_TIMER calls
 
-## [2.3.0.b3] 2025-06-15???
+## [2.3.0.b3] 2025-06-15
 ### Improved
 - changed 'Nothing left on this list ' to say 'All _N_ items completed on this list' where relevant
 - stopped spurious "windowResize" message from appearing on iPhones

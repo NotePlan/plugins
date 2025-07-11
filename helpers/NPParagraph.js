@@ -25,10 +25,10 @@ import {
 import { displayTitle } from '@helpers/general'
 import { getFirstDateInPeriod, getNPWeekData, getMonthData, getQuarterData, getYearData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import { getNoteType } from '@helpers/note'
+import { filterOutParasInExcludeFolders, getNoteType } from '@helpers/note'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
-import { getLineMainContentPos } from '@helpers/search'
+import { caseInsensitiveMatch, caseInsensitiveSubstringMatch, caseInsensitiveStartsWith, getLineMainContentPos } from '@helpers/search'
 import { stripTodaysDateRefsFromString } from '@helpers/stringTransforms'
 import { hasScheduledDate, isOpen, isOpenAndScheduled } from '@helpers/utils'
 
@@ -499,13 +499,59 @@ export async function blockContainsOnlySyncedCopies(note: CoreNoteFields, showEr
 }
 
 /**
+ * Find given heading in all notes of type 'noteTypes', unless its in 'foldersToExclude'. Returns array of paragraphs.
+ * @author @jgclark
+ * @param {string} heading
+ * @param {string?} matchMode - 'Exact', 'Contains' (default) or 'Starts with'
+ * @param {Array<string>?} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
+ * @param {boolean} includeCalendar? - whether to include Calendar notes (default: true)
+ * @returns {Array<TParagraph>}
+ */
+export async function findHeadingInNotes(
+  heading: string,
+  matchMode: string = 'contains',
+  excludedFolders: Array<string> = [],
+  includeCalendar: boolean = true
+): Promise<Array<TParagraph>> {
+  // For speed, let's first multi-core search the notes to find the notes that contain this string
+  const noteTypes = includeCalendar ? ['notes', 'calendar'] : ['notes']
+  const initialParasList = await DataStore.search(heading, noteTypes, [], excludedFolders) // returns all the potential matches, but some may not be headings
+  logDebug('findHeadingInNotes', `'Finding ${heading}' with mode '${matchMode}'`)
+  logDebug('findHeadingInNotes', `- initially found ${String(initialParasList.length)} heading paras`)
+  let filteredParas: Array<TParagraph> = []
+  switch (matchMode) {
+    case 'Exact': {
+      filteredParas = initialParasList
+        .filter((p) => p.type === 'title' && caseInsensitiveMatch(heading, p.content))
+      break
+    }
+    case 'Starts with': {
+      filteredParas = initialParasList
+        .filter((p) => p.type === 'title' && caseInsensitiveStartsWith(heading, p.content, false))
+      break
+    }
+    default: { // 'Contains'
+      filteredParas = initialParasList
+        .filter((p) => p.type === 'title' && caseInsensitiveSubstringMatch(heading, p.content))
+      break
+    }
+  }
+  logDebug(`removeSectionFromAllNotes`, `- list of ${String(filteredParas.length)} notes/section headings found:`)
+  for (const p of filteredParas) {
+    logDebug('', `- in '${displayTitle(p.note)}': '${String(p.content)}'`)
+  }
+  return filteredParas
+}
+
+/**
  * Remove all previously written blocks under a given heading in all notes (e.g. for deleting previous "TimeBlocks" or "SyncedCopies")
  * WARNING: This is DANGEROUS. Could delete a lot of content. You have been warned!
  * @author @dwertheimer
  * @param {Array<string>} noteTypes - the types of notes to look in -- e.g. ['calendar','notes']
- * @param {string} heading - the heading too look for in the notes (without the #)
+ * @param {string} heading - the heading to look for in the notes (without the #)
  * @param {boolean} keepHeading - whether to leave the heading in place afer all the content underneath is
  * @param {boolean} runSilently - whether to show CommandBar popups confirming how many notes will be affected - you should set it to 'yes' when running from a template
+ * @param {boolean?} syncedOnly?
  */
 export async function removeContentUnderHeadingInAllNotes(
   noteTypes: Array<string>,
@@ -1725,74 +1771,9 @@ export function toggleTaskChecklistParaType(filename: string, content: string): 
   }
 }
 
-/**
- * Remove any scheduled date (e.g. >YYYY-MM-DD or >YYYY-Www) from given line in note identified by filename.
- * Now also changes para type to 'open'/'checklist' if it wasn't already.
- * @author @jgclark
- * @param {string} filename of note
- * @param {string} content line to identify and change
- * @returns {boolean} success?
- */
-export function unscheduleItem(filename: string, content: string): boolean {
-  try {
-    // find para
-    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
-    if (typeof possiblePara === 'boolean') {
-      throw new Error('unscheduleItem: no para found')
-    }
-    // Get the paragraph to change
-    const thisPara = possiblePara
-    const thisNote = thisPara.note
-    if (!thisNote) throw new Error(`Could not get note for filename ${filename}`)
+// Note: function scheduleItem is now in NPScheduleItems.js
 
-    // Find and then remove any scheduled dates
-    const thisLine = possiblePara.content
-    logDebug('unscheduleItem', `unscheduleItem('${thisLine}'`)
-    thisPara.content = replaceArrowDatesInString(thisLine, '')
-    logDebug('unscheduleItem', `unscheduleItem('${thisPara.content}'`)
-    // And then change type
-    if (thisPara.type === 'checklistScheduled') thisPara.type = 'checklist'
-    if (thisPara.type === 'scheduled') thisPara.type = 'open'
-    // Update to DataStore
-    thisNote.updateParagraph(thisPara)
-    return true
-  } catch (error) {
-    logError('unscheduleItem', error.message)
-    return false
-  }
-}
-
-/**
- * Schedule an open item for a given date (e.g. >YYYY-MM-DD, >YYYY-Www, >today etc.) for a given paragraph.
- * It adds the '>' to the start of the date, and appends to the end of the para.
- * It removes any existing scheduled >dates, and if wanted,
- * @author @jgclark
- * @param {TParagraph} para of open item
- * @param {string} dateStrToAdd, without leading '>'. Can be special date 'today'.
- * @param {boolean} changeParaType? to 'scheduled'/'checklistScheduled' if wanted
- * @returns {boolean} success?
- */
-export function scheduleItem(thisPara: TParagraph, dateStrToAdd: string, changeParaType: boolean = true): boolean {
-  try {
-    const thisNote = thisPara.note
-    const thisContent = thisPara.content
-    if (!thisNote) throw new Error(`Could not get note for para '${thisContent}'`)
-
-    // Find and then remove any existing scheduled dates, and add new scheduled date
-    thisPara.content = replaceArrowDatesInString(thisContent, `>${dateStrToAdd}`)
-    logDebug('scheduleItem', `-> '${thisPara.content}'`)
-    // And then change type (if wanted)
-    if (changeParaType && thisPara.type === 'checklist') thisPara.type = 'checklistScheduled'
-    if (changeParaType && thisPara.type === 'open') thisPara.type = 'scheduled'
-    logDebug('scheduleItem', `-> type '${thisPara.type}'`)
-    // Update to DataStore
-    thisNote.updateParagraph(thisPara)
-    return true
-  } catch (error) {
-    logError('scheduleItem', error.message)
-    return false
-  }
-}
+// Note: function unscheduleItem is now in NPScheduleItems.js
 
 /**
  * Remove all due dates from a project note given by filename.

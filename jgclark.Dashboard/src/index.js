@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-05-18 for v2.3.0
+// last updated 2025-07-04 for v2.3.0.b4
 // ----------------------------------------------------------------------------
 
 /**
@@ -93,13 +93,9 @@ export async function onUpdateOrInstall(): Promise<void> {
     const defaults = getDashboardSettingsDefaultsWithSectionsSetToFalse()
     const migratedDashboardSettings = { ...defaults, ...renameKeys(initialDashboardSettings, keysToChange) }
 
-    // Add any new settings for 2.3.0
-    // TODO: (@jgclark): Hard-coding this should not be necessary anymore, because if they are in the defaults of dashboardSettings, they will be added to the perspectives.
-    // logInfo(pluginJson, `- adding new keys for 2.3.0 ...`)
-    // migratedDashboardSettings.includeFutureTagMentions = false
-    // migratedDashboardSettings.showProgressInSections = 'number closed'
+    // Note: no longer need to add new settings here, because if they are in the defaults of dashboardSettings, they will be added to the perspectives.
 
-    // Note: Workaround for number types getting changed to strings at some point in our Settings system.
+    // Note: Workaround for number types getting changed to strings at some point in our Settings system.  FIXME: but lower priority for now.
     migratedDashboardSettings.newTaskSectionHeadingLevel = parseInt(migratedDashboardSettings.newTaskSectionHeadingLevel || 2)
     migratedDashboardSettings.maxItemsToShowInSection = parseInt(migratedDashboardSettings.maxItemsToShowInSection || 24)
     migratedDashboardSettings.lookBackDaysForOverdue = parseInt(migratedDashboardSettings.lookBackDaysForOverdue || 7)
@@ -125,11 +121,9 @@ export async function onUpdateOrInstall(): Promise<void> {
     }
     logInfo(`onUpdateOrInstall`, `- finished.`)
     pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
-    // Now get the tagMentionCache up to date.
-    // Note: Deliberately don't await this, because it can take 15+ seconds.
-    // const _cachePromise = generateTagMentionCache(true)
-    // TODO: (@jgclark): If we don't await this, doesn't it stop running at the end of the function? I think NotePlan will kill the thread.
-    // dbw is changing it to await for now so it will run and finish. Should be invisible to the user.
+
+    // Now get the tagMentionCache up to date, by forcing a rebuild.
+    // Note: DBW thinks that we don't await this, NotePlan will kill the thread, and stop this from finishing.
     await generateTagMentionCache(true)
   } catch (err) {
     logError(pluginJson, `onUpdateOrInstall() error: ${err.message}`)

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2025-04-10 for v2.2.0.a13
+// Last updated 2025-07-06 for v2.3.0.b4
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -25,12 +25,9 @@ import {
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
-  // doShowLineInEditorFromTitle,
-  // doSetSpecificDate,
   doToggleType,
   doUnscheduleItem,
   doWindowResized,
-  // turnOffPriorityItemsFilter
 } from './clickHandlers'
 import {
   doAddNewPerspective,
@@ -574,9 +571,8 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
     }
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     let sections = reactWindowData.pluginData.sections
-    // const isProject = data.item?.itemType === 'project'
 
-    logDebug('updateReactWindowFLC', `for item ID: ${ID} from ${String(data.sectionCodes) ?? '?'} to do ${String(actionsOnSuccess)}`)
+    logDebug('updateReactWindowFLC', `for item ID: ${ID} from ${String(data.sectionCodes) ?? '?'}: do [${String(actionsOnSuccess)}]`)
 
     if (updatedParagraph) {
       logDebug(`updateReactWindowFLC`, ` -> updatedParagraph: "${updatedParagraph.content}"`)
@@ -591,9 +587,7 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
       })
 
       if (indexes.length) {
-        const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
-        // clo(indexes, 'updateReactWindowFLC: indexes to update')
-        // clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+        const { sectionIndex, itemIndex } = indexes[0]
         if (shouldRemove) {
           logDebug('updateReactWindowFLC', `-> removed item ${ID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
           indexes.reverse().forEach((index) => {
@@ -608,29 +602,13 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
       } else {
         throw new Error(`updateReactWindowFLC: unable to find item to update: ID ${ID} was looking for: content="${oldContent}" filename="${oldFilename}" : ${errorMsg || ''}`)
       }
-      // Note: now done in previous function
-      // } else if (isProject) {
-      //   //
-      //   const projFilename = data.item?.project?.filename
-      //   if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
-      //   const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
-      //     itemType: 'project',
-      //     'project.filename': projFilename,
-      //   })
-      //   logDebug('updateReactWindowFLC', `- filename '${projFilename}' actions: ${String(actionsOnSuccess ?? '-')}`)
-      //   clo(indexes, 'updateReactWindowFLC: indexes to update')
-      //   if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-      //     logDebug('updateReactWindowFLC', `- doing REMOVE_LINE_FROM_JSON:`)
-      //     indexes.reverse().forEach((index) => {
-      //       const { sectionIndex, itemIndex } = index
-      //       sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-      //       // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
-      //     })
-      //   }
-    } else if (actionsOnSuccess === ['REMOVE_LINE_FROM_JSON']) {
-      // This is a special case where it's OK that we don't have an updatedParagraph
+    } else if (shouldRemove) {
+      // This (REMOVE_LINE_FROM_JSON) is a special case where it's OK that we don't have an updatedParagraph
       logDebug('updateReactWindowFLC', `-> 🥺 just removed item ${ID}`)
     } else {
+      // FIXME: getting here for some reason for DBW.
+      // - Not sure of the structuring of this function. Can we check for REMOVE_LINE_FROM_JSON first?
+      // - What does 'Note: now simple REMOVE_LINE_FROM_JSON is handled in processActionOnReturn()' imply here?
       throw new Error(`no updatedParagraph param was given, and its not a Project update. So cannot update react window content for: ID=${ID}. errorMsg=${errorMsg || '-'}`)
     }
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)

@@ -92,9 +92,10 @@ At 2.1, sharedSettings has been dropped.
 
 ### useRefreshTimer (Refresh Timer, for calling for refresh after N secs - e.g. after NP cache is updated)
 This is a single component that is used in several places to force refreshes after a certain amount of time. It is imported into the Dashboard component and then called in these circumstances:
-1. User has autoRefresh turned on. After [15m] of idle time, the Dashboard will automatically do a full (but incremental) refresh
-2. User clicked a button on the Task dialog. The timer is set for [5s] and will do a silent full+incremental refresh to make sure that any NP caching on the last command is finished processing and sections are updated. Ideally there are no changes.
-3. The back-end (plugin) after processing a command (e.g. "move all overdues to today"), asks for a "START_DELAYED_REFRESH_TIMER" (type `TActionOnReturn`). This sets a field in pluginSettings (`pluginData.startDelayedRefreshTimer = true`), which signals the front-end to start the [5s] timer, after which a refresh will be issued
+1. User has autoRefresh turned on. After _n_ mins of idle time, the Dashboard will automatically do an incremental refresh of all visible sections
+2. User clicked a button on the Task dialog. The timer is set for [5s] and will do a silent incremental refresh to make sure that any NP caching on the last command is finished processing and sections are updated. Ideally there are no changes.
+3. The back-end (plugin) after processing a command (e.g. "move all overdues to today"), can ask for a "START_DELAYED_REFRESH_TIMER" (type `TActionOnReturn`). This sets a field in pluginSettings (`pluginData.startDelayedRefreshTimer = true`), which signals the front-end to start the [5s] timer, after which a refresh will be issued.  [Note: this is currently turned off.]
+
 Since all of these use the same singleton customHook, by design any of them will reset any pending timers and the count will start again.
 
 ## AutoRefresh - IdleTimer component

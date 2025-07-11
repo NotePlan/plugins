@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2025-05-23 for v2.3.0.b2, @jgclark
+// last updated 2025-07-04 for v2.3.0.b4, @jgclark
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -109,7 +109,7 @@ export function addTagMentionCacheDefinitions(mentionOrTagsIn: Array<string>): v
 
   // If we have added items, and only want named items, then kick off regeneration of the cache now
   if (!TAG_CACHE_FOR_ALL_TAGS && newItems.length > existingItems.length) {
-    logInfo('addTagMentionCacheDefinitions', `- added ${newItems.length - existingItems.length} new items, and so need to kick off regeneration of the cache now.`)
+    logInfo('addTagMentionCacheDefinitions', `- added new wanted items '${String(newItems)}', and so need to kick off regeneration of the cache now.`)
     // eslint-disable-next-line require-await
     const _promise = generateTagMentionCache()
   }
@@ -267,6 +267,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(
 export async function generateTagMentionCache(forceRebuild: boolean = true): Promise<void> {
   try {
     const startTime = new Date()
+    // Note: this doesn't get the current definitions, if the perspective definition has changed and not yet saved. However, getTaggedSectionData() notices this and updates the list and asks for a Cache rebuild, so it quickly gets resolved.
     const wantedItems = getTagMentionCacheDefinitions()
     // const config = await getDashboardSettings()
     logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}]${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' ONLY FOR OPEN ITEMS' : ' ON ANY PARA TYPE'}`)
@@ -286,7 +287,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
         logDebug('generateTagMentionCache', `- rebuild not forced, but wanted items are different, so will rebuild cache.`)
       }
     }
-    logDebug('generateTagMentionCache', `- forcing a cache rebuild`)
+    logDebug('generateTagMentionCache', `- something requested a forced cache rebuild`)
 
     // Start backgroud thread
     await CommandBar.onAsyncThread()

@@ -3,31 +3,29 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated for v2.1.10
+// Last updated 2025-07-04 for v2.3.0.b4 by @jgclark
 //-----------------------------------------------------------------------------
+
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDisplayListOfSectionCodes, getNotePlanSettings, handlerResult, mergeSections, setPluginData } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
+import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
 
-/****************************************************************************************************************************
- *                             NOTES
- ****************************************************************************************************************************
+/********************************************************************************
+ *                             Data types + constants
+ *********************************************************************************/
+
+/********************************************************************************
+ *                                   HANDLERS
 - Handlers should use the standard return type of TBridgeClickHandlerResult
 - handlerResult() can be used to create the result object
 - Types are defined in types.js
     - type TActionOnReturn = 'UPDATE_CONTENT' | 'REMOVE_LINE' | 'REFRESH_JSON' | 'START_DELAYED_REFRESH_TIMER' etc.
-
-/****************************************************************************************************************************
- *                             Data types + constants
- ****************************************************************************************************************************/
-
-/****************************************************************************************************************************
- *                             HANDLERS
- ****************************************************************************************************************************/
+ *********************************************************************************/
 
 /**
  * Tell the React window to update by re-generating all Sections
@@ -65,6 +63,12 @@ export async function refreshAllSections(): Promise<void> {
     }
     await setPluginData(changedData, 'Updating doneCounts at end of refreshAllSections')
   }
+
+  // Finally, if relevant, rebuild the tag mention cache.
+  if (isTagMentionCacheGenerationScheduled()) {
+    logInfo('refreshAllSections', `- now generating tag mention cache`)
+    await generateTagMentionCache()
+  }
 }
 
 /**
@@ -93,6 +97,7 @@ export async function incrementallyRefreshSomeSections(
     }
     logDebug('incrementallyRefreshSomeSections', `Starting incremental refresh for sections [${String(sectionCodes)}]`)
     await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
+
     // loop through sectionCodes
     for (const sectionCode of sectionCodes) {
       // const start = new Date()
@@ -114,6 +119,12 @@ export async function incrementallyRefreshSomeSections(
       }
       await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSomeSections')
       logTimer('incrementallyRefreshSomeSections', startTime, `- to calculate done counts at end of incrementallyRefreshSomeSections`, 1000)
+    }
+
+    // Finally, if relevant, rebuild the tag mention cache.
+    if (isTagMentionCacheGenerationScheduled()) {
+      logInfo('incrementallyRefreshSomeSections', `- now generating tag mention cache`)
+      const _promise = generateTagMentionCache() // no await, as we don't want to block the UI
     }
 
     return handlerResult(true)
