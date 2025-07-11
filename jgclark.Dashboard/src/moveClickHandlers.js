@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2025-02-16 for v2.1.10
+// Last updated 2025-07-11 for v2.3.0.b
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -9,6 +9,7 @@
 import {
   getDashboardSettings,
   handlerResult,
+  makeDashboardParas,
 } from './dashboardHelpers'
 import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings } from './types'
@@ -130,7 +131,7 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
     logDebug('doMoveToNote', `Success: moved to -> '${displayTitle(newNote)}'`)
     // Update the display for this line (as it will probably still be relevant in its section)
     logDebug('doMoveToNote', `- Sending update line request for ID ${item.ID}`)
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: newParagraph })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([newParagraph])[0] })
   } else {
     return handlerResult(false)
   }

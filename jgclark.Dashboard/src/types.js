@@ -343,7 +343,7 @@ export type TActionOnReturn =
 
 export type TBridgeClickHandlerResult = {
   success: boolean,
-  updatedParagraph?: TParagraph,
+  updatedParagraph?: TParagraphForDashboard, // TODO: TEST: this becoming TParagraphForDashboard not TParagraph
   actionsOnSuccess?: Array<TActionOnReturn>, // actions to perform after return
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   errorMsg?: string,

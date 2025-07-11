@@ -1,11 +1,10 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2025-07-06 for v2.3.0.b4
+// Last updated 2025-07-08 for v2.3.0.b4
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { allCalendarSectionCodes, allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 import {
   doAddItem,
   doAddItemToFuture,
@@ -29,6 +28,7 @@ import {
   doUnscheduleItem,
   doWindowResized,
 } from './clickHandlers'
+import { allCalendarSectionCodes, allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 import {
   doAddNewPerspective,
   doCopyPerspective,
@@ -52,12 +52,13 @@ import {
 import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickHandlers'
 import { scheduleAllOverdueOpenToToday, scheduleAllTodayTomorrow, scheduleAllYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
-import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas, setPluginData } from './dashboardHelpers'
+import { findSectionItems, getDashboardSettings, getListOfEnabledSections, getSectionCodeFromItemID, makeDashboardParas, setPluginData } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain' // Note: fixed circ dep here by changing to using an x-callback instead 😫
-import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
+import { copyUpdatedSectionItemData } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
-import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
-import { clo, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
+import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified, TSection, TSectionItem } from './types'
+import { setNestedValue } from '@helpers/dataManipulation'
+import { clo, clof, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
 import { formatReactError } from '@helpers/react/reactDev'
@@ -395,156 +396,199 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     const { success, updatedParagraph } = handlerResult
     const enabledSections = getListOfEnabledSections(config)
 
-    if (success) {
-      const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
-      if (actionsOnSuccess.length === 0) {
-        logDebug('processActionOnReturn', `note: no post process actions to perform`)
-        return
-      }
-      const isProject = data.item?.itemType === 'project'
-      const actsOnALine = actionsOnSuccess.some((str) => str.includes('LINE'))
-
-      const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
-      logDebug(
-        'processActionOnReturn',
-        isProject ? `PROJECT: ${data.item?.project?.title || 'no project title'}` : `TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`,
-      )
-      if (actsOnALine && filename === '') {
-        logWarn('processActionOnReturn', `Starting with no filename`)
-      }
-      if (filename !== '') {
-        // update the cache for the note, as it might have changed
-        const thisNote = getNoteByFilename(filename)
-        if (thisNote) {
-          const res = await DataStore.updateCache(thisNote, false) /* Note: added await in case Eduard makes it an async at some point */
-        }
-      }
-      if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-        const sections = reactWindowData.pluginData.sections
-
-        if (isProject) {
-          const thisProject = data.item?.project
-          const projFilename = data.item?.project?.filename
-          if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
-          logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: for ID:${data?.item?.ID || ''} project:"${thisProject?.title || '?'}"`)
-          // Find the item from its filename
-          const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
-            itemType: 'project',
-            'project.filename': projFilename,
-          })
-          indexes.reverse().forEach((index) => {
-            const { sectionIndex, itemIndex } = index
-            sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-            // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
-          })
-        } else {
-          const thisItemID = data.item?.ID
-          logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: for ID:${data?.item?.ID || ''} task:{${data?.item?.para?.content || ''}}`)
-          if (thisItemID) {
-            // Get sectionNumber from item.ID and remove the item from that section
-            const indexes = findSectionItems(sections, ['ID'], { ID: thisItemID })
-            indexes.reverse().forEach((index) => {
-              const { sectionIndex, itemIndex } = index
-              logDebug('processActionOnReturn', `-> removing item ${thisItemID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-              sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-              // clo(sections[sectionIndex], `processActionOnReturn: After splicing sections[${sectionIndex}]`)
-            })
-          }
-        }
-        logDebug('processActionOnReturn', `-> NOT asking for any further refresh: hopefully React will do its stuff!`)
-
-        await updateReactWindowFromLineChange(handlerResult, data, [])
-      }
-      if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
-        if (isProject) {
-          logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for Project '${filename}': calling updateReactWindowFromLineChange()`)
-          await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'project'])
-        } else {
-          logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for non-Project: {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFromLineChange()`)
-          await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para'])
-        }
-      }
-
-      if (actionsOnSuccess.includes('CLOSE_SECTION')) {
-        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-        // Remove the search section from the sections array
-        const sections = reactWindowData.pluginData.sections
-        logDebug('processActionOnReturn', `Starting CLOSE_SECTION with ${sections.length} sections: ${String(sections.map((s) => s.sectionCode).join(','))}.`)
-        const sectionIndex = sections.findIndex((section) => section.sectionCode === 'SEARCH')
-        logDebug('processActionOnReturn', `CLOSE_SECTION for section #${String(sectionIndex)}`)
-        sections.splice(sectionIndex, 1)
-        logDebug('processActionOnReturn', `Closed search section -> ${sections.length} sections: ${String(sections.map((s) => s.sectionCode).join(','))}.`)
-
-        // Set showSearchSection to false
-        reactWindowData.pluginData.showSearchSection = false
-        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Closed Search Section`)
-      }
-
-      if (actionsOnSuccess.includes('INCREMENT_DONE_COUNT')) {
-        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-        const incrementedCount = reactWindowData.pluginData.totalDoneCount + 1
-        logDebug('processActionOnReturn', `INCREMENT_DONE_COUNT to ${String(incrementedCount)}`)
-        reactWindowData.pluginData.totalDoneCount = incrementedCount
-        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Incrementing done counts (ahead of proper background refresh)`)
-      }
-
-      if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
-        logDebug('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
-        await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
-      } else if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
-        logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
-        await setPluginData({ perspectiveChanging: true }, `Starting perspective change`)
-        await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
-        logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (should hide modal spinner)`)
-        await setPluginData({ perspectiveChanging: false }, `Ending perspective change`)
-      } else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
-        logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)
-        await incrementallyRefreshSomeSections({ ...data, sectionCodes: allSectionCodes })
-      } else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
-        logDebug('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
-        for (const sectionCode of allCalendarSectionCodes) {
-          // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
-          await incrementallyRefreshSomeSections({ ...data, sectionCodes: [sectionCode] })
-        }
-      } else {
-        // At least update TB section (if enabled) to make sure its as up to date as possible
-        if (enabledSections.includes('TB')) {
-          logDebug('processActionOnReturn', `Adding REFRESH_SECTION_IN_JSON for TB ...`)
-          if (!actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
-            actionsOnSuccess.push('REFRESH_SECTION_IN_JSON')
-            if (!handlerResult.sectionCodes) {
-              handlerResult.sectionCodes = []
-            }
-            if (!handlerResult.sectionCodes.includes('TB')) {
-              handlerResult.sectionCodes?.push('TB')
-            }
-          }
-          logDebug('processActionOnReturn', `... -> ${String(handlerResult.sectionCodes)}`)
-        }
-      }
-
-      if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
-        const wantedsectionCodes = handlerResult.sectionCodes ?? []
-        if (!wantedsectionCodes?.length) logError('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided`)
-        logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData (for ['${String(wantedsectionCodes)}']) ...`)
-        await incrementallyRefreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
-      }
-
-      if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {
-        // TEST: turning this off for now
-        logDebug('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: 😳 NOT NOW setting startDelayedRefreshTimer in pluginData`)
-        // const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-        // reactWindowData.pluginData.startDelayedRefreshTimer = true
-        // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
-      }
-    } else {
+    if (!success) {
       logDebug('processActionOnReturn', `-> failed handlerResult(false) ${handlerResult.errorMsg || ''}`)
       await sendBannerMessage(
         WEBVIEW_WINDOW_ID,
         `Action processing failed for "${data.actionType}" ${handlerResult.errorMsg || ''}.\nCheck the Plugin Console for more details (after turning on DEBUG logging).`,
       )
+      return
     }
+
+    // Handle the different success cases
+    const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
+    if (actionsOnSuccess.length === 0) {
+      logDebug('processActionOnReturn', `note: no post process actions to perform`)
+      return
+    }
+    const isProject = data.item?.itemType === 'project'
+    const actsOnALine = actionsOnSuccess.some((str) => str.includes('LINE'))
+
+    const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
+    logDebug('processActionOnReturn',
+      isProject ? `item.ID: ${data.item?.ID ?? '?'} = PROJECT: ${data.item?.project?.title || 'no project title'}` : `item.ID: ${data.item?.ID ?? '?'} = TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`,
+    )
+    if (actsOnALine && filename === '') {
+      logWarn('processActionOnReturn', `Starting with no filename`)
+    }
+    if (filename !== '') {
+      // update the cache for the note, as it might have changed
+      const thisNote = getNoteByFilename(filename)
+      if (thisNote) {
+        const res = await DataStore.updateCache(thisNote, false) /* Note: added await in case Eduard makes it an async at some point */
+      }
+    }
+
+    if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
+      const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      const sections = reactWindowData.pluginData.sections
+      logDebug('processActionOnReturn', `Starting REMOVE_LINE_FROM_JSON with active sections: ${String(sections.map((s) => s.sectionCode).join(','))}`)
+
+      if (isProject) {
+        const thisProject = data.item?.project
+        const projFilename = data.item?.project?.filename
+        if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
+        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: for ID:${data?.item?.ID || ''} project:"${thisProject?.title || '?'}"`)
+        // Find the item(s) from its filename.
+        // Note: currently this will only update 1 project item. But leaving this multi-item code here for now.
+        const indexes = findSectionItems(sections,
+          ['itemType', 'project.filename'],
+          { itemType: 'project', 'project.filename': projFilename })
+        logDebug('processActionOnReturn', `-> found ${indexes.length} items to remove: ${String(indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', '))}`)
+        indexes.reverse().forEach((index) => {
+          const { sectionIndex, itemIndex } = index
+          sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+          // clo(sections[sectionIndex],`processActionOnReturn After splicing sections[${sectionIndex}]`)
+        })
+      } else {
+        // Handle Task or Message types
+        const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
+
+        // Find all references to this content (could be in multiple sections)
+        const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
+          itemType: /open|checklist/,
+          'para.filename': oldFilename,
+          'para.content': oldContent,
+        })
+
+        if (indexes.length) {
+          logInfo('processActionOnReturn', `-> found ${indexes.length} items to remove: ${String(indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', '))}`)
+          indexes.reverse().forEach((index) => {
+            const { sectionIndex, itemIndex } = index
+            logDebug('processActionOnReturn', `-> removing item ${data.item?.ID || '?'} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+            sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+          })
+        } else {
+          logWarn('processActionOnReturn', `-> no items found to remove for content="${oldContent}" filename="${oldFilename}"`)
+        }
+      }
+      logDebug('processActionOnReturn', `-> NOT asking for any further refresh: hopefully React will do its stuff!`)
+
+      // Send the updated data to React window
+      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Removed item ${data.item?.ID || '?'}`)
+    }
+
+    if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
+      if (isProject) {
+        // For Project items
+        logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for Project '${filename}': calling updateReactWindowFromLineChange()`)
+        await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'project'])
+      } else {
+        // Handle Task or Message types
+        // Find all references to this content (could be in multiple sections)
+        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        let sections = reactWindowData.pluginData.sections
+        const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
+        const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
+          itemType: /open|checklist/,
+          'para.filename': oldFilename,
+          'para.content': oldContent,
+        })
+
+        if (indexes.length) {
+          const itemsToUpdateStr = indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', ')
+          logInfo('processActionOnReturn', `-> found ${indexes.length} items to update: ${itemsToUpdateStr}`)
+          indexes.reverse().forEach((index) => {
+            const { sectionIndex, itemIndex } = index
+            logDebug('processActionOnReturn', `-> updating item sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+            console.log(`before: ${JSP(sections[sectionIndex].sectionItems[itemIndex])}`)
+            console.log(`updatedParagraph: ${JSP(updatedParagraph)}`)
+            // Note: simpler methods don't work here; need to use copyUpdatedSectionItemData()
+            const fieldPathsToUpdate = ['itemType', 'para.content', 'para.type', 'para.priority']
+            sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { para: updatedParagraph }, sections)
+            console.log(`after: ${JSP(sections[sectionIndex].sectionItems[itemIndex])}`)
+          })
+          await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Updated items ${itemsToUpdateStr} following change in  ${data.item?.ID || '?'}`)
+        } else {
+          logWarn('processActionOnReturn', `-> no items found to update for content="${oldContent}" filename="${oldFilename}"`)
+        }
+
+      }
+    }
+
+    if (actionsOnSuccess.includes('CLOSE_SECTION')) {
+      const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      // Remove the search section from the sections array
+      const sections = reactWindowData.pluginData.sections
+      logDebug('processActionOnReturn', `Starting CLOSE_SECTION with ${sections.length} sections: ${String(sections.map((s) => s.sectionCode).join(','))}.`)
+      const sectionIndex = sections.findIndex((section) => section.sectionCode === 'SEARCH')
+      logDebug('processActionOnReturn', `CLOSE_SECTION for section #${String(sectionIndex)}`)
+      sections.splice(sectionIndex, 1)
+      logDebug('processActionOnReturn', `Closed search section -> ${sections.length} sections: ${String(sections.map((s) => s.sectionCode).join(','))}.`)
+
+      // Set showSearchSection to false
+      reactWindowData.pluginData.showSearchSection = false
+      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Closed Search Section`)
+    }
+
+    if (actionsOnSuccess.includes('INCREMENT_DONE_COUNT')) {
+      const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      const incrementedCount = reactWindowData.pluginData.totalDoneCount + 1
+      logDebug('processActionOnReturn', `INCREMENT_DONE_COUNT to ${String(incrementedCount)}`)
+      reactWindowData.pluginData.totalDoneCount = incrementedCount
+      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Incrementing done counts (ahead of proper background refresh)`)
+    }
+
+    if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
+      logDebug('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
+      await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
+    } else if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
+      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
+      await setPluginData({ perspectiveChanging: true }, `Starting perspective change`)
+      await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
+      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (should hide modal spinner)`)
+      await setPluginData({ perspectiveChanging: false }, `Ending perspective change`)
+    } else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
+      logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)
+      await incrementallyRefreshSomeSections({ ...data, sectionCodes: allSectionCodes })
+    } else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
+      logDebug('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
+      for (const sectionCode of allCalendarSectionCodes) {
+        // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
+        await incrementallyRefreshSomeSections({ ...data, sectionCodes: [sectionCode] })
+      }
+    } else {
+      // At least update TB section (if enabled) to make sure its as up to date as possible
+      if (enabledSections.includes('TB')) {
+        logDebug('processActionOnReturn', `Adding REFRESH_SECTION_IN_JSON for TB ...`)
+        if (!actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
+          actionsOnSuccess.push('REFRESH_SECTION_IN_JSON')
+          if (!handlerResult.sectionCodes) {
+            handlerResult.sectionCodes = []
+          }
+          if (!handlerResult.sectionCodes.includes('TB')) {
+            handlerResult.sectionCodes?.push('TB')
+          }
+        }
+        logDebug('processActionOnReturn', `... -> ${String(handlerResult.sectionCodes)}`)
+      }
+    }
+
+    if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
+      const wantedsectionCodes = handlerResult.sectionCodes ?? []
+      if (!wantedsectionCodes?.length) logError('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided`)
+      logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData (for ['${String(wantedsectionCodes)}']) ...`)
+      await incrementallyRefreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
+    }
+
+    if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {
+      // TEST: turning this off for now
+      logDebug('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: 😳 NOT NOW setting startDelayedRefreshTimer in pluginData`)
+      // const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      // reactWindowData.pluginData.startDelayedRefreshTimer = true
+      // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
+    }
+
   } catch (error) {
     logError('processActionOnReturn', `error: ${JSP(error)}: \n${JSP(formatReactError(error))}`)
     clo(data.item, `- data.item at error:`)
@@ -553,9 +597,15 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 
 /**
  * Update React window data based on the result of handling item content update.
- * Note: now simple REMOVE_LINE_FROM_JSON is handled in processActionOnReturn().
+ * Purpose: provides a more responsive user experience, by updating the React window's data structure to reflect changes made to individual items without requiring a full refresh of all sections.
+ * Called from processActionOnReturn() function following:
+ * - Content Updates (Most Common)
+ * - Item Type Changes
+ * - Project Updates
  *
- * @param {TBridgeClickHandlerResult} res The result of handling item content update.
+ * Note: REMOVE_LINE_FROM_JSON is now handled entirely in processActionOnReturn() to avoid duplication.
+ *
+ * @param {TBridgeClickHandlerResult} handlerResult The result of handling item content update.
  * @param {MessageDataObject} data The data of the item that was updated.
  * @param {Array<string>} fieldPathsToUpdate The field paths to update in React window data -- paths are in SectionItem fields (e.g. "ID" or "para.content")
  */
@@ -564,20 +614,22 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
     clo(handlerResult, 'updateReactWindowFLC: handlerResult')
     const { errorMsg, success, updatedParagraph } = handlerResult
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
-    const shouldRemove = actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')
     const { ID } = data.item ?? { ID: '?' }
     if (!success) {
       throw new Error(`handlerResult indicates failure with item: ID ${ID}, so won't update window. ${errorMsg || ''}`)
     }
+    const isProject = data.item?.itemType === 'project'
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     let sections = reactWindowData.pluginData.sections
 
-    logDebug('updateReactWindowFLC', `for item ID: ${ID} from ${String(data.sectionCodes) ?? '?'}: do [${String(actionsOnSuccess)}]`)
+    logDebug('updateReactWindowFLC', `for item ID: ${ID} will do [${String(actionsOnSuccess)}] ...`)
 
     if (updatedParagraph) {
       logDebug(`updateReactWindowFLC`, ` -> updatedParagraph: "${updatedParagraph.content}"`)
       const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
-      const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0]
+      // TEST:
+      // const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0]
+      const newPara: TParagraphForDashboard = updatedParagraph
       // get a reference so we can overwrite it later
       // find all references to this content (could be in multiple sections)
       const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
@@ -587,28 +639,19 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
       })
 
       if (indexes.length) {
-        const { sectionIndex, itemIndex } = indexes[0]
-        if (shouldRemove) {
-          logDebug('updateReactWindowFLC', `-> removed item ${ID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-          indexes.reverse().forEach((index) => {
-            const { sectionIndex, itemIndex } = index
-            sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-            // clo(sections[sectionIndex], `updateReactWindowFLC After splicing sections[${sectionIndex}]`)
-          })
-        } else {
-          sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)
-          clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
-        }
+        logInfo('updateReactWindowFLC', `-> found ${indexes.length} items to update: ${String(indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', '))}`)
+        // Apply the update to all the found sectionItems
+        sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)
+        clo(reactWindowData.pluginData.sections[0]?.sectionItems[0], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sendToHTMLWindow()')
       } else {
         throw new Error(`updateReactWindowFLC: unable to find item to update: ID ${ID} was looking for: content="${oldContent}" filename="${oldFilename}" : ${errorMsg || ''}`)
       }
-    } else if (shouldRemove) {
-      // This (REMOVE_LINE_FROM_JSON) is a special case where it's OK that we don't have an updatedParagraph
-      logDebug('updateReactWindowFLC', `-> 🥺 just removed item ${ID}`)
+    } else if (isProject) {
+      // For Project items
+      const { filename = '' } = data.item?.project ?? { filename: 'error' }
+      logInfo('updateReactWindowFLC', `UPDATE_LINE_IN_JSON for '${ID}' = Project '${filename}'. Will sendToHTMLWindow()`)
     } else {
-      // FIXME: getting here for some reason for DBW.
-      // - Not sure of the structuring of this function. Can we check for REMOVE_LINE_FROM_JSON first?
-      // - What does 'Note: now simple REMOVE_LINE_FROM_JSON is handled in processActionOnReturn()' imply here?
+      // No updatedParagraph provided - this should only happen for project updates or other special cases
       throw new Error(`no updatedParagraph param was given, and its not a Project update. So cannot update react window content for: ID=${ID}. errorMsg=${errorMsg || '-'}`)
     }
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
