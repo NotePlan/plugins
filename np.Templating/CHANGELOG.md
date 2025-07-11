@@ -4,6 +4,9 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.6] 2025-07-11 @dwertheimer
+- Replace all smart quotes with straight quotes (works around auto-inserted smart quotes in Mac, iOS, and iPadOS)
+
 ## [2.0.5] 2025-07-08 @dwertheimer
 - You can now add properties to a generated note by adding it using three dashes "---"
 - Fix bug where new note frontmatter was not being processed correctly if there were no templating tags

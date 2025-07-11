@@ -5,6 +5,7 @@
  */
 
 import pluginJson from '../../../../plugin.json'
+import { replaceSmartQuotes } from '../../../utils/stringUtils'
 import { getRegisteredPromptNames, cleanVarName } from './PromptRegistry'
 import { log, logError, logDebug } from '@helpers/dev'
 
@@ -147,14 +148,21 @@ export default class BasePromptHandler {
   static removeQuotes(content: string): string {
     if (!content) return ''
 
+    // First, replace any smart quotes with their straight equivalents
+    const normalizedContent = replaceSmartQuotes(content)
+
     // Handle various quote types by checking first and last character
-    if ((content.startsWith('"') && content.endsWith('"')) || (content.startsWith("'") && content.endsWith("'")) || (content.startsWith('`') && content.endsWith('`'))) {
+    if (
+      (normalizedContent.startsWith('"') && normalizedContent.endsWith('"')) ||
+      (normalizedContent.startsWith("'") && normalizedContent.endsWith("'")) ||
+      (normalizedContent.startsWith('`') && normalizedContent.endsWith('`'))
+    ) {
       // Only remove one layer of quotes from the start and end.
-      return content.substring(1, content.length - 1)
+      return normalizedContent.substring(1, normalizedContent.length - 1)
     }
 
-    // If no matching outer quotes, return the original string.
-    return content
+    // If no matching outer quotes, return the original string with smart quotes replaced.
+    return normalizedContent
   }
 
   /**

@@ -264,6 +264,7 @@ export const asyncFunctions = [
   'note.content',
   'note.getRandomLine',
   'note.selection',
+  'np.weather',
   'now',
   'processData',
   'progressUpdate',

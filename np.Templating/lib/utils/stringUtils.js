@@ -176,6 +176,48 @@ export const formatTemplateError = (errorType: string, lineNumber: number, conte
 }
 
 /**
+ * Replaces smart quotes (curly quotes) with their straight equivalents.
+ * Handles both Unicode escape sequences and actual smart quote characters used on Mac, iOS, and iPadOS.
+ *
+ * Unicode Characters for Smart Quotes:
+ * - Left Double Quotation Mark: " (U+201C) → " (U+0022)
+ * - Right Double Quotation Mark: " (U+201D) → " (U+0022)
+ * - Left Single Quotation Mark: ' (U+2018) → ' (U+0027)
+ * - Right Single Quotation Mark: ' (U+2019) → ' (U+0027)
+ *
+ * Also handles actual smart quote characters that might appear in text:
+ * - Left Double Quotation Mark: " → " (U+0022)
+ * - Right Double Quotation Mark: " → " (U+0022)
+ * - Left Single Quotation Mark: ' → ' (U+0027)
+ * - Right Single Quotation Mark: ' → ' (U+0027)
+ *
+ * @param {string} text - The text containing smart quotes to replace
+ * @returns {string} The text with smart quotes replaced by straight quotes
+ */
+export const replaceSmartQuotes = (text: string): string => {
+  if (!text || typeof text !== 'string') {
+    return text
+  }
+
+  return (
+    text
+      // Replace left double quotation mark (") with straight double quote (")
+      .replace(/\u201C/g, '"')
+      // Replace right double quotation mark (") with straight double quote (")
+      .replace(/\u201D/g, '"')
+      // Replace left single quotation mark (') with straight single quote (')
+      .replace(/\u2018/g, "'")
+      // Replace right single quotation mark (') with straight single quote (')
+      .replace(/\u2019/g, "'")
+      // Also handle the actual smart quote characters that might appear in text
+      .replace(/“/g, '"')
+      .replace(/”/g, '"')
+      .replace(/‘/g, "'")
+      .replace(/’/g, "'")
+  )
+}
+
+/**
  * Gets the raw text content of the currently selected paragraphs in the NotePlan editor.
  * Each paragraph's raw content is joined by a newline character.
  * @async

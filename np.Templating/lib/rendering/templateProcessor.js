@@ -21,7 +21,15 @@ import {
   codeBlockHasComment,
   blockIsJavaScript,
 } from '../core'
-import { getProperyValue, mergeMultiLineStatements, protectTemplateLiterals, restoreTemplateLiterals, formatTemplateError, extractTitleFromMarkdown } from '../utils'
+import {
+  getProperyValue,
+  mergeMultiLineStatements,
+  protectTemplateLiterals,
+  restoreTemplateLiterals,
+  formatTemplateError,
+  extractTitleFromMarkdown,
+  replaceSmartQuotes,
+} from '../utils'
 import globals, { asyncFunctions as globalAsyncFunctions } from '../globals'
 import { convertToDoubleDashesIfNecessary } from '../engine/templateRenderer'
 import { log, logError, logDebug, logWarn, clo } from '@helpers/dev'
@@ -533,11 +541,11 @@ export function processVariableTag(tag: string, context: { templateData: string,
 
   // Determine value type and process accordingly
   if (getValueType(value) === 'string') {
-    value = value.replace(/^["'](.*)["']$/, '$1').trim() // Remove outer quotes only
+    value = replaceSmartQuotes(value.replace(/^["'](.*)["']$/, '$1').trim()) // Remove outer quotes and handle smart quotes
   } else if (getValueType(value) === 'array' || getValueType(value) === 'object') {
     // For objects and arrays, preserve the exact structure including quotes
     // Just clean up any extra quotes that might be around the entire object/array
-    value = value.replace(/^["'](.*)["']$/, '$1').trim()
+    value = replaceSmartQuotes(value.replace(/^["'](.*)["']$/, '$1').trim())
   }
 
   context.sessionData[varName] = value
@@ -572,7 +580,7 @@ export async function preProcessNote(tag: string = ''): Promise<string> {
     const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('note', '').replace('(', '').replace(')', '')
     const parts = includeInfo.split(',')
     if (parts.length > 0) {
-      const noteNamePath = parts[0].replace(/'/gi, '').trim()
+      const noteNamePath = replaceSmartQuotes(parts[0].replace(/'/gi, '').trim())
       const content = await getNote(noteNamePath)
       if (content.length > 0) {
         // $FlowIgnore
@@ -600,7 +608,7 @@ export async function preProcessCalendar(tag: string = ''): Promise<string> {
     const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('calendar', '').replace('(', '').replace(')', '')
     const parts = includeInfo.split(',')
     if (parts.length > 0) {
-      const noteNameWithPossibleDashes = parts[0].replace(/['`]/gi, '').trim()
+      const noteNameWithPossibleDashes = replaceSmartQuotes(parts[0].replace(/['`]/gi, '').trim())
       // Remove dashes for DataStore lookup
       const noteName = noteNameWithPossibleDashes.replace(/-/g, '')
       logDebug(pluginJson, `preProcessCalendar: Looking up calendar note for: ${noteName} (original: ${noteNameWithPossibleDashes})`)
@@ -1035,10 +1043,8 @@ function normalizeTemplateData(templateData: string): string {
 
   let normalizedData = templateData
 
-  // Handle smart quotes from iOS
-  if (normalizedData.replace) {
-    normalizedData = normalizedData.replace(/'/g, `'`).replace(/'/g, `'`).replace(/"/g, `"`).replace(/"/g, `"`)
-  }
+  // Handle smart quotes from iOS and other platforms
+  normalizedData = replaceSmartQuotes(normalizedData)
 
   // Ensure we're working with a string
   if (typeof normalizedData !== 'string') {
