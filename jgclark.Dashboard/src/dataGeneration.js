@@ -148,14 +148,15 @@ export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: bo
   outputLines.push(`live window rect: ${liveWindowRect ? rectToString(liveWindowRect) : 'no live window rect'}`)
   const sectionNumStr = '20'
   let itemCount = 0
-  const items: Array<TSectionItem> = outputLines.map((line) => (
-    {
+  const items: Array<TSectionItem> = outputLines.map((line) => {
+    const item = {
       ID: `${sectionNumStr}-${itemCount}`,
       itemType: 'info',
       message: line,
     }
-  ))
-  itemCount++
+    itemCount += 1
+    return item
+  })
   sections.push({
     ID: 'INFO',
     name: 'Info',
@@ -692,7 +693,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
  * Copies specified fields from a provided object into the corresponding sectionItems in the sections array.
  *
  * @param {Array<SectionItemIndex>} results - An array of results from the findSectionItems function, containing section and item indices.
- * @param {Array<string>} fieldPathsToReplace - An array of field paths (maybe nested) within TSectionItem (e.g. 'itemType', 'para.filename') to copy from the provided object.
+ * @param {Array<string>} fieldPathsToReplace - An array of field paths (maybe nested) within TSectionItem (e.g. ['itemType', 'para.filename']) to copy from the provided object.
  * @param {Object} updatedValues - The object containing the field values to be copied -- the keys are the field paths (can be strings with dots, e.g. para.filename) and the values are the values to copy.
  * @param {Array<TSection>} sections - The original sections array to be modified.
  * @returns {Array<TSection>} The modified sections array with the specified fields copied into the corresponding sectionItems.
