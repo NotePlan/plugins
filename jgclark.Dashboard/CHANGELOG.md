@@ -14,6 +14,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - completing, cancelling or updating an item will also now immediately update the same item if it is shown in a different section (e.g. Yesterday and Overdue).
 - fix to Refresh button continually showing 'Generating' long after it should.
 - change de-duplication of sync'd lines to now favour showing the one in the Regular, not Calendar, note (for @chrismetcalf)
+- lengthen 'Number of days to look back for Overdue tasks' default from 7 to 31.
 
 ## [2.3.0.b4] 2025-07-06 (unreleased)
 ### Improved

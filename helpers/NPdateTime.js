@@ -1199,10 +1199,10 @@ export function getTimeRangeFromTimeBlockString(timeBlockStr: string): [string, 
 }
 
 /**
- * Get the due date from paragraph content, or if none, then start of period of calendar note, or empty string.
+ * Get the due date from paragraph content, or if none, then start of period of calendar note, or if a regular note, then empty string.
  * @param {TParagraph} p
  * @param {boolean} useISOFormatOutput? if true, then return the date in ISO YYYY-MM-DD format, otherwise YYYYMMDD format
- * @returns {string}
+ * @returns {string} date or empty string
  */
 export function getDueDateOrStartOfCalendarDate(p: TParagraph, useISOFormatOutput: boolean = true): string {
   try {

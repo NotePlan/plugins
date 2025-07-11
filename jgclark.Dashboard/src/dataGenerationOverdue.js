@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2025-07-08 for v2.3.0.b4
+// Last updated 2025-07-11 for v2.3.0.b5
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { createSectionItemObject, filterParasByValidFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections, makeDashboardParas, getNotePlanSettings, getStartTimeFromPara } from './dashboardHelpers'
+import { createSectionItemObject, filterParasByValidFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
 import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
@@ -182,6 +182,7 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
 
     // Filter out items in non-valid folders
+    // $FlowIgnore[incompatible-call] read only array
     let filteredOverdueParas = filterParasByValidFolders(overdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
@@ -189,6 +190,7 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
 
     // Also if wanted, apply to calendar headings in this note
     filteredOverdueParas = filterParasByCalendarHeadingSections(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
+    logTimer('getRelevantOverdueTasks', thisStartTime, `After filtering, ${overdueParas.length} overdue items`)
 
     // Limit overdues to last N days
     if (!Number.isNaN(dashboardSettings.lookBackDaysForOverdue) && dashboardSettings.lookBackDaysForOverdue > 0) {
@@ -196,13 +198,14 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
       const cutoffDate = moment().subtract(numDaysToLookBack, 'days').format('YYYY-MM-DD')
       logDebug('getRelevantOverdueTasks', `lookBackDaysForOverdue limiting to last ${String(numDaysToLookBack)} days (from ${cutoffDate})`)
       filteredOverdueParas = filteredOverdueParas.filter((p) => getDueDateOrStartOfCalendarDate(p, true) > cutoffDate)
+      logTimer('getRelevantOverdueTasks', thisStartTime, `After limiting, ${filteredOverdueParas.length} overdue items`)
     }
 
     // Remove items that appear in this section twice (which can happen if a task is sync'd), based just on their content
     // Note: this is a quick operation
     // $FlowFixMe[class-object-subtyping]
     filteredOverdueParas = removeDuplicates(filteredOverdueParas, ['content'])
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping -> ${filteredOverdueParas.length}`)
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping, ${filteredOverdueParas.length} overdue items`)
 
     // Remove items already in Yesterday section (if turned on)
     if (dashboardSettings.showYesterdaySection) {
@@ -216,8 +219,8 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
         })
       }
     }
-
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping with yesterday -> ${filteredOverdueParas.length}`)
+
     // $FlowFixMe[class-object-subtyping]
     return filteredOverdueParas
   } catch (error) {

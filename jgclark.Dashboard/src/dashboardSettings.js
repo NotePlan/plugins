@@ -344,7 +344,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Number of days to look back for Overdue tasks',
     description: 'If set to any number > 0, will restrict Overdue tasks to just this last number of days.',
     type: 'number',
-    default: 7,
+    default: 31,
     compactDisplay: true,
   },
   {
