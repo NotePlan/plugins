@@ -40,7 +40,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   // const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef: React$RefObject<?HTMLDialogElement> = useRef <? HTMLDialogElement > (null)
 
-  clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`, 2)
+  // clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`, 2)
   const thisItem = detailsMessageObject?.item
   if (!thisItem) { throw `Cannot find item` }
   const lastProgressText = (thisItem.project?.lastProgressComment) ? `last: ${thisItem.project?.lastProgressComment}` : ''
@@ -52,7 +52,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
   // We want to open the calendar picker if the meta key was pressed as this was dialog was being triggered.
   const shouldStartCalendarOpen = modifierKey // = boolean for whether metaKey pressed
-  logDebug('DialogForTaskItems', `shouldStartCalendarOpen=${String(shouldStartCalendarOpen)}`)
+  // logDebug('DialogForTaskItems', `shouldStartCalendarOpen=${String(shouldStartCalendarOpen)}`)
 
   const reviewIntervalStr = (thisItem.project?.reviewInterval) ? `reviews: ${thisItem.project.reviewInterval}` : ''
   const reviewDaysStr = (thisItem.project?.nextReviewDays) ? `due ${relativeDateFromNumber(thisItem.project.nextReviewDays, true)}` : ''
@@ -104,7 +104,6 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
     detailsMessageObject.actionType = 'showLineInEditorFromFilename'
     detailsMessageObject.modifierKey = modifierName
-    logDebug('DFPI', `handleTitleClick`)
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Project Title clicked in Dialog', true)
   }
 
