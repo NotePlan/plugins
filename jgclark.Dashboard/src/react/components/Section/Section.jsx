@@ -80,7 +80,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
             logDebug('Section', `Section ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
             sectionItems = [
               {
-                ID: '0-Empty',
+                ID: `${section.sectionCode}-Empty`,
                 itemType: 'itemCongrats',
               },
             ]
@@ -90,7 +90,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           logDebug('Section', `Section ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
-              ID: '0-Empty',
+              ID: `${section.sectionCode}-Empty`,
               itemType: 'itemCongrats',
             },
           ]
@@ -99,7 +99,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           logDebug('Section', `Section PROJ doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
-              ID: '14-Empty',
+              ID: `${section.sectionCode}-Empty`,
               itemType: 'projectCongrats',
             },
           ]
