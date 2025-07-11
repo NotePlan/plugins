@@ -41,4 +41,6 @@ const RefreshControl = (props: Props): React$Node => {
   )
 }
 
-export default React.memo(RefreshControl)
+// Following suggested by Cursor to fix the Flow warning
+const MemoizedRefreshControl: React$ComponentType<Props> = React.memo(RefreshControl)
+export default MemoizedRefreshControl

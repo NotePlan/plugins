@@ -12,6 +12,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.3.0.b5] 2025-07-11 (unreleased)
 - fix to edit icon colour in Project items
 - completing, cancelling or updating an item will also now immediately update the same item if it is shown in a different section (e.g. Yesterday and Overdue).
+- fix to Refresh button continually showing 'Generating' long after it should.
 
 ## [2.3.0.b4] 2025-07-06 (unreleased)
 ### Improved
