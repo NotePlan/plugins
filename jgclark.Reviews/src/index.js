@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2025-03-25 for v1.2.1, @jgclark
+// Last updated 2025-07-11 for v1.2.1+, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -50,13 +50,6 @@ export {
 
 // Note: There are other possible exports, including:
 export { testFonts } from '../experiments/fontTests.js'
-export {
-  testGenerateCSSFromTheme,
-  testButtonTriggerCommand,
-  testButtonTriggerOpenNote,
-  testCSSCircle,
-  testRedToGreenInterpolation,
-} from './HTMLtests'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge' 
 
 const pluginID = 'jgclark.Reviews'
