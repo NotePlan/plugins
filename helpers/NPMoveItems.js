@@ -3,7 +3,6 @@
 // Helpers for moving paragraphs around.
 // -----------------------------------------------------------------
 
-import { addParasAsText } from '../jgclark.Filer/src/filerHelpers.js'
 import { findScheduledDates, getAPIDateStrFromDisplayDateStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
@@ -12,7 +11,7 @@ import { getNoteByFilename } from '@helpers/note'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { getParaAndAllChildren } from '@helpers/parentsAndChildren'
 import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, smartAppendPara, smartCreateSectionsAndPara, smartPrependPara } from '@helpers/paragraph'
-import { findParaFromStringAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
+import { addParasAsText, findParaFromStringAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
 import { chooseHeading, chooseNote, displayTitleWithRelDate, showMessage, showMessageYesNo } from '@helpers/userInput'
 

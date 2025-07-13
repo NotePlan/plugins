@@ -6,10 +6,11 @@
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { addParasAsText, getFilerSettings } from './filerHelpers'
+import { getFilerSettings } from './filerHelpers'
 import { logDebug, logError, logWarn } from '@helpers/dev'
-import { saveEditorIfNecessary } from '@helpers/editor'
+// import { saveEditorIfNecessary } from '@helpers/editor'
 import { displayTitle } from '@helpers/general'
+import { addParasAsText } from '@helpers/NPParagraph'
 import { findHeading, getHeadingTextFromMarkdownHeadingText, parasToText, smartAppendPara, smartPrependPara } from '@helpers/paragraph'
 import { chooseNote, chooseHeading } from '@helpers/userInput'
 
@@ -96,7 +97,7 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
             smartAppendPara(destNote, markdownHeading, 'title')
           }
           logDebug('addIDAndAddToOtherNote', `Added ${markdownHeading} at ${config.whereToAddNewHeadingInNote} of note`)
-          DataStore.updateCache(destNote)
+          DataStore.updateCache(destNote, false)
         }
         destHeading = defaultHeading
       }

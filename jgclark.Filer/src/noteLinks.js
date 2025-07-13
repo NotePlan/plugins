@@ -3,18 +3,18 @@
 // ----------------------------------------------------------------------------
 // Functions to file [[note links]] from calendar notes to project notes.
 // Jonathan Clark
-// last updated 29.6.2024, for v1.1.0+
+// last updated 2025-07-13, for v1.2.1
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { addParasAsText, getFilerSettings, type FilerConfig } from './filerHelpers'
+import { getFilerSettings, type FilerConfig } from './filerHelpers'
 import {
   clo, logDebug, logError, logInfo, logWarn,
   overrideSettingsWithEncodedTypedArgs,
 } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getAllNotesOfType, getNotesChangedInInterval } from '@helpers/NPnote'
-import { getParagraphBlock } from '@helpers/NPParagraph'
+import { addParasAsText, getParagraphBlock } from '@helpers/NPParagraph'
 import { NP_RE_note_title_link, RE_NOTE_TITLE_CAPTURE } from '@helpers/regex'
 import { showMessage } from '@helpers/userInput'
 
