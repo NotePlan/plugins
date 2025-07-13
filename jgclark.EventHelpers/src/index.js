@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Event Helpers
 // Jonathan Clark
-// last updated 29.9.2023, for v0.20.4
+// last updated 2025-01-20, for v0.22.2
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -14,8 +14,14 @@ import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 export { timeBlocksToCalendar } from './timeblocks'
-export { listDaysEvents, insertDaysEvents, listMatchingDaysEvents, insertMatchingDaysEvents } from './eventsToNotes'
-export { processDateOffsets, shiftDates } from './offsets'
+export {
+  listDaysEvents,
+  insertDaysEvents,
+  listMatchingDaysEvents,
+  insertMatchingDaysEvents
+} from './eventsToNotes'
+export { processDateOffsets } from './offsetDates'
+export { shiftDates } from './shiftDates'
 
 export function init(): void {
   // In the background, see if there is an update to the plugin to install, and if so let user know

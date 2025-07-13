@@ -3,7 +3,6 @@
 // Helpers for moving paragraphs around.
 // -----------------------------------------------------------------
 
-import { addParasAsText } from '../jgclark.Filer/src/filerHelpers.js'
 import { findScheduledDates, getAPIDateStrFromDisplayDateStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
@@ -12,7 +11,7 @@ import { getNoteByFilename } from '@helpers/note'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { getParaAndAllChildren } from '@helpers/parentsAndChildren'
 import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, smartAppendPara, smartCreateSectionsAndPara, smartPrependPara } from '@helpers/paragraph'
-import { findParaFromStringAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
+import { addParasAsText, findParaFromStringAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
 import { chooseHeading, chooseNote, displayTitleWithRelDate, showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -260,14 +259,13 @@ export function moveParagraphToNote(para: TParagraph, destinationNote: TNote): b
  * Move a given paragraph (and any following indented paragraphs) to a different note.
  * Note: simplified version of 'moveParas()' in NPParagraph.
  * NB: the Setting 'includeFromStartOfSection' decides whether these directly following paragaphs have to be indented (false) or can take all following lines at same level until next empty line as well.
- * Note: originally in helpers/blocks.js, not used anywhere yet.
  * @param {TParagraph} para
  * @param {string} destFilename
  * @param {NoteType} destNoteType
  * @param {string} destHeading to move under
  * @author @jgclark
  */
-export function moveGivenParaAndBlock(para: TParagraph, destFilename: string, destNoteType: NoteType, destHeading: string): void {
+export function moveGivenParaAndIndentedChildren(para: TParagraph, destFilename: string, destNoteType: NoteType, destHeading: string): void {
   try {
     if (!destFilename) {
       throw new Error('Invalid destination filename given.')
@@ -283,7 +281,7 @@ export function moveGivenParaAndBlock(para: TParagraph, destFilename: string, de
 
     // get children paras (as well as the original)
     const parasInBlock = getParaAndAllChildren(para)
-    logDebug('blocks/moveGivenParaAndBlock', `moveParas: move block of ${parasInBlock.length} paras`)
+    logDebug('blocks/moveGivenParaAndIndentedChildren', `moveParas: move block of ${parasInBlock.length} paras`)
 
     // Note: There's still no API function to add multiple
     // paragraphs in one go, but we can insert a raw text string.
@@ -294,14 +292,14 @@ export function moveGivenParaAndBlock(para: TParagraph, destFilename: string, de
     if (!destNote) {
       throw new Error(`Destination note can't be found from filename '${destFilename}'`)
     }
-    logDebug('blocks/moveGivenParaAndBlock', `- Moving to note '${displayTitle(destNote)}' under heading: '${destHeading}'`)
+    logDebug('blocks/moveGivenParaAndIndentedChildren', `- Moving to note '${displayTitle(destNote)}' under heading: '${destHeading}'`)
     addParasAsText(destNote, selectedParasAsText, destHeading, 'start', true)
 
     // delete from existing location
-    logDebug('blocks/moveGivenParaAndBlock', `- Removing ${parasInBlock.length} paras from original note`)
+    logDebug('blocks/moveGivenParaAndIndentedChildren', `- Removing ${parasInBlock.length} paras from original note`)
     originNote.removeParagraphs(parasInBlock)
   }
   catch (error) {
-    logError('blocks/moveGivenParaAndBlock', `moveParas(): ${error.message}`)
+    logError('blocks/moveGivenParaAndIndentedChildren', `moveParas(): ${error.message}`)
   }
 }

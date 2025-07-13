@@ -11,7 +11,8 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
  * Blocks are broken based on the following block types: 'empty', 'separator',
  * or a 'title'.headingLevel <= the last title level in the block
  * Separators and empty lines are included as their own blocks
- *
+ * 
+ * @author @dwertheimer
  * @param {Array<TParagraph>} array - The array of objects to break into blocks.
  * @return {Array<Array<TParagraph>>} An array of blocks, where each block is an array of objects.
  */
@@ -60,10 +61,72 @@ export function isBreakBlock(item: TParagraph, breakBlockTypes: Array<string> = 
 /**
  * Checks if a title's heading level is lower than the specified level.
  *
+ * @author @jgclark
  * @param {TParagraph} item - The title object to check.
  * @param {number} level - The lowest heading level in the block.
  * @return {boolean} True if the title's heading level is lower than the specified level, false otherwise.
  */
 export function isTitleWithEqualOrLowerHeadingLevel(item: TParagraph, prevLowestLevel: number): boolean {
   return item.type === 'title' && item.headingLevel <= prevLowestLevel
+}
+
+/**
+ * Return whether this paragraph is a 'child' of a given 'parent' para.
+ * The NP documentation requires a child to be an indented task/checklist of an earlier task/checklist.
+ * (JGC doesn't know enough to make jest tests for this. But is confident this works from lots of logging.)
+ * @author @jgclark
+ * @param {TParagraph} para - the 'parent' paragraph
+ * @returns {Array<TParagraph>} - array of child paragraphs
+ */
+export function isAChildPara(thisPara: TParagraph): boolean {
+  try {
+    const thisLineIndex = thisPara.lineIndex
+    const allParas = thisPara.note?.paragraphs ?? []
+    // First get all paras up to this one which are parents
+    const allParentsUpToHere = allParas
+      .filter((p) => p.children().length > 0)
+      .filter((p) => p.lineIndex < thisLineIndex)
+    for (const parent of allParentsUpToHere) {
+      const theseChildren = parent.children()
+      for (const child of theseChildren) {
+        if (child.lineIndex === thisLineIndex) {
+          // logInfo('blocks/isAChildPara', `✅: ${thisPara.rawContent}`)
+          return true // note: now allowed in forEach but OK in for
+        }
+      }
+    }
+    // logInfo('blocks/isAChildPara', `❌: ${thisPara.rawContent}`)
+    return false
+  } catch (error) {
+    logError('blocks/isAChildPara', `isAChildPara(): ${error.message}`)
+    return false
+  }
+}
+
+/**
+ * Get the child (indented) paragraphs of a given 'parent' paragraph (including [great]grandchildren).
+ * (JGC doesn't know enough to make jest tests for this.)
+ * @author @jgclark
+ * @param {TParagraph} para - the 'parent' paragraph
+ * @returns {Array<TParagraph>} - array of child paragraphs
+ */
+export function getParaAndAllChildren(parentPara: TParagraph): Array<TParagraph> {
+  const allChildren = parentPara.children()
+  // but if there are multiple levels of children, then there will be duplicates in this array, which we want to remove
+  const allChildrenNoDupes = allChildren.filter((p, index) => allChildren.findIndex((p2) => p2.lineIndex === p.lineIndex) === index)
+
+  if (!allChildrenNoDupes.length) {
+    logDebug('blocks/getParaAndAllChildren', `No child paragraphs found`)
+    return [parentPara]
+  }
+
+  const resultingParas = allChildrenNoDupes.slice()
+  resultingParas.unshift(parentPara)
+  // Show what we have ...
+  logDebug('blocks/getParaAndAllChildren', `Returns ${resultingParas.length} paras:`)
+  resultingParas.forEach((item, index, _array) => {
+    console.log(`- ${index}: "${item.content}" with ${item.indents} indents`)
+  })
+
+  return resultingParas
 }

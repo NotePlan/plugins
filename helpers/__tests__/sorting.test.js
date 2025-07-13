@@ -1,11 +1,8 @@
 /* global jest, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
 import { _ } from 'lodash'
-import * as s from '../sorting'
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
+import * as s from '../sorting'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter, Paragraph /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
-
-const PLUGIN_NAME = `helpers`
-const FILENAME = `NPNote`
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -450,12 +447,12 @@ describe('sorting.js', () => {
     })
   })
   /*
-   * getSortableTask()
+   * getSortableParaSubset()
    */
-  describe('getSortableTask()' /* function */, () => {
+  describe('getSortableParaSubset()' /* function */, () => {
     test('should create basic task object', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content', filename: 'testFile.md', lineIndex: 15 })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       const expected = {
         calculatedType: 'open',
         children: [],
@@ -475,29 +472,35 @@ describe('sorting.js', () => {
     })
     test('should have hashtags', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content #foo', filename: 'testFile.md' })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       expect(result).toHaveProperty('hashtags', ['foo'])
     })
     test('should have mentions', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content @foo', filename: 'testFile.md' })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       expect(result).toHaveProperty('mentions', ['foo'])
     })
     test('should not have exclamation mark priority', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       expect(result).toHaveProperty('priority', -1)
       expect(result).toHaveProperty('exclamations', [])
     })
+    test('should have exclamation mark priority', () => {
+      const paragraph = new Paragraph({ type: 'open', content: '!!! test content', filename: 'testFile.md' })
+      const result = s.getSortableParaSubset(paragraph)
+      expect(result).toHaveProperty('priority', 3)
+      expect(result).toHaveProperty('exclamations', ['!!!'])
+    })
     test('should have parens priority', () => {
       const paragraph = new Paragraph({ type: 'open', content: '(B) test content', filename: 'testFile.md' })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       expect(result).toHaveProperty('priority', 2)
       expect(result).toHaveProperty('parensPriority', ['B'])
     })
     test('should have calculatedType', () => {
       const paragraph = new Paragraph({ type: 'checklist', content: 'test content >2020-01-01', filename: 'testFile.md' })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       expect(result).toHaveProperty('calculatedType', 'checklistScheduled')
     })
   })
@@ -505,61 +508,61 @@ describe('sorting.js', () => {
   describe('getNumericPriority()', () => {
     test('should return -1 for empty paragraph', () => {
       const paragraph = new Paragraph({ type: 'open', content: '', filename: 'testFile.md' })
-      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      const result = s.getNumericPriority(s.getSortableParaSubset(paragraph))
       expect(result).toEqual(-1)
     })
 
     test('should return -1 from exclamation marks in words', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
-      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      const result = s.getNumericPriority(s.getSortableParaSubset(paragraph))
       expect(result).toEqual(-1)
     })
 
     test('should return -1 from exclamation marks in words', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
-      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      const result = s.getNumericPriority(s.getSortableParaSubset(paragraph))
       expect(result).toEqual(-1)
     })
 
     test('should return priority 3 from exclamation marks (even with 6 in line)', () => {
       const paragraph = new Paragraph({ type: 'open', content: '!!! test content !!!', filename: 'testFile.md' })
-      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      const result = s.getNumericPriority(s.getSortableParaSubset(paragraph))
       expect(result).toEqual(3)
     })
 
     test('should return no priority from exclamation marks at end', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
-      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      const result = s.getNumericPriority(s.getSortableParaSubset(paragraph))
       expect(result).toEqual(-1)
     })
 
     test('should return priority from parentheses', () => {
       const paragraph = new Paragraph({ type: 'open', content: '(B) test content', filename: 'testFile.md' })
-      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      const result = s.getNumericPriority(s.getSortableParaSubset(paragraph))
       expect(result).toEqual(2)
     })
 
     test('should return priority 4 from starting >>', () => {
       const paragraph = new Paragraph({ type: 'open', content: '>> test content', filename: 'testFile.md' })
-      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      const result = s.getNumericPriority(s.getSortableParaSubset(paragraph))
       expect(result).toEqual(4)
     })
 
     test('should return priority 4 from included (W)', () => {
       const paragraph = new Paragraph({ type: 'open', content: '(W) test content', filename: 'testFile.md' })
-      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      const result = s.getNumericPriority(s.getSortableParaSubset(paragraph))
       expect(result).toEqual(4)
     })
 
     test('should return no priority from ending >>', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content >>', filename: 'testFile.md' })
-      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      const result = s.getNumericPriority(s.getSortableParaSubset(paragraph))
       expect(result).toEqual(-1)
     })
 
     test('should return -1 for unknown priority', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content ??', filename: 'testFile.md' })
-      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      const result = s.getNumericPriority(s.getSortableParaSubset(paragraph))
       expect(result).toEqual(-1)
     })
   })

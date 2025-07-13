@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 2024-12-31, for v1.2.0
+// Last updated 2025-07-13, for v1.3.0
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -14,9 +14,14 @@ import { showMessage } from '@helpers/userInput'
 
 export {
   moveParas,
+  moveParaAndChildren,
   moveParaBlock,
-  moveParasToCalendarDate,
+  // moveParasToCalendarDayDate,
   moveParasToCalendarWeekly,
+  moveParasToNextMonthly,
+  moveParasToThisMonthly,
+  moveParasToNextQuarterly,
+  moveParasToThisQuarterly,
   moveParasToNextWeekly,
   moveParasToThisWeekly,
   moveParasToToday,
@@ -30,7 +35,8 @@ export {
 } from './noteLinks'
 export { addIDAndAddToOtherNote } from './IDs'
 export { archiveNoteUsingFolder } from './archive'
-// export { newNoteFromClipboard, newNoteFromSelection } from './newNote' Note: moved to NoteHelpers plugin.
+export { smartDuplicateRegularNote } from './smartDuplicate'
+export { smartFileToCompletedSections } from './smartFile'
 
 const pluginID = "jgclark.Filer"
 

@@ -14,7 +14,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = new NotePlan()
-  DataStore.settings['_logLevel'] = 'none' // change this to DEBUG to get more logging, or 'none' for quiet
+  DataStore.settings['_logLevel'] = 'DEBUG' // change this to DEBUG to get more logging, or 'none' for quiet
 })
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateTime')}`
@@ -556,6 +556,25 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
+  describe('convertQuarterDateToHalfYearDate', () => {
+    test("convertQuarterDateToHalfYearDate('2023-Q3')", () => {
+      const answer = dt.convertQuarterDateToHalfYearDate('2023-Q3')
+      expect(answer).toBe('2023H2')
+    })
+    test("convertQuarterDateToHalfYearDate('2023-Q4')", () => {
+      const answer = dt.convertQuarterDateToHalfYearDate('2023-Q4')
+      expect(answer).toBe('2023H2')
+    })
+    test("convertQuarterDateToHalfYearDate('2024-Q1')", () => {
+      const answer = dt.convertQuarterDateToHalfYearDate('2024-Q1')
+      expect(answer).toBe('2024H1')
+    })
+    test("convertQuarterDateToHalfYearDate('2024-Q2')", () => {
+      const answer = dt.convertQuarterDateToHalfYearDate('2024-Q2')
+      expect(answer).toBe('2024H1')
+    })
+  })
+
   describe('calcOffsetDateStr', () => {
     describe('should pass', () => {
       test('20220101 +1d', () => {
@@ -675,6 +694,19 @@ describe(`${PLUGIN_NAME}`, () => {
       test('2022-Q2 -2q', () => {
         expect(dt.calcOffsetDateStr('2022-Q2', '-2q')).toEqual('2021-Q4')
       })
+      test('2022-Q2 +1h', () => {
+        expect(dt.calcOffsetDateStr('2022-Q2', '1h')).toEqual('2022-Q4')
+      })
+      test('2022-Q2 +2h', () => {
+        expect(dt.calcOffsetDateStr('2022-Q2', '2h')).toEqual('2023-Q2')
+      })
+      // TODO: Half-year support
+      test.skip('2022H2 +1h', () => {
+        expect(dt.calcOffsetDateStr('2022H2', '1h')).toEqual('2023H1')
+      })
+      test.skip('2022H2 +2h', () => {
+        expect(dt.calcOffsetDateStr('2022H2', '2h')).toEqual('2023H2')
+      })
       test('2022 +2y', () => {
         expect(dt.calcOffsetDateStr('2022', '2y')).toEqual('2024')
       })
@@ -720,6 +752,13 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('2023 +3q -> 2023-Q4', () => {
         expect(dt.calcOffsetDateStr('2023', '3q', 'offset')).toEqual('2023-Q4')
+      })
+      // TODO: Half-year support
+      test.skip('2023-Q3 +1h -> 2024H1', () => {
+        expect(dt.calcOffsetDateStr('2023-Q3', '1h', 'offset')).toEqual('2024H1')
+      })
+      test.skip('2024-Q1 +1h -> 2024H2', () => {
+        expect(dt.calcOffsetDateStr('2023-Q3', '1h', 'offset')).toEqual('2024H2')
       })
     })
     describe('adapting output to shorter durations than base', () => {
@@ -1304,6 +1343,13 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual({
         number: -1,
         type: 'quarter',
+      })
+    })
+    test('1h', () => {
+      const result = dt.splitIntervalToParts('1h')
+      expect(result).toEqual({
+        number: 1,
+        type: 'half-year',
       })
     })
     test('2y', () => {

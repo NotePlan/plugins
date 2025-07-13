@@ -1,6 +1,30 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+<!-- ## [1.4.0] - 2025-07-???
+### Added
+- ??? new **smart duplicate note** command. This takes the currently open regular (not calendar) note create a new one in the same folder that uses the same structure of headings, and moves over any open tasks/checklists, and sorts the new note. See README for all details on this.
+- ??? new **/smart file to completed sections** command. This ...
+  -->
+
+## [1.3.0] - 2025-07-???
+### New
+- New command **/move paragraph and children**, which moves a paragraph to a user-selected note, and any indented lines following it.
+
+## [1.2.1] - 2025-07-13 (unreleased)
+### Changed
+- The various 'move...' commands that ask for a note now offers the ability to create a new note at this point (for @oldielajolla)
+- Improved clarity of settings dialog
+### Fixed
+- Some regressions in 1.2.0
+
+## [1.2.0] - 2025-01-07
+### New
+- the **/add sync'd copy to note** command will now work on multiple lines -- and there's a new setting that allows you to set a default heading to sync all lines under. (for @chrismetcalf, closes #610)
+-  New **/quick move ...** commands for monthly and quarterly notes, not just daily and weekly notes.
+### Fixed
+- fix regression in "/add sync'd copy to note" command.
+
 ## [1.1.6] - 2024-12-31
 - the **new note from clipboard** and **new note from selection** commands have moved to the NoteHelpers plugin.
 - workaround for **move ...** commands not working properly, which stem from trailing whitespace on Headings in the destination notes. (Thanks to @trmax + @magicnemo for help diagnosing the problem and suggesting a workaround.)

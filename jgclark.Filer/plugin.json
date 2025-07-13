@@ -8,8 +8,9 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "1.1.6",
-  "plugin.lastUpdateInfo": "1.1.6: move /new note commands to NoteHelpers plugin. Updated folder chooser. Fix to /move commands.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive command. 1.1.0: new '/... note links...' commands.",
+  "plugin.version": "1.3.0",
+  "plugin.lastUpdateInfo_NEXT": "1.4.0: ??? New '/smart duplicate note' and '/smart file to completed sections' commands.",
+  "plugin.lastUpdateInfo": "1.3.0: New '/move paragraph and children' command.\n1.2.1: More useful choose note dialog in 'move...' commands. Fix regressions.\n1.2.0: Allow '/add sync'd copy to note' command to work on multiple lines.\n1.1.6: move /new note commands to NoteHelpers plugin. Updated folder chooser. Fix to /move commands.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive... command. New '/... note links...' commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -21,7 +22,7 @@
         "sync",
         "lines"
       ],
-      "description": "Add a sync'd copy of the current line to a section in another note",
+      "description": "Add a sync'd copy of the current line(s) to a section in other note(s)",
       "jsFunction": "addIDAndAddToOtherNote"
     },
     {
@@ -84,6 +85,15 @@
       ]
     },
     {
+      "name": "move paragraph and children",
+      "alias": [
+        "mpc",
+        "file"
+      ],
+      "description": "moves this paragraph and all its children (directly indented) to a different note",
+      "jsFunction": "moveParaAndChildren"
+    },
+    {
       "name": "move paragraph or selection",
       "alias": [
         "mp",
@@ -140,15 +150,76 @@
       "jsFunction": "moveParasToNextWeekly"
     },
     {
+      "name": "quick move to Monthly note",
+      "alias": [
+        "qmtm",
+        "month"
+      ],
+      "description": "quick move a block of paragraphs to the current Monthly note",
+      "jsFunction": "moveParasToThisMonthly"
+    },
+    {
+      "name": "quick move to Next Monthly note",
+      "alias": [
+        "qmnm",
+        "month"
+      ],
+      "description": "quick move a block of paragraphs to Next Week's note",
+      "jsFunction": "moveParasToNextMonthly"
+    },
+    {
+      "name": "quick move to Quarterly note",
+      "alias": [
+        "qmtq",
+        "quarter"
+      ],
+      "description": "quick move a block of paragraphs to the current Quarterly note",
+      "jsFunction": "moveParasToThisQuarterly"
+    },
+    {
+      "name": "quick move to Next Quarterly note",
+      "alias": [
+        "qmnq",
+        "quarter"
+      ],
+      "description": "quick move a block of paragraphs to Next Quarter's note",
+      "jsFunction": "moveParasToNextQuarterly"
+    },
+    {
       "name": "Filer: update plugin settings",
       "description": "Settings interface (even for iOS)",
       "jsFunction": "updateSettings"
+    },
+    {
+      "hidden": true,
+      "name": "smart duplicate note",
+      "alias": [
+        "sdn"
+      ],
+      "description": "from the current regular note create a new one that uses the same structure of headings, and moves over any open tasks/checklists, and sorts the new note.",
+      "jsFunction": "smartDuplicateRegularNote"
+    },
+    {
+      "hidden": true,
+      "name": "smart file to completed sections",
+      "alias": [
+        "sftcs"
+      ],
+      "description": "???from the current regular note create a new one that uses the same structure of headings, and moves over any open tasks/checklists, and sorts the new note.",
+      "jsFunction": "smartFileToCompletedSections",
+      "arguments": [
+        "filename of note to work on"
+      ]
     }
   ],
   "plugin.settings": [
     {
       "type": "heading",
       "title": "Filer plugin settings"
+    },
+    {
+      "type": "heading",
+      "title": "Block selection settings"
     },
     {
       "key": "includeFromStartOfSection",
@@ -167,9 +238,24 @@
       "required": true
     },
     {
+      "key": "allowNotePreambleBeforeHeading",
+      "title": "Allow preamble before first heading?",
+      "description": "If set, some 'preamble' lines are allowed directly after the title. When filing/moving/inserting items with these commands, this preamble will be left in place, up to and including the first blank line, heading or separator. Otherwise the first heading will be directly after the note's title line (or frontmatter if used).",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Move... and copy... commands settings"
+    },
+    {
       "key": "whereToAddInSection",
       "title": "Where to add in section",
-      "description": "Controls whether moved lines get inserted at the start or end of the chosen section.",
+      "description": "Controls whether moved/copied lines get inserted: at the start or end of the chosen section.",
       "type": "string",
       "choices": [
         "start",
@@ -179,17 +265,9 @@
       "required": true
     },
     {
-      "key": "allowNotePreambleBeforeHeading",
-      "title": "Allow preamble before first heading?",
-      "description": "If set, some 'preamble' lines are allowed directly after the title. When filing/moving/inserting items with these commands, this preamble will be left in place, up to and including the first blank line, heading or separator. Otherwise the first heading will be directly after the note's title line (or frontmatter if used).",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
       "key": "addDateBacklink",
       "title": "Add date reference?",
-      "description": "If true, adds date reference on the moved paragraph(s) when moved from a daily note.",
+      "description": "If true, adds date reference on moved paragraph(s) when moved from a daily note.",
       "type": "bool",
       "default": false,
       "required": true
@@ -205,6 +283,33 @@
         "link"
       ],
       "default": "link",
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "\"/add sync'd copy to note\" command settings"
+    },
+    {
+      "key": "defaultHeadingToSyncTo",
+      "title": "Default section Heading to sync lines to",
+      "description": "(optional) If set, this avoids the question of which heading you want to '/add sync'd copy' to. (Note: needs to include the relevant number of '#' heading markers.)",
+      "type": "string",
+      "default": "## Actions",
+      "required": false
+    },
+    {
+      "key": "whereToAddNewHeadingInNote",
+      "title": "Where to add a new heading in the note",
+      "description": "If the default heading doesn't yet exist in the note, this controls whether it will first be added at the start or end of the note.",
+      "type": "string",
+      "choices": [
+        "start",
+        "end"
+      ],
+      "default": "start",
       "required": true
     },
     {
@@ -243,7 +348,7 @@
     {
       "key": "useBlocks",
       "title": "File the rest of a block the note link is in?",
-      "description": "If set, this command will include the rest of the following block this line is in: any indented lines, or (if this line is a heading) all lines following until a blank line, or heading of the same level or higher. Default is not to use blocks, which only files this line.",
+      "description": "If set, this command will include the block following this line: any indented lines, or (if this line is a heading) all lines following until a blank line, or heading of the same level or higher. Default is not to use blocks, which only files this line.",
       "type": "bool",
       "default": false,
       "required": true
@@ -253,13 +358,13 @@
       "title": "Tag that indicates a [[note link]] should be ignored",
       "description": "If this tag (e.g. '#ignore') is included in a line with a [[note link]] then it (and where relevant the rest of its block) will not be moved or copied.",
       "type": "string",
-      "default": "",
+      "default": "#ignore",
       "required": false
     },
     {
       "key": "recentDays",
       "title": "How many days to include in 'recent' changes to calendar notes?",
-      "description": "This sets how many days' worth of changes to calendar notes to include? To include all days, set to 0.",
+      "description": "When looking for note links to file, this sets how many days' worth of changes to calendar notes to include? To include all days, set to 0.",
       "type": "number",
       "default": 7,
       "required": true
