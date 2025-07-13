@@ -1,10 +1,44 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+<!-- 
+- ??? Shift /new note etc. from Filers plugin
+- ??? Look at spinning out Index... commands to separate plugin 
+- -->
+
+## [1.2.0] - 2025-06-13???
+- various improvements/fixes to the **inconsistent file name** commands. Resolves issues #640, #642, #643 raised by @tastapod.
+
+## [1.1.1] - 2025-04-22
+- the **log Editor Note** commands now handle Teamspace notes correctly.
+- fix to opening new notes in **new note** commands.
+
+## [1.1.0] - 2025-02-19
+- new **list published notes** command, that generates a list in the new 'Publlished Notes' note of all notes that have been published to published to the internet through NotePlan.
+
+## [1.0.0] - 2024-12-31
+### New
+- the **new note** command has been revived (alias **nn**). It creates a new (regular, not calendar) note with a title you give, and in a folder you can select. If the "Default Text to add to frontmatter" setting isn't blank, then the note will be created using that frontmatter.
+
+_Note: this version was promoted to be a Core Plugin from NotePlan 3.16.1._
+
+### Important Changes
+- when **move note** shows the list of folders, the special Templates and Archive folders are moved to the end of the list. (Plus any other special ones that start with '@').
+- the **new note from clipboard** and **new note from selection** commands have moved from Filer plugin to NoteHelpers.
+
+## [0.20.3] - 2024-12-25 (unpublished)
+- new **logEditorNoteDetailed** command (which can easily triggered from a callback) that also logs line type and rawContents
+
+## [0.20.2] - 2024-12-15
+- the **log note details** command now includes backlink-ed notes and paragraphs
+
+## [0.20.1] - 2024-10-22
+- new **log note details** command which prints note details to the log (for debugging purposes)
+
 ## [0.20.0] - 2024-08-16
 ### Added
 - new **delete note** command, that makes easier what the current NotePlan UI makes difficult.
-- new **/find unlinked notes** command which finds and creates links to existing notes in the current note (by @aaronpoweruser).
+- new **find unlinked notes** command which finds and creates links to existing notes in the current note (by @aaronpoweruser).
 ![Unlinked notes demo](docs/unlinked_note_demo.gif)
 
 ### Fixed
@@ -29,8 +63,8 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 
 ## [0.18.1] - 2023-08-15
 - New commands by @Leo:
-  - "/list inconsistent note filenames": lists the names of notes whose filenames are inconsistent with their titles
-  - "/rename filename to title": renames the current filename to the title of the note
+  - **list inconsistent note filenames** lists the names of notes whose filenames are inconsistent with their titles
+  - **rename filename to title** renames the current filename to the title of the note
 - when the command bar shows list of notes to choose, it now includes Template files again.
 
 ## [0.18.0] - 2023-08-13
@@ -46,17 +80,17 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 
 ## [0.17.2] - 2023-06-30
 ### Fixed
-- fix bug in **/index folders** (spotted by @dwertheimer)
+- fix bug in **index folders** command (spotted by @dwertheimer)
 
 ## [0.17.0] - 2023-06-12
 ### Added
-- new **/open url from a note** command that asks user for a note, and then presents a list of URLs. The selected one is then opened in your default browser. (for @John1 with help from @dwertheimer)
-- now **/move note** and **/index folders** commands offer option to create a new folder when selecting a folder (suggested by @dwertheimer)
-- new **/reset caches** command that just runs the command of that name in the NotePlan Help menu (for @clayrussell)
+- new **open url from a note** command that asks user for a note, and then presents a list of URLs. The selected one is then opened in your default browser. (for @John1 with help from @dwertheimer)
+- now **move note** and **index folders** commands offer option to create a new folder when selecting a folder (suggested by @dwertheimer)
+- new **reset caches** command that just runs the command of that name in the NotePlan Help menu (for @clayrussell)
 
 ## [0.16.1] - 2023-03-22
 ### Added
-- added **/NoteHelpers: update settings** command for iOS users
+- added **NoteHelpers: update settings** command for iOS users
 - added setting for logging level
 ### Changed
 - '/add trigger to note' command now is smarter in the way it works
@@ -64,25 +98,25 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 
 ## [0.16.0] - 2023-03-07
 ### Added
-- new **/add trigger to note** command that makes it easy to add a trigger to a particular note. It lists the functions from all plugins that it can work out are written for triggers, but also allows any function to be picked.
-- **/index folders** now:
+- new **add trigger to note** command that makes it easy to add a trigger to a particular note. It lists the functions from all plugins that it can work out are written for triggers, but also allows any function to be picked.
+- **index folders** command now:
   - has an option to sort output by title (alphabetical), last update date, or date the note was created (though note that I think that the underlying created date data is very unreliable).
   - has an option to add one of several date display settings on the end of every note that's listed
   - has a Refresh button at the top of each results set
   - can be run from x-callback-url calls (see README).
 ### Fixed
-- **/convert to frontmatter** wasn't always working for calendar notes
+- **convert to frontmatter** command wasn't always working for calendar notes
 
 ## [0.15.0] - 2022-07-30
 ### Added
-- new command **/rename note filename** renames the currently open note. Note: this changes the underlying _filename_ not the visible _title_. (It only works with NotePlan v3.6.1 and later.)
-- new command **/enable heading links** converts local links to headings (they start with the `#` character) to `x-callback-url` links that use the Noteplan URL-scheme to run the `jumpToHeading` function mentioned below. So while Noteplan doesn't support the standard way of linking to headings within notes, this plugin command now enables that feature if you're willing to change the destination of your links.  (by @nmn)
+- new command **rename note filename** renames the currently open note. Note: this changes the underlying _filename_ not the visible _title_. (It only works with NotePlan v3.6.1 and later.)
+- new command **enable heading links** converts local links to headings (they start with the `#` character) to `x-callback-url` links that use the Noteplan URL-scheme to run the `jumpToHeading` function mentioned below. So while Noteplan doesn't support the standard way of linking to headings within notes, this plugin command now enables that feature if you're willing to change the destination of your links.  (by @nmn)
 ### Updated
-- The command **/jump to heading** (which is used for jumping to headings within the same note) can now be used via `x-callback-url`s by passing the text of the heading in as an arg0.
+- The **jump to heading** command (which is used for jumping to headings within the same note) can now be used via `x-callback-url`s by passing the text of the heading in as an arg0.
 
 ## [0.14.1] - 2022-06-12 (by @nmn)
 ### Added
-- new command **/add number of days to dates** that looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds the number of days to or since that date.
+- new command **add number of days to dates** that looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds the number of days to or since that date.
 
 ## [0.13.0] - 2022-06-02
 ### Added

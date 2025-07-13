@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 2024-10-07 for v1.0.0.b3, @jgclark
+// Last updated 2025-02-03 for v1.1.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -23,7 +23,7 @@ import {
   updateAllProjectsListAfterChange
 } from './allProjectsListHelpers'
 import { hyphenatedDateString } from '@helpers/dateTime'
-import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -48,12 +48,12 @@ export async function addProgressUpdate(noteArg?: TNote): Promise<void> {
 
     // Construct a Project class object from this note
     const thisProject = new Project(note)
-    // And then use it to add progress line
+
     await thisProject.addProgressLine()
-    // Finally call Finish Review
+
     await finishReview()
   } catch (error) {
-    logError('addProgressUpdate', `addProgressUpdate: ${error.message}`)
+    logError('addProgressUpdate', JSP(error))
   }
 }
 
@@ -171,6 +171,9 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
 
     // Construct a Project class object from this note
     const thisProject = new Project(note)
+
+    // Add a progress line to the note
+    await thisProject.addProgressLine()
 
     // Then call the class' method to update its metadata
     // logDebug('project/cancelProject', `before cancelProject`)

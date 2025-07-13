@@ -1,16 +1,18 @@
 // @flow
 //--------------------------------------------------------------------------
 // Represents a row item within a section.
-// Could be: Task, Review Item, Filtered Indicator, or No Tasks Left
-// Last updated 2024-07-03 for v2.0.1 by @jgclark
+// Could be: Task, Review Item, Filtered Indicator, No Tasks left, No Projects, No Search Results.
+// Called by ItemGrid component.
+// Last updated 2025-06-15 for v2.3.0.b3
 //--------------------------------------------------------------------------
 
-import * as React from 'react'
+import React, { type Node } from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 import ProjectItem from './ProjectItem.jsx'
 import TaskItem from './TaskItem.jsx'
 import TasksFiltered from './TasksFiltered.jsx'
-import NoTasks from './NoTasks.jsx'
+import MessageOnlyItem from './MessageOnlyItem.jsx'
+// import TimeBlockInfo from './TimeBlockInfo.jsx'
 import { logDebug, logInfo } from '@helpers/react/reactDev'
 
 type Props = {
@@ -21,20 +23,32 @@ type Props = {
 /**
  * Represents a row item within a section.
  * Loads the proper Component depending on itemType
+ * Note: the contentClassName are CSS classes that are used to style the item row, and are defined in Section.css
  */
-function ItemRow({ item, thisSection }: Props): React.Node {
+function ItemRow({ item, thisSection }: Props): Node {
   const { itemType } = item
+
+  let congratsMessage = 'Nothing on this list'
+  if (itemType === 'itemCongrats' && thisSection.doneCounts?.completedTasks && thisSection.doneCounts.completedTasks > 0) {
+    congratsMessage = `All ${thisSection.doneCounts.completedTasks} items completed on this list`
+  }
 
   return (
     <>
       {itemType === 'project' ? (
         <ProjectItem item={item} />
+      ) : itemType === 'projectCongrats' ? (
+        <MessageOnlyItem message={'No Projects need reviewing: take a break'} contentClassName="projectCongrats" closingFAIconClassName="fa-solid fa-mug" />
+      ) : itemType === 'noSearchResults' ? (
+        <MessageOnlyItem message={item?.message ?? ''} contentClassName="noSearchResults" settingsDialogAnchor={item?.settingsDialogAnchor ?? ''} />
       ) : itemType === 'filterIndicator' ? (
         <TasksFiltered item={item} />
-      ) : itemType === 'congrats' ? (
-        <NoTasks />
-      ) : (
-              <TaskItem item={item} thisSection={thisSection} />
+            ) : itemType === 'itemCongrats' ? (
+                <MessageOnlyItem message={congratsMessage} contentClassName="itemCongrats" closingFAIconClassName="fa-light fa-champagne-glasses pad-left" />
+              ) : itemType === 'info' ? (
+                <MessageOnlyItem message={item?.message ?? ''} contentClassName="infoItem" />
+              ) : (
+        <TaskItem item={item} thisSection={thisSection} />
       )}
     </>
   )

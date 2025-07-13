@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 7.6.2024 for v0.14.0, @jgclark
+// Last updated 2025-02-16 for v0.14.8 by @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -10,15 +10,18 @@ import pluginJson from '../plugin.json'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
+import { findHeadingInNotes } from '@helpers/NPParagraph'
 
 const pluginID = 'np.Tidy'
 
 export {
+  removeSectionFromAllNotes,
+  removeSectionFromRecentNotes,
+} from './removeSections'
+export {
   logNotesChangedInInterval,
   removeDoneMarkers,
   removeOrphanedBlockIDs,
-  removeSectionFromAllNotes,
-  removeSectionFromRecentNotes,
   removeTriggersFromRecentCalendarNotes,
   removeDoneTimeParts,
   removeBlankNotes,
@@ -31,13 +34,13 @@ export { fileRootNotes } from './fileRoot'
 export { generateRepeatsFromRecentNotes } from './repeats'
 export { listStubs } from './stubs'
 export { moveTopLevelTasksInEditor } from './topLevelTasks'
-export { listPotentialDoubles, openCalendarNoteInSplit } from './doubledNotes'
+export { listPotentialDoubles } from './doubledNotes'
 
 /**
  * Other imports/exports
  */
 // eslint-disable-next-line import/order
-export { onUpdateOrInstall, init, onSettingsUpdated } from './triggers-hooks'
+export { onUpdateOrInstall, init, onSettingsUpdated } from './triggersHooks'
 
 // Note: not yet written or used:
 // export { onOpen, onEditorWillSave } from './NPTriggers-Hooks'
@@ -47,7 +50,7 @@ export { onUpdateOrInstall, init, onSettingsUpdated } from './triggers-hooks'
  * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
  * @author @dwertheimer
  */
-export async function updateSettings() {
+export async function updateSettings(): Promise<void> {
   try {
     logDebug(pluginJson, `updateSettings running`)
     await editSettings(pluginJson)

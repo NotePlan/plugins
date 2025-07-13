@@ -101,13 +101,13 @@ const ThemedComboBox = ({ label, description = '', options, value, onChange, onS
   return (
     <div className={compactDisplay ? 'combobox-container-compact' : 'combobox-container'} >
       <label className="combobox-label">{label}</label>
-      <div className="combobox-wrapper" onClick={toggleDropdown}>
+      <div className="combobox-wrapper" > {/* FIXME: (@jgclark): This said onClick={toggleDropdown} -- What were you hoping to do with this variable (which doesn't exist)? */}
         <ThemedSelect
           // className="combobox-input"
           options={optionsWithID}
           onSelect={onSelect}
           onChange={handleChange}
-          defaultValue={options[0]}
+          defaultValue={options[0]} /* FIXME: (@jgclark): this doesn't match the types and may not be set */
         // selectionOption={onInputChange}
         // isDisabled={false}
         // isLoading={false}

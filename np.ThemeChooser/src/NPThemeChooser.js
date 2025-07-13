@@ -8,7 +8,7 @@ import { isBuiltInTheme } from './support/themeHelpers'
 import { getThemeObj } from './NPThemeShared'
 import { showMessage, showMessageYesNo, chooseOption } from '@helpers/userInput'
 import { sortListBy } from '@helpers/sorting'
-import { getFrontMatterAttributes, addTrigger, setFrontMatterVars } from '@helpers/NPFrontMatter.js'
+import { getFrontMatterAttributes, addTrigger, updateFrontMatterVars } from '@helpers/NPFrontMatter.js'
 
 /**
  * Get the theme object by name
@@ -312,7 +312,7 @@ export async function addThemeFrontmatter(themeName?: string | null = null) {
     const theme = themeName || (await getThemeChoice())
     if (theme) {
       Editor.note ? addTrigger(Editor, 'onOpen', 'np.ThemeChooser', 'setTheme') : ''
-      Editor.note ? setFrontMatterVars(Editor, { theme }) : ''
+      Editor.note ? updateFrontMatterVars(Editor, { theme }) : ''
       await chooseTheme(theme)
     } else {
       logDebug(pluginJson, `addThemeFrontmatter: 'No theme chosen. No changes made.'`)

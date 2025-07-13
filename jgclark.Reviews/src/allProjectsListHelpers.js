@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2024-10-11 for v1.0.0, @jgclark
+// Last updated 2025-05-14 for v1.2.3+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -25,7 +25,7 @@ import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folde
 import {
   displayTitle
 } from '@helpers/general'
-import { findNotesMatchingHashtag } from '@helpers/NPnote'
+import { findNotesMatchingHashtagOrMentionFromList } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 
 //-----------------------------------------------------------------------------
@@ -66,25 +66,29 @@ export async function logAllProjectsList(): Promise<void> {
 }
 
 /**
- * Return all projects as Project instances, that match config items 'projectTypeTags'.
+ * Return all projects that match config items 'projectTypeTags' as Project instances.
  * @author @jgclark
  * @param {any} configIn
  * @param {boolean} runInForeground?
- * @returns {Promise<Array<Project>>}
+ * @returns {Array<Project>}
  */
 async function getAllMatchingProjects(configIn: any, runInForeground: boolean = false): Promise<Array<Project>> {
-
   const config = configIn ? configIn : await getReviewSettings() // get config from passed config if possible
   if (!config) throw new Error('No config found. Stopping.')
 
-  logDebug('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
+  logInfo('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
   const startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
   // Get list of folders, excluding @specials and our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore.
   const filteredFolderList = (config.foldersToInclude.length > 0)
     ? getFoldersMatching(config.foldersToInclude, true).sort()
     : getFolderListMinusExclusions(config.foldersToIgnore, true, false).sort()
-  // For filtering DataStore, no need to look at folders which are in other folders on the list already
+
+  // Filter out subdirectories from the list of folders.
+  // It iterates over each folder in the filteredFolderList and checks if it is already represented in the accumulator array (acc).
+  // The check is done by seeing if any folder in the accumulator starts with the current folder (f).
+  // If the current folder is not a subdirectory of any folder already in the accumulator, it is added to the accumulator.
+  // The result is an array of folders that do not include any subdirectories of folders already in the list.
   const filteredFolderListWithoutSubdirs = filteredFolderList.reduce((acc: Array<string>, f: string) => {
     const exists = acc.some((s) => f.startsWith(s))
     if (!exists) acc.push(f)
@@ -92,51 +96,62 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
   }, [])
   // logDebug('getAllMatchingProjects', `- filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
 
-  // filter DataStore one time, searching each item to see if it startsWith an item in filterFolderList
-  // but need to deal with ignores here because of this optimization (in case an ignore folder is inside an included folder)
-  // TODO: make the excludes an includes not startsWith
-  let filteredDataStore = DataStore.projectNotes.filter(
-    (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some((s) => f.filename.includes(`${s}/`.replace('//', '/')))
-  )
-  // Above ignores root notes, so if we have '/' folder, now need to add them
-  if (filteredFolderListWithoutSubdirs.includes('/')) {
-    const rootNotes = DataStore.projectNotes.filter((f) => !f.filename.includes('/'))
-    filteredDataStore = filteredDataStore.concat(rootNotes)
-    // logDebug('getAllMatchingProjects', `Added root folder notes: ${rootNotes.map((n) => n.title).join(' / ')}`)
-  }
+  // Filter the list of project notes from the DataStore.
+  // It selects notes whose filenames start with any of the paths in the filteredFolderListWithoutSubdirs array.
+  // And it excludes notes whose filenames include any of the paths specified in the config.foldersToIgnore array.
+  // (Note ignored folders can be inside an included folder.)
+  // V1:
+  // let filteredProjectNotes = DataStore.projectNotes.filter(
+  //   (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some((s) => f.filename.includes(`${s}/`.replace('//', '/')))
+  // )
+  // // Above ignores root notes, so if we have '/' folder, now need to add them
+  // if (filteredFolderListWithoutSubdirs.includes('/')) {
+  //   const rootNotes = DataStore.projectNotes.filter((f) => !f.filename.includes('/'))
+  //   filteredProjectNotes = filteredProjectNotes.concat(rootNotes)
+  //   // logDebug('getAllMatchingProjects', `Added root folder notes: ${rootNotes.map((n) => n.title).join(' / ')}`)
+  // }
 
-  logTimer(`getAllMatchingProjects`, startTime, `- filteredDataStore: ${filteredDataStore.length} potential project notes`)
+  // V2: (more efficientthanks to Cursor AI)
+  const folderSet = new Set(filteredFolderListWithoutSubdirs)
+  const ignoreSet = new Set(config.foldersToIgnore.map(s => `${s}/`.replace('//', '/')))
+
+  const filteredProjectNotes = DataStore.projectNotes.filter(f => {
+    const isInFolder = folderSet.has('/') || folderSet.has(f.filename.split('/')[0])
+    const isIgnored = Array.from(ignoreSet).some(ignorePath => f.filename.includes(ignorePath))
+    return isInFolder && !isIgnored
+  })
+
+  logTimer(`getAllMatchingProjects`, startTime, `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`)
 
   if (runInForeground) {
     CommandBar.showLoading(true, `Generating Project Review list`)
-    // TODO: work out what to do about this: currently commented this out as it gives warnings because Editor is accessed.
-    // await CommandBar.onAsyncThread()
   }
+  // TEST: work out what to do about this: currently commented this out as it gives warnings because Editor is accessed.
+  await CommandBar.onAsyncThread()
 
-  // Iterate over the folders, using settings from config.foldersToProcess and config.foldersToIgnore list
+  // Iterate over the folders, looking for notes that match the projectTypeTags
   const projectInstances = []
   for (const folder of filteredFolderList) {
     // Either we have defined tag(s) to filter and group by, or just use []
     const tags = config.projectTypeTags != null && config.projectTypeTags.length > 0 ? config.projectTypeTags : []
 
     // Get notes that include projectTag in this folder, ignoring subfolders
-    // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
     for (const tag of tags) {
-      logDebug('getAllMatchingProjects', `looking for tag '${tag}' in project notes in folder '${folder}'...`)
+      // logDebug('getAllMatchingProjects', `looking for tag '${tag}' in project notes in folder '${folder}'...`)
       // Note: this is very quick <1ms
-      const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, [], true, filteredDataStore, false)
+      const projectNotesArr = findNotesMatchingHashtagOrMentionFromList(tag, filteredProjectNotes, true, false, folder, false, [])
       if (projectNotesArr.length > 0) {
         // Get Project class representation of each note.
         // Save those which are ready for review in projectsReadyToReview array
         for (const n of projectNotesArr) {
-          const np = new Project(n, tag, true, config.nextActionTag)
+          const np = new Project(n, tag, true, config.nextActionTags)
           projectInstances.push(np)
         }
       }
     }
   }
+  await CommandBar.onMainThread()
   if (runInForeground) {
-    // await CommandBar.onMainThread()
     CommandBar.showLoading(false)
   }
   logTimer('getAllMatchingProjects', startTime, `- found ${projectInstances.length} available project notes`)
@@ -173,7 +188,7 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
     logDebug('writeAllProjectsList', `starting`)
 
     // write summary to allProjects JSON file, using a replacer to suppress .note
-    logDebug('writeAllProjectsList', `Writing ${projectInstances.length} projects to ${allProjectsListFilename}`)
+    logInfo('writeAllProjectsList', `Writing ${projectInstances.length} projects to ${allProjectsListFilename}`)
     const res = DataStore.saveData(stringifyProjectObjects(projectInstances), allProjectsListFilename, true)
 
     // If this appears to have worked:
@@ -198,8 +213,9 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
  */
 export async function updateProjectInAllProjectsList(projectToUpdate: Project): Promise<void> {
   try {
+    logDebug('updateProjectInAllProjectsList', `Starting ...`)
     const allProjects = await getAllProjectsFromList()
-    logDebug('updateProjectInAllProjectsList', `starting with ${allProjects.length} projectInstances`)
+    logDebug('updateProjectInAllProjectsList', `- with ${allProjects.length} projectInstances`)
 
     // find the Project with matching filename
     const projectIndex = allProjects.findIndex((project) => project.filename === projectToUpdate.filename)
@@ -222,6 +238,7 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
  */
 export async function getAllProjectsFromList(): Promise<Array<Project>> {
   try {
+    logDebug('getAllProjectsFromList', `Starting ...`)
     const startTime = new moment().toDate()
     let projectInstances: Array<Project>
 
@@ -267,8 +284,9 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
  */
 export async function getSpecificProjectFromList(filename: string): Promise<Project | null> {
   try {
+    logDebug('getSpecificProjectFromList', `Starting with filename '${filename}' ...`)
     const allProjects = await getAllProjectsFromList() ?? []
-    logDebug(`getSpecificProjectFromList`, `- read ${String(allProjects.length)} Projects from allProjects list`)
+    logDebug('getSpecificProjectFromList', `- for ${allProjects.length} projects`)
 
     // find the Project with matching filename
     const projectInstance: ?Project = allProjects.find((project) => project.filename === filename)
@@ -292,7 +310,7 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
   try {
     // const startTime = new Date()
     let projectInstances = await getAllProjectsFromList()
-    logDebug('filterAndSortProjectsList', `Starting for ${projectInstances.length} projects with tag '${projectTag}' ...`)
+    logDebug('reviews/filterAndSortProjectsList', `Starting with tag '${projectTag}' => ${projectInstances.length} projects`)
 
     // Filter out projects that are not tagged with the projectTag
     if (projectTag !== '') {
@@ -304,19 +322,24 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
     // if (displayFinished === 'hide') {
     if (!displayFinished) {
       projectInstances = projectInstances.filter((pi) => !pi.isCompleted).filter((pi) => !pi.isCancelled)
-      logDebug('filterAndSortProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
+      logDebug('reviews/filterAndSortProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
     }
 
     // Filter out non-due projects if required
     const displayOnlyDue = config.displayOnlyDue ?? false
     if (displayOnlyDue) {
       projectInstances = projectInstances.filter((pi) => pi.nextReviewDays <= 0)
-      logDebug('filterAndSortProjectsList', `- after filtering out non-due, ${projectInstances.length} projects`)
+      logDebug('reviews/filterAndSortProjectsList', `- after filtering out non-due, ${projectInstances.length} projects`)
     }
 
-    // Sort projects by folder > nextReviewDays > dueDays > title
+    // Need to extend projectInstances with a proxy for the 'projectTag' field, so that we can sort by it according to the order it was given in config.projectTypeTags
+    projectInstances.forEach((pi) => {
+      pi.projectTagOrder = config.projectTypeTags.indexOf(pi.projectTag)
+    })
+
+    // Sort projects by projectTagOrder > folder > [nextReviewDays | dueDays | title]
     const sortingSpecification = []
-    // sortingSpecification.push('isPaused') //  oddly we need to put this first to make sure paused don't come at the top
+    sortingSpecification.push('projectTagOrder')
     if (config.displayGroupedByFolder) {
       sortingSpecification.push('folder')
     }
@@ -335,15 +358,15 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
         break
       }
     }
-    logDebug('filterAndSortProjectsList', `- sorting by ${String(sortingSpecification)}`)
+    logDebug('reviews/filterAndSortProjectsList', `- sorting by ${String(sortingSpecification)}`)
     const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)
     // sortedProjectInstances.forEach(pi => logDebug('', `${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
 
-    // logTimer(`filterAndSortProjectsList`, startTime, `Sorted ${sortedProjectInstances.length} projects`) // 2ms
+    // logTimer(`reviews/filterAndSortProjectsList`, startTime, `Sorted ${sortedProjectInstances.length} projects`) // 2ms
     return sortedProjectInstances
   }
   catch (error) {
-    logError('filterAndSortProjectsList', `error: ${error.message}`)
+    logError('reviews/filterAndSortProjectsList', `error: ${error.message}`)
     return []
   }
 }
@@ -357,14 +380,13 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
  * @author @jgclark
  * @param {string} filename of note that has been reviewed
  * @param {boolean} simplyDelete the project line?
- * @param {any} config
-list (optional)
+ * @param {ReviewConfig} config
  */
 export async function updateAllProjectsListAfterChange(
   // reviewedTitle: string,
   reviewedFilename: string,
   simplyDelete: boolean,
-  config: any,
+  config: ReviewConfig,
 ): Promise<void> {
   try {
     if (reviewedFilename === '') {
@@ -397,9 +419,9 @@ export async function updateAllProjectsListAfterChange(
         logWarn('updateAllProjectsListAfterChange', `Couldn't find '${reviewedFilename}' to update in allProjects list`)
         return
       }
-      // FIXME: stale data here TEST: still a problem?
-      const updatedProject = new Project(reviewedNote, reviewedProject.projectTag, true, config.nextActionTag)
-      clo(updatedProject, '🟡 updatedProject:')
+      // Note: there had been issue of stale data here in the past. Leaving comment in case it's needed again.
+      const updatedProject = new Project(reviewedNote, reviewedProject.projectTag, true, config.nextActionTags)
+      // clo(updatedProject, 'in updateAllProjectsListAfterChange() 🟡 updatedProject:')
       allProjects.push(updatedProject)
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
     }
@@ -433,7 +455,8 @@ export async function getNextNoteToReview(): Promise<?TNote> {
     const allProjectsSorted = await filterAndSortProjectsList(config)
 
     if (!allProjectsSorted || allProjectsSorted.length === 0) {
-      logWarn('getNextNoteToReview', `No active projects found, so stopping`)
+      // Depending where this is called from, this may be quite possible or more of an error. With Perspective, review this.
+      logInfo('getNextNoteToReview', `No active projects found, so stopping.`)
       return null
     }
 
@@ -465,18 +488,22 @@ export async function getNextNoteToReview(): Promise<?TNote> {
 }
 
 /**
- * Get list of the next note(s) to review (if any).
- * It assumes the full-review-list exists and is sorted by nextReviewDate (earliest to latest).
- * Note: v2, using the allProjects JSON file (not ordered but detailed)
- * Note: This is a variant of the original singular version above, and is used in jgclark.Dashboard/src/dataGeneration.js
+ * Get list of the next Project(s) to review (if any).
+ * Note: v2, using the allProjects JSON file (not ordered but detailed).
+ * Note: This is a variant of the original singular version above, and is only used by jgclark.Dashboard/src/dataGenerationProjects.js
  * @author @jgclark
- * @param { number } numToReturn first n notes to return, or 0 indicating no limit.
+ * @param { number } numToReturn first n notes to return, or 0 indicating no limit. (Optional, default is 0)
  * @return { Array<Project> } next Projects to review, up to numToReturn. Can be an empty array. Note: not a TNote but Project object.
  */
-export async function getNextProjectsToReview(numToReturn: number = 6): Promise<Array<Project>> {
+export async function getNextProjectsToReview(numToReturn: number = 0): Promise<Array<Project>> {
   try {
-    logDebug(pluginJson, `Starting getNextProjectsToReview(${String(numToReturn)})) ...`)
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings(true)
+    if (!config) {
+      // Shouldn't get here, but this is a safety check.
+      logDebug(pluginJson, 'reviews/getNextProjectsToReview(): No config found, so assume jgclark.Reviews plugin is not installed. Stopping.')
+      return []
+    }
+    logDebug(pluginJson, `Starting reviews/getNextProjectsToReview(${String(numToReturn)})) ...`)
 
     // Get all available Projects -- not filtering by projectTag here
     const allProjectsSorted = await filterAndSortProjectsList(config)
@@ -514,10 +541,10 @@ export async function getNextProjectsToReview(numToReturn: number = 6): Promise<
     }
 
     if (projectsToReview.length > 0) {
-      logDebug('reviews/getNextProjectsToReview', `- Returning ${projectsToReview.length} project notes ready for review:`)
-      projectsToReview.forEach((p) => {
-        logDebug('', `${p.title}`)
-      })
+      logDebug('reviews/getNextProjectsToReview', `- Returning ${projectsToReview.length} project notes ready for review`)
+      // projectsToReview.forEach((p) => {
+      //   logDebug('', `${p.title}`)
+      // })
     } else {
       logDebug('reviews/getNextProjectsToReview', `- No project notes ready for review 🎉`)
     }

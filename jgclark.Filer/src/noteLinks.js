@@ -86,21 +86,23 @@ export async function moveNoteLinks(): Promise<number> {
 
 /**
  * Entry point for moveRecentNoteLinks, but will process any passed JSON parameters to override the settings object.
+ * Move of the work is done by calling fileRecentNoteLinks().
  * @param {?string} params - can pass JSON parameter string e.g. '{"period": "mtd", "progressHeading": "Progress"}'
  * @returns {number} number of paragraphs moved
  */
 export async function moveRecentNoteLinks(params: string = ''): Promise<number> {
-  logDebug(pluginJson, `moveRecentNoteLinks: Starting with params '${params}'`)
+  logDebug(pluginJson, `moveRecentNoteLinks(): Starting`)
   let settings: FilerConfig = await getFilerSettings()
+  // Override the copyOrMove setting
   settings.copyOrMove = "move"
 
   // If there are params passed, then we've been called by a template command (and so use those).
   if (params) {
     settings = overrideSettingsWithEncodedTypedArgs(settings, params)
-    clo(settings, `- config after overriding with params '${params}'`)
+    // clo(settings, `- config after overriding with params '${params}'`)
   } else {
     // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-    clo(settings, '- settings without params')
+    // clo(settings, '- settings without params')
   }
 
   // main call
@@ -129,7 +131,7 @@ async function fileRecentNoteLinks(config: FilerConfig, runInteractively: boolea
     const recentCalendarNotes = (config.recentDays > 0)
       ? getNotesChangedInInterval(config.recentDays, ['Calendar'])
       : getAllNotesOfType(['Calendar'])
-    logDebug(pluginJson, `fileRecentNoteLinks() starting with ${recentCalendarNotes.length} recent calendar notes from ${String(config.recentDays)} days`)
+    logDebug(pluginJson, `fileRecentNoteLinks() starting with ${recentCalendarNotes.length} recent calendar notes from last ${String(config.recentDays)} days`)
 
     // Run the filer on each in turn
     let filedItemCount = 0
@@ -157,7 +159,7 @@ async function fileRecentNoteLinks(config: FilerConfig, runInteractively: boolea
 async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInteractively: boolean = false): Promise<number> {
   try {
     let filedItemCount = 0
-    logDebug('fileNoteLinks', `fileNoteLinks() starting to ${config.copyOrMove} links in ${note.filename}`)
+    logDebug('fileNoteLinks', `Looking for links to ${config.copyOrMove} in '${note.filename}'`)
 
     // translate from setting 'typesToFile' to the line types to include in the filing
     let typesToFile: Array<string> = []
@@ -177,7 +179,7 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
       default:
         throw new Error(`Invalid 'typesToFile' setting: ${config.typesToFile}`)
     }
-    logDebug('fileNoteLinks', `typesToFile from "${config.typesToFile}" = ${String(typesToFile)}`)
+    // logDebug('fileNoteLinks', `typesToFile from "${config.typesToFile}" = ${String(typesToFile)}`)
 
     // Get array of lines containing note links, filtering by the above types
     let noteLinkParas = note.paragraphs
@@ -192,7 +194,7 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
 
     // Does it make sense to proceed?
     if (noteLinkParas.length === 0) {
-      logDebug('fileNoteLinks', `- no note links found in ${note.filename}`)
+      // logDebug('fileNoteLinks', `- no note links found in ${note.filename}`)
       if (runInteractively) {
         await showMessage(`Sorry, no note links found in ${note.filename}.`)
       }
@@ -226,7 +228,7 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
       }
       const noteToAddTo = possibleNotes[0]
       if (!noteToAddTo || !noteToAddTo.filename) {
-        throw new Error(`could not find noteToAddTo.filename for some reason`)
+        throw new Error(`could not find noteToAddTo.filename for note title '${noteLinkTitle}' for some reason`)
       }
       logDebug('fileNoteLinks', `- found linked note '${noteLinkTitle}' ${noteLinkHeading ? "and heading '" + noteLinkHeading + "'" : "with no heading"} (filename: ${noteToAddTo.filename})`)
 
@@ -264,7 +266,7 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
         // Note: can't use this API as it doesn't recognise front matter  (as of 3.8.1): noteToAddTo.prependParagraph(thisParaWithoutNotelink, thisPara.type)
 
         // work out what indicator to send to addParasAsText(), based on setting 'whereToAddInNote' (start or end)
-        const positionInNoteIndicator = (config.whereToAddInNote === 'start') ? '<<top of note>>' : ''
+        const positionInNoteIndicator = (config.whereToAddInNote === 'start') ? '<<top of note>>' : '<<bottom of note>>'
         addParasAsText(noteToAddTo, selectedParasAsText, positionInNoteIndicator, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
 
         // // add after title or frontmatter

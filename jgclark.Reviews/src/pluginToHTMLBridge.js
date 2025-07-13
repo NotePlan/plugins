@@ -1,13 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin (to/from HTML window)
-// Last updated 2024-10-01 for v1.0.0.b1 by @jgclark
+// Last updated 2025-03-25 for v1.2.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
   finishReviewForNote,
-  makeProjectLists,
+  displayProjectLists,
   setNewReviewInterval,
   skipReviewForNote,
   toggleDisplayOnlyDue,
@@ -55,7 +55,8 @@ const windowCustomId = `${pluginJson['plugin.id']}.main`
  */
 export async function onMessageFromHTMLView(actionType: string, data: any): any {
   try {
-    clo(data, `onMessageFromHTMLView dispatching actionType '${actionType}' with data object:`)
+    // clo(data, `onMessageFromHTMLView dispatching actionType '${actionType}' with data object:`)
+    logDebug(`onMessageFromHTMLView`, `dispatching actionType '${actionType}'`)
     switch (actionType) {
       case 'onClickProjectListItem':
         await bridgeClickProjectListItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
@@ -64,7 +65,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
         await bridgeChangeCheckbox(data)
         break
       case 'refresh':
-        await makeProjectLists()
+        await displayProjectLists()
         break
       case 'runPluginCommand':
         await runPluginCommand(data)

@@ -26,7 +26,9 @@ Most can be used with parameters from a Template, or via an x-callback call.
 
 There's also the **/Tidy Up** (alias "tua"), which runs as many of the other commands in this plugin as you have configured in its Settings.
 
-(If these commands are useful to you, you'll probably find the [Note Helpers plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/) helpful too. It's rather arbitrary which commands live in which plugin.)
+(If these commands are useful to you, you'll probably find the [Note Helpers plugin](https://noteplan.co/plugins/jgclark.NoteHelpers) helpful too. It's rather arbitrary which commands live in which plugin.)
+
+[<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 ### Details on /List conflicted notes
 Important notes:
@@ -60,27 +62,6 @@ And this generates any needed new @repeat() lines from finished ones, that use t
 
 **Tip:** as these are complicated and fiddly to create, **I suggest you use @dwertheimer's excellent [Link Creator plugin](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) command "/Get X-Callback-URL"** which makes it much simpler.
 
-#### Running **/Move top-level tasks in Editor to heading** in a template
-
-This command rewrites the current document in the Editor, moving tasks from the top to underneath a specified heading. It cannot run like the other commands by itself or as part of TidyUp in a template, because the template processor is rewriting the document in parallel. You will get duplicate headings. However, there _is_ a way to include this in your daily note. If you include some code like the following in your daily note template, it will run the command and include the output in the flow of writing the template, and so the document will not be getting written twice in parallel.
-
-```markdown
-## Tasks
-*
-<% const tasks = await DataStore.invokePluginCommandByName("Move top-level tasks in Editor to heading","np.Tidy",["Tasks",true,true]);  -%>
-<% if (tasks?.length) { -%>
-<%- tasks %>
-<% } -%>
-```
-This piece of my daily note template:
-- creates a "Tasks" heading
-- creates a blank task underneath for me to enter tasks during the day
-- scans note and gets a list of task content that was at the top of the note (saves in "tasks" variable)
-- outputs any tasks that were pre-existing in the note under that new Tasks heading that was just created
-NOTE: (thx @phenix): The order is important because the task header needs to be added before the tasks are inserted underneath.
-
-> **NOTE:** If you also run the `Tidy Up` command in your template, you should uncheck this command in the TidyUp settings.
-
 ### Using from x-callback calls
 It's possible to call most of these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
 
@@ -110,7 +91,38 @@ The available parameters are:
 | Remove >today tags from completed todos | runSilently |
 | Move top-level tasks in Editor to heading | Heading name to place the tasks under | runSilently |
 
-**Tip:** as these are complicated and fiddly to create, **I strongly suggest you use @dwertheimer's excellent [Link Creator plugin]() command "/Get X-Callback-URL"** which makes it vastly easier.
+**Tip:** as these are complicated and fiddly to create, **I strongly suggest you use @dwertheimer's excellent [Link Creator plugin](https://noteplan.co/plugins/np.CallbackURLs) command "/Get X-Callback-URL"** which makes it vastly easier.
+
+### Special case: **/Move top-level tasks in Editor to heading**
+#### Running from in a template
+
+This command rewrites the current document in the Editor, moving tasks from the top to underneath a specified heading. It cannot run like the other commands by itself or as part of TidyUp in a template, because the template processor is rewriting the document in parallel, and you will get duplicate headings. 
+
+However, there _is_ a way to include this in your daily note. If you include some code like the following in your daily note template, it will run the command and include the output in the flow of writing the template, and so the document will not be getting written twice in parallel.
+
+```markdown
+## Tasks
+*
+<% const tasks = await DataStore.invokePluginCommandByName("Move top-level tasks in Editor to heading","np.Tidy",["Tasks",true,true]);  -%>
+<% if (tasks?.length) { -%>
+<%- tasks %>
+<% } -%>
+```
+This piece of my daily note template:
+- creates a "Tasks" heading
+- creates a blank task underneath for me to enter tasks during the day
+- scans note and gets a list of task content that was at the top of the note (saves in "tasks" variable)
+- outputs any tasks that were pre-existing in the note under that new Tasks heading that was just created
+NOTE: (thx @phenix): The order is important because the task header needs to be added before the tasks are inserted underneath.
+
+> **NOTE:** If you also run the `Tidy Up` command in your template, you should uncheck this command in the TidyUp settings.
+
+#### Running from an x-callback
+Or you can use this x-callback link, placed in your daily note template, to move all top-level tasks in the current note to a heading, in this example "Tasks":
+
+```markdown
+[Top-level->Tasks](noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Move%20top-level%20tasks%20in%20Editor%20to%20heading&arg0=Tasks&arg1=false&arg2=false)
+```
 
 ## Configuration
 On macOS, click the gear button on the '🧹 Tidy Up' line in the Plugin Preferences panel, and fill in the settings accordingly. Defaults and descriptions are given for each one.

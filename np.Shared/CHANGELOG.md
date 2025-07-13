@@ -2,6 +2,31 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.7.5] @dwertheimer 2025-01-24
+
+- Remove DynamicDialog from Root (it was duplicating code and CSS)
+- FormView and other components now can import DynamicDialog when they need it
+
+## [0.7.4] @dwertheimer 2024-12-21
+
+- Remove minified versions of Root and FormView components
+
+## [0.7.3] @dwertheimer 2024-12-10
+
+- Improve DashboardDialog CSS
+
+## [0.7.2] @dwertheimer 2024-10-28
+
+- fix bug in Root where the pluginToHTMLCommsBridge.js was not being loaded and so sendMessageToPlugin was not working
+
+## [0.7.1] @dwertheimer 2024-10-24
+
+- fix bug in Root where banners were not being shown anymore
+
+## [0.7.0] @dwertheimer 2024-09-14
+
+- Add DynamicDialog to Root to bring up a dialog
+
 ## [0.6.3] - @dwertheimer
 
 - Reduce logging

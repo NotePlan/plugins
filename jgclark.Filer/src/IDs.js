@@ -8,6 +8,7 @@
 import pluginJson from "../plugin.json"
 import { addParasAsText, getFilerSettings } from './filerHelpers'
 import { logDebug, logError, logWarn } from '@helpers/dev'
+import { saveEditorIfNecessary } from '@helpers/editor'
 import { displayTitle } from '@helpers/general'
 import { findHeading, getHeadingTextFromMarkdownHeadingText, parasToText, smartAppendPara, smartPrependPara } from '@helpers/paragraph'
 import { chooseNote, chooseHeading } from '@helpers/userInput'

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2024-09-25 for v0.6.0+ by @jgclark
+// Last updated 2025-02-16 for v0.14.7+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,6 +14,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, overrideSettingsWithEn
 import {
   getFolderListMinusExclusions,
   getFolderFromFilename,
+  getProjectNotesInFolder,
   getJustFilenameFromFullFilename
 } from '@helpers/folders'
 import {
@@ -22,7 +23,7 @@ import {
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
-import { getProjectNotesInFolder } from '@helpers/note'
+
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { showMessage } from "@helpers/userInput"
@@ -39,18 +40,18 @@ type dupeDetails = {
 //----------------------------------------------------------------------------
 
 /**
- * Private function to generate list of potentially duplicate notes
+ * Private function to generate a list of potentially duplicate notes
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
  * @returns {Array<dupeDetails>} array of strings, one for each output line
 */
-function getDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDetails> {
+function findDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDetails> {
   try {
-    logDebug(pluginJson, `getDuplicateNotes() starting`)
+    logDebug(pluginJson, `findDuplicateNotes() starting`)
 
     const outputArray: Array<dupeDetails> = []
-    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, true)
-    logDebug('getDuplicateNotes', `- Found ${relevantFolderList.length} folders to check`)
+    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, false, false)
+    logDebug('findDuplicateNotes', `- Found ${relevantFolderList.length} folders to check`)
     // Get all notes to check
     let notes: Array<TNote> = []
     for (const thisFolder of relevantFolderList) {
@@ -73,7 +74,7 @@ function getDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDeta
     return outputArray
   }
   catch (err) {
-    logError(pluginJson, 'getDuplicateNotes() ' + JSP(err))
+    logError(pluginJson, 'findDuplicateNotes() ' + JSP(err))
     return [] // for completeness
   }
 }
@@ -96,7 +97,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
     CommandBar.showLoading(true, `Finding duplicates`)
     await CommandBar.onAsyncThread()
     const startTime = new Date()
-    const dupes: Array<dupeDetails> = getDuplicateNotes(config.listFoldersToExclude)
+    const dupes: Array<dupeDetails> = findDuplicateNotes(config.listFoldersToExclude)
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 

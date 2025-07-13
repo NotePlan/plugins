@@ -1,0 +1,442 @@
+/* CSS specific to showDashboard() from jgclark.Dashboard plugin */
+/* Last updated 2025-05-31 for v2.3.0.b3 by @jgclark */
+
+html {
+	--itemIndentWidth: 1.5rem;
+	--teamspace-color: #269F54;
+	--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%); /* for subtle colouring - not yet used */
+	--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%); /* for subtle colouring - not yet used */
+	/* Add a gutter to the scrollbar to prevent it from overlapping with the content. Available in Safari, but not sure when it becomes available in NotePlan. */
+	scrollbar-gutter: stable;
+
+	/* Define 'Magic Numbers' -------------------------------- */
+
+	/* For the NP-generated close button on modal windows on mobile */
+	--modalCloseButtonSpacerWidth: 20px;
+}
+
+body {
+	margin: 0px;
+	width: 90vw;
+}
+
+/* Add a focus-visible outline to any element that is focussed and the browser decides needs to show a focus ring */
+/* This is overridden later for a certain type of buttons */
+:focus-visible {
+	outline: 1px solid rgb(from var(--tint-color) r g b / 0.5);
+	border-radius: 4px;
+}
+
+/* 
+ * Darken background under any dialogs when open (See https://developer.mozilla.org/en-US/docs/Web/CSS/::backdrop)
+ */
+dialog::backdrop {
+  background: rgba(0,0,0,0.4);
+}
+
+/* For MESSAGE_BANNER: Override w3.css which seems to take precedence for reasons unknown */
+.w3-panel {
+	margin-top: 0px;
+	margin-bottom: 0px;
+	width: 98vw;
+}
+.w3-button {
+	margin-right: 20px;
+}
+
+/* Large rows on page */
+.sections {
+	display: block;
+	padding-right: 10px;
+	margin-right: 10px;
+}
+
+/* Specific alignment fixes for icons inside buttons or links */
+/* Inside a layer to make them lower priority than other  */
+/* TODO: I don't think this is needed anymore */
+@layer A {
+	.fa-regular,
+	.fa-solid {
+		/* Centers icon within its container, vertically and horizontally */
+		align-self: center;
+		margin: auto;
+		/* color: var(--tint-color); */
+	}
+}
+
+/* --------------------------------------------------------------- */
+
+/* All buttons and inputs, but at lower priority */
+@layer A {
+	button,
+	input[type="text"],
+	input[type="search"],
+	input[type="number"] {
+		color: var(--fg-sidebar-color);
+		background-color: var(--bg-alt-color);
+		border: 1px solid rgb(from var(--fg-main-color) r g b/0.3);
+		box-shadow: 1px 1px 0px 0px rgb(from var(--fg-main-color) r g b / 0.2);
+	}
+	/* set input backgrounds a little lighter on hover */
+	input &:hover {
+		filter: brightness(112%);
+		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to use this when CSS standards catch up. */
+		/* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
+	}
+}
+
+/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
+.buttonsWithoutBordersOrBackground,
+.buttonsWithoutBordersOrBackground * {
+	display: inline-flex;
+	gap: 0.4rem;
+	justify-self: end;
+	/* align-self: flex-start; /* Doesn't seem to be needed */
+	border: 0px none;
+	box-shadow: none;
+	padding-top: 1px;
+	padding-left: unset;
+	padding-right: unset;
+	background-color: unset;
+
+	/* &:focus {
+		outline: none;
+	} */
+	/* Add a more specific 'underline' to indicate focus for these buttons to aid keyboard navigation */
+	&:focus-visible {
+		filter: brightness(112%);
+		/* Remove the default focus ring */
+		outline: none;
+		border-radius: 0px;
+		border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.5);
+	}
+}
+
+/* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
+.iOS .buttonsWithoutBordersOrBackground, .iPadOS .buttonsWithoutBordersOrBackground {
+	gap: 0.9rem !important; /* haven't tested whether !important is needed here */
+	font-size: 1.0rem !important;
+}
+
+/* For action buttons in section title areas */
+.addButton {
+	font-size: 0.95rem;
+	/* line-height: 1.2rem; */
+	font-weight: 500;
+	border-style: none;
+	box-shadow: none;
+	/* a little margin to right */
+	margin: 1px 0px 0px 0px;
+	padding: 0px;
+	white-space: nowrap;
+	cursor: pointer;
+	/* Center the button vertically if it's not aligning properly */
+	align-self: center;
+}
+.addButton:hover {
+	/* FIXME: this 'currentcolor' is not working as advertised. The equivalent in dropbdownButtons is working ... */
+	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert in time */
+	filter: saturate(140%);
+}
+
+/* For processing buttons in section info areas */
+.PCButton {
+	font-weight: 500;
+	border-style: solid;
+	border-width: 1px;
+	border-radius: 4px;
+	padding: 1px 2px 0px 3px;
+	margin: 2px 4px 2px 0px;
+	white-space: nowrap;
+	cursor: pointer;
+	font-size: 0.85rem;
+	/* Center the button vertically if it's not aligning properly */
+	align-self: center;
+	/* max-height: 1.3rem; */
+	line-height: 1.2rem;
+
+	/* color FA icons in these Buttons */
+	i {
+		color: var(--tint-color);
+	}
+
+	/* set backgrounds a little lighter on hover */
+	&:hover {
+		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to this */
+		/* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
+		filter: brightness(103%);
+	}
+}
+
+/* Show click pointer over buttons and equivalent */
+button,
+.fake-button,
+.clickTarget {
+	cursor: pointer;
+}
+
+.greyedText {
+	color: rgb(from var(--fg-sidebar-color) r g b / 0.5)
+}
+
+/* --------------------------------------------------------------- */
+/* Tooltips should render on macOS only */
+.macOS {
+	/* Add tooltips to these buttons, using CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s or https://www.youtube.com/watch?v=ujlpzTyJp-M */
+	.tooltip {
+		position: relative;
+		/* float above everything, including the header */
+		/* FIXME: this is not working as expected. It then makes the Perspective dropdown sit under the buttons. */
+		/* z-index: 12; */
+	}
+
+	.tooltip::before,
+	.tooltip::after {
+		position: absolute;
+		left: 50%;
+		display: none;
+		transition: all ease 0.3s;
+		transition-delay: 0.8;
+	}
+
+	/* Set tooltip little triangle */
+	.tooltip::before {
+		content: "";
+		border-width: 10px 8px 0 8px;
+		border-style: solid;
+		border-color: var(--tint-color) transparent transparent transparent;
+		margin-left: -8px;
+		top: -10px;
+	}
+
+	/* Set main tooltip display area */
+	.tooltip::after {
+		content: attr(data-tooltip);
+		margin-left: -10px;
+		padding: 0.1rem 0.3rem;
+		top: -9px;
+		font-size: 0.85rem;
+		color: var(--fg-main-color);
+		background: var(--bg-main-color);
+		border: 1px solid var(--tint-color);
+		border-radius: 6px;
+		transform: translateY(-100%);
+		cursor: help;
+	}
+
+	.tooltip:hover::before,
+	.tooltip:hover::after {
+		display: block;
+		z-index: 20;
+	}
+}
+/* ------------------------------------------------------------------ */
+
+/* show as italic. Note: now unused */
+/* .commentLine {
+	font-weight: 400;
+	font-style: italic;
+} */
+
+.clickTarget {
+	/* change cursor for icons which can be clicked on */
+	cursor: pointer;
+}
+
+.pad-left {
+	/* add space before something (normally an icon) */
+	padding-left: 0.3rem !important;
+}
+
+.pad-left-larger {
+	/* add space before something */
+	padding-left: 0.5rem !important;
+}
+
+.pad-right {
+	/* add space after something (normally an icon) */
+	padding-right: 0.2em !important;
+}
+
+.pad-right-larger {
+	/* add more space after something */
+	padding-right: 0.5em !important;
+}
+
+.space-under {
+	/* add space under item */
+	padding-bottom: 0.3em;
+}
+
+/* Default for note titles, note links, and folder/teamspace links */
+@layer Default {
+	/* Colour the note titles */
+	.noteTitle {
+		color: var(--tint-color);
+	}
+
+	/* Private note link - default layer */
+	.folderName {
+		color: var(--tint-color);
+	}
+
+	/* Teamspace note link - default layer */
+	.teamspaceName {
+		color: var(--teamspace-color);
+	}
+
+	.scheduledDate {
+		color: var(--tint-color);
+	}
+
+	/* turn off text color and underlining by default on all content items... */
+	.content,
+	.content:visited,
+	.content:active {
+		color: inherit;
+		text-decoration: none;
+		cursor: pointer;
+	}
+
+	/* ... except when hovering over a content item */
+	.content:hover,
+	.noteTitle:hover {
+		text-decoration: underline;
+	}
+
+	.externalLink {
+		text-decoration: underline;
+		cursor: pointer;
+		color: var(--tint-color);
+	}
+
+	.event-link {
+		font-weight: 400;
+		border-color: var(--bg-alt-color);
+		border-radius: 3px;
+		border-width: 1px;
+		border-style: solid;
+		padding: 0px 3px;
+	}
+}
+
+/* .multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
+/*	column-count: 3;
+	column-fill: balance;
+	column-width: 25rem;
+	column-gap: 1rem;
+	column-rule: 1px dotted var(--tint-color);
+} */
+.avoidColumnBreakHere {
+	/* apply to a <div> to avoid column break part-way through item */
+	break-inside: avoid;
+}
+
+.fadeOutAndHide {
+	/* Start from fully visible */
+	transition: opacity 500ms ease-out;
+	opacity: 0;
+}
+
+/* Some headings specified from measuring the colour of NP sidebar elements */
+html {
+	--fg-sidebarDaily: #d0703c;
+	--fg-sidebarWeekly: #be23b6;
+	--fg-sidebarMonthly: #f5528b;
+	--fg-sidebarQuarterly: #e08008;
+	--fg-sidebarYearly: #efba13;
+	--fg-sidebarHashtag: var(--hashtag-color);
+	--fg-sidebarMention: var(--attag-color);
+	--fg-sidebarSearch: #9da5a8;
+}
+/* But still need these as named styles */
+.sidebarDaily {color: var(--fg-sidebarDaily);}
+	/* background-color: var(--bg-sidebar-color);} FIXME: need to find out why this is needed */
+.sidebarWeekly {color: var(--fg-sidebarWeekly);}
+.sidebarMonthly {color: var(--fg-sidebarMonthly);}
+.sidebarQuarterly {color: var(--fg-sidebarQuarterly);}
+.sidebarYearly {color: var(--fg-sidebarYearly);}
+.sidebarHashtag {color: var(--hashtag-color);}
+.sidebarMention {color: var(--attag-color);}
+.sidebarSearch {color: var(--fg-sidebarSearch);}
+
+/* Note: not currently used */
+#error {
+	background-color: red;
+}
+
+/* --------------------------------------------------------------- */
+
+/* For fancy toggle as checkbox */
+/* from [Pure CSS3 iOS switch checkbox by Pedro M. S. Duarte | codeburst](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb)
+ */
+ /* Note: This is a copy of what is in helpers/.../DynamicDialog.css */
+input.apple-switch {
+	position: relative;
+	appearance: none;
+	vertical-align: baseline; /* top; */
+	outline: none;
+	width: 2.0rem;
+	/* 50px; */
+	height: 1.2rem;
+	/* 30px; */
+	border: 1px solid var(--divider-color); /* rgb(from var(--fg-main-color) r g b / 0.3); */
+	border-radius: 1.9rem;
+	background-color: var(--bg-apple-switch-color);
+	/* box-shadow: 1px 1px 1px 0px var(--divider-color); */
+	margin-top: 0px;
+	margin-right: 4px;
+}
+
+input.apple-switch:after {
+	content: "";
+	vertical-align: top;
+	position: absolute;
+	top: 1px;
+	left: 1px;
+	background-color: #fff; /* var(--fg-alt-color); */
+	/* border: 1px solid rgb(from var(--fg-main-color) r g b / 0.5); */
+	width: 1.0rem;
+	/* 26px; */
+	height: 1.0rem;
+	/* 26px; */
+	border-radius: 50%;
+	box-shadow: 0px 0px 2px var(--divider-color);
+	margin-right: 1.0rem;
+}
+
+input.apple-switch:checked {
+	vertical-align: top;
+	background-color: var(--tint-color);
+	/* box-shadow: inset 0.8rem 0 0 0 var(--tint-color); */
+	/* 20px; */
+}
+
+input.apple-switch:checked:after {
+	vertical-align: top;
+	/* top: 1px; */
+	left: 0.8rem;
+	/* 20px; */
+	background-color:  #fff; /* var(--fg-alt-color); */
+	/* border: 1px solid var(--tint-color); */
+	box-shadow: 0px 0px 2px var(--divider-color);
+}
+
+/* Circular progress bar for Project items */
+.CircularProgressbar-path {
+  stroke: var(--item-icon-color) !important;
+	stroke-linecap: butt !important;
+}
+.CircularProgressbar-trail {
+  fill: var(--bg-sidebar-color) !important;
+}
+/* .CircularProgressbar-text {
+  fill: yellow;
+} */
+.CircularProgressbar-background {
+  fill: var(--bg-sidebar-color) !important;
+}
+
+.dynamic-dialog.dashboard-command-button .dynamic-dialog-content {
+	overflow: visible;
+}

@@ -2,10 +2,10 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by ItemRow component
-// Last updated 2024-08-26 for v2.0.6 by @jgclark
+// Last updated 2025-04-06 for v2.2.0.a12 by @jgclark
 //--------------------------------------------------------------------------
 
-import * as React from 'react'
+import React, { type Node } from 'react'
 // import { CircularProgressbar, CircularProgressbarWithChildren, buildStyles } from 'react-circular-progressbar'
 // import 'react-circular-progressbar/dist/styles.css'
 import type { TSectionItem } from '../../types.js'
@@ -19,12 +19,12 @@ type Props = {
   item: TSectionItem,
 }
 
-function ProjectItem({ item }: Props): React.Node {
+function ProjectItem({ item }: Props): Node {
   const { sendActionToPlugin, setReactSettings, dashboardSettings } = useAppContext()
 
   const itemFilename = item.project?.filename ?? '<no filename>'
   const noteTitle = item.project?.title ?? '<no title>'
-  const folderNamePart = dashboardSettings?.includeFolderName && getFolderFromFilename(itemFilename) !== '/' ? `${getFolderFromFilename(itemFilename)} / ` : ''
+  const folderNamePart = dashboardSettings?.showFolderName && getFolderFromFilename(itemFilename) !== '/' ? `${getFolderFromFilename(itemFilename)} / ` : ''
   // logInfo(`ProjectItem`, `for ${itemFilename} folder='${getFolderFromFilename(itemFilename)}' (${folderNamePart} / ${noteTitle})`)
   // const percentComplete = item.project?.percentComplete ?? 0
   // const percentCompleteStr = isNaN(percentComplete) ? '' : ` ${String(percentComplete)}%`
@@ -62,15 +62,20 @@ function ProjectItem({ item }: Props): React.Node {
     sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Project Title clicked in Dialog', true)
   }
 
-  const handleClickToOpenDialog = (e: MouseEvent): void => {
+  const handleClickToOpenDialog = (event: MouseEvent): void => {
     // clo(dataObjectToPassToControlDialog, 'ProjectItem: handleClickToOpenDialog - setting dataObjectToPassToControlDialog to: ')
-    const clickPosition = { clientY: e.clientY, clientX: e.clientX }
+    const { metaKey } = extractModifierKeys(event)
+    logDebug('ProjectItem/handleClickToOpenDialog', `- metaKey=${String(metaKey)}`)
+    dataObjectToPassToControlDialog.modifierKey = metaKey // boolean
+    const clickPosition = { clientY: event.clientY, clientX: event.clientX }
     setReactSettings((prev) => ({
       ...prev,
       lastChange: `_Dashboard-ProjectDialogOpen`,
       dialogData: { isOpen: true, isTask: false, details: dataObjectToPassToControlDialog, clickPosition }
     }))
   }
+
+  //----- RENDER ------------------------------------------
 
   return (
     <div className="sectionItemRow" id={item.ID}>
@@ -82,8 +87,8 @@ function ProjectItem({ item }: Props): React.Node {
         {folderNamePart &&
           <span className="folderName">{folderNamePart}</span>}
         {noteTitleWithOpenAction}
-        <a className="dialogTrigger">
-          <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
+        <a className="dialogTriggerIcon">
+          <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenDialog}></i>
         </a>
         {progressContent}
       </div>

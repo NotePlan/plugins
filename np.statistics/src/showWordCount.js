@@ -1,4 +1,5 @@
 // @flow
+// Last updated 2025-04-22 for v0.7.0 by @jgclark
 
 import { displayTitle } from '@helpers/general'
 
@@ -49,6 +50,8 @@ export async function showWordCount(): Promise<void> {
     `Mentions: ${mentionCount.toLocaleString()}`,
     `Hashtags: ${tagCount.toLocaleString()}`,
   ]
+
+  console.log(`# Word Stats:\n${display.join('\n')}`)
 
   const re = await CommandBar.showOptions(
     display,

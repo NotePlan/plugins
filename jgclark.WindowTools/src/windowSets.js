@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 14.3.2024 for v1.1.3 by @jgclark
+// last update 2025-02-01 for v1.2.1 by @jgclark
 //---------------------------------------------------------------
 // ARCHITECTURE:
 // - 1 local preference 'windowSets' that contains JS Array<WindowSet>
@@ -17,6 +17,7 @@
 
 import pluginJson from '../plugin.json'
 import * as wsh from './WTHelpers'
+import { checkPluginCommandNameAvailable } from '@helpers/NPConfiguration'
 import {
   calcOffsetDateStr,
   getDateStringFromCalendarFilename,
@@ -37,6 +38,7 @@ import {
   applyRectToHTMLWindow,
   closeWindowFromId,
   findEditorWindowByFilename,
+  isHTMLWindowOpen,
   getNonMainWindowIds,
   rectToString
 } from '@helpers/NPWindows'
@@ -161,6 +163,7 @@ export async function saveWindowSet(): Promise<void> {
     // const firstWindow = editorWinDetails[0]
     for (const ew of editorWinDetails) {
       // clo(ew, String(ewCount))
+      // TODO(later): Try to support open folder as well as note. As of v3.16.3 it requires EM to add support for this in the API.
       let tempFilename = ew.filename
       const thisNote = DataStore.projectNoteByFilename(tempFilename)
       let tempTitle = ''
@@ -240,9 +243,8 @@ export async function saveWindowSet(): Promise<void> {
     }
     clo(thisWSToSave, `saveWindowSet: thisWSToSave after EWs and HWs (${isNewSet ? 'new set' : 'updated'})`)
 
-    // If we're on NP 3.9.9+ then split window Rects are reported differently than before, so take account of this.
-    // As of NP 3.9.9 (b1119), main width = width of whole window (including sidebars which is a bummer). The splits all have x=0/y=0, but width/height are accurate.
-    if (NotePlan.environment.buildVersion >= 1121) {
+    // Note: As of NP 3.9.9 (b1119), main width = width of whole window (including sidebars which is a bummer). The splits all have x=0/y=0, but width/height are accurate.
+
       // Go through main + splits, summing as we go
       const mainX = thisWSToSave.editorWindows[0].x
       const mainY = thisWSToSave.editorWindows[0].y
@@ -268,7 +270,7 @@ export async function saveWindowSet(): Promise<void> {
         }
       }
       clo(thisWSToSave, `saveWindowSet: thisWSToSave after dealing with EW splits`)
-    }
+
 
     // Check window bounds make sense
     thisWSToSave = wsh.checkWindowSetBounds(thisWSToSave)
@@ -306,7 +308,7 @@ export async function saveWindowSet(): Promise<void> {
     const res = await wsh.writeWSsToNote(config.folderForDefinitions, config.noteTitleForDefinitions, WSsToSave)
     logDebug('saveWindowSet', `Saved window sets to note, with result ${String(res)}`)
 
-    // If we have htmlWindows not in our lookup list, then tell user to update the list with the plugin command Name
+    // If we have htmlWindows not in our lookup list, then ask the user to update the list with the plugin command Name
     let askUserToComplete = false
     for (const thisHtmlWinDetails of htmlWinDetails) {
       const thisWindowId = thisHtmlWinDetails.customId ?? 'n/a'
@@ -318,7 +320,7 @@ export async function saveWindowSet(): Promise<void> {
     }
     const numWindowsStr = `${String(thisWSToSave.editorWindows?.length ?? 0)} note${thisWSToSave.htmlWindows?.length > 0 ? ` + ${String(thisWSToSave.htmlWindows?.length)} plugin` : ''} windows`
     if (askUserToComplete) {
-      const res = await showMessage(`Window Set '${setName}' with (${numWindowsStr}) has been ${isNewSet ? 'added' : 'updated'}.\n\nI couldn't identify some HTML (plugin) window commands from the ones I know about. Please complete their details in the WindowSet note before trying to open this window set.`, 'OK', 'Window Sets', false)
+      const res = await showMessage(`Window Set '${setName}' with (${numWindowsStr}) has been ${isNewSet ? 'added' : 'updated'}.\n\nI couldn't identify some plugin windows from the ones I know about. Please complete their details in the WindowSet note before trying to open this window set.`, 'OK', 'Window Sets', false)
     } else {
       const res = await showMessage(`Window Set '${setName}' with (${numWindowsStr}) has been ${isNewSet ? 'added' : 'updated'}.`, 'OK', 'Window Sets', false)
     }
@@ -373,7 +375,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
           label: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} note${sws.htmlWindows?.length > 0 ? ` + ${String(sws.htmlWindows?.length)} plugin` : ''} windows)`, value: c
         }
       })
-      const num = await chooseOption("Which Window Set to open?", setChoices)
+      const num = await chooseOption(`Which Window Set to open on ${thisMachineName}?`, setChoices)
       if (isNaN(num)) {
         logInfo(pluginJson, `No valid set chosen, so stopping.`)
         return false
@@ -387,42 +389,70 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
 
     // First close other windows (if requested)
     if (thisWS.closeOtherWindows) {
-      logDebug('openWindowSet', `Closing any other windows that aren't part of the set`)
-
-      // Get list of currently open non-main windows
-      const openWindowIds = getNonMainWindowIds()
-      for (const winId of openWindowIds) {
+      logDebug('openWindowSet', `Closing all non-main Editor windows and any HTMLView windows that aren't part of the set`)
+      // Close all open non-main Editor windows
+      const openEditorWindowIds = getNonMainWindowIds('Editor')
+      for (const winId of openEditorWindowIds) {
         closeWindowFromId(winId)
-        logDebug('openWindowSet', `- closed window ID ${winId}`)
+        logDebug('openWindowSet', `- closed Editor window ID ${winId}`)
       }
+      // Close all open HTMLView windows that aren't part of the set
+      const openHtmlWindowIds = getNonMainWindowIds('HTMLView')
+      for (const winId of openHtmlWindowIds) {
+        if (thisWS.htmlWindows.some((hw) => hw.customId === winId)) {
+          closeWindowFromId(winId)
+          logDebug('openWindowSet', `- closed HTML window ID ${winId}`)
+        } else {
+          logDebug('openWindowSet', `- NOT closing HTML window ID ${winId}`)
+        }
+      }
+    }
+
+    // count which item we're on in the window set
+    let openCount = 0
+
+    // First open any HTMLView windows (currently just plugins: run the plugin command) if not already open
+    const htmlWindowsToOpen = thisWS.htmlWindows.filter((hw) => !isHTMLWindowOpen(hw.customId ?? ''))
+    if (htmlWindowsToOpen.length > 0) {
+      logDebug('openWindowSet', `Attempting to open ${String(htmlWindowsToOpen.length)} plugin window(s): [${htmlWindowsToOpen.map((hw) => hw.customId).join(', ')}]`)
+      for (const hw of htmlWindowsToOpen) {
+        switch (hw.type) {
+          case 'html': {
+            logDebug('openWindowSet', `- Calling Plugin '${hw.pluginID}' with command '${hw.pluginCommandName}' ...`)
+            // Be helpful and check that pluginCommandName is the right capitalization by checking all install plugin command names for this plugin
+            const caseCheckedPluginCommandName: string = checkPluginCommandNameAvailable(hw.pluginCommandName, hw.pluginID)
+            if (caseCheckedPluginCommandName === '') {
+              logWarn('openWindowSet', `- Plugin command '${hw.pluginCommandName}' is not available for plugin '${hw.pluginID}'. Perhaps the plugin is not installed, or has changed the command name? Please correct the Window Set note.`)
+              continue
+            }
+
+            if (hw.pluginCommandName !== caseCheckedPluginCommandName) {
+              logWarn('openWindowSet', `- Plugin command '${hw.pluginCommandName}' is not the correct capitalization for plugin '${hw.pluginID}'. It should be '${caseCheckedPluginCommandName}', which I will use now, but please Save the Window Set again to update the note.`)
+            }
+
+            await DataStore.invokePluginCommandByName(caseCheckedPluginCommandName, hw.pluginID)
+            // If x,y,w,h given, then update window position/size
+            if (Number.isFinite(hw.x) && Number.isFinite(hw.y) && Number.isFinite(hw.width) && Number.isFinite(hw.height)) {
+              const rect = { x: hw.x, y: hw.y, width: hw.width, height: hw.height }
+              logDebug('openWindowSet', `  - applying Rect definition ${rectToString(rect)}`)
+              applyRectToHTMLWindow(rect, hw.customId)
+            }
+            break
+          }
+          default: {
+            logError('openWindowSet', `- WS '${thisWS.name}' has unsupported HTMLView type '${hw.type}'`)
+          }
+        }
+      }
+    } else {
+      logDebug('openWindowSet', `There are no plugin windows to open`)
     }
 
     // Now open new windows/splits
-    let openCount = 0 // to count which item we're on in the window set
-    // First any HTMLView windows (currently just plugins)
-    if (thisWS.htmlWindows.length > 0) logDebug('openWindowSet', `Attempting to open ${String(thisWS.htmlWindows.length)} plugin window(s)`)
-    for (const hw of thisWS.htmlWindows) {
-      switch (hw.type) {
-        case 'html': {
-          logDebug('openWindowSet', `- Calling Plugin '${hw.pluginID}::${hw.pluginCommandName}' ...`)
-          await DataStore.invokePluginCommandByName(hw.pluginCommandName, hw.pluginID)
-          // If x,y,w,h given, then update window position/size
-          if (Number.isFinite(hw.x) && Number.isFinite(hw.y) && Number.isFinite(hw.width) && Number.isFinite(hw.height)) {
-            const rect = { x: hw.x, y: hw.y, width: hw.width, height: hw.height }
-            logDebug('openWindowSet', `  - applying Rect definition ${rectToString(rect)}`)
-            applyRectToHTMLWindow(rect, hw.customId)
-          }
-          break
-        }
-        default: {
-          logError('openWindowSet', `- WS '${thisWS.name}' has unsupported HTMLView type '${hw.type}'`)
-        }
-      }
-    }
-
     logDebug('openWindowSet', `Attempting to open ${String(thisWS.editorWindows.length)} note window(s)`)
     let mainRect: Rect // to save whatever the 'main' Editor is in this WS
     for (const ew of thisWS.editorWindows) {
+      // TODO(later): Try to support open folder as well as note. As of v3.16.3 it requires EM to add support for this in the API.
       if (ew.filename === '') {
         logWarn('openWindowSet', `- WS '${thisWS.name}' has an empty Editor filename: ignoring. Please check the definitions in the Window Set note.`)
         continue

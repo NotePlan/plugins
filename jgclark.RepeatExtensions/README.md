@@ -18,7 +18,13 @@ Compared with the built-in functionality, it also allows you to easily change th
 ## Configuration
 For this feature to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
 
-From plugin v0.8 there's a setting 'Delete completed item?', which when set deletes rather than keeps the completed repeated item.
+Note: because NotePlan never appends the completion date to completed **checklists**, this plugin cannot be used to generate repeats from checklists.
+
+There are some settings in the Plugin Settings pane for this plugin:
+- 'Delete completed item?', which deletes the completed repeated item (on either done or cancelled tasks).
+- Don't look for repeats in Done or Archive note sections? If set, it will not look for repeats in the ## Done or ## Archive sections of notes.
+<!-- - Run Task Sorter after changes? If set, it will run the '/Tasks Sort by User Default' command (from 'Task Sorting & Tools' plugin) after generating repeats, using the user's default sort order (set in that plugin's settings). -->
+<!-- - Allow repeats in cancelled paragraphs? If set, it will allow repeats in cancelled tasks. Note: this only works in notes with the repeat trigger (see below). -->
 
 ## Running it Automatically
 From NotePlan v3.7.2, this plugin can **automatically generate** the new repeated task after you complete an existing one. Here's an example (from v0.5) where it will repeat 6 weeks after completion:

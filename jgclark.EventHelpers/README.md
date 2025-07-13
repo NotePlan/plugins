@@ -23,12 +23,12 @@ Settings:
   - `MEETINGNOTE` will insert a link that when clicked, will help you create a meeting note for this particular event. For this there's a setting 'Meeting Note Template title' which you can use to set which template to pick if you have several; if it isn't set then a list will be presented.<!-- **Note:** MEETINGNOTE links requires at least v1.1.2 of the separate "Meeting Notes" plugin. -->
   - `START` and `END` are the start and end times of the event. (The format of these can be controlled -- see 'Time options' below.)
 
-  **Note**: each placeholder has to be surrounded by `*|...|*` to distinguish them as placeholders and not other markdown text to include.
+  **Note**: each placeholder has to be surrounded by `*|...|*` to distinguish them as placeholders and not other markdown text to include. (Sorry it's a bit fiddly!)
 
-  Default: `- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`
+  Default: `- (*|CAL, |**|START|**|, LOCATION|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`
 - **Events List display format for all-day events**: the format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are as above, with the exception of `START` and `END`.
 
-  Default: `- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`
+  Default: `- (*|CAL, |**|START|**|, LOCATION|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`
 - **Sort order of events list**: by 'time' (= increasing start time of events) or by 'calendar' first, which then secondarily sorts by start time.
 - **Calendars to include**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
 - **Calendar name mappings**: optional - add mappings for your calendar names to appear as in the output - e.g. from "Jonathan (iCloud)" to "Me" (and from "Us (iCloud)" to "Us") with `Jonathan (iCloud);Me, Us (iCloud);Us`. Note: separate mapping from main name by `;` a character, and separate mapping pairs with the `,` character.
@@ -37,7 +37,7 @@ Settings:
 - **Events match list**: for `/add matching events` is an array of pairs of strings. The first string is what is matched for in an event's title. If it does match, the second string is used as the format for how to insert the event details at the cursor.  This uses the same placeholders as above. For example:
   ```jsonc
   {
-    "#meeting" : "### *|TITLE|* (*|START|*)\nWith *|ATTENDEES|**|\n NOTES|**|\nEVENTLINK|*",
+    "#meeting" : "### *|TITLE|* (*|START|**|, LOCATION|*)\nWith *|ATTENDEES|**|\n NOTES|**|\nEVENTLINK|*",
     "holiday" : "*|TITLE|*\nHoliday:: *|NOTES|*"
   }
   ```
@@ -70,13 +70,18 @@ You can customise the output by adding parameters to the commands. **Note**: the
 ```
 
 The following **Parameters** are available:
-- If you want to disable the adding of the heading, add the following parameter `includeHeadings:false` (no double quotes around `false` as its being treated as JSON)
-- If you want to exclude all-day events, add the following parameter `includeAllDayEvents:false`
-- If you want to include only certain calendars, then add the following parameter `calendarSet:"list,of,calendar,names"`
-- If you want to include calendar name mapping (see discussion above), then add something like the following parameter `calendarNameMappings:"Jonathan (iCloud);Me, Us (iCloud);Us"`
-- If you wish to see multiple day's output, not just the day for the active calendar note, add the `daysToCover` parameter. For example: include `daysToCover: 3` to the parameter string to see events for the selected day, plus the following 2. (Note: if you use this, then H3 date headings will be inserted between dates for clarity, even if the `includingHeadings` parameter is false.)
-- If you wish to **format the list display** (only in `events()` command), you can add a `'format:"..."'` and/or an `'allday_format:"..."`. This uses the same placeholders (surrounded by `*|...|*`) as above, and can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found.
 
+| name | type | description | example |
+| --- | --- | --- | --- |
+| `includeHeadings` | boolean | adds heading "Events"| `includeHeadings: false` |
+| `includeAllDayEvents` | boolean | include/exclude all day events | `includeAllDayEvents: false` |
+| `calendarSet` | string | limit which calendars are included | `calendarSet:"list,of,calendar,names"` |
+| `calendarNameMappings` | string | customize the name of the calendars |`calendarNameMappings:"Jonathan (iCloud);Me, Us (iCloud);Us"` |
+| `daysToCover` | number | include more than the current day | `daysToCover: 3` includes today + 2 days |
+| `format` | string | customize the format | `'format:"..."'` |
+| `allday_format` | string | customize format for all day events | `'allday_format:"..."` |
+
+`format` and `allday_format` use the same placeholders (surrounded by `*|...|*`) as above, and can be mixed with any markdown characters or other text and they will get replaced accordingly with the fields from each matching event found.
 You can include other text (including line breaks indicated by `\n`) within the placeholder. For example in `*|\nwith ATTENDEENAMES|*`, if the ATTENDEENAMES is not empty, then it will output the attendees list on a newline and after the text 'with '.
 
 NB: the `Sort order` setting above also controls how the output of this list is sorted.

@@ -1,3 +1,5 @@
+# Disable/enable this script at: https://github.com/NotePlan/plugins/actions/workflows/node.js.yml
+
 # Run tests on push or pull_request
 # per: https://joelhooks.com/jest-and-github-actions/
 # also uses github-actions-reporter.js for reporting
@@ -27,8 +29,8 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        # node-version: [14.x, 16.x, 18.x, 19.x]
-        node-version: [20.x,22.x]
+        # node-version: [14.x, 16.x, 18.x, 19.x, 20.x]
+        node-version: [22.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -38,9 +40,11 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+      - name: Disable optional dependencies # work around git bug on macos arm64 dependencies
+        run: export NPM_CONFIG_OPTIONAL=false
       # shoulde eventually be a clean install using: - run: npm ci --legacy-peer-deps
       # - run: npm i -g node-gyp@latest && npm config set node_gyp "/usr/local/lib/node_modules/node-gyp/bin/node-gyp.js"
-      - run: npm ci # clean install (deletes node_modules)
+      - run: npm ci --legacy-peer-deps # clean install (deletes node_modules)
       - run: npm link # necessary for some reason specific to NP dev setup
       # note: when upgrade to node 16+, add this to the following --max-old-space-size=8192 
       - run: NODE_OPTIONS=--max-old-space-size=8192 npm run test:ci # run Jest CI version and stop if errors
@@ -88,7 +92,7 @@ jobs:
           cache: 'npm'
       # shoulde eventually be a clean install using: - run: npm ci --legacy-peer-deps
       # - run: npm i -g node-gyp@latest && npm config set node_gyp "/usr/local/lib/node_modules/node-gyp/bin/node-gyp.js"
-      - run: npm ci # clean install (deletes node_modules)
+      - run: npm ci --legacy-peer-deps # clean install (deletes node_modules)
       - run: npm link # necessary for some reason specific to NP dev setup
       # note: when upgrade to node 16+, add this to the following --max-old-space-size=8192 
       - run: NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js -b -ci # build all plugins and stop if errors

@@ -1,33 +1,28 @@
 // @flow
 
 // -----------------------------------------------------------------------------
-// Note Helpers plugin for NotePlan
+// NoteHelpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2024-08-16 for v0.19.3 by @jgclark
+// Last updated 2025-06-06 for v1.2.0 by @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 
 import { JSP, logDebug, logError } from '@helpers/dev'
-import { migrateCommandsIfNecessary } from '@helpers/NPConfiguration'
+// import { migrateCommandsIfNecessary } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 export { countAndAddDays } from './countDays'
 export { indexFolders, updateAllIndexes } from './indexFolders'
-export { listInconsistentNames } from './lib/commands/listInconsistentNames'
-export { titleToFilename } from './lib/commands/titleToFilename'
 export { filenameToTitle } from './lib/commands/filenameToTitle'
+export { listInconsistentNames } from './lib/commands/listInconsistentNames'
 export { renameInconsistentNames } from './lib/commands/renameInconsistentNames'
-export {
-  addTriggerToNote,
-  convertLocalLinksToPluginLinks,
-  addFrontmatterToNote,
-  moveNote,
-  renameNoteFile,
-  trashNote
-} from './noteHelpers'
+export { titleToFilename } from './lib/commands/titleToFilename'
+export { listPublishedNotes } from './listPublishedNotes'
+export { newNote, newNoteFromClipboard, newNoteFromSelection } from './newNote'
+export { addTriggerToNote, convertLocalLinksToPluginLinks, addFrontmatterToNote, moveNote, logEditorNoteDetailed, renameNoteFile, trashNote } from './noteHelpers'
 export {
   jumpToDone,
   jumpToHeading,
@@ -42,6 +37,8 @@ export {
   showYear,
 } from './noteNavigation'
 export { findUnlinkedNotesInCurrentNote, findUnlinkedNotesInAllNotes, triggerFindUnlinkedNotes } from './unlinkedNoteFinder'
+export { writeModified } from './writeModified'
+export { printNote } from '@helpers/NPnote'
 
 export function resetCaches() {
   NotePlan.resetCaches()
@@ -64,10 +61,6 @@ export async function onSettingsUpdated(): Promise<void> {
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(pluginJson, `${configKey}: onUpdateOrInstall running`)
-
-    // Notify user about migration of 'open note' commands
-    // TODO: Remove in time. Suggest present in 0.19.1 -> 0.19.x
-    await migrateCommandsIfNecessary(pluginJson)
 
     // Tell user the plugin has been updated
     if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {

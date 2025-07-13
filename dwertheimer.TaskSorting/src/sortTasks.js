@@ -1,12 +1,12 @@
 // @flow
-// Last updated 2024-07-13 for v1.1.1 by @jgclark
+// Last updated 2025-07-13 for v1.2.1 by @jgclark
 
 import pluginJson from '../plugin.json'
 import { chooseOption, chooseHeading, showMessage } from '@helpers/userInput'
 import { getTagParamsFromString } from '@helpers/general'
 import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagraph'
 import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType } from '@helpers/sorting'
-import { logDebug, logError, clo, JSP } from '@helpers/dev'
+import { logDebug, logWarn, logError, clo, JSP, logInfo } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 
 const TOP_LEVEL_HEADINGS = {
@@ -235,7 +235,7 @@ export function insertTodos(note: CoreNoteFields, todos, heading: string = '', s
     const content = `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`
     if (title !== '') {
     // const headingIndex = findHeading(note, title)?.lineIndex || 0
-      logDebug(`\tinsertTodos: insertAtSectionStart=${insertAtSectionStart} title="${title}"`)
+      logDebug(`\tinsertTodos: insertAtSectionStart=${String(insertAtSectionStart)} title="${title}"`)
       if (insertAtSectionStart) {
         note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
       } else {
@@ -292,7 +292,7 @@ export function sortParagraphsByType(paragraphs: $ReadOnlyArray<TParagraph>, sor
   return sortedList
 }
 
-async function getUserSort(sortChoices = SORT_ORDERS) {
+async function getUserSort(sortChoices: Array<any> = SORT_ORDERS) {
   // logDebug(`\tgetUserSort(${JSON.stringify(sortChoices)}`)
   // [String] list of options, placeholder text, callback function with selection/
   const choice = await CommandBar.showOptions(
@@ -507,7 +507,7 @@ export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<
     const paragraphs = getActiveParagraphs(note)
     const tasksObj = paragraphs.reduce(
       (acc: any, para) => {
-        logDebug(`getTasksByHeading`, `para.type=${para.type} para.heading="${para.heading}" para.content="${para.content}"`)
+        // logDebug(`getTasksByHeading`, `para.type=${para.type} para.heading="${para.heading}" para.content="${para.content}"`)
         if (para.type === 'title') {
           if (para.content.trim()) {
             acc[para.content.trim()] = []
@@ -555,7 +555,7 @@ export async function sortTasks(
   const byHeading = withUserInput ? await sortInsideHeadings() : sortInHeadings
 
   logDebug(
-    `\n\nStarting sortTasks(withUserInput:${String(withUserInput)},default sortFields:${JSON.stringify(sortFields)},withHeadings:${String(withHeadings)},byHeading:${String(
+    `\n\nStarting sortTasks(withUserInput:${String(withUserInput)}, default sortFields:${JSON.stringify(sortFields)}, withHeadings:${String(withHeadings)}, byHeading:${String(
       byHeading,
     )}):`,
   )
@@ -614,11 +614,13 @@ export async function sortTasks(
 }
 
 /**
- * Sort Tasks/Checklists Under a Heading in the Editor, either specified in the call, or ask the user.
- * Note: Plugin entrypoint for "/sth"
- * @param {string} headingIn
+ * sortTasksUnderHeading
+ * Plugin entrypoint for "/sth".
+ * Can also be called from templates or other plugins.
+ * @param {string} _heading (optional) heading to sort - from xcallback or other plugin call
+ * @param {string} _sortOrder (optional) sort order - from xcallback or other plugin call
  */
-export async function sortTasksUnderHeading(headingIn = '') {
+export async function sortTasksUnderHeading(_heading: string='', _sortOrder: string | Array<string> =''): Promise<void> {
   try {
     if (!Editor || !Editor.note) {
       logError('sortTasksUnderHeading', `sortTasksUnderHeading: There is no open Editor.note. Stopping.`)
@@ -626,30 +628,43 @@ export async function sortTasksUnderHeading(headingIn = '') {
     }
 
     // Get heading from param or ask user
-    const headingToUse = (headingIn !== '') ? headingIn : await chooseHeading(Editor?.note, false, false, false)
-    if (!headingToUse) {
+    const heading = (_heading !== '') ? _heading : await chooseHeading(Editor?.note, false, false, false)
+    if (!heading) {
       logInfo('sortTasksUnderHeading', `No heading given, so stopping.`)
       await showMessage(`No heading given, so stopping.`)
     }
 
     // Sort tasks
-    logDebug('sortTasksUnderHeading', `Will sort tasks under heading '${headingToUse}'`)
-    const block = getBlockUnderHeading(Editor.note, headingToUse)
-    if (block?.length) {
-      // TODO: If a heading was given, then use user's defined default sort order instead of asking
-      const sortOrder = await getUserSort()
-      if (sortOrder) {
-        const sortedTasks = sortParagraphsByType(block, sortOrder)
-        clo(sortedTasks, `sortTasksUnderHeading sortedTasks`)
-        deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
-        await writeOutTasks(Editor.note, sortedTasks, false, false, '', headingToUse)
+    let sortOrder: Array<string> = []
+    if (typeof _sortOrder === 'object') {
+      // if sortOrder is an array, then it's already in the correct format
+      sortOrder = _sortOrder
+    } else {
+      // if sortOrder is a string, then it's a JSON string, so we need to parse it
+      sortOrder = _sortOrder ? JSON.parse(_sortOrder) : await getUserSort()
+    }
+    logDebug(pluginJson, `sortTasksUnderHeading: starting for heading="${heading}" sortOrder="${String(sortOrder)}"`)
+    logDebug('sortTasksUnderHeading', `Will sort tasks under heading '${heading}'`)
+    if (heading && Editor.note) {
+      const block = getBlockUnderHeading(Editor.note, heading)
+      if (block?.length) {
+        if (sortOrder) {
+          const sortedTasks = sortParagraphsByType(block, sortOrder)
+          // clo(sortedTasks, `sortTasksUnderHeading sortedTasks`)
+          // $FlowIgnore(incompatible-call)
+          deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
+          // $FlowIgnore(incompatible-call)
+          await writeOutTasks(Editor.note, sortedTasks, false, false, '', heading)
+        }
+      } else {
+        logInfo('sortTasksUnderHeading', `No tasks found under heading "${heading}"`)
+        await showMessage(`No tasks found under heading "${heading}"`)
       }
     } else {
-      logInfo('sortTasksUnderHeading', `No tasks found under heading "${heading}"`)
-      await showMessage(`No tasks found under heading "${headingToUse}"`)
+      logError(pluginJson, `sortTasksUnderHeading: There is no Editor.note. Stopping.`)
+      await showMessage('No note is open, so stopping.')
     }
-
   } catch (error) {
-    logError(pluginJson, JSON.stringify(error))
+    logError(pluginJson, JSP(error))
   }
 }

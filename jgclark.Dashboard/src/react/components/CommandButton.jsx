@@ -1,51 +1,70 @@
 // @flow
 //--------------------------------------------------------------------------
 // Buttons on the UI, including adding tasks and checklists to today's note
-// Last updated 15.5.2024 for v2.0.0 by @jgclark
+// Last updated 2025-04-08 for 2.2.0.a12
 //--------------------------------------------------------------------------
 
 import React from 'react'
 import type { TActionButton } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug, JSP } from '@helpers/react/reactDev.js'
+import { logDebug, JSP, clo } from '@helpers/react/reactDev.js'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+import { showDialog } from '@helpers/react/userInput'
 
 type ButtonProps = {
   button: TActionButton,
   onClick: (button: TActionButton) => void, // send this button info back up
+  className: string,
   // param: string,
 }
 
 function CommandButton(inputObj: ButtonProps): React$Node {
-  const { sendActionToPlugin /*, sendToPlugin, dispatch, pluginData */ } = useAppContext()
-  const { button, onClick } = inputObj
+  const { sendActionToPlugin } = useAppContext()
+  const { button, onClick, className } = inputObj
 
-  // logDebug(`CommandButton`,`setting up button: ${button.display}, button=${JSP(button,2)}`)
-
-  // For adding icons to button display, tried this approach but decided it's not flexible enough:
+  // Note: For adding icons to button display, tried this approach but decided it's not flexible enough:
   // const possIconBefore = (button.iconBefore !== '') ? <i className={`${button.iconBefore} padRight`}></i> : ''
   // const possIconAfter = (button.iconAfter !== '') ? <i className={`padLeft ${button.iconAfter}`}></i> : ''
   // Instead will use dangerouslySetInnerHTML, so we can set anything.
 
-  const handleButtonClick = () => {
-    logDebug(`CommandButton`, `button clicked: ${button.display}`)
+  const sendButtonAction = (button: TActionButton, userInputObj: Object, modifierName?: string | null) => {
     sendActionToPlugin(button.actionPluginID, {
       actionType: button.actionName,
       toFilename: button.actionParam,
-      sectionCodes: button.postActionRefresh
+      sectionCodes: button.postActionRefresh,
+      userInputObj: userInputObj,
+      modifierKey: modifierName,
     })
     onClick(button)
   }
 
+  const handleButtonClick = async (event: MouseEvent) => {
+    const { modifierName } = extractModifierKeys(event)
+    // logDebug('CommandButton', `🔸 handleButtonClick: ${button.tooltip}, modifierName=${modifierName ? modifierName : '-'}`)
+    let userInputObj: TAnyObject | null
+    if (button.formFields) {
+      // show dialog to get user input if formFields are defined
+      userInputObj = await showDialog({
+        items: button.formFields,
+        title: button.tooltip,
+        submitOnEnter: button.submitOnEnter,
+        submitButtonText: button.submitButtonText,
+        // TODO: can this be removed or refactored?
+        style: {
+          top: '40%',
+        },
+
+      })
+      userInputObj ? sendButtonAction(button, userInputObj, modifierName) : null
+    } else {
+      sendButtonAction(button, null, modifierName)
+    }
+  }
+
   return (
     <>
-      {' '}
-      <button
-        className="PCButton tooltip"
-        data-tooltip={button.tooltip}
-        onClick={handleButtonClick}
-        dangerouslySetInnerHTML={{ __html: button.display }}
-      >
-      </button>
+      {/* {' '} */}
+      <button className={`${className} tooltip`} data-tooltip={button.tooltip} onClick={handleButtonClick} dangerouslySetInnerHTML={{ __html: button.display }}></button>
     </>
   )
 }

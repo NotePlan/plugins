@@ -1,5 +1,5 @@
 # 📙 NoteHelpers plugin
-This plugin provides commands to do things with notes that aren't yet provided in the app:
+This plugin (now a Core Plugin bundled with NotePlan 3.16.1 onwards) provides commands to do things with notes that aren't yet provided in the app:
 
 - **add number of days to dates**: looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds the number of days to or since that date. Useful for making lists of important days and easily knowing number of days to (or since) that day.
 - **add trigger to note**: makes it easy to add a trigger to a particular note. It lists the functions from all plugins that it can work out are written for triggers, but also allows any function to be picked. (See [NotePlan help page on Triggers](https://help.noteplan.co/article/173-plugin-note-triggers).)
@@ -16,12 +16,18 @@ This plugin provides commands to do things with notes that aren't yet provided i
 - **jump to note's heading** (alias **jn**): jump to a different note, and then to the selected heading
 - **jump to done** (alias **jd**): simply jumps the cursor to the `## Done` section of the current note (if it exists)
 - **list inconsistent note filenames**: lists the names of notes whose filenames are inconsistent with their titles
-- **move note** (alias **mn**): which moves a note to a different folder the user selects
+- **list published notes**: generates a list in the new 'Publlished Notes' note of all notes that have been published to the internet through NotePlan. The note is created in the root folder; after this it can be moved to a different folder if desired.
+- **log Editor Note**: logs the main details about the currently open note to the plugin console.
+- **log Editor Note (detailed)** command that does the same as **log Editor Note** but also logs line type and rawContents.
+- - **move note** (alias **mn**): which moves a note to a different folder the user selects
+- **new note** (alias **nn**): creates a new (regular, not calendar) note with a title you give, and in a folder you can select. If the "Default Text to add to frontmatter" setting isn't blank, then the note will be created using that frontmatter.
+- **new note from clipboard** (alias **/nnc**): takes the current text in the clipboard to form the basis of a new note. The command asks for the note title and folder location.
+- **new note from selection** (alias **/nns**): takes the current selected text to form the basis of a new note. The command asks for the note title and folder location.
 - **open current note new split** (alias **ocns**): open the current note again in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
 - **open note new window** (alias **onw**): open a user-selected note in a new window (and places the cursor at what it judges to be the start of the main content)
 - **open note new split** (alias **ons**): open a user-selected note in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
 - **open url from a note**: asks for a note, and then presents a list of URLs found in that note. The selected one is then opened in your default browser. (There's a setting to ignore URLs in closed tasks.)
-- **rename note filename**: renames the currently open note to one you specify. Note: this changes the underlying _filename_ not the visible _title_.
+- **rename note filename**: renames the currently open note to one you specify. Note: this changes the underlying _filename_ not the visible _title_. This has proved very helpful for people renaming notes who have imported them from other systems, including Obsidian.
 - **rename filename to title**: renames the current filename to the title of the note
 - **rename inconsistent note filenames**: renames the files of notes whose filenames are inconsistent with their titles. When run it offers to rename all in one go, or to go one by one so you can choose which ones to rename.
 - **reset title to match filename**: resets the current note title to match its filename.
@@ -30,10 +36,17 @@ This plugin provides commands to do things with notes that aren't yet provided i
 - **Show This Quarter** (alias **/stq**)
 - **Show This Year** (alias **/sty**)
 - **update all indexes** (alias **uai**): updates all the existing folder index notes
+- **Write changed/modified date to frontmatter** (alias **modified**): writes the modified date to frontmatter (on each save). Writes to 'modified' key. Also (optionally) writes the author's initials to the 'author' key (see plugin settings).
 
 **Tip**: some of these are even more helpful if you assign a keyboard shortcut to them, using macOS's Keyboard > Shortcuts > App Shortcuts system. For example I have mapped ⇧⌘H to `/jump to heading`.
 
 (If these commands are useful to you, you'll probably find the [TidyUp plugin](https://github.com/NotePlan/plugins/blob/main/np.Tidy/) helpful too. It's rather arbitrary which commands live in which plugin.)
+
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
+
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
+
+Thanks!
 
 ## "find and link unlinked notes ..." commands
 Here is a demo:
@@ -65,12 +78,6 @@ The arguments are:
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
-
-If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
-
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
-
-Thanks!
 
 ## History
 See [CHANGELOG](CHANGELOG.md) for the plugin's history.

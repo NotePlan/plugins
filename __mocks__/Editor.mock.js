@@ -1,173 +1,82 @@
 /* eslint-disable */
-/*
- * Editor mocks
+/**
+ * Editor mocks with Proxy
  *
- * Note: nested object example data are there for reference only -- will need to be deleted or cleaned up before use (consider using a factory)
- * For functions: check whether async or not & add params & return value
+ * Editor and Note share many of the same properties+methods (CoreNoteFields), so most of them are defined in Note.mock.js and can apply to both.
  *
- * TODO: IMPORTANT NOTE
- * - @dwertheimer started adding some of the underlying methods to Note.mock.js, but it's not complete
- * - if you need to add a method to Editor that's in Note also, add it to Note.mock.js and then add it here
+ * This module uses a JavaScript Proxy to redirect all function calls to the underlying `note` object unless specifically overridden.
+ * The `get` trap in the Proxy checks if a property exists on the `Editor` object. If it does, it returns that property.
+ * If not, it delegates the call to the `note` object. If the property is not found in either, it throws an error.
  *
+ * To override a function that is not in the underlying `note`, simply define it in the `editorOverrides` object.
+ *
+ * Note: All `open*` functions are specifically overridden to return `this.note`.
  */
 
 import { Note } from './Note.mock'
-const blankNote = new Note() // NOTE: try to reference the code in the Note mock wherever possible!
-// NOTE: blankNote is spread into Editor below, so any properties that exist in Note will overwrite the ones in Editor
+const noteObject = new Note() // NOTE: try to reference the code in the Note mock wherever possible!
+// NOTE: noteObject is spread into Editor below, so any properties that exist in Note will overwrite the ones in Editor
 
-export const Editor = {
+const editorOverrides = {
   ...{
-    syncEditorWithNote() {
-      this.paragraphs = this.note.paragraphs
-      this.content = this.note.content
-      // add other fields as needed
-    },
-    note: blankNote,
-    addBlockID(p) {
-      return this.note.addBlockID(p)
-    },
-    // async addParagraphBelowHeadingTitle() { return null },
-    // async addTheme() { return null },
-    // async addTodoBelowHeadingTitle() { return null },
-    async appendParagraph(title = 'mock tester', type: 'text') {
-      return this.note.appendParagraph(title, type)
-    },
-    // async appendParagraphBelowHeadingLineIndex() { return null },
-    // async appendTodo() { return null },
-    // async appendTodoBelowHeadingLineIndex() { return null },
-    /* availableThemes: [{ return default }], */
-    // content: VALUE ,
-    // async copySelection() { return null },
-    filename: 'thisFileName.txt',
-    // async highlight() { return null },
-    // async highlightByIndex() { return null },
-    // async highlightByRange() { return null },
-    // async insertCancelledTodo() { return null },
-    // async insertCompletedTodo() { return null },
-    // async insertHeading() { return null },
-    // async insertList() { return null },
-    // insertParagraph(name = 'mock tester', lineIndex = 1, type: 'text') {
-    //   return blankNote.insertParagraph(name, lineIndex, type)
-    // },
-    // async insertParagraphAfterParagraph() { return null },
-    // async insertParagraphAtCursor() { return null },
-    // async insertParagraphBeforeParagraph() { return null },
-    // async insertQuote() { return null },
-    // async insertScheduledTodo() { return null },
-    async insertTextAtCharacterIndex(text = '', length = 0) {
-      this.note.insertTextAtCharacterIndex(text, length)
-      this.syncEditorWithNote()
-    },
-    async insertTextAtCursor(text: string) {
-      this.note.insertTextAtCursor(text)
-      this.syncEditorWithNote()
-    },
-    // async insertTodo() { return null },
-    // async insertTodoAfterParagraph() { return null },
-    // async insertTodoBeforeParagraph() { return null },
-    async isFolded(para) {
-      return false
-    },
     async openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote> {
-      return this.note
+      return noteObject
     },
-    // async openNoteByDateString() { return null },
+    async openNoteByDateString() {
+      return noteObject
+    },
     async openNoteByFilename() {
-      return this.note
+      return noteObject
     },
-    // async openNoteByTitle() { return null },
-    // async openNoteByTitleCaseInsensitive() { return null },
-    async paragraphRangeAtCharacterIndex() {
-      return null
+    async openNoteByTitle() {
+      return noteObject
     },
-    /* paragraphs: [{ return {
-		"type": "title",
-		"content": "MyNoteTitle",
-		"rawContent": "# MyNoteTitle",
-		"prefix": "# ",
-		"contentRange": {},
-		"lineIndex": 0,
-		"heading": "",
-		"headingLevel": 1,
-		"isRecurring": false,
-		"indents": 0,
-		"filename": "_TEST/New Note - 15.3950.md",
-		"noteType": "Notes",
-		"linkedNoteTitles": [],
-		"subItems": [],
-		"referencedBlocks": [],
-		"note": {}
-} }], */
-    // async pasteClipboard() { return null },
-    // async prependParagraph() { return null },
-    // async prependTodo() { return null },
-    // async printNote() { return null },
-    // async removeBlockID() { return null },
-
-    async removeParagraph(para) {
-      this.note.removeParagraph(para)
-      this.syncEditorWithNote()
-      return
+    async openNoteByTitleCaseInsensitive() {
+      return noteObject
     },
-    async removeParagraphs(paras) {
-      this.note.removeParagraphs(paras)
-      this.syncEditorWithNote()
-      return
-    },
-
-    // async removeParagraphAtIndex() { return null },
-    // async renderedSelect() { return null },
-    /* renderedSelection: {
-		"start": 36,
-		"end": 36,
-		"length": 0
-} ,  */
-    // async replaceSelectionWithText() { return null },
-    // async replaceTextInCharacterRange() { return null },
-    // async select() { return null },
-    // async selectAll() { return null },
-    /* selectedLinesText: [{ return * one task in the note }], */
-    /* selectedParagraphs: [{ return {
-		"type": "open",
-		"content": "one task in the note",
-		"rawContent": "* one task in the note",
-		"prefix": "* ",
-		"contentRange": {},
-		"lineIndex": 0,
-		"heading": "",
-		"headingLevel": -1,
-		"isRecurring": false,
-		"indents": 0,
-		"filename": "_TEST/New Note - 15.3950.md",
-		"noteType": "Notes",
-		"linkedNoteTitles": [],
-		"subItems": [],
-		"referencedBlocks": [],
-		"note": {}
-} }], */
-    // selectedText: VALUE ,
-    /* selection: {
-		"start": 36,
-		"end": 36,
-		"length": 0
-} ,  */
-    // async setTheme() { return null },
-    // title: VALUE ,
-    async toggleFolding() {
-      return null
-    },
-    // type: VALUE ,
-
-    async updateParagraph(para) {
-      this.note.updateParagraph(para)
-      this.syncEditorWithNote()
-    },
-    async updateParagraphs(paras) {
-      this.note.updateParagraphs(paras)
-      this.syncEditorWithNote()
-    },
+    note: noteObject,
   },
-  ...blankNote,
+  ...noteObject,
 }
 
-// module.exports = Editor
+export const Editor = new Proxy(editorOverrides, {
+  get(target, prop) {
+    if (prop in target) {
+      return target[prop]
+    }
+    if (prop in target.note) {
+      return target.note[prop]
+    }
+    // Handle known built-in Symbol properties with sensible defaults
+    const symbolProperties = [Symbol.iterator, Symbol.toPrimitive, Symbol.asyncIterator, Symbol.hasInstance, Symbol.toStringTag]
+    if (symbolProperties.includes(prop)) {
+      if (prop === Symbol.iterator) return undefined
+      if (prop === Symbol.toPrimitive) return (hint) => (hint === 'number' ? NaN : String(target.note))
+      if (prop === Symbol.asyncIterator) return undefined
+      if (prop === Symbol.hasInstance) return undefined
+      if (prop === Symbol.toStringTag) return 'Editor'
+    }
+    // Handle Jest specific methods that are not defined on Note and which should not cause errors
+    if (['asymmetricMatch'].includes(prop)) {
+      return undefined
+    }
+    // Throw detailed error if property is not found
+    throw new Error(
+      `Editor.mock.js: Property "${String(prop)}" not found. Editor.${String(prop)} or Note.${String(prop)} does not exist.\n` +
+        `- Check if this property/method should be implemented in Note.mock.js.\n` +
+        `- If it's Editor-specific, consider adding it to Editor.mock.js overrides in editorOverrides.\n` +
+        `- If this is a Jest-specific method (such as 'asymmetricMatch') or a built-in Symbol (e.g., Symbol.iterator, Symbol.toPrimitive), ` +
+        `return a sensible default instead.\n`,
+    )
+  },
+  set(target, prop, value) {
+    if (prop === 'note') {
+      target.note = value
+      // Reinitialize the proxy with the new note
+      Object.assign(target, value)
+      return true
+    }
+    target[prop] = value
+    return true
+  },
+})

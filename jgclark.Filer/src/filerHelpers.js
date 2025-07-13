@@ -36,7 +36,7 @@ export async function getFilerSettings(): Promise<any> {
   try {
     // // TODO: add to np.Shared
     // // First get global setting 'useTightBlockDefinition'
-    // let useTightBlockDefinition = getSetting('np.Shared', 'useTightBlockDefinition')
+    // let useTightBlockDefinition = await getSetting('np.Shared', 'useTightBlockDefinition')
     // logDebug('getFilerSettings', `- useTightBlockDefinition: np.Globals: ${String(useTightBlockDefinition)}`)
 
     // Get settings
@@ -58,9 +58,8 @@ export async function getFilerSettings(): Promise<any> {
 
 /**
  * Function to write text either to top of note, bottom of note, or after a heading
- * Note: When written, there was no API function to deal with multiple selectedParagraphs,
- * but we can insert a raw text string.
- * Note: now can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports
+ * Note: When written, there was no API function to deal with multiple selectedParagraphs, but we can insert a raw text string.
+ * Note: now can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports.
  * @author @jgclark
  *
  * @param {TNote} destinationNote
@@ -84,9 +83,9 @@ export function addParasAsText(
     logDebug('Filer/addParasAsText', `-> top of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
-  } else if (headingToFind === '') {
+  } else if (headingToFind === '<<bottom of note>>' || headingToFind === '') {
     // blank return from chooseHeading has special meaning of 'end of note'
-    insertionIndex = destinationNoteParas.length + 1
+    insertionIndex = destinationNoteParas.length + 1 || 0
     logDebug('Filer/addParasAsText', `-> bottom of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 

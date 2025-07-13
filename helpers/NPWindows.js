@@ -8,13 +8,20 @@ import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search'
 import { inputIntegerBounded } from '@helpers/userInput'
 
+// ----------------------------------------------------------------------------
+// CONSTANTS
+
+export type TWindowType = 'Editor' | 'HTMLView'
+
+// ----------------------------------------------------------------------------
+
 /**
  * Return string version of Rect's x/y/width/height attributes
  * @param {Rect} rect
  * @returns {string}
  */
 export function rectToString(rect: Rect): string {
-  return `X${String(rect.x)},Y${String(rect.y)},w${String(rect.width)},h${String(rect.height)}`
+  return `X${String(rect.x)},Y${String(rect.y)}, w${String(rect.width)},h${String(rect.height)}`
 }
 
 /**
@@ -25,49 +32,23 @@ export function rectToString(rect: Rect): string {
 export function logWindowsList(): void {
   const outputLines = []
   const numWindows = NotePlan.htmlWindows.length + NotePlan.editors.length
-  if (NotePlan.environment.buildVersion >= 1100) {
-    // v3.9.8a
-    outputLines.push(`${String(numWindows)} Windows on ${NotePlan.environment.machineName}:`)
-  } else {
-    outputLines.push(`${String(numWindows)} Windows:`)
-  }
+  outputLines.push(`${String(numWindows)} Windows on ${NotePlan.environment.machineName}:`)
 
-  if (NotePlan.environment.buildVersion >= 1020) {
-    let c = 0
-    for (const win of NotePlan.editors) {
-      outputLines.push(`- ${String(c)}: ${win.windowType}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
-      c++
-    }
-    c = 0
-    for (const win of NotePlan.htmlWindows) {
-      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' ID:${win.id} Rect:${rectToString(win.windowRect)}`)
-      c++
-    }
-    logInfo('logWindowsList', outputLines.join('\n'))
-  } else if (NotePlan.environment.buildVersion >= 973) {
-    let c = 0
-    for (const win of NotePlan.editors) {
-      outputLines.push(`- ${String(c)}: ${win.windowType}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id}`)
-      c++
-    }
-    c = 0
-    for (const win of NotePlan.htmlWindows) {
-      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' ID:${win.id}`)
-      c++
-    }
-    outputLines.unshift(`${outputLines.length} Windows:`)
-    logInfo('logWindowsList', outputLines.join('\n'))
-  } else {
-    logInfo('logWindowsList', `Cannot list windows: needs NP v3.8.1+`)
+  let c = 0
+  for (const win of NotePlan.editors) {
+    outputLines.push(`- ${String(c)}: ${win.windowType}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
+    c++
   }
+  c = 0
+  for (const win of NotePlan.htmlWindows) {
+    outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' ID:${win.id} Rect:${rectToString(win.windowRect)}`)
+    c++
+  }
+  logInfo('logWindowsList', outputLines.join('\n'))
 }
 
 export async function setEditorSplitWidth(editorWinIn: number, widthIn: number): Promise<void> {
   try {
-    if (NotePlan.environment.buildVersion <= 1119) {
-      logWarn('setEditorSplitWidth', 'Cannot set editor split window width.')
-      return
-    }
     const editorWinIndex = editorWinIn
       ? editorWinIn
       : await inputIntegerBounded('Set Width', 'Which open Editor number to set width for? (0-${String(NotePlan.editors.length - 1)})', NotePlan.editors.length - 1, 0)
@@ -82,7 +63,7 @@ export async function setEditorSplitWidth(editorWinIn: number, widthIn: number):
       return
     }
     const existingWidth = thisWindowRect.width
-    logDebug('setEditorSplitWidth', 'Attempting to set width for editor #'.concat(String(editorWinIndex), ' from ').concat(existingWidth, ' to ').concat(String(width)))
+    logDebug('setEditorSplitWidth', 'Attempting to set width for editor #'.concat(String(editorWinIndex), ' from ').concat(String(existingWidth), ' to ').concat(String(width)))
     thisWindowRect.width = width
     editorWin.windowRect = thisWindowRect
     const newWidth = thisWindowRect.width
@@ -95,52 +76,36 @@ export async function setEditorSplitWidth(editorWinIn: number, widthIn: number):
 
 /**
  * Return list of all open window IDs (other than main Editor).
- * Uses API introduced in NP 3.8.1, and extended in 3.9.1 to add .rect.
+ * Note: minimum version 3.9.1
+ * @param {TWindowType} windowType - 'Editor' or 'HTMLView'
+ * @returns {Array<string>} list of non-main window IDs
  * @author @jgclark
  */
-export function getNonMainWindowIds(): Array<string> {
+export function getNonMainWindowIds(windowType: TWindowType = 'Editor'): Array<string> {
   const outputIDs = []
-  if (NotePlan.environment.buildVersion >= 973) {
-    let c = 0
-    for (const win of NotePlan.editors) {
-      if (c > 0) outputIDs.push(win.id)
-      c++
+  switch (windowType) {
+    case 'Editor': {
+      let c = 0
+      for (const win of NotePlan.editors) {
+        if (c > 0) outputIDs.push(win.id)
+        c++
+      }
+      break
     }
-    for (const win of NotePlan.htmlWindows) {
-      outputIDs.push(win.id)
+    case 'HTMLView': {
+      for (const win of NotePlan.htmlWindows) {
+        outputIDs.push(win.id)
+      }
+      break
     }
-    logInfo('logWindowsList', outputIDs.join('\n'))
-    return outputIDs
-  } else {
-    logWarn('logWindowsList', `(Cannot list windows: needs NP v3.8.1+)`)
-    return []
+    default: {
+      logWarn('getNonMainWindowIds', `Unknown window type '${windowType}'`)
+    }
   }
+  logDebug('getNonMainWindowIds', `for type '${windowType}' => ${outputIDs.join('\n')}`)
+  return outputIDs
 }
 
-/**
- * Set customId for the (single) HTML window
- * Note: for NP v3.8.1-3.9.5 only.
- * Note: from 3.9.6 (build 1087) it is included in the .showWindowWithOptions() API
- * @author @jgclark
- * @param {string} customId
- */
-export async function setHTMLWindowId(customId: string): Promise<void> {
-  if (NotePlan.environment.buildVersion >= 1087) {
-    logDebug('setHTMLWindowId', `Won't set customId '${customId}' for HTML window as not necessary from 3.9.6.`)
-  } else if (NotePlan.environment.buildVersion >= 973) {
-    const allHTMLWindows = NotePlan.htmlWindows
-    logDebug('setHTMLWindowId', `Starting with ${String(allHTMLWindows.length)} HTML windows`)
-    const thisWindow = allHTMLWindows[0]
-    if (thisWindow) {
-      thisWindow.customId = customId
-      await logWindowsList()
-    } else {
-      logError('setHTMLWindowId', `Couldn't set customId '${customId}' for HTML window`)
-    }
-  } else {
-    logInfo('setHTMLWindowId', `(Cannot set window title: needs NP v3.8.1+)`)
-  }
-}
 
 /**
  * Search open HTML windows and return the window object that matches a given customId (if available).
@@ -160,7 +125,6 @@ export function getWindowIdFromCustomId(customId: string): string | false {
     // clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
     if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
       thisWin.customId = customId
-      logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customId}'`)
       return thisWin.id
     } else {
       // logWarn('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customId}'`)
@@ -191,20 +155,16 @@ export function isHTMLWindowOpen(customId: string): boolean {
  * @param {string} customId
  */
 export function setEditorWindowId(openNoteFilename: string, customId: string): void {
-  if (NotePlan.environment.buildVersion >= 973) {
-    const allEditorWindows = NotePlan.editors
-    for (const thisEditorWindow of allEditorWindows) {
-      if (thisEditorWindow.filename === openNoteFilename) {
-        thisEditorWindow.customId = customId
-        logDebug('setEditorWindowId', `Set customId '${customId}' for filename ${openNoteFilename}`)
-        // logWindowsList()
-        return
-      }
+  const allEditorWindows = NotePlan.editors
+  for (const thisEditorWindow of allEditorWindows) {
+    if (thisEditorWindow.filename === openNoteFilename) {
+      thisEditorWindow.customId = customId
+      logDebug('setEditorWindowId', `Set customId '${customId}' for filename ${openNoteFilename}`)
+      // logWindowsList()
+      return
     }
-    logError('setEditorWindowId', `Couldn't match '${openNoteFilename}' to an Editor window, so can't set customId '${customId}' for Editor`)
-  } else {
-    logInfo('setEditorWindowId', `Cannot set window title: needs NP v3.8.1+`)
   }
+  logError('setEditorWindowId', `Couldn't match '${openNoteFilename}' to an Editor window, so can't set customId '${customId}' for Editor`)
 }
 
 /**
@@ -215,20 +175,16 @@ export function setEditorWindowId(openNoteFilename: string, customId: string): v
  * @returns {Editor} the Editor window
  */
 export function findEditorWindowByFilename(filenameToFind: string): TEditor | false {
-  if (NotePlan.environment.buildVersion >= 973) {
-    logWindowsList()
+  logWindowsList()
 
-    const allEditorWindows = NotePlan.editors
-    for (const thisEditorWindow of allEditorWindows) {
-      if (thisEditorWindow.filename === filenameToFind) {
-        logDebug('findEditorWindowByFilename', `found Editor Window for filename ${filenameToFind}. ID=${thisEditorWindow.id}`)
-        return thisEditorWindow
-      }
+  const allEditorWindows = NotePlan.editors
+  for (const thisEditorWindow of allEditorWindows) {
+    if (thisEditorWindow.filename === filenameToFind) {
+      logDebug('findEditorWindowByFilename', `found Editor Window for filename ${filenameToFind}. ID=${thisEditorWindow.id}`)
+      return thisEditorWindow
     }
-    logWarn('findEditorWindowByFilename', `Couldn't match '${filenameToFind}' to an Editor window`)
-  } else {
-    logInfo('findEditorWindowByFilename', `This needs NP v3.8.1+`)
   }
+  logWarn('findEditorWindowByFilename', `Couldn't match '${filenameToFind}' to an Editor window`)
   return false
 }
 
@@ -239,18 +195,13 @@ export function findEditorWindowByFilename(filenameToFind: string): TEditor | fa
  * @returns {boolean}
  */
 export function noteOpenInEditor(openNoteFilename: string): boolean {
-  if (NotePlan.environment.buildVersion >= 973) {
-    const allEditorWindows = NotePlan.editors
-    for (const thisEditorWindow of allEditorWindows) {
-      if (thisEditorWindow.filename === openNoteFilename) {
-        return true
-      }
+  const allEditorWindows = NotePlan.editors
+  for (const thisEditorWindow of allEditorWindows) {
+    if (thisEditorWindow.filename === openNoteFilename) {
+      return true
     }
-    return false
-  } else {
-    logInfo('noteNotOpenInEditor', `Cannot test if note is open in Editor as not running v3.8.1 or later`)
-    return false
   }
+  return false
 }
 
 /**
@@ -260,15 +211,11 @@ export function noteOpenInEditor(openNoteFilename: string): boolean {
  * @returns {TEditor} the matching open Editor window
  */
 export function getOpenEditorFromFilename(openNoteFilename: string): TEditor | false {
-  if (NotePlan.environment.buildVersion >= 973) {
-    const allEditorWindows = NotePlan.editors
-    for (const thisEditorWindow of allEditorWindows) {
-      if (thisEditorWindow.filename === openNoteFilename) {
-        return thisEditorWindow
-      }
+  const allEditorWindows = NotePlan.editors
+  for (const thisEditorWindow of allEditorWindows) {
+    if (thisEditorWindow.filename === openNoteFilename) {
+      return thisEditorWindow
     }
-  } else {
-    logInfo('getOpenEditorFromFilename', `Cannot test if note is open in Editor as not running v3.8.1 or later`)
   }
   return false
 }
@@ -279,19 +226,15 @@ export function getOpenEditorFromFilename(openNoteFilename: string): TEditor | f
  * @returns {boolean} true if we have given focus to an existing window
  */
 export function focusHTMLWindowIfAvailable(customId: string): boolean {
-  if (NotePlan.environment.buildVersion >= 973) {
-    const allHTMLWindows = NotePlan.htmlWindows
-    for (const thisWindow of allHTMLWindows) {
-      if (thisWindow.customId === customId) {
-        thisWindow.focus()
-        logInfo('focusHTMLWindowIfAvailable', `Focused HTML window '${thisWindow.customId}'`)
-        return true
-      }
+  const allHTMLWindows = NotePlan.htmlWindows
+  for (const thisWindow of allHTMLWindows) {
+    if (thisWindow.customId === customId) {
+      thisWindow.focus()
+      logInfo('focusHTMLWindowIfAvailable', `Focused HTML window '${thisWindow.customId}'`)
+      return true
     }
-    logInfo('focusHTMLWindowIfAvailable', `No HTML window with '${customId}' is open`)
-  } else {
-    logInfo('focusHTMLWindowIfAvailable', `(Cannot find window Ids as not running v3.8.1 or later)`)
   }
+  logInfo('focusHTMLWindowIfAvailable', `No HTML window with '${customId}' is open`)
   return false
 }
 
@@ -308,6 +251,22 @@ export async function openNoteInNewWindowIfNeeded(filename: string): Promise<boo
     logWarn('openWindowSet', `Failed to open floating window '${filename}'`)
   }
   return !!res
+}
+
+/**
+ * Open a calendar note in a split editor, and (optionally) move insertion point to 'cursorPointIn'
+ * @author @jgclark
+ * @param {*} filename
+ * @param {*} cursorPointIn
+ */
+export async function openCalendarNoteInSplit(filename: string, cursorPointIn?: string | number = 0): Promise<void> {
+  // For some reason need to add a bit to get to the right place.
+  const cursorPoint = (typeof cursorPointIn === 'string') ? parseInt(cursorPointIn) + 21 : cursorPointIn + 21
+  const res = Editor.openNoteByDateString(filename.split('.')[0], false, cursorPoint, cursorPoint, true)
+  if (res) {
+    // Make sure it all fits on the screen
+    await constrainMainWindow()
+  }
 }
 
 /**
@@ -448,10 +407,6 @@ export function storeWindowRect(customId: string): void {
  */
 export function getStoredWindowRect(customId: string): Rect | false {
   try {
-    if (NotePlan.environment.buildVersion < 1020) {
-      logWarn('getWindowRect', `Cannot get window rect as not running v3.9.1 or later.`)
-      return false
-    }
     const prefName = `WinRect_${customId}`
     // $FlowFixMe[incompatible-type]
     const windowRect: Rect = DataStore.preference(prefName)
@@ -473,10 +428,6 @@ export function getStoredWindowRect(customId: string): Rect | false {
  * @returns {Rect} the Rect (x/y/w/h)
  */
 export function getLiveWindowRect(windowId: string): Rect | false {
-  if (NotePlan.environment.buildVersion < 1020) {
-    logWarn('getLiveWindowRect', `Cannot get window rect as not running v3.9.1 or later.`)
-    return false
-  }
   const windowToUse = windowId !== '' ? getWindowFromId(windowId) : NotePlan.htmlWindows[0]
   if (windowToUse) {
     const windowRect: Rect = windowToUse.windowRect
@@ -495,10 +446,6 @@ export function getLiveWindowRect(windowId: string): Rect | false {
  * @returns {Rect} the Rect (x/y/w/h)
  */
 export function getLiveWindowRectFromWin(win: Window): Rect | false {
-  if (NotePlan.environment.buildVersion < 1020) {
-    logWarn('getLiveWindowRectFromWin', `Cannot get window rect as not running v3.9.1 or later.`)
-    return false
-  }
   if (win) {
     const windowRect: Rect = win.windowRect
     clo(windowRect, `getLiveWindowRectFromWin(): Retrieved Rect ${rectToString(windowRect)}:`)
@@ -526,6 +473,7 @@ export function applyRectToHTMLWindow(rect: Rect, customId?: string): void {
 }
 
 /**
+ * Set window width -- either from parameter, or ask user.
  * TODO: Currently not working as hoped. Waiting for @EduardMe to fix things.
  * @author @jgclark
  * @param {number?} editorWinIn index into open .editors array
@@ -533,10 +481,6 @@ export function applyRectToHTMLWindow(rect: Rect, customId?: string): void {
  */
 export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: number): Promise<void> {
   try {
-    if (NotePlan.environment.buildVersion <= 1119) {
-      logWarn('setEditorWindowWidth', `Cannot set editor split window width.`)
-      return
-    }
     const editorWinIndex = editorWinIn
       ? editorWinIn
       : await inputIntegerBounded('Set Width', 'Which open Editor number to set width for? (0-${String(NotePlan.editors.length - 1)})', NotePlan.editors.length - 1, 0)

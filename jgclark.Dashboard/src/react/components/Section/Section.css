@@ -1,0 +1,288 @@
+/* CSS specific to Section components and their children.
+/* Last updated 2025-05-29 for v2.3.0, @jgclark */
+
+/* The main grid for a section: sectionInfo then sectionGrid. */
+.section {
+	display: grid;
+	grid-template-columns: [info] 13rem [items] auto;
+	grid-template-rows: min-content;
+	/* turn on top border (from theme CSS) */
+	border-left: 1px solid var(--divider-color);
+	border-right: 1px solid var(--divider-color);
+	/* border-bottom: 1px solid var(--divider-color); */
+	/* position: relative; */
+}
+
+.sectionInfo {
+	display: block;
+	/* these padding values have been tweaked to be optically correct, at least for JGC's fonts */
+	padding-block-start: 4px;
+	padding-block-end: 4px;
+	padding-inline-start: 0.6rem;
+	padding-inline-end: 0.5rem;
+	color: var(--fg-sidebar-color);
+	background-color: var(--bg-sidebar-color);
+	border-right: 1px solid var(--divider-color);
+}
+
+/* Allow for dashed top border on referenced sections, but otherwise all solid bottom border */
+.referencedSectionInfo {
+	border-top: 1px dotted var(--divider-color);
+	/* border-bottom: 1px solid var(--divider-color); */
+}
+.nonReferencedSectionInfo {
+	border-top: 1px solid var(--divider-color);
+	/* border-bottom: 1px solid var(--divider-color); */
+}
+/* Add bottom border on last of the sections */
+.section:last-of-type {
+	border-bottom: 1px solid var(--divider-color);
+}
+
+/* Idea: For referenced sections, e.g. >This Month. As above, but indented slightly. TODO(later): decide whether to keep this. */
+.sectionInfoIndented {
+	padding-inline-start: 1.6rem;
+}
+
+/* first part of sectionInfo. Grid to contain sectionIcon, sectionName, .buttonsWithoutBordersOrBackground */
+.sectionInfoFirstLine {
+	display: grid;
+	grid-template-columns: auto auto;
+	gap: 4px;
+	/* background-color: blue; */
+
+	/* Remove other background-color for buttons here */
+	/* TODO: Ideally change buttons in Dashboard.css so this isn't needed. */
+	button {
+		background-color: unset;
+		color: unset;
+	}
+}
+
+.sectionIcon {
+	font-size: 1.1rem;
+	/* font-weight: 400; */
+	text-align: center;
+	padding-right: 0.3rem;
+	padding-top: 1px;
+}
+
+.sectionName {
+	font-size: 1.0rem;
+	/* make noteTitles bold */
+	font-weight: 700;
+	margin: unset;
+	/* padding: 3px 0px 0px; */
+	justify-self: start;
+}
+
+/* Next part of sectionInfo. */
+.sectionInfoSecondLine {
+	/* contains DIVs, so need to flex to keep in the same line */
+	display: flex;
+	flex-direction: row;
+	gap: 0.3rem;
+	font-size: 0.9rem;
+}
+
+.sectionDescription {
+	align-self: start;
+	flex-grow: 1;
+	/* a bit smaller */
+	padding-top: 0.1rem;
+	/* Ensure we don't get a single word orphan on a line. Not sure if it is supported in NotePlan's version of Safari. */
+	text-wrap: pretty;
+}
+
+.sectionCompletionCircle {
+	padding-top: 3px;
+	padding-right: 1px;
+	justify-self: end;
+}
+
+/* If very narrow -- for small iPhone drop .sectionDescription */
+@media screen and (max-width: 430px) {
+	.sectionDescription {
+		display: none;
+	}
+}
+
+/* Inner grid for SectionItems -- allow up to 3 columns if wide enough */
+.sectionItemsGrid {
+	font-size: 1.0rem;
+	/* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
+	column-count: 3;
+	column-width: 24rem; /* 25rem; */
+	column-rule: 1px solid var(--divider-color);
+	column-fill: auto;
+	padding-inline-start: 0.5rem;
+	padding-block-start: 0.3rem;
+	padding-block-end: 0.1rem;
+}
+
+.sectionItemRow {
+	/* The important trick to avoiding bad wrapping at end of columns */
+	break-inside: avoid;
+	display: flex;
+	/* trying margin not padding now */
+	margin: 0px 4px 3px 0px; 	
+	border: 0px none;
+	column-gap: 3px;
+	/* vertical for all items this contains */
+	align-items: baseline; /* start; */
+	/* horizontal for all items this contains */
+	justify-items: start;
+}
+
+/* The actual item's details (was col4) */
+.sectionItemContent {
+	/* reduce vertical spacing and line below */
+	font-size: 1.0rem;
+	font-weight: 400;
+	padding: 1px 4px;
+	border-bottom: 0px;
+	break-inside: avoid;
+	line-height: 1.2rem;
+	/* Ensure we don't get a single word orphan on a line. Not sure if it is supported in NotePlan's version of Safari. */
+	text-wrap: pretty;
+}
+
+/* If rather narrow, slide [items] under [info] */
+/* This needs to come after the earlier definitions to take priority */
+@media screen and (max-width: 600px) {
+	.section {
+		grid-template-columns: 1fr;
+	}
+
+	.sectionInfo {
+		/* now make this area grid column-based not row-based */
+		display: grid;
+		/* put all items essentially on a baseline */
+		align-items: baseline;
+		grid-template-columns: max-content max-content auto;
+		grid-column-gap: 1.0rem;
+		border-top: solid 0.5px var(--tint-color);
+		border-bottom: solid 1px var(--divider-color);
+		padding-top: 0.2rem;
+		padding-bottom: 0.1rem;
+	}
+
+	.sectionInfoIndented {
+		padding-inline-start: 1.0rem;
+	}
+
+	.sectionName {
+		/* turn off padding under section name */
+		padding-top: 0.1rem;
+		padding-bottom: 0rem;
+		padding-left: 1px;
+		/* some padding to right */
+		padding-right: 0.5rem;
+	}
+
+	/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
+	/* And https://www.joshwcomeau.com/snippets/react-components/shift-by/ might be useful if tiny tweaks are still needed. */
+	.buttonsWithoutBordersOrBackground {
+		justify-self: start;
+		/* padding-top: 1px; */
+	}
+}
+
+.projectProgress {
+	font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* ItemIcons */
+
+/* Need to override some CSS that comes in the theme */
+.itemIcon {
+	color: var(--item-icon-color);
+	margin-bottom: unset !important;
+	line-height: unset !important;
+	font-size: 1.0rem  !important;
+	/* font-size: unset !important; */
+	font-weight: 400;
+	/* position this horizontally centred; vertically at start */
+	align-self: center;
+	justify-self: center;
+	/* and give a little nudge down to make things line up in practice */
+	/* padding-block-start: 1px; */
+	cursor: pointer;
+}
+
+/* Override what FA adds, which is a fixed width for fixed-with	icons of 1.25rem */
+.fa-fw {
+	width: 1.0rem;
+}
+
+/* Make square-based icons a touch larger, as they're optically smaller than the circle equivalents. Advanced stuff! */
+.fa-square, .fa-square-plus, .fa-square-arrow-right {
+	font-size: 106%; /* 110%; */
+}
+
+/* Override the theme definition of a completed task a little */
+.checked {
+	/* padding-top: 1px !important; */
+	margin-bottom: 0px !important; /* over-ride margin-bottom: 0.25rem that is set somwhere else */
+	font-size: 98%
+}
+
+.projectIcon {
+	/* less to do as this is SVG not text */
+	/* align-self: center; -- would have worked when a single line, but it can now have progress text */
+	align-self: start;
+	justify-self: center;
+	/* and give a little nudge down to make things line up in practice */
+	margin-block-start: 2px;
+	margin-right: 2px;
+}
+
+.dialogTriggerIcon {
+	color: rgb(from var(--fg-main-color) r g b / 0.4);
+	cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ */
+/* ItemRow items */
+
+/* Default class for MessageOnlyItems that don't supply their own class */
+.messageOnlyItem {
+  font-style: italic;
+  color: var(--fg-canceled-color);
+}
+
+.infoItem {
+  font-style: normal;
+  color: var(--fg-main-color);
+}
+
+.noSearchResults {
+  font-style: italic;
+  color: var(--fg-sidebarSearch);
+}
+
+.projectCongrats {
+  font-style: italic;
+  color: var(--fg-done-color);
+}
+
+.itemCongrats {
+  font-style: italic;
+  color: var(--fg-done-color);
+}
+
+/* ------------------------------------------------------------------ */
+/* Other things in Items */
+
+/* The marker for parent items, designed to mimic what EM introduced in 3.15.1 */
+.parentMarker {
+	font-size: 70%;
+	color: rgb(from var(--fg-main-color) r g b / 0.7);
+	background-color: var(--divider-color);
+	margin-left: 0.35rem;
+	border-radius: 30%;
+	padding: 0px 4px;
+	vertical-align: middle;
+	transform: scale(1.25,0.9);
+}

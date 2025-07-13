@@ -133,6 +133,10 @@ describe('paragraph.js', () => {
       const result = p.isTermInMarkdownPath('CABBAGE', 'Something in [this link](http://example.com/cabbage/patch).')
       expect(result).toEqual(true)
     })
+    test('should find time within term within an event link', () => {
+      const result = p.isTermInMarkdownPath('07:15', '![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8)')
+      expect(result).toEqual(true)
+    })
   })
 
   describe('findStartOfActivePartOfNote()', () => {
@@ -153,16 +157,28 @@ describe('paragraph.js', () => {
       expect(result).toEqual(0)
     })
 
-    const noteC = {
+    const noteCA = {
       paragraphs: [
-        { type: 'title', lineIndex: 0, content: 'NoteC Title', headingLevel: 1 },
+        { type: 'title', lineIndex: 0, content: 'NoteCA Title', headingLevel: 1 },
         { type: 'empty', lineIndex: 1 },
         { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
       ],
     }
     test('should find at line 1 (note C)', () => {
-      const result = p.findStartOfActivePartOfNote(noteC)
+      const result = p.findStartOfActivePartOfNote(noteCA)
       expect(result).toEqual(1)
+    })
+
+    const noteCB = {
+      paragraphs: [
+        { type: 'title', lineIndex: 0, content: 'Section 1', headingLevel: 2 },
+        { type: 'empty', lineIndex: 1 },
+        { type: 'title', lineIndex: 2, content: 'Section 2', headingLevel: 2 },
+      ],
+    }
+    test('should find at line 0 (note CB)', () => {
+      const result = p.findStartOfActivePartOfNote(noteCB)
+      expect(result).toEqual(0)
     })
 
     const noteD = {

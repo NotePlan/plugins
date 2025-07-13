@@ -6,28 +6,184 @@
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
-import {
-  calcOffsetDateStrUsingCalendarType,
-  getTodaysDateHyphenated,
-  isScheduled,
-  isValidCalendarNoteFilenameWithoutExtension,
-  RE_ISO_DATE,
-  RE_OFFSET_DATE,
-  RE_OFFSET_DATE_CAPTURE,
-  unhyphenateString,
-} from '@helpers/dateTime'
+import * as dt from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import { displayTitle } from '@helpers/general'
-import { ensureFrontmatter } from '@helpers/NPFrontMatter'
+import { displayTitle, isValidUUID } from '@helpers/general'
+import { endOfFrontmatterLineIndex, ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { noteType } from '@helpers/note'
-import { caseInsensitiveIncludes, getCorrectedHashtagsFromNote } from '@helpers/search'
-import { isOpen } from '@helpers/utils'
+import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
+import { parseTeamspaceFilename } from '@helpers/teamspace'
+import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
+
+//-------------------------------------------------------------------------------
 
 const pluginJson = 'NPnote.js'
 
 //-------------------------------------------------------------------------------
+
+/**
+ * Print summary of note details to log.
+ * @author @eduardmet
+ * @param {?TNote} noteIn
+ * @param {boolean?} alsoShowParagraphs? (default: false)
+ */
+// eslint-disable-next-line require-await
+export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): Promise<void> {
+  try {
+    const note = (noteIn == null) ? Editor : noteIn
+    if (!note) {
+      logWarn('note/printNote()', `No valid note found. Stopping.`)
+      return
+    }
+
+    console.log(`# ${note.type} Note: '${displayTitle(note)}'${noteIn == null ? ' from Editor' : ''}:`)
+    // If it's a Teamspace note, show some details
+    if (note.isTeamspaceNote) {
+      // $FlowIgnore[incompatible-type]
+      console.log(`- 🧑‍🤝‍🧑 teamspace: ${note.teamspaceTitle} (id ${note.teamspaceID})\n- filename ${note.filename}`)
+    } else {
+      console.log(`- Private note\n- filename ${note.filename}`)
+    }
+
+    if (note.type === 'Notes') {
+      const endOfActive = findEndOfActivePartOfNote(note)
+      console.log(
+        `- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''
+        }\n- paragraphs: ${note.paragraphs.length} (endOfActive: ${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''
+        }`,
+      )
+    } else {
+      // Calendar note
+      console.log(dt.getDateStringFromCalendarFilename(note.filename))
+      console.log(
+        `- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${note.paragraphs.length
+        }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
+      )
+    }
+
+    if (note.paragraphs.length > 0) {
+      const open = note.paragraphs.filter((p) => isOpen(p)).length
+      const done = note.paragraphs.filter((p) => isDone(p)).length
+      const closed = note.paragraphs.filter((p) => isClosed(p)).length
+      const scheduled = note.paragraphs.filter((p) => isScheduled(p)).length
+      console.log(`- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`)
+      if (alsoShowParagraphs) {
+        console.log(`Paragraphs`)
+        note.paragraphs.map((p) => console.log(`  ${p.lineIndex}: ${p.type} ${p.rawContent}`))
+      }
+    }
+
+    // Now show .backlinks
+    if (note.backlinks?.length > 0) {
+      console.log(`Backlinks`)
+      console.log(`- ${String(note.backlinks.length)} backlinked notes`)
+      // $FlowIgnore[prop-missing]
+      const flatBacklinkParas = getFlatListOfBacklinks(note) ?? [] // Note: this requires DataStore
+      console.log(`- ${String(flatBacklinkParas.length)} backlink paras:`)
+      for (let i = 0; i < flatBacklinkParas.length; i++) {
+        const p = flatBacklinkParas[i]
+        console.log(`  - ${p.note?.filename ?? '?'}:${p.lineIndex} [${p.type}, ${p.indents}]: ${p.content}`)
+      }
+    }
+
+    if (note.isTeamspaceNote) {
+      try { // without catch, so just continue
+        const p0 = note.paragraphs[0]
+        console.log(`\nExtra Teamspace tests using p[0] {${p0.content}}:`)
+        console.log(`- p0.note.type: ${String(p0.note?.type)}`)
+        console.log(`- p0.note.isTeamspaceNote: ${String(p0.note?.isTeamspaceNote)}`)
+        console.log(`- p0.note.teamspaceTitle: ${String(p0.note?.teamspaceTitle)}`)
+        console.log(`- p0.note.teamspaceID: ${String(p0.note?.teamspaceID)}`)
+        console.log(`- p0.note.filename: ${String(p0.note?.filename)}`)
+        console.log(`- p0.note.resolvedFilename: ${String(p0.note?.resolvedFilename)}`)
+      } catch (e) {
+        logError('note/printNote', `Teamspace Error: ${e.message}`)
+      }
+    }
+  } catch (e) {
+    logError('note/printNote', `Error printing note: ${e.message}`)
+  }
+}
+
+/**
+ * Get the teamspace details from a note.
+ * Note: requires NotePlan v3.17 or later.
+ * @author @jgclark
+ * @param {TNote} note
+ * @returns {TTeamspace | null} teamspace details, or null if not a teamspace note or if NotePlan build version is too old
+ */
+export function getTeamspaceDetailsFromNote(note: TNote): TTeamspace | null {
+  try {
+    if ((NotePlan.environment.buildVersion < 1366 && NotePlan.environment.platform === 'macOS') || (NotePlan.environment.buildVersion < 1295 && NotePlan.environment.platform !== 'macOS')) {
+      return null
+    }
+    if (note.isTeamspaceNote) {
+      const teamspaceId = note.filename.split('/')[1]
+      const resolvedFilename = note.resolvedFilename
+      const teamspaceTitle = resolvedFilename.split('/')[0]
+      if (!teamspaceId || !teamspaceId.length || !isValidUUID(teamspaceId)) {
+        throw new Error(`Note ${note.filename} is a teamspace note but cannot get valid ID for it`)
+      }
+      if (!teamspaceTitle || !teamspaceTitle.length) {
+        throw new Error(`Note ${note.filename} is a teamspace note but cannot get title for it`)
+      }
+      // logDebug('NPnote/getTeamspaceIDFromNote', `Note ${note.filename} is a teamspace note with ID ${teamspaceId}`)
+      return { id: teamspaceId, title: teamspaceTitle }
+    }
+    logWarn('NPnote/getTeamspaceIDFromNote', `Note ${note.filename} is not a teamspace note`)
+    return null
+  } catch (err) {
+    logError('NPnote/getTeamspaceIDFromNote', `${err.name}: ${err.message}`)
+    return null
+  }
+}
+
+/**
+ * Get a note from its full filename, coping with Teamspace notes.
+ * @author @jgclark for 3.17 for Teamspace notes
+ * @param {string} filename
+ * @returns {TNote?} note if found, or null
+ */
+export function getNoteFromFilename(filenameIn: string): TNote | null {
+  try {
+    let foundNote: TNote | null = null
+    const { filename, isTeamspace, teamspaceID } = parseTeamspaceFilename(filenameIn)
+    // logInfo('NPnote/getNoteFromFilename', `- filenameIn: ${filenameIn} / filename: ${filename} / isTeamspace: ${String(isTeamspace)} /  teamspaceID: ${String(teamspaceID)}`)
+    if (isTeamspace) {
+      if (!teamspaceID) {
+        throw new Error(`Note ${filenameIn} is a teamspace note but cannot get valid ID for it.`)
+      }
+      // FIXME(Eduard): projectNoteByFilename() is not working for teamspace notes
+      // So we have to do it this way ...
+      foundNote = DataStore.noteByFilename(filenameIn, 'Notes', teamspaceID)
+        ?? DataStore.noteByFilename(filenameIn, 'Calendar', teamspaceID)
+        ?? null
+      logInfo('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
+    } else {
+      // Check for private notes
+      foundNote = DataStore.projectNoteByFilename(filenameIn) ?? null
+      if (!foundNote) {
+        // Check for calendar notes
+        const isPossibleCalendarFilename = dt.isValidCalendarNoteFilename(filenameIn)
+        if (isPossibleCalendarFilename) {
+          const dateString = dt.getDateStringFromCalendarFilename(filenameIn)
+          foundNote = DataStore.calendarNoteByDateString(dateString) ?? null
+        }
+      }
+      if (foundNote) {
+        logInfo('NPnote/getNoteFromFilename', `Found note '${displayTitle(foundNote)}' from ${filenameIn}`)
+      } else {
+        logInfo('NPnote/getNoteFromFilename', `No note found for ${filenameIn}`)
+      }
+    }
+    return foundNote
+  } catch (err) {
+    logError('NPnote/getNoteFromFilename', `${err.name}: ${err.message}`)
+    return null
+  }
+}
 
 /**
  * Get a note from (in order):
@@ -42,7 +198,7 @@ const pluginJson = 'NPnote.js'
 export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
   try {
     let thisFilename = ''
-    // TODO: Ideally move this to a function, for i18n. Can Moment or Chrono libraries help?
+    // TODO: Ideally move this to a function, for i18n. Moment library doesn't quite cover all of this. Could Chrono library help?
     const noteIdentifier =
       noteIdentifierIn === 'today'
         ? '{0d}'
@@ -60,36 +216,36 @@ export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
     const possibleProjectNotes = DataStore.projectNoteByTitle(noteIdentifier) ?? []
     if (possibleProjectNotes.length > 0) {
       thisFilename = possibleProjectNotes[0].filename
-      logDebug('NPnote/getNoteFilenameFromTitle', `-> found project note with filename '${thisFilename}'`)
+      logDebug('NPnote/getNoteFromIdentifier', `-> found project note with filename '${thisFilename}'`)
       return possibleProjectNotes[0]
     }
     // Not a project note, so look at calendar notes
     let possDateString = noteIdentifier
-    if (new RegExp(RE_OFFSET_DATE).test(possDateString)) {
+    if (new RegExp(dt.RE_OFFSET_DATE).test(possDateString)) {
       // this is a date interval, so -> date string relative to today
       // $FlowIgnore[incompatible-use]
-      const thisOffset = possDateString.match(new RegExp(RE_OFFSET_DATE_CAPTURE))[1]
-      possDateString = calcOffsetDateStrUsingCalendarType(thisOffset)
-      logDebug('NPnote/getNoteFilenameFromTitle', `found offset date ${thisOffset} -> '${possDateString}'`)
+      const thisOffset = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))[1]
+      possDateString = dt.calcOffsetDateStrUsingCalendarType(thisOffset)
+      logDebug('NPnote/getNoteFromIdentifier', `found offset date ${thisOffset} -> '${possDateString}'`)
     }
     // If its YYYY-MM-DD then have to turn it into YYYYMMDD
-    if (new RegExp(RE_ISO_DATE).test(possDateString)) {
-      possDateString = unhyphenateString(possDateString)
+    if (new RegExp(dt.RE_ISO_DATE).test(possDateString)) {
+      possDateString = dt.convertISODateFilenameToNPDayFilename(possDateString)
     }
     // If this matches a calendar note by filename (YYYYMMDD or YYYY-Wnn etc.)
-    if (isValidCalendarNoteFilenameWithoutExtension(possDateString)) {
+    if (dt.isValidCalendarNoteFilenameWithoutExtension(possDateString)) {
       const thisNote = DataStore.calendarNoteByDateString(possDateString)
       if (thisNote) {
         thisFilename = thisNote.filename
-        logDebug('NPnote/getNoteFilenameFromTitle', `-> found calendar note with filename '${thisFilename}' from ${possDateString}`)
+        logDebug('NPnote/getNoteFromIdentifier', `-> found calendar note with filename '${thisFilename}' from ${possDateString}`)
         return thisNote
       } else {
-        logError('NPnote/getNoteFilenameFromTitle', `${possDateString} doesn't seem to have a calendar note?`)
+        logError('NPnote/getNoteFromIdentifier', `${possDateString} doesn't seem to have a calendar note?`)
       }
     } else {
-      logError('NPnote/getNoteFilenameFromTitle', `${possDateString} is not a valid date string`)
+      logError('NPnote/getNoteFromIdentifier', `${possDateString} is not a valid date string`)
     }
-    logError('NPnote/getNoteFilenameFromTitle', `-> no note found for '${noteIdentifierIn}'`)
+    logError('NPnote/getNoteFromIdentifier', `-> no note found for '${noteIdentifierIn}'`)
     return null
   } catch (err) {
     logError(pluginJson, err.message)
@@ -116,19 +272,19 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
   }
   // Not a project note, so look at calendar notes
   let possDateString = inputStr
-  if (new RegExp(RE_OFFSET_DATE).test(possDateString)) {
+  if (new RegExp(dt.RE_OFFSET_DATE).test(possDateString)) {
     // this is a date interval, so -> date string relative to today
     // $FlowIgnore[incompatible-use]
-    const thisOffset = possDateString.match(new RegExp(RE_OFFSET_DATE_CAPTURE))[1]
-    possDateString = calcOffsetDateStrUsingCalendarType(thisOffset)
+    const thisOffset = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))[1]
+    possDateString = dt.calcOffsetDateStrUsingCalendarType(thisOffset)
     logDebug('NPnote/getNoteFilenameFromTitle', `found offset date ${thisOffset} -> '${possDateString}'`)
   }
   // If its YYYY-MM-DD then have to turn it into YYYYMMDD
-  if (new RegExp(RE_ISO_DATE).test(possDateString)) {
-    possDateString = unhyphenateString(possDateString)
+  if (new RegExp(dt.RE_ISO_DATE).test(possDateString)) {
+    possDateString = dt.convertISODateFilenameToNPDayFilename(possDateString)
   }
   // If this matches a calendar note by filename (YYYYMMDD or YYYY-Wnn etc.)
-  if (isValidCalendarNoteFilenameWithoutExtension(possDateString)) {
+  if (dt.isValidCalendarNoteFilenameWithoutExtension(possDateString)) {
     const thisNote = DataStore.calendarNoteByDateString(possDateString)
     if (thisNote) {
       thisFilename = thisNote.filename
@@ -145,7 +301,7 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
 }
 
 /**
- * Convert the note to using frontmatter Syntax
+ * Convert the note to use frontmatter syntax.
  * If optional default text is given, this is added to the frontmatter.
  * @author @jgclark
  * @param {TNote} note to convert
@@ -155,20 +311,26 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
 export function convertNoteToFrontmatter(note: TNote, defaultFMText: string = ''): void {
   try {
     if (!note) {
-      throw new Error("note/convertNoteToFrontmatter: No note supplied, and can't find Editor either.")
+      throw new Error('NPnote/convertNoteToFrontmatter: No valid note supplied.')
     }
-    const success = ensureFrontmatter(note)
-    if (success) {
-      logDebug('note/convertNoteToFrontmatter', `ensureFrontmatter() worked for note ${note.filename}`)
+
+    const result = ensureFrontmatter(note)
+    if (result) {
+      logDebug('NPnote/convertNoteToFrontmatter', `ensureFrontmatter() worked for note ${note.filename}`)
+
       if (defaultFMText !== '') {
-        const endOfFMLineIndex = findStartOfActivePartOfNote(note) - 1 // closing separator line
-        note.insertParagraph(defaultFMText, endOfFMLineIndex, 'text') // inserts before closing separator line
+        const endOfFMLineIndex: number | false = endOfFrontmatterLineIndex(note) // closing separator line
+        if (endOfFMLineIndex !== false) {
+          note.insertParagraph(defaultFMText, endOfFMLineIndex, 'text') // inserts before closing separator line
+        } else {
+          logWarn('NPnote/convertNoteToFrontmatter', `endOfFrontmatterLineIndex() failed for note ${note.filename}`)
+        }
       }
     } else {
-      logWarn('note/convertNoteToFrontmatter', `ensureFrontmatter() failed for note ${note.filename}`)
+      logWarn('NPnote/convertNoteToFrontmatter', `ensureFrontmatter() failed for note ${note.filename}`)
     }
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError(pluginJson, `convertNoteToFrontmatter: ${error.message}`)
   }
 }
 
@@ -200,15 +362,85 @@ export function selectFirstNonTitleLineInEditor(): void {
  * @returns {Array<TParagraph>} of paragraphs which are open or open+tagged for today
  */
 export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = false): Array<TParagraph> {
-  const hyphDate = getTodaysDateHyphenated()
+  const hyphDate = dt.todaysDateISOString
   // const toDate = getDateObjFromDateTimeString(hyphDate)
   const isTodayItem = (text: string) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
   // const todos:Array<TParagraph>  = []
   if (note.paragraphs) {
-    return note.paragraphs.filter((p) => isOpen(p) && (isTodayItem(p.content) || (includeAllTodos && !isScheduled(p.content))))
+    return note.paragraphs.filter((p) => isOpen(p) && (isTodayItem(p.content) || (includeAllTodos && !dt.isScheduled(p.content))))
   }
   logDebug(`findOpenTodosInNote could not find note.paragraphs. returning empty array`)
   return []
+}
+
+/**
+ * note.backlinks is an array of Paragraphs, but its subItems can be nested. The nesting can be multiple levels deep.
+ * This function returns an array of TParagraphs, one for each backlink, undoing the nesting.
+ */
+// $FlowFixMe[incompatible-return]
+export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
+  // Iterate over all backlinks, recursing where necessary to visit all subItems, returning a flat list of lineIndex
+  // function flattenSubItems(subItems: Array<TBacklinkFields>): Array<TBacklinkFields> {
+  //   const items: Array<TBacklinkFields> = []
+  //   subItems.forEach((item) => {
+  //     if (item.subItems) {
+  //       items.push(item)
+  //       // logDebug('note/getFlatListOfBacklinks', `+ ${item.lineIndex}: ${item.content} [has ${items.length} saved indexes`)
+  //       // Recursively process any subItems of the current item
+  //       items.push(...flattenSubItems(item.subItems))
+  //     }
+  //   })
+  //   return items
+  // }
+
+  try {
+    const noteBacklinks = note.backlinks
+    if (noteBacklinks.length === 0) {
+      return []
+    }
+    logDebug('NPnote/getFlatListOfBacklinks', `Starting for ${String(noteBacklinks.length)} backlinks in ${String(note.filename)} ...`)
+    const flatBacklinkParas: Array<TParagraph> = []
+    for (const noteBacklink of noteBacklinks) {
+      // const startTime = new Date() // only for timing inside this loop
+
+      // v1: which has the issue of getting all paras, which has gone very slow.
+      // Get the note that this backlink points to
+      // const thisBacklinkNote = DataStore.noteByFilename(noteBacklink.filename, noteBacklink.noteType)
+      // clo(noteBacklink.subItems, `noteBackLink in ${thisBacklinkNote?.filename ?? '(error)'}`)
+      // const thisBacklinkNoteParas = thisBacklinkNote?.paragraphs
+      // if (!thisBacklinkNoteParas) {
+      //   logError('NPnote/getFlatListOfBacklinks', `Error getting paragraphs for ${noteBacklink.filename}`)
+      // }
+      // let thisNoteItems: Array<TBacklinkFields> = []
+      // // thisNoteLineIndexes.push(noteBacklink.lineIndex) // noteBacklink.lineIndex
+
+      // if (noteBacklink.subItems && noteBacklink.subItems.length > 0) {
+      //   logDebug('NPnote/getFlatListOfBacklinks', `- has ${noteBacklink.subItems.length} top-levelsubItems`)
+      //   thisNoteItems = flattenSubItems(noteBacklink.subItems)
+      // }
+      // logDebug('NPnote/getFlatListOfBacklinks', `  => ${thisNoteItems.length} items`)
+
+      // // Now find paragraphs from those lineIndexes
+      // for (const item of thisNoteItems) {
+      //   logDebug('NPnote/getFlatListOfBacklinks', `+ ${item.lineIndex}`)
+      //   // $FlowIgnore[incompatible-use]
+      //   flatBacklinkParas.push(thisBacklinkNoteParas[item.lineIndex])
+      // }
+      // logTimer('NPnote/getFlatListOfBacklinks', startTime, `- after processing backlinks for ${thisBacklinkNote?.filename ?? '(error)'} with ${String(thisBacklinkNoteParas?.length)} paras, now have ${String(flatBacklinkParas.length)} flat backlinks`, 100)
+
+      // v2: which just works on data returned within subItems (which are actual para refs it turns out)
+      for (const subItem of noteBacklink.subItems) {
+        if (subItem.type !== 'title') {
+          flatBacklinkParas.push(subItem)
+        }
+      }
+      // logTimer('NPnote/getFlatListOfBacklinks', startTime, `- after processing backlinks for ${thisBacklinkNote?.filename ?? '(error)'} now has ${String(flatBacklinkParas.length)} flat backlinks`, 100)
+    }
+    // logTimer('NPnote/getFlatListOfBacklinks', startTime, `=> ${String(noteBacklinks.length)} in flatListOfBacklinks`)
+    return flatBacklinkParas
+  } catch (err) {
+    logError('NPnote/getFlatListOfBacklinks', JSP(err))
+  }
 }
 
 /**
@@ -218,32 +450,34 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
  * @param {CoreNoteFields} includeHeadings? (default to true for backwards compatibility)
  * @returns {Array<TParagraph>} - paragraphs which reference today in some way
  */
-export function getReferencedParagraphs(note: Note, includeHeadings: boolean = true): Array<TParagraph> {
-  const thisDateStr = note.title || '' // will be  2022-10-10 or 2022-10 or 2022-Q3 etc depending on the note type
-  const wantedParas = []
+export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean = true): Array<TParagraph> {
+  try {
+    const thisDateStr = calNote.title || '' // will be  2022-10-10 or 2022-10 or 2022-Q3 etc depending on the note type
+    const wantedParas = []
 
-  // Use .backlinks, which is described as "Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The headings of the linked paragraphs are also listed here, although they don't have to contain a link."
-  // Note: @jgclark reckons that the subItem.headingLevel data returned by this might be wrong.
-  const backlinks: $ReadOnlyArray<TParagraph> = [...note.backlinks] // an array of notes which link to this note
-  // clo(backlinks, `getReferencedParagraphs backlinks (${backlinks.length}) =`)
+    // Use .backlinks, which is described as "Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The headings of the linked paragraphs are also listed here, although they don't have to contain a link."
+    // Note: @jgclark reckons that the subItem.headingLevel data returned by this might be wrong.
+    const backlinkParas: Array<TParagraph> = getFlatListOfBacklinks(calNote) // an array of notes which link to this note
+    // logDebug(`getReferencedParagraphs`, `found ${String(backlinkParas.length)} backlinked paras for ${displayTitle(calNote)}:`)
 
-  backlinks.forEach((link) => {
-    // $FlowIgnore[prop-missing] -- subItems is not in Flow defs but is real
-    const subItems = link.subItems
-    subItems.forEach((subItem) => {
-      // subItem.title = link.content.replace('.md', '').replace('.txt', '') // changing the shape of the Paragraph object will cause ObjC errors // cannot do this
-
+    backlinkParas.forEach((para) => {
       // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
-      if (includeHeadings || subItem.content.includes(`>${thisDateStr}`) || subItem.content.includes(`>today`)) {
-        // logDebug(`getReferencedParagraphs`, `- adding "${subItem.content}" as it includes >${thisDateStr} or >today`)
-        wantedParas.push(subItem)
+      if (includeHeadings) {
+        // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
+      } else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
+        // logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today`)
+        wantedParas.push(para)
       } else {
-        // logDebug(`getReferencedParagraphs`, `- skipping "${subItem.content}" as it doesn't include >${thisDateStr}`)
+        // logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
       }
     })
-  })
-  // logDebug(`getReferencedParagraphs`, `"${note.title || ''}" has backlinks.length:${backlinks.length} & wantedParas.length:${wantedParas.length}`)
-  return wantedParas
+
+    // logDebug(`getReferencedParagraphs`, `"${calNote.title || ''}" has ${wantedParas.length} wantedParas`)
+    return wantedParas
+  } catch (err) {
+    logError('NPnote/getReferencedParagraphs', JSP(err))
+    return []
+  }
 }
 
 /**
@@ -283,7 +517,7 @@ export type OpenNoteOptions = Partial<{
  * @author @dwertheimer
  */
 export async function openNoteByFilename(filename: string, options: OpenNoteOptions = {}): Promise<TNote | void> {
-  const isCalendarNote = /^[0-9]{4}.*(txt|md)$/.test(filename)
+  const isCalendarNote = dt.isValidCalendarNoteFilename(filename)
   let note = await Editor.openNoteByFilename(
     filename,
     options.newWindow || false,
@@ -379,18 +613,25 @@ export function scrollToParagraphWithContent(content: string): boolean {
 
 /**
  * Return list of all notes of type ['Notes'] or ['Calendar'] or both (default).
+ * Note: .slice() is used to avoid mutating the original arrays. This doesn't appear to affect performance, so I'm leaving them in.
  * @author @jgclark
  * @param {Array<string>} noteTypesToInclude
  * @returns {Array<TNote>}
  */
 export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar', 'Notes']): Array<TNote> {
   try {
+    if (noteTypesToInclude.length === 0) {
+      throw new Error(`No note types given. Returning empty array.`)
+    }
     let allNotesToCheck: Array<TNote> = []
-    if (noteTypesToInclude.includes('Calendar')) {
+    if (noteTypesToInclude === ['Calendar', 'Notes'] || noteTypesToInclude === ['Notes', 'Calendar']) {
+      allNotesToCheck = DataStore.calendarNotes.slice().concat(DataStore.projectNotes)
+    }
+    else if (noteTypesToInclude.includes('Calendar')) {
       allNotesToCheck = DataStore.calendarNotes.slice()
     }
-    if (noteTypesToInclude.includes('Notes')) {
-      allNotesToCheck = allNotesToCheck.concat(DataStore.projectNotes.slice())
+    else if (noteTypesToInclude.includes('Notes')) {
+      allNotesToCheck = DataStore.projectNotes.slice()
     }
     return allNotesToCheck
   } catch (err) {
@@ -410,22 +651,21 @@ export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar
  */
 export function getNotesChangedInInterval(numDays: number, noteTypesToInclude: Array<string> = ['Calendar', 'Notes']): Array<TNote> {
   try {
-    let allNotesToCheck: Array<TNote> = []
-    if (noteTypesToInclude.includes('Calendar')) {
-      allNotesToCheck = DataStore.calendarNotes.slice()
-    }
-    if (noteTypesToInclude.includes('Notes')) {
-      allNotesToCheck = allNotesToCheck.concat(DataStore.projectNotes.slice())
-    }
+    const startTime = new Date()
+    // Note: This operations takes >700ms for JGC
+    // I have asked @EM to make suggestions for optimising this.
+    const allNotesToCheck: Array<TNote> = getAllNotesOfType(noteTypesToInclude)
+    logTimer('getNotesChangedInInterval', startTime, `to get list of ${allNotesToCheck.length} notes to check`)
+
     let matchingNotes: Array<TNote> = []
     const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
     const momentToStartLooking = todayStart.subtract(numDays, 'days')
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
     matchingNotes = allNotesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
-    logDebug(
-      'getNotesChangedInInterval',
-      `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`,
+    // Note: This operations takes 3ms for JGC
+    logTimer('getNotesChangedInInterval', startTime,
+      `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}:`,
     )
     return matchingNotes
   } catch (err) {
@@ -457,10 +697,11 @@ export function getNotesChangedInIntervalFromList(notesToCheck: $ReadOnlyArray<T
 }
 
 /**
- * Get a note's display title from its filename.
+ * Get a note's display title (optionally enclosed as a [[...]] notelink) from its filename.
  * Handles both Notes and Calendar, matching the latter by regex matches. (Not foolproof though.)
  * @author @jgclark
  * @param {string} filename
+ * @param {boolean} makeLink? - whether to return a link to the note (default false)
  * @returns {string} title of note
  */
 export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = false): string {
@@ -475,68 +716,186 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
 }
 
 /**
- * Return array of notes with a particular #hashtag or @mention, with further optional parameters about which (sub)folders to look in
+ * Return list of regular (and optionally calendar) notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on etc.
+ * Note: since Feb 2025 @jgclark has developed a newer, faster, mechanism for this: the tagMentionCache. But leaving this here for now.
  * @author @jgclark
- * @param {string} tag - tag/mention name to look for
- * @param {boolean?} alsoSearchCalendarNotes - (optional, defaults to false)
+ * @param {string} item - tag/mention name to look for
+ * @param {boolean} caseInsensitiveMatch? - whether to ignore case when matching
+ * @param {boolean} alsoSearchCalendarNotes? - whether to search calendar notes
+ * @param {boolean} excludeSpecialFolders? - whether to ignore regular notes in special folders, i.e. those starting with '@', including @Templates, @Archive and @Trash (optional, defaults to true)
+ * @param {Array<string>} itemsToExclude - optional list of tags/mentions that if found in the note, excludes the note
+ * @param {Array<string>?} wantedParaTypes - optional list of paragraph types to include (default is all)
  * @param {string?} folder - optional folder to limit to
- * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @param {Array<string>?} tagsToExclude - optional list of tags that if found in the note, excludes the note
- * @param {boolean?} caseInsensitiveMatch? - whether to ignore case when matching (optional, defaults to true)
- * @param {Array<TNote>?} notesToSearchIn - optional array of notes to search in
- * @returns {Array<TNote>}
- */
-export function findNotesMatchingHashtagOrMention(
-  tag: string,
-  alsoSearchCalendarNotes: boolean = false,
-  folder: string = '',
-  includeSubfolders: boolean = false,
-  tagsToExclude: Array<string> = [],
-  caseInsensitiveMatch: boolean = true,
-  notesToSearchIn?: Array<TNote>,
-): Array<TNote> {
-  // logDebug(
-  //   `NPNote/findNotesMatchingHashtagOrMention`,
-  //   `tag:${tag} folder:${folder ?? '(none)'} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
-  // )
-  return findNotesMatchingHashtag(tag, folder, includeSubfolders, tagsToExclude, caseInsensitiveMatch, notesToSearchIn, true, alsoSearchCalendarNotes)
-}
-
-/**
- * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on.
- * Originally only looked in Project Notes, but 'alsoSearchCalendarNotes' allows it to look further.
- * @author @jgclark
- * @param {string} tag - tag/mention name to look for
- * @param {string?} folder - optional folder to limit to
- * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @param {Array<string>?} tagsToExclude - optional list of tags that if found in the note, excludes the note
- * @param {boolean?} caseInsensitiveMatch - whether to ignore case when matching (optional, defaults to true)
- * @param {Array<TNote>?} notesToSearchIn - optional array of notes to search in
- * @param {boolean?} alsoSearchMentions - whether to search @mentions as well (optional, defaults to false)
- * @param {boolean?} alsoSearchCalendarNotes - (optional, defaults to false)
+ * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to true)
  * @return {Array<TNote>}
  */
-export function findNotesMatchingHashtag(
-  tag: string,
+export function findNotesMatchingHashtagOrMention(
+  item: string,
+  caseInsensitiveMatch: boolean,
+  alsoSearchCalendarNotes: boolean,
+  excludeSpecialFolders: boolean,
+  itemsToExclude: Array<string> = [],
+  wantedParaTypes: Array<string> = [],
   folder: ?string,
-  includeSubfolders: boolean = false,
-  tagsToExclude: Array<string> = [],
-  caseInsensitiveMatch: boolean = true,
-  notesToSearchIn?: Array<TNote>,
-  alsoSearchMentions: boolean = false,
-  alsoSearchCalendarNotes: boolean = false,
+  includeSubfolders?: boolean = true,
 ): Array<TNote> {
   try {
     // Check for special conditions first
-    if (tag === '') {
-      logError('NPnote/findNotesMatchingHashtag', `No hashtag given. Stopping`)
-      return [] // for completeness
+    if (item === '') {
+      throw new Error(`No hashtag given. Stopping`)
     }
-    let notesToSearch = notesToSearchIn ?? DataStore.projectNotes
+    const isHashtag = item.startsWith('#')
+    let notesToSearch = excludeSpecialFolders ? DataStore.projectNotes.filter((n) => !n.filename.startsWith('@')) : DataStore.projectNotes
+
     if (alsoSearchCalendarNotes) {
       notesToSearch = notesToSearch.concat(DataStore.calendarNotes)
     }
-    // logDebug('NPnote/findNotesMatchingHashtag', `starting with ${notesToSearch.length} notes (${notesToSearchIn ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${alsoSearchCalendarNotes ? '+ calendar notes)' : ')'}`)
+    logDebug(
+      'NPnote/findNotesMatchingHashtagOrMention',
+      `starting with ${notesToSearch.length} notes (${notesToSearch ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${
+        alsoSearchCalendarNotes ? '+ calendar notes)' : ')'
+      }. Search is case ${caseInsensitiveMatch ? 'INsensitive' : 'sensitive'} for '${item}'`,
+    )
+
+    // const startTime = new Date()
+    let notesInFolder: Array<TNote>
+    // If folder given (not empty) then filter using it
+    if (folder && folder !== '') {
+      if (includeSubfolders) {
+        // use startsWith as filter to include subfolders
+        notesInFolder = notesToSearch.slice().filter((n) => n.filename.startsWith(`${folder}/`))
+      } else {
+        // use match as filter to exclude subfolders
+        notesInFolder = notesToSearch.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
+      }
+    } else {
+      // no folder specified, so grab all notes from DataStore
+      // $FlowIgnore[incompatible-type]
+      notesInFolder = notesToSearch
+    }
+    logDebug(
+      `NPnote/findNotesMatchingHashtagOrMention`,
+      `item:${item} folder:${String(folder ?? '<all>')} includeSubfolders:${String(includeSubfolders)} ItemsToExclude:${String(itemsToExclude)} for ${String(
+        notesInFolder.length,
+      )} notes`,
+    )
+
+    // Filter by tag and/or mentions
+    // Note: now using the cut-down list of hashtags as the API returns partial duplicates
+    let notesWithItem: Array<TNote>
+    if (caseInsensitiveMatch) {
+      notesWithItem = notesInFolder.filter((n) => {
+        const correctedHashtags = getCorrectedHashtagsFromNote(n)
+        return isHashtag
+          ? caseInsensitiveIncludes(item, correctedHashtags)
+          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+            caseInsensitiveIncludes(item, n.mentions)
+      })
+    } else {
+      notesWithItem = notesInFolder.filter((n) => {
+        const correctedHashtags = getCorrectedHashtagsFromNote(n)
+        return isHashtag
+          ? correctedHashtags.includes(item)
+          : n.mentions.includes(item)
+      })
+    }
+    if (notesWithItem.length === 0) {
+      logDebug('NPnote/findNotesMatchingHashtagOrMention', `-> no notes matching '${item}'`)
+      return []
+    }
+    logDebug('NPnote/findNotesMatchingHashtagOrMention', `In folder '${folder ?? '<all>'}' found ${notesWithItem.length} notes matching '${item}'`)
+    logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(notesWithItem.map((n) => n.title))}`)
+
+    // Restrict to certain para types, if wanted
+    if (wantedParaTypes.length > 0) {
+      notesWithItem = notesWithItem.filter((n) => filterTagsOrMentionsInNoteByWantedParaTypes(n, [item], wantedParaTypes).length > 0)
+      logDebug('NPnote/findNotesMatchingHashtagOrMention', `After filtering to only include notes with wanted para types [${String(wantedParaTypes)}] -> ${String(notesWithItem.length)} notes`)
+      logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(notesWithItem.map((n) => n.title))}`)
+    }
+
+    // If we have 'itemsToExclude' then further filter out notes with these items
+    if (itemsToExclude.length > 0) {
+      const doesNotMatchItemsToExclude = (e: string) => !itemsToExclude.includes(e)
+      const notesWithItemWithoutExclusion = notesWithItem.filter((n) => n.hashtags.some(doesNotMatchItemsToExclude))
+      const removedItems = notesWithItem.length - notesWithItemWithoutExclusion.length
+      if (removedItems > 0) {
+        logDebug('NPnote/findNotesMatchingHashtagOrMention', `- but removed ${removedItems} excluded notes:`)
+        logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(notesWithItem.filter((n) => n.hashtags.includes(itemsToExclude)).map((m) => m.title))}`)
+      }
+      return notesWithItemWithoutExclusion
+    } else {
+      return notesWithItem
+    }
+  } catch (err) {
+    logError('NPnote/findNotesMatchingHashtagOrMention', err.message)
+    return []
+  }
+}
+
+/**
+ * Filters tags or mentions ('items') seen in 'note' to wantedParagraphTypes
+ * @param {TNote} note
+ * @param {Array<string>} items - The list of tags or mentions to filter
+ * @param {Array<string>} wantedParaTypes - The paragraph types to allow
+ * @returns {Array<string>} Filtered tagsOrMentions that match the criteria
+ */
+function filterTagsOrMentionsInNoteByWantedParaTypes(
+  note: TNote,
+  tagsOrMentions: Array<string>,
+  wantedParaTypes: Array<string>,
+): Array<string> {
+  try {
+    // Filter items based on paragraph types and note tags
+    const filteredItems = tagsOrMentions.filter(item => {
+      const paragraphsWithItem = note.paragraphs.filter(p => caseInsensitiveSubstringMatch(item, p.content))
+      // logDebug('NPnote/filterTagsOMINBWPT', `Found ${paragraphsWithItem.length} paragraphs with item ${item} in ${note.filename}:`)
+      const hasValidParagraphType = paragraphsWithItem.some(p => wantedParaTypes.includes(p.type))
+
+      return hasValidParagraphType
+    })
+
+    // logDebug('NPnote/filterTagsOMINBWPT', `Found ${filteredItems.length} of ${tagsOrMentions.length} wanted tags/mentions in ${note.filename}: [${String(filteredItems)}]`)
+
+    return filteredItems
+  } catch (error) {
+    logError('NPnote/filterTagsOMINBWPT', `Error filtering items in note ${note.filename}: ${error.message}`)
+    return []
+  }
+}
+
+/**
+ * From a given array of notes, return the subset with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on etc.
+ * @author @jgclark
+ * @param {string} item - tag/mention name to look for
+ * @param {Array<TNote>} notesToSearchIn - array of notes to search in
+ * @param {boolean} caseInsensitiveMatch? - whether to ignore case when matching
+ * @param {boolean} alsoSearchCalendarNotes?
+ * @param {string?} folder - optional folder to limit to
+ * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
+ * @param {Array<string>?} itemsToExclude - optional list of tags/mentions that if found in the note, excludes the note
+ * @return {Array<TNote>}
+ */
+export function findNotesMatchingHashtagOrMentionFromList(
+  item: string,
+  notesToSearchIn: Array<TNote>,
+  caseInsensitiveMatch: boolean,
+  alsoSearchCalendarNotes: boolean,
+  folder: ?string,
+  includeSubfolders: boolean = false,
+  itemsToExclude: Array<string> = [],
+): Array<TNote> {
+  try {
+    // Check for special conditions first
+    if (item === '') {
+      logError('NPnote/findNotesMatchingHashtagOrMentionFromList', `No tag/mention given. Stopping`)
+      return [] // for completeness
+    }
+    const isHashtag = item.startsWith('#')
+    let notesToSearch = notesToSearchIn
+    if (alsoSearchCalendarNotes) {
+      notesToSearch = notesToSearch.concat(DataStore.calendarNotes)
+    }
+    // logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `starting with ${notesToSearch.length} notes (${notesToSearchIn ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${alsoSearchCalendarNotes ? '+ calendar notes)' : ')'}`)
 
     // const startTime = new Date()
     let projectNotesInFolder: Array<TNote>
@@ -553,103 +912,63 @@ export function findNotesMatchingHashtag(
       // no folder specified, so grab all notes from DataStore
       projectNotesInFolder = notesToSearch.slice()
     }
-    // logDebug(`NPnote/findNotesMatchingHashtag`,`tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} for ${String(projectNotesInFolder.length)} notes`)
+    // logDebug(
+    //   `NPnote/findNotesMatchingHashtagOrMentionFromList`,
+    //   `item:${item} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} itemsToExclude:${String(itemsToExclude)} for ${String(
+    //     projectNotesInFolder.length,
+    //   )} notes`,
+    // )
 
     // Filter by tag (and now mentions as well, if requested)
     // Note: now using the cut-down list of hashtags as the API returns partial duplicates
-    let projectNotesWithTag: Array<TNote>
+    let projectNotesWithItem: Array<TNote>
     if (caseInsensitiveMatch) {
-      projectNotesWithTag = projectNotesInFolder.filter((n) => {
+      projectNotesWithItem = projectNotesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
-        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtag', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
-        if (alsoSearchMentions) {
-          // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-          return caseInsensitiveIncludes(tag, correctedHashtags) || caseInsensitiveIncludes(tag, n.mentions)
-        } else {
-          return caseInsensitiveIncludes(tag, correctedHashtags)
-        }
+        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
+        return isHashtag
+          ? caseInsensitiveIncludes(item, correctedHashtags)
+          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+            caseInsensitiveIncludes(item, n.mentions)
       })
     } else {
-      projectNotesWithTag = projectNotesInFolder.filter((n) => {
+      projectNotesWithItem = projectNotesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
-        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtag', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
-        if (alsoSearchMentions) {
-          return n.mentions.includes(tag) || correctedHashtags.includes(tag)
-        } else {
-          return correctedHashtags.includes(tag)
-        }
+        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
+        return isHashtag
+          ? caseInsensitiveIncludes(item, correctedHashtags)
+          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+            caseInsensitiveIncludes(item, n.mentions)
       })
     }
-    if (projectNotesWithTag.length > 0) {
-      logDebug(
-        'NPnote/findNotesMatchingHashtag',
-        `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}': [${String(projectNotesWithTag.map((a) => a.title ?? a.filename ?? '?'))}]`,
-      )
+    if (projectNotesWithItem.length > 0) {
+      // logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList',`In folder '${folder ?? '<all>'}' found ${projectNotesWithItem.length} notes matching '${tag}': [${String(projectNotesWithItem.map((a) => a.title ?? a.filename ?? '?'))}]`)
+      logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `In folder '${folder ?? '<all>'}' found ${projectNotesWithItem.length} notes matching '${item}'`)
     }
 
     // If we care about the excluded tag, then further filter out notes where it is found
-    if (tagsToExclude.length > 0) {
-      const doesNotMatchTagsToExclude = (e: string) => !tagsToExclude.includes(e)
-      const projectNotesWithTagWithoutExclusion = projectNotesWithTag.filter((n) => n.hashtags.some(doesNotMatchTagsToExclude))
-      const removedItems = projectNotesWithTag.length - projectNotesWithTagWithoutExclusion.length
+    if (itemsToExclude.length > 0) {
+      const doesNotMatchItemsToExclude = (e: string) => !itemsToExclude.includes(e)
+      const projectNotesWithItemWithoutExclusion = projectNotesWithItem.filter((n) => n.hashtags.some(doesNotMatchItemsToExclude))
+      const removedItems = projectNotesWithItem.length - projectNotesWithItemWithoutExclusion.length
       if (removedItems > 0) {
-        // logDebug('NPnote/findNotesMatchingHashtag', `- but removed ${removedItems} excluded notes:`)
-        // logDebug('NPnote/findNotesMatchingHashtag', `= ${String(projectNotesWithTag.filter((n) => n.hashtags.includes(tagToExclude)).map((m) => m.title))}`)
+        // logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- but removed ${removedItems} excluded notes:`)
+        // logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `= ${String(projectNotesWithItem.filter((n) => n.hashtags.includes(tagToExclude)).map((m) => m.title))}`)
       }
-      return projectNotesWithTagWithoutExclusion
+      return projectNotesWithItemWithoutExclusion
     } else {
-      return projectNotesWithTag
+      return projectNotesWithItem
     }
   } catch (err) {
-    logError('NPnote/findNotesMatchingHashtag', err.message)
+    logError('NPnote/findNotesMatchingHashtagOrMentionFromList', err.message)
     return []
   }
 }
 
 /**
- * Return array of array of notes with particular hashtags (plural), optionally from the given folder.
- * Note: Currently unused!
- * @author @jgclark
- *
- * @param {Array<string>} tags - tags to look for
- * @param {?string} folder - optional folder to limit to
- * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @return {Array<Array<TNote>>} array of list of notes
- */
-export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, includeSubfolders: ?boolean = false): Array<Array<TNote>> {
-  if (tags.length === 0) {
-    logError('NPnote/findNotesMatchingHashtags', `No hashtags supplied. Stopping`)
-    return []
-  }
-
-  let projectNotesInFolder: Array<TNote>
-  // If folder given (not empty) then filter using it
-  if (folder != null) {
-    if (includeSubfolders) {
-      // use startsWith as filter to include subfolders
-      // TEST: does this need same update for root-level notes as findNotesMatchingHashtag() above?
-      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => n.filename.startsWith(`${folder}/`))
-    } else {
-      // use match as filter to exclude subfolders
-      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
-    }
-  } else {
-    // no folder specified, so grab all notes from DataStore
-    projectNotesInFolder = DataStore.projectNotes.slice()
-  }
-
-  // Filter by tags
-  const projectNotesWithTags: Array<Array<TNote>> = [[]]
-  for (const tag of tags) {
-    // FIXME: need to change this to the hashtag-aware-includes
-    const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
-    // logDebug('NPnote/findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
-    projectNotesWithTags.push(projectNotesWithTag)
-  }
-  return projectNotesWithTags
-}
-/**
- * Get list of headings from a note, optionally including markdown markers
+ * Get list of headings from a note, optionally including markdown markers.
+ * Note: If the first 'title' line matches the note title, then skip it (as it's the title itself).
+ * Note: There is no right-trimming of the heading text, as this can cause problems with NP API calls which don't do trimming when you expect they would.
  * @author @dwertheimer (adapted from @jgclark)
  *
  * @param {TNote} note - note to get headings from
@@ -675,6 +994,8 @@ export function getHeadingsFromNote(
   } else {
     headingParas = note.paragraphs.filter((p) => p.type === 'title')
   }
+
+  // If this is the title line, skip it
   if (headingParas.length > 0) {
     if (headingParas[0].content === note.title) {
       headingParas = headingParas.slice(1)
@@ -686,7 +1007,7 @@ export function getHeadingsFromNote(
       for (let i = 0; i < p.headingLevel; i++) {
         prefix += spacer
       }
-      return `${prefix} ${p.content}`
+      return `${prefix} ${p.content.trimLeft()}`
     })
   }
   if (optionCreateNewHeading) {
@@ -708,4 +1029,53 @@ export function getHeadingsFromNote(
     headingStrings = headingStrings.map((h) => h.replace(/^#{1,5}\s*/, '')) // remove any markdown heading markers
   }
   return headingStrings
+}
+
+/**
+ * Return a standardised safe filepath for a regular note, to match its title.
+ * Note: it's not explicity stated (I think), but filenames shouldn't start with a '/' character.
+ * Substitutes '\/:*?@$"<>|' characters in filename with '_' to avoid problems in Apple or NTFS filesystems.
+ * Additionally, filenames cannot end with a period (.) or a space, although these characters can be used within the filename itself.
+ * @author @Leo, improved by @jgclark
+ * @param {TNote} note
+ * @returns {string} filepath
+ */
+export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
+  const { defaultFileExtension } = DataStore
+
+  // If this is a Calendar note, then give a warning, but return the filename as is.
+  if (note.type === 'Calendar') {
+    logWarn('getFSSafeFilenameFromNoteTitle', `Shouldn't be called on Calendar notes. Returning ${note.filename} filename as is.`)
+    return note.filename
+  }
+
+  // Get the folder name from the filename.
+  // Note: if in root folder, then justFolderName will be '/'
+  const justFolderName = getFolderFromFilename(note.filename)
+
+  // Get new title for note, though with any '/:@$' replaced with '_'
+  let filesystemSafeTitle = note.title
+    .trim()
+    .replaceAll('\\', '_')
+    .replaceAll('/', '_')
+    .replaceAll('@', '_')
+    .replaceAll('$', '_')
+    .replaceAll(':', '_')
+    .replaceAll('*', '_')
+    .replaceAll('?', '_')
+    .replaceAll('"', '_')
+    .replaceAll('<', '_')
+    .replaceAll('>', '_')
+    .replaceAll('|', '_')
+  // Replace multiple underscores with a single underscore
+  filesystemSafeTitle = filesystemSafeTitle.replace(/_+/g, '_')
+  if (filesystemSafeTitle !== '') {
+    const newName = justFolderName !== '/'
+      ? `${justFolderName}/${filesystemSafeTitle}.${defaultFileExtension}`
+      : `${filesystemSafeTitle}.${defaultFileExtension}`
+    return newName
+  } else {
+    logWarn('NPnote.js', `getFSSafeFilenameFromNoteTitle(): No title found in note ${note.filename}. Returning empty string.`)
+    return ''
+  }
 }

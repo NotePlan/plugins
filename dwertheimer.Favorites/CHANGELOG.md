@@ -1,5 +1,26 @@
 # Favorites Plugin Changelog
 
+## [1.2.10] - 2025-04-10 @dwertheimer
+
+- Bugfix: Fix issue with frontmatter not being visible immediately after setting a favorite
+
+## [1.2.9] - 2025-02-20 @dwertheimer
+
+- Bugfix: Fix Stacey issue with writing title above frontmatter when only one field and no title
+- Bugfix: Fix issue with duplicate notes in favorites list
+
+## [1.2.7] - 2025-02-19 @dwertheimer
+
+- Bugfix: quoteText() now handles null, boolean, number and undefined values correctly
+
+## [1.2.6] - 2025-02-19 @dwertheimer
+
+- Add "Favorite Key" setting to allow for customizing the frontmatter key used to identify favorites.
+
+## [1.2.5] - 2025-02-15 @dwertheimer
+
+- Favorites now works with frontmatter
+
 ## [1.2.4] - 2024-06-12 @dwertheimer
 
 - bump version for rerelease (plugin was missing from github)

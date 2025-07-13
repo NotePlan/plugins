@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 9.6.2024, for v1.1.5+
+// last updated 2024-12-31, for v1.1.6
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -13,7 +13,7 @@ import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
-import { parasToText } from '@helpers/paragraph'
+import { findHeading, parasToText } from '@helpers/paragraph'
 import {
   getParagraphBlock,
   selectedLinesIndex,
@@ -55,6 +55,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
       logWarn(pluginJson, 'moveParas: No note open, so stopping.')
       return
     }
+    logDebug(pluginJson, 'moveParas(): Starting')
 
     // Get config settings
     // const origNote = note // this was clearer, but now trying directly with Editor.note in case there's a deep copy issue
@@ -64,7 +65,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     // Get current selection, and its range
     if (selection == null) {
       // Really a belt-and-braces check that the editor is active
-      logError(pluginJson, 'moveParas: No selection found, so stopping.')
+      logError('moveParas', 'moveParas: No selection found, so stopping.')
       return
     }
     const config = await getFilerSettings()
@@ -77,7 +78,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     let parasInBlock: Array<TParagraph>
     if (lastSelLineIndex !== firstSelLineIndex) {
       // use only the selected paras
-      logDebug(pluginJson, `moveParas: user has selected lineIndexes ${firstSelLineIndex}-${lastSelLineIndex}`)
+      logDebug('moveParas', `moveParas: user has selected lineIndexes ${firstSelLineIndex}-${lastSelLineIndex}`)
       parasInBlock = selectedParagraphs.slice() // copy to avoid $ReadOnlyArray problem
     } else {
       // there is no user selection
@@ -85,21 +86,21 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
       if (withBlockContext) {
         // user has requested working on the surrounding block
         parasInBlock = getParagraphBlock(note, firstSelLineIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
-        logDebug(pluginJson, `moveParas: move block of ${parasInBlock.length} paras`)
+        logDebug('moveParas', `moveParas: move block of ${parasInBlock.length} paras`)
       } else {
         // user just wants to move the current line
         parasInBlock = selectedParagraphs.slice(0, 1) // just first para
-        logDebug(pluginJson, `moveParas: move current para only`)
+        logDebug('moveParas', `moveParas: move current para only`)
       }
 
-      // Now attempt to highlight them to help user check all is
-        firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
-        const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
-        if (firstStartIndex && lastEndIndex) {
-          const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
-          // logDebug(pluginJson, `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
-          Editor.highlightByRange(parasCharIndexRange)
-        }
+      // Now attempt to highlight them to help user check all is well
+      firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
+      const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
+      if (firstStartIndex && lastEndIndex) {
+        const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
+        // logDebug('moveParas', `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+        Editor.highlightByRange(parasCharIndexRange)
+      }
     }
 
     // If this is a calendar note we've moving from, and the user wants to
@@ -113,9 +114,10 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
       parasInBlock[0].content = `${parasInBlock[0].content} ${datePart}`
     }
     // Note: When written, there was no API function to deal with multiple
-    // selectedParagraphs, qbut we can insert a raw text string.
+    // selectedParagraphs, but we can insert a raw text string.
     // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports)
     const selectedParasAsText = parasToText(parasInBlock)
+    const selectedNumLines = parasInBlock.length
 
     // Decide where to move to
     // Ask for the note we want to add the selectedParas
@@ -129,19 +131,36 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     // Note: showOptions returns the first item if something else is typed. And I can't see a way to distinguish between the two.
 
     // Ask to which heading to add the selectedParas
-    const headingToFind = await chooseHeading(destNote, true, true, false)
-    logDebug(pluginJson, `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
+    let headingToFind = await chooseHeading(destNote, true, true, false)
+    logDebug('moveParas', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
+    if (/\s$/.test(headingToFind)) {
+      logWarn('moveParas', `Heading to move to ('${headingToFind}') has trailing whitespace. Will pre-emptively remove them to try to avoid problems.`)
+      const headingPara = findHeading(destNote, headingToFind)
+      if (headingPara) {
+        headingPara.content = headingPara.content.trim()
+        destNote.updateParagraph(headingPara)
+        logDebug('moveParas', `- now headingPara in destNote is '${headingPara.content}'`)
+        headingToFind = headingPara.content
+      }
+    }
 
     // Add text to the new location in destination note
+    // Note: there are newer helpers that might be relevant here: NPMoveItems:: moveItemToRegularNote() + moveItemBetweenCalendarNotes()
+    const beforeNumParasInDestNote = destNote.paragraphs.length
     addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+    // Now check that the paras have been added -- it was sometimes failing probably with whitespace issues.
+    const afterNumParasInDestNote = destNote.paragraphs.length
+    logDebug('moveParas', `Added ${selectedNumLines} lines to ${destNote.title ?? 'error'}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
+    if (beforeNumParasInDestNote === afterNumParasInDestNote) {
+      throw new Error(`Failed to add ${selectedNumLines} lines to ${displayTitle(destNote)}, so will stop before removing the lines from ${displayTitle(note)}.\nThis is normally caused by spaces on the start/end of the heading.`)
+    }
 
     // delete from existing location
-    logDebug(pluginJson, `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
+    logDebug('moveParas', `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
     note.removeParagraphs(parasInBlock)
-    DataStore.updateCache(note) // TEST: does this help?
-    // FIXME: this call above is not always working, confirmed by getting to see the warning below. Nov 2023: Trying first changing to use Editor.note above.
+    // double-check that the paras have been removed
     if (note.paragraphs.length !== (origNumParas - parasInBlock.length)) {
-      logWarn(pluginJson, `  - WARNING: After delete there are ${Number(note.paragraphs.length)} paragraphs`)
+      logWarn('moveParas', `- WARNING: Delete has removed ${Number(origNumParas - note.paragraphs.length)} paragraphs`)
     }
 
     // unhighlight the previous selection, for safety's sake
@@ -149,7 +168,8 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     Editor.highlightByRange(emptyRange)
   }
   catch (error) {
-    logError(pluginJson, `moveParas(): ${error.message}`)
+    logError('moveParas', `moveParas(): ${error.message}`)
+    const res = await showMessage(error.message, 'OK', 'Filer: Error moving lines')
   }
 }
 
@@ -186,9 +206,10 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     // Pre-flight checks
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (empty note?), so don't do anything.
-      logWarn(pluginJson, 'No note open, so stopping.')
+      logWarn(pluginJson, 'moveParasToCalendarWeekly(): No note open, so stopping.')
       return
     }
+    logDebug(pluginJson, 'moveParasToCalendarWeekly(): Starting')
 
     // Get config settings
     const config = await getFilerSettings()
@@ -227,29 +248,36 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     }
 
     // Now attempt to highlight them to help user check all is well
-      firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
-      const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
-      if (firstStartIndex && lastEndIndex) {
-        const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
-        // logDebug('moveParasToCalendarWeekly', `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
-        Editor.highlightByRange(parasCharIndexRange)
-      }
+    firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
+    const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
+    if (firstStartIndex && lastEndIndex) {
+      const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
+      // logDebug('moveParasToCalendarWeekly', `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+      Editor.highlightByRange(parasCharIndexRange)
+    }
 
     // At the time of writing, there was no API function to work on multiple selectedParagraphs,
     // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
     // to a raw text version which we can include
     const selectedParasAsText = parasToText(parasInBlock)
+    const selectedNumLines = parasInBlock.length
 
     // Append text to the new location in destination note
+    const beforeNumParasInDestNote = destNote.paragraphs.length
     addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+    // Now check that the paras have been added -- it was sometimes failing probably with whitespace issues.
+    const afterNumParasInDestNote = destNote.paragraphs.length
+    logDebug(pluginJson, `Added ${selectedNumLines} lines to ${destNote.title}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
+    if (beforeNumParasInDestNote === afterNumParasInDestNote) {
+      throw new Error(`Failed to add ${selectedNumLines} lines to ${displayTitle(destNote)}, so will stop before removing the lines from ${displayTitle(note)}.\nThis is normally caused by spaces on the start/end of the heading.`)
+    }
 
     // delete from existing location
     logDebug('moveParasToCalendarWeekly', `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
     origNote.removeParagraphs(parasInBlock)
-    DataStore.updateCache(origNote) // TEST: does this help?
-    // check if this has worked, for it often doesn't seem to
-    if (origNote.paragraphs.length !== (origNumParas - parasInBlock.length)) {
-      logWarn('moveParasToCalendarWeekly', `  - WARNING: After delete there are ${Number(origNote.paragraphs.length)} paragraphs`)
+    // double-check that the paras have been removed
+    if (note.paragraphs.length !== (origNumParas - parasInBlock.length)) {
+      logWarn(pluginJson, `- WARNING: Delete has removed ${Number(origNumParas - note.paragraphs.length)} paragraphs`)
     }
 
     // unhighlight the previous selection, for safety's sake
@@ -257,7 +285,8 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     Editor.highlightByRange(emptyRange)
   }
   catch (error) {
-    logError(pluginJson, `moveParasToCalendarWeekly(): ${error.message}`)
+    logError('moveParasToCalendarWeekly', error.message)
+    // const res = await showMessage(error.message, 'OK', 'Filer: Error moving lines to calendar date')
   }
 }
 
@@ -298,6 +327,7 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
       throw new Error('No note open, so stopping.')
     }
+    logDebug(pluginJson, 'moveParasToCalendarDate(): Starting')
 
     // Get config settings
     const config = await getFilerSettings()
@@ -346,17 +376,24 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
     // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
     // to a raw text version which we can include
     const selectedParasAsText = parasToText(parasInBlock)
+    const selectedNumLines = parasInBlock.length
 
     // Append text to the new location in destination note
+    const beforeNumParasInDestNote = destNote.paragraphs.length
     addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+    // Now check that the paras have been added -- it was sometimes failing probably with whitespace issues.
+    const afterNumParasInDestNote = destNote.paragraphs.length
+    logDebug(pluginJson, `Added ${selectedNumLines} lines to ${destNote.title}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
+    if (beforeNumParasInDestNote === afterNumParasInDestNote) {
+      throw new Error(`Failed to add ${selectedNumLines} lines to ${displayTitle(destNote)}, so will stop before removing the lines from ${displayTitle(note)}.\nThis is normally caused by spaces on the start/end of the heading.`)
+    }
 
     // delete from existing location
     logDebug('moveParasToCalendarDate', `- Removing ${parasInBlock.length} paras from original origNote (which had ${String(origNumParas)} paras)`)
     origNote.removeParagraphs(parasInBlock)
-    DataStore.updateCache(origNote) // TEST: does this help?
-    // check if this has worked, for it often doesn't seem to
-    if (origNote.paragraphs.length !== (origNumParas - parasInBlock.length)) {
-      logWarn('moveParasToCalendarDate', `  - WARNING: After delete there are ${Number(origNote.paragraphs.length)} paragraphs`)
+    // double-check that the paras have been removed
+    if (note.paragraphs.length !== (origNumParas - parasInBlock.length)) {
+      logWarn(pluginJson, `- WARNING: Delete has removed ${Number(origNumParas - note.paragraphs.length)} paragraphs`)
     }
 
     // unhighlight the previous selection, for safety's sake
@@ -364,7 +401,8 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
     Editor.highlightByRange(emptyRange)
   }
   catch (error) {
-    logError(pluginJson, `moveParasToCalendarDate(): ${error.message}`)
+    logError('moveParasToCalendarDate', error.message)
+    const res = await showMessage(error.message, 'OK', 'Filer: Error moving lines to calendar date')
   }
 }
 
@@ -403,7 +441,7 @@ export async function moveParasToCalendarMonthly(destDate: Date, withBlockContex
     // Pre-flight checks
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (empty note?), so don't do anything.
-      logWarn(pluginJson, 'No note open, so stopping.')
+      logWarn(pluginJson, 'moveParasToCalendarMonthly(): No note open, so stopping.')
       return
     }
 
@@ -417,14 +455,14 @@ export async function moveParasToCalendarMonthly(destDate: Date, withBlockContex
     const destNote = DataStore.calendarNoteByDate(destDate, 'month')
     if (destNote == null) {
       await showMessage(`Sorry: I can't find the Monthly note for ${toNPLocaleDateString(destDate)}.`)
-      logError(pluginJson, `Failed to open the Monthly note for ${toNPLocaleDateString(destDate)}. Stopping.`)
+      logError('moveParasToCalendarMonthly', `Failed to open the Monthly note for ${toNPLocaleDateString(destDate)}. Stopping.`)
       return
     }
 
     // Get current selection, and its range
     const selection = Editor.selection
     if (selection == null) {
-      logError(pluginJson, 'No selection found, so stopping.')
+      logError('moveParasToCalendarMonthly', 'No selection found, so stopping.')
       return
     }
 
@@ -436,11 +474,11 @@ export async function moveParasToCalendarMonthly(destDate: Date, withBlockContex
     if (withBlockContext) {
       // user has requested working on the surrounding block
       parasInBlock = getParagraphBlock(origNote, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
-      logDebug(pluginJson, `moveParasToCalendarMonthly: move block of ${parasInBlock.length} paras`)
+      logDebug('moveParasToCalendarMonthly', `moveParasToCalendarMonthly: move block of ${parasInBlock.length} paras`)
     } else {
       // user just wants to move the current line
       parasInBlock = selectedParagraphs.slice(0, 1) // just first para
-      logDebug(pluginJson, `moveParasToCalendarMonthly: move current para only`)
+      logDebug('moveParasToCalendarMonthly', `moveParasToCalendarMonthly: move current para only`)
     }
 
     // Attempt to highlight them to help user check all is well
@@ -456,17 +494,24 @@ export async function moveParasToCalendarMonthly(destDate: Date, withBlockContex
     // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
     // to a raw text version which we can include
     const selectedParasAsText = parasToText(parasInBlock)
+    const selectedNumLines = parasInBlock.length
 
     // Append text to the new location in destination note
+    const beforeNumParasInDestNote = destNote.paragraphs.length
     addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+    // Now check that the paras have been added -- it was sometimes failing probably with whitespace issues.
+    const afterNumParasInDestNote = destNote.paragraphs.length
+    logDebug('moveParasToCalendarMonthly', `Added ${selectedNumLines} lines to ${destNote.title}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
+    if (beforeNumParasInDestNote === afterNumParasInDestNote) {
+      throw new Error(`Failed to add ${selectedNumLines} lines to ${displayTitle(destNote)}, so will stop before removing the lines from ${displayTitle(note)}.\nThis is normally caused by spaces on the start/end of the heading.`)
+    }
 
     // delete from existing location
     logDebug('moveParasToCalendarMonthly', `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
     origNote.removeParagraphs(parasInBlock)
-    DataStore.updateCache(origNote) // TEST: does this help?
-    // check if this has worked, for it often doesn't seem to
-    if (origNote.paragraphs.length !== (origNumParas - parasInBlock.length)) {
-      logWarn('moveParasToCalendarMonthly', `  - WARNING: After delete there are ${Number(origNote.paragraphs.length)} paragraphs`)
+    // double-check that the paras have been removed
+    if (note.paragraphs.length !== (origNumParas - parasInBlock.length)) {
+      logWarn('moveParasToCalendarMonthly', `- WARNING: Delete has removed ${Number(origNumParas - note.paragraphs.length)} paragraphs`)
     }
 
     // unhighlight the previous selection, for safety's sake
@@ -474,7 +519,8 @@ export async function moveParasToCalendarMonthly(destDate: Date, withBlockContex
     Editor.highlightByRange(emptyRange)
   }
   catch (error) {
-    logError(pluginJson, `moveParasToCalendarMonthly(): ${error.message}`)
+    logError('moveParasToCalendarMonthly', error.message)
+    const res = await showMessage(error.message, 'OK', 'Filer: Error moving lines to calendar date')
   }
 }
 
@@ -513,7 +559,7 @@ export async function moveParasToCalendarQuarterly(destDate: Date, withBlockCont
     // Pre-flight checks
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (empty note?), so don't do anything.
-      logWarn(pluginJson, 'No note open, so stopping.')
+      logWarn(pluginJson, 'moveParasToCalendarQuarterly(): No note open, so stopping.')
       return
     }
 
@@ -527,14 +573,14 @@ export async function moveParasToCalendarQuarterly(destDate: Date, withBlockCont
     const destNote = DataStore.calendarNoteByDate(destDate, 'quarter')
     if (destNote == null) {
       await showMessage(`Sorry: I can't find the Quarterly note for ${toNPLocaleDateString(destDate)}.`)
-      logError(pluginJson, `Failed to open the Quarterly note for ${toNPLocaleDateString(destDate)}. Stopping.`)
+      logError('moveParasToCalendarQuarterly', `Failed to open the Quarterly note for ${toNPLocaleDateString(destDate)}. Stopping.`)
       return
     }
 
     // Get current selection, and its range
     const selection = Editor.selection
     if (selection == null) {
-      logError(pluginJson, 'No selection found, so stopping.')
+      logError('moveParasToCalendarQuarterly', 'No selection found, so stopping.')
       return
     }
 
@@ -546,11 +592,11 @@ export async function moveParasToCalendarQuarterly(destDate: Date, withBlockCont
     if (withBlockContext) {
       // user has requested working on the surrounding block
       parasInBlock = getParagraphBlock(origNote, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
-      logDebug(pluginJson, `moveParasToCalendarQuarterly: move block of ${parasInBlock.length} paras`)
+      logDebug('moveParasToCalendarQuarterly', `moveParasToCalendarQuarterly: move block of ${parasInBlock.length} paras`)
     } else {
       // user just wants to move the current line
       parasInBlock = selectedParagraphs.slice(0, 1) // just first para
-      logDebug(pluginJson, `moveParasToCalendarQuarterly: move current para only`)
+      logDebug('moveParasToCalendarQuarterly', `moveParasToCalendarQuarterly: move current para only`)
     }
 
     // Attempt to highlight them to help user check all is well
@@ -571,12 +617,11 @@ export async function moveParasToCalendarQuarterly(destDate: Date, withBlockCont
     addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
 
     // delete from existing location
-    logDebug('moveParasToCalendarQuarterly', `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
+    logDebug('moveParasToCalendarMonthly', `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
     origNote.removeParagraphs(parasInBlock)
-    DataStore.updateCache(origNote) // TEST: does this help?
-    // check if this has worked, for it often doesn't seem to
-    if (origNote.paragraphs.length !== (origNumParas - parasInBlock.length)) {
-      logWarn('moveParasToCalendarQuarterly', `  - WARNING: After delete there are ${Number(origNote.paragraphs.length)} paragraphs`)
+    // double-check that the paras have been removed
+    if (note.paragraphs.length !== (origNumParas - parasInBlock.length)) {
+      logWarn('moveParasToCalendarQuarterly', `- WARNING: Delete has removed ${Number(origNumParas - note.paragraphs.length)} paragraphs`)
     }
 
     // unhighlight the previous selection, for safety's sake
@@ -584,6 +629,6 @@ export async function moveParasToCalendarQuarterly(destDate: Date, withBlockCont
     Editor.highlightByRange(emptyRange)
   }
   catch (error) {
-    logError(pluginJson, `moveParasToCalendarQuarterly(): ${error.message}`)
+    logError('moveParasToCalendarQuarterly', error.message)
+    // const res = await showMessage(error.message, 'OK', 'Filer: Error moving lines to calendar date')
   }
-}

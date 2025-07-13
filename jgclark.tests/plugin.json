@@ -4,6 +4,7 @@
   "plugin.id": "jgclark.tests",
   "plugin.name": "❓API Tests",
   "plugin.description": "(Unpublished) API Tests by JGC",
+  "plugin.hidden": true,
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "",

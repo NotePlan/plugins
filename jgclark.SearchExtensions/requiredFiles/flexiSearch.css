@@ -24,14 +24,19 @@ ul.dialogList {
   margin: 0.4rem 0rem; /* horiz + vert */
 }
 .dialogSection b {
-  font-weight: bold;
+  font-weight: 600;
   color: var(--tint-color);
 }
-i, kbd {
+.gap-right {
+  margin: 0.3rem;
+}
+.fa-regular, kbd {
   color: var(--tint-color);
-  padding-left: 0.1rem;
-  padding-right: 0.3rem;
+  padding: 0 0.3rem;
   font-size: 0.9rem; /* FIXME: FA icons and kbd land up being 1pt different in height :-( */
+}
+label {
+  margin-right: 2px;
 }
 input[type="submit"] {
   margin: 3px 6px;
@@ -42,6 +47,13 @@ input[type="text"] {
   margin-left: 0.4rem;
   padding-left: 0.2rem;
   font-size: 0.9rem;
+}
+input[type="checkbox"] {
+  margin: 1px 4px 0px 1px;
+  /* margin-top: 1px; */
+  vertical-align: baseline;
+  /* height: 0.9rem;
+  width: 0.9rem; */
 }
 .buttonRow {
   display: flex;
@@ -64,6 +76,23 @@ input:checked ~ span {
 }
 */
 
+/* ----------------------------------------------------------------- */
+.grid-container {
+  display: grid;
+  grid-auto-flow: column; /* fill down then across */
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 2px; /* Optional: space between grid items */
+  /* width: 400px; /* Adjust as needed */
+  /* height: 400px; /* Adjust as needed */
+}
+.grid-item {
+  display: flex;
+  justify-content: left;
+  align-items: baseline;
+}
+
+/* ----------------------------------------------------------------- */
 /* Tooltips adapted from http://www.menucool.com/tooltip/css-tooltip
   Had previously looked at https://www.cssportal.com/css-tooltip-generator/ */
 .tooltip {

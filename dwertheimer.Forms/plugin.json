@@ -1,0 +1,118 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "dwertheimer.Forms",
+  "plugin.name": "📝 Forms",
+  "plugin.version": "1.0.2",
+  "plugin.lastUpdateInfo": "First release",
+  "plugin.description": "Dynamic Forms for NotePlan",
+  "plugin.author": "dwertheimer",
+  "plugin.requiredFiles": ["react.c.FormView.bundle.dev.js"],
+  "plugin.dependsOn": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/CHANGELOG.md",
+  "plugin.hidden": true,
+  "plugin.commands": [
+    {
+      "note": "================== COMMMANDS ========================"
+    },
+    {
+      "name": "Open Template Form",
+      "alias": [
+        "form",
+        "dialog"
+      ],
+      "description": "Open form for template data entry which will be sent to a template for processing. Generally invoked from an xcallback",
+      "jsFunction": "getTemplateFormData",
+      "arguments": [
+      ]
+    },
+    {
+      "name": "openFormWindow",
+      "description": "Open HTML+React Form Window",
+      "jsFunction": "openFormWindow",
+      "hidden": true
+    },
+    {
+      "name": "onFormSubmitFromHTMLView",
+      "description": "React Form Calling back to plugin",
+      "jsFunction": "onFormSubmitFromHTMLView",
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "Forms: Version",
+      "description": "Update + Check Version",
+      "jsFunction": "versionCheck"
+    },
+    {
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onOpen",
+      "jsFunction": "onOpen",
+      "hidden": true
+    },
+    {
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onEditorWillSave",
+      "jsFunction": "onEditorWillSave",
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onMessageFromHTMLView",
+      "description": "dwertheimer.Forms: Callback function to receive messages from HTML view",
+      "jsFunction": "onMessageFromHTMLView",
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "Forms: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "note": "================== SETTINGS ========================"
+    },
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Forms Settings"
+    },
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "dwertheimer.Forms",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "note": "================== DEBUGGING SETTINGS ========================"
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Forms commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}

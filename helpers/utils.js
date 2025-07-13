@@ -8,21 +8,28 @@ import { RE_ARROW_DATES_G } from './regex'
 
 /**
  * Test whether a para is open or not (type: 'open' or 'checklist') and not blank
- * @param {Paragraph} t - the paragraph/task to check
+ * @param {Paragraph} t - the paragraph to check
  * @returns {boolean} true if open, false if any other status/type
  */
 export const isOpen = (t: TParagraph): boolean => (t.type === 'open' || t.type === 'checklist') && t.content.trim() !== ''
 
 /**
  * Test whether a para is an open task and not blank
- * @param {Paragraph} t - the paragraph/task to check
+ * @param {Paragraph} t - the paragraph to check
  * @returns {boolean} true if open, false if any other status/type
  */
 export const isOpenTask = (t: TParagraph): boolean => t.type === 'open' && t.content.trim() !== ''
 
 /**
- * Test whether a para is open or not (type: 'open' or 'checklist') and doesn't have a scheduled date
+ * Test whether a para is an open checklist and not blank
  * @param {Paragraph} t - the paragraph/task to check
+ * @returns {boolean} true if checklist, false if any other status/type
+ */
+export const isOpenChecklist = (t: TParagraph): boolean => t.type === 'checklist' && t.content.trim() !== ''
+
+/**
+ * Test whether a para is open or not (type: 'open' or 'checklist') and doesn't have a scheduled date
+ * @param {Paragraph} t - the paragraph to check
  * @returns {boolean} true if open, false if any other status/type
  */
 export function isOpenNotScheduled(t: TParagraph): boolean {
@@ -31,7 +38,7 @@ export function isOpenNotScheduled(t: TParagraph): boolean {
 
 /**
  * Test whether a para is open and has a scheduled date (type: 'open'/ 'checklist'/'scheduled'/'checklistScheduled').
- * @param {Paragraph} t - the paragraph/task to check
+ * @param {Paragraph} t - the paragraph to check
  * @returns {boolean} result
  */
 export function isOpenAndScheduled(t: TParagraph): boolean {
@@ -40,7 +47,7 @@ export function isOpenAndScheduled(t: TParagraph): boolean {
 
 /**
  * Test whether a para is open or not (type: 'open') and doesn't have a scheduled date
- * @param {Paragraph} t - the paragraph/task to check
+ * @param {Paragraph} t - the paragraph to check
  * @returns {boolean} true if open, false if any other status/type
  */
 export function isOpenTaskNotScheduled(t: TParagraph): boolean {
@@ -48,17 +55,25 @@ export function isOpenTaskNotScheduled(t: TParagraph): boolean {
 }
 
 /**
- * Test whether a task is closed or not (types: 'done', 'cancelled', 'checklistDone', 'checklistCancelled').
+ * Test whether an item is closed or not (types: 'done', 'cancelled', 'checklistDone', 'checklistCancelled').
  * Note: not the same as isDone(), which is tighter
- * @param {Paragraph} t - the paragraph/task to check
+ * @param {Paragraph} t - the paragraph to check
  * @returns {boolean} true if open, false if any other status/type
  */
 export const isClosed = (t: TParagraph): boolean => (t.type === 'done' || t.type === 'cancelled' || t.type === 'checklistDone' || t.type === 'checklistCancelled') && t.content.trim() !== ''
 
 /**
+ * Test whether a task is closed or not (types: 'done', 'cancelled').
+ * Note: not the same as isDone(), which is tighter
+ * @param {Paragraph} t - the paragraph to check
+ * @returns {boolean} true if open, false if any other status/type
+ */
+export const isClosedTask = (t: TParagraph): boolean => (t.type === 'done' || t.type === 'cancelled') && t.content.trim() !== ''
+
+/**
  * Test whether a task is closed or not (types: 'done', 'cancelled', 'checklistDone', 'checklistCancelled').
  * Note: tighter check than isClosed()
- * @param {Paragraph} t - the paragraph/task to check
+ * @param {Paragraph} t - the paragraph to check
  * @returns {boolean} true if open, false if any other status/type
  */
 export const isDone = (t: TParagraph): boolean => (t.type === 'done' || t.type === 'checklistDone') && t.content.trim() !== ''
@@ -102,3 +117,14 @@ export function removeDuplicates(arr: Array<{ [string]: any }>, keys: Array<stri
     }
   })
 }
+
+/**
+ * Find longest string from array of strings
+ * @tests available for jest
+ * @author @dwertheimer
+ *
+ * @param {Array<string>} arr
+ * @returns {string}
+ */
+export const findLongestStringInArray = (arr: Array<string>): string =>
+  arr.length ? arr.reduce((a, b) => (a.length > b.length ? a : b)) : ''

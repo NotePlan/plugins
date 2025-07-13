@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 3.6.2024 for v0.13.0 by @jgclark
+// Last updated 2025-06-20 for v0.13.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -19,8 +19,10 @@ import {
   getFolderListMinusExclusions,
   getFolderFromFilename,
   getFoldersMatching,
+  getProjectNotesInFolder,
   getJustFilenameFromFullFilename,
   getSubFolders,
+  notesInFolderSortedByTitle,
 } from '@helpers/folders'
 import {
   createOpenOrDeleteNoteCallbackUrl,
@@ -31,8 +33,6 @@ import {
 } from '@helpers/general'
 import {
   allNotesSortedByTitle,
-  getProjectNotesInFolder,
-  notesInFolderSortedByTitle,
 } from '@helpers/note'
 import { noteOpenInEditor, openNoteInNewSplitIfNeeded } from '@helpers/NPWindows'
 import { contentRangeToString } from '@helpers/paragraph'

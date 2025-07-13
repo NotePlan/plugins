@@ -29,7 +29,7 @@ import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 
 import { initConfiguration, updateSettingData } from '@helpers/NPConfiguration'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
-import { hasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
+import { hasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
@@ -151,69 +151,6 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
   }
 }
 
-export async function templateForm(templateTitle?: string): Promise<void> {
-  try {
-    let selectedTemplate // will be a filename
-    if (templateTitle?.trim().length) {
-      const options = await NPTemplating.getTemplateList('template-form')
-      const chosenOpt = options.find((option) => option.label === templateTitle)
-      if (chosenOpt) {
-        // variable passed is a note title, but we need the filename
-        selectedTemplate = chosenOpt.value
-      }
-    } else {
-      // ask the user for the template
-      selectedTemplate = await NPTemplating.chooseTemplate('template-form')
-    }
-    let formFields: Array<Object> = []
-    if (selectedTemplate) {
-      const note = await getNoteByFilename(selectedTemplate)
-      if (note) {
-        const codeBlocks = getCodeBlocksOfType(note, 'formfields')
-        if (codeBlocks.length > 0) {
-          const formFieldsString = codeBlocks[0].code
-          if (formFieldsString) {
-            try {
-              formFields = parseObjectString(formFieldsString)
-              if (!formFields) {
-                const errors = validateObjectString(formFieldsString)
-                logError(pluginJson, `templateForm: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
-                logError(pluginJson, `templateForm: errors: ${errors.join('\n')}`)
-                return
-              }
-              clo(formFields, `🎅🏼 DBWDELETE NPTemplating.templateForm formFields=`)
-            } catch (error) {
-              logError(pluginJson, `templateForm: error parsing form fields: ${error.message} String:\n${formFieldsString}`)
-              return
-            }
-          }
-        }
-      } else {
-        logError(pluginJson, `templateForm: could not find form template: ${selectedTemplate}`)
-        return
-      }
-    }
-    const templateData = await NPTemplating.getTemplate(selectedTemplate)
-    const templateFrontmatterAttributes = await NPTemplating.getTemplateAttributes(templateData)
-
-    if (!templateFrontmatterAttributes?.receivingTemplateTitle) {
-      logError(pluginJson, 'Template does not have a receivingTemplateTitle set')
-      await showMessage('Template does not have a receivingTemplateTitle set. Please set the receivingTemplateTitle in your template frontmatter first.')
-      return
-    }
-
-    //TODO: we may not need this step, ask @codedungeon what he thinks
-    let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
-
-    frontmatterAttributes = { ...frontmatterAttributes, formFields: formFields }
-
-    //TODO: IAMHERE - open the form fields in the editor, passing the data
-    DataStore.invokePluginCommandByName('openFormWindow', 'np.Shared', [frontmatterAttributes])
-  } catch (error) {
-    logError(pluginJson, error)
-  }
-}
-
 export async function templateInvoke(templateName?: string): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
@@ -268,6 +205,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
 
 export async function templateNew(templateTitle: string = '', _folder?: string, args?: Object): Promise<void> {
   try {
+    clo(args, `🤵 DBWDELETEME NPTemplating.templateNew templateTitle=${templateTitle} _folder=${_folder || ''} args=`)
     let selectedTemplate // will be a filename
     if (templateTitle?.trim().length) {
       const options = await NPTemplating.getTemplateList()
@@ -289,7 +227,8 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, args)
     frontmatterAttributes = { ...frontmatterAttributes, ...args }
 
-    if (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
+    if (/select|choose/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {
+      // dbw note: I'm not sure I understand the second part of this condition, but it's always been that way, so not changing it
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
 
@@ -307,9 +246,12 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       return
     }
 
+    logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew about to create new note with noteTitle=${noteTitle} folder=${folder}`)
     const filename = DataStore.newNote(noteTitle, folder) || ''
+    logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew we just createdfilename=${filename}`)
 
     if (filename) {
+      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 about to render template with filename=${filename}`)
       const data = {
         data: {
           ...frontmatterAttributes,
@@ -318,17 +260,26 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
           },
         },
       }
-
+      clo(data, `🤵 DBWDELETEME NPTemplating.templateNew2 before render filename=${filename} args=`)
       const templateResult = await NPTemplating.render(frontmatterBody, data)
+      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 templateResult = ${templateResult}`)
 
       await Editor.openNoteByFilename(filename)
+      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Opened filename=${filename} Editor.content = ${Editor.content || ''}`)
 
-      const hasFM = hasFrontMatter(templateResult)
-      if (hasFM) {
+      const renderedTemplateHasFM = hasFrontMatter(templateResult)
+      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 hasFM=${renderedTemplateHasFM}`)
+      if (renderedTemplateHasFM) {
+        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.content before setting to templateResult = ${Editor.content}; templateResult = ${templateResult}`)
+        clo(Editor.frontmatterAttributes, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.frontmatterAttributes before setting Editor.content to templateResult = `)
         Editor.content = templateResult
-        setFrontMatterVars(Editor, { title: noteTitle })
+        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.content before updateFrontMatterVars = ${Editor.content}`)
+        clo(Editor.frontmatterAttributes, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.frontmatterAttributes before updateFrontMatterVars = `)
+        updateFrontMatterVars(Editor, { title: noteTitle })
+        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 after updateFrontMatterVars Editor.content: ${Editor.content}`)
       } else {
         Editor.content = `# ${noteTitle}\n${templateResult}`
+        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.content = ${Editor.content}`)
       }
       selectFirstNonTitleLineInEditor()
     } else {
@@ -406,7 +357,12 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
           if (startBlock >= 0 && endBlock >= 0) {
             lines[startBlock] = '---'
             lines[endBlock] = '---'
-            Editor.content = lines.join('\n')
+            const newContent = lines.join('\n')
+            Editor.content = newContent
+            logDebug(
+              pluginJson,
+              `TemplateDELETME templateQuickNote: ${filename} has note sub-frontmatter, so we replaced the existing content with the rendered frontmatter; note content is now: ${newContent}`,
+            )
           } else {
             Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
           }
@@ -468,7 +424,7 @@ export async function templateMeetingNote(templateName: string = '', templateDat
         if (frontmatterAttributes?.newNoteTitle) {
           newNoteTitle = frontmatterAttributes.newNoteTitle
         } else {
-          const format = getSetting('np.Templating', 'timestampFormat')
+          const format = await getSetting('np.Templating', 'timestampFormat')
           const info = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', timestamp(format))
           newNoteTitle = info ? info : ''
           if (typeof newNoteTitle === 'boolean' || newNoteTitle.length === 0) {
@@ -507,7 +463,12 @@ export async function templateMeetingNote(templateName: string = '', templateDat
           if (startBlock >= 0 && endBlock >= 0) {
             lines[startBlock] = '---'
             lines[endBlock] = '---'
-            Editor.content = lines.join('\n')
+            const newContent = lines.join('\n')
+            Editor.content = newContent
+            logDebug(
+              pluginJson,
+              `TemplateDELETME templateMeetingNote: ${filename} has note sub-frontmatter, so we replaced the existing content with the rendered frontmatter; note content is now: ${newContent}`,
+            )
           } else {
             Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
           }

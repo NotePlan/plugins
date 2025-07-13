@@ -26,11 +26,7 @@ async function fileExists(fullPath) {
   }
 }
 
-async function getFolderFromCommandLine(
-  rootFolderPath,
-  args,
-  minimalOutput = false,
-) {
+async function getFolderFromCommandLine(rootFolderPath, args, minimalOutput = false) {
   // const args = process.argv.slice(2)
   const limitToFolders = []
   if (args.length) {
@@ -116,8 +112,7 @@ async function getCopyTargetPath(dirents) {
     {
       type: 'list',
       name: 'shouldCopy',
-      message:
-        'Could not a find a file called ".pluginpath". Do you want to auto-copy compiled plugins to the Noteplan plugin directory?',
+      message: 'Could not a find a file called ".pluginpath". Do you want to auto-copy compiled plugins to the Noteplan plugin directory?',
       choices: [
         { name: 'Yes', value: true },
         { name: 'No', value: false },
@@ -174,6 +169,35 @@ async function getPluginConfig(key = null, defaultValue = null) {
   }
 }
 
+function caseSensitiveImports() {
+  return {
+    name: 'case-sensitive-imports',
+    async resolveId(source, importer) {
+      if (!importer) {
+        // Entry module, skip checks
+        return null
+      }
+
+      const resolvedPath = path.resolve(path.dirname(importer), source)
+
+      try {
+        // Check if the file or directory exists
+        await fs.stat(resolvedPath)
+      } catch (err) {
+        return null
+      }
+
+      const actualName = (await fs.readdir(path.dirname(resolvedPath))).find((file) => file === path.basename(resolvedPath))
+
+      if (!actualName) {
+        this.warn(`Cannot find import '${resolvedPath}'. Check for missing file or case mismatch in file name.`)
+      }
+
+      return null // Let Rollup handle the normal resolution
+    },
+  }
+}
+
 module.exports = {
   fileExists,
   getPluginFileContents,
@@ -182,4 +206,5 @@ module.exports = {
   writeMinifiedPluginFileContents,
   getCopyTargetPath,
   getPluginConfig,
+  caseSensitiveImports,
 }

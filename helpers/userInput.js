@@ -5,7 +5,7 @@
 import json5 from 'json5'
 import { getDateStringFromCalendarFilename, RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { getRelativeDates } from './NPdateTime'
-import { clo, logDebug, logError, logWarn, JSP } from './dev'
+import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 import { getHeadingsFromNote } from './NPnote'
 
@@ -130,6 +130,26 @@ export async function showMessage(message: string, confirmButton: string = 'OK',
 }
 
 /**
+ * Show a single-button dialog-box like message (modal), with a list of items, that will be truncated if too long.
+ * Note: This is a hack to avoid showing too many items at once, as the CommandBar.prompt() function is not smart and can run off the screen.
+ * @author @jgclark
+ *
+ * @param {string} message - text to display to user
+ * @param {Array<string>} list - array of strings to display to user
+ * @param {?string} confirmButton - the "button" (option) text (default: 'OK')
+ * @param {?string} dialogTitle - title for the dialog (default: empty)
+ */
+export async function showMessageWithList(message: string, list: Array<string>, confirmButton: string = 'OK', dialogTitle: string = ''): Promise<void> {
+  const safeListLimitToDisplay = 25
+  const listToShow = list.slice(0, safeListLimitToDisplay)
+  const listIsLimited = list.length > safeListLimitToDisplay
+  const listToShowString = listToShow.join('\n')
+  const listIsLimitedString = listIsLimited ? `\n  ... and ${ list.length - safeListLimitToDisplay } more` : ''
+  const messageToShow = `${ message } \n${ listToShowString }${ listIsLimitedString }`
+  await CommandBar.prompt(dialogTitle, messageToShow, [confirmButton])
+}
+
+/**
  * Show a simple Yes/No (could be OK/Cancel, etc.) dialog using CommandBar.
  * Returns the text of the chosen option (by default 'Yes' or 'No')
  * Will now use newer native dialog if available (from 3.3.2), which adds a title.
@@ -193,8 +213,14 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
   if (startFolder?.length && startFolder !== '/') {
     folders = folders.filter((f) => f === NEW_FOLDER || f.startsWith(startFolder))
   } else {
-    if (!includeArchive) {
-      folders = folders.filter((f) => !f.startsWith('@Archive'))
+    const archiveFolders = folders.filter((f) => f.startsWith('@Archive'))
+    const otherSpecialFolders = folders.filter((f) => f.startsWith('@') && !f.startsWith('@Archive'))
+    // Remove special folders from list
+    folders = folders.filter((f) => !f.startsWith('@'))
+    // Now add them back on at the end, with @Archive going last
+    folders = [...folders, ...otherSpecialFolders]
+    if (includeArchive) {
+      folders = [...folders, ...archiveFolders]
     }
   }
   let value, keyModifiers
@@ -202,17 +228,23 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
     // make a slightly fancy list with indented labels, different from plain values
     const folderOptionList: Array<any> = []
     for (const f of folders) {
-      if (f !== '/' && f !== NEW_FOLDER) {
+      if (f === NEW_FOLDER) {
+        folderOptionList.push({ label: NEW_FOLDER, value: NEW_FOLDER })
+      } else if (f !== '/') {
         const folderParts = f.split('/')
+        const icon = (folderParts[0]==='@Archive')
+          ? `🗄️` : (folderParts[0]==='@Templates')
+            ? '📝' : '📁'
+        // Replace earlier parts of the path with indentation spaces
         for (let i = 0; i < folderParts.length - 1; i++) {
           folderParts[i] = '     '
         }
-        folderParts[folderParts.length - 1] = `📁 ${folderParts[folderParts.length - 1]}`
+        folderParts[folderParts.length - 1] =  `${ icon } ${ folderParts[folderParts.length - 1] }`
         const folderLabel = folderParts.join('')
         folderOptionList.push({ label: folderLabel, value: f })
       } else {
         // deal with special case for root folder
-        folderOptionList.push(f !== NEW_FOLDER ? { label: '📁 /', value: '/' } : { label: NEW_FOLDER, value: NEW_FOLDER })
+        folderOptionList.push({ label: '📁 /', value: '/' })
       }
     }
     // const re = await CommandBar.showOptions(folders, msg)
@@ -243,12 +275,13 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
       }
     }
   }
-  logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
-  return folder
+logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
+return folder
 }
 
 /**
  * Ask user to select a heading from those in a given note (regular or calendar), or optionally create a new heading at top or bottom of note to use, or the top or bottom of the note.
+ * Note: Any whitespace on the end of the heading text is left in place, as otherwise this would cause issues with NP API calls that take heading parameter.
  * @author @jgclark
  *
  * @param {TNote} note - note to draw headings from
@@ -348,6 +381,7 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     logDebug('userInput / datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
+      // $FlowIgnore[exponential-spread] known to be very small objects
       ...dateConfig,
       ...paramConfig,
     }
@@ -389,7 +423,7 @@ export async function inputInteger(question: string): Promise<number> {
   if (reply != null && isInt(reply)) {
     return Number(reply)
   } else {
-    logError('userInput / inputInteger', `Error trying to get integer answer for question '${question}'`)
+    logInfo('userInput / inputInteger', `Error trying to get integer answer for question '${question}'. -> NaN`)
     return NaN
   }
 }
@@ -410,10 +444,10 @@ export async function inputIntegerBounded(title: string, question: string, upper
     if (value <= upperBound && value >= lowerBound) {
       result = value
     } else {
-      logWarn('userInput / inputInteger', `Value ${reply} is out of bounds for [${String(lowerBound)},${String(upperBound)}] -> NaN`)
+      logInfo('userInput / inputIntegerBounded', `Value ${reply} is out of bounds for [${String(lowerBound)},${String(upperBound)}] -> NaN`)
     }
   } else {
-    logWarn('userInput / inputInteger', `No valid integer answer for question '${question}' -> NaN`)
+    logInfo('userInput / inputIntegerBounded', `No valid integer answer for question '${question}' -> NaN`)
   }
   return result
 }
@@ -479,7 +513,7 @@ export async function inputMood(moodArray: Array<string>): Promise<string> {
  */
 export const multipleInputAnswersAsArray = async (question: string, submit: string, showCounter: boolean, minAnswers: number = 0, maxAnswers?: number): Promise<Array<string>> => {
   let input = '-'
-  const answers = []
+  const answers: Array<string> = []
 
   while ((maxAnswers ? answers.length < maxAnswers : true) && (input || answers.length < minAnswers)) {
     const placeholder = maxAnswers && showCounter ? `${question} (${answers.length + 1}/${maxAnswers})` : question
@@ -525,11 +559,11 @@ export async function createNewNote(_title?: string = '', _content?: string = ''
  */
 export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDates: boolean = true): string {
   if (noteIn.type === 'Calendar') {
-    let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, true) ?? '(error)'
+    let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
     if (showRelativeDates) {
       for (const rd of relativeDates) {
         if (calNoteTitle === rd.dateStr) {
-          // console.log(`Found match with ${rd.relName}`)
+          // logDebug('displayTitleWithRelDate',`Found match with ${rd.dateStr} => ${rd.relName}`)
           calNoteTitle = `${rd.dateStr}\t(📆 ${rd.relName})`
         }
       }
@@ -559,7 +593,7 @@ export async function chooseNote(
   currentNoteFirst?: boolean = false,
   allowNewNoteCreation?: boolean = false,
 ): Promise<TNote | null> {
-  let noteList = []
+  let noteList: Array<TNote> = []
   const projectNotes = DataStore.projectNotes
   const calendarNotes = DataStore.calendarNotes
   if (includeProjectNotes) {
@@ -586,6 +620,7 @@ export async function chooseNote(
   const { note } = Editor
   if (allowNewNoteCreation) {
     opts.unshift('[New note]')
+    // $FlowIgnore[incompatible-type] just to keep the indexes matching; won't be used
     sortedNoteListFiltered.unshift('[New note]') // just keep the indexes matching
   }
   if (currentNoteFirst && note) {
@@ -593,13 +628,20 @@ export async function chooseNote(
     opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
-  let noteToReturn = sortedNoteListFiltered[index]
-  if (noteToReturn === '[New note]') {
-    noteToReturn = await createNewNote()
-  }
+  const noteToReturn = (opts[index] === '[New note]')
+    ? await createNewNote()
+    : sortedNoteListFiltered[index]
   return noteToReturn ?? null
 }
 
+/**
+ * Used as part of chooseHeading (above) and Dashboard, to handle special instructions -- inserting a new heading, or inserting at top or bottom of the note.
+ * If there are no special instructions, it just returns the heading as is.
+ * @param {TNote} note
+ * @param {number} headingLevel - The level of the heading to add (1-5) where requested
+ * @param {string} chosenHeading - The text of the new heading to add (where requested)
+ * @returns {string} headingToReturn
+ */
 export async function processChosenHeading(note: TNote, headingLevel: number = 2, chosenHeading: string): Promise<string> {
   let newHeading,
     headingToReturn = chosenHeading

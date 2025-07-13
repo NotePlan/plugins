@@ -34,7 +34,6 @@ export {
 } from './noteLinks'
 export { addIDAndAddToOtherNote } from './IDs'
 export { archiveNoteUsingFolder } from './archive'
-export { newNoteFromClipboard, newNoteFromSelection } from './newNote'
 export { smartDuplicateRegularNote } from './smartDuplicate'
 export { smartFileToCompletedSections } from './smartFile'
 

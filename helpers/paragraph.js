@@ -6,8 +6,11 @@
 import { getDateStringFromCalendarFilename } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { getElementsFromTask } from './sorting'
+import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { RE_MARKDOWN_LINK_PATH_CAPTURE, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH } from '@helpers/regex'
+import { getLineMainContentPos } from '@helpers/search'
 import { stripLinksFromString } from '@helpers/stringTransforms'
+
 //-----------------------------------------------------------------------------
 
 /**
@@ -281,6 +284,62 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
 }
 
 /**
+ * Add a new paragraph and preceding heading(s) to a note. If the headings already exist, then don't add them again, but insert the paragraph after the existing headings.
+ * @param {TNote} destNote
+ * @param {string} paraText 
+ * @param {ParagraphType} paragraphType 
+ * @param {Array<string>} headingArray - the headings from H1 (or H2) downwards
+ * @param {number} firstHeadingLevel - the level of the first heading given (1, 2, 3, etc.)
+ */
+export function smartCreateSectionsAndPara(destNote: TNote, paraText: string, paragraphType: ParagraphType, headingArray: Array<string>, firstHeadingLevel: number): void {
+  try {
+    // Work out which of the given headings already exist.
+    // Form a parallel array of existing headings, with empty strings for any that don't exist.
+    const existingHeadingParas = []
+    let notExistingHeadings = 0
+    for (const h of headingArray) {
+      const existingHeading = findHeading(destNote, h)
+      if (existingHeading) {
+        existingHeadingParas.push(existingHeading)
+      } else {
+        // Heading doesn't exist, so add it
+        existingHeadingParas.push('')
+        notExistingHeadings++
+      }
+    }
+
+    logInfo('paragraph/smartCreateSections', `existingHeadingParas: [${String(existingHeadingParas.map((p) => p.content || ''))}]`)
+    let latestInsertionLineIndex = findStartOfActivePartOfNote(destNote)
+
+    // Now use smartPrepend to add any headings that don't already exist
+    if (notExistingHeadings > 0) {
+      // Get start of active part of note
+      // Add the headings
+      for (let i = 0; i < existingHeadingParas.length; i++) {
+        if (existingHeadingParas[i] !== '') {
+          const thisHeadingPara = existingHeadingParas[i]
+          latestInsertionLineIndex = thisHeadingPara.lineIndex + 1
+          logInfo('paragraph/smartCreateSections', `noting existing heading "${thisHeadingPara.content}" at line ${String(latestInsertionLineIndex - 1)} level ${String(thisHeadingPara.headingLevel)}`)
+        } else {
+          // Heading doesn't exist, so add it
+          // $FlowFixMe[incompatible-call] headingLevel is a number, but the API expects an enumeration
+          destNote.insertHeading(headingArray[i], latestInsertionLineIndex, firstHeadingLevel + i)
+          logInfo('paragraph/smartCreateSections', `added heading "${headingArray[i]}" at line ${String(latestInsertionLineIndex)} level ${String(firstHeadingLevel + i)}`)
+        }
+      }
+    } else {
+      logInfo('paragraph/smartCreateSections', `all existingHeadingParas found, so only need to add the paragraph`)
+    }
+
+    // Finally add the paragraph after them
+    destNote.addParagraphBelowHeadingTitle(paraText, paragraphType, headingArray[headingArray.length - 1], false, false)
+    logInfo('paragraph/smartCreateSections', `inserting para after heading "${headingArray[headingArray.length - 1]}" (i.e. line ${String(latestInsertionLineIndex + 1)})`)
+  } catch (err) {
+    logError('paragraph/smartCreateSections', err.message)
+  }
+}
+
+/**
  * TEST:
  * Prepends multiple lines of text to a chosen note, as separate paragraphs, but more smartly than usual: adds after any YAML frontmatter or metadata line (= starts with a hashtag).
  * Note: does work on a single line too.
@@ -302,7 +361,7 @@ export function smartPrependParas(note: TNote, paraTextArr: Array<string>, paraT
 }
 
 /**
- * TEST: 
+ * TEST:
  * Insert multiple lines of text to a chosen note, as separate paragraphs
  * Note: does work on a single line too
  * @author @jgclark
@@ -344,7 +403,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
       return 0
     }
 
-    const endOfFMIndex = endOfFrontmatterLineIndex(note)
+    const endOfFMIndex: number = endOfFrontmatterLineIndex(note) || 0
     if (endOfFMIndex === 0) {
       // No frontmatter found
       if (paras[0].type === 'title' && paras[0].headingLevel === 1) {
@@ -447,49 +506,6 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
 }
 
 /**
- * Works out which is the last line of the frontmatter, returning the line index number of the closing separator, or 0 if no frontmatter found.
- * Now
- * TODO: Move to NPFrontMatter.js ?
- * @author @jgclark
- * @param {TNote} note - the note to assess
- * @returns {number} - the line index number of the closing separator, or 0 if no frontmatter found
- */
-export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
-  try {
-    const paras = note.paragraphs
-    const lineCount = paras.length
-    // logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
-    // Can't have frontmatter as less than 2 separators
-    if (paras.filter((p) => p.type === 'separator').length < 2) {
-      return 0
-    }
-    // No frontmatter if first line isn't ---
-    if (note.paragraphs[0].type !== 'separator') {
-      return 0
-    }
-    // No frontmatter if less than 3 lines
-    if (note.paragraphs.length <= 3) {
-      return 0
-    }
-    // Look for second --- line
-    let lineIndex = 1
-    while (lineIndex < lineCount) {
-      const p = paras[lineIndex]
-      if (p.type === 'separator') {
-        // logDebug(`paragraph/endOfFrontmatterLineIndex`, `-> line ${lineIndex} of ${lineCount}`)
-        return lineIndex
-      }
-      lineIndex++
-    }
-    // Shouldn't get here ...
-    return 0
-  } catch (err) {
-    logError('paragraph/findEndOfActivePartOfNote', err.message)
-    return NaN // for completeness
-  }
-}
-
-/**
  * Get the paragraph from the passed content (using exact match)
  * @author @jgclark
  *
@@ -509,7 +525,7 @@ export function getParaFromContent(note: CoreNoteFields, contentToFind: string):
 }
 
 /**
- * Find a note's heading/title that matches the string given
+ * Find a note's heading/title that matches the string given.
  * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
  * @author @dwertheimer
  *
@@ -519,10 +535,12 @@ export function getParaFromContent(note: CoreNoteFields, contentToFind: string):
  * @returns {TParagraph | null} - returns the actual paragraph or null if not found
  * @tests in jest file
  */
-export function findHeading(note: CoreNoteFields, heading: string, includesString: boolean = false): TParagraph | null {
-  if (heading && heading !== '') {
+export function findHeading(note: CoreNoteFields, headingToFind: string, includesString: boolean = false): TParagraph | null {
+  if (headingToFind && headingToFind !== '') {
     const paragraphs = note.paragraphs
-    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(heading) : paragraph.content.trim() === heading.trim()))
+    const para = paragraphs.find(
+      (paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(headingToFind) : paragraph.content.trim() === headingToFind.trim()),
+    )
 
     if (para) return para
   }
@@ -670,4 +688,26 @@ export function getTagsFromString(content: string, includeSymbol: boolean = true
   const hashtags = getElementsFromTask(content, HASHTAGS).map((tag) => (includeSymbol ? tag : tag.slice(1)))
   const mentions = getElementsFromTask(content, MENTIONS).map((tag) => (includeSymbol ? tag : tag.slice(1)))
   return { hashtags, mentions }
+}
+
+/**
+ * Take a line and simplify by removing blockIDs, start-of-line markers, and trim start/end.
+ * Note: different from simplifyParaContent() which doesn't do as much.
+ * @author @jgclark
+ * @param {string} input
+ * @returns {string} simplified output
+ */
+export function simplifyRawContent(input: string): string {
+  try {
+    // Remove start-of-line markers
+    let output = input.slice(getLineMainContentPos(input))
+    // Remove blockIDs (which otherwise can mess up the other sync'd copies)
+    output = output.replace(/\^[A-z0-9]{6}([^A-z0-9]|$)/g, '')
+    // Trim whitespace at start/end
+    output = output.trim()
+    return output
+  } catch (error) {
+    logError('simplifyRawContent', error.message)
+    return '<error>' // for completeness
+  }
 }

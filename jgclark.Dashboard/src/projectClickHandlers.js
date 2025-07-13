@@ -29,10 +29,6 @@ import {
 import { validateAndFlattenMessageObject } from './shared'
 import { RE_DATE, RE_DATE_INTERVAL } from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import {
-  // sendToHTMLWindow,
-  // getGlobalSharedData,
-} from '@helpers/HTMLView'
 import { logWindowsList } from '@helpers/NPWindows'
 
 /****************************************************************************************************************************

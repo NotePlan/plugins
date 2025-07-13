@@ -30,8 +30,8 @@ This function logs the set of resource files actually available from np.Shared (
 
 ### `checkForWantedResources(fileList?)` function
 This function is provided for your plugin to be able to check resources are available before trying to use them.  It can be called two ways:
-- `checkForWantedResources(pluginID)`: returns `false` if np.Shared is not loaded, and the number of listed `plugin.sharedRequiredFiles` it can find if it is loaded
-- `checkForWantedResources(pluginID, Array<filenames>)`: returns the number of the listed `filenames` that are available from np.Shared.
+- `checkForWantedResources()`: returns `true` or `false` depending whether np.Shared is loaded
+- `checkForWantedResources(Array<filenames>)`: returns the number of the filenames that are available from np.Shared.
 
 Note: You must set `const pluginID = '<your plugin ID>'` in the file(s) where you call this function.
 
@@ -98,8 +98,23 @@ There is also a `pluginToHTMLCommsBridge` file that can be used to enable bi-dir
   <script type="text/javascript" src="../npShared/pluginToHTMLCommsBridge.js"></script>
 ```
 
->**NOTE:** The html-plugin-comms.js is where you will do the sending/receiving in the HTML window (browser side). That file is auto-created for you when you run a `np-cli plugin:create` command. 
+## Dialogs
+### Opening a dialog/form from a Template:
+- The template function `/Open Template Form` will open a dialog/form with the items specified in the template.
+- Under the hood, this uses the `DynamicDialog` component from np.Shared and another Component `FormView` which basically just takes the form items from the template and sends them to the DynamicDialog component 
+- Users shouldn't need to know anything about this
 
+### Opening a dialog from within a React plugin window:
+Use the `DynamicDialog` component from np.Shared
+
+> **NOTE:** The html-plugin-comms.js is where you will do the sending/receiving in the HTML window (browser side). That file is auto-created for you when you run a `np-cli plugin:create` command. 
+
+## Previewing React
+The `live-server` npm package can be very useful to locally open saved HTML output file but running the react script files updated in the background by `npc ... -w`. For example:
+
+`live-server --open="jgclark.Dashboard/dashboard-react.html" --ignore="*.json"`
+
+(The `ignore` in this case stops it re-loading when that plugin's `todaysChangedNoteList.json` file changes, which it can do frequently.)
 
 ## Support
 

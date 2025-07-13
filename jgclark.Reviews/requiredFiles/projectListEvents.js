@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
-// Last updated: 2024-10-01 for v1.0.0.b1 by @jgclark
+// Last updated: 2025-02-06 for v1.1.0 by @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handlers
@@ -29,21 +29,25 @@ function showProjectControlDialog(dataObject) {
     dialog.close()
   }
 
+  const dialog = document.getElementById("projectControlDialog")
   const mousex = event.clientX  // Horizontal
   const mousey = event.clientY  // Vertical
-  // const thisID = dataObject.itemID
-  // const thisIDElement = document.getElementById(thisID)
-  // const thisEncodedFilename = thisIDElement.dataset.encodedFilename // i.e. the "data-encoded-filename" element, with auto camelCase transposition
-  const thisEncodedFilename = dataObject.encodedFilename
-  const thisFilename = decodeRFC3986URIComponent(thisEncodedFilename)
-  // console.log(`dataObject() starting for ID ${thisID}, filename ${thisEncodedFilename}`)
-  console.log(`dataObject() starting for filename ${thisEncodedFilename}`)
+  const thisID = dataObject.itemID
+  const thisIDElement = document.getElementById(thisID)
 
-  const dialog = document.getElementById("projectControlDialog")
-
-  // Set the dialog title from the filename
+  // Set the dialog title from the filename or title
+  const thisEncodedFilename = dataObject.encodedFilename // i.e. the "data-encoded-filename" element, with auto camelCase transposition
+  const thisFilename = decodeRFC3986URIComponent(dataObject.encodedFilename)
+  const thisTitle = decodeRFC3986URIComponent(dataObject.encodedTitle)
   const dialogItemNoteElem = document.getElementById('dialogProjectNote')
-  dialogItemNoteElem.innerHTML = thisFilename // TODO(later): use note title
+  dialogItemNoteElem.innerHTML = thisTitle ?? thisFilename
+
+  // Set the dialog interval from the note
+  const thisReviewInterval = dataObject.reviewInterval ?? ''
+  const dialogItemIntervalElem = document.getElementById('dialogProjectInterval')
+  dialogItemIntervalElem.innerHTML = ` (reviews: ${thisReviewInterval})`
+
+  console.log(`showProjectControlDialog() starting for filename '${thisFilename}', interval '${thisReviewInterval}', title '${thisTitle}'`)
 
   const possibleControlTypes = [
     // { displayString: 'Finish Review <i class="fa-solid fa-flag-checkered"></i>', controlStr: 'reviewed', handlingFunction: 'reviewFinished' },
@@ -99,6 +103,19 @@ function showProjectControlDialog(dataObject) {
   }
 
   console.log(`- ${String(added)} button ELs added`)
+
+  // Add click handler to close dialog when clicking outside
+  dialog.addEventListener('click', (event) => {
+    const dialogDimensions = dialog.getBoundingClientRect()
+    if (
+      event.clientX < dialogDimensions.left ||
+      event.clientX > dialogDimensions.right ||
+      event.clientY < dialogDimensions.top ||
+      event.clientY > dialogDimensions.bottom
+    ) {
+      closeDialog()
+    }
+  })
 
   // Actually show the dialog
   dialog.showModal()
@@ -225,8 +242,6 @@ function addContentEventListeners() {
 
     // add event handler to each <a> (normally only 1 per item),
     // unless it's a noteTitle, which gets its own click handler.
-    // const theseALinks = contentItem.getElementsByTagName("A")
-    // for (const thisLink of theseALinks) {
     const thisLink = contentItem
     // console.log('- A on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent + ' / ' + thisLink.className)
     if (!thisLink.className.match('noteTitle')) {
@@ -235,19 +250,6 @@ function addContentEventListeners() {
         handleContentClick(event, thisID, thisEncodedFilename, thisEncodedContent)
       }, false)
     }
-    // }
-
-    // // add event handler to each "div.content" (normally only 1 per item),
-    // const theseDIVLinks = contentItem.getElementsByTagName("DIV")
-    // for (const thisLink of theseDIVLinks) {
-    //   if (thisLink.className.match('content') && !(thisLink.className.match('tooltip'))) {
-    //     console.log('DIV.content on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisLink.className)
-    //     thisLink.addEventListener('click', function (event) {
-    //       // event.preventDefault(); // now disabled to ensure that externalLinks etc. can fire
-    //       handleContentClick(event, thisID, thisEncodedFilename, thisEncodedContent)
-    //     }, false)
-    //   }
-    // }
   }
   console.log(`${String(allContentItems.length)} sectionItem ELs added (to content links)`)
 
@@ -302,32 +304,6 @@ function addCommandButtonEventListeners() {
   }
   console.log(`- ${String(added)} PCButton ELs added`)
 }
-
-// /**
-//  * Add an event listener to all class="Commandutton" items
-//  */
-// function addPluginCommandButtonEventListeners() {
-//   // Register click handlers for each 'CommandButton' on the window with URL to call
-//   allCommandButtons = document.getElementsByClassName("CommandButton")
-//   let added = 0
-//   for (const button of allCommandButtons) {
-//     // const thisURL = button.dataset.PluginCommandUrl
-//     // add event handler and make visible
-//     console.log(`- displaying button for Command ${thisURL}`)
-//     button.addEventListener('click', function (event) {
-//       event.preventDefault()
-//       // console.log(`Attempting to call URL ${thisURL} ...`)
-//       // const myRequest = new Request(thisURL) // normally has await ...
-//       // console.log(`Attempting to send message to plugin ${thisURL} ...`)
-//       // onClickDashboardItem({ itemID: id, type: type, controlStr: controlStr, encodedFilename: encodedFilename, encodedContent: encodedCurrentContent })
-//       console.log(`Attempting to send command '${button.dataset.command}' to plugin ${button.dataset.pluginId} ...`)
-//       const theseCommandArgs = (button.dataset.commandArgs).split(',')
-//       sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
-//     }, false)
-//     added++
-//   }
-//   console.log(`- ${String(added)} button ELs added`)
-// }
 
 //--------------------------------------------------------------------------------------
 // Handle various clicks

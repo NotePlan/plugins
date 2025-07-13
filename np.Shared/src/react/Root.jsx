@@ -37,7 +37,7 @@ declare function sendMessageToPlugin(Array<string | any>): void
 import React, { useState, useEffect, Profiler, type Node, useRef } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 
-// import { WebView } from './_Cmp-WebView.jsx' // we are gonna have to hope it's loaded by HTML
+// import { WebView } from './_Cmp-WebView.jsx' // we are assuming it's externally loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
 import { logDebug, formatReactError, JSP, clo, logError } from '@helpers/react/reactDev'
@@ -72,6 +72,7 @@ export function Root(/* props: Props */): Node {
   const [warning, setWarning] = useState({ warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red' })
   // const [setMessageFromPlugin] = useState({})
   const [history, setHistory] = useState([lastUpdated])
+
   // $FlowFixMe
   const tempSavedClicksRef = useRef<Array<TAnyObject>>([]) // temporarily store the clicks in the webview
 
@@ -117,8 +118,7 @@ export function Root(/* props: Props */): Node {
    */
   // eslint-disable-next-line no-unused-vars
   const dispatch = (action: string, data: any, actionDescriptionForLog?: string): void => {
-    // const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
-    // logDebug(`Root`,`Received dispatch request: "${desc}", data=${JSON.stringify(data, null, 2)}`)
+    const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
     // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
     const event = new MessageEvent('message', { data: { type: action, payload: data } })
     onMessageReceived(event)
@@ -226,7 +226,6 @@ export function Root(/* props: Props */): Node {
         if (!type) throw (`onMessageReceived: event.data.type is undefined`, event.data)
         if (!payload) throw (`onMessageReceived: event.data.payload is undefined`, event.data)
         if (type && payload) {
-          // logDebug(`Root`, ` onMessageReceived: ${type}`)
           // logDebug(`Root`, ` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
           if (!payload.lastUpdated) payload.lastUpdated = { msg: '(no msg)' }
           // Spread existing state into new object to keep it immutable
@@ -260,13 +259,12 @@ export function Root(/* props: Props */): Node {
               break
             }
             case 'SHOW_BANNER':
-              if (npData.passThroughVars.lastWindowScrollTop) {
-                logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it.`)
-                setNPData((prevData) => {
-                  prevData.passThroughVars.lastWindowScrollTop = 0
-                  return { ...prevData, ...payload }
-                })
-              }
+              logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it.`)
+              setNPData((prevData) => {
+                prevData.passThroughVars = prevData.passThroughVars ?? {}
+                prevData.passThroughVars.lastWindowScrollTop = 0
+                return { ...prevData, ...payload }
+              })
               showBanner(payload.msg, payload.color, payload.border)
               break
             case 'SEND_TO_PLUGIN':
@@ -324,6 +322,7 @@ export function Root(/* props: Props */): Node {
    */
   const showBanner = (msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red') => {
     const warnObj = { warn: true, msg, color, border }
+    logDebug(`Root`, `showBanner zz: ${JSON.stringify(warnObj, null, 2)}`)
     setWarning(warnObj)
   }
 
@@ -385,17 +384,13 @@ export function Root(/* props: Props */): Node {
    * Fires after components draw
    */
   useEffect(() => {
-    if (npData?.passThroughVars?.lastWindowScrollTop !== undefined && npData.passThroughVars.lastWindowScrollTop !== window.scrollY) {
+    if (typeof npData?.passThroughVars?.lastWindowScrollTop !== 'undefined' && npData.passThroughVars.lastWindowScrollTop !== window.scrollY) {
       // debug && logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(npData.lastWindowScrollTop)}`)
       window.scrollTo(0, npData.passThroughVars.lastWindowScrollTop)
     } else {
       // logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
     }
   }, [npData])
-
-  // useEffect(() => {
-  //   logDebug('Root', `Noticed a change in reactSettings: ${JSON.stringify(reactSettings)}`)
-  // }, [reactSettings])
 
   /****************************************************************************************************************************
    *                             RENDER
@@ -404,13 +399,16 @@ export function Root(/* props: Props */): Node {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => {}} onError={myErrorLogger}>
       <div className="Root" onClickCapture={onClickCapture}>
-        <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
         {logProfilingMessage ? (
           <Profiler id="MemoizedWebView" onRender={onRender}>
+            <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
             <MemoizedWebView dispatch={dispatch} data={npData} reactSettings={reactSettings} setReactSettings={setReactSettings} />
           </Profiler>
         ) : (
-          <MemoizedWebView data={npData} dispatch={dispatch} reactSettings={reactSettings} setReactSettings={setReactSettings} />
+          <>
+            <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
+            <MemoizedWebView data={npData} dispatch={dispatch} reactSettings={reactSettings} setReactSettings={setReactSettings} />
+          </>
         )}
 
         {(ROOT_DEBUG || debug) && (

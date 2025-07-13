@@ -12,12 +12,12 @@ import {
   calcOffsetDateStr,
   getCalendarNoteTimeframe,
   // getDateStringFromCalendarFilename,
-  getDateFromUnhyphenatedDateString,
+  getDateFromYYYYMMDDString,
   getDateStrForStartofPeriodFromCalendarFilename,
   // getISODateStringFromYYYYMMDD,
   toLocaleDateString,
   toLocaleTime,
-  // unhyphenateString,
+  // convertISODateFilenameToNPDayFilename,
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { getTagParamsFromString } from '@helpers/general'
@@ -83,13 +83,13 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
       // Set dateStr to the day in question (YYYYMMDD)
 
       // const isoStartDayDateStr = getISODateStringFromYYYYMMDD(startDayDateString)
-      // const dateStr = unhyphenateString(calcOffsetDateStr(isoStartDayDateStr, `+${i}d`))
+      // const dateStr = convertISODateFilenameToNPDayFilename(calcOffsetDateStr(isoStartDayDateStr, `+${i}d`))
       const dateStr = calcOffsetDateStr(startDayDateString, `+${i}d`)
       logDebug('listDaysEvents', `${i}: startDayDateString=${startDayDateString}, dateStr=${dateStr}`)
 
       // Add heading if wanted, or if doing more than 1 day
       if (daysToCover > 1) {
-        const npDateStr = getDateFromUnhyphenatedDateString(dateStr)
+        const npDateStr = getDateFromYYYYMMDDString(dateStr)
         if (!npDateStr) {
           throw new Error(`Could not get valid NP date string from ${dateStr}`)
         }
@@ -229,13 +229,13 @@ export async function listMatchingDaysEvents(
     // For each day to cover
     for (let i = 0; i < daysToCover; i++) {
       // Set dateStr to the day in question (YYYYMMDD)
-      // const dateStr = unhyphenateString(calcOffsetDateStr(getISODateStringFromYYYYMMDD(baseDateStr), `+${i}d`))
+      // const dateStr = convertISODateFilenameToNPDayFilename(calcOffsetDateStr(getISODateStringFromYYYYMMDD(baseDateStr), `+${i}d`))
       const dateStr = calcOffsetDateStr(startDayDateString, `+${i}d`)
       logDebug('listDaysEvents', `${i}: startDayDateString=${startDayDateString}, dateStr=${dateStr}`)
 
       // Add heading if wanted, or if doing more than 1 day
       if (daysToCover > 1) {
-        const npDateStr = getDateFromUnhyphenatedDateString(dateStr)
+        const npDateStr = getDateFromYYYYMMDDString(dateStr)
         if (!npDateStr) {
           throw new Error(`Could not get valid NP date string from ${dateStr}`)
         }

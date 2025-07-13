@@ -10,6 +10,7 @@ import json5 from 'json5'
 import { showMessage, showMessageYesNo } from './userInput'
 import { castStringFromMixed } from '@helpers/dataManipulation'
 import { logDebug, logWarn, logError, logInfo, JSP, clo, copyObject, timer } from '@helpers/dev'
+import { caseInsensitiveMatch } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
 
 /**
@@ -53,7 +54,7 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
 }
 
 /**
- * update setting data in the event plugin.settings object has been updated
+ * Add new top-level keys to setting.json's data in the event plugin.settings object has been updated in a Plugin's plugin.json file.
  * @author @codedungeon
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
  * @return {number} update result (1 settings updated, 0 no update necessary, -1 update failed)
@@ -76,22 +77,28 @@ export function updateSettingData(pluginJsonData: any): number {
       }
     }
   })
-  // FIXME: @jgclark at least once saw an 'undefined is not an object' error, which appeared to be for this line.
-  // dbw did the following logging to try to track it down but it looks like, JS thinks that DataStore is not an object at times
-  // and yet, somehow the migration actually does work and migrates new settings. So, I'm not sure what's going on here.
-  // we are going to leave this alone for the time being, but if you see this error again, please uncomment the following to keep hunting
-  logDebug(
-    'NPConfiguration/updateSettingData',
-    `typeof DataStore: ${typeof DataStore} isArray:${String(
-      Array.isArray(DataStore),
-    )} typeof DataStore.settings: ${typeof DataStore?.settings} typeof newSettings: ${typeof newSettings}`,
-  )
   // logDebug(`NPConfiguration/updateSettingData: Object.keys(DataStore): ${Object.keys(DataStore).join(',')}`)
   // logDebug('currentSettingData:', JSP(currentSettingData, 2))
   // logDebug('newSettings:', JSP(newSettings, 2))
   // logDebug('DataStore.settings:', JSP(DataStore.settings, 2))
   try {
-    DataStore.settings = newSettings
+    if (DataStore && typeof DataStore.settings === 'object' && updateResult > 0) {
+      // WARNING: @jgclark at least once saw an 'undefined is not an object' error, which appeared to be for this line.
+      // dbw added the following logging to try to track it down but it looks like, JS thinks that DataStore is not an object at times.
+      // And yet, somehow the migration actually does work and migrates new settings. So, I'm not sure what's going on here.
+      // We are going to leave this alone for the time being, but if you see this error again, please uncomment the following to keep hunting.
+      logDebug(
+        `NPConfiguration/updateSettingData for ${pluginJsonData['plugin.id']} updateResult: ${updateResult}`,
+        `typeof DataStore: ${typeof DataStore} isArray:${String(
+          Array.isArray(DataStore),
+        )} typeof DataStore.settings: ${typeof DataStore?.settings} typeof newSettings: ${typeof newSettings}`,
+      )
+      logDebug(
+        'NPConfiguration/updateSettingData',
+        `About to update DataStore.settings to newSettings after an update. If you see a TypeError right after this, please ignore it. It's a known NP bug that doesn't seem to matter.`,
+      )
+      DataStore.settings = newSettings
+    }
   } catch (error) {
     console.log(
       'NPConfiguration/updateSettingData/Plugin Settings Migration Failed. Was not able to automatically migrate your plugin settings to the new version. Please open the plugin settings and save in order to update your settings.',
@@ -119,28 +126,27 @@ export async function copySpecificSettings(oldPluginID: string, newPluginID: str
   await saveSettings(newPluginID, newPluginSettings, false)
 }
 
-export function getSetting(pluginId: string = '', key: string = '', defaultValue?: any = ''): any | null {
-  const settings = DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
+export async function getSetting(pluginId: string, key: string, defaultValue?: any = ''): Promise<any | null> {
+  const settings = await DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
   return typeof settings === 'object' && settings.hasOwnProperty(key) ? settings[key] : defaultValue
 }
 
-export async function getSettings(pluginId: string = '', defaultValue?: any = {}): any | null {
+export async function getSettings(pluginId: string, defaultValue?: any = {}): any | null {
   const settings = await DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
   return typeof settings === 'object' ? settings : defaultValue
 }
 
 /**
  * Save given settings to the given plugin's settings.json file.
- * TODO(@dwertheimer): why can value be unspecified?
  * @author @dwertheimer, updated by @jgclark
- * @param {string?} pluginId
- * @param {any?} value
- * @param {boolean?} triggerUpdateMechanism
+ * @param {string} pluginId
+ * @param {any} value
+ * @param {boolean?} triggerUpdateMechanism? (defaults to true)
  * @returns {any} ?
  */
-export async function saveSettings(pluginId: string = '', value?: any = {}, triggerUpdateMechanism: boolean = true): any | null {
+export async function saveSettings(pluginId: string, value: any, triggerUpdateMechanism: boolean = true): Promise<boolean> {
   // logDebug('NPConfiguration/saveSettings', `starting to ${pluginId}/plugin.json with triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
-  if (NotePlan.environment.buildVersion < 1045 || triggerUpdateMechanism) {
+  if (triggerUpdateMechanism) {
     // save, and can't or don't want to turn off triggering onUpdateSettings
     return await DataStore.saveJSON(value, `../../data/${pluginId}/settings.json`)
   } else {
@@ -215,13 +221,14 @@ export function semverVersionToNumber(version: string): number {
   const parts = trimmedVersion.split('.').map((part) => {
     const numberPart = parseInt(part, 10)
     if (isNaN(numberPart) || numberPart < 0) {
-      throw new Error(`Invalid version part: ${part}`)
+      logError(`Invalid version part: version=${version} part=${part}`)
     }
     return numberPart
   })
 
   if (parts.length !== 3) {
-    throw new Error('Version string must have exactly three parts')
+    logError('Version string must have exactly three parts')
+    return 0
   }
 
   let numericVersion = 0
@@ -304,33 +311,72 @@ export type PluginObjectWithUpdateField = {
 
 /**
  * Find a plugin id and optionally minVersion from a list of plugins generated by DataStore.installedPlugins() etc.
- * @param {*} list - array of plugins
- * @param {*} id - id to find
- * @param {*} minVersion - min version to find (optional)
- * @returns the plugin object if the id is found and the minVersion matches (>= the minVersion)
+ * @param {Array<any>} list - array of plugins
+ * @param {string} pluginID - the ID of the plugin to find
+ * @param {string?} minVersion - min version to find (optional)
+ * @returns {any} the plugin object if the id is found and the minVersion matches (>= the minVersion)
  */
-export const findPluginInList = (list: Array<any>, id: string, minVersion?: string = '0.0.0'): any => {
-  return list.find((p) => {
-    if (p.id === id) {
-      logDebug(
-        `findPluginInList: ${p.id} ${p.version} (${semverVersionToNumber(p.version)}) >= ${minVersion} ${String(
-          minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true,
-        )}`,
-      )
-      return minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true
-    }
-    return false
-  })
+export const findPluginInList = (list: Array<any>, pluginID: string, minVersion?: string = '0.0.0'): any => {
+  return list && Array.isArray(list)
+    ? list.find((p) => {
+        if (p.id === pluginID) {
+          logDebug(
+            `findPluginInList: ${p.id} ${p.version} (${semverVersionToNumber(p.version)}) >= ${minVersion} ${String(
+              minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true,
+            )}`,
+          )
+          return minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true
+        }
+        return false
+      })
+    : null
 }
 
 /**
- * @param {string} id - the id of the plugin
+ * Check if a plugin is installed with the minimum version.
+ * @param {string} pluginID - the ID of the plugin
  * @param {string} minVersion - the minimum version of the plugin that is required
  * @returns {boolean} - true if the plugin is installed with the minimum version
  */
-export async function pluginIsInstalled(id: string, minVersion?: string): Promise<boolean> {
-  const installedPlugins = await DataStore.installedPlugins()
-  return Boolean(findPluginInList(installedPlugins, id, minVersion))
+export function pluginIsInstalled(pluginID: string, minVersion?: string): boolean {
+  const installedPlugins = DataStore.installedPlugins()
+  return Boolean(findPluginInList(installedPlugins, pluginID, minVersion))
+}
+
+/**
+ * Get list of all command names for a given plugin
+ * @param {string} pluginID - the id of the plugin
+ * @returns {Array<string>} - list of command names
+ */
+export function getPluginCommandNames(pluginID: string): Array<string> {
+  const thisPluginObj = DataStore.installedPlugins().find((p) => p.id === pluginID)
+  if (!thisPluginObj) {
+    logWarn('getPluginCommandNames', `could not find installed plugin ${pluginID}`)
+    return []
+  }
+  const thisPluginCommandObjs = thisPluginObj.commands
+  return thisPluginCommandObjs.map((pco) => pco.name)
+}
+
+/**
+ * Check if a plugin command is available for a given plugin.
+ * If the command name is not found, or the plugin is not installed, return an empty string.
+ * But be kind and check that the command name is the right capitalization by checking all install plugin command names for this plugin. Return the correctly capitalised version of the command name.
+ * @param {string} commandName - the name of the command to check
+ * @param {string} pluginID - the id of the plugin
+ * @returns {string} - commandName if available, otherwise ''
+ */
+export function checkPluginCommandNameAvailable(commandName: string, pluginID: string): string {
+  if (!pluginIsInstalled(pluginID)) return ''
+  const commandNames = getPluginCommandNames(pluginID)
+  for (const thisCN of commandNames) {
+    if (caseInsensitiveMatch(commandName, thisCN)) {
+      logDebug('checkPluginCommandNameAvailable', `Matched orig ${commandName} to ${thisCN} for plugin ${pluginID}`)
+      return thisCN
+    }
+  }
+  logWarn('checkPluginCommandNameAvailable', `Couldn't match orig ${commandName} to any installed commands for plugin ${pluginID}`)
+  return ''
 }
 
 /**
@@ -346,7 +392,7 @@ async function installPlugin(pluginInfo: any): Promise<PluginObject | void> {
   }
   const { id, minVersion, preInstallMessage } = pluginInfo
   logDebug(`installPlugin: Start install process for: ${id}`)
-  const isInstalled = await pluginIsInstalled(id, minVersion)
+  const isInstalled = pluginIsInstalled(id, minVersion)
   if (isInstalled) {
     logDebug(`installPlugin() ran but ${id} >= ${minVersion || '0.0.0'} was installed, so no need to do anything.`)
     return
@@ -510,12 +556,13 @@ export async function getPluginList(showInstalledOnly: boolean = false, installe
 }
 
 /**
- * Get a setting value from another plugin, or use a default
+ * Get a setting value from another plugin, or use a default.
+ * Written because it's surprisingly easy to get this wrong, and land up querying the calling plugin.
  * @author @jgclark
  * @param {string} pluginID
  * @param {string} settingName
  * @param {any} defaultValue
- * @returns {any}
+ * @returns {Promise<any>}
  */
 // eslint-disable-next-line no-unused-vars
 export async function getSettingFromAnotherPlugin(pluginID: string, settingName: string, defaultValue: any): Promise<any> {

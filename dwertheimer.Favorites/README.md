@@ -6,15 +6,22 @@ Somewhere on the Noteplan roadmap is (hopefully) the concept of pinned notes (se
 
 ## Using the Favorites ⭐️ Plugin
 
-## Setting Favorite Documents for easy access
+## Setting Favorite Documents for Easy Access
 
-1. At the beginning, no items are in the Favorites list
-2. Open up any document in the Editor
-2. Run the `/fave` plugin to set the current document as a "Favorite"
-3. [This adds a ⭐️ to the title, which indicates this file is a "Favorite"]
+1. At the beginning, no items are in the Favorites list.
+2. Open up any document in the Editor.
+3. Run the `/fave` plugin to set the current document as a "Favorite".
+   - This can be done by adding a ⭐️ to the title or by setting a frontmatter field.
+   - If using frontmatter, ensure the frontmatter key is set correctly in the plugin settings.
 4. Now run the `/faves` command and you will see your favorites.
-5. Choosing a favorite opens it in the Editor
-6. Use the `/unfave`  command to remove the ⭐️ (or you can do it by hand)!
+5. Choosing a favorite opens it in the Editor.
+6. Use the `/unfave` command to remove the ⭐️ or the frontmatter field (or you can do it by hand)!
+
+### Preferences and Settings
+
+- **Favorite Identifier**: Choose how to identify favorites. Options include using a star in the title or a frontmatter field.
+- **Favorite Key**: If using frontmatter, this setting allows you to specify the key used to mark a note as a favorite. Default is 'favorite', but you can change it to any valid key name.
+- **Characters to Prepend to Command**: If there are characters like “-⭐️” in front of each command, it will keep them together and float them to the top of the menu. Whatever text you put here will be prepended to any command name you set. Blank this field out to not prepend any characters.
 
 ## Setting Favorite Commands (X-Callbacks and URLs)
 

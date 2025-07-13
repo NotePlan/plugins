@@ -32,7 +32,7 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
   const { reactSettings, pluginData } = useAppContext()
 
   function onDialogClose(xWasClicked: boolean) {
-    onClose(xWasClicked) // send to parent
+    onClose(xWasClicked) // do nothing special here; pass it on to Dashboard::handleDialogClose
   }
 
   // the child dialogs (Task & Project) will call this function to position the dialog after they render
@@ -44,17 +44,62 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
       const thisOS = pluginData.platform
 
       if (clickPosition && dialog) {
-        const dialogWidth = dialog.offsetWidth
-        const dialogHeight = dialog.offsetHeight
-        setPositionForDialog(thisOS, dialogWidth, dialogHeight, dialog, clickPosition)
-      }
+        // Use a more reliable method to get dimensions
+        const getDialogDimensions = () => {
+          // Try multiple methods to get accurate dimensions
+          const rect = dialog.getBoundingClientRect()
+          const scrollWidth = dialog.scrollWidth
+          const scrollHeight = dialog.scrollHeight
+          const offsetWidth = dialog.offsetWidth
+          const offsetHeight = dialog.offsetHeight
+          const clientWidth = dialog.clientWidth
+          const clientHeight = dialog.clientHeight
 
+          // Use the largest available dimension to account for any rendering delays
+          const dialogWidth = Math.max(rect.width, scrollWidth, offsetWidth, clientWidth) || offsetWidth
+          const dialogHeight = Math.max(rect.height, scrollHeight, offsetHeight, clientHeight) || offsetHeight
+
+          logDebug('positionDialog', `Dialog dimensions: rect(${rect.width}x${rect.height}), scroll(${scrollWidth}x${scrollHeight}), offset(${offsetWidth}x${offsetHeight}), client(${clientWidth}x${clientHeight}) -> using(${dialogWidth}x${dialogHeight})`)
+
+          // If the height is still suspiciously small, use an estimated height based on content
+          if (dialogHeight < 200) { // Increased threshold
+            logDebug('positionDialog', `Dialog height too small (${dialogHeight}), using estimated height...`)
+
+            // Estimate height based on typical dialog content
+            // Task dialog has: title (~40px) + content line (~30px) + move controls (~30px) + other actions (~30px) + padding (~20px) = ~150px minimum
+            const estimatedHeight = 250 // Conservative estimate for task dialog
+            const estimatedWidth = dialogWidth || 400 // Fallback width
+
+            logDebug('positionDialog', `Using estimated dimensions: ${estimatedWidth}x${estimatedHeight}`)
+            setPositionForDialog(thisOS, estimatedWidth, estimatedHeight, dialog, clickPosition)
+            return
+          }
+
+          setPositionForDialog(thisOS, dialogWidth, dialogHeight, dialog, clickPosition)
+        }
+
+        // Force a reflow to ensure all content is rendered, then measure
+        dialog.offsetHeight // Force reflow
+
+        // Check if there's an animation running that might affect dimensions
+        const computedStyle = window.getComputedStyle(dialog)
+        const transform = computedStyle.transform
+
+        if (transform && transform !== 'none') {
+          logDebug('positionDialog', `Dialog has transform: ${transform}, waiting for animation...`)
+          // Wait for animation to complete (zoom-in takes 300ms)
+          setTimeout(() => {
+            getDialogDimensions()
+          }, 350) // Slightly longer than the animation duration
+        } else {
+          getDialogDimensions()
+        }
+      }
     }
   }
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      logDebug('Dialog', `Event.key: ${event.key}`)
       if (event.key === 'Escape') {
         onDialogClose(true)
       }
@@ -103,64 +148,66 @@ function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight:
   logDebug('setPositionForDialog', `starting: thisOS=${thisOS} dialogWidth=${dialogWidth} dialogHeight=${dialogHeight} event=${JSON.stringify(event)}`)
   const fudgeFactor = 12 // small border (in pixels) to take account of scrollbars etc. round Left, Right, Bottom sides
   const fudgeFactorTop = 40 // border (in pixels) to take account of header bar which floats over the top
+  const fudgeFactorBottom = 40 // allow more bottom space, as the dialog may be taller than expected
 
-  const mousex = event.clientX // Horizontal
-  const mousey = event.clientY // Vertical
-  const scrollX = window.scrollX
-  const scrollY = window.scrollY
+  // Get mouse positions (viewport-relative)
+  const mousex = event.clientX
+  const mousey = event.clientY
+
+  // Get viewport dimensions
+  const winWidth = window.visualViewport.width
+  const winHeight = window.visualViewport.height
+  logDebug('setPositionForDialog', `- winWidth=${String(winWidth)} winHeight=${String(winHeight)}`)
+
   let x = 0
   let y = 0
 
-  const winWidth = window.visualViewport.width
-  const winHeight = window.visualViewport.height
-  logDebug('setPositionForDialog', `- winWidth=${String(winWidth)} winHeight=${String(winHeight)} / scrollX=${String(scrollX)} scrollY=${String(scrollY)}`)
-
+  // Handle X positioning
   if (winWidth < dialogWidth) {
     dialog.style.left = `2%`
     dialog.style.width = `96%`
   } else if (winWidth - dialogWidth < 100) {
-    // x = Math.round((winWidth - dialogWidth) / 2) + scrollX
     x = Math.round((winWidth - dialogWidth) / 2)
     dialog.style.left = `${x}px`
   } else {
-    // x = mousex - Math.round(dialogWidth / 3) + scrollX
+    // Position relative to mouse in viewport coordinates
     x = mousex - Math.round(dialogWidth / 3)
-    // if (x + dialogWidth > winWidth + scrollX) {
-    if (x + dialogWidth > (winWidth - fudgeFactor)) {
-      // x = winWidth - fudgeFactor - dialogWidth + scrollX
+
+    // Check if dialog would go outside right edge of viewport
+    if (x + dialogWidth > winWidth - fudgeFactor) {
       x = winWidth - fudgeFactor - dialogWidth
       logDebug('setPositionForDialog', `- moved x left to be in viewport -> x=${String(x)}`)
-
     }
-    // if (x < fudgeFactor + scrollX) {
+
+    // Check if dialog would go outside left edge of viewport
     if (x < fudgeFactor) {
-      // x = fudgeFactor + scrollX
       x = fudgeFactor
     }
     dialog.style.left = `${x}px`
   }
 
+  // Handle Y positioning
   if (winHeight < dialogHeight) {
     dialog.style.top = `0`
     logDebug('setPositionForDialog', `- move y to top of silly shallow window`)
   } else if (winHeight - dialogHeight < 100) {
-    // y = Math.round((winHeight - dialogHeight) / 2) + scrollY
     y = Math.round((winHeight - dialogHeight) / 2)
     dialog.style.top = `${y}px`
     logDebug('setPositionForDialog', `- setting y to be in middle of window as quite shallow -> y=${String(y)}`)
   } else {
-    // y = mousey - Math.round(dialogHeight / 2) + scrollY
+    // Position relative to mouse in viewport coordinates
     y = mousey - Math.round(dialogHeight / 2)
     logDebug('setPositionForDialog', `- setting y to be around mouse -> y=${String(y)}`)
-    // if (y + dialogHeight > winHeight + scrollY) {
-    if (y + dialogHeight > winHeight) {
-      // y = winHeight - fudgeFactor - dialogHeight + scrollY
+
+    // Check if dialog would go below viewport
+    if (y + dialogHeight > winHeight - fudgeFactorBottom) {
+      logDebug('setPositionForDialog', `- about to move y (${String(y)}) up to be in viewport as height is ${String(winHeight)}`)
       y = winHeight - fudgeFactor - dialogHeight
       logDebug('setPositionForDialog', `- moved y up to be in viewport -> y=${String(y)}`)
     }
-    // if (y < fudgeFactorTop + scrollY) {
+
+    // Check if dialog would go above viewport
     if (y < fudgeFactorTop) {
-      // y = fudgeFactorTop + scrollY
       y = fudgeFactorTop
       logDebug('setPositionForDialog', `- moved y down to be at top of viewport -> y=${String(y)}`)
     }

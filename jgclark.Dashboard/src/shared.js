@@ -15,14 +15,23 @@ export type ValidatedData = {
     [string]: any,
 }
 
+/**
+ * Parses a JSON string into a JavaScript object.
+ * @param {string} settingsStr - The JSON string to parse
+ * @return {any} The parsed JavaScript object, or undefined if an error occurs
+ */
 export function parseSettings(settingsStr: string): any {
     try {
         if (!settingsStr) {
             throw new Error('Undefined settingsStr passed')
         }
+        if (typeof settingsStr === 'object') {
+            logDebug(`shared / parseSettings()`, `settingsStr is already an object, so returning it as is`)
+            return settingsStr
+        }
         return JSON.parse(settingsStr)
     } catch (error) {
-        logError(`shared/parseSettings`, `Error parsing settingsStr: ${error.message}: Settings string: ${(JSP(settingsStr))}`)
+        logError(`shared / parseSettings()`, `Error parsing settingsStr: ${error.message}: Settings string: ${(JSP(settingsStr))}`)
     }
 }
 

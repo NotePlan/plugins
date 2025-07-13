@@ -2,14 +2,18 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2024-09-12 by @jgclark
+// Last updated 2025-05-31 by @jgclark
 // ---------------------------------------------------------
-
+import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
+import {
+  hasFrontMatter
+} from '@helpers/NPFrontMatter'
+import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
 import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
-import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
+import { RE_EVENT_LINK, RE_SYNC_MARKER, formRegExForUsersOpenTasks } from '@helpers/regex'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 
 // ---------------------------------------------------------
@@ -17,6 +21,10 @@ import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 
 const pluginJson = 'helpers/HTMLView'
 
+const defaultBorderWidth = 8 // in pixels
+
+// If reuseUsersWindowRect is true, then the window will be resized to the user's saved window rect. If this is not available, then use x/y/width/height if available, or failing that use paddingWidth/paddingHeight to fill the screen other than this padding.
+// (This is useful when we don't know user's screen dimensions.)
 export type HtmlWindowOptions = {
   windowTitle: string,
   headerTags?: string,
@@ -31,6 +39,8 @@ export type HtmlWindowOptions = {
   height?: number,
   x?: number,
   y?: number,
+  paddingWidth?: number,
+  paddingHeight?: number,
   reuseUsersWindowRect?: boolean,
   includeCSSAsJS?: boolean,
   customId?: string,
@@ -64,13 +74,18 @@ const fixedMetaTags = `
  */
 export function getCallbackCodeString(jsFunctionName: string, commandName: string = '%%commandName%%', pluginID: string = '%%pluginID%%', returnPathFuncName: string = ''): string {
   const haveNotePlanExecute = JSON.stringify(`(async function() { await DataStore.invokePluginCommandByName("${commandName}", "${pluginID}", %%commandArgs%%);})()`)
-  // logDebug(`getCallbackCodeString: In HTML Code, use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
+  // logDebug(`getCallbackCodeString: (generated using getCallbackCodeString), use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
   // Note: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
   // "${returnPathFuncName}" was the onHandle, but since that function doesn't really do anything, I'm not sending it
   return `
+    console.log(\`${jsFunctionName}: (generated using getCallbackCodeString) "\$\{commandName\}" to send data to NP, and use a func named "\$\{returnPathFuncName\}" to receive data back from NP\`)
     // This is a callback bridge from HTML to the plugin
     const ${jsFunctionName} = (commandName = "${commandName}", pluginID = "${pluginID}", commandArgs = []) => {
-      const code = ${haveNotePlanExecute}.replace("%%commandName%%",commandName).replace("%%pluginID%%",pluginID).replace("%%commandArgs%%", JSON.stringify(commandArgs));
+      // const code = ${haveNotePlanExecute}.replace("%%commandName%%",commandName).replace("%%pluginID%%",pluginID).replace("%%commandArgs%%", ()=>JSON.stringify(commandArgs));
+          const code = \`${haveNotePlanExecute}\`
+            .replace("%%commandName%%", commandName)
+            .replace("%%pluginID%%", pluginID)
+            .replace("%%commandArgs%%", () => JSON.stringify(commandArgs)); //This is important because it works around problems with $$ in commandArgs
       // console.log(\`${jsFunctionName}: Sending command "\$\{commandName\}" to NotePlan: "\$\{pluginID\}" with args: \$\{JSON.stringify(commandArgs)\}\`);
       console.log(\`window.${jsFunctionName}: Sending code: "\$\{code\}"\`)
       if (window.webkit) {
@@ -85,6 +100,150 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
     };
 `
 }
+
+
+/**
+ * Convert a note's content to HTML and include any images as base64
+ * @param {string} content
+ * @param {TNote} Note
+ * @returns {string} HTML
+ */
+export async function getNoteContentAsHTML(content: string, note: TNote): Promise<string> {
+  try {
+    let lines = content?.split('\n') ?? []
+
+    let hasFrontmatter = hasFrontMatter(content ?? '')
+    const RE_OPEN_TASK_FOR_USER = formRegExForUsersOpenTasks(false)
+
+    // Work on a copy of the note's content
+    // Change frontmatter for this note (if present)
+    // In particular remove trigger line
+    if (hasFrontmatter) {
+      let titleAsMD = ''
+      // look for 2nd '---' and double it, because of showdown bug
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].match(/^title:\s/)) {
+          titleAsMD = lines[i].replace('title:', '#')
+          logDebug('getNoteContentAsHTML', `removing title line ${String(i)}`)
+          lines.splice(i, 1)
+        }
+        if (lines[i].trim() === '---') {
+          lines.splice(i, 0, '') // add a blank before second HR to stop it acting as an ATX header line
+          lines.splice(i + 2, 0, titleAsMD) // add the title (as MD)
+          break
+        }
+      }
+
+      // If we now have empty frontmatter (so, just 3 sets of '---'), then remove them all
+      if (lines[0] === '---' && lines[1] === '' && lines[2] === '---') {
+        lines.splice(0, 3)
+        hasFrontmatter = false
+      }
+    }
+
+    // Make some necessary changes before conversion to HTML
+    for (let i = 0; i < lines.length; i++) {
+      // remove any sync link markers (blockIds)
+      lines[i] = lines[i].replace(/\^[A-z0-9]{6}([^A-z0-9]|$)/g, '').trimRight()
+
+      // change open tasks to GFM-flavoured task syntax
+      const res = lines[i].match(RE_OPEN_TASK_FOR_USER)
+      if (res) {
+        lines[i] = lines[i].replace(res[0], '- [ ]')
+      }
+    }
+
+    // Make this proper Markdown -> HTML via showdown library
+    // Set some options to turn on various more advanced HTML conversions (see actual code at https://github.com/showdownjs/showdown/blob/master/src/options.js#L109):
+    const converterOptions = {
+      emoji: true,
+      footnotes: true,
+      ghCodeBlocks: true,
+      strikethrough: true,
+      tables: true,
+      tasklists: true,
+      metadata: false, // otherwise metadata is swallowed
+      requireSpaceBeforeHeadingText: true,
+      simpleLineBreaks: true // Makes this GFM style. TODO: make an option?
+    }
+    const converter = new showdown.Converter(converterOptions)
+    let body = converter.makeHtml(lines.join(`\n`))
+    body = `<style>img { background: white; max-width: 100%; max-height: 100%; }</style>${body}` // fix for bug in showdown
+    
+    const imgTagRegex = /<img src=\"(.*?)\"/g
+    const matches = [...body.matchAll(imgTagRegex)]
+    const noteDirPath = getFolderFromFilename(note.filename)
+    
+    for (const match of matches) {
+      const imagePath = match[1]
+      try {
+        // Handle both absolute and relative paths
+        let fullPath = `../../../Notes/${noteDirPath}/${decodeURI(imagePath)}`
+        if(fullPath.endsWith('.drawing')) {
+          fullPath = fullPath.replace('.drawing', '.png')
+        }
+        const data = await DataStore.loadData(fullPath, false)
+        if (data) {
+          const base64Data = `data:image/png;base64,${data.toString('base64')}`
+          body = body.replaceAll(imagePath, base64Data)
+        }
+      } catch (err) {
+        logWarn('getNoteContentAsHTML', `Failed to load image "${imagePath}". Error: ${err.message}`)
+      }
+    }
+
+    // TODO: Ideally build a frontmatter styler extension (to use above) but for now ...
+    // Tweak body output to put frontmatter in a box if it exists
+    if (hasFrontmatter) {
+      // replace first '<hr />' with start of div
+      body = body.replace('<hr />', '<div class="frontmatter">')
+      // replace what is now the first '<hr />' with end of div
+      body = body.replace('<hr />', '</div>')
+    }
+    // logDebug(pluginJson, body)
+
+    // Make other changes to the HTML to cater for NotePlan-specific syntax
+    lines = body.split('\n')
+    const modifiedLines = []
+    for (let line of lines) {
+      const origLine = line
+
+      // Display hashtags with .hashtag style
+      line = convertHashtagsToHTML(line)
+
+      // Display mentions with .attag style
+      line = convertMentionsToHTML(line)
+
+      // Display highlights with .highlight style
+      line = convertHighlightsToHTML(line)
+
+      // Replace [[notelinks]] with just underlined notelink
+      const captures = line.match(/\[\[(.*?)\]\]/)
+      if (captures) {
+        // clo(captures, 'results from [[notelinks]] match:')
+        for (const capturedTitle of captures) {
+          line = line.replace(`[[${capturedTitle}]]`, `~${capturedTitle}~`)
+        }
+      }
+      // Display underlining with .underlined style
+      line = convertUnderlinedToHTML(line)
+
+      // Remove any blockIDs
+      line = line.replace(RE_SYNC_MARKER, '')
+
+      if (line !== origLine) {
+        logDebug('getNoteContentAsHTML', `modified {${origLine}} -> {${line}}`)
+      }
+      modifiedLines.push(line)
+    }
+    return modifiedLines.join('\n')
+
+  } catch (error) {
+    logError('getNoteContentAsHTML', error.message)
+    return '<conversion error>'
+  }
+}
+
 
 /**
  * This function creates the webkit console.log/error handler for HTML messages to get back to NP console.log
@@ -218,19 +377,6 @@ export async function showHTMLWindow(body: string, opts: HtmlWindowOptions) {
   }
   opts.preBodyScript = preBody
   await showHTMLV2(body, opts)
-  // showHTML(
-  //   windowTitle,
-  //   opts.headerTags ?? '',
-  //   body,
-  //   opts.generalCSSIn ?? '',
-  //   opts.specificCSS ?? '',
-  //   opts.makeModal ?? false,
-  //   [...preBody],
-  //   opts.postBodyScript ?? '',
-  //   opts.savedFilename ?? '',
-  //   opts.width,
-  //   opts.height,
-  // )
 }
 
 type ScriptObj = {
@@ -339,75 +485,69 @@ function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
  * @param {number?} height
  * @param {string?} customId
  */
-export function showHTML(
-  windowTitle: string,
-  headerTags: string,
-  body: string,
-  generalCSSIn: string,
-  specificCSS: string,
-  makeModal: boolean = false,
-  preBodyScript: string | ScriptObj | Array<string | ScriptObj> = '',
-  postBodyScript: string | ScriptObj | Array<string | ScriptObj> = '',
-  filenameForSavedFileVersion: string = '',
-  width?: number,
-  height?: number,
-  // eslint-disable-next-line no-unused-vars
-  customId: string = '', // Note: now unused
-): void {
-  try {
-    const opts: HtmlWindowOptions = {
-      windowTitle: windowTitle,
-      headerTags: headerTags,
-      generalCSSIn: generalCSSIn,
-      specificCSS: specificCSS,
-      preBodyScript: preBodyScript,
-      postBodyScript: postBodyScript,
-    }
-    // clo(opts)
-    const fullHTMLStr = assembleHTMLParts(body, opts)
+// export function showHTML(
+//   windowTitle: string,
+//   headerTags: string,
+//   body: string,
+//   generalCSSIn: string,
+//   specificCSS: string,
+//   makeModal: boolean = false,
+//   preBodyScript: string | ScriptObj | Array<string | ScriptObj> = '',
+//   postBodyScript: string | ScriptObj | Array<string | ScriptObj> = '',
+//   filenameForSavedFileVersion: string = '',
+//   width?: number,
+//   height?: number,
+//   // eslint-disable-next-line no-unused-vars
+//   customId: string = '', // Note: now unused
+// ): void {
+//   try {
+//     const opts: HtmlWindowOptions = {
+//       windowTitle: windowTitle,
+//       headerTags: headerTags,
+//       generalCSSIn: generalCSSIn,
+//       specificCSS: specificCSS,
+//       preBodyScript: preBodyScript,
+//       postBodyScript: postBodyScript,
+//     }
+//     // clo(opts)
+//     const fullHTMLStr = assembleHTMLParts(body, opts)
 
-    // Call the appropriate function, with or without h/w params.
-    // Currently non-modal windows only available on macOS and from 3.7 (build 864)
-    if (width === undefined || height === undefined) {
-      if (makeModal || NotePlan.environment.platform !== 'macOS') {
-        logDebug('showHTML', `Using showSheet modal view for b${NotePlan.environment.buildVersion}`)
-        HTMLView.showSheet(fullHTMLStr) // available from 3.6.2
-      } else {
-        logDebug('showHTML', `Using showWindow non-modal view for b${NotePlan.environment.buildVersion}`)
-        HTMLView.showWindow(fullHTMLStr, windowTitle) // available from 3.7.0
-      }
-    } else {
-      if (makeModal || NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 863) {
-        logDebug('showHTML', `Using showSheet modal view for b${NotePlan.environment.buildVersion}`)
-        HTMLView.showSheet(fullHTMLStr, width, height)
-      } else {
-        logDebug('showHTML', `Using showWindow non-modal view with w+h for b${NotePlan.environment.buildVersion}`)
-        HTMLView.showWindow(fullHTMLStr, windowTitle, width, height) // available from 3.7.0
-      }
-    }
+//     // Call the appropriate function, with or without h/w params.
+//     // Note: on-modal windows only available on macOS
+//     if (width === undefined || height === undefined) {
+//       if (makeModal || NotePlan.environment.platform !== 'macOS') {
+//         logDebug('showHTML', `Using showSheet modal view for b${NotePlan.environment.buildVersion}`)
+//         HTMLView.showSheet(fullHTMLStr)
+//       } else {
+//         logDebug('showHTML', `Using showWindow non-modal view for b${NotePlan.environment.buildVersion}`)
+//         HTMLView.showWindow(fullHTMLStr, windowTitle)
+//       }
+//     } else {
+//       if (makeModal || NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 863) {
+//         logDebug('showHTML', `Using showSheet modal view for b${NotePlan.environment.buildVersion}`)
+//         HTMLView.showSheet(fullHTMLStr, width, height)
+//       } else {
+//         logDebug('showHTML', `Using showWindow non-modal view with w+h for b${NotePlan.environment.buildVersion}`)
+//         HTMLView.showWindow(fullHTMLStr, windowTitle, width, height)
+//       }
+//     }
 
-    // TEST: remove from 3.9.6
-    // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
-    // if (NotePlan.environment.buildVersion >= 976) {
-    //   setHTMLWindowId(customId ?? windowTitle)
-    // }
-
-    // If wanted, also write this HTML to a file so we can work on it offline.
-    // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
-    if (filenameForSavedFileVersion !== '') {
-      const filenameWithoutSpaces = filenameForSavedFileVersion.split(' ').join('')
-      // Write to specified file in NP sandbox
-      const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
-      if (res) {
-        logDebug('showHTML', `Saved copy of HTML to '${windowTitle}' to ${filenameForSavedFileVersion}`)
-      } else {
-        logError('showHTML', `Couldn't save resulting HTML '${windowTitle}' to ${filenameForSavedFileVersion}.`)
-      }
-    }
-  } catch (error) {
-    logError('HTMLView / showHTML', error.message)
-  }
-}
+//     // If wanted, also write this HTML to a file so we can work on it offline.
+//     // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
+//     if (filenameForSavedFileVersion !== '') {
+//       const filenameWithoutSpaces = filenameForSavedFileVersion.split(' ').join('')
+//       // Write to specified file in NP sandbox
+//       const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
+//       if (res) {
+//         logDebug('showHTML', `Saved copy of HTML to '${windowTitle}' to ${filenameForSavedFileVersion}`)
+//       } else {
+//         logError('showHTML', `Couldn't save resulting HTML '${windowTitle}' to ${filenameForSavedFileVersion}.`)
+//       }
+//     }
+//   } catch (error) {
+//     logError('HTMLView / showHTML', error.message)
+//   }
+// }
 
 /**
  * V2 helper function to construct HTML and decide how and where to show it in a window.
@@ -418,33 +558,15 @@ export function showHTML(
  * - (optional) still supply default opts.width and opts.height to use the first time
  * Under the hood it saves the windowRect to local preference "<plugin.id>.<customId>".
  * Note: Could allow for style file via saving arbitrary data file, and have it triggered on theme change.
- * Note: requires NP v3.9.2 build 1037
  * @author @jgclark
  * @param {string} body
  * @param {HtmlWindowOptions} opts
  */
 export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise<Window | boolean> {
   try {
-    if (NotePlan.environment.buildVersion < 1037) {
-      logWarn('HTMLView / showHTMLV2', 'showHTMLV2() is only available on 3.9.2 build 1037 or newer. Will fall back to using older, simpler, showHTML() instead ...')
-      await showHTML(
-        opts.windowTitle,
-        fixedMetaTags + (opts.headerTags ?? ''),
-        body,
-        opts.generalCSSIn ?? '',
-        opts.specificCSS ?? '',
-        opts.makeModal,
-        opts.preBodyScript,
-        opts.postBodyScript,
-        opts.savedFilename ?? '',
-        opts.width,
-        opts.height,
-        opts.customId,
-      )
-      return true // for completeness
-    }
-
-    logDebug('HTMLView / showHTMLV2', `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'}`)
+    const screenWidth = NotePlan.environment.screenWidth
+    const screenHeight = NotePlan.environment.screenHeight
+    logDebug('HTMLView / showHTMLV2', `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'} for screen dimensions ${screenWidth}x${screenHeight}`)
 
     // Assemble the parts of the HTML into a single string
     const fullHTMLStr = assembleHTMLParts(body, opts)
@@ -460,42 +582,28 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
 
     // Decide which of the appropriate functions to call.
     if (opts.makeModal) {
-      // if (opts.makeModal || NotePlan.environment.platform !== 'macOS') {
       logDebug('showHTMLV2', `Using modal 'sheet' view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
-      // if (opts.width === undefined || opts.height === undefined) {
-      //   HTMLView.showSheet(fullHTMLStr)
-      // } else {
       HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
-      // }
     } else {
       // Make a normal non-modal window
       let winOptions = {}
-      // First set to the default values
-      if (NotePlan.environment.buildVersion >= 1087) {
-        // From 3.9.6 can set windowId/customId directly through options
-        winOptions = {
-          x: opts.x,
-          y: opts.y,
-          width: opts.width,
-          height: opts.height,
-          shouldFocus: opts.shouldFocus,
-          id: cId, // don't need both ... but trying to work out which is the current one for the API
-          windowId: cId,
-        }
-      } else {
-        winOptions = {
-          x: opts.x,
-          y: opts.y,
-          width: opts.width,
-          height: opts.height,
-          shouldFocus: opts.shouldFocus,
-        }
+
+      // First set to the values set in the opts object, using x/y/w/h if available, or if not, then use paddingWidth/paddingHeight to fill the screen other than this padding.
+      winOptions = {
+        x: opts.x ?? (screenWidth - (screenWidth - (opts.paddingWidth ?? 0) * 2)) / 2,
+        y: opts.y ?? (screenHeight - (screenHeight - (opts.paddingHeight ?? 0) * 2)) / 2,
+        width: opts.width ?? (screenWidth - (opts.paddingWidth ?? 0) * 2),
+        height: opts.height ?? (screenHeight - (opts.paddingHeight ?? 0) * 2),
+        shouldFocus: opts.shouldFocus,
+        id: cId, // don't need both ... but trying to work out which is the current one for the API
+        windowId: cId,
       }
       // Now override with saved x/y/w/h for this window if wanted, and if available
       if (opts.reuseUsersWindowRect && cId) {
         // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
         const storedRect = getStoredWindowRect(cId)
         if (storedRect) {
+
           winOptions = {
             x: storedRect.x,
             y: storedRect.y,
@@ -516,7 +624,6 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
           // fullHTMLStr = fullHTMLStr.replace("<body>", `<body>\n${extraInfo}\n`)
           // }
         } else {
-          logDebug('showHTMLV2', `- Couldn't read user's saved Rect from pref from ${cId}`)
           // if (NotePlan.environment.platform !== 'macOS') {
           //   const extraInfo = "<p>OS:" + NotePlan.environment.platform +
           //     " Type: " + (opts.makeModal ? 'Modal' : 'Floating') +
@@ -528,24 +635,26 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       }
       // clo(winOptions, 'showHTMLV2 using winOptions:')
 
-      // From v3.9.8 we can test to see if requested window dimensions would exceed screen dimensions; if so reduce them accordingly
-      // Note: could also check window will be visible on screen and if not, move accordingly
-      if (NotePlan.environment.buildVersion >= 1100) {
-        const screenWidth = NotePlan.environment.screenWidth
-        const screenHeight = NotePlan.environment.screenHeight
-        logDebug('showHTMLV2', `- screen dimensions are ${String(screenWidth)} x ${String(screenHeight)} for device ${NotePlan.environment.machineName}`)
-        if (winOptions.width > screenWidth) {
-          logDebug('showHTMLV2', `- Constrained width from ${String(winOptions.width)} to ${String(screenWidth)}`)
-          winOptions.width = screenWidth
-        }
-        if (winOptions.height > screenHeight) {
-          logDebug('showHTMLV2', `- Constrained height from ${String(winOptions.height)} to ${String(screenHeight)}`)
-          winOptions.height = screenHeight
-        }
+      // Test to see if requested window dimensions would exceed screen dimensions; if so reduce them accordingly
+      logDebug('showHTMLV2', `- screen dimensions are ${String(screenWidth)} x ${String(screenHeight)} for device ${NotePlan.environment.machineName}`)
+      if (winOptions.width > screenWidth) {
+        logDebug('showHTMLV2', `- Constrained width from ${String(winOptions.width)} to ${String(screenWidth)}`)
+        winOptions.width = screenWidth - defaultBorderWidth * 2
+      }
+      if (winOptions.height > screenHeight) {
+        logDebug('showHTMLV2', `- Constrained height from ${String(winOptions.height)} to ${String(screenHeight)}`)
+        winOptions.height = screenHeight - defaultBorderWidth * 2
       }
 
-      const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1.
-      // clo(win, '-> win:')
+      // Check window will be visible on screen and if not, move accordingly
+      if (winOptions?.x && winOptions.x < 0) {
+        winOptions.x = 0
+      }
+      if (winOptions?.y && winOptions.y < 0) {
+        winOptions.y = 0
+      }
+
+      const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions)
 
       // If wanted, also write this HTML to a file so we can work on it offline.
       // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
@@ -561,13 +670,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         }
       }
 
-      // Set customId for this window (with fallback to be windowTitle)
-      // Note: only required between NP v3.8.1 + and 3.9.5.After that its built in.
-      if (NotePlan.environment.buildVersion < 1087) {
-        logDebug('showHTMLV2', `- setting the customId to '${cId}'`)
-        win.customId = cId
-      }
-
+      // Note: the customId for this window is set by NP.
       // Double-check: read back from the window itself
       logDebug('showHTMLV2', `- Window has customId:'${win?.customId || ''}' / id:"${win?.id || ''}"`)
       return win
@@ -719,6 +822,34 @@ export async function getGlobalSharedData(windowId: string, varName: string = 'g
 }
 
 /**
+ * Check to see if the theme has changed since we initially drew the window
+ * This can happen when your computer goes from light to dark mode or you change the theme
+ * We want the dashboard to always match.
+ * Note: if/when we get a themeChanged trigger, then this can be simplified.
+ * Note: assumes you have a field in pluginData called themeName
+ * @param {string} windowID - The ID of the window to check.
+ * @param {string} overrideThemeName (optional) - The theme name to check against. If not provided, the current Editor theme will be used.
+ * @returns {Promise<boolean>} - true if the theme has changed, false otherwise.
+ */
+export async function themeHasChanged(windowID: string, overrideThemeName?: string): Promise<boolean> {
+  const reactWindowData = await getGlobalSharedData(windowID)
+  const { pluginData } = reactWindowData
+  const { themeName: themeInWindow } = pluginData
+
+  const currentTheme = overrideThemeName ? overrideThemeName : Editor.currentTheme?.name || null
+
+  if (!currentTheme) {
+    logError('themeHasChanged', `Could not find currentTheme: "${currentTheme}", overrideThemeName: "${overrideThemeName || ''}", themeInReactWindow: "${themeInWindow}"`)
+    return false
+  }
+  if (currentTheme !== themeInWindow) {
+    logDebug('themeHasChanged', `theme changed from "${themeInWindow}" to "${currentTheme}"`)
+    return true
+  }
+  return false
+}
+
+/**
  * Generally, we will try not to update the global shared object directly, but instead use message passing to let React update the state. But there will be times we need to update the state from here (e.g. when we hit limits of message passing).
  * @author @dwertheimer
  * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
@@ -763,8 +894,8 @@ export async function sendBannerMessage(windowId: string, message: string, color
  * add basic **bold** or __bold__ styling
  * add basic *italic* or _italic_ styling
  * In each of these, if the text is within a URL, don't add the ***bolditalic*** or **bold** or *italic* styling
- * @param {string} input 
- * @returns 
+ * @param {string} input
+ * @returns
  */
 export function convertBoldAndItalicToHTML(input: string): string {
   let output = input
@@ -777,9 +908,9 @@ export function convertBoldAndItalicToHTML(input: string): string {
   const BIMatches = output.match(RE_BOLD_ITALIC_PHRASE)
   if (BIMatches) {
     // clo(BIMatches, 'BIMatches')
-    const filteredMatches = BIMatches.filter(match => {
+    const filteredMatches = BIMatches.filter((match) => {
       const index = input.indexOf(match)
-      return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
+      return !urls.some((url) => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
     })
     for (const match of filteredMatches) {
       // logDebug('convertBoldAndItalicToHTML', `- making bold-italic with [${String(match)}]`)
@@ -792,9 +923,9 @@ export function convertBoldAndItalicToHTML(input: string): string {
   const boldMatches = output.match(RE_BOLD_PHRASE)
   if (boldMatches) {
     // clo(boldMatches, 'boldMatches')
-    const filteredMatches = boldMatches.filter(match => {
+    const filteredMatches = boldMatches.filter((match) => {
       const index = input.indexOf(match)
-      return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
+      return !urls.some((url) => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
     })
     for (const match of filteredMatches) {
       // logDebug('convertBoldAndItalicToHTML', `- making bold with [${String(match)}]`)
@@ -808,9 +939,9 @@ export function convertBoldAndItalicToHTML(input: string): string {
   const italicMatches = output.match(RE_ITALIC_PHRASE)
   if (italicMatches) {
     // clo(italicMatches, 'italicMatches')
-    const filteredMatches = italicMatches.filter(match => {
+    const filteredMatches = italicMatches.filter((match) => {
       const index = input.indexOf(match)
-      return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
+      return !urls.some((url) => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
     })
     for (const match of filteredMatches) {
       // logDebug('convertBoldAndItalicToHTML', `- making italic with [${String(match)}]`)
@@ -926,35 +1057,38 @@ export function convertHighlightsToHTML(input: string): string {
 // Display time blocks with .timeBlock style
 // Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
 // WARNING: can't be used from React, as this calls a DataStore function
-export function convertTimeBlockToHTML(input: string): string {
+export function convertTimeBlockToHTML(input: string, timeblockTextMustContainString: string = ''): string {
   let output = input
-  if (isTimeBlockLine(input)) {
+  if (isTimeBlockLine(input, timeblockTextMustContainString)) {
     const timeBlockPart = getTimeBlockString(input)
-    logDebug(`found time block '${timeBlockPart}'`)
+    // logDebug('convertTimeBlockToHTML', `found time block '${timeBlockPart}'`)
     output = output.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
   }
   return output
 }
 
-// Display underlined with .underlined style
-// TODO: regex isn't quite right. But can't get original one to work for reasons I can't understand
-// But does cope with lone ~ in URLs
+// Change markdown ~underlined~ to HTML with .underlined style
+// Ignores ~ in URLs
 export function convertUnderlinedToHTML(input: string): string {
   let output = input
-  // const captures = output.match(/(?:[\s^])~.*?~(?:[\s$])/g)
-  const captures = output.match(/~[\w\-'"]*?~/g)
+  const captures = output.match(/~[^~]*?~/g)
   if (captures) {
-    clo(captures, 'results from underlined matches:')
+    // clo(captures, 'results from underlined matches:')
     for (const capture of captures) {
-      const match = capture
-      output = output.replace(match, `<span class="underlined">${match.slice(1, -1)}</span>`)
+      // Check if the capture is part of a URL (either markdown links or HTML anchor tags)
+      const isInMarkdownURL = new RegExp(`\\[.*?\\]\\(.*?${capture}.*?\\)`).test(input)
+      const isInHTMLURL = new RegExp(`<a[^>]*href=["'][^"']*${capture}[^"']*["'][^>]*>`).test(input)
+      if (!isInMarkdownURL && !isInHTMLURL) {
+        const match = capture
+        output = output.replace(match, `<span class="underlined">${match.slice(1, -1)}</span>`)
+      }
     }
   }
   return output
 }
 
 // Display strike text with .strikethrough style
-//
+// Ignores ~~ in URLs
 export function convertStrikethroughToHTML(input: string): string {
   let output = input
   const captures = output.match(/~~.*?~~/g)
@@ -990,13 +1124,25 @@ export function convertNPBlockIDToHTML(input: string): string {
  * @param {string} commandName to call when button is 'clicked'
  * @param {string} commandArgs (may be empty)
  * @param {string?} tooltipText to hover display next to button
+ * @param {boolean} nativeTooltips use native browser tooltips (default: false)
  * @returns {string}
  */
-export function makePluginCommandButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
+export function makePluginCommandButton(
+  buttonText: string,
+  pluginName: string,
+  commandName: string,
+  commandArgs: string,
+  tooltipText: string = '',
+  nativeTooltips: boolean = false,
+): string {
   const output = tooltipText
-    ? `<button class="PCButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(
-        commandArgs,
-      )}">${buttonText}</button>`
+    ? nativeTooltips
+      ? `<button class="PCButton" title="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(
+          commandArgs,
+        )}">${buttonText}</button>`
+      : `<button class="PCButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(
+          commandArgs,
+        )}">${buttonText}</button>`
     : `<button class="PCButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}" >${buttonText}</button>`
   return output
 }

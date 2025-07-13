@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
   "plugin.version": "0.22.2",
-  "plugin.lastUpdateInfo": "0.22.2: ???\n0.22.1: extend /shift dates to cover weekly, monthly, quarterly and yearly dates as well as daily ones.\n0.22.0: can now use events() template calls in Weekly notes.\n0.21.3: bug fix adding time blocks to calendar.\n0.21.2: /shiftDates now covers more cases.\n0.21.1: add 'Yes to all' to option to create time blocks. Extend '/shift dates' to work on week dates.\n0.21.0: improvements to '/shift dates' and '/process date offsets'.",
+  "plugin.lastUpdateInfo": "0.22.2: ???\n0.22.1: extend /shift dates to cover weekly, monthly, quarterly and yearly dates as well as daily ones. Improve setting defaults and documentation.\n0.22.0: can now use events() template calls in Weekly notes.\n0.21.3: bug fix adding time blocks to calendar.\n0.21.2: /shiftDates now covers more cases.\n0.21.1: add 'Yes to all' to option to create time blocks. Extend '/shift dates' to work on week dates.\n0.21.0: improvements to '/shift dates' and '/process date offsets'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -48,6 +48,7 @@
     },
     {
       "name": "shiftDatesCore",
+      "hidden": true,
       "description": "Entry point for shiftDates for other commands",
       "jsFunction": "shiftDatesCore",
       "parameters": [
@@ -83,7 +84,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Settings for insert day's events as list"
+      "title": "'insert day's events as list' command settings"
     },
     {
       "key": "eventsHeading",
@@ -96,17 +97,17 @@
     {
       "key": "formatEventsDisplay",
       "title": "Events List display format",
-      "description": "The format string to use to customise how events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'. Each placeholder needs to be wrapped by '*|...|*'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
+      "description": "The format string to use to customise how events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'. Each placeholder needs to be wrapped by '*|...|*'.\n(Default is '- (*|CAL, |**|START|**|, LOCATION|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
       "type": "string",
-      "default": "### (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*",
+      "default": "- (*|CAL, |**|START|**|, LOCATION|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*",
       "required": true
     },
     {
       "key": "formatAllDayEventsDisplay",
       "title": "Events List display format for all-day events",
-      "description": "The format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'. Each placeholder needs to be wrapped by '*|...|*'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
+      "description": "The format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'. Each placeholder needs to be wrapped by '*|...|*'.\n(Default is '### (*|CAL, |**|LOCATION|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
       "type": "string",
-      "default": "### (*|CAL|*) *|TITLE|**|\nEVENTLINK|**|\nNOTES|*",
+      "default": "### (*|CAL|**|, LOCATION|*) *|TITLE|**|\nEVENTLINK|**|\nNOTES|*",
       "required": true
     },
     {
@@ -151,7 +152,7 @@
     },
     {
       "type": "heading",
-      "title": "Additional '/insert matching events' settings"
+      "title": "Additional 'insert matching events' command settings"
     },
     {
       "key": "matchingEventsHeading",
@@ -164,7 +165,7 @@
     {
       "key": "addMatchingEvents",
       "title": "Events match list",
-      "description": "Match events with string on left, and then the string on the right is the template for how to insert this event.  The available placeholders are 'STOPMATCHING', 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'. Each placeholder needs to be wrapped by '*|...|*'.\n(See README for details)",
+      "description": "Match events with string on left, and then the string on the right is the template for how to insert this event.  The available placeholders are 'STOPMATCHING', 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'START', 'END', 'LOCATION', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'. Each placeholder needs to be wrapped by '*|...|*'.\n(See README for details)",
       "type": "json",
       "default": "{\n\t\"meeting\": \"### *|TITLE|* (*|START|*)*|\\nwith ATTENDEES|**|\\nNOTES|*\",\n\t\"webinar\": \"### *|TITLE|* (*|START|*)*|\\nEVENTLINK|**|\\nNOTES|*\",\n\t\"gym\": \"*|TITLE|* (*|START|*)\\nHow did it go?\"\n,\n\t\"holiday\": \"*|TITLE|**|\\nNOTES|*\"\n}",
       "required": true
@@ -182,7 +183,38 @@
     },
     {
       "type": "heading",
-      "title": "'/time blocks to calendar' settings"
+      "title": "'shift dates' command settings"
+    },
+    {
+      "key": "removeDoneDates",
+      "title": "Remove @done dates?",
+      "description": "Whether to remove @done(...) dates, if present, when shifting dates.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "uncompleteTasks",
+      "title": "Set any closed tasks or checklists to open?",
+      "description": "Whether to change any completed or cancelled tasks or checklists back to open.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "removeProcessedTagName",
+      "title": "Remove any 'processed tag name' on tasks or checklists?",
+      "description": "Whether to remove any 'processed tag name' (as set above) from tasks or checklists",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "'time blocks to calendar' command settings"
     },
     {
       "key": "includeCompletedTasks",
@@ -245,37 +277,6 @@
     },
     {
       "type": "heading",
-      "title": "'/shift dates' settings"
-    },
-    {
-      "key": "removeDoneDates",
-      "title": "Remove @done dates?",
-      "description": "Whether to remove @done(...) dates, if present, when shifting dates.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "uncompleteTasks",
-      "title": "Set any closed tasks or checklists to open?",
-      "description": "Whether to change any completed or cancelled tasks or checklists back to open.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "removeProcessedTagName",
-      "title": "Remove any 'processed tag name' on tasks or checklists?",
-      "description": "Whether to remove any 'processed tag name' (as set above) from tasks or checklists",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
       "title": "Shared Settings"
     },
     {
@@ -289,7 +290,7 @@
     {
       "key": "timeOptions",
       "title": "Time options",
-      "description": "Optional Time format settings (from Javascript's Intl definition).\nDefault: {\"hour\": \"2-digit\", \"minute\": \"2-digit\", \"hour12\": false }",
+      "description": "Optional Time format settings (from Javascript's Intl definition).\nDefault: {\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false }",
       "type": "json",
       "default": "{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}",
       "required": false

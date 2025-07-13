@@ -2,21 +2,21 @@
 // @flow
 import {
   type noteAndLine,
-  type resultObjectTypeV3,
-  type resultOutputTypeV3,
+  type resultObjectType,
+  type resultOutputType,
   type SearchConfig,
   type typedSearchTerm,
   applySearchOperators,
   createFormattedResultLines,
-  differenceByPropVal,
-  differenceByObjectEquality,
   normaliseSearchTerms,
   noteAndLineIntersection,
   numberOfUniqueFilenames,
+  optimiseOrderOfSearchTerms,
   reduceNoteAndLineArray,
   validateAndTypeSearchTerms,
 } from '../src/searchHelpers'
 import { sortListBy } from '@helpers/sorting'
+import { differenceByPropVal, differenceByObjectEquality } from '@helpers/dataManipulation'
 import { JSP, clo } from '@helpers/dev'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
 
@@ -27,7 +27,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 })
 
 const searchTerms: Array<typedSearchTerm> = [
@@ -244,6 +244,51 @@ describe('searchHelpers.js tests', () => {
     })
   })
 
+  describe('optimiseOrderOfSearchTerms()', () => {
+    test('should return same as input, from empty input', () => {
+      const result = optimiseOrderOfSearchTerms([])
+      expect(result).toEqual([])
+    })
+    test('should return same as input, when already ordered longest first', () => {
+      const inputTerms: Array<typedSearchTerm> = [
+        { term: 'longest_term', type: 'must', termRep: 'longest_term' },
+        { term: 'shorter', type: 'must', termRep: 'shorter' },
+        { term: 'short', type: 'must', termRep: 'short' },
+      ]
+      const result = optimiseOrderOfSearchTerms(inputTerms)
+      expect(result).toEqual(inputTerms)
+    })
+    test('should return longest first, changing order of input', () => {
+      const inputTerms: Array<typedSearchTerm> = [
+        { term: 'short', type: 'must', termRep: 'short' },
+        { term: 'shorter', type: 'must', termRep: 'shorter' },
+        { term: 'longest_term', type: 'must', termRep: 'longest_term' },
+      ]
+      const expectedOutput: Array<typedSearchTerm> = [
+        { term: 'longest_term', type: 'must', termRep: 'longest_term' },
+        { term: 'shorter', type: 'must', termRep: 'shorter' },
+        { term: 'short', type: 'must', termRep: 'short' },
+      ]
+      const result = optimiseOrderOfSearchTerms(inputTerms)
+      expect(result).toEqual(expectedOutput)
+    })
+    test('should return MUST before MAY before NOT then by longest word', () => {
+      const inputTerms: Array<typedSearchTerm> = [
+        { term: 'not_term', type: 'not-line', termRep: 'not_term' },
+        { term: 'short', type: 'must', termRep: 'short' },
+        { term: 'shorter', type: 'must', termRep: 'shorter' },
+        { term: 'longest_term', type: 'may', termRep: 'longest_term' },
+      ]
+      const expectedOutput: Array<typedSearchTerm> = [
+        { term: 'shorter', type: 'must', termRep: 'shorter' },
+        { term: 'short', type: 'must', termRep: 'short' },
+        { term: 'longest_term', type: 'may', termRep: 'longest_term' },
+        { term: 'not_term', type: 'not-line', termRep: 'not_term' },
+      ]
+      const result = optimiseOrderOfSearchTerms(inputTerms)
+      expect(result).toEqual(expectedOutput)
+    })
+  })
   // ----------------
 
   describe('applySearchOperators(termsResults: Array<resultObjectTypeV2>, operateOnWholeNote: boolean): resultObjectType', () => {
@@ -251,8 +296,8 @@ describe('searchHelpers.js tests', () => {
 
     test('should return no results from simple no results', () => {
       // For empty results
-      const combinedResults: Array<resultObjectTypeV3> = [{ searchTerm: searchTerms[0], resultNoteAndLineArr: emptyArr, resultCount: 0 }]
-      const expectedNoteBasedOutput: resultOutputTypeV3 = {
+      const combinedResults: Array<resultObjectType> = [{ searchTerm: searchTerms[0], resultNoteAndLineArr: emptyArr, resultCount: 0 }]
+      const expectedNoteBasedOutput: resultOutputType = {
         // for no results
         searchTermsRepArr: ['TERM1'],
         resultNoteAndLineArr: [],
@@ -267,11 +312,11 @@ describe('searchHelpers.js tests', () => {
 
     test('should return no results from [TERM2 -TERM2] search', () => {
       // For empty results
-      const combinedResults: Array<resultObjectTypeV3> = [
+      const combinedResults: Array<resultObjectType> = [
         { searchTerm: searchTerms[4], resultNoteAndLineArr: notArr, resultCount: 6 },
         { searchTerm: searchTerms[1], resultNoteAndLineArr: notArr, resultCount: 6 },
       ]
-      const expectedNoteBasedOutput: resultOutputTypeV3 = {
+      const expectedNoteBasedOutput: resultOutputType = {
         // for no results
         searchTermsRepArr: ['TERM2', '-TERM2'],
         resultNoteAndLineArr: [],
@@ -285,11 +330,11 @@ describe('searchHelpers.js tests', () => {
     })
 
     test('should return few results from [+TERM1 +TERM2] search', () => {
-      const combinedResults: Array<resultObjectTypeV3> = [
+      const combinedResults: Array<resultObjectType> = [
         { searchTerm: searchTerms[5], resultNoteAndLineArr: mayArr, resultCount: 10 },
         { searchTerm: searchTerms[6], resultNoteAndLineArr: notArr, resultCount: 6 },
       ]
-      const expectedNoteBasedOutput: resultOutputTypeV3 = {
+      const expectedNoteBasedOutput: resultOutputType = {
         searchTermsRepArr: ['+TERM1', '+TERM2'],
         resultNoteAndLineArr: [
           { noteFilename: 'file1', line: '1.1 includes TERM1 and TERM2', index: 0 },
@@ -307,12 +352,12 @@ describe('searchHelpers.js tests', () => {
 
     test('should return narrower !term results', () => {
       // For TERM1, -TERM2, +TERM3
-      const combinedResults: Array<resultObjectTypeV3> = [
+      const combinedResults: Array<resultObjectType> = [
         { searchTerm: searchTerms[0], resultNoteAndLineArr: mayArr, resultCount: 1 },
         { searchTerm: searchTerms[3], resultNoteAndLineArr: notArr, resultCount: 2 }, // the !TERM2 alternative
         { searchTerm: searchTerms[2], resultNoteAndLineArr: mustArr, resultCount: 4 },
       ]
-      const expectedNoteBasedOutput: resultOutputTypeV3 = {
+      const expectedNoteBasedOutput: resultOutputType = {
         // For TERM1, -TERM2, +TERM3 matching *notes*
         // TODO: ideally figure out why this returns in an unexpected order (and so the need for a sort before comparison)
         searchTermsRepArr: ['TERM1', '!TERM2', '+TERM3'],
@@ -337,12 +382,12 @@ describe('searchHelpers.js tests', () => {
 
     test('should return wider -term results', () => {
       // For TERM1, -TERM2, +TERM3
-      const combinedResults: Array<resultObjectTypeV3> = [
+      const combinedResults: Array<resultObjectType> = [
         { searchTerm: searchTerms[0], resultNoteAndLineArr: mayArr, resultCount: 1 },
         { searchTerm: searchTerms[1], resultNoteAndLineArr: notArr, resultCount: 2 },
         { searchTerm: searchTerms[2], resultNoteAndLineArr: mustArr, resultCount: 4 },
       ]
-      const expectedLineBasedOutput: resultOutputTypeV3 = {
+      const expectedLineBasedOutput: resultOutputType = {
         // For TERM1, -TERM2, +TERM3 matching *lines*
         // TODO: ideally figure out why this returns in an unexpected order (and so the need for a sort before comparison)
         searchTermsRepArr: ['TERM1', '-TERM2', '+TERM3'],
@@ -450,15 +495,19 @@ describe('searchHelpers.js tests', () => {
     })
     test("mix of quoted and unquoted terms and operators (don't modify)", () => {
       const result = normaliseSearchTerms('+bob "xxx" \'yyy\' !"asd\'sa" -"bob two" "" !hello')
-      expect(result).toEqual(['+bob', 'xxx', "'yyy'", "!asd'sa", "-bob two", '!hello'])
+      expect(result).toEqual(['+bob', 'xxx', "'yyy'", "!asd'sa", '-bob two', '!hello'])
     })
-    test("test for Greek characters", () => {
+    test('test for Greek characters', () => {
       const result = normaliseSearchTerms('γιάννης')
       expect(result).toEqual(['γιάννης'])
     })
-    test("mix of terms with ? and * operators (this is just normalising not validating)", () => {
+    test('mix of terms with ? and * operators (this is just normalising not validating)', () => {
       const result = normaliseSearchTerms('spirit* mo? *term mo*blues ?weird')
       expect(result).toEqual(['spirit*', 'mo?', '*term', 'mo*blues', '?weird'])
+    })
+    test('test for Greek characters', () => {
+      const result = normaliseSearchTerms('-#')
+      expect(result).toEqual(['-#'])
     })
 
     describe('skipping these tests as removed modifyQuotedTermsToAndedTerms functionality', () => {
@@ -492,9 +541,7 @@ describe('searchHelpers.js tests', () => {
     })
     test('should return empty array from empty input (empty allowed)', () => {
       const result = validateAndTypeSearchTerms('', true)
-      expect(result).toEqual([
-        { term: '', type: 'must', termRep: '<empty>' }
-      ])
+      expect(result).toEqual([{ term: '', type: 'must', termRep: '<empty>' }])
     })
     test('should return empty array from too many terms', () => {
       const result = validateAndTypeSearchTerms('abc def ghi jkl mno pqr stu vwz nine ten')
@@ -506,9 +553,7 @@ describe('searchHelpers.js tests', () => {
     })
     test("single term string 'term1'", () => {
       const result = validateAndTypeSearchTerms('term1')
-      expect(result).toEqual([
-        { term: 'term1', type: 'may', termRep: 'term1' }
-      ])
+      expect(result).toEqual([{ term: 'term1', type: 'may', termRep: 'term1' }])
     })
     test("single term string 'twitter.com'", () => {
       const result = validateAndTypeSearchTerms('twitter.com')
@@ -516,9 +561,7 @@ describe('searchHelpers.js tests', () => {
     })
     test("quoted string with apostrophe [shouldn't matter]", () => {
       const result = validateAndTypeSearchTerms('"shouldn\'t matter"')
-      expect(result).toEqual([
-        { term: "shouldn't matter", type: 'may', termRep: "shouldn't matter" },
-      ])
+      expect(result).toEqual([{ term: "shouldn't matter", type: 'may', termRep: "shouldn't matter" }])
     })
     test('two term string', () => {
       const result = validateAndTypeSearchTerms('term1 "term two"')
@@ -550,34 +593,45 @@ describe('searchHelpers.js tests', () => {
         { term: '1Jn', type: 'may', termRep: '1Jn' },
       ])
     })
-    test("quoted terms with different must/may/cant", () => {
+    test('quoted terms with different must/may/cant', () => {
       const result = validateAndTypeSearchTerms('-"Bob Smith" "Holy Spirit" !"ice cream cone"')
       expect(result).toEqual([
         { term: 'Bob Smith', type: 'not-line', termRep: '-Bob Smith' },
         { term: 'Holy Spirit', type: 'may', termRep: 'Holy Spirit' },
-        { term: 'ice cream cone', type: 'not-note', termRep: '!ice cream cone' }])
+        { term: 'ice cream cone', type: 'not-note', termRep: '!ice cream cone' },
+      ])
     })
-    test("mix of terms with valid ? and * operators", () => {
+    test('mix of terms with valid ? and * operators', () => {
       const result = validateAndTypeSearchTerms('spirit* mo?t +term mo*blues we*d')
       expect(result).toEqual([
         { term: 'spirit*', type: 'may', termRep: 'spirit*' },
         { term: 'mo?t', type: 'may', termRep: 'mo?t' },
         { term: 'term', type: 'must', termRep: '+term' },
         { term: 'mo*blues', type: 'may', termRep: 'mo*blues' },
-        { term: 'we*d', type: 'may', termRep: 'we*d' }])
-    })
-    test("mix of terms with invalid ? and * operators", () => {
-      const result = validateAndTypeSearchTerms('*spirit ?moses we*d')
-      expect(result).toEqual([
-        { term: 'we*d', type: 'may', termRep: 'we*d' }
+        { term: 'we*d', type: 'may', termRep: 'we*d' },
       ])
+    })
+    test('mix of terms with invalid ? and * operators', () => {
+      const result = validateAndTypeSearchTerms('*spirit ?moses we*d')
+      expect(result).toEqual([{ term: 'we*d', type: 'may', termRep: 'we*d' }])
+    })
+    test('simple -# term with allowEmptyOrOnlyNegative true -> 2 terms', () => {
+      const result = validateAndTypeSearchTerms('-#', true)
+      expect(result).toEqual([
+        { term: '#', type: 'not-line', termRep: '-#' },
+        { term: '', type: 'must', termRep: '<empty>' },
+      ])
+    })
+    test('simple -# term with allowEmptyOrOnlyNegative false -> no terms', () => {
+      const result = validateAndTypeSearchTerms('-#', false)
+      expect(result).toEqual([])
     })
   })
 
   // Just a no-result test -- rest too hard to mock up
   describe('createFormattedResultLines', () => {
     test('for empty result', () => {
-      const resultSet: resultOutputTypeV3 = {
+      const resultSet: resultOutputType = {
         searchTermsRepArr: ['TERM1', '-TERM2'],
         resultNoteAndLineArr: [],
         resultCount: 0,

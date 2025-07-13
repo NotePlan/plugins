@@ -68,11 +68,11 @@ declare interface TEditor extends CoreNoteFields {
   /**
    * Get the raw selection range (hidden Markdown is considered).
    */
-  +selection: ?Range;
++selection: ?TRange;
   /**
    * Get the rendered selection range (hidden Markdown is NOT considered).
    */
-  +renderedSelection: ?Range;
++renderedSelection: ?TRange;
   /**
    * Get the selected text.
    */
@@ -97,16 +97,17 @@ declare interface TEditor extends CoreNoteFields {
   replaceSelectionWithText(text: string): void;
   /**
    * Opens a note using the given filename. Returns the note if it exists or fails, returning null if the file has not been created yet.
-   * Note: some parameters introduced in v3.4 and v3.5.2
-   * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
-   * Note: if the note doesn't exist, then returns null
-   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
-   * @param {number} highlightStart - (optional) Start position of text highlighting
-   * @param {number} highlightEnd - (optional) End position of text highlighting
-   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
-   * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
-   * @param {string} content - (optional) Content to fill the note (replaces contents if the note already existed) (from v3.7.2)
+   * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`. If the note doesn't exist, then returns null
+   * @param {boolean?} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number?} highlightStart - (optional) Start position of text highlighting
+   * @param {number?} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean?} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @param {boolean?} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
+   * @param {string?} content - (optional) Content to fill the note (replaces contents if the note already existed) (from v3.7.2)
+   * @param {boolean?} stayInSpace? - (optional; default = false) Stay in the current Teamspace or Private space for the given filename
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
+   * Note: some parameters introduced in v3.4 and v3.5.2
+   * Note: stayInSpace parameter available from v3.17.0
    */
   openNoteByFilename(
     filename: string,
@@ -116,16 +117,8 @@ declare interface TEditor extends CoreNoteFields {
     splitView?: boolean,
     createIfNeeded?: boolean,
     content?: string,
-  ): Promise<TNote | void>;
-  openNoteByFilename(
-    filename: string,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-    createIfNeeded: boolean,
-    content?: string,
-  ): Promise<TNote>;
+    stayInSpace ?: boolean,
+  ): Promise < TNote | void>;
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: 'splitView' parameter available for macOS from v3.4
@@ -158,25 +151,29 @@ declare interface TEditor extends CoreNoteFields {
   /**
    * Opens a calendar note by the given date
    * Note: 'splitView' parameter available for macOS from v3.4
-   * Note: 'timeframe' parameter available for macOS from v3.6
+   * Note: 'timeframe' parameter available from v3.6
+   * Note: 'parent' parameter available from v3.17
    * @param {Date} date - The date that should be opened, this is a normal JavaScript date object
-   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
-   * @param {number} highlightStart - (optional) Start position of text highlighting
-   * @param {number} highlightEnd - (optional) End position of text highlighting
-   * @param {boolean} splitView - (optional) Open note in a new split view
-   * @param {string} timeframe - (optional) Use "week", "month", "quarter" or "year" to open a calendar note other than a daily one
+   * @param {boolean?} newWindow - (optional) Open note in new window? (default = false)
+   * @param {number?} highlightStart - (optional) Start position of text highlighting
+   * @param {number?} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean?} splitView - (optional) Open note in a new split view
+   * @param {string?} timeframe - (optional) Use "week", "month", "quarter" or "year" to open a calendar note other than a daily one
+   * @param {string?} parent - (optional) to specify UUID of Teamspace to look in
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote | void>;
+openNoteByDate(date: Date, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean, timeframe ?: string, parent ?: string): Promise < TNote | void>;
   /**
-   * Opens a calendar note by the given date string
-   * Note: from v3.6 also accepts weeks in the main parameter
-   * @param {string} dateString - The date string that should be opened, in ISO format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
+   * Opens a calendar note by the given date string.
+   * @param {string} dateString - The date string that should be opened, in ISO format ("YYYY-MM-DD") or filename format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
    * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
+   * Note: from v3.6 also accepts weeks in the main parameter
+   * Note: ISO Daily dateString available from v3.17.0
+   * Note: from v3.17.0, this includes Teamspace calendar notes. Calendar Notes are represented with the ISO date + extension in the path.
    */
   openNoteByDateString(dateString: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
@@ -291,6 +288,7 @@ declare interface TEditor extends CoreNoteFields {
   /**
    * Save content of Editor to file. This can be used before updateCache() to ensure latest changes are available quickly.
    * Warning: beware possiblity of this causing an infinite loop, particularly if used in a function call be an onEditorWillSave trigger.
+   * WARNING: from @jgclark and @dwertheimer: use helper editor.js function saveEditorIfNecessary() instead, as too often this silently fails, and stops plugins from running.
    * Note: Available from 3.9.3
    */
   save(): Promise<void>;
@@ -338,13 +336,13 @@ declare interface TEditor extends CoreNoteFields {
    * Note: Available from v3.1
    * @param {string} json
    * @param {string} filename
-   * @return {boolean}
+   * @returns {boolean}
    */
   addTheme(json: string, filename: string): boolean;
   /**
    * Get the current system mode, either "dark" or "light.
    * Note: Available from NotePlan v3.6.2+
-   * @return {string}
+   * @returns {string}
    */
   +currentSystemMode: string;
 
@@ -394,6 +392,21 @@ declare interface TEditor extends CoreNoteFields {
    * Note: Available with v3.9.1 build 1020
    */
   windowRect: Rect;
+  /**
+   * Prevents the next "Delete future todos" dialog when deleting a line with a @repeat(...) tag. Will be reset automatically.
+   * Note: introduced in 3.15 build 1284/1230
+   * @param {boolean}
+   */
+  skipNextRepeatDeletionCheck: boolean;
+/**
+* Sets a frontmatter attribute with the given key and value.
+* If the key already exists, updates its value. If it doesn't exist, adds a new key-value pair.
+* To set multiple frontmatter attributes, use frontmatterAttributes = key-value object.
+* @param {string} key - The frontmatter key to set
+* @param {string} value - The value to set for the key
+* Note: Available from v3.17 - only for Editor!
+*/
+setFrontmatterAttribute(key: string, value: string): void;
 }
 
 /**
@@ -426,10 +439,13 @@ declare class DataStore {
   /**
    * Get all calendar notes.
    * Note: from v3.4 this includes all future-referenced dates, not just those with an actual created note.
+   * Note: from v3.17.0, this includes Teamspace calendar notes (with the teamspace ID in the filename).
    */
   static +calendarNotes: $ReadOnlyArray<TNote>;
   /**
-   * Get all regular, project notes.
+   * Get all regular notes (earlier called "project notes").
+   * From v3.17.0, this includes Teamspace regular notes. These have as their 'filename' a path represented with an ID, followed by any number of folders, and then a note ID.
+   * Example: %%NotePlanCloud%%/275ce631-6c20-4f76-b5fd-a082a9ac5160/Projects/Research/b79735c9-144b-4fbf-8633-eaeb40c182fa
    * Note: This includes notes and templates from folders that begin with "@" such as "@Archive" and "@Templates". It excludes notes in the trash folder though.
    * Note: @jgclark adds that this will return non-note document files (e.g. PDFs) as well as notes.
    */
@@ -487,7 +503,7 @@ declare class DataStore {
    *   "isSmartMarkdownLink"     // "Smart Markdown Links" checked in markdown preferences
    *   "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
    *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
-   *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line
+   *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line. JGC notes that this is case sensitive and must match on a whole word.
    *   "openAIKey" // Optional user's openAIKey (from v3.9.3 build 1063)
    * Others can be set by plugins.
    * Note: these keys and values do not sync across a user's devices; they are only local.
@@ -498,9 +514,9 @@ declare class DataStore {
    * Change a saved preference or create a new one.
    * It will most likely be picked up by NotePlan after a restart, if you use one of the keys utilized by NotePlan.
    *
-   * To change a NotePlan preference, use the keys found in the description of the function `.preference(key)`.
+   * To change a NotePlan preference, use the keys found in the description of the function `.preference(key)` above.
    * You can also save custom preferences specific to the plugin, if you need any.
-   * repend it with the plugin id or similar to avoid collisions with existing keys.
+   * Note: @jgclark asks you prepend 'key' with the plugin id or similar to avoid collisions with keys from other plugins.
    * Note: these keys and values do not sync across a user's devices; they are only local.
    * Note: Available from v3.1
    * @param {string}
@@ -522,6 +538,7 @@ declare class DataStore {
   /**
    * Load a JavaScript object from a JSON file located (by default) in the <Plugin>/data folder.
    * But you can also use relative paths: ../Plugins/<folder or filename>.
+   * Note: this can return a single string within the object, and so may need to be JSON.parse()d.
    * Note: Available from v3.1
    * @param {string} filename (defaults to plugin's setting.json)
    * @returns {Object}
@@ -562,27 +579,34 @@ declare class DataStore {
   static fileExists(filename: string): boolean;
   /**
    * Returns the calendar note for the given date and timeframe (optional, the default is "day", see below for more options).
+   * Note: from v3.17.0, this includes Teamspace calendar notes. Calendar Notes are represented with the ISO date + extension in the path.
    * Note: 'timeframe' available from v3.6.0
+   * Note: 'parent' available from v3.17.0
    * WARNING: @jgclark: I think from use in Dashboard, this is unreliable, but I can't yet prove it. Instead use calendarNoteByDateString() below.
    *
    * @param {Date}
-   * @param {string?} - "day" (default), "week", "month", "quarter" or "year"
+   * @param {string?} timeframe: "day" (default), "week", "month", "quarter" or "year"
+   * @param {string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
    * @returns {NoteObject}
    */
-  static calendarNoteByDate(date: Date, timeframe?: string): ?TNote;
+  static calendarNoteByDate(date: Date, timeframe ?: string, parent ?: string): ?TNote;
   /**
    * Returns the calendar note for the given date string (can be undefined, if the calendar note was not created yet). See the date formats below for various types of calendar notes:
-   * Daily: "YYYYMMDD", example: "20210410"
+   * Daily: "YYYYMMDD", example: "20210410" or "YYYY-MM-DD", example: "2021-04-10"
    * Weekly: "YYYY-Wwn", example: "2022-W24"
    * Quarter: "YYYY-Qq", example: "2022-Q4"
    * Monthly: "YYYY-MM", example: "2022-10"
-   * Yearly: "YYYY", example: "2022"
-   * Note: Some available from v3.7.2
+   * Yearly: "YYYY", example: "2022".
+   * Note: from v3.17.0, this includes Teamspace calendar notes. Calendar Notes are represented with the ISO date + extension in the path.
+   * Note: ISO Daily dateString available from v3.17.0
+   * Note: Some timeframes available from v3.7.2
+   * Note: 'parent' available from v3.17.0
    * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty.
-   * @param {string}
+   * @param {string} dateString
+   * @param {TTeamspaceID? | string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
    * @returns {NoteObject}
    */
-  static calendarNoteByDateString(dateString: string): ?TNote;
+  static calendarNoteByDateString(dateString: string, parent ?: TTeamspaceID | string): ?TNote;
   /**
    * Returns all regular notes with the given title.
    * Since multiple notes can have the same title, an array is returned.
@@ -600,27 +624,40 @@ declare class DataStore {
   /**
    * Returns the regular note with the given filename (including file-extension).
    * The filename has to include the relative folder such as folder/filename.txt` but without leading slash. Use no leading slash if it's in the root folder.
+   * WARNING: @jgclark reports that this doesn't work for Teamspace notes.
    */
   static projectNoteByFilename(filename: string): ?TNote;
   /**
    * Returns a regular or calendar note for the given filename. Type can be "Notes" or "Calendar". Include relative folder and file extension (`folder/filename.txt` for example).
    * Use "YYYYMMDD.ext" for calendar notes, like "20210503.txt".
+   * Note: 'parent' available from v3.17.0
+   * @param {string} filename
+   * @param {NoteType} type
+   * @param {string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. Applies only to calendar notes.
+   * @returns {?TNote}
    */
-  static noteByFilename(filename: string, type: NoteType): ?TNote;
+  static noteByFilename(filename: string, type: NoteType, parent ?: string): ?TNote;
   /**
    * Move a regular note using the given filename (with extension) to another folder. Use "/" for the root folder.
    * Note: Can also move *folders* by specifying its filename (without trailing slash).
    * Note: You can also use this to delete notes or folders by moveNote(filepath, '@Trash')
-   * Note: from v3.9.3 you can also use 'type' set to 'calendar' to move a calendar note.
+   * Note: from v3.9.3 you can also use 'type' set to 'Calendar' to move a calendar note.
    * Returns the final filename; if the there is a duplicate, it will add a number.
+   * @param {string} filename of the new note
+   * @param {string} folder to move the note to
+   * @param {NoteType} type? for note
+   * @returns {?string} resulting final filename
    */
-  static moveNote(filename: string, folder: string, type?: string): ?string;
+  static moveNote(filename: string, folder: string, type?: NoteType): ?string;
   /**
    * Creates a regular note using the given title and folder.
    * Use "/" for the root folder.
    * It will write the given title as "# title" into the new file.
    * Returns the final filename; if the there is a duplicate, it will add a number.
    * Note: @jgclark finds that if 'folder' has different capitalisation than an existing folder, NP gets confused, in a way that reset caches doesn't solve. It needs a restart.
+   * @param {string} noteTitle of the new note
+   * @param {string} folder to create the note in
+   * @returns {?string} resulting final filename
    */
   static newNote(noteTitle: string, folder: string): ?string;
   /**
@@ -633,7 +670,7 @@ declare class DataStore {
    * @param {string} content for note
    * @param {string} folder to create the note in
    * @param {string} filename of the new note (optional) (available from v3.5.2)
-   * @return {string}
+   * @returns {string}
    */
   static newNoteWithContent(content: string, folder: string, filename?: string): string;
 
@@ -660,7 +697,7 @@ declare class DataStore {
    * @param {boolean} shouldUpdateTags?
    * @returns {TNote?} updated note object
    */
-  static updateCache(note, shouldUpdateTags): TNote | null;
+  static updateCache(note: TNote, shouldUpdateTags: boolean): TNote | null;
 
   /**
    * Loads all available plugins asynchronously from the GitHub repository and returns a list.
@@ -737,8 +774,8 @@ declare class DataStore {
    * Searches all notes for a keyword (uses multiple threads to speed it up).
    * By default it searches in project notes and in the calendar notes. Use the second parameters "typesToInclude" to include specific types. Otherwise, pass `null` or nothing to include all of them.
    * This function is async, use it with `await`, so that the UI is not being blocked during a long search.
-   * Optionally pass a list of folders (`inNotes`) to limit the search to notes that ARE in those folders (applies only to project notes). If empty, it is ignored.
-   * Optionally pass a list of folders (`notInFolders`) to limit the search to notes NOT in those folders (applies only to project notes). If empty, it is ignored.
+   * Optionally pass a list of folders (`inFolders`) to limit the search to notes that ARE in those folders (applies only to project notes). If empty, it is ignored.
+   * Optionally pass a list of folders (`notInFolderslist`) to limit the search to notes NOT in those folders (applies only to project notes). If empty, it is ignored.
    * Searches for keywords are case-insensitive.
    * It will sort it by filename (so search results from the same notes stay together) and calendar notes also by filename with the newest at the top (highest dates).
    * Note: Available from v3.6.0
@@ -782,21 +819,29 @@ declare class DataStore {
   static searchCalendarNotes(keyword?: string, shouldLoadDatedTodos?: boolean): Promise<$ReadOnlyArray<TParagraph>>;
   /**
    * Returns list of all overdue tasks (i.e. tasks that are open and in the past). Use with await, it runs in the background. If there are a lot of tasks consider showing a loading bar.
+   * Note: this does not include open checklist items.
    * Note: Available from v3.8.1
    * @param {string} = keyword to search for
    * @return {$ReadOnlyArray<TParagraph>} Promise to array of results
    */
   static listOverdueTasks(keyword: string): Promise<$ReadOnlyArray<TParagraph>>;
+
+  /**
+   * DataStore.teamspaces returns an array of teamspaces represented as Note Objects with title and filename populated. Example of a filename: %%NotePlanCloud%%/275ce631-6c20-4f76-b5fd-a082a9ac5160
+   * Note: No object for private notes is included here.
+   * Note: Available from v3.17.0
+   */
+  static teamspaces: $ReadOnlyArray < TNote >;
 }
 
 /**
  * Object to pass window details (from Swift)
  */
 type Rect = {
-  x: Integer,
-  y: Integer,
-  width: Integer,
-  height: Integer,
+  x: number, // in practice are all integers
+  y: number,
+  width: number,
+  height: number,
 }
 
 /**
@@ -976,7 +1021,7 @@ declare class CommandBar {
    * Define at least one or more buttons for the user to select.
    * If you don't supply any buttons, an "OK" button will be displayed.
    * The promise returns selected button, with button index (0 - first button)
-   * Note: Available from v3.3.2
+   * Note: Available from v3.3.2, and from v3.16.3 order of buttons is now same on iOS and macOS.
    * @param {string} title
    * @param {string} message
    * @param {$ReadOnlyArray<string>?} buttons
@@ -989,7 +1034,7 @@ declare class CommandBar {
    * You can supply a default value which will be pre-filled.
    * If the user selects "OK", the promise returns users entered value
    * If the user selects "Cancel", the promise returns false.
-   * Note: Available from v3.3.2
+   * Note: Available from v3.3.2, and from v3.16.3 order of buttons is now same on iOS and macOS.
    * @param {string} title
    * @param {string} message
    * @param {string?} defaultValue
@@ -1240,6 +1285,7 @@ declare interface Paragraph {
   type: ParagraphType;
   /**
    * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
+   * Note: EM adds that "You could have the paragraph object in memory while the note was deleted in the background", which is why this is optional.
    * Note: Available from v3.5.2
    */
   +note: ?TNote;
@@ -1254,7 +1300,8 @@ declare interface Paragraph {
    */
   +rawContent: string;
   /**
-   * Get the Markdown prefix of the paragraph (like '* [ ]' for open task)
+   * Get the Markdown prefix of the paragraph (like '* [ ]' for open task).
+   * Note: @jgclark thinks this does not include any indentation whitespace.
    */
   +prefix: string;
   /**
@@ -1289,9 +1336,9 @@ declare interface Paragraph {
    */
   +isRecurring: boolean;
   /**
-   * Get the amount of indentations.
+   * Get/Set the amount of indentations.
    */
-  +indents: number;
+  indents: number;
   /**
    * Get the filename of the note this paragraph was loaded from
    */
@@ -1313,13 +1360,14 @@ declare interface Paragraph {
    * Only tasks can have children, but any paragraph indented underneath a task can be a child of the task.
    * This includes bullets, tasks, quotes, text.
    * Children are counted until a blank line, HR, title, or another item at the same level as the parent task. So for items to be counted as children, they need to be contiguous vertically.
-   * Important note: .children() for a task paragraph will return every child, grandchild, greatgrandchild, etc. 
+   * Important note: .children() for a task paragraph will return every child, grandchild, greatgrandchild, etc.
    * So a task that has a child task that has a child task will have 2 children (and the first child will have one).
    * Note: Available from v3.3
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
-   * @return {[TParagraph]}
+   * WARNING: appears to be unreliable on iOS.
+   * @return {$ReadOnlyArray<TParagraph> | void}
    */
-  children(): $ReadOnlyArray<TParagraph>;
+children(): $ReadOnlyArray < TParagraph > | void;
   /**
    * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
    * Note: Available from v3.5.2
@@ -1345,15 +1393,38 @@ type TNote = Note
 type NoteType = 'Calendar' | 'Notes'
 
 /**
- * Notes can be queried by DataStore. You can change the complete text of the
- * note, which will be saved to file or query, add, remove, or modify
- * particular paragraphs (a paragraph is a task for example). See more
- * paragraph editing examples under Editor. NoteObject and Editor both
- * inherit the same paragraph functions.
- * Note: All of the items here are now in CoreNoteFields.
- * TODO(@nmn): Can this now safely be removed?
+ * Notes can be queried by DataStore. You can change the complete text of the note,
+ * which will be saved to file or query, add, remove, or modify
+ * particular paragraphs (a paragraph is a task for example).
+ * See more paragraph editing examples under Editor.
+ * NoteObject and Editor both inherit the same paragraph functions.
  */
-declare interface Note extends CoreNoteFields {}
+declare interface Note extends CoreNoteFields {
+  /**
+   * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
+   * Note: Available from v3.2.0
+   */
+  +linkedItems: $ReadOnlyArray<TParagraph>;
+  /**
+   * Get paragraphs contained in this note which contain a link to a daily note.
+   * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
+   * Note: Available from v3.2.0
+   */
+  +datedTodos: $ReadOnlyArray<TParagraph>;
+}
+
+/**
+ * UUID type
+ */
+type UUID = string
+
+/**
+ * Teamspace object
+ */
+type TTeamspace = {
+  id: UUID,
+  title: string,
+}
 
 /**
  * Ranges are used when you deal with selections or need to know where a
@@ -1601,6 +1672,34 @@ type ParagraphType =
   | 'code'
   | 'separator'
 
+type TSubItem = TParagraph & {
+  subItems: Array<TSubItem>,
+}
+
+type TBacklinkFields = {
+  type: 'note',
+  content: string,
+  rawContent: string,
+  prefix: string,
+  lineIndex: number,
+  date: Date,
+  heading: string,
+  headingLevel: number,
+  isRecurring: boolean,
+  indents: number,
+  filename: string,
+  noteType: NoteType,
+  linkedNoteTitles: Array<string>,
+  subItems: Array<TBacklinkFields>,
+  // referencedBlocks: ,
+  note: {},
+}
+
+/* Future idea:
+type TRegularFilename = string
+type TCalendarFilename = string
+*/
+
 type TCoreNoteFields = CoreNoteFields
 declare interface CoreNoteFields {
   /**
@@ -1616,7 +1715,7 @@ declare interface CoreNoteFields {
    * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
    * From v3.6.0 can also *set* the filename, which does a rename.
    */
-  filename: string;
+filename: string;  /* Idea: TRegularFilename | TCalendarFilename; */
   /**
    * Optional date if it's a calendar note
    */
@@ -1650,42 +1749,25 @@ declare interface CoreNoteFields {
    */
   paragraphs: Array<TParagraph>;
   /**
-   * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
-   * Note: Available from v3.2.0
-   */
-  +linkedItems: $ReadOnlyArray<TParagraph>;
-  /**
-   * Get paragraphs contained in this note which contain a link to a daily note.
-   * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
-   * Note: Available from v3.2.0
-   */
-  +datedTodos: $ReadOnlyArray<TParagraph>;
-  /**
    * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
    * NB: Backlinks are all [[note name]] and >date links.
    * TODO(@nmn): Please include `subItems` here
    * Note: Available from v3.2.0
    */
-  +backlinks: $ReadOnlyArray<TParagraph>;
+  +backlinks: $ReadOnlyArray<TBacklinkNoteFields>;
   /**
-   * Get all types assigned to this note in the frontmatter as an array of strings.
-   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
-   * Note: Available from v3.5.0
+   * Returns the database record ID of the published note (on CloudKit). Returns null if the note is not published yet.
+   * Use this to verify if a note has been published and to build the public link: https://noteplan.co/n/{publicRecordID}
+   * Note: Available from v3.9.1
+   * @type {String?}
    */
-  +frontmatterTypes: $ReadOnlyArray<string>;
-  /**
-   * Get all attributes in the frontmatter, as an object.
-   * Note: Added by @jgclark by inspection of real data
-   * TODO(@EduardMe): add this to the documentation.
-   */
-  +frontmatterAttributes: Object;
+  +publicRecordID: ?string;
   /**
    * Returns the conflicted version if any, including 'url' which is the path to the file. Otherwise, returns undefined.
    * Note: Available from v3.9.3
    * @return { Object(filename: string, url: string, content: string) }
    */
   +conflictedVersion: Object;
-
   /**
    * Get all available versions of a note from the backup database. It returns an array with objects that have following attributes: `content` (full content of the note) and `date` (when this version was saved).
    * You can use this in combination with note triggers and diffs to figure out what has changed inside the note.
@@ -1693,6 +1775,22 @@ declare interface CoreNoteFields {
    * Note: Available from v3.7.2
    */
   +versions: $ReadOnlyArray<string, Date>;
+  /**
+   * Get all 'type's assigned to this note in the frontmatter as an array of strings.
+   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
+   * Note: Available on Note from v3.5.0, but only on Editor from v3.16.3.
+   */
++frontmatterTypes: $ReadOnlyArray < string >;
+  /**
+  * Returns the frontmatter key-value pairs inside the note. To set a frontmatter attribute, use setFrontmatterAttribute.
+  * You can also use the setter, but you will need to first read the complete frontmatter object (key-value pairs), change it and then set it. Otherwise the setter *won't* be triggered if you set it directly like `frontmatterAttributes["key"] = "value"`. This is more useful if you want to set multiple frontmatter values.
+  * Note: @dbwertheimer says "Returns {} if no frontmatter stripes or if there are stripes but no attributes."
+  * @returns {{[key: string]: string}}
+  * Note: Available on Note from 3.5.0, but only on Editor from v3.16.3.
+  * WARNING: The setter only works with macOS >= 14 and iOS >= 16, since below these versions, the frontmatter editor is not supported and the raw frontmatter is shown (if a user still calls this, a warning is logged).
+  */
++frontmatterAttributes: Object;
+
   /**
    * Renames the note. You can also define a folder path. The note will be moved to that folder and the folder will be automatically created.
    * If the filename already exists, a number will be appended. If the filename begins with ".", it will be removed.
@@ -1884,6 +1982,20 @@ declare interface CoreNoteFields {
    * @param {number} length - Amount of characters to replace from the location
    */
   replaceTextInCharacterRange(text: string, location: number, length: number): void;
+
+/**
+* Publishes the note using CloudKit (inserts a record on the public database). Build the web-link to the note by using the publicRecordID.
+* Note: Available from v3.9.1
+* @return {Promise}
+*/
+publish(): Promise < void>;
+/**
+ * Unpublishes the note from CloudKit (deletes the database entry from the public database).
+ * Note: Available from v3.9.1
+ * @return {Promise}
+ */
+unpublish(): Promise < void>;
+
   /**
    * Generates a unique block ID and adds it to the content of this paragraph.
    * Remember to call .updateParagraph(p) to write it to the note.
@@ -1904,9 +2016,9 @@ declare interface CoreNoteFields {
   /**
    * Print the note, optionally with backlinks and events sections
    * Note: available from v3.4 on macOS
-   * @param {boolean} addReferenceSections
+   * @param {boolean} withBacklinksAndEvents
    */
-  printNote(addReferenceSections: boolean): void;
+  printNote(withBacklinksAndEvents: boolean): void;
 
   /**
    * Resolves a conflict, if any, using the current version (which is version 1 in the conflict bar inside the UI). Once resolved you need to reload the note.
@@ -1917,7 +2029,32 @@ declare interface CoreNoteFields {
    * Resolves a conflict, if any, using the other version (which is version 2 in the conflict bar inside the UI). Once resolved you need to reload the note.
    * Note: Available from v3.9.3
    */
-  resolveConflictWithOtherVersion(): void;
+resolveConflictWithOtherVersion(): void;
+
+/**
+ * If used with a teamspace note, it returns a human readable path to the teamspace note, like 'Engineering/Projects/bugs.md'
+ * Note: Available from v3.17.0
+ * @returns {string}
+ */
++resolvedFilename: string;
+/**
+ * To quickly identify if this specific note is from a teamspace.
+ * Note: Available from v3.17.0
+ * @returns {boolean}
+ */
++isTeamspaceNote: boolean;
+/**
+ * The ID of the teamspace the note belongs to (will be undefined for private notes).
+ * Note: Available from v3.17.0
+ * @returns {?string}
+ */
++teamspaceID: ?string;
+/**
+ * Returns the title of the teamspace the note belongs to (will be undefined for private notes)
+ * Note: Available from v3.17.0
+ * @returns {?string}
+ */
++teamspaceTitle: ?string;
 }
 
 declare class NotePlan {
@@ -1943,8 +2080,34 @@ declare class NotePlan {
    *   .version: string (NotePlan's version, for example "3.4.1". Note: it may contain alpha characters too, so it is not recommended for use in tests or comparisons)
    *   .versionNumber: number (NotePlan's version as integer,for example 341. JGC Note: this will return '36' for v3.6.0, and is not recommended for use in tests or comparisons)
    *   .buildVersion: number (NotePlan's build number as integer,for example 730. Note: This is the item recommended for use in tests or comparisons)
+   *   .templateFolder: {String}, relative path to the template folder = "@Templates"
+   *   .machineName: {String}, name of the device, like 'macbook-pro.local', available in v3.9.7
+   *   .screenWidth: {number}, available in v3.9.7
+   *   .screenHeight: {number}, available in v3.9.7
+   *   .teamspaceFilenamePrefix: {string}, the prefix for teamspace notes, available in v3.17.0
    */
   static +environment: Object;
+  /**
+   * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result.
+   * Optionally send the content of notes as well to process by specifying them in the list 'filenames', which is an array. For example ["note1.md", "folder/note2.md"]. This needs to be the exact path to the note. Your note extension might differ, the default is .txt, if you haven't changed it.
+   * For calendar notes, you can use YYYYMMDD.md, like 20241101.md, or 2024-W10.md for weeks, etc. Natural language input is also supported like "this week", "today", "tomorrow", "this month", "next year", etc.
+   * If you need to send a relative list of calendar notes, every note of the "last 7 days", you can use exactly this as the filename. The structure is as followed:
+   *  1. use "next" or "last",
+   *  2. define a number, like "7",
+   *  3. define one of the timeframes: "days", "weeks", "months", "quarters", "years".
+   * The timeframe also defines what kind of note is being accessed. Use "weeks" if you want to send weekly notes, "days" for daily notes etc.
+   * You can also define a folder to send all the notes inside this folder. Use the path of the folder prefixed with "/", like "/Projects/Work".
+   * To use a note titled 'this week' set useStrictFilenames = true.
+   * If you are using your own Open AI API key, you can define a model, for example "o1", or "o3-mini". By default NotePlan uses GPT-4o.
+   * More details at https://help.noteplan.co/article/233-ai-prompts-in-templates
+   * Note: Available from v3.15.1
+   * @param {string} prompt
+   * @param {Array<string>} filenames
+   * @param {boolean} useStrictFilenames
+   * @param {string} model (available from v3.16.3)
+   * @returns {Promise<string>}
+   */
+  static ai(prompt: string, filenames: Array < string >, useStrictFilenames: boolean, model ?: string): Promise < string >;
   /**
    * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)
    * Note: available from v3.5.1
@@ -1971,9 +2134,9 @@ declare class NotePlan {
    * Note: Available from v3.7.2
    * @param {string} version1
    * @param {string} version2
-   * @returns {Array<RangeObject>}
+   * @returns {Array<TRange>}
    */
-  static stringDiff(version1: string, version2: string): Array<RangeObject>;
+  static stringDiff(version1: string, version2: string): Array < TRange >;
   /**
    * Returns a list of all opened editors (in the main view, in split views and in floating windows). See more details in the "Editor" documentation.
    * Note: Available from v3.8.1 build 973
@@ -1986,6 +2149,17 @@ declare class NotePlan {
    * @returns {Array<HTMLView>}
    */
   static +htmlWindows: Array<HTMLView>;
+  /**
+   * Note: Available from v3.15.1 (macOS build 1300)
+   * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result.
+   * Optionally send the content of notes as well to process by specifying them in the list 'filenames', which is an array. For example ["note1.md", "folder/note2.md"]. This needs to be the exact path to the note. Your note extension might differ, the default is .txt, if you haven't changed it.
+   * For calendar notes, you can use YYYYMMDD.md, like 20241101.md, or 2024-W10.md for weeks, etc. Natural language input is also supported like "this week", "today", "tomorrow", "this month", "next year", etc.
+   * @param {string} prompt
+   * @param {Arraystring> } filenames
+   * @param {boolean} useStrictFilenames?
+   * @returns {Promise<string>}
+   */
+  static ai(prompt: string, filenames: Array<string>, useStrictFilenames: boolean): Promise<string>;
 }
 
 declare class HTMLView {
@@ -2068,7 +2242,7 @@ declare class HTMLView {
    * @param { string | undefined } windowId ID of the HTML window to execute it in (undefined for non-desktop platforms)
    * @return { Promise | void }
    */
-  static runJavaScript(code: string, windowId: string | undefined): Promise | void;
+  static runJavaScript(code: string, windowId: string | void): Promise < void>;
   /**
    * Set / get the position and size of an HTMLView window. Returns an object with x, y, width, height values.
    * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.
@@ -2084,7 +2258,7 @@ declare class HTMLView {
 }
 
 /** JGC: I'm not entirely sure about this next line, but Window is some sort of thing. */
-type Window = HTMLView | Editor
+type Window = HTMLView | TEditor
 
 // dbw commenting this out because it doesn't work and causes Flow errors
 // type document = {

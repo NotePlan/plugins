@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)\n0.13.0: add option to archive completed/cancelled projects using existing folder structure.",
+  "plugin.version": "1.2.3",
+  "plugin.lastUpdateInfo": "1.2.3: bug fixes.\n.1.2.2: fix bug with 'Finish + Next' review.\n1.2.1: small improvements and bug fixes and under-the-hood changes for integration with Dashboard plugin.\n1.2.0: new settings that affect how plugin calculates % completion for a project.\n1.1.2: fix bug with 'next action' setting.\n1.1.1: turn off background refresh of Dashboard plugin after every change to Project List, as it was causing problems.\n1.1.0: new option to use current 'Perspective' from the Dashboard plugin. New simpler top bar. Other small improvements and fixes.\n1.0.2: theme font size can now be overriden by user setting in NP.\n1.0.1: fix bug with 'next action' setting.\n1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)",
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
@@ -43,11 +43,17 @@
         "pl"
       ],
       "description": "creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
-      "jsFunction": "makeProjectLists",
+      "jsFunction": "displayProjectLists",
       "arguments": [
         "setting keys and their values in JSON format (optional)",
         "position to scroll window to (optional, only for HTML view)"
       ]
+    },
+    {
+      "hidden": true,
+      "name": "generateProjectListsAndRenderIfOpen",
+      "description": "genererate Project Lists And Render If Open -- called internally and by Dashboard plugin to refresh Projects list",
+      "jsFunction": "generateProjectListsAndRenderIfOpen"
     },
     {
       "name": "onMessageFromHTMLView",
@@ -152,13 +158,6 @@
     },
     {
       "hidden": true,
-      "comment": "TODO: remove in time",
-      "name": "NOP",
-      "description": "no operation - testing way to stop losing plugin context",
-      "jsFunction": "NOP"
-    },
-    {
-      "hidden": true,
       "name": "toggleDisplayOnlyDue",
       "description": "callback entry point for toggleShowOnlyDue",
       "jsFunction": "toggleDisplayOnlyDue"
@@ -184,37 +183,43 @@
       "jsFunction": "updateSettings"
     },
     {
+      "hidden": true,
       "name": "test:generateAllProjectsList",
       "description": "make/update allProjects list JSON file",
-      "jsFunction": "generateAllProjectsList",
-      "hidden": true
+      "jsFunction": "generateAllProjectsList"
     },
     {
+      "hidden": true,
       "name": "test:getNextNoteToReview",
       "description": "log next note to review",
-      "jsFunction": "getNextNoteToReview",
-      "hidden": true
+      "jsFunction": "getNextNoteToReview"
     },
     {
+      "hidden": true,
       "name": "test:getNextProjectsToReview",
       "description": "log next notes to review",
-      "jsFunction": "getNextProjectsToReview",
-      "hidden": true
+      "jsFunction": "getNextProjectsToReview"
     },
     {
+      "hidden": true,
       "name": "test:logAllProjectsList",
       "description": "write allProjects JSON to log",
-      "jsFunction": "logAllProjectsList",
-      "hidden": true
+      "jsFunction": "logAllProjectsList"
     },
     {
+      "hidden": true,
       "name": "test:renderProjectLists",
       "description": "render current allProjects list in current style(s)",
-      "jsFunction": "renderProjectLists",
-      "hidden": true
+      "jsFunction": "renderProjectLists"
     }
   ],
   "plugin.inactiveCommands": [
+    {
+      "hidden": true,
+      "name": "NOP",
+      "description": "no operation - testing way to stop losing plugin context",
+      "jsFunction": "NOP"
+    },
     {
       "name": "test:redToGreenInterpolation",
       "description": "test red - green interpolation",
@@ -251,21 +256,6 @@
       "jsFunction": "testSettingsUpdated"
     },
     {
-      "name": "test:CSS-circle",
-      "description": "test CSS Circle",
-      "jsFunction": "testCSSCircle"
-    },
-    {
-      "name": "test:buttonTriggerCommand",
-      "description": "test Button Trigger Command",
-      "jsFunction": "testButtonTriggerCommand"
-    },
-    {
-      "name": "test:buttonTriggerOpenNote",
-      "description": "test Button Trigger OpenNote",
-      "jsFunction": "testButtonTriggerOpenNote"
-    },
-    {
       "name": "test:setWindowHeight",
       "description": "set height of HTML Window",
       "jsFunction": "setHTMLWinHeight"
@@ -288,9 +278,17 @@
       "required": false
     },
     {
+      "key": "usePerspectives",
+      "title": "Use Perspectives to filter projects?",
+      "description": "Whether to use the current Perspective definition from the Dashboard plugin to filter the projects to review.\nNote: this requires the Dashboard plugin to be installed, and if set it overrides the following 2 settings.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "key": "foldersToInclude",
-      "title": "Folders to use in reviews",
-      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nNote: if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders.\nIf empty, all folders will be used apart from those in the next setting.",
+      "title": "Folders to Include",
+      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nNotes:\n- if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders.\n- if empty, all folders will be used apart from those in the next setting.\n- if 'Use Perspectives' is set, then this setting is ignored.",
       "type": "[string]",
       "default": [
         "Projects"
@@ -299,8 +297,8 @@
     },
     {
       "key": "foldersToIgnore",
-      "title": "Folders to ignore in reviews",
-      "description": "If 'Folders to use in reviews' above is empty, then this setting specifies folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is also done anywhere in the folder name. Can be empty.\nNote: if you specify the root folder `/` this only ignores the root folder, and not all sub-folders.\nNote: the special @Trash, @Templates and @Archive folders are always excluded.",
+      "title": "Folders to Exclude",
+      "description": "If 'Folders to Include' above is empty, then this setting specifies folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is done anywhere in the folder name. Can be empty.\nNotes:\n- if you specify the root folder `/` this only ignores the root folder, and not all sub-folders.\n- the special @Trash, @Templates and @Archive folders are always excluded.\n- if 'Use Perspectives' is set, then this setting is ignored.",
       "type": "[string]",
       "default": [
         "Reviews",
@@ -308,6 +306,26 @@
         "Saved Searches"
       ],
       "required": false
+    },
+    {
+      "type": "heading",
+      "title": "Calculating Completion"
+    },
+    {
+      "key": "numberDaysForFutureToIgnore",
+      "title": "Ignore tasks set more than these days in the future",
+      "description": "If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 0 days -- i.e. no future items are ignored).",
+      "type": "number",
+      "default": 1,
+      "required": true
+    },
+    {
+      "key": "ignoreChecklistsInProgress",
+      "title": "Ignore checklists in progress?",
+      "description": "If set, then checklists in progress will not be counted as part of the project's completion percentage.",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
       "type": "heading",
@@ -328,8 +346,8 @@
     },
     {
       "key": "folderToStore",
-      "title": "Folder to store (markdown) review notes",
-      "description": "Folder where review notes will be stored (will be created if necessary)",
+      "title": "Folder to store markdown-style review notes",
+      "description": "Folder where review notes will be stored (will be created if necessary). Note: this only applies to the markdown-style review notes, not the HTML-style ones.",
       "type": "string",
       "default": "Reviews",
       "required": true
@@ -349,7 +367,7 @@
     },
     {
       "key": "displayGroupedByFolder",
-      "title": "Display projects grouped by folder?",
+      "title": "Show projects grouped by folder?",
       "description": "Whether to group the projects by their folder.",
       "type": "bool",
       "default": true,
@@ -358,7 +376,7 @@
     {
       "key": "hideTopLevelFolder",
       "title": "Hide higher-level folder names in headings?",
-      "description": "If 'Display projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in headings.",
+      "description": "If 'Show projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in headings.",
       "type": "bool",
       "default": false,
       "required": true
@@ -373,35 +391,37 @@
     },
     {
       "key": "displayOnlyDue",
-      "title": "Only display projects/areas ready for review?",
-      "description": "If not ticked then it will display all project/area notes, not just ones ready for review. (Paused ones are always shown.)",
+      "title": "Only show projects/areas ready for review?",
+      "description": "If not ticked then it will show all project/area notes, not just ones ready for review. (Paused ones are always shown.)",
       "type": "bool",
       "default": false,
       "required": true
     },
     {
       "key": "displayDates",
-      "title": "Display project dates?",
-      "description": "Whether to display the project's review and due dates (where set).",
+      "title": "Show project dates?",
+      "description": "Whether to show the project's review and due dates (where set).",
       "type": "bool",
       "default": true,
       "required": true
     },
     {
       "key": "displayProgress",
-      "title": "Display project's latest progress?",
-      "description": "Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.",
+      "title": "Show project's latest progress?",
+      "description": "Whether to show the project's latest progress summary text. These are only shown where there are specific 'Progress:' field(s) in the note.",
       "type": "bool",
       "default": true,
       "required": true
     },
     {
-      "key": "nextActionTag",
-      "title": "Next action tag",
-      "description": "#hashtag to include in a task or checklist to indicate its the next action in this project (optional; default '#next')",
-      "type": "string",
-      "default": "#next",
-      "required": true
+      "key": "nextActionTags",
+      "title": "Next action tag(s)",
+      "description": "Optional comma-separated list of possible#hashtags to include in a task or checklist to indicate its the next action in this project. (Default: '#next')",
+      "type": "[string]",
+      "default": [
+        "#next"
+      ],
+      "required": false
     },
     {
       "key": "displayNextActions",
@@ -429,7 +449,7 @@
     },
     {
       "type": "heading",
-      "title": "Setting for 'next project review' command"
+      "title": "'next project review' command settings"
     },
     {
       "key": "confirmNextReview",
@@ -441,7 +461,7 @@
     },
     {
       "type": "heading",
-      "title": "Settings for Complete and Cancel Project commands"
+      "title": "'complete Project' and 'cancel Project' command settings"
     },
     {
       "key": "finishedListHeading",
@@ -469,7 +489,7 @@
     },
     {
       "type": "heading",
-      "title": "Settings for 'pause project toggle' command"
+      "title": "'pause project toggle' command settings"
     },
     {
       "key": "removeDueDatesOnPause",
@@ -549,7 +569,7 @@
     {
       "key": "_logLevel",
       "title": "Log Level",
-      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+      "description": "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
       "type": "string",
       "choices": [
         "DEBUG",
@@ -560,6 +580,14 @@
       ],
       "default": "INFO",
       "required": true
+    },
+    {
+      "key": "_logFunctionRE",
+      "title": "Regex for Functions to show in debug log",
+      "description": "Overrides the Log Level above if this regex matches the first argument in log*() calls. If not set, has no effect.",
+      "type": "string",
+      "default": "",
+      "required": false
     },
     {
       "key": "_logTimer",

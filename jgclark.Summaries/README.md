@@ -32,6 +32,8 @@ Remember: #visit to new CFL premises in Festival Place #prayer #win #filmvideo
 
 You might find a simple 'Shortcut' for use on iOS/macOS helpful to make it quicker to add items like this to the daily note. Sean O'Kana has [shared a shortcut to do this](https://www.icloud.com/shortcuts/a5943c80c0f845eda6e70c811724de6e)  which you can add and customise.
 
+You can also include these @mentions and #tags in the metadata in a note's 'frontmatter' if you wish.
+
 **What does the plugin do?** It provides commands, each described in more detail below, that read these tags and generates several different sorts of summaries and basic stats from your daily notes.
 
 **When to use the command**: It's up to you! I run  /appendProgressUpdate as part of my daily note (see [Calling from a Template](#calling-from-a-template) below), but you might want to do it at the end of a day/week/month in those notes.
@@ -66,7 +68,7 @@ Add the title of this template to settings:
 
 ![](checklist-setting.png)
 
-Then in your daily note include the same checklist, and mark them as completed in the usual way. (If you want to use this template in another note it can be imported using `<%- import("Daily tasks”) -%>`)
+Then in your daily note include the same checklist, and mark them as completed in the usual way. (If you want to use this template in another note it can be imported using `<%- import("Daily tasks") -%>`)
  
 Then completion is shown using the '/appendProgressUpdate' command, for example:
 
@@ -138,6 +140,8 @@ The many **settings** for this command are set in the Plugin Preference pane:
 - @mentions to **average**: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average (to 3 significant figures)
 - Yes/No characters: sets the pair of characters to use as Yes and No in output of "Yes/No items". The first is for Yes, the second for No (without a comma to separate them). Here are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□. (You can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.)
 - Exclude today's entries? Whether to exclude today's entries in progress updates. Can be enabled if you tend to run the progress update as part of a start-of-day routine, and only add the updates later in the day.
+
+Note: If you only run on iOS/iPadOS, then you need to use the "/Habits+Summaries: Update plugin settings" command instead. If you run partly on macOS, then change them there, and the changes will sync to your other devices.
 
 ### Calling from a Template
 This command can be used in any Template, but is particularly designed to be used from a "Daily Note Template" by including a '**progressUpdate(...)**' command tag in a template such as:

@@ -75,6 +75,13 @@ The "theme" field should match the exact name of the theme you want to open with
 
 The command `/Add/Change This Note’s Theme in Frontmatter` can be used to add/change the frontmatter for the open document to include a theme of your choosing.
 
+### Command: Choose HTML Color
+
+The command `/Choose HTML Color` will pop up a color picker window that will allow you to choose a color and copy the color code to the clipboard.
+You can click the color swatch to select colors in many different ways using the color picker
+Or you can pick one of the Tailwind preset colors from the dropdown list
+Once a color is chosen, click the button to copy the color code to the clipboard and close the window
+
 ### Frontmatter Setting via Template:
 
 If you want to use theme changes broadly, it may make sense for you to include the frontmatter fields in a template. The following is a sample template note that could be in your @Templates folder:

@@ -1,98 +1,188 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated 2024-07-17 for v2.0.3 by @jgclark */
+/* Last updated 2025-05-31 for v2.3.0.b3 */
+/* TODO: SearchPanel transition is not working well yet. Not sure if that's because of this file or SearchPanel.css */
 
-/* Settings for Grid-based layout */
+/* Container for header and search panel */
+.header-container {
+	position: sticky;
+	width: 100%;
+	z-index: 10;
+	top: 0px;
+	background-color: var(--bg-sidebar-color);
+}
+
+/* Settings for flex-based layout */
 .header {
-	font-size: 0.92rem;
-	/* Define grid-template-areas for better control */
-	display: grid;
-	/* Allocate space for each area */
-	grid-template-areas: "lastUpdated refresh counts empty dropdowns";
-	grid-template-columns: max-content max-content max-content 1fr min-content;
-	/* Vertical alignment */
-	align-items: baseline;
-	/* Space between grid items */
-	gap: 0.5rem;
-	/* Padding around the header content */
-	padding: 0.4rem;
-	padding-right: 1rem;
+	display: flex;
+	position: relative;
+	flex-wrap: nowrap; /* Prevent wrapping */
+	/* align items to the start and end of the container, and pad out others between them */
+	justify-content: space-between; 
+	/* Space between next-level items */
+	gap: 0.6rem;
+	font-size: 0.95rem;
+	align-items: center;
+	/* Padding around the header content -- more on the right to accommodate the scrollbar */
+	padding: 5px 1.0rem 4px 0.5rem;
+	border-bottom: solid 1px var(--divider-color);
 	background-color: var(--bg-sidebar-color);
 	/* Ensure the header uses the full width -- if contained width:Nvw set to less than 100 */
 	/* width: 100%; */
-  /* stick to top */
-	position: sticky;
 	z-index: 10;
-	top: 0px;
-	border-bottom: solid 1px var(--divider-color);
 }
 
-/* MESSAGE_BANNER w3.css overrides */
-.iOS .header, .iPadOS .header {
-  padding-right: 2.2rem; 
-  box-sizing: border-box; /* Ensure the padding is included in the element's total width */
-  /* make room for NP sheet "X" button */
+/* :focus {
+	border-color: var(--tint-color);
+	box-shadow: 0 0 2px var(--tint-color);
+	outline: none;
+} */
+
+/* Define minimum widths for the header elements first, and later then decide to hide them based on screen size */
+.perspectiveName {
+	min-width: auto;
 }
 
-.lastFullRefresh {
-	/* Assign the area */
-	grid-area: lastUpdated;
-	/* This ensures that the content of these divs is also centered */
+/* Refresh button(s) area */
+.refreshButtons {
+	/* allow for 2 buttons at times */
+	display: inline-flex;
+	/* ensure it doesn't take more space than it needs */
+	min-width: fit-content;
+	gap: 0.6rem;
+	/* to allow us to control clipping of hardRefreshButton */
+	/* max-width:28%; */
+}
+
+/* This is the space between the perspective control and the action buttons, to use for low-priority items if there is space */
+.lowerPrioritySpace {
+	display: flex;
+	flex-direction: row;
+	flex-grow: 1; /* grow to take up to 100% of the remaining space */
+	justify-content: space-between; 
+	margin-inline-start: 0rem; /* make 'lastRefreshInfo' start at the left edge of this section */
+	margin-inline-end: 1rem; /* but leave a gap at the right edge */
+	padding-top: 2px; /* nudge down a bit, for optical alignment */
+	gap: 1rem;
+	/* min-width: 0.6rem; */
+	/* width: auto; */
+	align-items: baseline;
+	/* background-color: lightblue; */
+	container-type: inline-size;
+	container-name: lowerPrioritySpace;
+}
+
+/* Refresh time-ago text; low-priority to display */
+.lastRefreshInfo {
+	/* flex-grow: 1; */
+	/* align-items: left; */
+	min-width: fit-content;
+}
+
+/* Completed task count; low-priority to display */
+.totalCounts {
+	/* flex-grow: 1; */
+	/* align-items: center; */
+	min-width: fit-content;
+}
+
+/* For important icon buttons in header area -- that should cascade to child elements */
+.headerActionIconButtons {
+	/* background-color: lightgreen; */
+	display: flex;
+	min-width: fit-content;
+	/* gap between buttons */
+	gap: 0.8rem;
+	/* align vertically to center */
 	align-items: center;
-	/* Make a fixed width so that as it changes it doesn't change the Refresh button position */
-	width: 10rem;
-
+	/* Align to the right edge */
+	justify-self: end;
+	justify-content: end;
+	padding-top:1px; /* nudge down a bit */
+	float: inline-end; /* a rare use of float! */
 }
-/* Turn fixed width off on narrow screens */
-@media screen and (max-width: 600px) {
-	.lastFullRefresh {
-		width: unset;
+
+/* For icon buttons in header area -- without cascading to child elements */
+.headerActionIconButtons > * {
+	/* droppdown button icons through FontAwesome */
+	i {
+		color: var(--tint-color);
+		cursor: pointer;
+		/* Make button a little darker on hover */
+		&:hover {
+			/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this */
+			filter: brightness(80%);
+		}
 	}
 }
 
-.refresh {
-	/* Assign the area */
-	grid-area: refresh;
+/* Widen button gaps on touchscreen interfaces */
+.iOS .headerActionButtons, .iPadOS .headerActionButtons {
+	gap: 1.1rem !important;
 }
 
-/* may use in future */
-.totalCounts {
-	/* Assign the area */
-	grid-area: counts;
-	align-self: unset; /* TEST: shouldn't be needed but otherwise lands up with 'end' */
-	
-	/* Make sure totalCounts only shows when necessary */
-	@media screen and (max-width: 500px) {
+/* Spacer for the NP-generated close button on modal windows on mobile */
+.modalCloseButtonSpacer {
+	width: var(--modalCloseButtonSpacerWidth);
+}
+
+/* On narrow screens drop the lower priority items */
+/* First turn off the total counts */
+@container lowerPrioritySpace (max-width: 25rch) {
+	.totalCounts {
 		display: none;
 	}
 }
 
-.dropdownButtons {
-	grid-area: dropdowns;
-	/* justify-self: end; */
-	gap: 0.9rem;
-	/* Align to the right edge */
-	justify-self: end;
-	justify-content: end;
-	/* margin-right: 1rem; */
-}
-
-/* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
-.iOS .dropdownButtons, .iPadOS .dropdownButtons {
-	gap: 1.2rem !important;
-	margin-right: 2rem !important;
-}
-
-/* droppdown button icons */
-.dropdownButtons i {
-	/* Assign the area */
-	color: var(--tint-color);
-}
-
-/* for narrow screens (iOS) ... */
-/* FIXME: needs to apply to iPad as well */
-/* @media screen and (width <= 450px) { */
-	/* Widen button gaps  */
-	/* .dropdownButtons {
-		gap: 1.2rem !important;
+/* Then turn off the last refresh info */
+@container lowerPrioritySpace (max-width: 15rch) {
+	.lastRefreshInfo {
+		display: none;
 	}
+}
+
+/* -------------------------------------------------------- */
+
+/* For text buttons in header area */
+/* TODO: Ideally rationalise this with the addButton icon-buttons in the sectionInfo area */
+.HAButton {
+	font-size: 0.9rem;
+	font-weight: 500;
+	border-style: solid;
+	border-width: 1px;
+	border-radius: 4px;
+	/* a little internal padding to right */
+	padding: 1px 3px 0px 3px;
+	/* a little external margin */
+	margin: 0px;
+	white-space: nowrap;
+	cursor: pointer;
+	/* Center the button vertically if it's not aligning properly */
+	align-self: center;
+
+	/* color FA icons in these Buttons */
+	i {
+		color: var(--tint-color);
+	}
+}
+
+/* On hover, make the button a little larger and darker */
+.HAButton:hover {
+	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this when better support in dev tooling */
+	filter: brightness(110%);
+}
+
+/* Set this button text to clip if screen is narrow */
+/* .hardRefreshButton {
+	overflow-x: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+} */
+
+/* Style for the search panel button */
+/* #searchPanelButton {
+  cursor: pointer;
+} */
+
+/* #searchPanelButton i {
+  font-size: 1.1rem;
 } */

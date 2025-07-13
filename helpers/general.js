@@ -1,3 +1,4 @@
+/* eslint-disable require-await */
 // @flow
 //-------------------------------------------------------------------------------
 // General helper functions for NotePlan plugins
@@ -6,6 +7,7 @@
 import json5 from 'json5'
 import { clo, JSP, logError, logDebug } from './dev'
 import { getDateStringFromCalendarFilename } from './dateTime'
+import { getFolderFromFilename } from './folders'
 
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
 
@@ -20,65 +22,101 @@ export type headingLevelType = 1 | 2 | 3 | 4 | 5
  */
 export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
   // This is how private keys work in actual Javascript now.
-  #keysMap: Map<string, string> = new Map<string, string>()
+  #keysMap: Map<string, string> = new Map < string, string > ()
 
-  constructor(iterable?: Iterable<[string, TVal]>) {
-    super()
-    if (iterable) {
-      for (const [key, value] of iterable) {
-        this.set(key, value)
-      }
-    }
-  }
-
-  set(key: string, value: TVal): this {
-    const keyLowerCase = typeof key === 'string' ? key.toLowerCase() : key
-    if (!this.#keysMap.has(keyLowerCase)) {
-      this.#keysMap.set(keyLowerCase, key) // e.g. 'test': 'TEst'
-      // console.log(`new map entry: public '${keyLowerCase}' and private '${key}'`)
-    }
-    super.set(keyLowerCase, value) // set main Map to use 'test': value
-    return this
-  }
-
-  get(key: string): TVal | void {
-    return typeof key === 'string' ? super.get(key.toLowerCase()) : super.get(key)
-  }
-
-  has(key: string): boolean {
-    return typeof key === 'string' ? super.has(key.toLowerCase()) : super.has(key)
-  }
-
-  delete(key: string): boolean {
-    const keyLowerCase = typeof key === 'string' ? (key.toLowerCase(): string) : key
-    this.#keysMap.delete(keyLowerCase)
-
-    return super.delete(keyLowerCase)
-  }
-
-  clear(): void {
-    this.#keysMap.clear()
-    super.clear()
-  }
-
-  keys(): Iterator<string> {
-    return this.#keysMap.values()
-  }
-
-  *entries(): Iterator<[string, TVal]> {
-    for (const [keyLowerCase, value] of super.entries()) {
-      const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
-      yield [key, value]
-    }
-  }
-
-  forEach(callbackfn: (value: TVal, key: string, map: Map<string, TVal>) => mixed): void {
-    for (const [keyLowerCase, value] of super.entries()) {
-      const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
-      callbackfn(value, key, this)
+constructor(iterable ?: Iterable < [string, TVal] >) {
+  super()
+  if (iterable) {
+    for (const [key, value] of iterable) {
+      this.set(key, value)
     }
   }
 }
+
+set(key: string, value: TVal): this {
+  const keyLowerCase = typeof key === 'string' ? key.toLowerCase() : key
+  if (!this.#keysMap.has(keyLowerCase)) {
+    this.#keysMap.set(keyLowerCase, key) // e.g. 'test': 'TEst'
+    // console.log(`new map entry: public '${keyLowerCase}' and private '${key}'`)
+  }
+  super.set(keyLowerCase, value) // set main Map to use 'test': value
+  return this
+}
+
+get(key: string): TVal | void {
+  return typeof key === 'string' ? super.get(key.toLowerCase()) : super.get(key)
+}
+
+has(key: string): boolean {
+  return typeof key === 'string' ? super.has(key.toLowerCase()) : super.has(key)
+}
+
+delete (key: string): boolean {
+  const keyLowerCase = typeof key === 'string' ? (key.toLowerCase(): string) : key
+  this.#keysMap.delete(keyLowerCase)
+
+  return super.delete(keyLowerCase)
+}
+
+clear(): void {
+  this.#keysMap.clear()
+    super.clear()
+}
+
+keys(): Iterator < string > {
+  return this.#keysMap.values()
+}
+
+  * entries(): Iterator < [string, TVal] > {
+    for(const [keyLowerCase, value] of super.entries()) {
+  const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
+  yield[key, value]
+}
+  }
+
+forEach(callbackfn: (value: TVal, key: string, map: Map<string, TVal>) => mixed): void {
+  for(const [keyLowerCase, value] of super.entries()) {
+  const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
+  callbackfn(value, key, this)
+}
+  }
+}
+
+//-------------------------------------------------------------------------------
+/**
+ * Case Insensitive version of Set
+ * Keeps the first seen capitalasiation of a given key in a private #keysMap
+ * It will be given in preference to the lowercase version of the key in
+ *     for (const [key, value] of termCounts.entries()) {...}  // Note: the .entries() is required
+ * @author @BoltAI
+ */
+//-------------------------------------------------------------------------------
+
+export class CaseInsensitiveSet extends Set<string> {
+  add(value: string): this {
+    if (typeof value === 'string') {
+      super.add(value.toLowerCase())
+    } else {
+      super.add(value)
+    }
+    return this
+  }
+
+  has(value: string): boolean {
+    if (typeof value === 'string') {
+      return super.has(value.toLowerCase())
+    }
+    return super.has(value)
+  }
+
+  delete(value: string): boolean {
+    if (typeof value === 'string') {
+      return super.delete(value.toLowerCase())
+    }
+    return super.delete(value)
+  }
+}
+
 
 //-------------------------------------------------------------------------------
 // Parsing structured data functions
@@ -116,17 +154,6 @@ export function percent(value: number, total: number): string {
   return total > 0 ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)` : `${value.toLocaleString()} (0%)`
 }
 
-// Deprecated: more trouble than they're worth ...
-// export const defaultFileExt: () => any = () =>
-//   DataStore.defaultFileExtension != null
-//     ? DataStore.defaultFileExtension.toString()
-//     : 'md'
-
-// export const defaultTodoCharacter: () => any = () =>
-//   DataStore.preference('defaultTodoCharacter') != null
-//     ? DataStore.preference('defaultTodoCharacter').toString()
-//     : '*'
-
 /**
  * Return range information as a string
  * Note: There is a copy of this is note.js to avoid a circular dependency.
@@ -142,8 +169,8 @@ export function rangeToString(r: TRange): string {
 }
 
 /**
- * Return title of note useful for display, including for
- * - calendar notes based on the filename
+ * Return title of note useful for display.
+ * FIXME(EduardMe): Produces error for Teamspace Calendar notes.
  * Note: local copy of this in helpers/paragraph.js to avoid circular dependency.
  * @author @jgclark
  *
@@ -151,11 +178,33 @@ export function rangeToString(r: TRange): string {
  * @return {string}
  */
 export function displayTitle(n: ?CoreNoteFields): string {
-  return !n
-    ? '(error)'
-    : n.type === 'Calendar'
-    ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
-    : n.title ?? '(error)'
+  if (!n) {
+    logError('general/displayTitle', 'No note found')
+    return '(error: no note found)'
+  }
+  if (n.type === 'Calendar') {
+    if (getDateStringFromCalendarFilename(n.filename)) {
+      return getDateStringFromCalendarFilename(n.filename)
+    }
+  } else {
+    if (n.title) { return n.title }
+  }
+  logError('general/displayTitle', 'No title found')
+  return '(error: no title found)'
+}
+
+/**
+ * Return title of note useful for display, including for
+ * - calendar notes based on the filename
+ * @author @jgclark
+ *
+ * @param {CoreNoteFields} note
+ * @return {string}
+ */
+export function displayFolderAndTitle(note: CoreNoteFields, titleAsLink: boolean = true): string {
+  return note.type === 'Calendar'
+    ? getDateStringFromCalendarFilename(note.filename) ?? ''
+    : `${getFolderFromFilename(note.filename)}/${titleAsLink ? `[[${note.title ?? '?'}]]` : note.title ?? '?'}`
 }
 
 /**
@@ -541,4 +590,13 @@ export function CreateUUID(howManyChars: number = 37): string {
  */
 export function escapeRegex(str: any): any {
   return typeof str === 'string' ? str.replace(/[/-\^$*+?.()|[]{}]/g, '$&') : str
+}
+
+/**
+ * Check if a string is a valid UUID
+ * @param {string} str - the string to check
+ * @returns {boolean} true if the string is a valid UUID, false otherwise
+ */
+export function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
 }

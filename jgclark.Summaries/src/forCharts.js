@@ -9,47 +9,27 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import {
-  // calcHashtagStatsPeriod,
-  // calcMentionStatsPeriod,
   gatherOccurrences,
-  // generateProgressUpdate,
   getSummariesSettings,
   type OccurrencesToLookFor,
   TMOccurrences,
-  // type SummariesConfig
 } from './summaryHelpers'
 import {
-  // calcWeekOffset,
-  // getDateObjFromDateString,
-  // getDateStringFromCalendarFilename,
-  // getJSDateStartOfToday,
   getTodaysDateHyphenated,
-  // getWeek,
-  // hyphenatedDate,
   hyphenatedDateString,
   RE_DONE_DATE_OPT_TIME,
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
   todaysDateISOString, // const
   toISODateString,
-  // unhyphenatedDate,
-  // isoWeekStartEndDates,
   withinDateRange,
 } from '@helpers/dateTime'
 import {
   getNPWeekData,
   getUsersFirstDayOfWeekUTC,
   pad,
-  // type NotePlanWeekInfo,
 } from '@helpers/NPdateTime'
 import { clo, clof, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-// import { displayTitle } from '@helpers/general'
-// import { showHTMLV2 } from '@helpers/HTMLView'
-import {
-  // clearNote, getOrMakeNote,
-  projectNotesFromFilteredFolders
-} from '@helpers/note'
-// import { getLocale } from '@helpers/NPConfiguration'
-// import { chooseOption, getInput, showMessage } from '@helpers/userInput'
+import { projectNotesFromFilteredFolders } from '@helpers/folders'
 
 //-----------------------------------------------------------------------------
 

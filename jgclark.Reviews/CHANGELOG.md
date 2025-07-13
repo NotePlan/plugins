@@ -1,5 +1,53 @@
 # What's changed in 🔬 Projects + Reviews plugin?
-See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
+See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
+
+## [1.2.3] - 2025-04-28
+- Fixed race condition stopping 'Finish + Next' review from working. (thanks, @gdrn)
+- Fixed problem in 'Pause Project'
+
+## [1.2.2] - 2025-04-03
+- Added workaround for failing API call when using 'Finish + Next' (thanks, Alexandre Jacques)
+
+## [1.2.1] - 2025-04-01
+- Under-the-hood changes to suit shared settings with Dashboard plugin.
+- Fix % completion not being generated if using progress comments with no estimated %.
+- Code refactoring.
+
+## [1.2.0] - 2025-03-19
+There are 2 new settings that affect which open tasks/checklists are included in the '% completion' statistic for each project:
+- Ignore tasks set more than these days in the future: If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 0 days -- i.e. no future items are ignored).
+- Ignore checklists in progress? If set, then checklists in progress will not be counted as part of the project's completion percentage.
+
+## [1.1.2] - 2025-03-17
+- Fix to Next Actions not being detected in '/finish review' (thanks, @Wook5000)
+- DEV: update to use CoreNoteFields, not TNote, where possible
+
+## [1.1.1] - 2025-02-14
+### Changes
+- Turns off the background refresh of Dashboard plugin after every change to Project List, as it was interfering with changing Perspectives. The Dashboard will still update on its usual 'automatically update' interval without problems.
+- If a project note is being processed but doesn't yet have any relevant metadata (specifically at least `@review` or `@reviewed` mention, or at least one project/metadata/review/reviewed frontmatter field), then a very basic metadata line will be added after the note title.
+
+## [1.1.0] - 2025-02-03
+### New
+- **Supports 'Perspectives' from Dashboard plugin**. If you turn the feature on in settings, the Project List will automatically use the current 'Perspective' definition from the Dashboard plugin to determine which folders are included and excluded.
+  - The Dashboard (from v2.1.8) now also tells the Project List window to update when you change Perspective (if you have the window open)
+- where you have more than one project tag, each tag is shown in a section that can be collapsed or expanded using the triangle icons ▼ or ▶
+
+### Changed
+- changed the top-middle box of controls to be a top bar, with only the controls that can't live in the popup 'edit dialog' boxes
+- top bar now shows the current Perspective name (if used)
+- other improvements of the 'rich' style Project List, to bring more in line with the Dashboard plugin. Including a simpler style of tooltips that aren't clipped
+- now supports multiple next action tags, and shows all of them in the Project List (requested by @christmetcalf; closes issue #613)
+- when you run '/cancel project' it now asks for a progress comment (like happens when you pause a project)
+- the heading of the edit dialog box now shows the note title (not filename), and the current review interval
+
+## [1.0.2] - 2024-12-28 (unreleased)
+- now uses the user's 'Editor Font Size' setting to determine the base font size for the rich view of the Project List -- and so can be changed up and down quite easily -- rather than using what the Theme defines.
+- small layout tweaks
+
+## [1.0.1] - 2024-12-13
+### Fixed 
+- fix bug with 'next action' setting (thanks, Alexandre Jacques)
 
 ## [1.0.0] - 2024-10-11
 ### New

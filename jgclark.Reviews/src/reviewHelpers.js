@@ -2,40 +2,44 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2024-10-07 for v1.0.0.b3, @jgclark
+// Last updated 2025-03-17 for v1.2.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
+import { getActivePerspectiveDef, getAllowedFoldersInCurrentPerspective, getPerspectiveSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
+import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { type Progress } from './projectClass'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   calcOffsetDate,
-  getDateFromUnhyphenatedDateString,
+  getDateFromYYYYMMDDString,
   getDateObjFromDateString,
   getJSDateStartOfToday,
-  RE_ISO_DATE, RE_YYYYMMDD_DATE,
+  RE_ISO_DATE,
+  RE_YYYYMMDD_DATE,
   toISODateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
-import {
-  findEndOfActivePartOfNote,
-} from '@helpers/paragraph'
-import {
-  showMessage
-} from '@helpers/userInput'
+import { noteHasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { showMessage } from '@helpers/userInput'
 
 //------------------------------
 // Config setup
 
 export type ReviewConfig = {
+  usePerspectives: boolean,
+  perspectiveName: string,
   outputStyle: string,
   reviewsTheme: string,
   folderToStore: string,
   foldersToInclude: Array<string>,
   foldersToIgnore: Array<string>,
   projectTypeTags: Array<string>,
+  numberDaysForFutureToIgnore: number,
+  ignoreChecklistsInProgress: boolean,
   displayDates: boolean,
   displayProgress: boolean,
   displayOrder: string,
@@ -58,7 +62,7 @@ export type ReviewConfig = {
   archiveUsingFolderStructure: boolean,
   archiveFolder: string,
   removeDueDatesOnPause: boolean,
-  nextActionTag: string,
+  nextActionTags: Array<string>,
   displayNextActions: boolean,
   _logLevel: string,
   _logTimer: boolean,
@@ -69,21 +73,25 @@ export type ReviewConfig = {
  * @author @jgclark
  * @return {ReviewConfig} object with configuration
  */
-export async function getReviewSettings(): Promise<ReviewConfig> {
+export async function getReviewSettings(externalCall: boolean = false): Promise<ReviewConfig> {
   try {
-    // logDebug('getReviewSettings', `Starting ...`)
+    logDebug('getReviewSettings', `Starting${externalCall ? ' from a different plugin' : ''} ...`)
     // Get settings
     const config: ReviewConfig = await DataStore.loadJSON('../jgclark.Reviews/settings.json')
 
+    // If an external call allow silent return of null if no settings found.
+    // Otherwise complain, as there should be settings.
     if (config == null || Object.keys(config).length === 0) {
-      await showMessage(`Cannot find settings for the 'Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
-      // $FlowFixMe[incompatible-return]
+      if (!externalCall) {
+        await showMessage(`Cannot find settings for the 'Projects & Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+        throw new Error(`Can't find settings file '../jgclark.Reviews/settings.json', so stopping.`)
+      }
+      // $FlowFixMe[incompatible-return] as we're returning null if no settings found
       return null
     }
     // clo(config, `Review settings`)
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
-    // Note: there was an issue in builds ?1020-1030 that stopped new prefs being added.
     DataStore.setPreference('startMentionStr', config.startMentionStr)
     DataStore.setPreference('completedMentionStr', config.completedMentionStr)
     DataStore.setPreference('cancelledMentionStr', config.cancelledMentionStr)
@@ -91,12 +99,30 @@ export async function getReviewSettings(): Promise<ReviewConfig> {
     DataStore.setPreference('reviewIntervalMentionStr', config.reviewIntervalMentionStr)
     DataStore.setPreference('reviewedMentionStr', config.reviewedMentionStr)
     DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
+    DataStore.setPreference('numberDaysForFutureToIgnore', config.numberDaysForFutureToIgnore)
+    DataStore.setPreference('ignoreChecklistsInProgress', config.ignoreChecklistsInProgress)
+
+    // If we want to use Perspectives, get all perspective settings
+    if (config.usePerspectives) {
+      const perspectiveSettings: Array<TPerspectiveDef> = await getPerspectiveSettings(false)
+      // Get the current Perspective
+      const currentPerspective: any = getActivePerspectiveDef(perspectiveSettings)
+      // clo(currentPerspective, `currentPerspective`)
+      config.perspectiveName = currentPerspective.name
+      logInfo('getReviewSettings', `Will use Perspective '${config.perspectiveName}', and will override any foldersToInclude and foldersToIgnore settings`)
+      config.foldersToInclude = stringListOrArrayToArray(currentPerspective.dashboardSettings?.includedFolders ?? '', ',')
+      config.foldersToIgnore = stringListOrArrayToArray(currentPerspective.dashboardSettings?.excludedFolders ?? '', ',')
+      // logDebug('getReviewSettings', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
+      // logDebug('getReviewSettings', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
+
+      const validFolders = getAllowedFoldersInCurrentPerspective(perspectiveSettings)
+      logDebug('getReviewSettings', `-> validFolders for '${config.perspectiveName}': [${String(validFolders)}]`)
+    }
 
     return config
   } catch (err) {
     logError('getReviewSettings', `${err.name}: ${err.message}`)
-    await showMessage(err.message)
-    // $FlowFixMe[incompatible-return]
+    // $FlowFixMe[incompatible-return] as we're returning null if no settings found
     return null
   }
 }
@@ -138,19 +164,19 @@ export function getParamMentionFromList(mentionList: $ReadOnlyArray<string>, men
  * @param {string} naTag to search for
  * @returns {number}
  */
-export function getNextActionLineIndex(note: TNote, naTag: string): number {
-  logDebug('getNextActionLineIndex', `Checking for @${naTag} in ${displayTitle(note)} with ${note.paragraphs.length} paragraphs`)
+export function getNextActionLineIndex(note: CoreNoteFields, naTag: string): number {
+  // logDebug('getNextActionLineIndex', `Checking for @${naTag} in ${displayTitle(note)} with ${note.paragraphs.length} paras`)
   const NAParas = note.paragraphs.filter((p) => p.content.includes(naTag)) ?? []
-  logDebug('getNextActionLineIndex', `Found ${NAParas.length} matching paragraphs`)
-  const result = (NAParas.length > 0) ? NAParas[0].lineIndex : NaN
+  logDebug('getNextActionLineIndex', `Found ${NAParas.length} matching ${naTag} paras`)
+  const result = NAParas.length > 0 ? NAParas[0].lineIndex : NaN
   return result
 }
 
 /**
- * Read lines in 'note' and return any lines (as strings) that contain fields
- * (that start with 'fieldName' parameter before a colon with text after).
+ * Read lines in 'note' and return any lines (as strings) that contain fields that start with 'fieldName' parameter before a colon with text after.
  * The matching is done case insensitively, and only in the active region of the note.
- * Note: see also getFieldParagraphsFromNote() variation on this
+ * Note: see also getFieldParagraphsFromNote() variation on this.
+ * TODO: switch to using frontmatter helpers instead.
  * @param {TNote} note
  * @param {string} fieldName
  * @returns {Array<string>} lines containing fields
@@ -171,10 +197,10 @@ export function getFieldsFromNote(note: TNote, fieldName: string): Array<string>
 }
 
 /**
- * Read lines in 'note' and return any paragraphs that contain fields
- * (that start with 'fieldName' parameter before a colon with text after).
+ * Read lines in 'note' and return any paragraphs that contain fields that start with 'fieldName' parameter before a colon with text after.
  * The matching is done case insensitively, and only in the active region of the note.
- * Note: see also getFieldsFromNote() variation on this
+ * Note: see also getFieldsFromNote() variation on this.
+ * TODO: switch to using frontmatter helpers instead.
  * @param {TNote} note
  * @param {string} fieldName
  * @returns {Array<string>} lines containing fields
@@ -208,7 +234,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
       lineIndex: 1,
       percentComplete: NaN,
       date: new Date('0001-01-01'),
-      comment: '(no comment found)'
+      comment: '(no comment found)',
     }
     for (const progressPara of progressParas) {
       // const progressParaParts = progressPara.content.split(/[:@]/)
@@ -216,22 +242,20 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
       // const thisDatePart = progressParaParts[1]
       const progressLine = progressPara.content
       // logDebug('processMostRecentProgressParagraph', progressLine)
-      const thisDate: Date = (new RegExp(RE_ISO_DATE).test(progressLine))
-        // $FlowIgnore
-        ? getDateObjFromDateString(progressLine.match(RE_ISO_DATE)[0])
-        : (new RegExp(RE_YYYYMMDD_DATE).test(progressLine))
-          // $FlowIgnore
-          ? getDateFromUnhyphenatedDateString(progressLine.match(RE_YYYYMMDD_DATE)[0])
-          : new Date('0001-01-01')
+      const thisDate: Date = new RegExp(RE_ISO_DATE).test(progressLine)
+        ? // $FlowIgnore
+          getDateObjFromDateString(progressLine.match(RE_ISO_DATE)[0])
+        : new RegExp(RE_YYYYMMDD_DATE).test(progressLine)
+        ? // $FlowIgnore
+          getDateFromYYYYMMDDString(progressLine.match(RE_YYYYMMDD_DATE)[0])
+        : new Date('0001-01-01')
       const tempSplitParts = progressLine.split(/[:@]/)
       // logDebug('processMostRecentProgressParagraph', `tempSplitParts: ${String(tempSplitParts)}`)
       const comment = tempSplitParts[3] ?? ''
 
       const tempNumberMatches = progressLine.match(/(\d{1,2})@/)
       // logDebug('processMostRecentProgressParagraph', `tempNumberMatches: ${String(tempNumberMatches)}`)
-      const percent: number = (tempNumberMatches && tempNumberMatches.length > 0)
-        ? Number(tempNumberMatches[1])
-        : NaN
+      const percent: number = tempNumberMatches && tempNumberMatches.length > 0 ? Number(tempNumberMatches[1]) : NaN
       // logDebug('processMostRecentProgressParagraph', `-> ${String(percent)}`)
 
       if (thisDate > lastDate) {
@@ -241,7 +265,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
           lineIndex: progressPara.lineIndex,
           percentComplete: percent,
           date: thisDate,
-          comment: comment
+          comment: comment,
         }
       }
       lastDate = thisDate
@@ -257,7 +281,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
       lineIndex: 1,
       percentComplete: NaN,
       date: new Date('0001-01-01'),
-      comment: '(no comment found)'
+      comment: '(no comment found)',
     } // for completeness
   }
 }
@@ -274,24 +298,26 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
  * @param {string} metadataLinePlaceholder optional to use if we need to make a new metadata line
  * @returns {number} the line number for the existing or new metadata line
  */
-export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: string = ''): number {
+export function getOrMakeMetadataLine(note: CoreNoteFields, metadataLinePlaceholder: string = '#project @review(1w) <-- _update your tag and your review interval here_'): number {
   try {
     const lines = note.paragraphs?.map((s) => s.content) ?? []
-    // logDebug('getOrMakeMetadataLine', `Starting with ${lines.length} lines`)
+    logDebug('getOrMakeMetadataLine', `Starting with ${lines.length} lines for ${displayTitle(note)}`)
 
     // Belt-and-Braces: deal with empty or almost-empty notes
     if (lines.length === 0) {
       note.appendParagraph('<placeholder title>', 'title')
       note.appendParagraph(metadataLinePlaceholder, 'text')
+      logInfo('getOrMakeMetadataLine', `- Finishing after appending placeholder title and metadata placeholder line`)
       return 1
     } else if (lines.length === 1) {
       note.appendParagraph(metadataLinePlaceholder, 'text')
+      logInfo('getOrMakeMetadataLine', `- Finishing after appending metadata placeholder line`)
       return 1
     }
 
     let lineNumber: number = NaN
     for (let i = 1; i < lines.length; i++) {
-      if (lines[i].match(/^project:/i) || lines[i].match(/^metadata:/i) || lines[i].match(/^#[\w]/) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
+      if (lines[i].match(/^(project|metadata|review|reviewed):/i) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
         lineNumber = i
         break
       }
@@ -299,9 +325,10 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
     // If no metadataPara found, then insert one either after title, or in the frontmatter if present.
     if (Number.isNaN(lineNumber)) {
       if (noteHasFrontMatter(note)) {
-        logWarn('getOrMakeMetadataLine', `Warning: Can't find an existing metadata line, so will insert into metadata`)
-        const res = setFrontMatterVars(note, {
-          'metadata': metadataLinePlaceholder
+        logWarn('getOrMakeMetadataLine', `I couldn't find an existing metadata line, so have added a placeholder at the top of the note. Please review it.`)
+        // $FlowIgnore[incompatible-call]
+        const res = updateFrontMatterVars(note, {
+          metadata: metadataLinePlaceholder,
         })
         const updatedLines = note.paragraphs?.map((s) => s.content) ?? []
         // Find which line that project field is on
@@ -333,7 +360,7 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
 // eslint-disable-next-line no-unused-vars
 // export async function saveEditorToCache(completed: any): Promise<void> {
 //   logDebug('saveEditorToCache', 'waiting for Editor.save ...')
-//   await Editor.save()
+//   await saveEditorIfNecessary()
 //   logDebug('saveEditorToCache', '... done')
 // }
 
@@ -345,7 +372,7 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
  * @param {Array<string>} mentions to update:
  * @returns { ?TNote } current note
  */
-export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNote {
+export function updateMetadataInEditor(updatedMetadataArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
@@ -364,7 +391,10 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNot
     const origLine: string = metadataPara.content
     let updatedLine = origLine
 
-    logDebug('updateMetadataInEditor', `starting for '${displayTitle(thisNote)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
+    logDebug(
+      'updateMetadataInEditor',
+      `starting for '${displayTitle(thisNote)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`,
+    )
 
     for (const item of updatedMetadataArr) {
       const mentionName = item.split('(', 1)[0]
@@ -382,12 +412,8 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNot
     Editor.updateParagraph(metadataPara)
     // await saveEditorToCache() // might be stopping code execution here for unknown reasons
     logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
-
-    // update this note in the review list
-    return thisNote
   } catch (error) {
     logError('updateMetadataInEditor', `${error.message}`)
-    return null
   }
 }
 
@@ -399,7 +425,7 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNot
  * @param {TNote} noteToUse
  * @param {Array<string>} mentions to update:
  */
-export function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<string>): void {
+export function updateMetadataInNote(note: CoreNoteFields, updatedMetadataArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (note == null || note.type === 'Calendar' || note.paragraphs.length < 2) {
@@ -417,7 +443,10 @@ export function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<stri
     const origLine: string = metadataPara.content
     let updatedLine = origLine
 
-    logDebug('updateMetadataInNote', `starting for '${displayTitle(note)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
+    logDebug(
+      'updateMetadataInNote',
+      `starting for '${displayTitle(note)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`,
+    )
 
     for (const item of updatedMetadataArr) {
       const mentionName = item.split('(', 1)[0]
@@ -451,7 +480,7 @@ export function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<stri
  * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
  * @returns { ?TNote } current note
  */
-export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>): ?TNote {
+export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
@@ -484,13 +513,9 @@ export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>
     metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
     Editor.updateParagraph(metadataPara)
     // await saveEditorToCache() // seems to stop here but without error
-    logDebug('deleteMetadataMentionInEditor', `- After update ${metadataPara.content}`)
-
-    // update this note in the review list
-    return thisNote
+    logDebug('deleteMetadataMentionInEditor', `- Finished`)
   } catch (error) {
     logError('deleteMetadataMentionInEditor', `${error.message}`)
-    return null
   }
 }
 
@@ -500,7 +525,7 @@ export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>
  * @param {TNote} noteToUse
  * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
  */
-export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteArr: Array<string>): void {
+export function deleteMetadataMentionInNote(noteToUse: CoreNoteFields, mentionsToDeleteArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (noteToUse == null || noteToUse.type === 'Calendar' || noteToUse.paragraphs.length < 2) {
@@ -530,36 +555,27 @@ export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteAr
     // send update to noteToUse (removing multiple and trailing spaces)
     metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
     noteToUse.updateParagraph(metadataPara)
-    logDebug('deleteMetadataMentionInNote', `- After update ${metadataPara.content}`)
-    return
+    logDebug('deleteMetadataMentionInNote', `- Finished`)
   } catch (error) {
     logError('deleteMetadataMentionInNote', `${error.message}`)
-    return
   }
 }
 
+/**
+ * Update Dashboard if it is open.
+ * Note: Designed to fail silently if it isn't installed, or open.
+ * @author @jgclark
+ */
+// eslint-disable-next-line
 export async function updateDashboardIfOpen(): Promise<void> {
   // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
-  // v1 (callback)
-  // WARNING: This seems to cause the loss-of-files problem even when it is not called.
-  // const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshProjectSection', '')
-  // logInfo('updateDashboardIfOpen', `❗️ about to send message to refresh 🎛 Dashboard ❗️`)
-  // NotePlan.openURL(refreshXCallbackURL) // no point in having await
+
+  // WARNING: Note: Turning this off for Dashboard 2.1.10 / P+R as it was causing race conditions in D Perspective changes.
+  logDebug('updateDashboardIfOpen', `NOT ACTUALLY GOING TO DO ANYTHING AT THE MOMENT!`)
 
   // v2 (internal invoke plugin command)
-  // Note: This works
-  logInfo('updateDashboardIfOpen', `about to invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])`)
-  let result = await DataStore.invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])
-
-  // Now trying a null call to this plugin, to see if we can switch the window context back to Reviews
-  // Note: commenting out to test the b1265 fix. Seems to work now, but leaving in for a few releases in case.
-  result = await DataStore.invokePluginCommandByName("NOP", "jgclark.Reviews", [])
-}
-
-// TODO: Can remove in time
-export function NOP(): void {
-  // do nothing!
-  logDebug('NOP', `A call to do nothing. Deliberately.`)
+  // logInfo('updateDashboardIfOpen', `about to invokePluginCommandByName("refreshSectionByCode", "jgclark.Dashboard", ['PROJ'])`)
+  // const res = await DataStore.invokePluginCommandByName("refreshSectionByCode", "jgclark.Dashboard", ['PROJ'])
 }
 
 /**

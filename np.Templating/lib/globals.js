@@ -116,7 +116,7 @@ const globals = {
   },
 
   weather: async (formatParam: string = ''): Promise<string> => {
-    let weatherFormat = getSetting(pluginJson['plugin.id'], 'weatherFormat', '') || ''
+    let weatherFormat = await getSetting(pluginJson['plugin.id'], 'weatherFormat', '') || ''
     if (formatParam.length > 0) {
       weatherFormat = formatParam
     }

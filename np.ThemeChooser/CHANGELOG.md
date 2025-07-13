@@ -1,8 +1,12 @@
 # np.ThemeChooser Changelog
 
-## [1.7.4] 2024-06-12 @dwertheimer
+## [1.9.1] 2025-02-20 @dwertheimer
 
-- bump for re-release
+- Add support for Eduard's hex colors in frontmatter (do not quote the hex color even though it's illegal YAML)
+
+## [1.9.0] 2025-02-20 @dwertheimer
+
+- Add color picker to choose colors and write to frontmatter
 
 ## [1.7.2] 2023-08-24 @dwertheimer
 

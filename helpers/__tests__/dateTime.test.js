@@ -1,7 +1,5 @@
 /* globals describe, expect, jest, test, beforeEach, afterEach, beforeAll */
 
-// Last updated: 6.9.2023 by @jgclark
-
 import colors from 'chalk'
 import { CustomConsole } from '@jest/console' // see note below
 import * as dt from '../dateTime'
@@ -62,6 +60,63 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should be false if nothing is there', () => {
       const result = dt.isScheduled('foo bar baz')
       expect(result).toEqual(false)
+    })
+  })
+
+  /*
+   * findScheduledDates()
+   */
+  describe('findScheduledDates()' /* function */, () => {
+    test('should return nothing on empty string', () => {
+      const result = dt.findScheduledDates('')
+      expect(result).toEqual([])
+    })
+    test('should find single >ISO date', () => {
+      const result = dt.findScheduledDates('foo >2020-01-01 sinething')
+      expect(result).toEqual(['2020-01-01'])
+    })
+    test('should find single >today', () => {
+      const result = dt.findScheduledDates('foo >today sinething')
+      expect(result).toEqual(['today'])
+    })
+    test('should find single >week date', () => {
+      const result = dt.findScheduledDates('foo >2025-W01 sinething')
+      expect(result).toEqual(['2025-W01'])
+    })
+    test('should not find single ISO date without >', () => {
+      const result = dt.findScheduledDates('foo 2020-01-01 sinething')
+      expect(result).toEqual([])
+    })
+    test('should find multiple >ISO dates', () => {
+      const result = dt.findScheduledDates('foo >2020-01-01 sinething >2025-01-04')
+      expect(result).toEqual(['2020-01-01', '2025-01-04'])
+    })
+    test('should find multiple types of >dates', () => {
+      const result = dt.findScheduledDates('foo >2020-01-01 sinething >2025-W52')
+      expect(result).toEqual(['2020-01-01', '2025-W52'])
+    })
+  })
+
+  /*
+    * findOverdueDatesInString()
+    */
+  describe('findOverdueDatesInString()' /* function */, () => {
+    test('should find no date in line with no overdue', () => {
+      const result = dt.findOverdueDatesInString('>2922-01-01')
+      expect(result.length).toEqual(0)
+    })
+    test('should find date in line with overdue', () => {
+      const result = dt.findOverdueDatesInString('>1999-01-01')
+      expect(result.length).toEqual(1)
+      expect(result).toEqual(['>1999-01-01'])
+    })
+    test('should find 2 overdue dates', () => {
+      const result = dt.findOverdueDatesInString('>1999-01-01 >1998-01-01')
+      expect(result).toEqual(['>1998-01-01', '>1999-01-01'])
+    })
+    test('should find no overdue dates if there are multiple and any are not overdue', () => {
+      const result = dt.findOverdueDatesInString('>1999-01-01 >2922-01-01')
+      expect(result.length).toEqual(0)
     })
   })
 
@@ -134,10 +189,66 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
+ * isDailyDateStr()
+ */
+  describe('isDailyDateStr()', () => {
+    test('false for empty string', () => {
+      const result = dt.isDailyDateStr('')
+      expect(result).toEqual(false)
+    })
+    test('true for a DDDDMMYY date', () => {
+      const result = dt.isDailyDateStr('20220505')
+      expect(result).toEqual(true)
+    })
+    test('true for a private filename', () => {
+      const result = dt.isDailyDateStr('20220505.txt')
+      expect(result).toEqual(true)
+    })
+    test('true for a teamspace filename', () => {
+      const result = dt.isDailyDateStr('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250429.md')
+      expect(result).toEqual(true)
+    })
+    test('true for an ISO date', () => {
+      const result = dt.isDailyDateStr('string with 2022-06-06 in it')
+      expect(result).toEqual(true)
+    })
+    test('should fail on a non-daily filename', () => {
+      const result = dt.isDailyDateStr('xyz2022-W35.md')
+      expect(result).toEqual(false)
+    })
+  })
+
+  /*
+ * isYearlyDateStr()
+ */
+  describe('isYearlyDateStr()', () => {
+    test('should find a bare Year', () => {
+      const result = dt.isYearlyDateStr('2022')
+      expect(result).toEqual(true)
+    })
+    test('should fail on a Quarter date', () => {
+      const result = dt.isYearlyDateStr('2024-Q5')
+      expect(result).toEqual(false)
+    })
+    test('should fail on a filename date', () => {
+      const result = dt.isYearlyDateStr('20241222')
+      expect(result).toEqual(false)
+    })
+    test('should fail on an ISO date', () => {
+      const result = dt.isYearlyDateStr('2024-12-22')
+      expect(result).toEqual(false)
+    })
+  })
+
+  /*
    * replaceArrowDatesInString()
    */
-  describe('replaceArrowDatesInString()' /* function */, () => {
-    test('should replace today with todays date', () => {
+  describe('replaceArrowDatesInString()', () => {
+    test('should not change anything if no arrow dates and empty replace string', () => {
+      const result = dt.replaceArrowDatesInString('test today with no dates!', '')
+      expect(result).toEqual(`test today with no dates!`)
+    })
+    test('should just remove >today', () => {
       const result = dt.replaceArrowDatesInString('test today >today', '')
       expect(result).toEqual(`test today`)
     })
@@ -146,11 +257,15 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(`foo bar ${dt.getTodaysDateAsArrowDate()}`)
     })
     test('should replace multiples with todays date', () => {
-      const result = dt.replaceArrowDatesInString('>2021-02-02 foo >today bar >2022-05-05')
+      const result = dt.replaceArrowDatesInString('>2021-02-02 foo >today bar >2022')
       expect(result).toEqual(`foo bar ${dt.getTodaysDateAsArrowDate()}`)
     })
     test('should replace multiples with my string', () => {
       const result = dt.replaceArrowDatesInString('>2021-02-02 foo >today bar >2022-05-05', 'baz')
+      expect(result).toEqual(`foo bar baz`)
+    })
+    test('should replace multiple scheduled week/month dates with my string', () => {
+      const result = dt.replaceArrowDatesInString('>2021-02 foo >today bar >2022-W05 >2022-Q3', 'baz')
       expect(result).toEqual(`foo bar baz`)
     })
   })
@@ -344,12 +459,35 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
-  describe('unhyphenatedDate', () => {
+  describe('YYYYMMDDDateStringFromDate', () => {
     test('for 20210424', () => {
-      expect(dt.unhyphenatedDate(new Date(2021, 3, 24, 0, 0, 0))).toEqual('20210424')
+      expect(dt.YYYYMMDDDateStringFromDate(new Date(2021, 3, 24, 0, 0, 0))).toEqual('20210424')
     })
     test('for 20211231', () => {
-      expect(dt.unhyphenatedDate(new Date(2021, 11, 31, 0, 0, 0))).toEqual('20211231')
+      expect(dt.YYYYMMDDDateStringFromDate(new Date(2021, 11, 31, 0, 0, 0))).toEqual('20211231')
+    })
+  })
+
+  describe('convertISODateFilenameToNPDayFilename', () => {
+    test('should return YYYYMMDD for a valid ISO date string', () => {
+      const result = dt.convertISODateFilenameToNPDayFilename('2025-04-22')
+      expect(result).toEqual('20250422')
+    })
+    test('should return teamspace YYYYMMDD for a valid ISO date string', () => {
+      const result = dt.convertISODateFilenameToNPDayFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-04-22.md')
+      expect(result).toEqual('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
+    })
+    test('should return YYYYMMDD for a valid teamspace date string', () => {
+      const result = dt.convertISODateFilenameToNPDayFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2020-04-22.txt')
+      expect(result).toEqual('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20200422.txt')
+    })
+    test('should return YYYYMMDD from an existing YYYYMMDD date string', () => {
+      const result = dt.convertISODateFilenameToNPDayFilename('20250422')
+      expect(result).toEqual('20250422')
+    })
+    test('should return the original string if it is not a valid ISO date string', () => {
+      const result = dt.convertISODateFilenameToNPDayFilename('lorem ipsum 2025 and more')
+      expect(result).toEqual('lorem ipsum 2025 and more')
     })
   })
 
@@ -576,6 +714,23 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(dt.calcOffsetDateStr('2022', '-2y')).toEqual('2020')
       })
     })
+    describe('adapting output to week timeframe', () => {
+      beforeAll(() => {
+        // DataStore.settings['_logLevel'] = "DEBUG"
+      })
+      test('2024-11-02 +1w -> 2024-W45', () => {
+        expect(dt.calcOffsetDateStr('2024-11-02', '+1w', 'week')).toEqual('2024-W45')
+      })
+      test('2024-11-02 1w -> 2024-W45', () => {
+        expect(dt.calcOffsetDateStr('2024-11-02', '1w', 'week')).toEqual('2024-W45')
+      })
+      test('2024-W44 +1w -> 2024-W45', () => {
+        expect(dt.calcOffsetDateStr('2024-W44', '+1w', 'week')).toEqual('2024-W45')
+      })
+      test('2024-W44 1w -> 2024-W45', () => {
+        expect(dt.calcOffsetDateStr('2024-W44', '1w', 'week')).toEqual('2024-W45')
+      })
+    })
     describe('adapting output to offset durations', () => {
       beforeAll(() => {
         // DataStore.settings['_logLevel'] = "DEBUG"
@@ -686,8 +841,6 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   describe('filenameIsInFuture()', () => {
-    // const today = getTodaysDateUnhyphenated()
-
     // Daily notes
     test('should return false for a daily note filename in the past', () => {
       expect(dt.filenameIsInFuture('/path/to/note/20200101.md')).toEqual(false)
@@ -935,6 +1088,14 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should return invalid date for yearly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-.md')
       expect(result).toEqual('(invalid date)')
+    })
+    test('should return valid date for teamspace daily calendar filename', () => {
+      const result = dt.getDateStringFromCalendarFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
+      expect(result).toEqual('20250422')
+    })
+    test('should return valid date for teamspace weekly calendar filename', () => {
+      const result = dt.getDateStringFromCalendarFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-W01.txt')
+      expect(result).toEqual('2025-W01')
     })
   })
 

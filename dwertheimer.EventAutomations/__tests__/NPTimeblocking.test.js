@@ -4,12 +4,12 @@
 
 // Note: expect(spy).toHaveBeenNthCalledWith(2, expect.stringMatching(/ERROR/))
 
+import moment from 'moment/min/moment-with-locales'
 import * as mainFile from '../src/NPTimeblocking'
 import * as timeBlockingShared from '../src/timeblocking-shared'
 import * as configFile from '../src/config'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, mockWasCalledWithString } from '@mocks/index'
-import { unhyphenatedDate } from '@helpers/dateTime'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -31,7 +31,8 @@ beforeAll(() => {
 
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]
 const note = new Note({ paragraphs })
-note.filename = `${unhyphenatedDate(new Date())}.md`
+const ISOToday = moment().format('YYYY-MM-DD').replace(/-/g, '')
+note.filename = `${ISOToday}.md`
 Editor.note = note
 Editor.filename = note.filename
 
@@ -66,7 +67,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       test.skip('should complain about improper config', () => {
         //skipping for console noise
         const oldSettings = { ...DataStore.settings }
-        DataStore.settings = { improper: 'key', __logLevel: 'DEBUG' }
+        DataStore.settings = { improper: 'key', _logLevel: 'DEBUG' }
         const spy = jest.spyOn(console, 'log')
         timeBlockingShared.getConfig()
         expect(mockWasCalledWithString(spy, /Running with default settings/)).toBe(true)
@@ -75,7 +76,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       })
       test('should return a proper config', () => {
         const oldSettings = DataStore.settings
-        DataStore.settings = configFile.getTimeBlockingDefaults()
+        DataStore.settings = { ...oldSettings, ...configFile.getTimeBlockingDefaults() }
         const c = timeBlockingShared.getConfig()
         expect(c).toEqual(DataStore.settings)
         DataStore.settings = oldSettings
@@ -97,12 +98,14 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         expect(result).toEqual(false)
       })
       test('should return false if Editor is open to another day', () => {
-        Editor.filename = `${unhyphenatedDate(new Date('2020-01-01'))}.md`
+        const ISOTomorrow = moment().add(1, 'day').format('YYYY-MM-DD').replace(/-/g, '')
+        Editor.filename = `${ISOTomorrow}.md`
         const result = mainFile.editorIsOpenToToday()
         expect(result).toEqual(false)
       })
       test('should return true if Editor is open to is today', () => {
-        Editor.filename = `${unhyphenatedDate(new Date())}.md`
+        const ISOToday = moment().format('YYYY-MM-DD').replace(/-/g, '')
+        Editor.filename = `${ISOToday}.md`
         const result = mainFile.editorIsOpenToToday()
         expect(result).toEqual(true)
       })

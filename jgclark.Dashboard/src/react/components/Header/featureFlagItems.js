@@ -1,21 +1,32 @@
 // @flow
-// Last updated 2024-07-10 for v2.0.1 by @jgclark
+// Last updated 2025-05-15 for v2.3.0 by @jgclark
 
-import type { TSettingItem, TDashboardSettings } from "../../../types.js"
-
+import type { TSettingItem, TDashboardSettings } from '../../../types.js'
 
 const featureFlagSettingDefs = [
-    { key: 'FFlag_ForceInitialLoadForBrowserDebugging', label: 'Force Full Initial Load', description: 'Rather than incremental section loading, force full initial load. Mostly useful for testing full data in a browser.' },
-    // { key: 'FFlag_LimitOverdues', label: 'Limit Overdues to Last 2w', description: 'Pull overdues from last 2 weeks only. Requires a refresh after setting.' },
-    { key: 'FFlag_HardRefreshButton', label: 'Show Hard Refresh Button', description: 'Show button that does a full window reload with changed React components and data' },
+  {
+    key: 'FFlag_ForceInitialLoadForBrowserDebugging',
+    label: 'Force Full Initial Load',
+    description: 'Rather than incremental section loading, force full initial load. Mostly useful for testing full data in a browser.',
+  },
+  { key: 'FFlag_HardRefreshButton', label: 'Show Hard Refresh Button', description: 'Show button that does a full window reload with changed React components and data' },
+  { key: 'FFlag_DebugPanel', label: 'Show Debug Panel', description: 'Show debug pane with test runner and console log viewer at the bottom of the page' },
+  { key: 'FFlag_ShowTestingPanel', label: 'Show Testing Pane', description: 'Show testing panel with end-to-end testing buttons (requires Debug Panel)' },
+  { key: 'FFlag_ShowSearchPanel', label: 'Show Search Panel', description: 'Show more advanced search panel with search bar and controls' },
+  // Note: DBW requests this is kept even when v2.3.0 is released
+  { key: 'FFlag_UseTagCache', label: 'Use Tag Cache', description: 'Use Tag Cache to speed up tag/mention searches' },
+  { key: 'FFlag_UseTagCacheAPIComparison', label: 'Use Tag Cache API Comparison', description: 'When using Tag Cache, compare the results with the API. (Slows it down.)' },
+  // { key: 'FFlag_IncludeTeamspaceNotes', label: 'Include Teamspace Notes', description: 'Include Teamspace notes in the Dashboard' },
+  // { key: 'FFlag_UseNoteTags', label: 'Use Note Tags', description: 'Use note tags to include whole notes in respective Tag sections' },
+  { key: 'FFlag_ShowSectionTimings', label: 'Show Section Timings', description: 'Show timings for how long it took to generate sections' },
 ]
 
 export const createFeatureFlagItems = (dashboardSettings: TDashboardSettings): Array<TSettingItem> => {
-    return featureFlagSettingDefs.map(setting => ({
-        label: setting.label,
-        key: setting.key,
-        type: 'switch',
-        checked: (typeof dashboardSettings !== undefined && dashboardSettings[setting.key]) ?? false,
-        description: setting.description,
-    }))
+  return featureFlagSettingDefs.map((setting) => ({
+    label: setting.label,
+    key: setting.key,
+    type: 'switch',
+    checked: (typeof dashboardSettings !== undefined && dashboardSettings[setting.key]) ?? false,
+    description: setting.description,
+  }))
 }

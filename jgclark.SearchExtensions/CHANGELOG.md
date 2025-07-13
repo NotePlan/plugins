@@ -2,6 +2,57 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [2.0.0] - 2025-03-21
+### New
+- Adds a number of **replace** commands, that first search and then offer to replace with some new text. It always shows the number of occurrences found, and checks that you wish to proceed. **Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation**. You would have to use the Versions menu item in each note to roll it back.
+### Changed
+- tidy up some output
+- if an existing saved search is repeated and produces no results, the existing note is now updated
+- improved output when lines are trimmed
+- if called from a callback, and there are no results found, the dialog box with a message to the user about this is suppressed.
+- some optimisations
+### Fixed
+- allow hashtags and mentions to work in 'full-word' matching mode
+- fix some 'refresh' anomalies
+<!-- - ### Dev notes
+- reduce erroneous logging in eDSP()
+- refactor the calling functions and how they pass requests to saveSearch(). BREAKING CHANGE: this changes some of the arguments that can be passed in x-callbacks
+- refactor searchPeriod() into saveSearch() to ease future maintenance -->
+
+<!-- ## [1.5.0.b2] - 2025-03-02 (unreleased)
+Allow hashtags and mentions to work in 'full-word' matching
+Hook up other /replace commands.
+Under-the-hood changes, to support being called by other plugins:
+- write externalSearch()
+- move some functions to helpers/dataManipulation.js
+- refactor names of functions and types
+-->
+
+<!-- ## [1.5.0.b1] - 2025-01-27 (unreleased)
+### New
+- Adds a number of **replace** commands, that first search and then offer to replace with some new text. It always shows the number of occurrences found, and checks that you wish to proceed. **Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation**. You would have to use the Versions menu item in each note to roll it back.
+-->
+
+## [1.4.0] - 2025-01-18
+### New
+- Adds ability to search matching the case of words ("**case sensitively**"). This is different to NotePlan which only allows case-insensitive searching. There is a new setting to turn this on or off. There is a new control for this on the flexiSearch dialog.
+- By default search terms in NotePlan matches on parts of longer words. There is now a setting to restrict searches to **matching full words only**. There is a new control for this on the flexiSearch dialog.
+### Changed
+- some flexi search dialog tweaks
+### Fixed
+- Refresh button not working in QuickSearch results note
+### Dev Note
+- includes most of the work on new Replace commands as well, but wanted to get some fixes and tweaks out first
+
+## [1.3.1] - 2023-12-30
+### Changed
+- Updated x-callback handling as a result of changes in NotePlan 3.9.11 (build 1142)
+### Fixed
+- Fixed display of items with a match on just part of a word in Simplified mode
+- Fixed display of open checklist items in Simplified mode
+- Fixed display of items that are entirely a URL
+- Searches using "open checklist" type in flexiSearch (thanks to report by @clayrussell )
+
 ## [1.3.0] - 2023-12-26
 - Adds ability to **automatically refresh** a saved search when opening its note. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'refreshSavedSearch'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the frontmatter.
 - Adds **wildcard operators `*` and `?`** in search terms. These match any number of characters (including none) and just 1 character respectively within a word. For example, `pos*e` matches "possible", "posie" and "pose"; `poli?e` matches "polite" and "police".

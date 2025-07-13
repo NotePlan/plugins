@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2024-10-07 for v1.0.0.b3, @jgclark
+// Last updated 2025-04-28 for v1.2.3, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -17,11 +17,11 @@ import {
   getReviewSettings,
   processMostRecentProgressParagraph,
 } from './reviewHelpers'
-import { checkString } from '@helpers/checkType'
+import { checkBoolean, checkNumber, checkString } from '@helpers/checkType'
 import {
   daysBetween,
   getDateObjFromDateString,
-  includesScheduledFutureDate,
+  includesScheduledFurtherFutureDate,
   todaysDateISOString,
   toISODateString,
 } from '@helpers/dateTime'
@@ -41,7 +41,7 @@ import {
   getInputTrimmed,
   inputIntegerBounded,
 } from '@helpers/userInput'
-import { isDone, isOpen } from '@helpers/utils'
+import { isClosedTask, isClosed, isOpen, isOpenTask } from '@helpers/utils'
 
 //-----------------------------------------------------------------------------
 
@@ -54,9 +54,8 @@ export type Progress = {
 
 /**
  * Define 'Project' class to use in GTD.
- * Holds title, last reviewed date, due date, review interval, completion date,
- * number of closed, open & waiting for tasks.
- *
+ * Holds title, last reviewed date, due date, review interval, completion date, progress information that is read from the note,
+ * and other derived data.
  * @example To create a project instance for a note call 'const x = new Project(note, ...)'
  * @author @jgclark
  */
@@ -80,20 +79,21 @@ export class Project {
   completedDuration: ?string // string description of time to completion, or how long ago completed
   cancelledDate: ?Date
   cancelledDuration: ?string // string description of time to cancellation, or how long ago cancelled
-  openTasks: number
-  completedTasks: number
-  waitingTasks: number
-  futureTasks: number
+  numOpenItems: number
+  numCompletedItems: number
+  numTotalItems: number
+  numWaitingItems: number
+  numFutureItems: number
   isCompleted: boolean = false
   isCancelled: boolean = false
   isPaused: boolean = false
   percentComplete: number = NaN
   lastProgressComment: string = '' // e.g. "Progress: 60@20220809: comment
   mostRecentProgressLineIndex: number = NaN
-  nextActionRawContent: string = ''
+  nextActionsRawContent: Array<string> = []
   ID: string // required when making HTML views
 
-  constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTag: string = '') {
+  constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTags: Array<string> = []) {
     try {
       const startTime = new Date()
       if (note == null || note.title == null) {
@@ -177,25 +177,27 @@ export class Project {
       // read in nextReview date (if present)
       tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
       if (tempStr !== '') {
-        // v2:
         this.nextReviewDateStr = tempStr.slice(12, 22)
         this.nextReviewDate = moment(this.nextReviewDateStr, "YYYY-MM-DD").toDate()
-        // v1:
-        // this.nextReviewDate = getDateObjFromDateString(tempStr)
-        // if (this.nextReviewDate) {
-        //   this.nextReviewDateStr = toISODateString(this.nextReviewDate)
-        //   logDebug('Project', `- found '@nextReview(${this.nextReviewDateStr})' = ${String(this.nextReviewDate)}`)
-        // } else {
-        //   logWarn('Project', `- couldn't get valid date from  '@nextReview(${tempStr})'`)
-        // }
       }
 
       // count tasks (includes both tasks and checklists)
-      // Note: excludes future tasks
-      this.openTasks = paras.filter(isOpen).length
-      this.completedTasks = paras.filter(isDone).length
-      this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length
-      this.futureTasks = paras.filter(isOpen).filter((p) => includesScheduledFutureDate(p.content)).length
+      const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
+      const numberDaysForFutureToIgnore = checkNumber(DataStore.preference('numberDaysForFutureToIgnore')) || 0
+      this.numOpenItems = ignoreChecklistsInProgress
+        ? paras.filter(isOpenTask).length
+        : paras.filter(isOpen).length
+      this.numCompletedItems = (ignoreChecklistsInProgress)
+        ? paras.filter(isClosedTask).length
+        : paras.filter(isClosed).length
+      this.numWaitingItems = (ignoreChecklistsInProgress
+        ? paras.filter(isOpenTask)
+        : paras.filter(isOpen)).filter((p) => p.content.match('#waiting')).length
+      // count future tasks. Note: if 'numberDaysForFutureToIgnore' is set to 0, then this will count all future tasks.
+      this.numFutureItems = (ignoreChecklistsInProgress
+        ? paras.filter(isOpenTask)
+        : paras.filter(isOpen))
+        .filter((p) => includesScheduledFurtherFutureDate(p.content, numberDaysForFutureToIgnore)).length
 
       // make project completed if @completed(date) set
       if (this.completedDate != null) {
@@ -214,7 +216,8 @@ export class Project {
       }
 
       // calculate the durations from these dates
-      this.calcDurations()
+      this.calculateDueDays()
+      this.calculateCompletedOrCancelledDurations()
       // if not finished, calculate next review dates
       if (!this.isCancelled && !this.isCompleted) {
         this.calcNextReviewDate()
@@ -224,27 +227,16 @@ export class Project {
       this.processProgressLines()
 
       // If percentComplete not set via progress line, then calculate
-      if (this.lastProgressComment === '') {
-        const totalTasks = this.completedTasks + this.openTasks - this.futureTasks
-        if (totalTasks > 0) {
-          // use 'floor' not 'round' to ensure we don't get to 100% unless really everything is done
-          this.percentComplete = Math.floor((this.completedTasks / totalTasks) * 100)
-        } else {
-          this.percentComplete = NaN
-        }
+      if (this.lastProgressComment === '' || isNaN(this.percentComplete)) {
+        this.calculatePercentComplete(numberDaysForFutureToIgnore)
       }
 
-      // If we want to track next actions, find the first one (if any)
-      if (nextActionTag !== '') {
-        const nextActionParas = paras.filter(isOpen).filter((p) => p.content.match(nextActionTag))
-
-        if (nextActionParas.length > 0) {
-          this.nextActionRawContent = simplifyRawContent(nextActionParas[0].rawContent)
-          // logDebug('Project', `  - found nextActionRawContent = ${this.nextActionRawContent}`)
-        }
+      // If we want to track next actions, find the first one of each tag (if any)
+      if (nextActionTags.length > 0) {
+        this.generateNextActionComments(nextActionTags, paras)
       }
 
-      if (this.title.includes('(TEST)')) {
+      if (this.title.includes('TEST')) {
         logDebug('Project', `Constructed ${this.projectTag} ${this.filename}:`)
         logDebug('Project', `  - folder = ${this.folder}`)
         logDebug('Project', `  - metadataLine = ${metadataLine}`)
@@ -255,11 +247,11 @@ export class Project {
         // logDebug('Project', `  - altMentions: ${String(altMentions)}`)
         logDebug('Project', `  - hashtags: ${String(hashtags)}`)
         // logDebug('Project', `  - altHashtags: ${String(altHashtags)}`)
-        logDebug('Project', `  - open: ${String(this.openTasks)}`)
+        logDebug('Project', `  - ${String(this.numTotalItems)} items: open:${String(this.numOpenItems)} completed:${String(this.numCompletedItems)} waiting:${String(this.numWaitingItems)} future:${String(this.numFutureItems)}`)
+        logDebug('Project', `  - completed: ${String(this.numCompletedItems)}`)
         if (this.mostRecentProgressLineIndex >= 0) logDebug('Project', `  - progress: #${String(this.mostRecentProgressLineIndex)} = ${this.lastProgressComment}`)
-        logDebug('Project', `  - completed: ${String(this.completedTasks)}`)
         logDebug('Project', `  - % complete = ${String(this.percentComplete)}`)
-        logDebug('Project', `  - nextAction = <${this.nextActionRawContent}>`)
+        logDebug('Project', `  - nextAction = <${String(this.nextActionsRawContent)}>`)
       } else {
         logTimer('Project', startTime, `Constructed ${this.projectTag} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
       }
@@ -280,28 +272,45 @@ export class Project {
   }
 
   /**
+  * Calculate the percentage complete for this project based on open/completed items
+  * @param {number} numberDaysForFutureToIgnore - number of days in future to ignore tasks for
+  */
+  calculatePercentComplete(numberDaysForFutureToIgnore: number) {
+    this.numTotalItems = (numberDaysForFutureToIgnore > 0)
+      ? this.numCompletedItems + this.numOpenItems - this.numFutureItems
+      : this.numCompletedItems + this.numOpenItems
+    if (this.numTotalItems > 0) {
+      // use 'floor' not 'round' to ensure we don't get to 100% unless really everything is done
+      this.percentComplete = Math.floor((this.numCompletedItems / this.numTotalItems) * 100)
+    } else {
+      this.percentComplete = NaN
+    }
+  }
+
+  calculateDueDays(): void {
+    const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+    this.dueDays =
+      this.dueDate != null
+        ? daysBetween(now, this.dueDate)
+        : NaN
+  }
+
+  /**
    * From the project metadata read in, calculate due/finished durations
    */
-  calcDurations(): void {
+  calculateCompletedOrCancelledDurations(): void {
     try {
-      const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-      // Calculate # days until due
-      this.dueDays =
-        this.dueDate != null
-          ? daysBetween(now, this.dueDate)
-          : NaN
-
       // Calculate durations or time since cancel/complete
-      // logDebug('calcDurations', String(this.startDate ?? 'no startDate'))
+      // logDebug('calculateCompletedOrCancelledDurations', String(this.startDate ?? 'no startDate'))
       if (this.startDate) {
         const momTSD = moment(this.startDate)
         if (this.completedDate != null) {
           this.completedDuration = `after ${momTSD.to(moment(this.completedDate), true)}`
-          // logDebug('calcDurations', `-> completedDuration = ${this.completedDuration}`)
+          // logDebug('calculateCompletedOrCancelledDurations', `-> completedDuration = ${this.completedDuration}`)
         }
         else if (this.cancelledDate != null) {
           this.cancelledDuration = `after ${momTSD.to(moment(this.cancelledDate), true)}`
-          // logDebug('calcDurations', `-> cancelledDuration = ${this.cancelledDuration}`)
+          // logDebug('calculateCompletedOrCancelledDurations', `-> cancelledDuration = ${this.cancelledDuration}`)
         }
       }
       else {
@@ -310,22 +319,22 @@ export class Project {
           if (this.completedDuration.includes('hours')) {
             this.completedDuration = 'today' // edge case
           }
-          // logDebug('calcDurations', `-> completedDuration = ${this.completedDuration}`)
+          // logDebug('calculateCompletedOrCancelledDurations', `-> completedDuration = ${this.completedDuration}`)
         }
         else if (this.cancelledDate != null) {
           this.cancelledDuration = moment(this.cancelledDate).fromNow() // ...ago
           if (this.cancelledDuration.includes('hours')) {
             this.cancelledDuration = 'today' // edge case
           }
-          // logDebug('calcDurations', `-> completedDuration = ${this.cancelledDuration}`)
+          // logDebug('calculateCompletedOrCancelledDurations', `-> completedDuration = ${this.cancelledDuration}`)
         }
         else {
           // Nothing to do
-          // logDebug('calcDurations', `No completed or cancelled dates.`)
+          // logDebug('calculateCompletedOrCancelledDurations', `No completed or cancelled dates.`)
         }
       }
     } catch (error) {
-      logError('calcDurations', error.message)
+      logError('calculateCompletedOrCancelledDurations', error.message)
     }
   }
 
@@ -374,6 +383,22 @@ export class Project {
     }
   }
 
+  generateNextActionComments(nextActionTags: Array<string>, paras: Array<Paragraph>): void {
+    for (const nextActionTag of nextActionTags) {
+      const nextActionParas = paras.filter(isOpen).filter((p) => p.content.match(nextActionTag))
+
+      if (nextActionParas.length > 0) {
+        const thisNextAction = nextActionParas[0].rawContent
+        this.nextActionsRawContent.push(simplifyRawContent(thisNextAction))
+        logDebug('Project', `  - found nextActionRawContent = ${thisNextAction}`)
+      }
+    }
+    // If we have more than one next action, then its rare but possible to get valid duplicates, so dedupe them to make it look more sensible
+    if (this.nextActionsRawContent.length > 1) {
+      this.nextActionsRawContent = this.nextActionsRawContent.filter((na, index, self) => self.indexOf(na) === index)
+    }
+  }
+
   /**
    * Prompt user for the details to make a progress line:
    * - new % complete
@@ -419,17 +444,23 @@ export class Project {
 
       // And write it to the Editor (if the note is open in it) ...
       if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
-        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to Editor at ${String(insertionIndex)}`)
+        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to Editor at line ${String(insertionIndex)}`)
         Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
+        logDebug('Project::addProgressLine', `- finished Editor.insertParagraph`)
         // Also updateCache to make changes more quickly available elsewhere
-        await DataStore.updateCache(Editor, true)
+        // await DataStore.updateCache(Editor.note, true)
+        // TEST:
+        await Editor.save()
+        logDebug('Project::addProgressLine', `- after Editor.save`)
       }
       // ... or the project's note
       else {
-        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to project note '${this.note.filename}' at ${String(insertionIndex)}`)
+        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to project note '${this.note.filename}' at line ${String(insertionIndex)}`)
         this.note.insertParagraph(newProgressLine, insertionIndex, 'text')
+        logDebug('Project::addProgressLine', `- finished this.note.insertParagraph`)
         // Also updateCache
         await DataStore.updateCache(this.note, true)
+        logDebug('Project::addProgressLine', `- after DataStore.updateCache`)
       }
     } catch (error) {
       logError(`Project::addProgressLine`, JSP(error))
@@ -475,7 +506,8 @@ export class Project {
       this.isCancelled = false
       this.isPaused = false
       this.completedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-      this.calcDurations()
+      this.calculateDueDays()
+      this.calculateCompletedOrCancelledDurations()
 
       // re-write the note's metadata line
       logDebug('completeProject', `Completing '${this.title}' ...`)
@@ -489,7 +521,7 @@ export class Project {
       metadataPara.content = newMetadataLine
       if (Editor && Editor.note && Editor.note === this.note) {
         Editor.updateParagraph(metadataPara)
-        const res = DataStore.updateCache(this.note)
+        const res = DataStore.updateCache(this.note, true)
       } else {
         this.note.updateParagraph(metadataPara)
         DataStore.updateCache(this.note, true)
@@ -519,7 +551,8 @@ export class Project {
       this.isCancelled = true
       this.isPaused = false
       this.cancelledDate = new moment().toDate()  // getJSDateStartOfToday() // use moment instead of `new Date` to ensure we get a date in the local timezone
-      this.calcDurations()
+      this.calculateDueDays()
+      this.calculateCompletedOrCancelledDurations()
 
       // re-write the note's metadata line
       logDebug('cancelProject', `Cancelling '${this.title}' ...`)
@@ -557,6 +590,7 @@ export class Project {
   async togglePauseProject(): Promise<string> {
     try {
       // Get progress field details (if wanted)
+      logDebug('togglePauseProject', `Starting for '${this.title}' ...`)
       await this.addProgressLine(this.isPaused ? 'Comment (if wanted) as you resume' : 'Comment (if wanted) as you pause')
 
       // update the metadata fields
@@ -574,7 +608,9 @@ export class Project {
       metadataPara.content = newMetadataLine
       if (Editor && Editor.note && Editor.note === this.note) {
         Editor.updateParagraph(metadataPara)
-        DataStore.updateCache(Editor.note, true)
+        // DataStore.updateCache(Editor.note, true)
+        // TEST:
+        await Editor.save()
       } else {
         this.note.updateParagraph(metadataPara)
         DataStore.updateCache(this.note, true)
@@ -665,7 +701,7 @@ export class Project {
  * @param {Project} thisProject
  * @returns {Project}
 */
-export function calcDurationsForProject(thisProjectIn: Project): $Shape<Project> {
+export function calcDurationsForProject(thisProjectIn: Project): Partial<Project> {
   try {
     const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
     const thisProject = { ...thisProjectIn }
@@ -676,16 +712,16 @@ export function calcDurationsForProject(thisProjectIn: Project): $Shape<Project>
         : NaN
 
     // Calculate durations or time since cancel/complete
-    logDebug('calcDurations', String(thisProject.startDate ?? 'no startDate'))
+    logDebug('calcDurationsForProject', String(thisProject.startDate ?? 'no startDate'))
     if (thisProject.startDate) {
       const momTSD = moment(thisProject.startDate)
       if (thisProject.completedDate != null) {
         thisProject.completedDuration = `after ${momTSD.to(moment(thisProject.completedDate), true)}`
-        logDebug('calcDurations', `-> completedDuration = ${thisProject.completedDuration}`)
+        logDebug('calcDurationsForProject', `-> completedDuration = ${thisProject.completedDuration}`)
       }
       else if (thisProject.cancelledDate != null) {
         thisProject.cancelledDuration = `after ${momTSD.to(moment(thisProject.cancelledDate), true)}`
-        logDebug('calcDurations', `-> cancelledDuration = ${thisProject.cancelledDuration}`)
+        logDebug('calcDurationsForProject', `-> cancelledDuration = ${thisProject.cancelledDuration}`)
       }
     }
     else {
@@ -694,29 +730,30 @@ export function calcDurationsForProject(thisProjectIn: Project): $Shape<Project>
         if (thisProject.completedDuration.includes('hours')) {
           thisProject.completedDuration = 'today' // edge case
         }
-        logDebug('calcDurations', `-> completedDuration = ${thisProject.completedDuration ?? '?'}`)
+        logDebug('calcDurationsForProject', `-> completedDuration = ${thisProject.completedDuration ?? '?'}`)
       }
       else if (thisProject.cancelledDate != null) {
         thisProject.cancelledDuration = moment(thisProject.cancelledDate).fromNow() // ...ago
         if (thisProject.cancelledDuration.includes('hours')) {
           thisProject.cancelledDuration = 'today' // edge case
         }
-        logDebug('calcDurations', `-> completedDuration = ${thisProject.cancelledDuration ?? '?'}`)
+        logDebug('calcDurationsForProject', `-> completedDuration = ${thisProject.cancelledDuration ?? '?'}`)
       }
       else {
         // Nothing to do
-        logDebug('calcDurations', `No completed or cancelled dates.`)
+        logDebug('calcDurationsForProject', `No completed or cancelled dates.`)
       }
+      // $FlowFixMe[incompatible-return] changed from $Shape<Project> to Partial<Project>, but I don't understand why this doesn't work now
       return thisProject
     }
   } catch (error) {
-    logError('calcDurations', error.message)
+    logError('calcDurationsForProject', error.message)
     // $FlowFixMe[incompatible-return] reason for suppression
     return null
   }
 }
 
-export function calcReviewFieldsForProject(thisProjectIn: Project): $Shape<Project> {
+export function calcReviewFieldsForProject(thisProjectIn: Project): Partial<Project> {
   try {
     // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
     const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
@@ -729,6 +766,7 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): $Shape<Proje
         thisProject.nextReviewDate = thisProject.startDate
         thisProject.nextReviewDays = daysBetween(now, momTSD.toDate())
         logDebug('calcNextReviewDate', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(thisProject.nextReviewDays)} interval`)
+        // $FlowFixMe[incompatible-return] changed from $Shape<Project> to Partial<Project>, but I don't understand why this doesn't work now
         return thisProject
       }
     }
@@ -755,6 +793,7 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): $Shape<Proje
       }
     }
     // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisProject.reviewedDate)} / nextReviewDate = ${String(thisProject.nextReviewDate)} / nextReviewDays = ${String(thisProject.nextReviewDays)}`)
+    // $FlowFixMe[incompatible-return] changed from $Shape<Project> to Partial<Project>, but I don't understand why this doesn't work now
     return thisProject
   } catch (error) {
     logError('calcNextReviewDate', error.message)
@@ -776,12 +815,18 @@ export function generateProjectOutputLine(
   config: any,
   style: string,
 ): string {
+  const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
   let output = ''
   let statsProgress = ''
+  let thisPercent = ''
   if (thisProject.percentComplete != null) {
-    const thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
-    const totalTasksStr = (thisProject.completedTasks + thisProject.openTasks).toLocaleString()
-    statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(thisProject.completedTasks + thisProject.openTasks !== 1) ? 'tasks' : 'task'})`
+    thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
+    const totalItemsStr = (isNaN(thisProject.numTotalItems)) ? '0' : thisProject.numTotalItems.toLocaleString()
+    if (ignoreChecklistsInProgress) {
+      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${(thisProject.numCompletedItems + thisProject.numOpenItems !== 1) ? 'tasks' : 'task'})`
+    } else {
+      statsProgress = `${thisPercent} done (of ${totalItemsStr} ${(thisProject.numCompletedItems + thisProject.numOpenItems !== 1) ? 'items' : 'item'})`
+    }
   } else {
     statsProgress = '(0 tasks)'
   }
@@ -811,19 +856,22 @@ export function generateProjectOutputLine(
     }
 
     // Column 2a: Project name / link / edit dialog trigger button
-    const editButton = `          <a class="dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+    const editButton = `          <a class="dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
     if (thisProject.isCompleted || thisProject.isCancelled || thisProject.isPaused) {
       output += `<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
     }
     else if (thisProject.percentComplete === 0 || isNaN(thisProject.percentComplete)) {
       output += `<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
-    } else {
+    }
+    else {
       output += `\n\t\t\t<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
     }
 
     if (!thisProject.isCompleted && !thisProject.isCancelled) {
       // tidy up nextActionContent to show only the main content and remove the nextAction tag
-      const nextActionContent = thisProject.nextActionRawContent ? thisProject.nextActionRawContent.slice(getLineMainContentPos(thisProject.nextActionRawContent)).replace(config.nextActionTag, '') : ''
+      const nextActionsContent: Array<string> = thisProject.nextActionsRawContent
+        ? thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
+        : []
 
       if (config.displayDates) {
       // Write column 2b/2c under title
@@ -837,13 +885,16 @@ export function generateProjectOutputLine(
         }
 
         // Column 2c: next action (if present)
-        if (config.displayNextActions && nextActionContent !== '') {
-          output += `\n\t\t\t<br /><i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+        if (config.displayNextActions && nextActionsContent.length > 0) {
+          for (const nextActionContent of nextActionsContent) {
+            output += `\n\t\t\t<br /><i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+          }
         }
         output += `</td>`
       } else {
         // write progress in next cell instead
-        output += `</td>\n\t\t\t<td>`
+        output += `</td>\n`
+        output += `\t\t\t<td>`
         if (config.displayProgress) {
           if (thisProject.lastProgressComment !== '') {
             output += `<i class="fa-solid fa-info-circle fa-sm pad-right"></i> ${thisProject.lastProgressComment}`
@@ -851,9 +902,10 @@ export function generateProjectOutputLine(
             output += `${statsProgress}`
           }
         }
-        if (config.displayNextActions && nextActionContent !== '') {
-          if (config.displayProgress) output += '<br />'
-          output += `<i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+        if (config.displayNextActions && nextActionsContent.length > 0) {
+          for (const nextActionContent of nextActionsContent) {
+            output += `\n\t\t\t<br /><i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+          }
         }
         output += `</td>`
       }
@@ -862,7 +914,7 @@ export function generateProjectOutputLine(
     // Columns 3/4: date information
     if (config.displayDates && !thisProject.isPaused) {
       if (thisProject.isCompleted) {
-    // "completed after X"
+        // "completed after X"
         const completionRef = (thisProject.completedDuration)
           ? thisProject.completedDuration
           : "completed"
@@ -894,7 +946,7 @@ export function generateProjectOutputLine(
   else if (style === 'Markdown' || style === 'list') {
     output = '- '
     output += `${decoratedProjectTitle(thisProject, style, config)}`
-    // logDebug('', `${decoratedProjectTitle(thisProject, style, config
+    // logDebug('Project::generateProjectOutputLine', `${decoratedProjectTitle(thisProject, style, config
     if (config.displayDates && !thisProject.isPaused) {
       if (thisProject.isCompleted) {
     // completed after X or cancelled X ago, depending
@@ -911,7 +963,7 @@ export function generateProjectOutputLine(
       }
     }
     if (config.displayProgress && !thisProject.isCompleted && !thisProject.isCancelled) {
-    // Show progress comment if available ...
+      // Show progress comment if available ...
       if (thisProject.lastProgressComment !== '' && !thisProject.isCompleted && !thisProject.isCancelled) {
         output += `\t${thisPercent} done: ${thisProject.lastProgressComment}`
       }
@@ -931,9 +983,11 @@ export function generateProjectOutputLine(
     }
     // Add nextAction output if wanted and it exists
     // logDebug('Project::generateProjectOutputLine', `nextActionRawContent: ${thisProject.nextActionRawContent}`)
-    if (config.displayNextActions && thisProject.nextActionRawContent !== '' && !thisProject.isCompleted && !thisProject.isCancelled) {
-      const nextActionContent = thisProject.nextActionRawContent.slice(getLineMainContentPos(thisProject.nextActionRawContent)).replace(config.nextActionTag, '')
-      output += `\n\t- Next action: ${nextActionContent}`
+    if (config.displayNextActions && thisProject.nextActionsRawContent.length > 0 && !thisProject.isCompleted && !thisProject.isCancelled) {
+      const nextActionsContent: Array<string> = thisProject.nextActionsRawContent.map((na) => na.slice(getLineMainContentPos(na)))
+      for (const nextActionContent of nextActionsContent) {
+        output += `\n\t- Next action: ${nextActionContent}`
+      }
     }
   } else {
     logWarn('Project::generateProjectOutputLine', `Unknown style '${style}'; nothing returned.`)
@@ -952,7 +1006,7 @@ export function generateProjectOutputLine(
  * @return {string} - title as wikilink
  */
 function decoratedProjectTitle(thisProject: Project, style: string, config: any): string {
-  const folderNamePart = config.includeFolderName ? `${thisProject.folder} / ` : ''
+  const folderNamePart = config.showFolderName ? `${thisProject.folder} / ` : ''
   const titlePart = thisProject.title ?? '(error, not available)'
   // const titlePartEncoded = encodeURIComponent(thisProject.title) ?? '(error, not available)'
   switch (style) {

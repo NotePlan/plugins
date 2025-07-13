@@ -1,14 +1,18 @@
 // @flow
+// -----------------------------------------------------------------
+// Helpers for working with paragraphs in a note, that require
+// access to NotePlan API calls.
+// -----------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import { TASK_TYPES } from './sorting'
+import { getRepeatSettings, RE_EXTENDED_REPEAT, type RepeatConfig } from '../jgclark.RepeatExtensions/src/repeatHelpers'
+import { generateRepeatForPara } from '../jgclark.RepeatExtensions/src/repeatPara'
 import { trimString } from '@helpers/dataManipulation'
 import {
   getNPWeekStr,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
   hyphenatedDate,
-  hyphenatedDateString,
   isScheduled,
   replaceArrowDatesInString,
   RE_SCHEDULED_ISO_DATE,
@@ -19,15 +23,14 @@ import {
   WEEK_NOTE_LINK,
 } from '@helpers/dateTime'
 import { displayTitle } from '@helpers/general'
-import { getNPWeekData, getMonthData, getYearData, getQuarterData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
+import { getFirstDateInPeriod, getNPWeekData, getMonthData, getQuarterData, getYearData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import { getNoteType } from '@helpers/note'
-import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
+import { filterOutParasInExcludeFolders, getNoteType } from '@helpers/note'
+import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
-import { getLineMainContentPos } from '@helpers/search'
+import { caseInsensitiveMatch, caseInsensitiveSubstringMatch, caseInsensitiveStartsWith, getLineMainContentPos } from '@helpers/search'
 import { stripTodaysDateRefsFromString } from '@helpers/stringTransforms'
 import { hasScheduledDate, isOpen, isOpenAndScheduled } from '@helpers/utils'
-// import { showMessageYesNoCancel } from '@helpers/userInput'
 
 const pluginJson = 'NPParagraph'
 
@@ -496,13 +499,59 @@ export async function blockContainsOnlySyncedCopies(note: CoreNoteFields, showEr
 }
 
 /**
+ * Find given heading in all notes of type 'noteTypes', unless its in 'foldersToExclude'. Returns array of paragraphs.
+ * @author @jgclark
+ * @param {string} heading
+ * @param {string?} matchMode - 'Exact', 'Contains' (default) or 'Starts with'
+ * @param {Array<string>?} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
+ * @param {boolean} includeCalendar? - whether to include Calendar notes (default: true)
+ * @returns {Array<TParagraph>}
+ */
+export async function findHeadingInNotes(
+  heading: string,
+  matchMode: string = 'contains',
+  excludedFolders: Array<string> = [],
+  includeCalendar: boolean = true
+): Promise<Array<TParagraph>> {
+  // For speed, let's first multi-core search the notes to find the notes that contain this string
+  const noteTypes = includeCalendar ? ['notes', 'calendar'] : ['notes']
+  const initialParasList = await DataStore.search(heading, noteTypes, [], excludedFolders) // returns all the potential matches, but some may not be headings
+  logDebug('findHeadingInNotes', `'Finding ${heading}' with mode '${matchMode}'`)
+  logDebug('findHeadingInNotes', `- initially found ${String(initialParasList.length)} heading paras`)
+  let filteredParas: Array<TParagraph> = []
+  switch (matchMode) {
+    case 'Exact': {
+      filteredParas = initialParasList
+        .filter((p) => p.type === 'title' && caseInsensitiveMatch(heading, p.content))
+      break
+    }
+    case 'Starts with': {
+      filteredParas = initialParasList
+        .filter((p) => p.type === 'title' && caseInsensitiveStartsWith(heading, p.content, false))
+      break
+    }
+    default: { // 'Contains'
+      filteredParas = initialParasList
+        .filter((p) => p.type === 'title' && caseInsensitiveSubstringMatch(heading, p.content))
+      break
+    }
+  }
+  logDebug(`removeSectionFromAllNotes`, `- list of ${String(filteredParas.length)} notes/section headings found:`)
+  for (const p of filteredParas) {
+    logDebug('', `- in '${displayTitle(p.note)}': '${String(p.content)}'`)
+  }
+  return filteredParas
+}
+
+/**
  * Remove all previously written blocks under a given heading in all notes (e.g. for deleting previous "TimeBlocks" or "SyncedCopies")
  * WARNING: This is DANGEROUS. Could delete a lot of content. You have been warned!
  * @author @dwertheimer
  * @param {Array<string>} noteTypes - the types of notes to look in -- e.g. ['calendar','notes']
- * @param {string} heading - the heading too look for in the notes (without the #)
+ * @param {string} heading - the heading to look for in the notes (without the #)
  * @param {boolean} keepHeading - whether to leave the heading in place afer all the content underneath is
  * @param {boolean} runSilently - whether to show CommandBar popups confirming how many notes will be affected - you should set it to 'yes' when running from a template
+ * @param {boolean?} syncedOnly?
  */
 export async function removeContentUnderHeadingInAllNotes(
   noteTypes: Array<string>,
@@ -685,50 +734,6 @@ export function noteHasContent(note: CoreNoteFields, content: string): boolean {
 }
 
 /**
- * Move the tasks to the specified note
- * @param {TParagraph} para - the paragraph to move
- * @param {TNote} destinationNote - the note to move to
- * @returns {boolean} whether it worked or not
- * @author @dwertheimer based on @jgclark code lifted from fileItems.js
- * Note: Originally, if you were using Editor.* commands, this would not delete the original paragraph (need to use Editor.note.* or note.*)
- * Hoping that adding DataStore.updateCache() will fix that
- * TODO: add user preference for where to move tasks in note - see @jgclark's code fileItems.js
- */
-export function moveParagraphToNote(para: TParagraph, destinationNote: TNote): boolean {
-  // for now, insert at the top of the note
-  if (!para || !para.note || !destinationNote) return false
-  const oldNote = para.note
-  insertParagraph(destinationNote, para.rawContent)
-  // dbw note: because I am nervous about people losing data, I am going to check that the paragraph has been inserted before deleting the original
-  if (noteHasContent(destinationNote, para.content)) {
-    para?.note?.removeParagraph(para) // this may not work if you are using Editor.* commands rather than Editor.note.* commands
-    // $FlowFixMe - not in the type defs yet
-    DataStore.updateCache(oldNote) // try to force Editor and Editor.note to be in synce after the move
-    return true
-  } else {
-    logDebug(
-      pluginJson,
-      `moveParagraphToNote Could not find ${para.content} in ${destinationNote.title || 'no title'} so could not move it to ${destinationNote.title || 'no title'}`,
-    )
-  }
-  return false
-}
-
-// returns a date object if it exists, and null if there is no forward date
-const hasTypedDate = (t: TParagraph) => (/>\d{4}-\d{2}-\d{2}/g.test(t.content) ? t.date : null)
-
-// DO NOT USE THIS FUNCTION - leaving it here for historical context, but functions below are more complete
-// Note: nmn.sweep limits how far back you look with: && hyphenatedDateString(p.date) >= afterHyphenatedDate,
-// For now, we are assuming that sweep was already done, and we're just looking at this one note
-export const isOverdue = (t: TParagraph): boolean => {
-  let theDate = null
-  if (t.type === 'scheduled') theDate = t.date
-  if (t.type === 'open') theDate = hasTypedDate(t)
-  return theDate == null ? false : hyphenatedDateString(theDate) < hyphenatedDateString(new Date())
-}
-// export const getOverdueTasks = (paras: Array<TParagraph>): Array<TParagraph> => paras.filter((p) => isOverdue(p))
-
-/**
  * Take in an array of paragraphs and return the subset that are open and overdue (scheduled or on dated notes in the past)
  * @param {Array<TParagraph>} paras - the paragraphs to check
  * @param {string} asOfDayString - the date to check against, in YYYY-MM-DD format
@@ -759,11 +764,6 @@ export function findOverdueWeeksInString(line: string): Array<string> {
   }
   return []
 }
-
-/*
- * @param paragraphs array
- * @return filtered list of overdue tasks
- */
 
 export type OverdueDetails = {
   isOverdue: boolean,
@@ -1090,7 +1090,8 @@ function endOfPeriod(periodType: string, paraDate: Date): Date | null {
 }
 
 /**
- *  Calculate the number of days until due for a given date (negative if overdue)
+ * Calculate the number of days until due for a given date (negative if overdue)
+ * TODO: really belongs in @helpers/dateTime.js
  * TODO: tests!
  * @author @dwertheimer
  * @param {string|Date} fromDate (in YYYY-MM-DD format if string)
@@ -1169,7 +1170,9 @@ export function createStaticParagraphsArray(arrayOfObjects: Array<any>, fields: 
 }
 
 /**
- * Check a paragraph object against a plain object of fields to see if they match
+ * Check a paragraph object against a plain object of fields to see if they match.
+ * Does an explicit match for specified fields but if the content is truncated with "..." it will match if the truncated version is the same
+ * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars)
  * @param {TParagraph} paragraph object to check
  * @param {any} fieldsObject object with some fields
  * @param {Array<string>} fields list of field names to check in fieldsObject
@@ -1178,29 +1181,43 @@ export function createStaticParagraphsArray(arrayOfObjects: Array<any>, fields: 
  */
 export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, fields: Array<string>): boolean {
   let match = true
-  const rawWasEdited = fields.indexOf('rawContent') > -1 && fieldsObject.originalRawContent && fieldsObject.rawContent !== fieldsObject.originalRawContent
+
+  // Check if rawContent is truncated with "..."
+  const rawWasEdited = fields.includes('rawContent') && fieldsObject.originalRawContent && fieldsObject.rawContent !== fieldsObject.originalRawContent
+  const isTruncated = fields.includes('rawContent') && typeof fieldsObject.rawContent === 'string' && fieldsObject.rawContent.endsWith('...')
+  const truncatedContent = isTruncated ? fieldsObject.rawContent.slice(0, -3) : fieldsObject.rawContent
+
   fields.forEach((field) => {
     if (field === 'rawContent' && rawWasEdited) {
-      // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
       if (paragraph[field] !== fieldsObject['originalRawContent']) {
-        // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
-        // logDebug(pluginJson, `${field} paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
+        match = false
+      }
+    } else if (field === 'rawContent' && isTruncated) {
+      // Use startsWith for truncated rawContent
+      if (!paragraph[field].startsWith(truncatedContent)) {
         match = false
       }
     } else {
-      // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
+      // $FlowIgnore[prop-missing]
       if (typeof paragraph[field] === 'undefined') {
-        throw `paragraphMatches: paragraph.${field} is undefined. you must pass in the correct fields to match. 'fields' is set to ${JSP(fields)} but paragraph=${JSP(
+        throw `paragraphMatches: paragraph.${field} is undefined. You must pass in the correct fields to match. 'fields' is set to ${JSP(fields)}, but paragraph=${JSP(
           paragraph,
         )}, which does not have all the fields`
       }
-      if (paragraph[field] !== fieldsObject[field]) {
-        // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
-        // logDebug(pluginJson, `${field} -- paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
+      // Check if the field value is truncated and use startsWith accordingly
+      if (typeof fieldsObject[field] === 'string' && fieldsObject[field].endsWith('...')) {
+        const fieldTruncatedContent = fieldsObject[field].slice(0, -3)
+        // $FlowIgnore
+        if (!paragraph[field].startsWith(fieldTruncatedContent)) {
+          match = false
+        }
+        // $FlowIgnore
+      } else if (paragraph[field] !== fieldsObject[field]) {
         match = false
       }
     }
   })
+
   return match
 }
 
@@ -1212,7 +1229,6 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex). default = ['filename', 'rawContent']
  * @param {boolean} ifMultipleReturnFirst? - (optional) if there are multiple matches, return the first one (default: false)
  * @returns {TParagraph | null } - the matching paragraph, or null if not found
- * @author @dwertheimer updated by @jgclark
  * @tests exist
  */
 export function findParagraph(
@@ -1265,6 +1281,7 @@ export function findParagraph(
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex) -- these two fields are required. default is ['filename', 'rawContent']
  * @returns {TParagraph|null} - the paragraph or null if not found
  * @author @dwertheimer
+ * TODO(@dwertheimer): is the fieldsToMatch default and passing down to findParagraph correct?
  */
 export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: Array<string> = ['filename', 'rawContent']): TParagraph | null {
   const { filename } = staticObject
@@ -1294,12 +1311,14 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
  * Highlight the given Paragraph details in the open editor.
  * The static object that's passed in must have at least the following TParagraph-type fields populated: filename and rawContent (or content, though this is naturally less exact).
  * If 'thenStopHighlight' is true, the cursor will be moved to the start of the paragraph after briefly flashing the whole line. This is to prevent starting to type and inadvertdently removing the whole line.
+ * If 'andFocusEditor' is true, the editor will be focused after highlighting.
  * @author @jgclark
  * @param {any} objectToTest
- * @param {boolean} thenStopHighlight?
+ * @param {boolean} thenStopHighlight? (default: false)
+ * @param {boolean} andFocusEditor? (default: true)
  * @results {boolean} success?
  */
-export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight: boolean = false): boolean {
+export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight: boolean = false, andFocusEditor: boolean = true): boolean {
   try {
     logDebug('highlightParagraphInEditor', `Looking for <${objectToTest.rawContent ?? objectToTest.content}>`)
 
@@ -1316,6 +1335,9 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
         logDebug('highlightParagraphInEditor', `Now moving cursor to highlight at charIndex ${String(paraRange.start)}`)
         Editor.highlightByIndex(paraRange.start, 0)
       }
+      if (andFocusEditor) {
+        Editor.focus()
+      }
       return true
     } else {
       logWarn('highlightParagraphInEditor', `Sorry, couldn't find paragraph with rawContent <${objectToTest.rawContent}> to highlight in open note`)
@@ -1329,6 +1351,8 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
 
 /**
  * Return a TParagraph object by an exact match to 'content' in file 'filenameIn'. If it fails to find a match, it returns false.
+ * If the content is truncated with "..." it will match if the truncated version is the same as the start of the content in a line in the note
+ * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars).
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Works on both Project and Calendar notes.
  * @author @jgclark
@@ -1338,7 +1362,7 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
  */
 export function findParaFromStringAndFilename(filenameIn: string, content: string): TParagraph | false {
   try {
-    // logDebug('NPP/findParaFromStringAndFilename', `starting with filename: ${filenameIn}, content: {${content}}`)
+    logDebug('NPP/findParaFromStringAndFilename', `starting with filename: ${filenameIn}, content: {${content}}`)
     let filename = filenameIn
     if (filenameIn === 'today') {
       filename = getTodaysDateUnhyphenated()
@@ -1346,18 +1370,25 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
       filename = getNPWeekStr(new Date())
     }
     // Long-winded way to get note title, as we don't have TNote, but do have note's filename
-    // $FlowIgnore[incompatible-type]
-    const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
+    // FIXME(Eduard): update to cope with Teamspace notes
+    // V1
+    const thisNote: TNote | null = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename) ?? null
+    // V2
+    // TODO:
+    // const thisNote: TNote | null = getNoteFromFilename(filename)
 
     if (thisNote) {
       if (thisNote.paragraphs.length > 0) {
-        let c = 0
+        const isTruncated = content.endsWith('...')
+        const truncatedContent = isTruncated ? content.slice(0, -3) : content // only slice if truncated
+
+        // let c = 0
         for (const para of thisNote.paragraphs) {
-          if (para.content === content) {
-            logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
+          if (isTruncated ? para.content.startsWith(truncatedContent) : para.content === content) {
+            // logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
             return para
           }
-          c++
+          // c++
         }
         logWarn('NPP/findParaFromStringAndFilename', `Couldn't find paragraph {${content}} in note '${filename}'`)
         return false
@@ -1378,14 +1409,14 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 /**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
  * Removes '>date' (including '>today') if present.
- * TODO: Cope with non-daily scheduled dates.
+ * If this para has a @repeat(date), and the Repeat Extensions plugin is installed, generate a new repeat line for the next date.
  * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {TParagraph} para
  * @param {boolean} useScheduledDateAsCompletionDate?
  * @returns {TParagraph|false} success? - returns the paragraph updated if successful (for use in updateCache) or false
  */
-export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): false | TParagraph {
+export async function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): Promise<false | TParagraph> {
   if (para) {
     // Default to using current date/time
     // TEST: this should return in user locale time format (up to a point)
@@ -1397,7 +1428,9 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
         const captureArr = para.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE) ?? []
         clo(captureArr)
         dateString = captureArr[1]
-        logDebug('markComplete', `will use scheduled date ${dateString} as completion date`)
+        // Use this function to cope with non-daily scheduled dates (e.g. 2024-W50). If '>today' is passed, then fall back to today's date.
+        dateString = getFirstDateInPeriod(dateString)
+        logDebug('markComplete', `will use scheduled date '${dateString}' as completion date`)
       } else {
         // Use date of the note if it has one. (What does para.note.date return for non-daily calendar notes?)
         if (para.note?.type === 'Calendar' && para.note.date) {
@@ -1416,21 +1449,50 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
     // Remove >today if present
     para.content = stripTodaysDateRefsFromString(para.content)
 
-    if (para.type === 'open') {
+    let result: TParagraph | false
+    if (para.type === 'open' || para.type === 'scheduled') {
       para.type = 'done'
       para.content += doneString
       para.note?.updateParagraph(para)
       logDebug('markComplete', `updated para "${para.content}"`)
-      return para
-    } else if (para.type === 'checklist') {
+      result = para
+    } else if (para.type === 'checklist' || para.type === 'checklistScheduled') {
       para.type = 'checklistDone'
       para.note?.updateParagraph(para)
       logDebug('markComplete', `updated para "${para.content}"`)
-      return para
+      result = para
     } else {
       logWarn('markComplete', `unexpected para type ${para.type}, so won't continue`)
-      return false
+      result = false
     }
+
+    // Call the Repeat Extensions plugin to fire the /rpt trigger if this has a @repeat(date) and the plugin is installed.
+    if (RE_EXTENDED_REPEAT.test(para.content)) {
+      let repeatConfig: RepeatConfig
+      const installedPlugins = DataStore.installedPlugins()
+      const repeatsIsInstalled = Boolean(Array.isArray(installedPlugins) ? installedPlugins.find((p) => p.id === 'jgclark.RepeatExtensions') : null)
+      if (repeatsIsInstalled) {
+        logWarn('markComplete', `Repeat Extensions plugin is not installed and configured, so will use safe defaults`)
+        repeatConfig = {
+          deleteCompletedRepeat: false,
+          dontLookForRepeatsInDoneOrArchive: true,
+          runTaskSorter: false,
+          _logLevel: 'INFO',
+        }
+      } else {
+        repeatConfig = await getRepeatSettings()
+      }
+      const repeatDate = getFirstDateInPeriod(para.content)
+      logDebug('markComplete', `will call Repeat Extensions plugin to fire /rpt trigger for date ${repeatDate}`)
+      // Call the Repeat Extensions plugin's generateRepeat function for just this para
+      clo(repeatConfig, 'repeatConfig')
+      // $FlowIgnore[incompatible-call]
+      const res = await generateRepeatForPara(para, para.note, false, repeatConfig)
+      if (!res) {
+        logWarn('markComplete', `Call to generate repeat for para {${para.content}} failed.`)
+      }
+    }
+    return result
   } else {
     logError(pluginJson, `markComplete: para is null`)
     return false
@@ -1440,6 +1502,7 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
 /**
  * Change para type of the given paragraph to cancelled (for both tasks/checklists)
  * TODO: extend to cancel sub-items as well if wanted.
+ * TODO(later): If Repeat Extensions plugin is extended to cover cancelled paras, then apply it here like in markComplete() above.
  * @param {TParagraph} para
  * @returns {boolean} success?
  */
@@ -1478,7 +1541,7 @@ export function markCancelled(para: TParagraph): boolean {
  * @param {string} content to find
  * @returns {boolean|TParagraph} success? - retuns the updated paragraph if successful (for use in updateCache)
  */
-export function completeItem(filenameIn: string, content: string): boolean | TParagraph {
+export async function completeItem(filenameIn: string, content: string): Promise<boolean | TParagraph> {
   try {
     if (filenameIn === '') {
       throw new Error('completeItem: filenameIn is empty')
@@ -1491,7 +1554,7 @@ export function completeItem(filenameIn: string, content: string): boolean | TPa
     if (typeof possiblePara === 'boolean') {
       return false
     }
-    return markComplete(possiblePara, false)
+    return await markComplete(possiblePara, false)
   } catch (error) {
     logError(pluginJson, `NPP/completeItem: ${error.message} for note '${filenameIn}'`)
     return false
@@ -1508,14 +1571,14 @@ export function completeItem(filenameIn: string, content: string): boolean | TPa
  * @param {string} content to find
  * @returns {TParagraph | boolean} completed paragraph if succesful, false if unsuccesful
  */
-export function completeItemEarlier(filenameIn: string, content: string): boolean | TParagraph {
+export async function completeItemEarlier(filenameIn: string, content: string): Promise<boolean | TParagraph> {
   try {
     logDebug('NPP/completeItemEarlier', `starting with filename: ${filenameIn}, content: "${content}"`)
     const possiblePara = findParaFromStringAndFilename(filenameIn, content)
     if (typeof possiblePara === 'boolean') {
       return false
     }
-    return markComplete(possiblePara, true)
+    return await markComplete(possiblePara, true)
   } catch (error) {
     logError(pluginJson, `NPP/completeItemEarlier: ${error.message} for note '${filenameIn}'`)
     return false
@@ -1571,37 +1634,6 @@ export async function deleteItem(filenameIn: string, content: string): Promise<b
   } catch (error) {
     logError(pluginJson, `NPP/deleteItem: ${error.message} for note '${filenameIn}'`)
     return false
-  }
-}
-
-/**
- * Prepend a todo (task or checklist) to a calendar note
- * @author @jgclark
- * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
- * @param {string} NPDateStr the usual calendar titles, plus YYYYMMDD
- * @param {string} todoTextArg text to prepend. If empty or missing, then will ask user for it
- */
-export async function prependTodoToCalendarNote(todoTypeName: 'task' | 'checklist', NPDateStr: string, todoTextArg: string = ''): Promise<void> {
-  // logDebug('NPP/prependTodoToCalendarNote', `Starting with NPDateStr: ${NPDateStr}, todoTypeName: ${todoTypeName}, todoTextArg: ${todoTextArg}`)
-  try {
-    const todoType = todoTypeName === 'task' ? 'open' : 'checklist'
-    // Get calendar note to use
-    const note = DataStore.calendarNoteByDateString(NPDateStr)
-    if (note != null) {
-      // Get input either from passed argument or ask user
-      const todoText =
-        todoTextArg != null && todoTextArg !== '' ? todoTextArg : await CommandBar.showInput(`Type the ${todoTypeName} text to add`, `Add ${todoTypeName} '%@' to ${NPDateStr}`)
-      logDebug('NPP/prependTodoToCalendarNote', `- Prepending type ${todoType} '${todoText}' to '${displayTitle(note)}'`)
-      smartPrependPara(note, todoText, todoType)
-
-      // Ask for cache refresh for this note
-      DataStore.updateCache(note, false)
-    } else {
-      logError('NPP/prependTodoToCalendarNote', `- Can't get calendar note for ${NPDateStr}`)
-    }
-  } catch (err) {
-    logError('NPP/prependTodoToCalendarNote', `${err.name}: ${err.message}`)
-    await showMessage(err.message)
   }
 }
 
@@ -1739,203 +1771,9 @@ export function toggleTaskChecklistParaType(filename: string, content: string): 
   }
 }
 
-/**
- * Remove any scheduled date (e.g. >YYYY-MM-DD or >YYYY-Www) from given line in note identified by filename.
- * Now also changes para type to 'open'/'checklist' if it wasn't already.
- * @author @jgclark
- * @param {string} filename of note
- * @param {string} content line to identify and change
- * @returns {boolean} success?
- */
-export function unscheduleItem(filename: string, content: string): boolean {
-  try {
-    // find para
-    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
-    if (typeof possiblePara === 'boolean') {
-      throw new Error('unscheduleItem: no para found')
-    }
-    // Get the paragraph to change
-    const thisPara = possiblePara
-    const thisNote = thisPara.note
-    if (!thisNote) throw new Error(`Could not get note for filename ${filename}`)
+// Note: function scheduleItem is now in NPScheduleItems.js
 
-    // Find and then remove any scheduled dates
-    const thisLine = possiblePara.content
-    logDebug('unscheduleItem', `unscheduleItem('${thisLine}'`)
-    thisPara.content = replaceArrowDatesInString(thisLine, '')
-    logDebug('unscheduleItem', `unscheduleItem('${thisPara.content}'`)
-    // And then change type
-    if (thisPara.type === 'checklistScheduled') thisPara.type = 'checklist'
-    if (thisPara.type === 'scheduled') thisPara.type = 'open'
-    // Update to DataStore
-    thisNote.updateParagraph(thisPara)
-    return true
-  } catch (error) {
-    logError('unscheduleItem', error.message)
-    return false
-  }
-}
-
-/**
- * Schedule an open item for a given date (e.g. >YYYY-MM-DD, >YYYY-Www, >today etc.) for a given paragraph.
- * It adds the '>' to the start of the date, and appends to the end of the para.
- * It removes any existing scheduled >dates, and if wanted,
- * @author @jgclark
- * @param {TParagraph} para of open item
- * @param {string} dateStrToAdd, without leading '>'. Can be special date 'today'.
- * @param {boolean} changeParaType? to 'scheduled'/'checklistScheduled' if wanted
- * @returns {boolean} success?
- */
-export function scheduleItem(thisPara: TParagraph, dateStrToAdd: string, changeParaType: boolean = true): boolean {
-  try {
-    const thisNote = thisPara.note
-    const thisContent = thisPara.content
-    if (!thisNote) throw new Error(`Could not get note for para '${thisContent}'`)
-
-    // Find and then remove any existing scheduled dates, and add new scheduled date
-    thisPara.content = replaceArrowDatesInString(thisContent, `>${dateStrToAdd}`)
-    logDebug('scheduleItem', `-> '${thisPara.content}'`)
-    // And then change type (if wanted)
-    if (changeParaType && thisPara.type === 'checklist') thisPara.type = 'checklistScheduled'
-    if (changeParaType && thisPara.type === 'open') thisPara.type = 'scheduled'
-    logDebug('scheduleItem', `-> type '${thisPara.type}'`)
-    // Update to DataStore
-    thisNote.updateParagraph(thisPara)
-    return true
-  } catch (error) {
-    logError('scheduleItem', error.message)
-    return false
-  }
-}
-
-export type ParentParagraphs = {
-  parent: TParagraph,
-  children: Array<TParagraph>,
-}
-
-/**
- * By definition, a paragraph's .children() method API returns an array of TParagraphs indented underneath it
- * a grandparent will have its children and grandchildren listed in its .children() method and the child will have the grandchildren also
- * This function returns only the children of the paragraph, not any descendants, eliminating duplicates
- * Every paragraph sent into this function will be listed as a parent in the resulting array of ParentParagraphs
- * Use removeParentsWhoAreChildren() afterwards to remove any children from the array of ParentParagraphs
- * (if you only want a paragraph to be listed in one place in the resulting array of ParentParagraphs)
- * @param {Array<TParagraph>} paragraphs - array of paragraphs
- * @returns {Array<ParentParagraphs>} - array of parent paragraphs with their children
- */
-export function getParagraphParentsOnly(paragraphs: Array<TParagraph>): Array<ParentParagraphs> /* tag: children */ {
-  const parentsOnly = []
-  for (let i = 0; i < paragraphs.length; i++) {
-    const para = paragraphs[i]
-    logDebug('getParagraphParentsOnly', `para: "${para.content}"`)
-    const childParas = getChildParas(para, paragraphs)
-    parentsOnly.push({ parent: para, children: childParas })
-  }
-  return parentsOnly
-}
-
-/**
- * Remove any children from being listed as parents in the array of ParentParagraphs
- * This function should be called after getParagraphParentsOnly()
- * If a paragraph is listed as a child, it will not be listed as a parent
- * The paragraphs need to be in lineIndex order for this to work
- * @param {Array<ParentParagraphs>} everyParaIsAParent - array of parent paragraphs with their children
- * @returns {Array<ParentParagraphs>} - array of parent paragraphs with their children
- */
-export function removeParentsWhoAreChildren(everyParaIsAParent: Array<ParentParagraphs>): Array<ParentParagraphs> {
-  const childrenSeen: Array<TParagraph> = []
-  const parentsOnlyAtTop: Array<ParentParagraphs> = []
-  for (let i = 0; i < everyParaIsAParent.length; i++) {
-    const p = everyParaIsAParent[i]
-    if (childrenSeen.includes(p.parent)) {
-      p.children.length ? childrenSeen.push(...p.children) : null
-      continue // do not list this as a parent, because another para has it as a child
-    }
-    // concat all p.children to the childrenSeen array (we know they are unique, so no need to check)
-    p.children.length ? childrenSeen.push(...p.children) : null
-    parentsOnlyAtTop.push(p)
-  }
-  return parentsOnlyAtTop
-}
-/**
- * Get the direct children paragraphs of a given paragraph (ignore [great]grandchildren)
- * NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true
- * @param {TParagraph} para - the parent paragraph
- * @param {Array<TParagraph>} paragraphs - array of all paragraphs
- * @returns {Array<TParagraph>} - array of children paragraphs (NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true)
- */
-export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>): Array<TParagraph> {
-  const childParas = []
-  const allChildren = para.children()
-  const indentedChildren = getIndentedNonTaskLinesUnderPara(para, paragraphs)
-  // concatenate the two arrays, but remove any duplicates that have the same lineIndex
-  const allChildrenWithDupes = allChildren.concat(indentedChildren)
-  const allChildrenNoDupes = allChildrenWithDupes.filter((p, index) => allChildrenWithDupes.findIndex((p2) => p2.lineIndex === p.lineIndex) === index)
-
-  if (!allChildrenNoDupes.length) {
-    return []
-  }
-
-  // someone could accidentally indent twice
-  const minIndentLevel = Math.min(...allChildrenNoDupes.map((p) => p.indents))
-
-  for (const child of allChildrenNoDupes) {
-    const childIndentLevel = child.indents
-
-    if (childIndentLevel === minIndentLevel) {
-      childParas.push(child)
-    }
-  }
-
-  clo(childParas, `getChildParas of para:"${para.content}", children.length=${allChildrenNoDupes.length}. reduced to:${childParas.length}`)
-
-  return childParas
-}
-
-/**
- * Get any indented text paragraphs underneath a given paragraph, excluding tasks
- * Doing this to pick up any text para types that may have been missed by the .children() method, which only gets task paras
- * @param {TParagraph} para - The parent paragraph
- * @param {Array<TParagraph>} paragraphs - Array of all paragraphs
- * @returns {Array<TParagraph>} - Array of indented paragraphs underneath the given paragraph
- */
-export function getIndentedNonTaskLinesUnderPara(para: TParagraph, paragraphs: Array<TParagraph>): Array<TParagraph> {
-  const indentedParas = []
-
-  const thisIndentLevel = para.indents
-  let lastLineUsed = para.lineIndex
-
-  for (const p of paragraphs) {
-    // only get indented lines that are not tasks
-    if (p.lineIndex > para.lineIndex && p.indents > thisIndentLevel && lastLineUsed === p.lineIndex - 1) {
-      if (TASK_TYPES.includes(p.type)) break // stop looking if we hit a task
-      indentedParas.push(p)
-      lastLineUsed = p.lineIndex
-    }
-  }
-
-  return indentedParas
-}
-
-/**
- * Returns an array of all "open" paragraphs and their children without duplicates.
- * Children will adhere to the NotePlan API definition of children()
- * Only tasks can have children, but any paragraph indented underneath a task
- * can be a child of the task. This includes bullets, tasks, quotes, text.
- * Children are counted until a blank line, HR, title, or another item at the
- * same level as the parent task. So for items to be counted as children, they
- * need to be contiguous vertically.
- * @param {Array<TParagraph>} paragraphs - The initial array of paragraphs.
- * @return {Array<TParagraph>} - The new array containing all unique "open" paragraphs and their children in lineIndex order.
- */
-export const getOpenTasksAndChildren = (paragraphs: Array<TParagraph>): Array<TParagraph> => [
-  ...new Map(
-    paragraphs
-      .filter((p) => p.type === 'open') // Filter paragraphs with type "open"
-      .flatMap((p) => [p, ...p.children()]) // Flatten the array of paragraphs and their children
-      .map((p) => [p.lineIndex, p]), // Map each paragraph to a [lineIndex, paragraph] pair
-  ).values(),
-] // Extract the values (unique paragraphs) from the Map and spread into an array
+// Note: function unscheduleItem is now in NPScheduleItems.js
 
 /**
  * Remove all due dates from a project note given by filename.

@@ -1,29 +1,24 @@
-/* globals describe, expect, test */
-
-// Last updated: 11.6.2024 by @jgclark
+/* globals describe, expect, test, beforeAll */
 
 import colors from 'chalk'
 import { getNPWeekStr, getTodaysDateHyphenated } from '../dateTime'
 import * as st from '../stringTransforms'
+import { DataStore } from '@mocks/index'
 
-// TODO: Get following working if its important:
-// import { DataStore /*, Note, Paragraph */ } from '@mocks/index'
+beforeAll(() => {
+  // global.Calendar = Calendar
+  // global.Clipboard = Clipboard
+  // global.CommandBar = CommandBar
+  global.DataStore = DataStore
+  // global.Editor = Editor
+  // global.NotePlan = NotePlan
+  DataStore.settings['_logLevel'] = '_none' //change this to DEBUG to get more logging
+})
 
-// beforeAll(() => {
-//   // global.Calendar = Calendar
-//   // global.Clipboard = Clipboard
-//   // global.CommandBar = CommandBar
-//   global.DataStore = DataStore
-//   // global.Editor = Editor
-//   // global.NotePlan = NotePlan
-//   DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
-// })
-
-const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateManipulation')}`
+const PLUGIN_NAME = `📙 ${colors.yellow('helpers/stringTransforms')}`
 // const section = colors.blue
 
 describe(`${PLUGIN_NAME}`, () => {
-
   describe('truncateHTML', () => {
     test('no change as maxLength is 0', () => {
       const htmlIn = '<p>This is a <strong>bold</strong> paragraph of text.</p>'
@@ -47,13 +42,27 @@ describe(`${PLUGIN_NAME}`, () => {
       const expectedOutput = '<p>This is a [link](http://example.com) to a…</p>'
       expect(st.truncateHTML(htmlIn, maxLength)).toBe(expectedOutput)
     })
+    test('preserves long markdown link for sparkmail', () => {
+      const htmlIn = '#jgcDR Fix email links for @SavageBeginnings - e.g. [Open in Spark](readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D)'
+      const maxLength = 40
+      const htmlOut = st.truncateHTML(htmlIn, maxLength)
+      expect(htmlOut).toMatch(/^#jgcDR Fix email links for @Savage/)
+      // eslint-disable-next-line max-len
+      expect(htmlOut).toMatch(/\]\(readdle-spark:\/\/bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D\)/)
+    })
+    test('preserves long markdown link for zoe', () => {
+      const htmlIn = 'Listen to <a class="externalLink" href="https:\/\/clicks\.zoe\.com\/f\/a\/ZUR-0srQ-voOYivE4-3Cbg~~\/AAAHahA~\/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~"><i class="fa-regular fa-globe pad-right"><\/i>Protein on a plant-based diet | Prof. Tim Spector and Dr. Rupy Aujla ~ ZOE</a>$'
+      const maxLength = 30
+      const htmlOut = st.truncateHTML(htmlIn, maxLength)
+      // eslint-disable-next-line max-len
+      expect(htmlOut).toMatch(/^Listen to <a class="externalLink" href="https:\/\/clicks\.zoe\.com\/f\/a\/ZUR-0srQ-voOYivE4-3Cbg~~\/AAAHahA~\/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~"><i class="fa-regular fa-globe pad-right"><\/i>Protein on a plant-b…<\/a>$/)
+    })
     test('adds ellipsis if dots is true', () => {
       const htmlIn = '<p>This is a long paragraph of text that needs to be truncated.</p>'
       const maxLength = 20
       const expectedOutput = '<p>This is a long parag…</p>'
       expect(st.truncateHTML(htmlIn, maxLength, true)).toBe(expectedOutput)
     })
-
     test('does not add ellipsis if dots is false', () => {
       const htmlIn = '<p>This is a long paragraph of text that needs to be truncated.</p>'
       const maxLength = 20
@@ -61,7 +70,8 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(st.truncateHTML(htmlIn, maxLength, false)).toBe(expectedOutput)
     })
   })
-        /*
+
+  /*
    * changeMarkdownLinksToHTMLLink()
    */
   describe('changeMarkdownLinksToHTMLLink()' /* function */, () => {
@@ -87,7 +97,88 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should produce HTML link 2', () => {
       const input = 'this has [title with spaces](https://www.something.com/with?various&chars%20ok) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>title with spaces</a> with a valid link')
+      expect(result).toEqual(
+        'this has <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>title with spaces</a> with a valid link',
+      )
+    })
+    test('should produce HTML link for sparkmail', () => {
+      const input = '#jgcDR Fix email links for @SavageBeginnings - e.g. [Open in Spark](readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D)'
+      const result = st.changeMarkdownLinksToHTMLLink(input)
+      expect(result).toEqual(
+        '#jgcDR Fix email links for @SavageBeginnings - e.g. <a class="externalLink" href="readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D"><i class="fa-regular fa-globe pad-right"></i>Open in Spark</a>',
+      )
+    })
+    test('should produce HTML link for long link', () => {
+      const input = 'Listen to [Protein on a plant-based diet | Prof. Tim Spector and Dr. Rupy Aujla ~ ZOE](https://clicks.zoe.com/f/a/ZUR-0srQ-voOYivE4-3Cbg~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~)'
+      const result = st.changeMarkdownLinksToHTMLLink(input)
+      expect(result).toEqual(
+        'Listen to <a class="externalLink" href="https://clicks.zoe.com/f/a/ZUR-0srQ-voOYivE4-3Cbg~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~"><i class="fa-regular fa-globe pad-right"></i>Protein on a plant-based diet | Prof. Tim Spector and Dr. Rupy Aujla ~ ZOE</a>',
+      )
+    })
+    test('should produce HTML link for long link', () => {
+      const input = 'Listen to [Low-carb diets and sugar spikes | Prof. Tim Spector ~ ZOE](https://clicks.zoe.com/f/a/dAgKh6AB8eEXtAsfVZAruQ~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljfzbxj0fcKOfK3AYKbmVevONgJ47zckYA_4vS_pNxs7JgRkrShVwPCAhgMGMHCRYPhB_HHOjoSolH6GF-1WvM08xMcWon8sQI9tDzxayAenpO0u1CJCyUeKVsDziwbA6RY~)'
+      const result = st.changeMarkdownLinksToHTMLLink(input)
+      expect(result).toEqual(
+        'Listen to <a class="externalLink" href="https://clicks.zoe.com/f/a/dAgKh6AB8eEXtAsfVZAruQ~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljfzbxj0fcKOfK3AYKbmVevONgJ47zckYA_4vS_pNxs7JgRkrShVwPCAhgMGMHCRYPhB_HHOjoSolH6GF-1WvM08xMcWon8sQI9tDzxayAenpO0u1CJCyUeKVsDziwbA6RY~"><i class="fa-regular fa-globe pad-right"></i>Low-carb diets and sugar spikes | Prof. Tim Spector ~ ZOE</a>',
+      )
+    })
+  })
+
+  /*
+   * getLinkDisplayTextFromBareURL()
+   */
+  describe('getLinkDisplayTextFromBareURL()' /* function */, () => {
+    test('should return domain name for valid URI', () => {
+      const input = 'https://www.something.com/with?various&chars%20ok'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('www.something.com')
+    })
+
+    test('should return domain name for valid URI with non-ASCII characters', () => {
+      const input = 'https://sömething.com/with/more/parts'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('sömething.com')
+    })
+
+    test('should return IP/port for valid URI', () => {
+      const input = 'https://127.0.0.1:1234/with/more/parts'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('127.0.0.1:1234')
+    })
+
+    test('should return full mailto: URI for mailto: URI', () => {
+      const input = 'mailto:jgclark@example.com'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('mailto:jgclark@example.com')
+    })
+
+    test('should return full tel: URI for tel: URI', () => {
+      const input = 'tel:+1234567890'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('tel:+1234567890')
+    })
+
+    test('should return just protocol… for spark-mail: protocol', () => {
+      const input = 'spark-mail://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('spark-mail://…')
+    })
+
+    test('should return just protocol… for noteplan: protocol', () => {
+      const input = 'noteplan://doSomething?param=value'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('noteplan://…')
+    })
+
+    test('should return domain name for long link 1', () => {
+      const input = 'https://clicks.zoe.com/f/a/ZUR-0srQ-voOYivE4-3Cbg~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('clicks.zoe.com')
+    })
+    test('should return domain name for long link 2', () => {
+      const input = 'https://clicks.zoe.com/f/a/dAgKh6AB8eEXtAsfVZAruQ~~/AAAHahA~/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljfzbxj0fcKOfK3AYKbmVevONgJ47zckYA_4vS_pNxs7JgRkrShVwPCAhgMGMHCRYPhB_HHOjoSolH6GF-1WvM08xMcWon8sQI9tDzxayAenpO0u1CJCyUeKVsDziwbA6RY~'
+      const result = st.getLinkDisplayTextFromBareURL(input)
+      expect(result).toEqual('clicks.zoe.com')
     })
   })
 
@@ -100,42 +191,63 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual('')
     })
     test('should be no change if no link found', () => {
-      const input = 'this has https a www.domain.com but not together'
+      const input = 'this has https www domain com but not together'
       const result = st.changeBareLinksToHTMLLink(input)
       expect(result).toEqual(input)
     })
-    test('should not produce HTML link from MD link', () => {
+    test('should find www link without http:// protocol', () => {
+      const input = 'this has www.domain.com to find'
+      const result = st.changeBareLinksToHTMLLink(input)
+      expect(result).toEqual('this has <a class="externalLink" href="www.domain.com"><i class="fa-regular fa-globe pad-right"></i>www.domain.com</a> to find')
+    })
+    test('should not touch markdown link (shorter)', () => {
       const input = 'this has [a valid MD link](https://www.something.com/with?various&chars%20ok)'
       const result = st.changeBareLinksToHTMLLink(input)
-      expect(result).toEqual('this has [a valid MD link](https://www.something.com/with?various&chars%20ok)')
+      expect(result).toEqual(input)
     })
-    test('should produce HTML link 1 with icon and no truncation', () => {
+    test('should not touch markdown link (longer for sparkmail)', () => {
+      const input = '#jgcDR Fix email links for @SavageBeginnings - e.g. [Open in Spark](readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D)'
+      const result = st.changeBareLinksToHTMLLink(input, true)
+      expect(result).toEqual(input)
+    })
+
+    test('should produce HTML link 1 with icon and truncation', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
       const result = st.changeBareLinksToHTMLLink(input, true)
       expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long</a> valid bare link')
-    })
-    test('should produce HTML link 1 with icon and truncation', () => {
-      const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
-      const result = st.changeBareLinksToHTMLLink(input, true, 21)
-      expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something…</a> valid bare link')
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>www.something.com</a> valid bare link',
+      )
     })
     test('should produce HTML link 1 without icon', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
       const result = st.changeBareLinksToHTMLLink(input, false)
       expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a> valid bare link')
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok">www.something.com</a> valid bare link',
+      )
     })
+
     test('should produce HTML link when a link takes up the whole line with icon', () => {
       const input = 'https://www.something.com/with?various&chars%20ok'
       const result = st.changeBareLinksToHTMLLink(input, true)
-      expect(result).toEqual('<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok</a>')
+      expect(result).toEqual(
+        '<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>www.something.com</a>',
+      )
     })
+
     test('should produce truncated HTML link with a very long bare link', () => {
-      const input = 'https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0'
-      const result = st.changeBareLinksToHTMLLink(input, false, 50)
-      expect(result).toEqual('<a class="externalLink" href="https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0">https://validation.poweredbypercent.com/validate/v…</a>')
+      const input =
+        'https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0'
+      const result = st.changeBareLinksToHTMLLink(input, false)
+      expect(result).toEqual(
+        '<a class="externalLink" href="https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0">validation.poweredbypercent.com</a>',
+      )
+    })
+    test('should produce HTML link for bare spark-mail:// URI', () => {
+      const input = '#jgcDR Fix email links for @SavageBeginnings - e.g. readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D'
+      const result = st.changeBareLinksToHTMLLink(input, true)
+      expect(result).toEqual(
+        '#jgcDR Fix email links for @SavageBeginnings - e.g. <a class="externalLink" href="readdle-spark://bl=QTptaWNoYWVsLmJ1aWx0Ynlzbm93bWFuQGdtYWlsLmNvbTtJRDozNmJhZDNjMi1j%0D%0AOTZlLTQ4ZjMtOGY0My0yYWUxZDEzNzk2NDVAU3Bhcms7Z0lEOjE4MzMyMjE5Mjg3%0D%0AMjMwMzU2MzA7Mzk4ODg0MjIzMw%3D%3D"><i class="fa-regular fa-globe pad-right"></i>readdle-spark://…</a>',
+      )
     })
   })
 
@@ -276,8 +388,8 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    /* 
-     * stripTodaysDateRefsFromString() 
+    /*
+     * stripTodaysDateRefsFromString()
      */
     describe('stripTodaysDateRefsFromString()' /* function */, () => {
       test('should not strip anything', () => {
@@ -307,8 +419,8 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    /* 
-     * stripThisWeeksDateRefsFromString() 
+    /*
+     * stripThisWeeksDateRefsFromString()
      */
     describe('stripThisWeeksDateRefsFromString()' /* function */, () => {
       test('should not strip anything', () => {
@@ -403,7 +515,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(expected)
       })
       test('should encode additional punctuation', () => {
-        const input = '!()[]*\''
+        const input = "!()[]*'"
         const expected = '%21%28%29%5B%5D%2A%27'
         const result = st.encodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
@@ -446,7 +558,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should decode additional punctuation', () => {
         const input = '%21%28%29%5B%5D%2A%27'
-        const expected = '!()[]*\''
+        const expected = "!()[]*'"
         const result = st.decodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
       })
@@ -493,6 +605,5 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should work for many items in a line ', () => {
       expect(st.removeDateTagsAndToday(`test >2000-W02 >2020-01-01 <2020-02-02 >2020-09-28`, true)).toEqual('test')
     })
-})
-
+  })
 })

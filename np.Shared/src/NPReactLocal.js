@@ -2,7 +2,7 @@
 
 import pluginJson from '../plugin.json'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { showHTMLWindow, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
+import { showHTMLV2, showHTMLWindow, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
 
 const startTime = new Date()
 
@@ -68,7 +68,7 @@ export async function onMessageFromHTMLView(incoming: string): Promise<any> {
 // $FlowFixMe - inexact object literal
 export function openReactWindow(globalData: any = null, windowOptions?: HtmlWindowOptions = {}): boolean {
   try {
-    logDebug(`NPReactLocal.openReactWindow`, `Starting ...`)
+    logDebug(pluginJson, `NPReactLocal.openReactWindow Starting ...`)
     // the first parameter sent is globalData -- some initial data we will add as a global 'globalSharedData' in the HTML window
     // react will use this to populate the page
     // that the plugin can write to and the HTML App can access
@@ -110,15 +110,8 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     if (!globalSharedData.componentPath?.length) logError("globalSharedData.componentPath is not set. cannot load your plugin's React components")
     const componentsStr = `\t\t<script type="text/javascript" src="${globalSharedData.componentPath}"></script>\n`
 
-    //TODO: delete this after testing that we don't need it. Always use React.* (e.g. React.useState)
-    const destructureReact = `
-    <!-- Load React Functions Used by Components in case someone uses without the React. in front -->
-      <script type="text/javascript"> const { useState, useEffect, useReducer, createContext, useContext, useRef, useMemo } = React; </script>
-    <!-- Load React Components -->`
-
     // <script> logDebug("HTML JS","Root component loaded. There is no babel, so you cannot use JSX unless it's compiled by rollup."); </script>
     const reactComponents = `     
-          ${destructureReact}
           ${componentsStr}
         `
 
@@ -145,9 +138,10 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
       <script type="text/javascript" >
         console.log('JS baked into page HTML: Setting globalSharedData');
         globalSharedData = ${JSON.stringify(globalSharedData)};
-        if (typeof DataStore === 'undefined') {
-          let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
-        }
+        // This setting comes from ${pluginJson['plugin.id']}
+        // if (typeof DataStore === 'undefined') {
+        //   let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        // }
       </script>
     `
     // set up bridge to NP
@@ -155,7 +149,7 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
     <script>
       const receivingPluginID = "${pluginJson['plugin.id']}";
-      const onMessageFromPlugin = ()=>{} // np.Shared/pluginToHTMLCommsBridge wants to see this function, but we don't use it in React because we will set up our own listener in Root
+      const onMessageFromPlugin = ()=>{}; // np.Shared/pluginToHTMLCommsBridge wants to see this function, but we don't use it in React because we will set up our own listener in Root
     </script>
     <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
     `
@@ -165,7 +159,7 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
       const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
     `
 
-    const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.min.js"></script>`
+    const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.dev.js"></script>\n`
     const preBS = (windowOptions.preBodyScript = windowOptions.preBodyScript || '')
     const generatedOptions = {
       includeCSSAsJS: windowOptions.includeCSSAsJS === false ? false : true,
@@ -177,10 +171,10 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
       postBodyScript: addStringOrArrayItems([reactComponents, reactRootComponent, mountAppString], windowOptions.postBodyScript),
       customId: windowOptions.customId ?? pluginJson['plugin.id'],
     }
-    // const title = windowOptions.title ?? windowOptions.windowTitle ?? 'React Window'
-    showHTMLWindow(bodyHTML, { ...windowOptions, ...generatedOptions })
-    // showHTMLV2(bodyHTML, { ...windowOptions, ...generatedOptions })
-    logDebug(`np.Shared::openReactWindow: ---------------------------------------- HTML prep: ${timer(startTime)} | Total so far: ${timer(globalData.startTime)}`)
+
+    showHTMLV2(bodyHTML, { ...windowOptions, ...generatedOptions })
+
+    logDebug(pluginJson, `openReactWindow: ---------------------------------------- HTML prep: ${timer(startTime)} | Total so far: ${timer(globalData.startTime)}`)
     return true
   } catch (error) {
     logError(pluginJson, `openReactWindow: Error ${JSP(error)}`)

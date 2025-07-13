@@ -13,6 +13,10 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 ### Fixed
 - fix regression in "/add sync'd copy to note" command.
 
+## [1.1.6] - 2024-12-31
+- the **new note from clipboard** and **new note from selection** commands have moved to the NoteHelpers plugin.
+- workaround for **move ...** commands not working properly, which stem from trailing whitespace on Headings in the destination notes. (Thanks to @trmax + @magicnemo for help diagnosing the problem and suggesting a workaround.)
+
 ## [1.1.5] - 2023-10-20
 ### Changed
 - hopefully a fix for "/move paras" sometimes not removing the lines from the original note

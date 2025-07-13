@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2024-10-08 for v1.0.0.b2+, @jgclark
+// Last updated 2025-07-11 for v1.2.1+, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -20,7 +20,8 @@ import { isHTMLWindowOpen } from '@helpers/NPWindows'
 export {
   finishReview,
   finishReviewAndStartNextReview,
-  makeProjectLists, // TODO: rename to displayProjectLists
+  generateProjectListsAndRenderIfOpen,
+  displayProjectLists,
   redisplayProjectListHTML,
   renderProjectLists,
   setNewReviewInterval,
@@ -35,7 +36,7 @@ export {
   getNextProjectsToReview, //  TODO: remove in time
   logAllProjectsList
 } from './allProjectsListHelpers'
-export { NOP } from './reviewHelpers'
+// export { NOP } from './reviewHelpers'
 export { removeAllDueDates } from '@helpers/NPParagraph'
 export {
   addProgressUpdate,
@@ -49,13 +50,6 @@ export {
 
 // Note: There are other possible exports, including:
 export { testFonts } from '../experiments/fontTests.js'
-export {
-  testGenerateCSSFromTheme,
-  testButtonTriggerCommand,
-  testButtonTriggerOpenNote,
-  testCSSCircle,
-  testRedToGreenInterpolation,
-} from './HTMLtests'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge' 
 
 const pluginID = 'jgclark.Reviews'

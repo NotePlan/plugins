@@ -2,20 +2,20 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { moveParagraphToNote, getOverdueParagraphs } from '../../helpers/NPParagraph'
-import { getNPWeekData, getWeekOptions } from '../../helpers/NPdateTime'
-import { filterNotesAgainstExcludeFolders, noteType } from '../../helpers/note'
-import { getReferencedParagraphs, getTodaysReferences } from '../../helpers/NPnote'
-import { chooseHeading, chooseNote, chooseOptionWithModifiers, showMessage } from '../../helpers/userInput'
+import { moveParagraphToNote } from '@helpers/NPMoveItems'
+import { getOverdueParagraphs } from '@helpers/NPParagraph'
+import { getNPWeekData, getWeekOptions } from '@helpers/NPdateTime'
+import { filterNotesAgainstExcludeFolders, noteType } from '@helpers/note'
+import { getReferencedParagraphs, getTodaysReferences } from '@helpers/NPnote'
 import { followUpSaveHere, followUpInFuture } from './NPFollowUp'
-import { filenameDateString } from './dateHelpers'
 import { updateLastUsedChoices } from './lastUsedChoices'
-import { changePriority } from '@helpers/paragraph'
-import { isOpen } from '@helpers/utils'
-import { getDateOptions, replaceArrowDatesInString, RE_DATE, RE_WEEKLY_NOTE_FILENAME, getTodaysDateHyphenated, isWeeklyNote, isScheduled } from '@helpers/dateTime'
+import { filenameDateString, getDateOptions, replaceArrowDatesInString, RE_DATE, RE_WEEKLY_NOTE_FILENAME, getTodaysDateHyphenated, isWeeklyNote, isScheduled } from '@helpers/dateTime'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { eliminateDuplicateSyncedParagraphs, textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
+import { changePriority } from '@helpers/paragraph'
 import { sortListBy } from '@helpers/sorting'
+import { eliminateDuplicateParagraphs, textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
+import { chooseHeading, chooseNote, chooseOptionWithModifiers, showMessage } from '@helpers/userInput'
+import { isOpen } from '@helpers/utils'
 
 export type OverdueSearchOptions = {
   openOnly: boolean,
@@ -466,7 +466,7 @@ function dedupeSyncedLines(notesWithTasks: Array<Array<TParagraph>>): Array<Arra
   const flatTasks = notesWithTasks.reduce((acc, n) => acc.concat(n), []) //flatten the array
   // clo(flatTasks, `dedupeSyncedLines  flatTasks`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length BEFORE deduping ${flatTasks.length}`)
-  const noDupes = eliminateDuplicateSyncedParagraphs(flatTasks, 'most-recent', true)
+  const noDupes = eliminateDuplicateParagraphs(flatTasks, 'most-recent', true)
   // clo(noDupes, `dedupeSyncedLines  noDupes`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length AFTER deduping ${noDupes.length}`)
   return createArrayOfNotesAndTasks(noDupes)

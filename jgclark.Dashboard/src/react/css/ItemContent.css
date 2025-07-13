@@ -1,0 +1,17 @@
+/* CSS specific to ContentItem from jgclark.Dashboard plugin */
+/* Last updated 2025-05-04 for v2.2.2 by @jgclark */
+
+/* Note: Overrides the Default layer for links */
+
+/* Private note link */
+.noteTitle {
+	color: rgb(from var(--tint-color) r g b / 0.8);
+}
+.folderName {
+	color: rgb(from var(--tint-color) r g b / 0.8);
+}
+
+/* Teamspace note link */
+.teamspaceName {
+	color: rgb(from var(--teamspace-color) r g b / 0.8);
+}

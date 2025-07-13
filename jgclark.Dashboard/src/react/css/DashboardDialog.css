@@ -1,0 +1,291 @@
+/**
+  CSS for the items Actions Dialog 
+  Last updated v2.1.8
+  */
+
+dialog {
+  /* Unset the margin around it, to allow absolute positioning by left/top */
+  display:block;
+  margin: 0rem 0.5rem;
+  color: var(--fg-sidebar-color);
+  background: var(--bg-sidebar-color);
+  padding: 0rem;
+  border: solid 1px var(--divider-color);
+  border-radius: 0.5em;
+  box-shadow: 0px 0px 10px 2px rgba(0,0,0,0.4);
+  z-index: 50;
+  max-width: 98%;
+}
+
+dialog:modal {
+  max-width: 92%;
+}
+
+.dialogTitle {
+  display: grid;
+  background: var(--bg-alt-color);
+  padding-block-start: 0.4rem;
+  padding-inline-start: 0.6rem;
+  padding-inline-end: 0.5rem;
+  padding-block-end: 0.3rem;
+  border-block-end: 1px solid var(--divider-color);
+  border-radius: 0.5rem 0.5rem 0px 0px; /* mimic the dialog border radius only at the top */
+  grid-template-columns: max-content auto max-content;
+  /* vertically align content items in center */
+  align-items: center; 
+  /* gap: 0.5rem; */
+}
+
+.dialogTitle div:nth-last-child(1) {
+  /* Put very last div (Close button etc.) on RHS */
+  justify-self: end;
+  /* margin-bottom: 5px; */
+}
+
+.dialogItemNote {
+  font-weight: 600;
+}
+
+.dialogItemNoteType {
+  font-weight: 400;
+}
+
+.dialogBody {
+  padding-block-start: 0.3rem;
+  padding-inline-start: 0.5rem;
+  padding-inline-end: 0.5rem;
+  padding-block-end: 0.6rem;
+}
+
+.buttonGrid {
+  display: grid;
+  grid-template-columns: auto minmax(15rem, auto);
+  column-gap: 0.3rem;
+  row-gap: 0.2rem;
+  /* vertically align content items in center */
+  align-items: center; 
+}
+
+/* Tweak the first column labels */
+.buttonGrid div.preText {
+  align-self: self-start;
+  padding-block-start: 5px;
+  justify-self: end;
+}
+
+/* Put very last div (Close button) on RHS -- no longer used */
+/* .buttonGrid div:nth-last-child(1) {
+  justify-self: end;
+} */
+
+/* .buttonGrid div:nth-child(1) { */
+  /* Put very first div down a bit to try to align with input field */
+  /* padding-block-start: 6px; */
+/* } */
+
+/* for Dialog main buttons: a little more pronounced */
+.mainButton {
+  color: var(--tint-color);
+	background-color: var(--bg-alt-color);
+	font-size: 0.9rem;
+	font-weight: 600;
+	border: 1px solid var(--divider-color);
+	padding: 2px 5px 2px 5px;
+	margin: 2px 4px;
+}
+
+.dialogBody button {
+  font-size: 0.85rem;
+  font-weight: 400;
+  /* add a clearer border to buttons */
+  /* border: 1px solid var(--divider-color); */
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.4);
+  border-radius: 4px;
+  padding: 1px 4px 0px 4px;
+  /* have margin to the right+top+bottom of buttons */
+  margin: 0.2rem 0.3rem 0.2rem 0; /* 3px 4px 3px 0px; */
+}
+/* set FontAwesome icon colour to tint color */
+.dialogBody button i {
+  color: var(--tint-color);
+}
+
+.itemActionsDialog {
+  max-width: 32rem;
+}
+
+.fullTextInput {
+  font-size: 0.9rem;
+  font-weight: 600;
+  width: -webkit-fill-available; /* calc(100% - 3rem); */
+  padding: 1px 4px 1px 4px;
+  /* margin-left: 0.3rem; */
+  margin-right: 0.3rem;
+  border: 1px solid var(--divider-color);
+  border-radius: 4px;
+  background-color: var(--bg-mid-color);
+}
+
+/* for iphone, allow the text to wrap */
+.fullTextArea {
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+  width: 100%; /* Adjust the width as needed */
+  min-height: 50px; /* Minimum height */
+  max-height: 500px; /* Maximum height */
+  overflow-y: hidden; /* Hide vertical scrollbar */
+  resize: none; /* Prevent manual resizing */
+  padding: 10px; /* Adjust padding as needed */
+  border: 1px solid #ccc; /* Border styling */
+  border-radius: 4px; /* Rounded corners */
+  white-space: pre-wrap; /* Preserve white spaces */
+  word-wrap: break-word; /* Break long words */
+  outline: none; /* Remove default outline */
+}
+
+.fullTextArea .placeholder {
+  color: #aaa;
+  pointer-events: none; /* Prevent placeholder text from being selectable */
+}
+
+.childDetails {
+  font-size: 0.9rem;
+  padding-left: 0.5rem;
+}
+
+.closeButton {
+	font-size: unset;
+  color: var(--tint-color);
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  /* margin-right: 5px; */
+  outline: none;
+  padding-top: 3px;
+}
+
+.skip-button {
+	font-size: unset;
+  background-color: transparent;
+  border: none;
+  /* outline: none; -- requested by DBW but not good for accessibility? */
+  box-shadow: none;
+  margin-right: 0px;
+}
+
+.interactive-processing-status {
+  margin-right: 5px;
+  margin-top: 2px;
+}
+
+/* iOS devices require an override for font size, otherwise it does a nasty zoom in effect 
+ * discovered via https://stackoverflow.com/questions/68973232/how-to-handle-safari-ios-zoom-on-input-fields/69125139#69125139
+ * PS Apple says user-scalable, min-scale and max-scale settings are ignored: https://webkit.org/blog/7367/new-interaction-behaviors-in-ios-10/ 
+*/ 
+@media screen and (width <= 420px) {
+  .fullTextInput {
+    font-size: 11pt;
+  }
+}
+
+/* @media screen and (width <= 420px) {
+  dialog:modal {
+    max-width: 90%;
+    left: 5%;
+  }
+} */
+
+/* Override items from main Dashboard.css for slightly different context this is used */
+.projectIcon {
+	margin-block-start: 3px !important;
+}
+
+/* Style for combobox-container */
+.combobox-container {
+	display: flex;
+	flex-direction: column;
+	padding-top: 1px;
+}
+
+/* Style for combobox-container (compact version) */
+.combobox-container-compact {
+	display: flex;
+	flex-direction: row;
+	align-items: baseline;
+	gap: 0.4rem;
+	padding-top: 1px;
+}
+
+.combobox-wrapper {
+	display: flex;
+	align-items: end;
+	gap: 10px;
+	position: relative;
+	width: fit-content;
+}
+
+.combobox-label {
+	font-weight: 700;
+	color: var(--fg-alt-color);
+}
+
+.combobox-input {
+	flex: 1;
+	padding: 3px 6px 1px;
+	border-radius: 4px;
+	font-size: 0.9rem;
+	/* width: 100%; */
+}
+
+.combobox-input:focus {
+	border-color: var(--hashtag-color);
+	outline: none;
+	box-shadow: 0 0 3px var(--hashtag-color);
+}
+
+.combobox-arrow {
+	position: absolute;
+	right: 0.4rem;
+	pointer-events: none;
+	font-size: larger;
+	color: var(--tint-color);
+	align-self: center;
+	top: 50%;
+	transform: translateY(-50%);
+}
+
+.combobox-dropdown {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	border: 1px solid var(--divider-color);
+	border-radius: 4px;
+	background-color: color(var(--tint-color) lightness(-20%));
+  /* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO: restore this in the future */
+	box-shadow: 0 2px 5px var(--divider-color);
+	z-index: 5;
+	width: 100%;
+}
+
+.combobox-option {
+	cursor: pointer;
+	color: var(--fg-main-color);
+	padding: 0.2rem 0rem 0.2rem 0.4rem;
+	min-height: 0.9rem;
+	width: 100%;
+}
+
+.combobox-option:hover {
+	background-color: var(--bg-alt-color);
+	color: var(--fg-alt-color);
+}
+
+.combobox-option .option-label {
+	white-space: nowrap;
+}
+
+.combobox-input-container {
+	position: relative;
+	width: 100%;
+}
+

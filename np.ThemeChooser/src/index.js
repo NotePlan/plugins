@@ -4,6 +4,7 @@ export { chooseTheme, setDefaultLightDarkTheme, toggleTheme, copyCurrentTheme, c
 export { copyThemeStyle, editStyleAttribute, createThemeSamples, setColor, removeStyle } from './NPThemeCustomizer'
 export { changePreset, runPreset01, runPreset02, runPreset03, runPreset04, runPreset05 } from './NPThemePresets'
 export { onOpenTheme, onOpenRefreshPage, onEdit, onSave, onUpdateOrInstall, init, onSettingsUpdated } from './NPThemeHooks'
+export { chooseColor, setFrontmatterColor } from './chooseColor'
 
 // Do not change this line. This is here so your plugin will get recompiled every time you change your plugin.json file
 import pluginJson from '../plugin.json'

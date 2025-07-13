@@ -1,0 +1,142 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "np.TOC",
+  "plugin.name": "🧩 Table of Contents",
+  "plugin.description": "Insert and update Table of Contents in notes",
+  "plugin.author": "jgclark",
+  "plugin.dependsOn": [],
+  "plugin.script": "script.js",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "Initial release",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.TOC/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.TOC/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "note": "================== COMMMANDS ========================"
+    },
+    {
+      "name": "insert TOC",
+      "alias": [
+        "toc"
+      ],
+      "description": "Insert a Table of Contents at the top of the current note",
+      "jsFunction": "insertTOC"
+    },
+    {
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onEditorWillSave",
+      "jsFunction": "onEditorWillSave",
+      "hidden": true
+    },
+    {
+      "name": "Table of Contents: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "note": "================== SETTINGS ========================"
+    },
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Table of Contents Settings"
+    },
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "np.TOC",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "key": "writeUnderHeading",
+      "title": "Write TOC under heading",
+      "description": "The heading to write the TOC under. If empty, the TOC will be written at the top of the note. WARNING: will replace any text from TOC header down to the next ## or ### header.",
+      "type": "string",
+      "default": "Table of Contents",
+      "required": true
+    },
+    {
+      "key": "includeH1BlankLineUnder",
+      "title": "Include a blank H1 under the TOC header",
+      "description": "If true, a blank H1 will be inserted under the TOC header.",
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "padTextWithSpaces",
+      "title": "Pad text with spaces",
+      "description": "If true, the text will be padded with spaces.",
+      "type": "boolean",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "horizontal",
+      "title": "Use horizontal mode",
+      "description": "If true, the TOC will be displayed in a single-line (horizontal) format.",
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "bullet",
+      "title": "Bullet",
+      "description": "The bullet to use for the TOC. (Note: indents and bullet only apply when in vertical output mode (horizontal: false).)",
+      "type": "string",
+      "default": "-",
+      "required": false
+    },
+    {
+      "key": "indented",
+      "title": "Indent text",
+      "description": "If true, the text will be indented. (Note: indents and bullet only apply when in vertical output mode (horizontal: false).)",
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "CAPS",
+      "title": "Convert text to uppercase",
+      "description": "If true, the text will be converted to uppercase.",
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "highlight",
+      "title": "Highlight text",
+      "description": "If true, the text will be highlighted.",
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    {
+      "note": "================== DEBUGGING SETTINGS ========================",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Table of Contents commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}

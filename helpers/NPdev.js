@@ -1,9 +1,8 @@
 // @flow
 
-import { showMessage } from './userInput'
-import { clo, logDebug, logError, logWarn } from '@helpers/dev'
+import { showMessage, chooseOption, getInput, getInputTrimmed, showMessageYesNo } from './userInput'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
-import { chooseOption, getInput, getInputTrimmed, showMessageYesNo } from '@helpers/userInput'
 
 /**
  * Print to the console log all contents of the environment variable, introduced in v3.3.2
@@ -20,7 +19,16 @@ export function logAllEnvironmentSettings(): void {
   }
 }
 
-export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = true): Promise<boolean | { url: string, pluginID: string, command: string, args: Array<string> }> {
+/**
+ * Choose a plugin command to run, and return the XCallbackURL for it
+ * @param {boolean} showInstalledOnly - if true, only show installed plugins
+ * @param {RegExp} filterCommandRegex - if provided, only show commands that match the regex
+ * @returns {boolean | { url: string, pluginID: string, command: string, args: Array<string> }} - false if user cancels, otherwise the XCallbackURL for the chosen command
+ */
+export async function chooseRunPluginXCallbackURL(
+  showInstalledOnly: boolean = true,
+  filterCommandRegex: RegExp = null,
+): Promise<boolean | { url: string, pluginID: string, command: string, args: Array<string> }> {
   const plugins = showInstalledOnly ? await DataStore.installedPlugins() : await DataStore.listPlugins(true)
 
   let commandMap = []
@@ -28,6 +36,7 @@ export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = t
     if (Array.isArray(plugin.commands)) {
       plugin.commands?.forEach((command) => {
         const show = `${command.name} (${plugin.name})`
+        if (filterCommandRegex && !filterCommandRegex.test(show)) return
         // $FlowIgnore
         commandMap.push({
           name: command.name,
@@ -118,17 +127,17 @@ export function logPreference(key: string): void {
   try {
     const value = DataStore.preference(key) ?? undefined
     if (value === undefined) {
-      logDebug(`logPreference`, `"${key}" not found`)
+      logInfo(`logPreference`, `"${key}" not found`)
     } else if (typeof value === 'object') {
       clo(value, `logPreference "${key}" [object]:`)
     } else if (typeof value === 'string') {
-      logDebug('logPreference', `"${key}" [string]: "${value}"`)
+      logInfo('logPreference', `"${key}" [string]: "${value}"`)
     } else if (typeof value === 'number') {
-      logDebug('logPreference', `"${key}" [number]: "${String(value)}"`)
+      logInfo('logPreference', `"${key}" [number]: "${String(value)}"`)
     } else if (typeof value === 'boolean') {
-      logDebug('logPreference', `"${key}" [boolean]: "${String(value)}"`)
+      logInfo('logPreference', `"${key}" [boolean]: "${String(value)}"`)
     } else {
-      logDebug('logPreference', `"${key}": "${String(value)}"`)
+      logInfo('logPreference', `"${key}": "${String(value)}"`)
     }
   } catch (error) {
     logError('logPreference', error.message)
@@ -157,7 +166,7 @@ export async function logPreferenceAskUser(): Promise<void> {
 export function unsetPreference(prefName: string): void {
   try {
     DataStore.setPreference(prefName, null)
-    logDebug('unsetPreference', `Unset local pref ${prefName}`)
+    logInfo('unsetPreference', `Unset local pref ${prefName}`)
   } catch (error) {
     logError('unsetPreference', error.message)
   }
