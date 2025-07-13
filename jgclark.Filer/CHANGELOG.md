@@ -6,11 +6,10 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 - ??? new **smart duplicate note** command. This takes the currently open regular (not calendar) note create a new one in the same folder that uses the same structure of headings, and moves over any open tasks/checklists, and sorts the new note. See README for all details on this.
 - ??? new **/smart file to completed sections** command. This ...
   -->
-<!-- 
+
 ## [1.3.0] - 2025-07-???
 ### New
-- New command **/**
--->
+- New command **/move paragraph and children**, which moves a paragraph to a user-selected note, and any indented lines following it.
 
 ## [1.2.1] - 2025-07-13 (unreleased)
 ### Changed

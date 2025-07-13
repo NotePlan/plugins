@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2025-07-13, for v1.2.1
+// last updated 2025-07-13, for v1.3.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -12,7 +12,7 @@ import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { moveGivenParaAndBlock } from '@helpers/NPblocks'
+import { moveGivenParaAndIndentedChildren } from '@helpers/NPMoveItems'
 import { addParasAsText, getParagraphBlock, selectedLinesIndex } from '@helpers/NPParagraph'
 import { findHeading, parasToText } from '@helpers/paragraph'
 import { chooseHeading, chooseNote, showMessage } from '@helpers/userInput'
@@ -43,7 +43,42 @@ export async function moveParaAndChildren(): Promise<void> {
       return
     }
     logDebug(pluginJson, 'moveParaAndChildren(): Starting')
-    await moveGivenParaAndBlock(Editor.selectedParagraphs[0], note.filename, note.type, '')
+
+    // just move the current paragraph
+    const parasInBlock = selectedParagraphs.slice(0, 1) // just first para
+    logDebug('moveParaAndChildren', `move current para and children`)
+
+    // Attempt to highlight the current paragraph to help user check all is well
+    const firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
+    const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
+    if (firstStartIndex && lastEndIndex) {
+      const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
+      // logDebug('moveParas', `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+      Editor.highlightByRange(parasCharIndexRange)
+    }
+
+    // Decide where to move to
+    // Ask for the note we want to add the selectedParas
+    const destNote = await chooseNote(true, true, [], `Select note to move this line and its children to`, false, true)
+    if (destNote == null) {
+      logInfo('moveParas', 'No note selected, so stopping.')
+      return
+    }
+    // Ask to which heading to add the selectedParas
+    let headingToFind = await chooseHeading(destNote, true, true, false)
+    logDebug('moveParas', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
+    if (/\s$/.test(headingToFind)) {
+      logWarn('moveParas', `Heading to move to ('${headingToFind}') has trailing whitespace. Will pre-emptively remove them to try to avoid problems.`)
+      const headingPara = findHeading(destNote, headingToFind)
+      if (headingPara) {
+        headingPara.content = headingPara.content.trim()
+        destNote.updateParagraph(headingPara)
+        logDebug('moveParas', `- now headingPara in destNote is '${headingPara.content}'`)
+        headingToFind = headingPara.content
+      }
+    }
+
+    await moveGivenParaAndIndentedChildren(Editor.selectedParagraphs[0], destNote.filename, destNote.type, headingToFind)
   }
   catch (error) {
     logError('moveParaAndChildren', error.message)
@@ -138,7 +173,6 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     const selectedNumLines = parasInBlock.length
 
     // Decide where to move to
-
     // Ask for the note we want to add the selectedParas
     const destNote = await chooseNote(true, true, [], `Select note to move ${(parasInBlock.length > 1) ? parasInBlock.length + ' lines' : 'current line'} to`, false, true)
     if (destNote == null) {
