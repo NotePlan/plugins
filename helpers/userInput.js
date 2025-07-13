@@ -247,7 +247,7 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
         folderOptionList.push({ label: '📁 /', value: '/' })
       }
     }
-    // const re = await CommandBar.showOptions(folders, msg)
+    // TODO(dwertheimer): fix what happens in this function, which Cursor says isn't specified correctly.
     ;({ value, keyModifiers } = await chooseOptionWithModifiers(msg, folderOptionList))
     if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
       folder = NEW_FOLDER
@@ -539,7 +539,7 @@ const relativeDates = getRelativeDates()
 export async function createNewNote(_title?: string = '', _content?: string = '', _folder?: string = ''): Promise<Note | null> {
   const title = _title || (await getInput('Title of new note', 'OK', 'New Note', ''))
   const content = _content
-  if (title) {
+  if (title !== '' && typeof title === 'string') {
     const folder = _folder || (await chooseFolder('Select folder to add note in:', false, true))
     const noteContent = `# ${title}\n${content}`
     const filename = await DataStore.newNoteWithContent(noteContent, folder)
@@ -613,7 +613,7 @@ export async function chooseNote(
     isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
     return !isInIgnoredFolder
   })
-  const sortedNoteListFiltered = noteListFiltered.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  const sortedNoteListFiltered = noteListFiltered.sort((first, second) => second.changedDate.getTime() - first.changedDate.getTime()) // most recent first
   const opts = sortedNoteListFiltered.map((note) => {
     return displayTitleWithRelDate(note)
   })
