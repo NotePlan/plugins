@@ -2,12 +2,12 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
 <!-- 
-- ??? Shift /new note etc. from Filers plugin
 - ??? Look at spinning out Index... commands to separate plugin 
 - -->
 
-## [1.2.0] - 2025-06-13???
+## [1.2.0] - 2025-07-???
 - various improvements/fixes to the **inconsistent file name** commands. Resolves issues #640, #642, #643 raised by @tastapod.
+- made the title generation smarter in **new note from selection** and **new note from clipboard** commands
 
 ## [1.1.1] - 2025-04-22
 - the **log Editor Note** commands now handle Teamspace notes correctly.
