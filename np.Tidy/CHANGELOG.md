@@ -1,8 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
-## [0.15.0] - 2025-06-??? @jgclark
+## [0.15.0] - 2025-07-??? @jgclark
 - New command **/Remove empty blocks** which in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line.
+<!-- Perhaps improvement to Remove Section from all notes ? -->
 
 ## [0.14.7] - 2025-02-18 @jgclark
 - Stop lots of popups appearing when running **/Generate @repeats in recent notes** command (thanks, @kanera).
@@ -97,7 +98,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README
 ## [0.1.0] - 2023-01-04 (unreleased) @jgclark
 First release, implementing these commands:
 - **Remove section from recent notes** (alias "rsfrn"): Remove a given section (both the heading and its content) from recently-changed notes. (Can be used with parameters from Template or x-callback.)
-- **Remove section from all notes** (alias "rcuh"). Remove a given section (both the heading and its content) from all notes. (Can be used with parameters from Template or x-callback.)
+- **Remove section from all notes** (alias "rsan"). Remove a given section (both the heading and its content) from all notes. (Can be used with parameters from Template or x-callback.)  _Dangerous!_
 - **Remove time parts from @done() dates** (alias "rtp"): Remove time parts of @done(date time) from recently-updated notes. Can be used with parameters from Template or Callback.
 - **Remove @done() markers** (alias "rdm"): Remove @done() markers from recently-updated notes.
 

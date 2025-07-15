@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-03-11 for v0.14.5, @jgclark
+// Last updated 2025-07-15 for v0.14.5+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -323,8 +323,6 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
 /**
  * Remove a given section (by matching on their section heading) from recently-changed Notes. Note: does not match on note title.
  * Can be passed parameters to override default time interval through an x-callback call.
- * FIXME: Found 248 'Stats' sections in my notes.
- * FIXME: numDays 
  * @author @jgclark
  * @param {?string} params optional JSON string
  */
