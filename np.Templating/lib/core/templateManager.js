@@ -400,9 +400,10 @@ export async function getTemplate(templateName: string = '', options: any = { sh
 
     // template not found
     if (!selectedTemplate && !options.silent) {
-      await CommandBar.prompt('Template Error', `Unable to locate "${originalFilename}"`)
+      const errMsg = `Unable to locate "${originalFilename}"`
+      await CommandBar.prompt('Template Error', errMsg)
       logDebug(pluginJson, `getTemplate: Unable to locate ${originalFilename}`)
-      return ''
+      return `***Template Error: ${errMsg}***`
     }
 
     let templateContent = selectedTemplate?.content || ''

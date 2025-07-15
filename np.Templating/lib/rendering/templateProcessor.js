@@ -1394,7 +1394,7 @@ export async function renderTemplateByName(templateName: string = '', userData: 
     const templateData = await getTemplate(templateName)
     const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(templateData)
     const data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes }, ...userData }
-    const renderedData = await render(templateData, data, userOptions)
+    const renderedData = await render(frontmatterBody, data, userOptions)
 
     return removeEJSDocumentationNotes(renderedData)
   } catch (error) {

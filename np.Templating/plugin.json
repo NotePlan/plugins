@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.9.10",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "2.0.6",
+  "plugin.version": "2.0.7",
   "plugin.lastUpdateInfo": "2.0.0: New prompts: promptTag, promptMention, promptKey; Stricter validation of templating code with messaging output",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson ( codedungeon)",
