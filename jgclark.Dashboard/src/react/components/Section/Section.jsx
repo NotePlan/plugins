@@ -271,6 +271,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     completionCircle =
       <span className="sectionCompletionCircle" title={`${section.doneCounts.completedTasks} of ${section.doneCounts.completedTasks + items.length} tasks completed`} style={{ justifySelf: 'end' }}>
         <CircularProgressBar
+          // $FlowFixMe[incompatible-type]
           size="0.9rem" // TODO: this only works as "Nrem" despite number being expected
           progress={percentComplete}
           backgroundColor="var(--bg-sidebar-color)"

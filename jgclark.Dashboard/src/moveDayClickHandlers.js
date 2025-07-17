@@ -110,7 +110,8 @@ export async function scheduleAllYesterdayOpenToToday(data: MessageDataObject): 
             DataStore.updateCache(p.note, false)
             numberScheduled++
           } else {
-            logError('scheduleAllYesterdayOpenToToday', `Couldn't find para matching "${dashboardPara.content}"`)
+            logWarn('scheduleAllYesterdayOpenToToday', `Couldn't find calendar note para matching this dashboardPara to reschedule:`)
+            clo(dashboardPara, 'dashboardPara')
           }
         }
         logDebug('scheduleAllYesterdayOpenToToday', `scheduled ${String(numberScheduled)} open items from yesterday's note to today's`)
@@ -159,7 +160,8 @@ export async function scheduleAllYesterdayOpenToToday(data: MessageDataObject): 
             thisNote.updateParagraph(p)
             numberScheduled++
           } else {
-            logWarn('scheduleAllYesterdayOpenToToday', `Couldn't find para matching "${dashboardPara.content}"`)
+            logWarn('scheduleAllYesterdayOpenToToday', `Couldn't find ref para matching this dashboardPara to reschedule:`)
+            clo(dashboardPara, 'dashboardPara')
           }
           // Update cache to allow it to be re-read on refresh
           DataStore.updateCache(thisNote, false)
@@ -255,13 +257,16 @@ export async function scheduleAllTodayTomorrow(data: MessageDataObject): Promise
           logDebug('scheduleAllTodayTomorrow', `- Scheduling item ${c}/${totalToMove} "${dashboardPara.content}" to tomorrow`)
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
-          if (p) {
+          if (p && p.note) {
             p.content = replaceArrowDatesInString(p.content, `>${tomorrowISODateStr}`)
             // $FlowIgnore[incompatible-use]
             p.note.updateParagraph(p)
             // $FlowIgnore[incompatible-call]
             DataStore.updateCache(p.note, false)
             numberScheduled++
+          } else {
+            logWarn('scheduleAllTodayTomorrow', `Couldn't find calendar note para matching this dashboardPara to reschedule:`)
+            clo(dashboardPara, 'dashboardPara')
           }
         }
         logDebug('scheduleAllTodayTomorrow', `scheduled ${String(numberScheduled)} open items from today's note`)
@@ -300,14 +305,17 @@ export async function scheduleAllTodayTomorrow(data: MessageDataObject): Promise
           logWarn('scheduleAllTodayTomorrow', `Oddly I can't find the note for "${dashboardPara.content}", so can't process this item`)
         } else {
           // Convert each reduced para back to the full one to update.
+          // FIXME: fails because it's not picking up indent 1
+          // TODO: when fixed apply to other funcs
           const p = getParagraphFromStaticObject(dashboardPara)
-          if (p) {
+          if (p && p.note) {
             p.content = replaceArrowDatesInString(p.content, `>${tomorrowISODateStr}`)
             logDebug('scheduleAllTodayTomorrow', `- Scheduling referenced para ${c}/${totalToMove} from note ${thisNote.filename} with new content "${p.content}"`)
             thisNote.updateParagraph(p)
             numberScheduled++
           } else {
-            logWarn('scheduleAllTodayTomorrow', `Couldn't find para matching "${dashboardPara.content}"`)
+            logWarn('scheduleAllTodayTomorrow', `Couldn't find ref para matching this dashboardPara to reschedule:`)
+            clo(dashboardPara, 'dashboardPara')
           }
           // Update cache to allow it to be re-read on refresh
           DataStore.updateCache(thisNote, false)

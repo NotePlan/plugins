@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2025-07-11 for v2.3.0.b5
+// Last updated 2025-07-17 for v2.3.0.b6
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -25,6 +25,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     const sectionNumStr = '13'
     const thisSectionCode = 'OVERDUE'
     let totalOverdue = 0
+    let preLimitCount = 0
     let itemCount = 0
     let overdueParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
     let dashboardParas: Array<TParagraphForDashboard> = []
@@ -77,11 +78,14 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
         }
         overdueParas.push(thisExtendedPara)
       })
+      preLimitCount = overdueParas.length
       clo(yesterdayItems, 'yesterdayItems')
     } else {
       // Get overdue tasks (de-duping any sync'd lines)
       // Note: Cannot move the reduce into here otherwise separate call to this function by scheduleAllOverdueOpenToToday() doesn't have all it needs to work
-      overdueParas = await getRelevantOverdueTasks(config, [])
+      const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, [])
+      overdueParas = filteredOverdueParas
+      preLimitCount = preLimitOverdueCount
       logDebug('getOverdueSectionData', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
     }
 
@@ -124,10 +128,22 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     }
     logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
-    let sectionDescription = `{countWithLimit} open {itemType} ${config.lookBackDaysForOverdue > 0
-      ? `from last ${String(config.lookBackDaysForOverdue)} days `
-      : ''}ordered by ${config.overdueSortOrder}`
+    let sectionDescription = `{countWithLimit} open {itemType}`
+    if (config.lookBackDaysForOverdue > 0) {
+      sectionDescription += ` from last ${String(config.lookBackDaysForOverdue)} days`
+    }
+    if (overdueParas.length > 0) sectionDescription += ` ordered by ${config.overdueSortOrder}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
+
+    // If we have more than the limit, then we need to show the total count as an extra information message
+    if (preLimitCount > overdueParas.length) {
+      items.push({
+        ID: `${sectionNumStr}-${String(overdueParas.length)}`,
+        itemType: 'preLimitOverdues',
+        message: `There are ${preLimitCount - overdueParas.length} overdue tasks, beyond the most recent ${config.lookBackDaysForOverdue} days`,
+      })
+    }
+    logDebug('getOverdueSectionData', `- items: ${JSON.stringify(items)}`)
 
     const section: TSection = {
       ID: sectionNumStr,
@@ -173,9 +189,14 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
  * If we are showing the Yesterday section, and we have some yesterdaysParas passed, then don't return any ones matching this list.
  * @param {TDashboardSettings} dashboardSettings
  * @param {Array<TParagraph>} yesterdaysParas
- * @returns {Array<TParagraph>}
+ * @returns {{ filteredOverdueParas: Array<TParagraph>, preLimitOverdueCount: number }}
  */
-export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSettings, yesterdaysParas: Array<TParagraph>): Promise<Array<TParagraph>> {
+export async function getRelevantOverdueTasks(
+  dashboardSettings: TDashboardSettings,
+  yesterdaysParas: Array<TParagraph>
+): Promise<{
+  filteredOverdueParas: Array<TParagraph>, preLimitOverdueCount: number
+}> {
   try {
     const thisStartTime = new Date()
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
@@ -192,20 +213,24 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     filteredOverdueParas = filterParasByCalendarHeadingSections(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
     logTimer('getRelevantOverdueTasks', thisStartTime, `After filtering, ${overdueParas.length} overdue items`)
 
-    // Limit overdues to last N days
-    if (!Number.isNaN(dashboardSettings.lookBackDaysForOverdue) && dashboardSettings.lookBackDaysForOverdue > 0) {
-      const numDaysToLookBack = dashboardSettings.lookBackDaysForOverdue
-      const cutoffDate = moment().subtract(numDaysToLookBack, 'days').format('YYYY-MM-DD')
-      logDebug('getRelevantOverdueTasks', `lookBackDaysForOverdue limiting to last ${String(numDaysToLookBack)} days (from ${cutoffDate})`)
-      filteredOverdueParas = filteredOverdueParas.filter((p) => getDueDateOrStartOfCalendarDate(p, true) > cutoffDate)
-      logTimer('getRelevantOverdueTasks', thisStartTime, `After limiting, ${filteredOverdueParas.length} overdue items`)
-    }
-
     // Remove items that appear in this section twice (which can happen if a task is sync'd), based just on their content
     // Note: this is a quick operation
     // $FlowFixMe[class-object-subtyping]
     filteredOverdueParas = removeDuplicates(filteredOverdueParas, ['content'])
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping, ${filteredOverdueParas.length} overdue items`)
+
+    const preLimitOverdueCount = filteredOverdueParas.length
+    logDebug('getRelevantOverdueTasks', `- preLimitOverdueCount: ${preLimitOverdueCount}`)
+
+    // Limit overdues to last N days
+    if (!Number.isNaN(dashboardSettings.lookBackDaysForOverdue) && dashboardSettings.lookBackDaysForOverdue > 0) {
+      const numDaysToLookBack = dashboardSettings.lookBackDaysForOverdue
+      const cutoffDate = moment().subtract(numDaysToLookBack, 'days').format('YYYY-MM-DD')
+      logDebug('getRelevantOverdueTasks', `lookBackDaysForOverdue limiting to last ${String(numDaysToLookBack)} days (from ${cutoffDate})`)
+      // $FlowFixMe[incompatible-call]
+      filteredOverdueParas = filteredOverdueParas.filter((p) => getDueDateOrStartOfCalendarDate(p, true) > cutoffDate)
+      logTimer('getRelevantOverdueTasks', thisStartTime, `After limiting, ${filteredOverdueParas.length} overdue items`)
+    }
 
     // Remove items already in Yesterday section (if turned on)
     if (dashboardSettings.showYesterdaySection) {
@@ -222,9 +247,9 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping with yesterday -> ${filteredOverdueParas.length}`)
 
     // $FlowFixMe[class-object-subtyping]
-    return filteredOverdueParas
+    return { filteredOverdueParas, preLimitOverdueCount }
   } catch (error) {
     logError('getRelevantOverdueTasks', error.message)
-    return []
+    return { filteredOverdueParas: [], preLimitOverdueCount: 0 }
   }
 }
