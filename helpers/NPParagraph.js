@@ -1351,9 +1351,6 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
 
 /**
  * Return a TParagraph object by an exact match to 'content' in file 'filenameIn'. If it fails to find a match, it returns false.
- * If the content is truncated with "..." it will match if the truncated version is the same as the start of the content in a line in the note
- * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars).
- * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Works on both Project and Calendar notes.
  * @author @jgclark
  * @param {string} filenameIn to look in
@@ -1379,12 +1376,9 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 
     if (thisNote) {
       if (thisNote.paragraphs.length > 0) {
-        const isTruncated = content.endsWith('...')
-        const truncatedContent = isTruncated ? content.slice(0, -3) : content // only slice if truncated
-
         // let c = 0
         for (const para of thisNote.paragraphs) {
-          if (isTruncated ? para.content.startsWith(truncatedContent) : para.content === content) {
+          if (para.content === content) {
             // logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
             return para
           }
@@ -1402,6 +1396,63 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
     }
   } catch (error) {
     logError(pluginJson, `NPP/findParaFromStringAndFilename: ${error.message} for note '${filenameIn}'`)
+    return false
+  }
+}
+
+/**
+ * Return a TParagraph object by an exact match to 'rawContent' in file 'filenameIn'. If it fails to find a match, it returns false.
+ * If the rawContent is truncated with "..." it will match if the truncated version is the same as the start of the rawContent in a line in the note
+ * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph rawContent at 300 chars).
+ * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * Works on both Project and Calendar notes.
+ * @author @jgclark
+ * @param {string} filenameIn to look in
+ * @param {string} rawContent to find
+ * @returns {TParagraph | boolean} TParagraph if succesful, false if unsuccesful
+ */
+export function findParaFromRawContentAndFilename(filenameIn: string, rawContentIn: string): TParagraph | false {
+  try {
+    logDebug('NPP/findParaFromRawContentAndFilename', `starting with filename: ${filenameIn}, rawContent: {${rawContentIn}}`)
+    let filename = filenameIn
+    if (filenameIn === 'today') {
+      filename = getTodaysDateUnhyphenated()
+    } else if (filenameIn === 'thisweek') {
+      filename = getNPWeekStr(new Date())
+    }
+    // Long-winded way to get note title, as we don't have TNote, but do have note's filename
+    // FIXME(Eduard): update to cope with Teamspace notes
+    // V1
+    const thisNote: TNote | null = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename) ?? null
+    // V2
+    // TODO:
+    // const thisNote: TNote | null = getNoteFromFilename(filename)
+
+    if (thisNote) {
+      if (thisNote.paragraphs.length > 0) {
+        const isTruncated = rawContentIn.endsWith('...')
+        const truncatedContent = isTruncated ? rawContentIn.slice(0, -3) : rawContentIn // only slice if truncated
+
+        // let c = 0
+        for (const para of thisNote.paragraphs) {
+          if (isTruncated ? para.rawContent.startsWith(truncatedContent) : para.rawContent === rawContentIn) {
+            // logDebug('NPP/findParaFromRawContentAndFilename', `found matching para #${c} of type ${para.type}: {${rawContentIn}}`)
+            return para
+          }
+          // c++
+        }
+        logWarn('NPP/findParaFromRawContentAndFilename', `Couldn't find paragraph {${rawContentIn}} in note '${filename}'`)
+        return false
+      } else {
+        logInfo('NPP/findParaFromRawContentAndFilename', `Note '${filename}' appears to be empty?`)
+        return false
+      }
+    } else {
+      logWarn('NPP/findParaFromRawContentAndFilename', `Can't find note '${filename}'`)
+      return false
+    }
+  } catch (error) {
+    logError(pluginJson, `NPP/findParaFromRawContentAndFilename: ${error.message} for note '${filenameIn}'`)
     return false
   }
 }
