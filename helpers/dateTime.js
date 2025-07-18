@@ -569,12 +569,12 @@ export function getISODateStringFromYYYYMMDD(filename: string): string {
  * @param {string} input
  * @returns {string} output
  */
-export function removeDateTags(content: string): string {
-  return content
-    .replace(/<\d{4}-\d{2}-\d{2}/g, '')
-    .replace(/>\d{4}-\d{2}-\d{2}/g, '')
-    .trimEnd()
-}
+// export function removeDateTags(content: string): string {
+//   return content
+//     .replace(/<\d{4}-\d{2}-\d{2}/g, '')
+//     .replace(/>\d{4}-\d{2}-\d{2}/g, '')
+//     .trimEnd()
+// }
 
 /**
  * Remove all >date -related things from a line (and optionally >week, >month, >quarter etc. ones also)
@@ -584,22 +584,22 @@ export function removeDateTags(content: string): string {
  * @param {boolean} removeAllSpecialNoteLinks - if true remove >week, >month, >quarter, >year references too
  * @returns
  */
-export function removeDateTagsAndToday(tag: string, removeAllSpecialNoteLinks: boolean = false): string {
-  let newString = tag,
-    lastPass = tag
-  do {
-    lastPass = newString
-    newString = removeDateTags(tag)
-      .replace(removeAllSpecialNoteLinks ? new RegExp(WEEK_NOTE_LINK, 'g') : '', '')
-      .replace(removeAllSpecialNoteLinks ? new RegExp(MONTH_NOTE_LINK, 'g') : '', '')
-      .replace(removeAllSpecialNoteLinks ? new RegExp(QUARTER_NOTE_LINK, 'g') : '', '')
-      .replace(removeAllSpecialNoteLinks ? new RegExp(YEAR_NOTE_LINK, 'g') : '', '')
-      .replace(/>today/, '')
-      .replace(/\s{2,}/g, ' ')
-      .trimEnd()
-  } while (newString !== lastPass)
-  return newString
-}
+// export function removeDateTagsAndToday(tag: string, removeAllSpecialNoteLinks: boolean = false): string {
+//   let newString = tag,
+//     lastPass = tag
+//   do {
+//     lastPass = newString
+//     newString = removeDateTags(tag)
+//       .replace(removeAllSpecialNoteLinks ? new RegExp(WEEK_NOTE_LINK, 'g') : '', '')
+//       .replace(removeAllSpecialNoteLinks ? new RegExp(MONTH_NOTE_LINK, 'g') : '', '')
+//       .replace(removeAllSpecialNoteLinks ? new RegExp(QUARTER_NOTE_LINK, 'g') : '', '')
+//       .replace(removeAllSpecialNoteLinks ? new RegExp(YEAR_NOTE_LINK, 'g') : '', '')
+//       .replace(/>today/, '')
+//       .replace(/\s{2,}/g, ' ')
+//       .trimEnd()
+//   } while (newString !== lastPass)
+//   return newString
+// }
 
 /**
  * Remove repeats from a string (e.g. @repeat(1/3) or @repeat(2/3) or @repeat(3/3) or @repeat(1/1) or @repeat(2/2) etc.)
