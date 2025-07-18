@@ -230,7 +230,7 @@ export function getParaAndAllChildren(parentPara: TParagraph): Array<TParagraph>
   // Show what we have ...
   logDebug('blocks/getParaAndAllChildren', `Returns ${resultingParas.length} paras:`)
   resultingParas.forEach((item, index, _array) => {
-    console.log(`- ${index}: "${item.content}" with ${item.indents} indents`)
+    logDebug('blocks/getParaAndAllChildren', `- ${index}: "${item.content}" with ${item.indents} indents`)
   })
 
   return resultingParas
