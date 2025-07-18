@@ -8,6 +8,7 @@ import { getRelativeDates } from './NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 import { getHeadingsFromNote } from './NPnote'
+import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 function parseJSON5(contents: string): ?{ [string]: ?mixed } {
@@ -190,93 +191,135 @@ export async function showMessageYesNoCancel(message: string, choicesArray: Arra
 }
 
 /**
- * Let user pick from a nicely-indented list of available folders (or / for root, or optionally create a new folder)
+ * Let user pick from a nicely-indented list of available folders (or / for root, or optionally give a new folder name).
+ * This now shows teamspaces as a special case, with a teamspace icon. TODO: show Teamspace root folder.
+ * Note: the API does not allow for creation of the folder, so all this does is pass back a path which you will need to handle creating.
  * @author @jgclark + @dwertheimer
  *
  * @param {string} msg - text to display to user
  * @param {boolean} includeArchive - if true, include the Archive folder in the list of folders; default is false
- * @param {boolean} includeNewFolderOption - if true, add a 'New Folder' option that will allow users to create a new folder and select it; IMPORTANT
- * NOTE: the API does not allow for creation of the folder, so all this does is pass back a path which will be created when the user saves/moves the note
- * If your use case does not include the creation or moving of a note to the chosen path, this option will not work for you
- * @param {string} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder) - default is root (/) -- set to "/" to force start at root
+ * @param {boolean} includeNewFolderOption - if true, add a 'New Folder' option that will allow users to create a new folder and select it.
+ * @param {string} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder) - default is root (/) -- set to "/" to force start at root.
+ * @param {boolean} includeFolderPath - (optional: default true) Show the folder path (or most of it), not just the last folder name, to give more context.
  * @returns {string} - returns the user's folder choice (or / for root)
  */
-export async function chooseFolder(msg: string, includeArchive?: boolean = false, includeNewFolderOption?: boolean = false, startFolder?: string): Promise<string> {
-  const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
-  const NEW_FOLDER = `➕ (Add New Folder${IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : ''})`
-  let folder: string
-  let folders = []
-  if (includeNewFolderOption) {
-    folders.push(NEW_FOLDER)
-  }
-  folders = [...folders, ...DataStore.folders.slice()] // excludes Trash
-  if (startFolder?.length && startFolder !== '/') {
-    folders = folders.filter((f) => f === NEW_FOLDER || f.startsWith(startFolder))
-  } else {
-    const archiveFolders = folders.filter((f) => f.startsWith('@Archive'))
-    const otherSpecialFolders = folders.filter((f) => f.startsWith('@') && !f.startsWith('@Archive'))
-    // Remove special folders from list
-    folders = folders.filter((f) => !f.startsWith('@'))
-    // Now add them back on at the end, with @Archive going last
-    folders = [...folders, ...otherSpecialFolders]
-    if (includeArchive) {
-      folders = [...folders, ...archiveFolders]
+export async function chooseFolder(msg: string, 
+  includeArchive?: boolean = false, 
+  includeNewFolderOption?: boolean = false, 
+  startFolder?: string = '/', 
+  includeFolderPath?: boolean = true
+): Promise<string> {
+  try {
+    const maxLengthFolderPathToShow = 50 // OK on desktop and iOS, at least for @jgclark
+    const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
+    const NEW_FOLDER = `➕ (Add New Folder${ IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : '' })`
+    let folder: string
+    let folders = []
+    if (includeNewFolderOption) {
+      folders.push(NEW_FOLDER)
     }
-  }
-  let value, keyModifiers
-  if (folders.length > 0) {
-    // make a slightly fancy list with indented labels, different from plain values
-    const folderOptionList: Array<any> = []
-    for (const f of folders) {
-      if (f === NEW_FOLDER) {
-        folderOptionList.push({ label: NEW_FOLDER, value: NEW_FOLDER })
-      } else if (f !== '/') {
-        const folderParts = f.split('/')
-        const icon = (folderParts[0]==='@Archive')
-          ? `🗄️` : (folderParts[0]==='@Templates')
-            ? '📝' : '📁'
-        // Replace earlier parts of the path with indentation spaces
-        for (let i = 0; i < folderParts.length - 1; i++) {
-          folderParts[i] = '     '
-        }
-        folderParts[folderParts.length - 1] =  `${ icon } ${ folderParts[folderParts.length - 1] }`
-        const folderLabel = folderParts.join('')
-        folderOptionList.push({ label: folderLabel, value: f })
-      } else {
-        // deal with special case for root folder
-        folderOptionList.push({ label: '📁 /', value: '/' })
-      }
-    }
-    // const re = await CommandBar.showOptions(folders, msg)
-    ;({ value, keyModifiers } = await chooseOptionWithModifiers(msg, folderOptionList))
-    if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
-      folder = NEW_FOLDER
+    folders = [...folders, ...DataStore.folders.slice()] // excludes Trash
+    if (startFolder?.length && startFolder !== '/') {
+      folders = folders.filter((f) => f === NEW_FOLDER || f.startsWith(startFolder))
     } else {
-      folder = value
-    }
-    logDebug(`helpers/userInput`, `chooseFolder folder:${folder} value:${value} keyModifiers:${keyModifiers} keyModifiers.indexOf('opt')=${keyModifiers.indexOf('opt')}`)
-  } else {
-    // no Folders so go to root
-    folder = '/'
-  }
-  // logDebug('userInput / chooseFolder', `-> ${folder}`)
-  if (folder === NEW_FOLDER) {
-    const optClicked = value?.length && keyModifiers && keyModifiers.indexOf('opt') > -1
-    const newFolderName = await CommandBar.textPrompt(
-      `Create new folder${optClicked ? ` inside folder:\n"${value || ''}".` : '...\nYou will choose where to create the folder in the next step.'}`,
-      'Folder name:',
-      '',
-    )
-    if (newFolderName && newFolderName.length) {
-      const inWhichFolder =
-        optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder? (${startFolder ?? '/'} for root)`, includeArchive, false, startFolder)
-      if (inWhichFolder) {
-        folder = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
+      const archiveFolders = folders.filter((f) => f.startsWith('@Archive'))
+      const otherSpecialFolders = folders.filter((f) => f.startsWith('@') && !f.startsWith('@Archive'))
+      // Remove special folders from list
+      folders = folders.filter((f) => !f.startsWith('@'))
+      // Now add them back on at the end, with @Archive going last
+      folders = [...folders, ...otherSpecialFolders]
+      if (includeArchive) {
+        folders = [...folders, ...archiveFolders]
       }
     }
+    let value: string = ''
+    let keyModifiers: Array<string> = []
+    if (folders.length > 0) {
+      // get list of teamspaces
+      const teamspaceDefs = getAllTeamspaceIDsAndTitles()
+      clo(teamspaceDefs)
+
+      // make a slightly fancy list with indented labels, different from plain values
+      const folderOptionList: Array<any> = []
+      for (const f of folders) {
+        // logDebug(`helpers / userInput`, `chooseFolder f:${ f }`)
+        const isTeamspaceFolder = teamspaceDefs.some((teamspaceDef) => f.includes(teamspaceDef.id))
+        if (f === NEW_FOLDER) {
+          folderOptionList.push({ label: NEW_FOLDER, value: NEW_FOLDER })
+        } else if (f !== '/') {
+          let folderLabel = ''
+          const folderParts = f.split('/')
+          const icon = (isTeamspaceFolder) 
+          ? `👥`
+            : (folderParts[0]==='@Archive')
+              ? `🗄️` 
+              : (folderParts[0]==='@Templates')
+                ? '📝' 
+                : '📁'
+          
+          if (isTeamspaceFolder) {
+            const thisTeamspaceDef = teamspaceDefs.find((thisTeamspaceDef) => f.includes(thisTeamspaceDef.id)) ?? { id: '', title: '(error)' }
+            const teamspaceTitle = getTeamspaceTitleFromID(thisTeamspaceDef.id)
+            if (includeFolderPath) {
+              folderLabel = `${ icon } ${ teamspaceTitle } / ${ folderParts.slice(2).join(' / ') }`
+            } else {
+  folderLabel = `${icon} ${folderParts.slice(2).join(' / ')}`
+}
+          } else if (includeFolderPath) {
+  // Get the folder path prefix, and truncate it if it's too long
+  if (f.length >= maxLengthFolderPathToShow) {
+    const folderPathPrefix = `${f.slice(0, maxLengthFolderPathToShow - folderParts[folderParts.length - 1].length)} …${folderParts[folderParts.length - 1]} `
+    folderLabel = `${icon} ${folderPathPrefix} `
+  } else {
+    folderLabel = `${icon} ${folderParts.join(' / ')} `
   }
+} else {
+  // Replace earlier parts of the path with indentation spaces
+  for (let i = 0; i < folderParts.length - 1; i++) {
+    folderParts[i] = '     '
+  }
+  folderParts[folderParts.length - 1] = `${icon} ${folderParts[folderParts.length - 1]}`
+  folderLabel = folderParts.join('')
+}
+folderOptionList.push({ label: folderLabel, value: f })
+        } else {
+  // deal with special case for root folder
+  folderOptionList.push({ label: '📁 /', value: '/' })
+}
+      }
+; ({ value, keyModifiers } = await chooseOptionWithModifiers(msg, folderOptionList))
+if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
+  folder = NEW_FOLDER
+} else {
+  folder = value
+}
+logDebug(`helpers / userInput`, `chooseFolder folder:${folder} value:${value} keyModifiers:${String(keyModifiers)} keyModifiers.indexOf('opt') = ${keyModifiers.indexOf('opt')} `)
+    } else {
+  // no Folders so go to root
+  folder = '/'
+}
+// logDebug('userInput / chooseFolder', `-> ${ folder } `)
+if (folder === NEW_FOLDER) {
+  const optClicked = value?.length && keyModifiers && keyModifiers.indexOf('opt') > -1
+  const newFolderName = await CommandBar.textPrompt(
+    `Create new folder${optClicked ? ` inside folder:\n"${value || ''}".` : '...\nYou will choose where to create the folder in the next step.'} `,
+    'Folder name:',
+    '',
+  )
+  if (newFolderName && newFolderName.length) {
+    const inWhichFolder =
+      optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder ? (${startFolder ?? '/'} for root)`, includeArchive, false, startFolder)
+    if (inWhichFolder) {
+      folder = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
+    }
+  }
+}
 logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
 return folder
+  } catch (error) {
+  logError('userInput / chooseFolder', error.message)
+  return ''
+}
 }
 
 /**
