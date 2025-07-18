@@ -10,7 +10,7 @@ import { JSP, clo, log, logError, logWarn, logDebug, clof } from '@helpers/dev'
 import { getTodaysReferences, findOpenTodosInNote } from '@helpers/NPnote'
 import { showMessage } from '@helpers/userInput'
 import { isTimeBlockLine } from '@helpers/timeblocks'
-import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { insertContentUnderHeading } from '@helpers/NPParagraph'
 
@@ -146,7 +146,7 @@ export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig, isSyncedC
   const backLinksAndNoteTodos = config.mode === 'MANUAL_ORDERING' && !isSyncedCopyRun ? todosInNote : [...backlinkParas, ...todosInNote]
 
   logDebug(pluginJson, `Found ${backLinksAndNoteTodos.length} backlinks+today-note items (may include completed items)`)
-  const undupedBackLinkParas = eliminateDuplicateSyncedParagraphs(backLinksAndNoteTodos, 'first', true)
+  const undupedBackLinkParas = eliminateDuplicateParagraphs(backLinksAndNoteTodos, 'first', true)
   logDebug(pluginJson, `Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
   // let todosParagraphs: Array<TParagraph> = makeAllItemsTodos(undupedBackLinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
   // logDebug(pluginJson, `After makeAllItemsTodos, ${todosParagraphs.length} potential items`)

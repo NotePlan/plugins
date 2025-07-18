@@ -16,7 +16,8 @@ import {
   sectionDisplayOrder,
   sectionPriority,
 } from '../../constants.js'
-import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
+import { copyUpdatedSectionItemData } from '../../dataGeneration.js'
+import { findSectionItems } from '../../dashboardHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'

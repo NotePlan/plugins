@@ -11,20 +11,28 @@ export const textWithoutSyncedCopyTag = (text: string): string => text.replace(n
  * Eliminate duplicate paragraphs (especially for synced lines), defined as:
  * - the content is the same
  * - the blockID is the same (multiple notes referencing this one) if 'syncedLinesOnly' is true
- * By default it keeps the first copy it finds ... so this is dependent on the order of paras passed to the function.
- * But you can select the most recently-changed note's version instead, by passing 'most-recent' as second parameter.
+ * Parameter 'keepWhich' defines which copy to keep:
+ * - 'first' (default) keeps the first copy it finds ... so this is dependent on the order of paras passed to the function.
+ * - 'most-recent' keeps the most recently-changed note's version instead.
+ * - 'regular-notes' keeps Regular (earlier called 'Project') notes in preference to Calendar notes. If there are multiple Regular notes, it keeps the first of those.
  * @author @dwertheimer updated by @jgclark
  * @param {Array<TParagraph>} paras: Array<TParagraph>
- * @param {string} keepWhich = 'first' (default) or 'most-recent'
+ * @param {string} keepWhich = 'first' (default), 'most-recent' or 'regular-notes'
  * @param {boolean} syncedLinesOnly = false (default) or true - only eliminate duplicates if they are synced lines (plain lines are allowed even when dupes)
  * @returns Array<TParagraph> unduplicated paragraphs
  */
-export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, keepWhich?: string = 'first', syncedLinesOnly?: boolean = false): Array<TParagraph> {
+export function eliminateDuplicateParagraphs(paras: Array<TParagraph>, keepWhich?: string = 'first', syncedLinesOnly?: boolean = false): Array<TParagraph> {
   try {
-    // logDebug('eliminateDuplicateSyncedParagraphs', `starting for ${String(paras.length)} paras with ${keepWhich}`)
+    logDebug('eDSP', `starting for ${String(paras.length)} paras with ${keepWhich}`)
     const revisedParas = []
     if (paras?.length > 0) {
-      const sortedParas = keepWhich === 'most-recent' ? sortListBy(paras, ['-note.changedDate']) : paras
+      const sortedParas =
+        keepWhich === 'most-recent'
+          ? sortListBy(paras, ['-note.changedDate'])
+          : keepWhich === 'regular-notes'
+            ? sortListBy(paras, ['-note.type'])
+            : paras
+      // logDebug('eDSP', `sortedParas: ${sortedParas.map((p) => p?.note?.type + ':' + p?.note?.filename).join(' / ')}`)
 
       // keep first in list (either way)
       sortedParas.forEach((e) => {
@@ -50,7 +58,7 @@ export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, kee
     }
     return revisedParas
   } catch (err) {
-    logError('eliminateDuplicateSyncedParagraphs', JSP(err))
+    logError('eliminateDuplicateParagraphs', JSP(err))
     return [] // for completeness
   }
 }

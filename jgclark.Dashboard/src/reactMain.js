@@ -8,7 +8,7 @@
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getDashboardSettings, getLogSettings, getNotePlanSettings, getListOfEnabledSections } from './dashboardHelpers'
+import { getDashboardSettings, getLogSettings, getNotePlanSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { getAllSectionsData } from './dataGeneration'
 import { getPerspectiveSettings, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
@@ -345,6 +345,12 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
     // Start generating data for the enabled sections
     if (!config.FFlag_ForceInitialLoadForBrowserDebugging) {
       await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
+    } else {
+      // If force initial load is enabled, we still need to set firstRun to false
+      const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      if (reactWindowData?.pluginData) {
+        await setPluginData({ firstRun: false }, 'Setting firstRun to false after force initial load')
+      }
     }
     logInfo('reactWindowInitialisedSoStartGeneratingData', `----- END OF GENERATION ------`)
 

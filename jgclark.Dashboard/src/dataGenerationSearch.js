@@ -14,7 +14,7 @@ import type { TDashboardSettings, TSection, TSectionItem } from './types'
 import {
   createSectionItemObject,
   getDashboardSettings,
-  isLineDisallowedByExcludedTerms,
+  isLineDisallowedByIgnoreTerms,
   makeDashboardParas,
   mergeSections,
   setPluginData,
@@ -118,7 +118,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
       // If wanted, now apply rest of Perpsective filtering: is paragraph in a disallowed section header?
       if (config.applyCurrentFilteringToSearch && config.applyCurrentFilteringToSearch && config.ignoreItemsWithTerms !== '') {
         logInfo('getSearchResults', `- applying Perspective filtering to item {${thisPara.content}}`)
-        if (isLineDisallowedByExcludedTerms(thisPara.content, config.ignoreItemsWithTerms)) {
+        if (isLineDisallowedByIgnoreTerms(thisPara.content, config.ignoreItemsWithTerms)) {
           logInfo('getSearchResults', `- ignoring item {${thisPara.content}} as it  because it contains a disallowed term`)
           keepItem = false
         }
@@ -127,7 +127,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
         if (config.applyIgnoreTermsToCalendarHeadingSections) {
           const theseHeadings = getHeadingHierarchyForThisPara(thisPara)
           for (const thisHeading of theseHeadings) {
-            if (isLineDisallowedByExcludedTerms(thisHeading, config.ignoreItemsWithTerms)) {
+            if (isLineDisallowedByIgnoreTerms(thisHeading, config.ignoreItemsWithTerms)) {
               logInfo('getSearchResults', `- ignoring item {${thisPara.content}} as it under disallowed heading '${thisHeading}'`)
               keepItem = false
             }

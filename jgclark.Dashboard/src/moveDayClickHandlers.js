@@ -6,7 +6,8 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { WEBVIEW_WINDOW_ID } from './constants'
-import { getOpenItemParasForTimePeriod, getRelevantOverdueTasks, getDashboardSettings } from './dashboardHelpers'
+import { getOpenItemParasForTimePeriod, getDashboardSettings } from './dashboardHelpers'
+import { getRelevantOverdueTasks } from './dataGenerationOverdue'
 import { type MessageDataObject, type TBridgeClickHandlerResult } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer } from '@helpers/dev'
 import {

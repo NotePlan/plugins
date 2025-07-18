@@ -16,11 +16,11 @@ import {
   getListOfEnabledSections,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
-  getRelevantOverdueTasks,
   getRelevantPriorityTasks,
   makeDashboardParas,
 } from './dashboardHelpers'
 import { getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
+import { getOverdueSectionData } from './dataGenerationOverdue'
 import { getProjectSectionData } from './dataGenerationProjects'
 import { getSavedSearchResults } from './dataGenerationSearch'
 import { getTaggedSectionData } from './dataGenerationTags'
@@ -28,6 +28,7 @@ import { getLastWeekSectionData, getThisWeekSectionData } from './dataGeneration
 import { openMonthParas, refMonthParas, tagParasFromNote } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import { removeInvalidTagSections } from './perspectiveHelpers'
+import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
 import { getDateStringFromCalendarFilename, getNPMonthStr, getNPQuarterStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getHeadingsFromNote } from '@helpers/NPnote'
@@ -145,16 +146,17 @@ export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: bo
   const liveWindowRect: Rect | false = getLiveWindowRect('')
   outputLines.push(`stored window rect: ${storedWindowRect ? rectToString(storedWindowRect) : 'no stored window rect'}`)
   outputLines.push(`live window rect: ${liveWindowRect ? rectToString(liveWindowRect) : 'no live window rect'}`)
-  const sectionNumStr = 'INFO'
+  const sectionNumStr = '20'
   let itemCount = 0
-  const items: Array<TSectionItem> = outputLines.map((line) => (
-    {
+  const items: Array<TSectionItem> = outputLines.map((line) => {
+    const item = {
       ID: `${sectionNumStr}-${itemCount}`,
       itemType: 'info',
       message: line,
     }
-  ))
-  itemCount++
+    itemCount += 1
+    return item
+  })
   sections.push({
     ID: 'INFO',
     name: 'Info',
@@ -578,133 +580,6 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
 
 // ----------------------------------------------------------
 /**
- * Generate data for a section for Overdue tasks
- * @param {TDashboardSettings} config
- * @param {boolean} useDemoData?
- */
-export async function getOverdueSectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
-  try {
-    const sectionNumStr = '13'
-    const thisSectionCode = 'OVERDUE'
-    let totalOverdue = 0
-    let itemCount = 0
-    let overdueParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
-    let dashboardParas: Array<TParagraphForDashboard> = []
-    const maxInSection = config.maxItemsToShowInSection
-    const NPSettings = getNotePlanSettings()
-    const thisStartTime = new Date()
-
-    logInfo('getOverdueSectionData', `------- Gathering Overdue Tasks for section #${String(sectionNumStr)} -------`)
-    if (useDemoData) {
-      // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
-      for (let c = 0; c < 60; c++) {
-        // const thisID = `${sectionNumStr}-${String(c)}`
-        const thisType = c % 3 === 0 ? 'checklist' : 'open'
-        const priorityPrefix = c % 20 === 0 ? '!!! ' : c % 10 === 0 ? '!! ' : c % 5 === 0 ? '! ' : ''
-        const fakeDateMom = new moment('2023-10-01').add(c, 'days')
-        const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
-        const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
-        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${NPSettings.defaultFileExtension}` : `fake_note_${String(c % 7)}.${NPSettings.defaultFileExtension}`
-        const type = c % 3 < 2 ? 'Calendar' : 'Notes'
-        const content = `${priorityPrefix}test overdue item ${c} >${fakeIsoDateStr}`
-        overdueParas.push({
-          filename: filename,
-          content: content,
-          rawContent: `${thisType === 'open' ? '*' : '+'} ${priorityPrefix}${content}`,
-          type: thisType,
-          note: {
-            filename: filename,
-            title: `Overdue Test Note ${c % 10}`,
-            type: type,
-            changedDate: fakeDateMom.toDate(),
-          },
-        })
-      }
-    } else {
-      // Get overdue tasks (de-duping any sync'd lines)
-      // Note: Cannot move the reduce into here otherwise separate call to this function by scheduleAllOverdueOpenToToday() doesn't have all it needs to work
-      overdueParas = await getRelevantOverdueTasks(config, [])
-      logDebug('getOverdueSectionData', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
-    }
-
-    const items: Array<TSectionItem> = []
-
-    if (overdueParas.length > 0) {
-      // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
-      // Note: this takes ~600ms for 1,000 items
-      dashboardParas = makeDashboardParas(overdueParas)
-      logDebug('getOverdueSectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
-
-      totalOverdue = dashboardParas.length
-
-      // Sort paragraphs by one of several options
-      const sortOrder =
-        config.overdueSortOrder === 'priority'
-          ? ['-priority', '-changedDate']
-          : config.overdueSortOrder === 'earliest'
-            ? ['changedDate', '-priority']
-            : config.overdueSortOrder === 'due date'
-              ? ['dueDate', '-priority']
-              : ['-changedDate', '-priority'] // 'most recent'
-      const sortedOverdueTaskParas = sortListBy(dashboardParas, sortOrder)
-      logDebug('getOverdueSectionData', `- Sorted ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
-
-      // Apply limit to set of ordered results
-      // Note: Apply some limiting here, in case there are hundreds of items. There is also display filtering in the Section component via useSectionSortAndFilter.
-      // Note: this doesn't attempt to calculate parentIDs. TODO: Should it?
-      const overdueTaskParasLimited = totalOverdue > maxInSection
-        ? sortedOverdueTaskParas.slice(0, maxInSection)
-        : sortedOverdueTaskParas
-      logInfo('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} of ${totalOverdue} items will be passed to React`)
-      overdueTaskParasLimited.map((p) => {
-        const thisID = `${sectionNumStr}-${itemCount}`
-        items.push(createSectionItemObject(thisID, p))
-        itemCount++
-      })
-    }
-    logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
-
-    let sectionDescription = `{countWithLimit} open {itemType} ${config.lookBackDaysForOverdue > 0
-      ? `from last ${String(config.lookBackDaysForOverdue)} days `
-      : ''}ordered by ${config.overdueSortOrder}`
-    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
-
-    const section: TSection = {
-      ID: sectionNumStr,
-      name: 'Overdue Tasks',
-      showSettingName: 'showOverdueSection',
-      sectionCode: thisSectionCode,
-      description: sectionDescription,
-      FAIconClass: 'fa-regular fa-alarm-exclamation',
-      // no sectionTitleColorPart, so will use default
-      sectionFilename: '',
-      sectionItems: items,
-      generatedDate: new Date(),
-      totalCount: totalOverdue,
-      isReferenced: false,
-      actionButtons: [
-        {
-          actionName: 'scheduleAllOverdueToday',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: 'Schedule all Overdue tasks to Today',
-          display: 'All Overdue <i class="fa-solid fa-right-long"></i> Today',
-          actionParam: '',
-          postActionRefresh: ['OVERDUE'],
-        },
-      ],
-    }
-    // console.log(JSON.stringify(section))
-    logTimer('getOverdueSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
-    return section
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-    // $FlowFixMe[incompatible-return]
-    return null
-  }
-}
-
-// ----------------------------------------------------------
-/**
  * Generate data for a section of raised Priority tasks
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
@@ -724,16 +599,16 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
     logInfo('getPrioritySectionData', `------- Gathering Priority Tasks for section #${String(sectionNumStr)} -------`)
     if (useDemoData) {
       // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
-      for (let c = 0; c < 60; c++) {
+      for (let c = 0; c < 30; c++) {
         // const thisID = `${sectionNumStr}-${String(c)}`
         const thisType = c % 3 === 0 ? 'checklist' : 'open'
-        const priorityPrefix = c % 20 === 0 ? '>> ' : c % 10 === 0 ? '!!! ' : c % 5 === 0 ? '!! ' : '! '
+        const priorityPrefix = c % 30 === 0 ? '>> ' : c % 21 === 0 ? '!!! ' : c % 10 === 0 ? '!! ' : '! '
         const fakeDateMom = new moment('2023-10-01').add(c, 'days')
         const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
         const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
         const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${NPSettings.defaultFileExtension}` : `fake_note_${String(c % 7)}.${NPSettings.defaultFileExtension}`
         const type = c % 3 < 2 ? 'Calendar' : 'Notes'
-        const content = `${priorityPrefix}test priority item ${c} >${fakeIsoDateStr}`
+        const content = `${priorityPrefix}test priority item ${String(c + 1)} >${fakeIsoDateStr}`
         priorityParas.push({
           filename: filename,
           content: content,
@@ -741,7 +616,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
           type: thisType,
           note: {
             filename: filename,
-            title: `Priority Test Note ${c % 10}`,
+            title: `Priority Test Note ${(c % 10) + 1}`,
             type: type,
             changedDate: fakeDateMom.toDate(),
           },
@@ -763,7 +638,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
       logDebug('getPrioritySectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
 
       // TODO(later): Remove possible dupes from sync'd lines
-      // priorityParas = eliminateDuplicateSyncedParagraphs(priorityParas)
+      // priorityParas = eliminateDuplicateParagraphs(priorityParas)
       // logTimer('getPrioritySectionData', thisStartTime, `- after sync lines dedupe -> ${priorityParas.length}`)
 
       totalPriority = dashboardParas.length
@@ -815,59 +690,10 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
 }
 
 /**
- * Finds all items within the provided sections that match the given field/value pairs.
- *
- * @param {Array<TSection>} sections - An array of section objects containing sectionItems.
- * @param {Array<string>} fieldPathsToMatch - An array of field paths (e.g., 'para.filename', 'itemType') to match against.
- * @param {Object<string, string|RegExp>} fieldValues - An object containing the field values to match against. Values can be strings or regular expressions.
- * @returns {Array<SectionItemIndex>} An array of objects containing the section index and item index for each matching item.
- * @example const indexes = findSectionItems(sections, ['itemType', 'filename', 'para.content'], { itemType: /open|checklist/, filename: oldFilename, 'para.content': oldContent }) // find all references to this content (could be in multiple sections)
-
- * @author @dwertheimer
- */
-export function findSectionItems(
-  sections: Array<TSection>,
-  fieldPathsToMatch: Array<string>,
-  fieldValues: { [key: string]: string | RegExp },
-): Array<{ sectionIndex: number, itemIndex: number }> {
-  const matches: Array<{ sectionIndex: number, itemIndex: number }> = []
-
-  sections.forEach((section, sectionIndex) => {
-    section.sectionItems.forEach((item, itemIndex) => {
-      const isMatch = fieldPathsToMatch.every((fieldPath) => {
-        const itemFieldValue = getNestedValue(item, fieldPath)
-        if (!itemFieldValue) {
-          logDebug(`findSectionItems: ${fieldPath} is undefined in ${JSP(item)} -- may be ok if you are looking for a task and this is a review item`)
-          return false
-        }
-        const fieldValue = fieldValues[fieldPath]
-        if (fieldValue instanceof RegExp) {
-          return fieldValue.test(itemFieldValue)
-        } else {
-          // logDebug(
-          //   `findSectionItems:`,
-          //   `${item.ID} itemFieldValue: ${itemFieldValue} ${
-          //     itemFieldValue ? (itemFieldValue === fieldValue ? 'equals' : 'does not equal') : 'is undefined'
-          //   } fieldValue: ${fieldValue}`,
-          // )
-          return itemFieldValue ? itemFieldValue === fieldValue : false
-        }
-      })
-
-      if (isMatch) {
-        matches.push({ sectionIndex, itemIndex })
-      }
-    })
-  })
-
-  return matches
-}
-
-/**
  * Copies specified fields from a provided object into the corresponding sectionItems in the sections array.
  *
  * @param {Array<SectionItemIndex>} results - An array of results from the findSectionItems function, containing section and item indices.
- * @param {Array<string>} fieldPathsToReplace - An array of field paths (maybe nested) within TSectionItem (e.g. 'itemType', 'para.filename') to copy from the provided object.
+ * @param {Array<string>} fieldPathsToReplace - An array of field paths (maybe nested) within TSectionItem (e.g. ['itemType', 'para.filename']) to copy from the provided object.
  * @param {Object} updatedValues - The object containing the field values to be copied -- the keys are the field paths (can be strings with dots, e.g. para.filename) and the values are the values to copy.
  * @param {Array<TSection>} sections - The original sections array to be modified.
  * @returns {Array<TSection>} The modified sections array with the specified fields copied into the corresponding sectionItems.
@@ -892,48 +718,4 @@ export function copyUpdatedSectionItemData(
   })
 
   return sections
-}
-
-/**
- * Helper function to get the value of a nested field in an object.
- *
- * @param {Object} obj - The object to search for the nested field.
- * @param {string} path - The path to the nested field, e.g., 'para.filename'.
- * @returns {any} The value of the nested field, or undefined if the field doesn't exist.
- */
-function getNestedValue(obj: any, path: string) {
-  const fields = path.split('.')
-  let value = obj
-
-  for (const field of fields) {
-    if (value && typeof value === 'object' && field in value) {
-      value = value[field]
-    } else {
-      return undefined
-    }
-  }
-
-  return value
-}
-
-/**
- * Helper function to set the value of a nested field in an object.
- *
- * @param {Object} obj - The object to set the nested field value in.
- * @param {string} path - The path to the nested field, e.g., 'para.filename'.
- * @param {any} value - The value to set for the nested field.
- */
-function setNestedValue(obj: any, path: string, value: any) {
-  const fields = path.split('.')
-  let currentObj = obj
-
-  for (let i = 0; i < fields.length - 1; i++) {
-    const field = fields[i]
-    if (!currentObj.hasOwnProperty(field)) {
-      currentObj[field] = {}
-    }
-    currentObj = currentObj[field]
-  }
-  const finalField = fields[fields.length - 1]
-  currentObj[finalField] = value
 }

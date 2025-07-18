@@ -48,7 +48,7 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 ]
 
 export const searchPanelSettings: Array<TSettingItem> = [
-  // TODO: fill in
+  // TODO(laurel): fill in or drop
   {},
 ]
 
@@ -62,10 +62,10 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'heading',
     label: 'Perspectives',
     description:
-      "A 'Perspective' is a named set of all your Dashboard settings below, including which folders to include/ignore, which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default (which can't be deleted).",
+      "A 'Perspective' is a named set of all your Dashboard settings below, and also includes which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default, which can't be deleted.",
   },
   {
-    key: 'usePerspectives', // was 'perspectivesEnabled' before v2.2.0
+    key: 'usePerspectives',
     label: 'Enable Perspectives',
     description: '',
     type: 'switch',
@@ -344,7 +344,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Number of days to look back for Overdue tasks',
     description: 'If set to any number > 0, will restrict Overdue tasks to just this last number of days.',
     type: 'number',
-    default: 7,
+    default: 31,
     compactDisplay: true,
   },
   {

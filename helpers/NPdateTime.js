@@ -8,6 +8,7 @@ import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
 import {
+  convertISODateFilenameToNPDayFilename,
   getWeek,
   hyphenatedDateString,
   isoWeekStartEndDates,
@@ -17,21 +18,21 @@ import {
   isWeeklyDateStr,
   isYearlyDateStr,
   isValidCalendarNoteTitleStr,
-  // MOMENT_FORMAT_NP_ISO,
   MOMENT_FORMAT_NP_DAY,
   MOMENT_FORMAT_NP_MONTH,
   MOMENT_FORMAT_NP_QUARTER,
   RE_DATE,
-  RE_YYYYMMDD_DATE,
   RE_NP_MONTH_SPEC,
   RE_NP_QUARTER_SPEC,
   RE_NP_WEEK_SPEC,
   RE_NP_YEAR_SPEC,
+  RE_YYYYMMDD_DATE,
   todaysDateISOString,
   toISOShortDateTimeString,
 } from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
-// import { displayTitle } from './general'
+import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from './regex'
+import { hasScheduledDate } from './utils'
 
 //--------------------------------------------------------------------------------
 // Local copies of other helpers to avoid circular dependencies
@@ -965,7 +966,6 @@ export function getWeekOptions(): $ReadOnlyArray<{ label: string, value: string 
  * Returns just the most significant unit ("in 2 months", "a week ago" etc.)
  * Note: uses the moment library (instead of my original), but if 'useShortStyle' set then tweaks output slightly (in English), to match my original.
  * Note: non-locale original version at dateTime::relativeDateFromNumber()
- * TODO: this could move to ./dateTime
  * @author @jgclark
  * @param {number} diffIn - number of days difference (positive or negative)
  * @param {boolean?} shortStyle?
@@ -1195,5 +1195,42 @@ export function getTimeRangeFromTimeBlockString(timeBlockStr: string): [string, 
   } catch (error) {
     logError('getTimeRangeFromTimeBlockString', `${error.message} from time block '${timeBlockStr}'`)
     return ['23:59', '23:59'] // report as being at end of day
+  }
+}
+
+/**
+ * Get the due date from paragraph content, or if none, then start of period of calendar note, or if a regular note, then empty string.
+ * @param {TParagraph} p
+ * @param {boolean} useISOFormatOutput? if true, then return the date in ISO YYYY-MM-DD format, otherwise YYYYMMDD format
+ * @returns {string} date or empty string
+ */
+export function getDueDateOrStartOfCalendarDate(p: TParagraph, useISOFormatOutput: boolean = true): string {
+  try {
+    let dueDateStr = ''
+    const hasDueDate = hasScheduledDate(p.content)
+    if (hasDueDate) {
+      // Get the first scheduled date from the content
+      const dueDateMatch = p.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE)
+      if (dueDateMatch) {
+        dueDateStr = getFirstDateInPeriod(dueDateMatch[1])
+      }
+    } else {
+      // If this is from a calendar note, then use that date instead
+      if (!p.note) {
+        throw new Error(`No note found for para {${p.content}}`)
+      }
+      if (p.note.type === 'Calendar') {
+        // $FlowIgnore[incompatible-call]
+        const dueDate = getFirstDateInPeriod(p.note.title)
+        if (dueDate) {
+          dueDateStr = dueDate
+        }
+      }
+    }
+    // logDebug('getDueDateOrStartOfCalendarDate', `dueDateStr: ${dueDateStr} in note ${note.filename}`)
+    return useISOFormatOutput ? dueDateStr : convertISODateFilenameToNPDayFilename(dueDateStr)
+  } catch (error) {
+    logError('getDueDateOrStartOfCalendarDate', error.message)
+    return ''
   }
 }

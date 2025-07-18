@@ -24,7 +24,7 @@ import { getNoteTitleFromFilename } from '@helpers/NPnote'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { fullWordMatch, trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
-import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { showMessageYesNo } from '@helpers/userInput'
 
 //------------------------------------------------------------------------------
@@ -948,7 +948,7 @@ export async function runExtendedSearch(
 
       // Dedupe identical synced lines
       logDebug('runExtendedSearch', `- Before dedupe, ${resultParas.length} results for '${searchTerm}'`)
-      resultParas = eliminateDuplicateSyncedParagraphs(resultParas, 'most-recent', true)
+      resultParas = eliminateDuplicateParagraphs(resultParas, 'most-recent', true)
       logDebug('runExtendedSearch', `- After dedupe, ${resultParas.length} results for '${searchTerm}'`)
 
       // Look-up table for sort details

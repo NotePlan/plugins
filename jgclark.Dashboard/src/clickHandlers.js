@@ -4,11 +4,11 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-07-06 for v2.3.0.b4, @jgclark
+// Last updated 2025-07-11 for v2.3.0.b, @jgclark
 //-----------------------------------------------------------------------------
 import moment from 'moment/min/moment-with-locales'
 // import pluginJson from '../plugin.json'
-import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
+import { getDashboardSettings, getDashboardSettingsDefaults, handlerResult, makeDashboardParas, setPluginData } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettingsInAPerspective } from './perspectiveHelpers'
 import { validateAndFlattenMessageObject } from './shared'
@@ -22,7 +22,6 @@ import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFrom
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { getWindowFromCustomId, getLiveWindowRectFromWin, rectToString, storeWindowRect } from '@helpers/NPWindows'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
-// import { isTeamspaceNoteFromFilename } from '@helpers/teamspace'
 import { processChosenHeading } from '@helpers/userInput'
 
 /****************************************************************************************************************************
@@ -158,12 +157,12 @@ export async function doAddItemToFuture(data: MessageDataObject): Promise<TBridg
  */
 export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedParagraph = await completeItem(filename, content)
-  // clo(updatedParagraph, `doCompleteTask -> updatedParagraph`)
+  const completedParagraph = await completeItem(filename, content)
+  // clo(completedParagraph, `doCompleteTask -> completedParagraph`)
 
-  if (typeof updatedParagraph !== 'boolean') {
-    logDebug('doCompleteTask', `-> {${updatedParagraph.content}}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'INCREMENT_DONE_COUNT'], { updatedParagraph })
+  if (typeof completedParagraph !== 'boolean') {
+    logDebug('doCompleteTask', `-> {${completedParagraph.content}}`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'INCREMENT_DONE_COUNT'], { updatedParagraph: completedParagraph })
   } else {
     logWarn('doCompleteTask', `-> failed`)
     return handlerResult(false)
@@ -280,7 +279,7 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
     throw new Error(`updateItemContent: No para.note found for filename ${filename} and content ${content}`)
   }
 
-  return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
+  return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([para])[0] })
 }
 
 /**
@@ -343,7 +342,7 @@ export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerRe
     logDebug('doUnscheduleItem', `- found updated paragraph, and will update display of the item and section ${sectionCodes}`)
     // Now ask to update this line in the display
     // sendToHTMLWindow(windowId, 'unscheduleItem', data)
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'REFRESH_SECTION_IN_JSON'], { updatedParagraph: updatedParagraph, sectionCodes: sectionCodes })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'REFRESH_SECTION_IN_JSON'], { updatedParagraph: makeDashboardParas([updatedParagraph])[0], sectionCodes: sectionCodes })
   }
 }
 
@@ -351,10 +350,9 @@ export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerRe
 export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
 
-  // Get para
+  // Get full TParagraph to work on
   const para = findParaFromStringAndFilename(filename, content)
   if (para && typeof para !== 'boolean') {
-    // const paraContent = para.content ?? 'error'
     // logDebug('doCyclePriorityStateUp', `will cycle priority on para {${paraContent}}`)
     // Note: next 2 lines have to be this way around, otherwise a race condition
     // const newPriority = (getTaskPriority(paraContent) + 1) % 5
@@ -363,7 +361,7 @@ export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHan
     logDebug('doCyclePriorityStateUp', `cycling priority -> {${JSP(updatedContent)}}`)
 
     // Now ask to update this line in the display
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([para])[0] })
   } else {
     logWarn('doCyclePriorityStateUp', `-> unable to find para {${content}} in filename ${filename}`)
     return handlerResult(false, [], { errorMsg: `unable to find para "${content}" in filename: "${filename}"` })
@@ -385,7 +383,7 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
     logDebug('doCyclePriorityStateDown', `cycling priority -> {${updatedContent}}`)
 
     // Now ask to update this line in the display
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([para])[0] })
   } else {
     logWarn('doCyclePriorityStateDown', `-> unable to find para {${content}} in filename ${filename}`)
     return handlerResult(false, [], { errorMsg: `unable to find para "${content}" in filename: "${filename}"` })

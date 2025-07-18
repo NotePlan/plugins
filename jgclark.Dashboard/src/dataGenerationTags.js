@@ -9,7 +9,7 @@ import type { TDashboardSettings, TSection, TSectionItem, TSectionDetails } from
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionItemObject,
-  isLineDisallowedByExcludedTerms,
+  isLineDisallowedByIgnoreTerms,
   makeDashboardParas,
 } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
@@ -23,7 +23,7 @@ import { getNoteByFilename } from '@helpers/note'
 import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { caseInsensitiveSubstringMatch, caseInsensitiveMatch } from '@helpers/search'
-import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
@@ -147,7 +147,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
         // Save this para, unless in matches the 'ignoreItemsWithTerms' setting (now modified to exclude this tag/mention)
         for (const p of filteredTagParasFromNote) {
-          if (!isLineDisallowedByExcludedTerms(p.content, ignoreTermsMinusTagCSV)) {
+          if (!isLineDisallowedByIgnoreTerms(p.content, ignoreTermsMinusTagCSV)) {
             filteredTagParas.push(p)
           } else {
             // logDebug('getTaggedSectionData', `- ignoring para {${p.content}}`)
@@ -169,7 +169,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
       if (filteredTagParas.length > 0) {
         // Remove possible dupes from these sync'd lines. Note: this is a quick operation, as we aren't using the 'most recent' option (which does a sort)
-        filteredTagParas = eliminateDuplicateSyncedParagraphs(filteredTagParas)
+        filteredTagParas = eliminateDuplicateParagraphs(filteredTagParas)
         logTimer('getTaggedSectionData', thisStartTime, `- after sync dedupe -> ${filteredTagParas.length}`)
 
         // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)

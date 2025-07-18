@@ -239,7 +239,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
  */
 export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNumStr = '19'
+    let sectionNumStr = '19' // Note: out of order, because it was added later.
     const thisSectionCode = 'LW'
     const sections: Array<TSection> = []
     let items: Array<TSectionItem> = []
