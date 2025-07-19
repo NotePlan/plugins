@@ -7,6 +7,8 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 ## [2.0.8] 2025-07-19 @dwertheimer
 - Fix edge case where `getValuesForKey` was not working correctly
 - Fix bug with scriptlet slurping tags <%_ and _%>
+- Add `web.services` to globals to get automatic await stmt
+
 
 ## [2.0.7] 2025-07-15 @dwertheimer
 - Fix renderTemplate() bug that was showing frontmatter in result

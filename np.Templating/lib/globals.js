@@ -282,6 +282,7 @@ export const asyncFunctions = [
   'web.affirmation',
   'web.journalingQuestion',
   'web.quote',
+  'web.services',
   'web.stoicQuote',
   'web.verse',
   'web.weather',
