@@ -470,6 +470,21 @@ describe('Code Tag Processing Functions', () => {
       expect(result.endDelim).toBe('%>')
     })
 
+    it('should handle multi-line content with slurp tags', () => {
+      const tag = `<%_
+        if (condition) {
+          doSomething()
+        }
+      _%>`
+      const result = parseCodeTag(tag)
+
+      expect(result).not.toBeNull()
+      expect(result.startDelim).toBe('<%_')
+      expect(result.rawCodeContent).toContain('if (condition)')
+      expect(result.rawCodeContent).toContain('doSomething()')
+      expect(result.endDelim).toBe('_%>')
+    })
+
     it('should return null for invalid tags', () => {
       expect(parseCodeTag('not a tag')).toBeNull()
       expect(parseCodeTag('<% incomplete')).toBeNull()
