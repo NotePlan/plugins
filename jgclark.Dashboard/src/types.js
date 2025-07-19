@@ -185,7 +185,7 @@ export type TParagraphForDashboard = {
   prefix?: string,
   content: string,
   rawContent: string,
-  indentLevel: number, // indent level (i.e. children will be 1+)
+  indents: number, // indent level (i.e. children will be 1+)
   lineIndex: number, // needed for child ordering processing
   priority: number,
   blockId?: string,

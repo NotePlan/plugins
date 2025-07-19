@@ -211,6 +211,7 @@ export function isAChildPara(thisPara: TParagraph, thisNote: TNote): boolean {
  * @returns {Array<TParagraph>} - array of child paragraphs
  */
 export function getParaAndAllChildren(parentPara: TParagraph): Array<TParagraph> {
+  clo(parentPara, 'getParaAndAllChildren() starting with parentPara=')
   const allChildren = parentPara.children()
   if (!allChildren || allChildren.length === 0) {
     logDebug('blocks/getParaAndAllChildren', `No child paragraphs found`)

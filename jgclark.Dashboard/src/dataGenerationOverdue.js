@@ -140,7 +140,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       items.push({
         ID: `${sectionNumStr}-${String(overdueParas.length)}`,
         itemType: 'preLimitOverdues',
-        message: `There are ${preLimitCount - overdueParas.length} overdue tasks, beyond the most recent ${config.lookBackDaysForOverdue} days`,
+        message: `There are ${preLimitCount - overdueParas.length} overdue tasks older than the window set to ${config.lookBackDaysForOverdue} days`,
       })
     }
     logDebug('getOverdueSectionData', `- items: ${JSON.stringify(items)}`)

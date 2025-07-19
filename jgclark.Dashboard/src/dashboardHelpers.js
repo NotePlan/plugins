@@ -244,7 +244,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           prefix: p.rawContent.replace(p.content, ''),
           content: p.content,
           rawContent: p.rawContent,
-          indentLevel: p.indents, // TEST: not returning correct indents at times?
+          indents: p.indents, // TEST: not returning correct indents at times? Certainly lands up being 0 when it should be 1.
           lineIndex: p.lineIndex,
           priority: getNumericPriorityFromPara(p),
           startTime: startTimeStr,
@@ -846,20 +846,20 @@ export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TPa
     // Now add parentID where relevant
     if (socp.isAChild) {
       const parentParaID =
-        socp.indentLevel === 1
+        socp.indents === 1
           ? lastIndent0ParentID
-          : socp.indentLevel === 2
+          : socp.indents === 2
           ? lastIndent1ParentID
-          : socp.indentLevel === 3
+            : socp.indents === 3
           ? lastIndent2ParentID
-          : socp.indentLevel === 4
+              : socp.indents === 4
           ? lastIndent3ParentID
           : '' // getting silly by this point, so stop
       thisSectionItemObject.parentID = parentParaID
       // logDebug(``, `- found parentID ${parentParaID} for ID ${thisID}`)
     }
     if (socp.hasChild) {
-      switch (socp.indentLevel) {
+      switch (socp.indents) {
         case 0: {
           lastIndent0ParentID = thisID
           break
