@@ -673,21 +673,47 @@ export default class BasePromptHandler {
           logDebug(pluginJson, `BasePromptHandler.getPromptParameters: Detected unquoted parameter "${paramsText}" - may be a variable reference`)
         }
 
-        // Extract quoted strings for parameters
-        const quotedParams = BasePromptHandler.extractQuotedStrings(paramsText)
-        logDebug(pluginJson, `BasePromptHandler.getPromptParameters: quotedParams=${JSON.stringify(quotedParams)}`)
+        // Extract all parameters (quoted strings and unquoted variables)
+        const allParams = BasePromptHandler.extractAllParameters(paramsText)
+        logDebug(pluginJson, `BasePromptHandler.getPromptParameters: allParams=${JSON.stringify(allParams)}`)
 
-        if (quotedParams.length > 0) {
+        if (allParams.length > 0) {
           const result: {
             varName: string,
             promptMessage: string,
             options: string | Array<string>,
           } = {
             varName: BasePromptHandler.cleanVarName(assignmentInfo.varName),
-            promptMessage: quotedParams[0] || '',
+            promptMessage: '',
             options: '',
           }
-          logDebug(pluginJson, `BasePromptHandler.getPromptParameters: created initial result with varName="${result.varName}", promptMessage="${result.promptMessage}"`)
+          logDebug(pluginJson, `BasePromptHandler.getPromptParameters: created initial result with varName="${result.varName}"`)
+
+          // For variable assignments, the parameters are typically: promptMessage, options, ...
+          // But we need to check if the first parameter might be a variable name
+          if (allParams.length > 0) {
+            // Check if this looks like a variable assignment with varName as first parameter
+            // Pattern: prompt('varName', 'message', options)
+            if (allParams.length >= 2 && allParams[0] === assignmentInfo.varName) {
+              // First parameter matches the variable name, so skip it
+              result.promptMessage = allParams[1] || ''
+              if (allParams.length > 2) {
+                const optionsValue = allParams[2] || ''
+                // $FlowFixMe - optionsValue is a string but result.options can be string | Array<string>
+                result.options = optionsValue
+              }
+            } else {
+              // Standard case: first parameter is the prompt message
+              result.promptMessage = allParams[0] || ''
+              if (allParams.length > 1) {
+                const optionsValue = allParams[1] || ''
+                // $FlowFixMe - optionsValue is a string but result.options can be string | Array<string>
+                result.options = optionsValue
+              }
+            }
+          }
+
+          logDebug(pluginJson, `BasePromptHandler.getPromptParameters: final result with promptMessage="${result.promptMessage}", options="${result.options}"`)
 
           // Preserve quotes in promptMessage if it begins with a quote
           if (result.promptMessage.startsWith('"') && !result.promptMessage.endsWith('"')) {
@@ -695,24 +721,20 @@ export default class BasePromptHandler {
           }
 
           // Handle additional options if present
-          if (quotedParams.length > 1) {
-            const options = quotedParams[1]
+          if (allParams.length > 2 && !paramsText.includes('[')) {
+            // For formats like "option1", "option2" - combine them properly
+            const remainingOptions = allParams.slice(2)
+            if (remainingOptions.length > 0) {
+              result.options = remainingOptions.join(', ')
+            }
+          }
 
-            // Check if it's a comma-separated list that should be combined
-            if (quotedParams.length > 2 && !paramsText.includes('[')) {
-              // For formats like "option1", "option2" - combine them properly
-              result.options = quotedParams.slice(1).join(', ')
-            } else {
-              result.options = options
-
-              // Check if options might be an array literal
-              if (paramsText.includes('[') && paramsText.includes(']')) {
-                const arrayMatch = paramsText.match(/\[(.*?)\]/)
-                if (arrayMatch) {
-                  // Convert string array to actual array
-                  result.options = BasePromptHandler.convertToArrayIfNeeded(`[${arrayMatch[1]}]`)
-                }
-              }
+          // Check if options might be an array literal
+          if (paramsText.includes('[') && paramsText.includes(']')) {
+            const arrayMatch = paramsText.match(/\[(.*?)\]/)
+            if (arrayMatch) {
+              // Convert string array to actual array
+              result.options = BasePromptHandler.convertToArrayIfNeeded(`[${arrayMatch[1]}]`)
             }
           }
 
@@ -734,7 +756,7 @@ export default class BasePromptHandler {
       if (tag.includes(',')) {
         // This handles "prompt('message', 'option1', 'option2')" format
         const tagNoPrompt = tag.replace(/prompt\s*\(\s*/, '')
-        const params = BasePromptHandler.extractQuotedStrings(tagNoPrompt)
+        const params = BasePromptHandler.extractAllParameters(tagNoPrompt)
 
         return {
           varName: '',
@@ -799,6 +821,56 @@ export default class BasePromptHandler {
 
     // Use the dynamic pattern to remove prompt function names and other syntax
     return cleanedTag.replace(BasePromptHandler.getPromptCleanupPattern(), '').trim()
+  }
+
+  /**
+   * Extracts all parameters from a text string, including both quoted strings and unquoted variable names.
+   * This is an enhanced version of extractQuotedStrings that also handles unquoted identifiers.
+   * It respects escaped quotes (`\'` or `\"`) within the strings.
+   * Returns an array containing the extracted parameters (quotes removed from quoted strings).
+   *
+   * @param {string} text - The text to extract parameters from.
+   * @returns {Array<string>} An array of the extracted parameters.
+   * @example
+   * BasePromptHandler.extractAllParameters("'bgcolor', 'Sphere:', spheres")
+   * // Returns: ["bgcolor", "Sphere:", "spheres"]
+   *
+   * BasePromptHandler.extractAllParameters("'Param 1', \"Param 2\", Unquoted Text")
+   * // Returns: ["Param 1", "Param 2", "Unquoted Text"]
+   */
+  static extractAllParameters(text: string): Array<string> {
+    const parameters = []
+    const regex = /'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|(\w+)/g // Matches '...', "...", or word characters
+
+    let match
+    let lastIndex = 0
+
+    // Extract all quoted strings and unquoted identifiers
+    while ((match = regex.exec(text)) !== null) {
+      // Flow needs this check to be sure match isn't null (even though the while condition ensures this)
+      if (match) {
+        if (match[0].startsWith("'") || match[0].startsWith('"')) {
+          // This is a quoted string
+          const quotedString = match[0]
+          const unquoted = BasePromptHandler.removeQuotes(quotedString)
+          // Handle escaped quotes by replacing them with actual quotes
+          const unescaped = unquoted.replace(/\\"/g, '"').replace(/\\'/g, "'")
+          parameters.push(unescaped)
+        } else {
+          // This is an unquoted identifier (word characters)
+          const identifier = match[0]
+          parameters.push(identifier)
+        }
+        lastIndex = regex.lastIndex
+      }
+    }
+
+    // If no parameters were found and there's text, use it as is
+    if (parameters.length === 0 && text.length > 0) {
+      parameters.push(text)
+    }
+
+    return parameters
   }
 
   /**

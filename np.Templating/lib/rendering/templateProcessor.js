@@ -193,7 +193,7 @@ export function processReturnTag(tag: string, context: { templateData: string, s
  * @returns {{startDelim: string, rawCodeContent: string, endDelim: string} | null} The parsed components or null if parsing fails
  */
 export function parseCodeTag(tag: string): { startDelim: string, rawCodeContent: string, endDelim: string } | null {
-  const tagPartsRegex = /^(<%(?:-|~|=|#)?)([^]*?)((?:-|~)?%>)$/ // Capture 1: start, 2: content, 3: end
+  const tagPartsRegex = /^(<%(?:-|~|=|#|_)?)([^]*?)((?:-|~|_)?%>)$/ // Capture 1: start, 2: content, 3: end
   const match = tag.match(tagPartsRegex)
 
   if (!match) {
@@ -890,6 +890,10 @@ export async function processFrontmatterTags(_templateData: string = '', userDat
   const result = { frontmatterBody, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
   logProgress(`FRONTMATTER PROCESSING COMPLETE; keys: [${Object.keys(result.frontmatterAttributes).toString()}]`, frontmatterBody, result.frontmatterAttributes)
 
+  // Add detailed logging for debugging
+  logDebug(pluginJson, `processFrontmatterTags: Returning frontmatterBody with ${frontmatterBody.length} chars: "${frontmatterBody.substring(0, 200)}..."`)
+  logDebug(pluginJson, `processFrontmatterTags: Returning frontmatterAttributes: ${JSON.stringify(result.frontmatterAttributes)}`)
+
   return result
 }
 
@@ -1162,7 +1166,7 @@ async function processFrontmatter(
     newSessionData = mergedSessionData
   }
 
-  return { templateData: updatedTemplateData, sessionData: newSessionData }
+  return { templateData: frontmatterBody, sessionData: newSessionData }
 }
 
 /**
@@ -1264,7 +1268,20 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       sessionData = frontmatterResult.sessionData
       logProgress('Render Step 4 complete: Frontmatter processing', templateData, sessionData, userOptions)
     } else {
-      logProgress('Render Step 4 (skipped): Frontmatter processing (already pre-processed)', templateData, sessionData, userOptions)
+      // Even when frontmatterProcessed is true, we still need to extract the body if the template contains frontmatter
+      const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
+      logDebug(pluginJson, `_renderWithConfig: frontmatterProcessed=true, isFrontmatterTemplate=${String(isFrontmatterTemplate)}`)
+      if (isFrontmatterTemplate) {
+        logDebug(pluginJson, `_renderWithConfig: Extracting frontmatter body from template with ${templateData.length} chars`)
+        const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(templateData, sessionData)
+        logDebug(pluginJson, `_renderWithConfig: Extracted frontmatterBody with ${frontmatterBody.length} chars: "${frontmatterBody.substring(0, 100)}..."`)
+        logDebug(pluginJson, `_renderWithConfig: Extracted frontmatterAttributes: ${JSON.stringify(frontmatterAttributes)}`)
+        templateData = frontmatterBody
+        logProgress('Render Step 4 (extracted body): Frontmatter body extraction', templateData, sessionData, userOptions)
+      } else {
+        logDebug(pluginJson, `_renderWithConfig: Template is not a frontmatter template, skipping body extraction`)
+        logProgress('Render Step 4 (skipped): Frontmatter processing (already pre-processed)', templateData, sessionData, userOptions)
+      }
     }
 
     // Detect any errors from frontmatter processing

@@ -16,6 +16,7 @@ import TemplatingEngine from '../lib/TemplatingEngine'
 import DateModule from '../lib/support/modules/DateModule'
 import TimeModule from '../lib/support/modules/TimeModule'
 import { replaceDoubleDashes } from '../lib/engine/templateRenderer'
+import { processFrontmatterTags } from '../lib/rendering/templateProcessor'
 
 const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',
@@ -549,6 +550,185 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(lines[3]).toEqual(`## Primary Focus`)
     })
 
+    it(`should not include frontmatter in output when template body is empty/conditional`, async () => {
+      // Test the edge case where template body doesn't render anything
+      // This exposed a bug where frontmatter was being included in the output
+      const templateWithConditionalBody = `---
+title: ⚙️ Cron processing
+cronTasksSectionName: 📅 Naplánované úkoly
+cronTasksNote: 🔁 Cron tasks
+cronTasksRedoTag: redo
+debug: true
+modified: 2024-01-15 10:30 AM
+---
+<%_
+const myContent = null
+if (myContent) {
+-%>## <%- frontmatter.cronTasksSectionName %><%- myContent %><%_
+}
+-%>
+
+---`
+
+      let result = await templateInstance.render(templateWithConditionalBody, {}, { extended: true })
+
+      // Should not contain frontmatter content in the output
+      expect(result).not.toContain('title: ⚙️ Cron processing')
+      expect(result).not.toContain('cronTasksSectionName: 📅 Naplánované úkoly')
+      expect(result).not.toContain('cronTasksNote: 🔁 Cron tasks')
+      expect(result).not.toContain('cronTasksRedoTag: redo')
+      expect(result).not.toContain('debug: true')
+      expect(result).not.toContain('modified: 2024-01-15 10:30 AM')
+
+      // Should only contain the separator at the end (since body doesn't render anything)
+      expect(result).toContain('---')
+
+      // Should not contain the conditional content since myContent is null
+      expect(result).not.toContain('## 📅 Naplánované úkoly')
+    })
+
+    it(`should not include frontmatter in output when frontmatterProcessed is true`, async () => {
+      // Test the frontmatterProcessed: true path to ensure it also extracts body correctly
+      const templateWithConditionalBody = `---
+title: ⚙️ Cron processing
+cronTasksSectionName: 📅 Naplánované úkoly
+cronTasksNote: 🔁 Cron tasks
+cronTasksRedoTag: redo
+debug: true
+modified: 2024-01-15 10:30 AM
+---
+<%_
+const myContent = null
+if (myContent) {
+-%>## <%- frontmatter.cronTasksSectionName %><%- myContent %><%_
+}
+-%>
+
+---`
+
+      let result = await templateInstance.render(templateWithConditionalBody, {}, { frontmatterProcessed: true, extended: true })
+
+      // Should not contain frontmatter content in the output
+      expect(result).not.toContain('title: ⚙️ Cron processing')
+      expect(result).not.toContain('cronTasksSectionName: 📅 Naplánované úkoly')
+      expect(result).not.toContain('cronTasksNote: 🔁 Cron tasks')
+      expect(result).not.toContain('cronTasksRedoTag: redo')
+      expect(result).not.toContain('debug: true')
+      expect(result).not.toContain('modified: 2024-01-15 10:30 AM')
+
+      // Should only contain the separator at the end (since body doesn't render anything)
+      expect(result).toContain('---')
+
+      // Should not contain the conditional content since myContent is null
+      expect(result).not.toContain('## 📅 Naplánované úkoly')
+    })
+
+    it(`should handle frontmatterProcessed true with non-frontmatter templates`, async () => {
+      // Test that non-frontmatter templates work correctly with frontmatterProcessed: true
+      const simpleTemplate = `Hello <%= name %>!
+This is a simple template without frontmatter.`
+
+      let result = await templateInstance.render(simpleTemplate, { name: 'World' }, { frontmatterProcessed: true, extended: true })
+
+      // Should render the template correctly
+      expect(result).toContain('Hello World!')
+      expect(result).toContain('This is a simple template without frontmatter.')
+
+      // Should not contain any frontmatter-related content
+      expect(result).not.toContain('---')
+    })
+
+    it(`should correctly extract frontmatter body using processFrontmatterTags`, async () => {
+      // Test that processFrontmatterTags correctly extracts the body
+      const templateWithFrontmatter = `---
+title: Test Template
+description: A test template
+---
+<%_ const name = 'World'; _%>
+Hello <%= name %>!`
+
+      const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(templateWithFrontmatter, {})
+
+      // Should extract the body correctly
+      expect(frontmatterBody).toContain("<%_ const name = 'World'; _%>")
+      expect(frontmatterBody).toContain('Hello <%= name %>!')
+
+      // Should not contain frontmatter content
+      expect(frontmatterBody).not.toContain('title: Test Template')
+      expect(frontmatterBody).not.toContain('description: A test template')
+      expect(frontmatterBody).not.toContain('---')
+
+      // Should extract attributes correctly
+      expect(frontmatterAttributes.title).toBe('Test Template')
+      expect(frontmatterAttributes.description).toBe('A test template')
+    })
+
+    it(`should handle frontmatter with rendered template tags that cause fm library to fail`, async () => {
+      // This test simulates the real-world issue where the frontmatter contains rendered template output
+      // that causes the fm library to fail parsing, and the fallback logic should extract the body correctly
+      const templateWithRenderedFrontmatter = `---
+title: ⚙️ Cron processing
+cronTasksSectionName: 📅 Naplánované úkoly
+cronTasksNote: 🔁 Cron tasks
+cronTasksRedoTag: redo
+debug: true
+modified: 2025-07-19 09:05 AM
+---
+<%_ const myContent = 'Hello World'; _%>
+This is the actual template body.
+<%= myContent %>`
+
+      const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(templateWithRenderedFrontmatter, {})
+
+      // Should extract the body correctly (everything after the second ---)
+      expect(frontmatterBody).toContain("<%_ const myContent = 'Hello World'; _%>")
+      expect(frontmatterBody).toContain('This is the actual template body.')
+      expect(frontmatterBody).toContain('<%= myContent %>')
+
+      // Should NOT contain frontmatter content
+      expect(frontmatterBody).not.toContain('title: ⚙️ Cron processing')
+      expect(frontmatterBody).not.toContain('cronTasksSectionName: 📅 Naplánované úkoly')
+      expect(frontmatterBody).not.toContain('cronTasksNote: 🔁 Cron tasks')
+      expect(frontmatterBody).not.toContain('cronTasksRedoTag: redo')
+      expect(frontmatterBody).not.toContain('debug: true')
+      expect(frontmatterBody).not.toContain('modified: 2025-07-19 09:05 AM')
+      expect(frontmatterBody).not.toContain('---')
+
+      // The frontmatter attributes might be empty if fm library fails, but that's okay
+      // The important thing is that the body is extracted correctly
+    })
+
+    it(`should handle frontmatterProcessed true with frontmatter that causes fm library to fail`, async () => {
+      // This test simulates the exact real-world scenario where frontmatterProcessed is true
+      // and the template contains frontmatter that causes the fm library to fail
+      const templateWithRenderedFrontmatter = `---
+title: ⚙️ Cron processing
+cronTasksSectionName: 📅 Naplánované úkoly
+cronTasksNote: 🔁 Cron tasks
+cronTasksRedoTag: redo
+debug: true
+modified: 2025-07-19 09:05 AM
+---
+<%_ const myContent = 'Hello World'; _%>
+This is the actual template body.
+<%= myContent %>`
+
+      let result = await templateInstance.render(templateWithRenderedFrontmatter, { name: 'World' }, { frontmatterProcessed: true, extended: true })
+
+      // Should render the template body correctly
+      expect(result).toContain('This is the actual template body.')
+      expect(result).toContain('Hello World')
+
+      // Should NOT contain frontmatter content
+      expect(result).not.toContain('title: ⚙️ Cron processing')
+      expect(result).not.toContain('cronTasksSectionName: 📅 Naplánované úkoly')
+      expect(result).not.toContain('cronTasksNote: 🔁 Cron tasks')
+      expect(result).not.toContain('cronTasksRedoTag: redo')
+      expect(result).not.toContain('debug: true')
+      expect(result).not.toContain('modified: 2025-07-19 09:05 AM')
+      expect(result).not.toContain('---')
+    })
+
     //FIXME: (@codedungeon): - I added this test to illustrate an edge case that a user was running into
     // Even though the above test on .render passes using Jest, in the real NotePlan app,
     // if the templateBody starts with three dashes, then for some reason, renderFrontmatter gets called on that body as if it's frontmatter and fails
@@ -603,6 +783,223 @@ describe(`${PLUGIN_NAME}`, () => {
         let renderedData = await templateInstance.render(templateData, {}, { extended: true })
 
         expect(renderedData).toContain('should return just the text no return')
+      })
+    })
+
+    describe(section('Whitespace Control Tags (<%_ and _%>)'), () => {
+      it(`should parse and process <%_ tags correctly without adding spaces`, async () => {
+        // Test that <%_ tags are recognized and processed without adding unwanted spaces
+        const templateWithWhitespaceControl = `<%_ const x = 1; _%>Hello World`
+
+        let renderedData
+        let errorOccurred = false
+        let errorMessage = ''
+
+        try {
+          renderedData = await templateInstance.render(templateWithWhitespaceControl, {})
+        } catch (error) {
+          errorOccurred = true
+          errorMessage = error.message || error.toString()
+        }
+
+        // Should render successfully without errors
+        expect(errorOccurred).toBe(false)
+        expect(renderedData).toContain('Hello World')
+
+        // The <%_ tag should not add a space after it
+        expect(renderedData).not.toContain(' Hello World') // No leading space
+      })
+
+      it(`should handle <%_ tags with complex logic`, async () => {
+        const templateWithComplexLogic = `<%_ 
+          const items = ['apple', 'banana', 'cherry'];
+          const filtered = items.filter(item => item.startsWith('a'));
+        _%>Found <%= filtered.length %> items starting with 'a'`
+
+        let renderedData
+        let errorOccurred = false
+
+        try {
+          renderedData = await templateInstance.render(templateWithComplexLogic, {})
+        } catch (error) {
+          errorOccurred = true
+        }
+
+        expect(errorOccurred).toBe(false)
+        expect(renderedData).toContain("Found 1 items starting with 'a'")
+      })
+
+      it(`should preserve whitespace control functionality with <%_`, async () => {
+        // Test that <%_ tags properly control whitespace
+        const templateWithWhitespace = `<%_ const name = 'John'; _%>
+Hello <%= name %>!
+<%_ const greeting = 'Welcome'; _%>
+<%= greeting %>!`
+
+        let renderedData
+        let errorOccurred = false
+
+        try {
+          renderedData = await templateInstance.render(templateWithWhitespace, {})
+        } catch (error) {
+          errorOccurred = true
+        }
+
+        expect(errorOccurred).toBe(false)
+        expect(renderedData).toContain('Hello John!')
+        expect(renderedData).toContain('Welcome!')
+
+        // The <%_ tags should control whitespace properly
+        const lines = renderedData.split('\n')
+        expect(lines[0]).toBe('Hello John!') // No leading whitespace
+        expect(lines[1]).toBe('Welcome!') // No leading whitespace
+      })
+
+      it(`should handle _%> closing tags correctly`, async () => {
+        // Test that _%> tags remove whitespace after the tag
+        const templateWithClosingWhitespaceControl = `<% const name = 'John'; _%>
+Hello <%= name %>!`
+
+        let renderedData
+        let errorOccurred = false
+
+        try {
+          renderedData = await templateInstance.render(templateWithClosingWhitespaceControl, {})
+        } catch (error) {
+          errorOccurred = true
+        }
+
+        expect(errorOccurred).toBe(false)
+        expect(renderedData).toContain('Hello John!')
+
+        // The _%> tag should remove whitespace after it
+        const lines = renderedData.split('\n')
+        expect(lines[0]).toBe('Hello John!') // No leading whitespace
+      })
+
+      it(`should handle code with _%> tags`, async () => {
+        // Test code execution with _%> closing tags
+        const templateWithCodeAndWhitespaceControl = `<% 
+          const items = ['apple', 'banana', 'cherry'];
+          const filtered = items.filter(item => item.startsWith('a'));
+        _%>
+Items starting with 'a': <%= filtered.join(', ') %>`
+
+        let renderedData
+        let errorOccurred = false
+
+        try {
+          renderedData = await templateInstance.render(templateWithCodeAndWhitespaceControl, {})
+        } catch (error) {
+          errorOccurred = true
+        }
+
+        expect(errorOccurred).toBe(false)
+        expect(renderedData).toContain("Items starting with 'a': apple")
+
+        // The _%> tag should remove whitespace after the code block
+        const lines = renderedData.split('\n')
+        expect(lines[0]).toBe("Items starting with 'a': apple") // No leading whitespace
+      })
+
+      it(`should handle both <%_ and _%> tags together`, async () => {
+        // Test both opening and closing whitespace control tags
+        const templateWithBothTags = `<%_ const name = 'John'; _%>
+Hello <%= name %>!
+<%_ const greeting = 'Welcome'; _%>
+<%= greeting %>!`
+
+        let renderedData
+        let errorOccurred = false
+
+        try {
+          renderedData = await templateInstance.render(templateWithBothTags, {})
+        } catch (error) {
+          errorOccurred = true
+        }
+
+        expect(errorOccurred).toBe(false)
+        expect(renderedData).toContain('Hello John!')
+        expect(renderedData).toContain('Welcome!')
+
+        // Both tags should control whitespace properly
+        const lines = renderedData.split('\n')
+        expect(lines[0]).toBe('Hello John!') // No leading whitespace
+        expect(lines[1]).toBe('Welcome!') // No leading whitespace
+      })
+
+      it(`should handle mixed tag types correctly`, async () => {
+        // Test mixing <%_ and _%> with other tag types
+        const mixedTemplate = `<% const title = 'Test'; %>
+<%_ const subtitle = 'Subtitle'; _%>
+# <%= title %>
+## <%= subtitle %>`
+
+        let renderedData
+        let errorOccurred = false
+
+        try {
+          renderedData = await templateInstance.render(mixedTemplate, {})
+        } catch (error) {
+          errorOccurred = true
+        }
+
+        expect(errorOccurred).toBe(false)
+        expect(renderedData).toContain('# Test')
+        expect(renderedData).toContain('## Subtitle')
+      })
+
+      it(`should not add spaces to <%_ or _%> tags during normalization`, async () => {
+        // Test that normalizeTagDelimiters doesn't add spaces to whitespace control tags
+        const templateWithWhitespaceControl = `<%_const x = 1;_%>No spaces should be added`
+
+        let renderedData
+        let errorOccurred = false
+
+        try {
+          renderedData = await templateInstance.render(templateWithWhitespaceControl, {})
+        } catch (error) {
+          errorOccurred = true
+        }
+
+        expect(errorOccurred).toBe(false)
+        expect(renderedData).toContain('No spaces should be added')
+
+        // Should not have leading space from the whitespace control tags
+        expect(renderedData).not.toContain(' No spaces should be added')
+      })
+
+      it(`should handle complex whitespace control scenarios`, async () => {
+        // Test a more complex scenario with multiple whitespace control tags
+        const complexTemplate = `<%_ 
+          const items = ['apple', 'banana', 'cherry'];
+          const filtered = items.filter(item => item.startsWith('a'));
+        _%>
+List of items starting with 'a':
+<%_ filtered.forEach(item => { _%>
+- <%= item %>
+<%_ }); _%>
+Total: <%= filtered.length %> items`
+
+        let renderedData
+        let errorOccurred = false
+
+        try {
+          renderedData = await templateInstance.render(complexTemplate, {})
+        } catch (error) {
+          errorOccurred = true
+        }
+
+        expect(errorOccurred).toBe(false)
+        expect(renderedData).toContain("List of items starting with 'a':")
+        expect(renderedData).toContain('- apple')
+        expect(renderedData).toContain('Total: 1 items')
+
+        // Check that whitespace is properly controlled
+        const lines = renderedData.split('\n')
+        expect(lines[0]).toBe("List of items starting with 'a':") // No leading whitespace
+        expect(lines[1]).toBe('- apple') // No leading whitespace
+        expect(lines[2]).toBe('Total: 1 items') // No leading whitespace
       })
     })
 

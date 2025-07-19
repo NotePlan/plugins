@@ -768,6 +768,47 @@ export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: b
     //   `Frontmatter getAttributes error. fm module COULD NOT SANITIZE CONTENT: "${error.message}".\nSuggestion: Check for items in frontmatter that need to be quoted. If fm values are surrounded by double quotes, makes sure they do not contain template tags that also contain double quotes. Template tags in frontmatter will always be quoted. And so make sure your template tags in frontmatter use single quotes, not double quotes in this note:\n"${noteText}\n\nSanitizedText:\n${sanitizedText}"`,
     // )
     // logError(`Frontmatter getAttributes error. COULD NOT SANITIZE CONTENT: "${error.message}". Returning empty values for this note: "${JSON.stringify(noteText)}"`)
+
+    // Add debug logging to understand why fm library failed
+    logDebug(pluginJson, `getSanitizedFmParts: fm library failed with error: ${error.message}`)
+    logDebug(pluginJson, `getSanitizedFmParts: Original text: ${noteText.substring(0, 200)}...`)
+    logDebug(pluginJson, `getSanitizedFmParts: Sanitized text: ${sanitizedText.substring(0, 200)}...`)
+
+    // When fm library fails, we need to manually extract the body and attributes
+    // Check if the text has frontmatter structure (starts with --- and has another ---)
+    const lines = noteText.split('\n')
+    if (lines.length >= 2 && lines[0].trim() === '---') {
+      // Find the second --- separator
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim() === '---') {
+          // Extract everything between the first and second --- as frontmatter
+          const frontmatterLines = lines.slice(1, i)
+          const attributes: { [string]: string } = {}
+
+          // Parse the frontmatter lines manually when fm library fails
+          // This handles both cases: template tags and rendered template output
+          for (const line of frontmatterLines) {
+            const trimmedLine = line.trim()
+            if (trimmedLine && !trimmedLine.startsWith('#')) {
+              // Skip empty lines and comments
+              const colonIndex = trimmedLine.indexOf(':')
+              if (colonIndex > 0) {
+                const key = trimmedLine.substring(0, colonIndex).trim()
+                const value = trimmedLine.substring(colonIndex + 1).trim()
+                // Remove quotes if present, but always return as string
+                const cleanValue = value.replace(/^["'](.*)["']$/, '$1')
+                attributes[key] = String(cleanValue)
+              }
+            }
+          }
+
+          // Extract everything after the second --- as the body
+          const body = lines.slice(i + 1).join('\n')
+          fmData = { attributes: attributes, body: body, frontmatter: '' }
+          break
+        }
+      }
+    }
   }
   return fmData
 }

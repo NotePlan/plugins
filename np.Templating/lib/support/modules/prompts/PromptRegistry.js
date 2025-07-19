@@ -13,13 +13,13 @@ import { escapeRegExp } from '@helpers/regex'
  * @typedef {Object} PromptType
  * @property {string} name - The unique name of the prompt type.
  * @property {?RegExp} pattern - Optional regex to match tags for this prompt type. If not provided, will be generated from name.
- * @property {(tag: string) => any} parseParameters - A function that extracts parameters from the tag.
+ * @property {(tag: string, sessionData?: any) => any} parseParameters - A function that extracts parameters from the tag.
  * @property {(tag: string, sessionData: any, params: any) => Promise<string>} process - A function that processes the prompt and returns its response.
  */
 export type PromptType = {|
   name: string,
   pattern?: RegExp,
-  parseParameters: (tag: string) => any,
+  parseParameters: (tag: string, sessionData?: any) => any,
   process: (tag: string, sessionData: any, params: any) => Promise<string>,
 |}
 
@@ -229,7 +229,7 @@ async function fixStringifiedResponse(response: string, promptTypeName: string, 
     logDebug(pluginJson, `Fixed prompt call: ${fixedPromptCall}`)
 
     const fixedTag = `<%- ${fixedPromptCall} %>`
-    const fixedParams = promptType.parseParameters(fixedTag)
+    const fixedParams = promptType.parseParameters(fixedTag, sessionData)
     fixedParams.varName = varName
 
     const fixedResponse = await promptType.process(fixedTag, sessionData, fixedParams)
@@ -270,7 +270,7 @@ async function processVariableAssignment(tag: string, varType: string, varName: 
     const tempTag = `<%- ${finalPromptCall} %>`
     logDebug(pluginJson, `Created temporary tag for parsing: "${tempTag}"`)
 
-    const params = promptType.parseParameters(tempTag)
+    const params = promptType.parseParameters(tempTag, sessionData)
     logDebug(pluginJson, `Parsed parameters: ${JSON.stringify(params)}`)
 
     // Override the varName with the one from the assignment
@@ -336,7 +336,7 @@ async function processNonAssignmentPrompt(tag: string, content: string, sessionD
 
   try {
     // Parse the parameters
-    const params = promptType.parseParameters(processContent)
+    const params = promptType.parseParameters(processContent, sessionData)
     logDebug(pluginJson, `PromptRegistry::processPromptTag Parsed prompt parameters: ${JSON.stringify(params)}`)
 
     // Log the tag being processed

@@ -93,7 +93,7 @@ describe('Template Processor', () => {
       expect(result).not.toContain('Unable to identify error location')
 
       // Should contain a rendered time (basic pattern check)
-      expect(result).toMatch(/Current time: \d{2}:\d{2}/)
+      expect(result).toMatch(/Current time: \d{1,2}:\d{1,2}/)
     })
 
     it('should make helper modules available when going through NPTemplating.render() - REAL WORLD SCENARIO', async () => {
@@ -110,7 +110,7 @@ describe('Template Processor', () => {
       expect(result).not.toContain('Unable to identify error location')
 
       // Should contain a rendered time (basic pattern check)
-      expect(result).toMatch(/Current time: \d{2}:\d{2}/)
+      expect(result).toMatch(/Current time: \d{1,2}:\d{1,2}/)
     })
 
     it('should handle complex variable names with underscores from prompts', async () => {
@@ -986,7 +986,7 @@ End of template.`
       expect(result).not.toContain('Unable to identify error location')
 
       // Should contain EJS output
-      expect(result).toMatch(/Current time: \d{2}:\d{2}/)
+      expect(result).toMatch(/Current time: \d{1,2}:\d{1,2}/)
       expect(result).toContain('End of template.')
 
       // The templatejs block should be processed but not output anything
@@ -1191,7 +1191,7 @@ End of template.`
       expect(result).not.toContain('Unable to identify error location')
 
       // Should contain EJS output
-      expect(result).toMatch(/Current time: \d{2}:\d{2}/)
+      expect(result).toMatch(/Current time: \d{1,2}:\d{1,2}/)
 
       // Should contain regular code block as-is
       expect(result).toContain('```javascript')

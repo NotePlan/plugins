@@ -7,7 +7,7 @@
 
 import fm from 'front-matter'
 import pluginJson from '../../../plugin.json'
-import { JSP, logError } from '@helpers/dev'
+import { JSP, logError, logDebug } from '@helpers/dev'
 import { getSanitizedFmParts, getValuesForFrontmatterTag, updateFrontMatterVars, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 
 export default class FrontmatterModule {
@@ -20,8 +20,22 @@ export default class FrontmatterModule {
   }
 
   isFrontmatterTemplate(templateData: string): boolean {
+    // First check if the template has the frontmatter structure (starts with --- and has another ---)
+    const lines = templateData.split('\n')
+    if (lines.length >= 2 && lines[0].trim() === '---') {
+      // Find the second --- separator
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim() === '---') {
+          return true
+        }
+      }
+    }
+
+    // Fallback to the original method for edge cases
     const parts = getSanitizedFmParts(templateData)
-    return parts?.attributes && Object.keys(parts.attributes).length ? true : false
+    const hasAttributes = parts?.attributes && Object.keys(parts.attributes).length > 0
+    logDebug(pluginJson, `FrontmatterModule.isFrontmatterTemplate: Fallback check - hasAttributes=${String(hasAttributes)}`)
+    return hasAttributes
   }
 
   getFrontmatterBlock(templateData: string): string {
@@ -47,6 +61,10 @@ export default class FrontmatterModule {
         fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
       })
       // fmData.body = fmData.body.replace(/---/gi, '*****')
+
+      // Add debug logging
+      logDebug(pluginJson, `FrontmatterModule.parse: Extracted body with ${fmData?.body?.length || 0} chars: "${(fmData?.body || '').substring(0, 200)}..."`)
+      logDebug(pluginJson, `FrontmatterModule.parse: Extracted attributes: ${JSON.stringify(fmData?.attributes || {})}`)
 
       return fmData
     } else {
@@ -86,6 +104,7 @@ export default class FrontmatterModule {
 
       // Convert to string
       const result = JSON.stringify(values).trim()
+      logDebug(pluginJson, `FrontmatterModule.getValuesForKey: ${tag} = ${result}`)
 
       // Return the string result
       return result

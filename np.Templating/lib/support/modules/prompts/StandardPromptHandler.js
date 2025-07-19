@@ -15,9 +15,10 @@ export default class StandardPromptHandler {
   /**
    * Process a prompt type tag and parse its parameters.
    * @param {string} tag - The raw prompt tag.
+   * @param {Object} sessionData - The current session data for variable resolution.
    * @returns {Object} An object with extracted parameters.
    */
-  static parseParameters(tag: string): { varName: string, promptMessage: string, options: any } {
+  static parseParameters(tag: string, sessionData?: any): { varName: string, promptMessage: string, options: any } {
     // First try the standard parameter extraction
     const params = BasePromptHandler.getPromptParameters(tag)
 
@@ -28,12 +29,82 @@ export default class StandardPromptHandler {
 
     // Check for array literals directly in the tag
     const arrayMatch = tag.match(/\[(.*?)\]/)
-    if (arrayMatch && typeof params.options === 'string') {
-      // If the tag contains an array and our options is still a string,
-      // we need to make sure it's properly converted to an array
-      if (params.options.startsWith('[') && params.options.endsWith(']')) {
-        // Convert string representation of array to actual array
-        params.options = BasePromptHandler.convertToArrayIfNeeded(params.options)
+    logDebug(`StandardPRompthandler, arrayMatch=${String(arrayMatch)} typeof options = ${typeof params.options}`)
+
+    // Handle options parameter - resolve variable references if needed
+    if (typeof params.options === 'string') {
+      logDebug(
+        `StandardPromptHandler.parseParameters: Checking options="${params.options}" with sessionData keys: ${sessionData ? Object.keys(sessionData).join(', ') : 'undefined'}`,
+      )
+      // First, try to resolve variable references in session data
+      let resolvedValue = null
+      if (sessionData && sessionData[params.options] !== undefined) {
+        resolvedValue = sessionData[params.options]
+        logDebug(`StandardPromptHandler.parseParameters: Resolved variable "${params.options}" to: ${JSON.stringify(resolvedValue)}`)
+      } else if (sessionData && sessionData.data && sessionData.data[params.options] !== undefined) {
+        // Check if the variable is nested under a 'data' property
+        resolvedValue = sessionData.data[params.options]
+        logDebug(`StandardPromptHandler.parseParameters: Resolved nested variable "${params.options}" to: ${JSON.stringify(resolvedValue)}`)
+      }
+
+      if (resolvedValue !== null) {
+        if (typeof resolvedValue === 'string') {
+          // If the resolved value is a JSON string representing an array, parse it
+          if (resolvedValue.startsWith('[') && resolvedValue.endsWith(']')) {
+            try {
+              params.options = JSON.parse(resolvedValue)
+              logDebug(`StandardPromptHandler.parseParameters: Parsed JSON string to array: ${JSON.stringify(params.options)}`)
+            } catch (error) {
+              logError(pluginJson, `Error parsing JSON array from variable ${params.options}: ${error.message}`)
+              // Fall back to treating it as a regular string
+              params.options = resolvedValue
+            }
+          } else {
+            // Regular string value - check if it's a comma-separated list
+            if (resolvedValue.includes(',') && !resolvedValue.includes('[') && !resolvedValue.includes('{')) {
+              // This looks like a comma-separated list, convert to array
+              params.options = resolvedValue.split(',').map((item) => item.trim())
+              logDebug(`StandardPromptHandler.parseParameters: Converted comma-separated string to array: ${JSON.stringify(params.options)}`)
+            } else {
+              // Regular string value
+              params.options = resolvedValue
+            }
+          }
+        } else if (Array.isArray(resolvedValue)) {
+          // Already an array
+          params.options = resolvedValue
+        } else {
+          // Other types - convert to string
+          params.options = String(resolvedValue)
+        }
+      } else if (params.options.includes('(') && params.options.includes(')')) {
+        // This looks like a function call - try to execute it
+        logDebug(`StandardPromptHandler.parseParameters: Detected function call: "${params.options}"`)
+        try {
+          // Create a safe evaluation context with session data
+          const evalContext: any = { ...sessionData }
+
+          // Add common functions that might be called
+          if (sessionData && sessionData.frontmatter && typeof sessionData.frontmatter.getValuesForKey === 'function') {
+            evalContext.getValuesForKey = sessionData.frontmatter.getValuesForKey.bind(sessionData.frontmatter)
+          }
+
+          // Try to evaluate the function call
+          const result = eval(params.options)
+          logDebug(`StandardPromptHandler.parseParameters: Function call result: ${JSON.stringify(result)}`)
+
+          if (Array.isArray(result)) {
+            params.options = result
+          } else if (typeof result === 'string' && result.startsWith('[') && result.endsWith(']')) {
+            // JSON string array
+            params.options = JSON.parse(result)
+          } else {
+            params.options = result
+          }
+        } catch (evalError) {
+          logError(pluginJson, `Error evaluating function call "${params.options}": ${evalError.message}`)
+          // Fall back to treating it as a regular string
+        }
       } else if (arrayMatch) {
         // If we found an array syntax but it wasn't picked up as options,
         // manually extract the array content
@@ -41,17 +112,124 @@ export default class StandardPromptHandler {
         if (arrayContent.length > 0) {
           params.options = arrayContent.map((item) => BasePromptHandler.removeQuotes(item))
         }
-      }
-    } else if (typeof params.options === 'string') {
-      // Process string options to handle escape sequences
-      params.options = params.options.replace(/\\"/g, '"').replace(/\\'/g, "'")
+      } else {
+        // Process string options to handle escape sequences
+        params.options = params.options.replace(/\\"/g, '"').replace(/\\'/g, "'")
 
-      // Fix options if they're in array string format
-      if (params.options.startsWith('[') && params.options.endsWith(']')) {
-        try {
-          params.options = BasePromptHandler.convertToArrayIfNeeded(params.options)
-        } catch (error) {
-          logError(pluginJson, `Error parsing array options: ${error.message}`)
+        // Fix options if they're in array string format
+        if (params.options.startsWith('[') && params.options.endsWith(']')) {
+          try {
+            params.options = BasePromptHandler.convertToArrayIfNeeded(params.options)
+          } catch (error) {
+            logError(pluginJson, `Error parsing array options: ${error.message}`)
+          }
+        }
+      }
+
+      // Final check: if options is still a string and looks like a comma-separated list, convert it
+      // Only convert if it looks like a simple list of values (no quotes, brackets, or complex syntax)
+      // AND if it appears to be a list rather than a text string
+      if (
+        typeof params.options === 'string' &&
+        params.options.includes(',') &&
+        !params.options.includes('[') &&
+        !params.options.includes('{') &&
+        !params.options.includes('"') &&
+        !params.options.includes("'") &&
+        !params.options.includes('`') &&
+        params.options.trim().length > 0
+      ) {
+        // This looks like a simple comma-separated list, convert to array
+        const items = params.options
+          .split(',')
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0)
+        if (items.length > 1) {
+          // Additional check: only convert if it looks like a list of simple values
+          // (not a text string that happens to contain commas)
+          // Only convert if all items are simple identifiers (no spaces, no common text words)
+          const allItemsAreSimple = items.every((item) => {
+            if (item.length === 0 || item.includes(' ') || item.includes('\n') || item.includes('\t')) {
+              return false
+            }
+            // Check if it looks like a simple identifier (alphanumeric, dash, underscore, dot)
+            // But exclude common English words that might appear in text
+            if (/^[a-zA-Z0-9\-_.]+$/.test(item)) {
+              // Additional check: don't convert if it contains common English words
+              const commonWords = [
+                'with',
+                'and',
+                'or',
+                'the',
+                'a',
+                'an',
+                'in',
+                'on',
+                'at',
+                'to',
+                'for',
+                'of',
+                'by',
+                'from',
+                'up',
+                'down',
+                'out',
+                'off',
+                'over',
+                'under',
+                'between',
+                'among',
+                'through',
+                'during',
+                'before',
+                'after',
+                'since',
+                'until',
+                'while',
+                'when',
+                'where',
+                'why',
+                'how',
+                'what',
+                'which',
+                'who',
+                'whom',
+                'whose',
+                'this',
+                'that',
+                'these',
+                'those',
+                'is',
+                'are',
+                'was',
+                'were',
+                'be',
+                'been',
+                'being',
+                'have',
+                'has',
+                'had',
+                'do',
+                'does',
+                'did',
+                'will',
+                'would',
+                'could',
+                'should',
+                'may',
+                'might',
+                'can',
+                'must',
+                'shall',
+              ]
+              return !commonWords.includes(item.toLowerCase())
+            }
+            return false
+          })
+          if (allItemsAreSimple) {
+            params.options = items
+            logDebug(`StandardPromptHandler.parseParameters: Final conversion of comma-separated string to array: ${JSON.stringify(params.options)}`)
+          }
         }
       }
     }
@@ -68,6 +246,7 @@ export default class StandardPromptHandler {
    */
   static async prompt(tag: string, message: string, options: any = ''): Promise<string | false> {
     try {
+      logDebug(`StandardPromptHandler::prompt tag=${tag} message=${message} options=${String(options)} (${typeof options})`)
       // Process message to handle escaped quotes properly
       let processedMessage = message
       if (typeof processedMessage === 'string') {
@@ -329,6 +508,6 @@ export default class StandardPromptHandler {
 // Register the prompt type
 registerPromptType({
   name: 'prompt',
-  parseParameters: (tag: string) => StandardPromptHandler.parseParameters(tag),
+  parseParameters: (tag: string, sessionData?: any) => StandardPromptHandler.parseParameters(tag, sessionData),
   process: StandardPromptHandler.process.bind(StandardPromptHandler),
 })

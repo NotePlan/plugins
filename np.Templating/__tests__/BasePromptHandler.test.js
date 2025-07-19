@@ -129,6 +129,71 @@ describe('BasePromptHandler', () => {
     })
   })
 
+  describe('extractAllParameters', () => {
+    it('should extract quoted strings and unquoted variables', () => {
+      const text = "'bgcolor', 'Sphere:', spheres"
+      const result = BasePromptHandler.extractAllParameters(text)
+
+      expect(result).toEqual(['bgcolor', 'Sphere:', 'spheres'])
+    })
+
+    it('should extract mixed quoted and unquoted parameters', () => {
+      const text = "'Param 1', \"Param 2\", unquotedVar, 'Param 4'"
+      const result = BasePromptHandler.extractAllParameters(text)
+
+      expect(result).toEqual(['Param 1', 'Param 2', 'unquotedVar', 'Param 4'])
+    })
+
+    it('should handle only quoted strings', () => {
+      const text = "'Option 1', 'Option 2', 'Option 3'"
+      const result = BasePromptHandler.extractAllParameters(text)
+
+      expect(result).toEqual(['Option 1', 'Option 2', 'Option 3'])
+    })
+
+    it('should handle only unquoted variables', () => {
+      const text = 'var1, var2, var3'
+      const result = BasePromptHandler.extractAllParameters(text)
+
+      expect(result).toEqual(['var1', 'var2', 'var3'])
+    })
+
+    it('should handle single quoted string', () => {
+      const text = "'Single Parameter'"
+      const result = BasePromptHandler.extractAllParameters(text)
+
+      expect(result).toEqual(['Single Parameter'])
+    })
+
+    it('should handle single unquoted variable', () => {
+      const text = 'singleVar'
+      const result = BasePromptHandler.extractAllParameters(text)
+
+      expect(result).toEqual(['singleVar'])
+    })
+
+    it('should handle empty string', () => {
+      const text = ''
+      const result = BasePromptHandler.extractAllParameters(text)
+
+      expect(result).toEqual([])
+    })
+
+    it('should handle whitespace-only string', () => {
+      const text = '   '
+      const result = BasePromptHandler.extractAllParameters(text)
+
+      expect(result).toEqual(['   '])
+    })
+
+    it('should handle escaped quotes within quoted strings', () => {
+      const text = "'String with \\'escaped\\' quote', varName"
+      const result = BasePromptHandler.extractAllParameters(text)
+
+      expect(result).toEqual(["String with 'escaped' quote", 'varName'])
+    })
+  })
+
   describe('parseOptions', () => {
     it('should parse a single quoted string option (simulating placeholder context)', () => {
       // Simulate parseOptions receiving a single placeholder for a quoted string
@@ -397,7 +462,28 @@ describe('BasePromptHandler', () => {
       expect(result).toMatchObject({
         varName: 'result',
         promptMessage: 'Choose an option:',
-        options: '',
+      })
+    })
+
+    it('should handle prompt with unquoted variable as options parameter', () => {
+      const tag = "<%- prompt('bgcolor', 'Sphere:', spheres) %>"
+      const result = BasePromptHandler.getPromptParameters(tag)
+
+      expect(result).toMatchObject({
+        varName: 'bgcolor',
+        promptMessage: 'Sphere:',
+        options: 'spheres',
+      })
+    })
+
+    it('should handle const assignment with unquoted variable options', () => {
+      const tag = "<%- const bgcolor = prompt('bgcolor', 'Sphere:', spheres) %>"
+      const result = BasePromptHandler.getPromptParameters(tag)
+
+      expect(result).toMatchObject({
+        varName: 'bgcolor',
+        promptMessage: 'Sphere:',
+        options: 'spheres',
       })
     })
 
@@ -562,5 +648,79 @@ describe('BasePromptHandler Private Helpers', () => {
     it('should handle mixed quoted and unquoted parts', () => {
       expect(BasePromptHandler._parseCommaSeparatedString("a, 'b, c', d")).toBe('a, b, c, d')
     })
+  })
+})
+
+describe('StandardPromptHandler parseParameters with comma-separated strings', () => {
+  it('should convert comma-separated string to array in parseParameters', () => {
+    const tag = "prompt('test', 'Choose:', 'option1, option2, option3')"
+    const sessionData = {}
+
+    const result = StandardPromptHandler.parseParameters(tag, sessionData)
+
+    expect(result.options).toEqual(['option1', 'option2', 'option3'])
+  })
+
+  it('should handle comma-separated string with spaces', () => {
+    const tag = "prompt('test', 'Choose:', '  option1  ,  option2  ,  option3  ')"
+    const sessionData = {}
+
+    const result = StandardPromptHandler.parseParameters(tag, sessionData)
+
+    expect(result.options).toEqual(['option1', 'option2', 'option3'])
+  })
+
+  it('should convert bracket-wrapped strings to arrays', () => {
+    const tag = "prompt('test', 'Choose:', '[option1, option2]')"
+    const sessionData = {}
+
+    const result = StandardPromptHandler.parseParameters(tag, sessionData)
+
+    expect(result.options).toEqual(['option1', 'option2'])
+  })
+
+  it('should not convert text strings with spaces', () => {
+    const tag = "prompt('test', 'Choose:', 'Default, with comma')"
+    const sessionData = {}
+
+    const result = StandardPromptHandler.parseParameters(tag, sessionData)
+
+    expect(result.options).toBe('Default, with comma')
+  })
+
+  it('should convert simple comma-separated values to array', () => {
+    const tag = "prompt('test', 'Choose:', 'option1,option2,option3')"
+    const sessionData = {}
+
+    const result = StandardPromptHandler.parseParameters(tag, sessionData)
+
+    expect(result.options).toEqual(['option1', 'option2', 'option3'])
+  })
+
+  it('should not convert single-item strings', () => {
+    const tag = "prompt('test', 'Choose:', 'single')"
+    const sessionData = {}
+
+    const result = StandardPromptHandler.parseParameters(tag, sessionData)
+
+    expect(result.options).toBe('single')
+  })
+
+  it('should not convert strings that contain braces', () => {
+    const tag = "prompt('test', 'Choose:', '{option1, option2}')"
+    const sessionData = {}
+
+    const result = StandardPromptHandler.parseParameters(tag, sessionData)
+
+    expect(result.options).toBe('{option1, option2}')
+  })
+
+  it('should handle variable reference to comma-separated string', () => {
+    const tag = "prompt('test', 'Choose:', dateOptions)"
+    const sessionData = { dateOptions: '2025-07-19, 2025-07-20, 2025-07-26' }
+
+    const result = StandardPromptHandler.parseParameters(tag, sessionData)
+
+    expect(result.options).toEqual(['2025-07-19', '2025-07-20', '2025-07-26'])
   })
 })
