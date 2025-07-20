@@ -645,13 +645,13 @@ export function getTagsFromString(content: string, includeSymbol: boolean = true
  * Take a line and simplify by removing blockIDs, start-of-line markers, and trim start/end.
  * Note: different from simplifyParaContent() which doesn't do as much.
  * @author @jgclark
- * @param {string} input
+ * @param {string} rawContentIn
  * @returns {string} simplified output
  */
-export function simplifyRawContent(input: string): string {
+export function simplifyRawContent(rawContentIn: string): string {
   try {
     // Remove start-of-line markers
-    let output = input.slice(getLineMainContentPos(input))
+    let output = rawContentIn.slice(getLineMainContentPos(rawContentIn))
     // Remove blockIDs (which otherwise can mess up the other sync'd copies)
     output = output.replace(/\^[A-z0-9]{6}([^A-z0-9]|$)/g, '')
     // Trim whitespace at start/end
@@ -659,6 +659,26 @@ export function simplifyRawContent(input: string): string {
     return output
   } catch (error) {
     logError('simplifyRawContent', error.message)
+    return '<error>' // for completeness
+  }
+}
+
+/**
+ * Take a line and simplify by removing start-of-line markers, and trim start.
+ * Note: different from simplifyRawContent().
+ * @author @jgclark
+ * @param {string} rawContentIn
+ * @returns {string}
+ */
+export function convertRawContentToContent(rawContentIn: string): string {
+  try {
+    // Remove start-of-line markers
+    let output = rawContentIn.slice(getLineMainContentPos(rawContentIn))
+    // Trim whitespace at start/end
+    output = output.trim()
+    return output
+  } catch (error) {
+    logError('convertRawContentToContent', error.message)
     return '<error>' // for completeness
   }
 }

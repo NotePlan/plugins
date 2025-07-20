@@ -119,7 +119,7 @@ export async function scheduleAllThisWeekNextWeek(data: MessageDataObject): Prom
         for (const para of combinedSortedParasWithoutChildren) {
           c++
           logDebug('scheduleAllThisWeekNextWeek', `- Moving item ${c}/${totalToMove} "${para.content}" to next week`)
-          const res = await moveItemBetweenCalendarNotes(thisWeekDateStr, nextWeekDateStr, para.content, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
+          const res = await moveItemBetweenCalendarNotes(thisWeekDateStr, nextWeekDateStr, para.rawContent, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
           if (res) {
             // logDebug('scheduleAllThisWeekNextWeek', `-> appeared to move item succesfully`)
             numberScheduled++
@@ -265,7 +265,7 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject): Prom
         for (const para of combinedSortedParasWithoutChildren) {
           c++
           logDebug('scheduleAllLastWeekThisWeek', `- Moving item ${c}/${totalToMove} "${para.content}" to this week`)
-          const res = await moveItemBetweenCalendarNotes(lastWeekDateStr, thisWeekDateStr, para.content, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
+          const res = await moveItemBetweenCalendarNotes(lastWeekDateStr, thisWeekDateStr, para.rawContent, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
           if (res) {
             logDebug('scheduleAllLastWeekThisWeek', `-> appeared to move item succesfully`)
             numberScheduled++

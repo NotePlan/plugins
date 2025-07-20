@@ -3,7 +3,7 @@
 // Represents a row item within a section.
 // Could be: Task, Review Item, Filtered Indicator, No Tasks left, No Projects, No Search Results.
 // Called by ItemGrid component.
-// Last updated 2025-06-15 for v2.3.0.b3
+// Last updated 2025-07-17 for v2.3.0.b6, @jgclark
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
@@ -41,6 +41,8 @@ function ItemRow({ item, thisSection }: Props): Node {
         <MessageOnlyItem message={'No Projects need reviewing: take a break'} contentClassName="projectCongrats" closingFAIconClassName="fa-solid fa-mug" />
       ) : itemType === 'noSearchResults' ? (
         <MessageOnlyItem message={item?.message ?? ''} contentClassName="noSearchResults" settingsDialogAnchor={item?.settingsDialogAnchor ?? ''} />
+          ) : itemType === 'preLimitOverdues' ? (
+            <MessageOnlyItem message={item?.message ?? ''} contentClassName="noSearchResults" />
       ) : itemType === 'filterIndicator' ? (
         <TasksFiltered item={item} />
             ) : itemType === 'itemCongrats' ? (

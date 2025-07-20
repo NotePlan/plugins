@@ -477,16 +477,16 @@ export function decodeRFC3986URIComponent(input: string): string {
 }
 
 /**
- * Remove >date and <date from a string
+ * Remove `>date` and `<date` from a string, except for the ones that are in the format `>date<` which are kept
  * Note: this was originally in dateTime.js
- * @author @nmn
+ * @author @nmn updated by @jgclark
  * @param {string} input
  * @returns {string} output
  */
 export function removeDateTags(content: string): string {
   return content
+    .replace(/>\d{4}-\d{2}-\d{2}(?!<)/g, '')
     .replace(/<\d{4}-\d{2}-\d{2}/g, '')
-    .replace(/>\d{4}-\d{2}-\d{2}/g, '')
     .trimEnd()
 }
 

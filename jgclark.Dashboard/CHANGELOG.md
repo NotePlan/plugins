@@ -9,6 +9,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 - TODO: enlarged default window size on iPads
 -->
+## [2.3.0.b6] 2025-07-19
+- The Overdue section now shows the number of overdue beyond the 'lookback N days' setting limit, if that's applied (requested by @tastapod)
+- Fix to the 'All →  ...' move operations failing randomly
+- Fix to display of hashtags and mentions with included hyphens or underscores (reported by @chrismetcalf)
+
 ## [2.3.0.b5] 2025-07-11
 - fix to edit icon colour in Project items
 - completing, cancelling or updating an item will also now immediately update the same item if it is shown in a different section (e.g. Yesterday and Overdue).
