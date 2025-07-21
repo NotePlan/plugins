@@ -7,8 +7,9 @@ import pluginJson from '../plugin.json'
 import { getInput, chooseOptionWithModifiers } from '../../helpers/userInput'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { getDateOptions, convertISODateFilenameToNPDayFilename, RE_ISO_DATE, removeDateTagsAndToday } from '@helpers/dateTime'
+import { getDateOptions, convertISODateFilenameToNPDayFilename, RE_ISO_DATE } from '@helpers/dateTime'
 import { getWeekOptions } from '@helpers/NPdateTime'
+import { removeDateTagsAndToday } from '@helpers/stringTransforms'
 
 /**
  * Ask user for a future date or week to attach to the follow-up task
