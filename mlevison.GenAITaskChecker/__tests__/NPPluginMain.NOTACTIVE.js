@@ -7,7 +7,7 @@
 // Jest testing docs: https://jestjs.io/docs/using-matchers
 /* eslint-disable */
 
-
+import * as f from '../src/sortTasks'
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
