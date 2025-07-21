@@ -22,8 +22,6 @@ describe('mlevison.GenAITaskChecker', () => {
     test('prove Open and Cancelled Tasks found in sample note', () => {
       const foundTasks = sorting.getTasksByType(noteWIthOpenAndCancelledTasks.paragraphs)
 
-      console.log('foundTasks open', foundTasks.open, foundTasks.done, foundTasks.cancelled)
-
       expect(foundTasks.open.length).toBe(1)
       expect(foundTasks.done.length).toBe(0)
       expect(foundTasks.cancelled.length).toBe(1)
@@ -36,8 +34,6 @@ describe('mlevison.GenAITaskChecker', () => {
 
     test('prove Done Tasks found in sample note', () => {
       const foundTasks = sorting.getTasksByType(noteWIthDoneAndScheduledTasks.paragraphs)
-
-      console.log('foundTasks open', foundTasks.open, foundTasks.done, foundTasks.cancelled)
 
       expect(foundTasks.open.length).toBe(0)
       expect(foundTasks.done.length).toBe(1)
