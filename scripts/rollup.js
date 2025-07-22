@@ -28,6 +28,7 @@ const ProgressBar = require('progress')
 const pkgInfo = require('../package.json')
 const pluginConfig = require('../plugins.config')
 const replace = require('rollup-plugin-replace')
+const { caseSensitiveImports } = require('./shared')
 
 let progress
 // const requiredFilesWatchMsg = ''
