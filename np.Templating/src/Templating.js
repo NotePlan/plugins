@@ -7,7 +7,7 @@
  * -----------------------------------------------------------------------------------------*/
 
 import { log, clo, logDebug, logError } from '@helpers/dev'
-import { getCodeBlocksOfType } from '@helpers/codeblocks'
+import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
