@@ -11,6 +11,7 @@ export async function getVerse(): Promise<string> {
   try {
     const URL = `https://labs.bible.org/api/?passage=random&type=json`
     const response: any = await fetch(URL, { timeout: 3000 })
+    if (!response) return `**verse() web service did not respond**`
     // sometimes the bible service will send back HTML and so we want to fallback gracefully
     // but not use the word "error" because that will cause jest tests to fail
     if (/online attacks/i.test(response)) {

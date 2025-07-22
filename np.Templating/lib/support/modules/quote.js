@@ -16,6 +16,6 @@ export async function getDailyQuote(): Promise<string> {
       return `${data.q} - *${data.a}*`
     }
   } else {
-    return '**An error occurred accessing quoting service**'
+    return `**quote() web service did not respond**`
   }
 }

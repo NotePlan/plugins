@@ -12,7 +12,7 @@ export async function getWeather(): Promise<string> {
     if (response) {
       response = response.startsWith('not found:') ? '**The weather service could not automatically determine your location from your IP address**' : response
     }
-    return response ? response : '**An error occurred accessing weather service**'
+    return response ? response : '**weather() web service did not respond**'
   } catch (error) {
     return '**An error occurred accessing weather service**'
   }
