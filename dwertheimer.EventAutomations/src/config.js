@@ -84,7 +84,6 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     // $FlowIgnore
     return validatedConfig
   } catch (error) {
-    // console.log(`NPTimeblocking::validateAutoTimeBlockingConfig: ${String(error)}\nInvalid config:\n${JSON.stringify(config)}`)
     throw new Error(`${String(error)}`)
   }
 }

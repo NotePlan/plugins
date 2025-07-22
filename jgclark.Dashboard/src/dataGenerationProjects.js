@@ -128,7 +128,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
       },
     ],
   }
-  // console.log(JSON.stringify(section))
+
   logTimer('getProjectSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
   return section
 }

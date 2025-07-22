@@ -19,7 +19,6 @@ type FilterCommandsProps = {
  * Filter plugin list down to only plugins and (optionally only commands) that include the filter list
  */
 export function filterCommands({ pluginList, filter = '', categoryFilter = '', returnOnlyMatchingCommands = false }: FilterCommandsProps): Array<Plugin> {
-  // console.log('Variables passed to filterCommands:', { pluginList, filter, returnOnlyMatchingCommands, categoryFilter })
   const filters = filter
     ? filter
         .toLowerCase()
@@ -57,7 +56,6 @@ export function filterCommands({ pluginList, filter = '', categoryFilter = '', r
         if (filter && CATEGORY_FILTER_APPLIES_TO_COMMANDS && categoryFilter) {
           return commandMatchesFilter && commandMatchesCategoryFilter
         } else if (filter) {
-          // console.log('filter', filter, 'commandMatchesFilter', commandMatchesFilter)
           return commandMatchesFilter
         } else if (CATEGORY_FILTER_APPLIES_TO_COMMANDS && categoryFilter) {
           return commandMatchesCategoryFilter
@@ -70,18 +68,17 @@ export function filterCommands({ pluginList, filter = '', categoryFilter = '', r
       if (returnOnlyMatchingCommands) {
         // return only commands in this plugin which match criteria
         if (filteredCommands.length > 0) {
-          // console.log('returning filtered', 'filteredCommands.length', filteredCommands.length, 'plugin.name', plugin.name)
           return { ...plugin, commands: filteredCommands }
         } else {
           return null
         }
       } else {
         // return all commands in this plugin if one or more match criteria, otherwise return null
-        // console.log('returning all', 'filteredCommands.length', filteredCommands.length, 'plugin.name', plugin.name)
+
         return filteredCommands.length > 0 ? plugin : null // Return plugin with filtered commands if any, otherwise return the original plugin
       }
     })
     .filter(Boolean)
-  // console.log(`filterFunctions: pluginsMatchingFilters: ${pluginsMatchingFilters}`)
+
   return pluginsMatchingFilters
 }

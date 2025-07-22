@@ -5,9 +5,7 @@
 // Last updated 2025-05-31 by @jgclark
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
-import {
-  hasFrontMatter
-} from '@helpers/NPFrontMatter'
+import { hasFrontMatter } from '@helpers/NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
 import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
@@ -86,7 +84,7 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
             .replace("%%commandName%%", commandName)
             .replace("%%pluginID%%", pluginID)
             .replace("%%commandArgs%%", () => JSON.stringify(commandArgs)); //This is important because it works around problems with $$ in commandArgs
-      // console.log(\`${jsFunctionName}: Sending command "\$\{commandName\}" to NotePlan: "\$\{pluginID\}" with args: \$\{JSON.stringify(commandArgs)\}\`);
+      
       console.log(\`window.${jsFunctionName}: Sending code: "\$\{code\}"\`)
       if (window.webkit) {
         window.webkit.messageHandlers.jsBridge.postMessage({
@@ -100,7 +98,6 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
     };
 `
 }
-
 
 /**
  * Convert a note's content to HTML and include any images as base64
@@ -164,22 +161,22 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       tasklists: true,
       metadata: false, // otherwise metadata is swallowed
       requireSpaceBeforeHeadingText: true,
-      simpleLineBreaks: true // Makes this GFM style. TODO: make an option?
+      simpleLineBreaks: true, // Makes this GFM style. TODO: make an option?
     }
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
     body = `<style>img { background: white; max-width: 100%; max-height: 100%; }</style>${body}` // fix for bug in showdown
-    
+
     const imgTagRegex = /<img src=\"(.*?)\"/g
     const matches = [...body.matchAll(imgTagRegex)]
     const noteDirPath = getFolderFromFilename(note.filename)
-    
+
     for (const match of matches) {
       const imagePath = match[1]
       try {
         // Handle both absolute and relative paths
         let fullPath = `../../../Notes/${noteDirPath}/${decodeURI(imagePath)}`
-        if(fullPath.endsWith('.drawing')) {
+        if (fullPath.endsWith('.drawing')) {
           fullPath = fullPath.replace('.drawing', '.png')
         }
         const data = await DataStore.loadData(fullPath, false)
@@ -237,13 +234,11 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       modifiedLines.push(line)
     }
     return modifiedLines.join('\n')
-
   } catch (error) {
     logError('getNoteContentAsHTML', error.message)
     return '<conversion error>'
   }
 }
-
 
 /**
  * This function creates the webkit console.log/error handler for HTML messages to get back to NP console.log
@@ -566,7 +561,10 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
   try {
     const screenWidth = NotePlan.environment.screenWidth
     const screenHeight = NotePlan.environment.screenHeight
-    logDebug('HTMLView / showHTMLV2', `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'} for screen dimensions ${screenWidth}x${screenHeight}`)
+    logDebug(
+      'HTMLView / showHTMLV2',
+      `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'} for screen dimensions ${screenWidth}x${screenHeight}`,
+    )
 
     // Assemble the parts of the HTML into a single string
     const fullHTMLStr = assembleHTMLParts(body, opts)
@@ -592,8 +590,8 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       winOptions = {
         x: opts.x ?? (screenWidth - (screenWidth - (opts.paddingWidth ?? 0) * 2)) / 2,
         y: opts.y ?? (screenHeight - (screenHeight - (opts.paddingHeight ?? 0) * 2)) / 2,
-        width: opts.width ?? (screenWidth - (opts.paddingWidth ?? 0) * 2),
-        height: opts.height ?? (screenHeight - (opts.paddingHeight ?? 0) * 2),
+        width: opts.width ?? screenWidth - (opts.paddingWidth ?? 0) * 2,
+        height: opts.height ?? screenHeight - (opts.paddingHeight ?? 0) * 2,
         shouldFocus: opts.shouldFocus,
         id: cId, // don't need both ... but trying to work out which is the current one for the API
         windowId: cId,
@@ -603,7 +601,6 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
         const storedRect = getStoredWindowRect(cId)
         if (storedRect) {
-
           winOptions = {
             x: storedRect.x,
             y: storedRect.y,

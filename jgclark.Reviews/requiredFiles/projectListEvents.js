@@ -18,7 +18,7 @@ addCommandButtonEventListeners()
 
 /**
  * Show the action dialog to use on Project items
- * @param {any} dataObject 
+ * @param {any} dataObject
  */
 function showProjectControlDialog(dataObject) {
   const openDialog = () => {
@@ -29,9 +29,9 @@ function showProjectControlDialog(dataObject) {
     dialog.close()
   }
 
-  const dialog = document.getElementById("projectControlDialog")
-  const mousex = event.clientX  // Horizontal
-  const mousey = event.clientY  // Vertical
+  const dialog = document.getElementById('projectControlDialog')
+  const mousex = event.clientX // Horizontal
+  const mousey = event.clientY // Vertical
   const thisID = dataObject.itemID
   const thisIDElement = document.getElementById(thisID)
 
@@ -63,7 +63,7 @@ function showProjectControlDialog(dataObject) {
     { controlStr: 'cancel', handlingFunction: 'cancelProject' },
   ]
 
-  let allDialogButtons = document.getElementById("projectDialogButtons").getElementsByTagName("BUTTON")
+  let allDialogButtons = document.getElementById('projectDialogButtons').getElementsByTagName('BUTTON')
   // remove previous event handlers
   // V1: simple 'button.removeEventListener('click', function (event) { ...}, false) didn't work for some reason
   // V2 Instead: Workaround suggested by Codeium AI:
@@ -79,7 +79,7 @@ function showProjectControlDialog(dataObject) {
 
   // Register click handlers for each button in the dialog with details of this item
   // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
-  allDialogButtons = document.getElementById("projectDialogButtons").getElementsByTagName("BUTTON")
+  allDialogButtons = document.getElementById('projectDialogButtons').getElementsByTagName('BUTTON')
   let added = 0
   for (const button of allDialogButtons) {
     // Ignore the mainButton(s) (e.g. 'Close')
@@ -89,16 +89,19 @@ function showProjectControlDialog(dataObject) {
     const thisControlStr = button.dataset.controlStr
     const functionToInvoke = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].handlingFunction ?? '?'
     const buttonDisplayString = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].displayString ?? '?'
-    // console.log(`- adding button for ${thisControlStr} / ${functionToInvoke}`)
 
     // add event handler and make visible
-    // console.log(`- displaying button ${thisControlStr}`)
-    button.addEventListener('click', function (event) {
-      event.preventDefault()
-      handleButtonClick(functionToInvoke, thisControlStr, thisEncodedFilename, event.metaKey)
-    }, false)
+
+    button.addEventListener(
+      'click',
+      function (event) {
+        event.preventDefault()
+        handleButtonClick(functionToInvoke, thisControlStr, thisEncodedFilename, event.metaKey)
+      },
+      false,
+    )
     // Set button visible
-    button.style.display = "inline-block"
+    button.style.display = 'inline-block'
     added++
   }
 
@@ -107,12 +110,7 @@ function showProjectControlDialog(dataObject) {
   // Add click handler to close dialog when clicking outside
   dialog.addEventListener('click', (event) => {
     const dialogDimensions = dialog.getBoundingClientRect()
-    if (
-      event.clientX < dialogDimensions.left ||
-      event.clientX > dialogDimensions.right ||
-      event.clientY < dialogDimensions.top ||
-      event.clientY > dialogDimensions.bottom
-    ) {
+    if (event.clientX < dialogDimensions.left || event.clientX > dialogDimensions.right || event.clientY < dialogDimensions.top || event.clientY > dialogDimensions.bottom) {
       closeDialog()
     }
   })
@@ -140,8 +138,8 @@ function showProjectControlDialog(dataObject) {
 // Set place in the HTML window for dialog to appear
 function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event) {
   const fudgeFactor = 20 // pixels to take account of scrollbars etc.
-  const mousex = event.clientX  // Horizontal
-  const mousey = event.clientY  // Vertical
+  const mousex = event.clientX // Horizontal
+  const mousey = event.clientY // Vertical
 
   // Harder than it looks in Safari, as left/top seem to be relative to middle of window, not top-left.
   // And, in Safari, it leaves quite a clear area around edge of window where it will not put the dialog.
@@ -153,8 +151,10 @@ function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, eve
   console.log(`Mouse at x${mousex}, y${mousey}`)
   console.log(`Dialog dimesnions: w${approxDialogWidth} x h${approxDialogHeight} / fudgeFactor ${String(fudgeFactor)}`)
   let x = mousex - Math.round((approxDialogWidth + fudgeFactor) / 3)
-  if (x < fudgeFactor) { x = fudgeFactor }
-  if ((x + (approxDialogWidth + fudgeFactor)) > window.innerWidth) {
+  if (x < fudgeFactor) {
+    x = fudgeFactor
+  }
+  if (x + (approxDialogWidth + fudgeFactor) > window.innerWidth) {
     x = window.innerWidth - (approxDialogWidth + fudgeFactor)
     console.log(`Move left: now x${String(x)}`)
   }
@@ -165,8 +165,10 @@ function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, eve
   }
 
   let y = mousey - Math.round((approxDialogHeight + fudgeFactor) / 2)
-  if (y < fudgeFactor) { y = fudgeFactor }
-  if ((y + (approxDialogHeight + fudgeFactor)) > window.innerHeight) {
+  if (y < fudgeFactor) {
+    y = fudgeFactor
+  }
+  if (y + (approxDialogHeight + fudgeFactor) > window.innerHeight) {
     y = window.innerHeight - (approxDialogHeight + fudgeFactor)
     console.log(`Move up: now y${String(y)}`)
   }
@@ -188,35 +190,41 @@ function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, eve
  * Add event listener added to all todo + checklist icons
  */
 function addIconClickEventListeners() {
-  // console.log('add Event Listeners to Icons ...')
-
   // Add event handlers for task icons
-  const allTodos = document.getElementsByClassName("sectionItemTodo")
+  const allTodos = document.getElementsByClassName('sectionItemTodo')
   for (const thisTodo of allTodos) {
     const itemElem = thisTodo.parentElement
     const thisId = itemElem.id
     const thisEncodedFilename = itemElem.dataset.encodedFilename
     const thisEncodedContent = itemElem.dataset.encodedContent
-    // console.log('-> (', thisId, 'open', thisEncodedFilename, thisEncodedContent, 'meta?', ')')
-    thisTodo.addEventListener('click', function () {
-      const metaModifier = event.metaKey
-      handleIconClick(thisId, 'open', thisEncodedFilename, thisEncodedContent, metaModifier)
-    }, false)
+
+    thisTodo.addEventListener(
+      'click',
+      function () {
+        const metaModifier = event.metaKey
+        handleIconClick(thisId, 'open', thisEncodedFilename, thisEncodedContent, metaModifier)
+      },
+      false,
+    )
   }
   console.log(`${String(allTodos.length)} sectionItemTodo ELs added (to icons)`)
 
   // Add event handlers for checklist icons
-  const allChecklists = document.getElementsByClassName("sectionItemChecklist")
+  const allChecklists = document.getElementsByClassName('sectionItemChecklist')
   for (const thisChecklist of allChecklists) {
     const itemElem = thisChecklist.parentElement
     const thisId = itemElem.id
     const thisEncodedFilename = itemElem.dataset.encodedFilename
     const thisEncodedContent = itemElem.dataset.encodedContent
-    // console.log('-> (', thisId, 'checklist', thisEncodedFilename, thisEncodedContent, 'meta?', ')')
-    thisChecklist.addEventListener('click', function () {
-      const metaModifier = event.metaKey
-      handleIconClick(thisId, 'checklist', thisEncodedFilename, thisEncodedContent, metaModifier)
-    }, false)
+
+    thisChecklist.addEventListener(
+      'click',
+      function () {
+        const metaModifier = event.metaKey
+        handleIconClick(thisId, 'checklist', thisEncodedFilename, thisEncodedContent, metaModifier)
+      },
+      false,
+    )
   }
   console.log(`${String(allChecklists.length)} sectionItemChecklist ELs added (to icons)`)
 }
@@ -227,28 +235,29 @@ function addIconClickEventListeners() {
  * Uses [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
  */
 function addContentEventListeners() {
-  // console.log('add Event Listeners to Content...')
-
   // Add click handler to all sectionItemContent items (which already have a basic <a>...</a> wrapper)
   // const allContentItems = document.getElementsByClassName("sectionItemContent")
-  const allContentItems = document.getElementsByClassName("content")
+  const allContentItems = document.getElementsByClassName('content')
   for (const contentItem of allContentItems) {
     // const thisRowElem = contentItem.parentElement
     const thisRowElem = contentItem.parentElement.parentElement
     const thisID = thisRowElem.id
     const thisEncodedContent = thisRowElem.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCaseransposition
     const thisEncodedFilename = thisRowElem.dataset.encodedFilename // contentItem.id
-    // console.log('- sIC on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent)
 
     // add event handler to each <a> (normally only 1 per item),
     // unless it's a noteTitle, which gets its own click handler.
     const thisLink = contentItem
-    // console.log('- A on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent + ' / ' + thisLink.className)
+
     if (!thisLink.className.match('noteTitle')) {
-      thisLink.addEventListener('click', function (event) {
-        event.preventDefault()
-        handleContentClick(event, thisID, thisEncodedFilename, thisEncodedContent)
-      }, false)
+      thisLink.addEventListener(
+        'click',
+        function (event) {
+          event.preventDefault()
+          handleContentClick(event, thisID, thisEncodedFilename, thisEncodedContent)
+        },
+        false,
+      )
     }
   }
   console.log(`${String(allContentItems.length)} sectionItem ELs added (to content links)`)
@@ -266,19 +275,21 @@ function addContentEventListeners() {
  * Add an event listener to all class="reviewProject" items
  */
 function addReviewProjectEventListeners() {
-  // console.log('add Event Listeners to reviewProject items...')
-
   // Add click handler to all 'review' class items (which already have a basic <a>...</a> wrapper)
   // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
-  const allReviewItems = document.getElementsByClassName("reviewProject")
+  const allReviewItems = document.getElementsByClassName('reviewProject')
   for (const reviewItem of allReviewItems) {
     const thisID = reviewItem.parentElement.id
     const thisEncodedFilename = reviewItem.parentElement.dataset.encodedFilename // i.e. the "data-encoded-review" element, with auto camelCase transposition
     // add event handler
-    reviewItem.addEventListener('click', function (event) {
-      event.preventDefault()
-      handleIconClick(thisID, 'review', thisEncodedFilename, '-', event.metaKey)
-    }, false)
+    reviewItem.addEventListener(
+      'click',
+      function (event) {
+        event.preventDefault()
+        handleIconClick(thisID, 'review', thisEncodedFilename, '-', event.metaKey)
+      },
+      false,
+    )
   }
   console.log(`${String(allReviewItems.length)} review ELs added`)
 }
@@ -288,18 +299,22 @@ function addReviewProjectEventListeners() {
  */
 function addCommandButtonEventListeners() {
   // Register click handlers for each 'PCButton' on the window with URL to call
-  allPCButtons = document.getElementsByClassName("PCButton")
+  allPCButtons = document.getElementsByClassName('PCButton')
   let added = 0
   for (const button of allPCButtons) {
-  // const thisURL = button.dataset.callbackUrl
+    // const thisURL = button.dataset.callbackUrl
     // add event handler and make visible
     console.log(`- displaying button for PCB function ${button.dataset.command}`)
-    button.addEventListener('click', function (event) {
-      event.preventDefault()
-      console.log(`Attempting to send plugin command '${button.dataset.command}' ...`)
-      const theseCommandArgs = (button.dataset.commandArgs).split(',')
-      sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
-    }, false)
+    button.addEventListener(
+      'click',
+      function (event) {
+        event.preventDefault()
+        console.log(`Attempting to send plugin command '${button.dataset.command}' ...`)
+        const theseCommandArgs = button.dataset.commandArgs.split(',')
+        sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
+      },
+      false,
+    )
     added++
   }
   console.log(`- ${String(added)} PCButton ELs added`)
@@ -318,11 +333,11 @@ function handleIconClick(id, itemType, encodedfilename, encodedcontent, metaModi
 
   switch (itemType) {
     case 'open': {
-      onClickDashboardItem({ itemID: id, type: (metaModifier) ? 'cancelTask' : 'completeTask', encodedFilename: encodedFilename, encodedContent: encodedContent })
+      onClickDashboardItem({ itemID: id, type: metaModifier ? 'cancelTask' : 'completeTask', encodedFilename: encodedFilename, encodedContent: encodedContent })
       break
     }
     case 'checklist': {
-      onClickDashboardItem({ itemID: id, type: (metaModifier) ? 'cancelChecklist' : 'completeChecklist', encodedFilename: encodedFilename, encodedContent: encodedContent })
+      onClickDashboardItem({ itemID: id, type: metaModifier ? 'cancelChecklist' : 'completeChecklist', encodedFilename: encodedFilename, encodedContent: encodedContent })
       break
     }
     case 'review': {
@@ -336,7 +351,7 @@ function handleIconClick(id, itemType, encodedfilename, encodedcontent, metaModi
   }
 }
 
-/** 
+/**
  *  For clicking on main 'paragraph encodedcontent'
  */
 function handleContentClick(event, id, encodedfilename, encodedcontent) {

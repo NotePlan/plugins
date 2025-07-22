@@ -73,7 +73,7 @@ module.exports = {
 
     if (!hasCommandLineItems) {
       // print.note('', 'INSTRUCTIONS')
-      // console.log('')
+
       // print.note('The following items will be used to generate your new NotePlan plugin:')
       // print.note(` • Supply values for each field in ${colors.cyan('blue')}`)
       // print.note(' • Press <tab> to move between fields')

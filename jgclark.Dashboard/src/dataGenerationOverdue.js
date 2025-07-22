@@ -6,7 +6,14 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { createSectionItemObject, filterParasByValidFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
+import {
+  createSectionItemObject,
+  filterParasByValidFolders,
+  filterParasByIgnoreTerms,
+  filterParasByCalendarHeadingSections,
+  makeDashboardParas,
+  getNotePlanSettings,
+} from './dashboardHelpers'
 import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
@@ -104,19 +111,17 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
         config.overdueSortOrder === 'priority'
           ? ['-priority', '-changedDate']
           : config.overdueSortOrder === 'earliest'
-            ? ['changedDate', '-priority']
-            : config.overdueSortOrder === 'due date'
-              ? ['dueDate', '-priority']
-              : ['-changedDate', '-priority'] // 'most recent'
+          ? ['changedDate', '-priority']
+          : config.overdueSortOrder === 'due date'
+          ? ['dueDate', '-priority']
+          : ['-changedDate', '-priority'] // 'most recent'
       const sortedOverdueTaskParas = sortListBy(dashboardParas, sortOrder)
       logDebug('getOverdueSectionData', `- Sorted ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
 
       // Apply limit to set of ordered results
       // Note: Apply some limiting here, in case there are hundreds of items. There is also display filtering in the Section component via useSectionSortAndFilter.
       // Note: this doesn't attempt to calculate parentIDs. TODO: Should it?
-      const overdueTaskParasLimited = totalOverdue > maxInSection
-        ? sortedOverdueTaskParas.slice(0, maxInSection)
-        : sortedOverdueTaskParas
+      const overdueTaskParasLimited = totalOverdue > maxInSection ? sortedOverdueTaskParas.slice(0, maxInSection) : sortedOverdueTaskParas
       logInfo('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} of ${totalOverdue} items will be passed to React`)
 
       // Create section items from the limited set of overdue tasks
@@ -169,7 +174,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
         },
       ],
     }
-    // console.log(JSON.stringify(section))
+
     logTimer('getOverdueSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
     return section
   } catch (error) {
@@ -193,9 +198,10 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
  */
 export async function getRelevantOverdueTasks(
   dashboardSettings: TDashboardSettings,
-  yesterdaysParas: Array<TParagraph>
+  yesterdaysParas: Array<TParagraph>,
 ): Promise<{
-  filteredOverdueParas: Array<TParagraph>, preLimitOverdueCount: number
+  filteredOverdueParas: Array<TParagraph>,
+  preLimitOverdueCount: number,
 }> {
   try {
     const thisStartTime = new Date()

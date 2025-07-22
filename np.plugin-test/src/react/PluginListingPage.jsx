@@ -187,7 +187,6 @@ type Props = {
 
 function PluginListingPage(props: Props): React$Node {
   const { pluginList } = props
-  // console.log('PluginListingPage props', props)
 
   const [filter, setFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState(categoryFilterOptions[0].value)

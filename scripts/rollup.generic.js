@@ -110,9 +110,7 @@ function watch(watchOptions, buildMode = '') {
     debouncedRebuild()
   })
 
-  watcher.on('restart', () => {
-    // console.log(`rollup: restarting`)
-  })
+  watcher.on('restart', () => {})
 
   watcher.on('close', () => {
     console.log(`rollup: closing`)

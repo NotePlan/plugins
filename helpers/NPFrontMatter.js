@@ -346,7 +346,7 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
     logDebug(`setFrontMatterVars`, `- BEFORE ensureFM: hasFrontmatter:${String(noteHasFrontMatter(note) || '')} note has ${note.paragraphs.length} lines`)
     const hasFM = ensureFrontmatter(note, true, title)
     logDebug('note.paragraphs', `- AFTER ensureFM has ${note.paragraphs.length} lines, that starts:`)
-    // console.log(note.paragraphs.slice(0, 7).map(p => p.content).join('\n'))
+
     if (!hasFM) {
       throw new Error(`setFrontMatterVars: Could not add front matter to note which has no title. Note should have a title, or you should pass in a title in the varObj.`)
     }
@@ -364,7 +364,6 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
       removeFrontMatter(note)
       writeFrontMatter(note, changedAttributes)
       logDebug('setFrontMatterVars', `- ENDING with ${note.paragraphs.length} lines, that starts:`)
-      // console.log(note.paragraphs.slice(0, 7).map(p => p.content).join('\n'))
     } else {
       logError('setFrontMatterVars', `- could not change frontmatter for note "${note.filename || ''}" because it has no frontmatter.`)
     }

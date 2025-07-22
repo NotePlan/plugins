@@ -196,7 +196,6 @@ const colourStyles = {
   // option: (styles) => ({ ...styles, backgroundColor: NP_THEME.base.backgroundColor, color: NP_THEME.base.textColor ?? 'black' }),
   // option: (styles, { data, isDisabled, isFocused, isSelected }) => {
   option: (styles, { isDisabled, isSelected }) => {
-    // console.log('option', styles, data, isDisabled, isFocused, isSelected)
     return {
       ...styles,
       // backgroundColor: isDisabled ? undefined : isSelected ? bgColor.css() : isFocused ? bgColor.alpha(0.1).css() : bgColor.css(),

@@ -39,7 +39,7 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
   ]
   // create one single base config with two output options
   const config = { ...rollupConfigs[0], ...{ output: [rollupConfigs[0].output, rollupConfigs[1].output] } }
-  // console.log(JSON.stringify(config, null, 2))
+
   await rollupReactFiles(config, watch, 'TaskAutomations: development && production')
   // const rollupsProms = rollups.map((obj) => rollupReactFiles({ ...obj, buildMode }, watch, buildMode))
 })()

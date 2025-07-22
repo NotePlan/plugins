@@ -1,0 +1,37 @@
+---
+title: Test Template with Errors
+date: <%- date.now("YYYY-MM-DD") %>
+priority: <%- nonExistentVariable %>
+invalidYaml: this is missing quotes and has: invalid characters
+missingQuotes: this should be in quotes but isn't
+---
+
+# Test Template
+
+This template has multiple errors to test AI analysis.
+
+## Frontmatter Error
+The frontmatter above has several issues:
+- `nonExistentVariable` is not defined
+- Invalid YAML syntax in `invalidYaml` field
+- Missing quotes around string values
+
+## Body Errors
+
+<% 
+// This has a syntax error - missing closing parenthesis
+const result = someFunction(
+%>
+
+<%- undefinedBodyVariable %>
+
+<% 
+// Another error - using assignment instead of comparison
+if (someVar = "test") {
+    
+}
+%>
+
+<%- anotherUndefinedVariable.property %>
+
+Final content here. 

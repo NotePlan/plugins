@@ -39,7 +39,7 @@ const { rollupReactFiles, getRollupConfig } = rollupReactScript
   // create one single base config with two output options
   // const config = { ...rollupConfigs[0], ...{ output: [rollupConfigs[0].output, rollupConfigs[1].output] } }
   const config = { ...rollupConfigs[0], ...{ output: buildMode === 'production' ? [rollupConfigs[0].output, rollupConfigs[1].output] : [rollupConfigs[0].output] } }
-  // console.log(JSON.stringify(config, null, 2))
+
   await rollupReactFiles(config, watch, `jgclark.Dashboard: development ${buildMode === 'production' ? `&& production` : ''}`)
   // const rollupsProms = rollups.map((obj) => rollupReactFiles({ ...obj, buildMode }, watch, buildMode))
 })().catch((error) => {

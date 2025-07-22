@@ -15,7 +15,7 @@
  */
 // eslint-disable-next-line require-await
 async function delay(time) {
-  return new Promise(resolve => setTimeout(resolve, time))
+  return new Promise((resolve) => setTimeout(resolve, time))
 }
 
 /**
@@ -71,13 +71,13 @@ async function completeTaskInDisplay(data) {
   try {
     const itemID = data.itemID
     console.log(`completeTaskInDisplay: for ID: ${itemID}`)
-    replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked circle icon
-    addClassToID(itemID, "checked") // adds colour + line-through
-    addClassToID(itemID, "fadeOutAndHide")
+    replaceClassInID(`${itemID}I`, 'fa-regular fa-circle-check') // adds ticked circle icon
+    addClassToID(itemID, 'checked') // adds colour + line-through
+    addClassToID(itemID, 'fadeOutAndHide')
     await delay(1400)
     deleteHTMLItem(itemID)
     // update the totals and other counts
-    incrementItemCount("totalDoneCount")
+    incrementItemCount('totalDoneCount')
     // update the section count(s) if spans with the right ID are present
     const sectionID = itemID.split('-')[0]
     const sectionCountID = `section${sectionID}Count`
@@ -100,7 +100,9 @@ async function completeTaskInDisplay(data) {
       // Delete the whole section from the display
       console.log(`completeTaskInDisplay: trying to delete rest of empty section: ${sectionID}`)
       const sectionItemsGrid = document.getElementById(`${sectionID}-Section`)
-      if (!sectionItemsGrid) { throw new Error(`Couldn't find ID ${itemID}`) }
+      if (!sectionItemsGrid) {
+        throw new Error(`Couldn't find ID ${itemID}`)
+      }
       const enclosingDIV = sectionItemsGrid.parentNode
       console.log(`Will remove node with outerHTML:\n${enclosingDIV.outerHTML}`)
       enclosingDIV.remove()
@@ -118,13 +120,13 @@ async function completeChecklistInDisplay(data) {
   try {
     const itemID = data.itemID
     console.log(`completeChecklistInDisplay: for ID: ${itemID}`)
-    replaceClassInID(`${itemID}I`, "fa-regular fa-square-check") // adds ticked box icon
-    addClassToID(itemID, "checked") // adds colour + line-through text
-    addClassToID(itemID, "fadeOutAndHide")
+    replaceClassInID(`${itemID}I`, 'fa-regular fa-square-check') // adds ticked box icon
+    addClassToID(itemID, 'checked') // adds colour + line-through text
+    addClassToID(itemID, 'fadeOutAndHide')
     await delay(1400)
     deleteHTMLItem(itemID)
     // update the totals
-    incrementItemCount("totalDoneCount")
+    incrementItemCount('totalDoneCount')
     // update the section count(s) if spans with the right ID are present
     const sectionID = itemID.split('-')[0]
     const sectionCountID = `section${sectionID}Count`
@@ -145,7 +147,9 @@ async function completeChecklistInDisplay(data) {
       // Delete the whole section from the display
       console.log(`completeChecklistInDisplay: trying to delete rest of empty section: ${sectionID}`)
       const sectionItemsGrid = document.getElementById(`${sectionID}-Section`)
-      if (!sectionItemsGrid) { throw new Error(`Couldn't find ID ${itemID}`) }
+      if (!sectionItemsGrid) {
+        throw new Error(`Couldn't find ID ${itemID}`)
+      }
       const enclosingDIV = sectionItemsGrid.parentNode
       console.log(`Will remove node with outerHTML:\n${enclosingDIV.outerHTML}`)
       enclosingDIV.remove()
@@ -163,9 +167,9 @@ async function cancelTaskInDisplay(data) {
   // const { ID } = data
   const itemID = data.itemID
   console.log(`cancelTaskInDisplay: for ID: ${itemID}`)
-  replaceClassInID(`${itemID}I`, "fa-regular fa-circle-xmark") // adds x-circle icon
-  addClassToID(itemID, "cancelled") // adds colour + line-through text
-  addClassToID(itemID, "fadeOutAndHide")
+  replaceClassInID(`${itemID}I`, 'fa-regular fa-circle-xmark') // adds x-circle icon
+  addClassToID(itemID, 'cancelled') // adds colour + line-through text
+  addClassToID(itemID, 'fadeOutAndHide')
   await delay(1400)
   deleteHTMLItem(itemID)
   // update the section count(s) if spans with the right ID are present
@@ -192,9 +196,9 @@ async function cancelChecklistInDisplay(data) {
   // const { ID } = data
   const itemID = data.itemID
   console.log(`cancelChecklistInDisplay: for ID: ${itemID}`)
-  replaceClassInID(`${itemID}I`, "fa-regular fa-square-xmark") // adds x-box icon
-  addClassToID(itemID, "cancelled") // adds colour + line-through text
-  addClassToID(itemID, "fadeOutAndHide")
+  replaceClassInID(`${itemID}I`, 'fa-regular fa-square-xmark') // adds x-box icon
+  addClassToID(itemID, 'cancelled') // adds colour + line-through text
+  addClassToID(itemID, 'fadeOutAndHide')
   await delay(1400)
   deleteHTMLItem(itemID)
   // update the section count(s) if spans with the right ID are present
@@ -223,12 +227,12 @@ function toggleTypeInDisplay(data) {
   // Get the element with {itemID}I = the icon for that item
   const iconElement = document.getElementById(`${itemID}I`)
   // Switch the icon
-  if (iconElement.className.includes("fa-circle")) {
-    console.log("toggling type to checklist")
-    replaceClassInID(`${itemID}I`, "todo fa-regular fa-square")
+  if (iconElement.className.includes('fa-circle')) {
+    console.log('toggling type to checklist')
+    replaceClassInID(`${itemID}I`, 'todo fa-regular fa-square')
   } else {
-    console.log("toggling type to todo")
-    replaceClassInID(`${itemID}I`, "todo fa-regular fa-circle")
+    console.log('toggling type to todo')
+    replaceClassInID(`${itemID}I`, 'todo fa-regular fa-circle')
   }
 }
 
@@ -288,7 +292,7 @@ function updateItemContent(data) {
 async function unscheduleItem(data) {
   const itemID = data.itemID
   console.log(`unscheduleItem: for ID: ${itemID}`)
-  addClassToID(itemID, "fadeOutAndHide")
+  addClassToID(itemID, 'fadeOutAndHide')
   await delay(1400)
   deleteHTMLItem(itemID)
   // update the section count(s) if spans with the right ID are present
@@ -314,9 +318,7 @@ function setPriorityInDisplay(data) {
   console.log(`- currentInnerHTML: ${currentInnerHTML}`)
 
   // Change the class of the content visible to users, to reflect the new priority colours
-  const newInnerHTML = (data.newPriority > 0)
-    ? `<span class="priority${data.newPriority}">${data.newContent}</span>`
-    : data.newContent
+  const newInnerHTML = data.newPriority > 0 ? `<span class="priority${data.newPriority}">${data.newContent}</span>` : data.newContent
   console.log(`- newInnerHTML: ${newInnerHTML}`)
   replaceHTMLinElement(thisContentElement, newInnerHTML, null)
 
@@ -427,10 +429,8 @@ function findDescendantByClassName(startElement, className) {
 }
 
 function deleteHTMLItem(ID) {
-  // console.log(`deleteHTMLItem(${ID}) ...`)
   const div = document.getElementById(ID)
   if (div) {
-    // console.log(`innerHTML was: ${div.innerHTML}`)
     div.innerHTML = ''
     // Note: why not use div.remove() ?
   } else {
@@ -439,11 +439,10 @@ function deleteHTMLItem(ID) {
 }
 
 function addClassToID(ID, newerClass) {
-  // console.log(`addClassToID(${ID}, '${newerClass}') ...`)
   const elem = document.getElementById(ID)
   if (elem) {
-    const origClass = elem.getAttribute("class")
-    elem.setAttribute("class", `${origClass} ${newerClass}`)
+    const origClass = elem.getAttribute('class')
+    elem.setAttribute('class', `${origClass} ${newerClass}`)
   } else {
     console.log(`- ❗error❗ in addClassToID: couldn't find an elem with ID ${ID} to add class ${newerClass}`)
   }
@@ -451,17 +450,15 @@ function addClassToID(ID, newerClass) {
 
 // TODO: this can't find the ID, and I can't see why
 function replaceClassInID(ID, replacementClass) {
-  // console.log(`replaceClassInID(${ID}, '${replacementClass}') ...`)
   const elem = document.getElementById(ID)
   if (elem) {
-    elem.setAttribute("class", replacementClass)
+    elem.setAttribute('class', replacementClass)
   } else {
     console.log(`- error in replaceClassInID: couldn't find an elem with ID ${ID} to replace class ${replacementClass}`)
   }
 }
 
 function replaceHTMLinID(ID, html, innerText) {
-  // console.log(`replaceHTMLinID(${ID}, '${html}', '${innerText}') ...`)
   const div = document.getElementById(ID)
   if (div) {
     if (innerText) {
@@ -488,12 +485,10 @@ function replaceHTMLinElement(elem, html, innerText) {
 }
 
 function setCounter(counterID, value) {
-  // console.log(`setCounter('${counterID}', ${value}) ...`)
   replaceHTMLinID(counterID, String(value), true)
 }
 
 function incrementItemCount(counterID) {
-  // console.log(`incrementItemCount('${counterID}') ...`)
   const elem = document.getElementById(counterID)
   if (elem) {
     const value = parseInt(elem.innerText)
@@ -504,7 +499,6 @@ function incrementItemCount(counterID) {
 }
 
 function decrementItemCount(counterID) {
-  // console.log(`decrementItemCount('${counterID}') ...`)
   const elem = document.getElementById(counterID)
   if (elem) {
     const value = parseInt(elem.innerText)
@@ -522,9 +516,8 @@ function decrementItemCount(counterID) {
  * @returns {number}
  */
 function getNumItemsInSection(sectionID, tagName) {
-  // console.log(`getNumItemsInSection: ${sectionID} by ${tagName}`)
   const sectionElem = document.getElementById(sectionID)
-  // console.log(`${sectionElem.innerHTML}`)
+
   if (sectionElem) {
     let c = 0
     const items = sectionElem.getElementsByTagName(tagName)
@@ -534,7 +527,7 @@ function getNumItemsInSection(sectionID, tagName) {
         c++
       }
     }
-    // console.log(`=> ${String(c)} items left in this section`)
+
     return c
   } else {
     console.log(`- ❗error❗ in getNumItemsInSection: couldn't find section with ID ${sectionID}`)
@@ -550,9 +543,8 @@ function getNumItemsInSection(sectionID, tagName) {
  * @returns {number}
  */
 function getNumItemsInSectionByClass(sectionID, className) {
-  // console.log(`getNumItemsInSectionByClass: ${sectionID} by ${className}`)
   const sectionElem = document.getElementById(sectionID)
-  // console.log(`${sectionElem.innerHTML}`)
+
   if (sectionElem) {
     let c = 0
     const items = sectionElem.getElementsByClassName(className)
@@ -571,7 +563,6 @@ function getNumItemsInSectionByClass(sectionID, className) {
 }
 
 function doesIDExist(itemID) {
-  // console.log(`doesIDExist for ${itemID}? ${String(document.getElementById(itemID))}`)
   return document.getElementById(itemID)
 }
 

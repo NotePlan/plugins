@@ -71,7 +71,8 @@ export const isTask = (para: TParagraph): boolean => TASK_TYPES.indexOf(para.typ
  * @param {Array<string>} field list - property array, e.g. ['date', 'title']
  * @returns {Function} callback function for sort()
  */
-export const fieldSorter = (fields: Array<string>): Function =>
+export const fieldSorter =
+  (fields: Array<string>): Function =>
   (a: string, b: string) =>
     fields
       .map((_field) => {
@@ -246,7 +247,7 @@ export function getSortableTask(para: TParagraph): SortableParagraphSubset {
     type: para.type,
     calculatedType: calculateParagraphType(para),
   }
-  // console.log(`new: ${index}: indents:${para.indents} ${para.rawContent}`)
+
   task.priority = getNumericPriority(task)
   return task
 }
@@ -267,7 +268,7 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
     // logDebug('getTasksByType', `${para.lineIndex}: ${para.type}`)
     if (isTask || (!ignoreIndents && para.indents > lastParent.indents)) {
       // const content = para.content // Not used
-      // console.log(`found: ${index}: ${para.type}: ${para.content}`)
+
       try {
         const task: SortableParagraphSubset = getSortableTask(para)
         if (!ignoreIndents && para.indents > lastParent.indents) {
@@ -283,7 +284,6 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
         logError('getTasksByType', `${error.message}: ${para.content}, ${index}`)
       }
     } else {
-      // console.log(`\t\tSkip: ${para.content}`) //not a task
     }
   }
 

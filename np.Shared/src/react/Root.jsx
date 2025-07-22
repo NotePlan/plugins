@@ -217,7 +217,7 @@ export function Root(/* props: Props */): Node {
    */
   const onMessageReceived = (event: MessageEvent) => {
     const { data } = event
-    // console.log(`Root: onMessageReceived ${event.type} data: ${JSON.stringify(data, null, 2)}`)
+
     if (!shouldIgnoreMessage(event) && data) {
       // const str = JSON.stringify(event, null, 4)
       try {

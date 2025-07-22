@@ -7,21 +7,13 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  quickSearch,
-  searchOverAll,
-  searchOverCalendar,
-  searchOverNotes,
-  searchOpenTasks,
-  searchPeriod
-} from './saveSearch'
+import { quickSearch, searchOverAll, searchOverCalendar, searchOverNotes, searchOpenTasks, searchPeriod } from './saveSearch'
 // import { searchPeriod } from './saveSearchPeriod'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 
-
 /**
  * Parses a URL string and returns an object of key-value pairs of the URL parameters.
- * 
+ *
  * @param {string} query - The URL string to parse.
  * @returns {Object<string, string>} An object containing the key-value pairs from the URL parameters.
  */
@@ -30,7 +22,7 @@ function getUrlParams(query: string): { [key: string]: string } {
   let match
   const decode = function (s: string) {
     // Regex for replacing addition symbol with a space
-    return decodeURIComponent(s.replace(/\+/g, " "))
+    return decodeURIComponent(s.replace(/\+/g, ' '))
   }
   const urlParams: { [key: string]: string } = {}
   while ((match = search.exec(query)) !== null) {
@@ -55,9 +47,8 @@ function getUrlParams(query: string): { [key: string]: string } {
 // Example usage
 // const url = 'https://example.com/page?name=John&age=30&city=NewYork'
 // const parameters = getQueryParameters(url)
-// console.log(parameters)
-// Output: [{ key: 'name', value: 'John' }, { key: 'age', value: '30' }, { key: 'city', value: 'NewYork' }]
 
+// Output: [{ key: 'name', value: 'John' }, { key: 'age', value: '30' }, { key: 'city', value: 'NewYork' }]
 
 /**
  * Refresh the saved search results in the note, if the note has a suitable x-callback 'Refresh button' in it.
@@ -80,9 +71,8 @@ export async function refreshSavedSearch(): Promise<void> {
 
     logDebug(pluginJson, `refreshSavedSearch triggered for '${noteReadOnly.filename}'`)
     // Does this note have a Refresh button from the Search Extensions plugin?
-    const refreshButtonLines = noteReadOnly.paragraphs.filter(p =>
-      /Refresh /.test(p.content)
-      && /noteplan:\/\/x\-callback\-url\/runPlugin\?pluginID=jgclark\.SearchExtensions&/.test(p.content)
+    const refreshButtonLines = noteReadOnly.paragraphs.filter(
+      (p) => /Refresh /.test(p.content) && /noteplan:\/\/x\-callback\-url\/runPlugin\?pluginID=jgclark\.SearchExtensions&/.test(p.content),
     )
     // Only proceed if we have a refresh button
     if (refreshButtonLines?.length === 0) {
@@ -108,27 +98,29 @@ export async function refreshSavedSearch(): Promise<void> {
     await CommandBar.showLoading(true, 'Refreshing search results ...')
     await CommandBar.onAsyncThread()
     switch (cmdName) {
-      case "search": { // -> searchOverAll()
+      case 'search': {
+        // -> searchOverAll()
         searchOverAll(arg0, arg1, arg2, arg3)
         break
       }
-      case "searchOverCalendar": {
+      case 'searchOverCalendar': {
         searchOverCalendar(arg0, arg1, arg2, arg3)
         break
       }
-      case "searchOverNotes": {
+      case 'searchOverNotes': {
         searchOverNotes(arg0, arg1, arg2, arg3)
         break
       }
-      case "searchOpenTasks": {
+      case 'searchOpenTasks': {
         searchOpenTasks(arg0, arg1, arg2)
         break
       }
-      case "searchInPeriod": { // -> searchPeriod()
+      case 'searchInPeriod': {
+        // -> searchPeriod()
         searchPeriod(arg0, arg1, arg2, arg3, arg4, arg5)
         break
       }
-      case "quickSearch": {
+      case 'quickSearch': {
         quickSearch(arg0, arg1, arg2, arg3)
         break
       }
@@ -152,8 +144,7 @@ export async function refreshSavedSearch(): Promise<void> {
     //   await CommandBar.onMainThread()
     //   await CommandBar.showLoading(false)
     // }
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, `${error.name}: ${error.message}`)
   }
 }

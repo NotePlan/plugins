@@ -13,7 +13,6 @@ export function logAllEnvironmentSettings(): void {
     // TODO: don't know why this is no longer working for me:
     clo(NotePlan.environment, 'NotePlan.environment:')
     // TODO: when the following simple case *is* working:
-    // console.log(NotePlan.environment.platform)
   } else {
     logWarn('logAllEnvironmentSettings', `NotePlan.environment not available until NP 3.3.2.`)
   }

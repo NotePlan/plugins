@@ -26,40 +26,19 @@ import {
   updateMetadataInEditor,
   updateMetadataInNote,
 } from './reviewHelpers'
-import {
-  filterAndSortProjectsList,
-  getNextNoteToReview,
-  getSpecificProjectFromList,
-  generateAllProjectsList,
-  updateProjectInAllProjectsList,
-} from './allProjectsListHelpers.js'
-import {
-  calcReviewFieldsForProject,
-  generateProjectOutputLine,
-} from './projectClass'
+import { filterAndSortProjectsList, getNextNoteToReview, getSpecificProjectFromList, generateAllProjectsList, updateProjectInAllProjectsList } from './allProjectsListHelpers.js'
+import { calcReviewFieldsForProject, generateProjectOutputLine } from './projectClass'
 import { checkString } from '@helpers/checkType'
-import {
-  calcOffsetDateStr,
-  getDateObjFromDateString,
-  getTodaysDateHyphenated,
-  RE_DATE, RE_DATE_INTERVAL, todaysDateISOString
-} from '@helpers/dateTime'
+import { calcOffsetDateStr, getDateObjFromDateString, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import { saveEditorIfNecessary } from '@helpers/editor'
-import {
-  createRunPluginCallbackUrl, displayTitle,
-} from '@helpers/general'
-import {
-  makePluginCommandButton,
-  showHTMLV2
-} from '@helpers/HTMLView'
+import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
+import { makePluginCommandButton, showHTMLV2 } from '@helpers/HTMLView'
 import { getOrMakeNote, numberOfOpenItemsInNote } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
-import {
-  isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId,
-} from '@helpers/NPWindows'
+import { isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------------------
 // Constants
@@ -94,7 +73,7 @@ async function handleCheckboxClick(cb) {
   console.log("Calling URL " + callbackURL + " ...");
   // v1: use fetch() - doesn't work in plugin
   // const res = await fetch(callbackURL);
-  // console.log("Result: " + res.status);
+  
   // v2: use window.open() - doesn't work in plugin
   // window.open(callbackURL);
   // v3: use window.location ... - doesn't work in plugin
@@ -309,7 +288,7 @@ export async function displayProjectLists(argsIn?: string | null = null, scrollP
 
 /**
  * Internal version of above that doesn't open window if not already open.
- * @param {number?} scrollPos 
+ * @param {number?} scrollPos
  */
 export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<void> {
   try {
@@ -335,15 +314,11 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
  * @param {boolean?} shouldOpen window/note if not already open?
  * @param {number?} scrollPos scroll position to set (pixels) for HTML display (default: 0)
  */
-export async function renderProjectLists(
-  configIn: ?ReviewConfig = null,
-  shouldOpen: boolean = true,
-  scrollPos: number = 0
-): Promise<void> {
+export async function renderProjectLists(configIn: ?ReviewConfig = null, shouldOpen: boolean = true, scrollPos: number = 0): Promise<void> {
   try {
     logDebug(pluginJson, `--------------------------------------------------------------`)
     logDebug('renderProjectLists', `Starting ${configIn ? 'with given config' : '*without config*'}. shouldOpen ${String(shouldOpen)} / scrollPos ${scrollPos}`)
-    const config = (configIn) ? configIn : await getReviewSettings()
+    const config = configIn ? configIn : await getReviewSettings()
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -369,11 +344,7 @@ export async function renderProjectLists(
  * @param {boolean} shouldOpen window/note if not already open?
  * @param {number?} scrollPos scroll position to set (pixels) for HTML display
  */
-export async function renderProjectListsHTML(
-  config: any,
-  shouldOpen: boolean = true,
-  scrollPos: number = 0
-): Promise<void> {
+export async function renderProjectListsHTML(config: any, shouldOpen: boolean = true, scrollPos: number = 0): Promise<void> {
   try {
     if (config.projectTypeTags.length === 0) {
       throw new Error('No projectTypeTags configured to display')
@@ -420,7 +391,7 @@ export async function renderProjectListsHTML(
       'project lists',
       '',
       'Recalculate project lists and update this window',
-      true
+      true,
     )
     const startReviewPCButton = makePluginCommandButton(
       `<i class="fa-solid fa-play"></i>\u00A0Start`,
@@ -428,7 +399,7 @@ export async function renderProjectListsHTML(
       'start reviews',
       '',
       'Opens the next project to review in the NP editor',
-      true
+      true,
     )
     const reviewedPCButton = makePluginCommandButton(
       `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish`,
@@ -436,7 +407,7 @@ export async function renderProjectListsHTML(
       'finish project review',
       '',
       `Update the ${checkString(DataStore.preference('reviewedMentionStr'))}() date for the Project you're currently editing`,
-      true
+      true,
     )
     const nextReviewPCButton = makePluginCommandButton(
       `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
@@ -444,7 +415,7 @@ export async function renderProjectListsHTML(
       'next project review',
       '',
       `Finish review of currently open Project and start the next review`,
-      true
+      true,
     )
 
     // Start with a sticky top bar
@@ -489,7 +460,9 @@ export async function renderProjectListsHTML(
       const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
 
       // Write out all relevant HTML
-      const headingContent = `<span class="h3 folder-name">${thisTag}</span> (${noteCount} notes, ${due} ready for review${config.numberDaysForFutureToIgnore > 0 ? ', with future items ignored' : ''})`
+      const headingContent = `<span class="h3 folder-name">${thisTag}</span> (${noteCount} notes, ${due} ready for review${
+        config.numberDaysForFutureToIgnore > 0 ? ', with future items ignored' : ''
+      })`
       // If there are multiple projectTypeTags, then use details/summary HTML tags to open/close the section
       if (config.projectTypeTags.length > 1) {
         outputArray.push(`  <details open>`) // start it open
@@ -604,10 +577,16 @@ export async function renderProjectListsHTML(
       makeModal: false, // = not modal window
       bodyOptions: 'onload="showTimeAgo()"',
       preBodyScript: setPercentRingJSFunc + scrollPreLoadJSFuncs,
-      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
+      postBodyScript:
+        checkboxHandlerJSFunc +
+        setScrollPosJS +
+        `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>
       <script type="text/javascript" src="./projectListEvents.js"></script>
-      ` + commsBridgeScripts + shortcutsScript + addToggleEvents, // + collapseSection +  resizeListenerScript + unloadListenerScript,
+      ` +
+        commsBridgeScripts +
+        shortcutsScript +
+        addToggleEvents, // + collapseSection +  resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 800, // = default width of window (px)
@@ -656,7 +635,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
     const completeXCallbackButton = `[Complete](${completeXCallbackURL})`
     const cancelXCallbackButton = `[Cancel](${cancelXCallbackURL})`
     const nowDateTime = nowLocaleShortDateTime()
-    const perspectivePart = (config.usePerspectives) ? ` from _${config.perspectiveName}_ Perspective` : ''
+    const perspectivePart = config.usePerspectives ? ` from _${config.perspectiveName}_ Perspective` : ''
 
     if (config.projectTypeTags.length > 0) {
       if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
@@ -684,12 +663,14 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           if (!config.displayGroupedByFolder) outputArray.unshift(`### All folders (${noteCount} notes)`)
 
           if (due > 0) {
-            outputArray.unshift(`**${startReviewButton}**. For open Project note: Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${newIntervalXCallbackButton} Project: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
+            outputArray.unshift(
+              `**${startReviewButton}**. For open Project note: Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${newIntervalXCallbackButton} Project: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`,
+            )
           }
           const displayFinished = config.displayFinished ?? false
           const displayOnlyDue = config.displayOnlyDue ?? false
-          let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
-          togglesValues += (displayFinished) ? ' plus finished ones' : ''
+          let togglesValues = displayOnlyDue ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
+          togglesValues += displayFinished ? ' plus finished ones' : ''
           // Write out the count + metadata
           outputArray.unshift(`Total ${noteCount} active projects${perspectivePart}(${togglesValues}). Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
           outputArray.unshift(`# ${noteTitle}`)
@@ -726,7 +707,9 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           outputArray.unshift(`### All folders (${noteCount} notes)`)
         }
         if (due > 0) {
-          outputArray.unshift(`**${startReviewButton}** ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
+          outputArray.unshift(
+            `**${startReviewButton}** ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`,
+          )
         }
         outputArray.unshift(`Total ${noteCount} active projects${perspectivePart}. Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
         outputArray.unshift(`# ${noteTitle}`)
@@ -947,9 +930,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
         }
       }
       if (nextActionTagLineIndexes.length === 0) {
-        const res = await showMessageYesNo(
-          `There's no Next Action tag in '${displayTitle(note)}'. Do you wish to continue finishing this review?`,
-        )
+        const res = await showMessageYesNo(`There's no Next Action tag in '${displayTitle(note)}'. Do you wish to continue finishing this review?`)
         if (res === 'No') {
           logDebug('finishReviewCoreLogic', `- user cancelled command by clicking '${res}' button.`)
           return
@@ -985,8 +966,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     let thisNoteAsProject = await getSpecificProjectFromList(note.filename)
     if (thisNoteAsProject) {
       thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-      thisNoteAsProject =
-        calcReviewFieldsForProject(thisNoteAsProject)
+      thisNoteAsProject = calcReviewFieldsForProject(thisNoteAsProject)
       logDebug('finishReviewCoreLogic', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDate)})`)
 
       // Save changes to allProjects list
@@ -999,8 +979,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       await generateProjectListsAndRenderIfOpen()
     }
     logDebug('finishReviewCoreLogic', `- finished successfully`)
-  }
-  catch (error) {
+  } catch (error) {
     logError('finishReviewCoreLogic', error.message)
   }
 }
@@ -1036,8 +1015,7 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
     }
     logInfo('finishReviewForNote', `Starting for passed note '${displayTitle(noteToUse)}'`)
     await finishReviewCoreLogic(noteToUse)
-  }
-  catch (error) {
+  } catch (error) {
     logError('finishReviewForNote', error.message)
   }
 }
@@ -1080,7 +1058,7 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
 //-------------------------------------------------------------------------------
 
 /**
- * Skip a project review, moving it forward to a specified date/interval. 
+ * Skip a project review, moving it forward to a specified date/interval.
  * Note: private core logic used by 2 functions.
  * @param (CoreNoteFields) note
  * @param (string?) skipIntervalOrDate (optional)
@@ -1094,29 +1072,24 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
 
     // Calculate new date from param 'skipIntervalOrDate' (if given) or ask user
     if (skipIntervalOrDate !== '') {
-      // Get new date from parameter as date interval or iso date 
+      // Get new date from parameter as date interval or iso date
       newDateStr = skipIntervalOrDate.match(RE_DATE_INTERVAL)
         ? calcOffsetDateStr(todaysDateISOString, skipIntervalOrDate)
         : skipIntervalOrDate.match(RE_DATE)
-          ? skipIntervalOrDate
-          : ''
+        ? skipIntervalOrDate
+        : ''
       if (newDateStr === '') {
         logWarn('skipReviewForNote', `${skipIntervalOrDate} is not a valid interval, so will stop.`)
         return
       }
-    }
-    else {
+    } else {
       // Get new date from input in the common ISO format, and create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)`.
       const reply = await getInputTrimmed("Next review date (YYYY-MM-DD) or date interval (e.g. '2w' or '3m') to skip until:", 'OK', 'Skip next review')
       if (!reply || typeof reply === 'boolean') {
         logDebug('skipReviewCoreLogic', `User cancelled command.`)
         return
       }
-      newDateStr = reply.match(RE_DATE)
-        ? reply
-        : reply.match(RE_DATE_INTERVAL)
-          ? calcOffsetDateStr(todaysDateISOString, reply)
-          : ''
+      newDateStr = reply.match(RE_DATE) ? reply : reply.match(RE_DATE_INTERVAL) ? calcOffsetDateStr(todaysDateISOString, reply) : ''
       if (newDateStr === '') {
         logWarn('skipReviewCoreLogic', `No valid date entered, so will stop.`)
         return
@@ -1154,18 +1127,22 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
     if (thisNoteAsProject) {
       thisNoteAsProject.nextReviewDateStr = newDateStr
       thisNoteAsProject = calcReviewFieldsForProject(thisNoteAsProject)
-      logDebug('skipReviewCoreLogic', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
+      logDebug(
+        'skipReviewCoreLogic',
+        `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(
+          thisNoteAsProject.nextReviewDate,
+        )} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`,
+      )
       // Write changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't open window if not open already)
       await renderProjectLists(config, false)
     } else {
-      // Regenerate whole list (and display if window is already open)      
+      // Regenerate whole list (and display if window is already open)
       logWarn('skipReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
       await generateProjectListsAndRenderIfOpen()
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError('skipReviewCoreLogic', error.message)
   }
 }
@@ -1223,8 +1200,7 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
     }
     logDebug('skipReviewForNote', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
     await skipReviewCoreLogic(note, skipIntervalOrDate)
-  }
-  catch (error) {
+  } catch (error) {
     logError('skipReviewForNote', error.message)
   }
 }
@@ -1235,7 +1211,7 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
  * * TEST: following change to allProjects
  * Note: see below for a non-interactive version that takes parameters
  * @author @jgclark
- * @param {TNote?} noteArg 
+ * @param {TNote?} noteArg
  */
 export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
   try {
@@ -1287,7 +1263,12 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     if (thisNoteAsProject) {
       thisNoteAsProject.reviewInterval = newIntervalStr
       thisNoteAsProject = calcReviewFieldsForProject(thisNoteAsProject)
-      logDebug('setNewReviewInterval', `-> reviewInterval = ${String(thisNoteAsProject.reviewInterval)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
+      logDebug(
+        'setNewReviewInterval',
+        `-> reviewInterval = ${String(thisNoteAsProject.reviewInterval)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(
+          thisNoteAsProject.nextReviewDate,
+        )} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`,
+      )
       // Write changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't focus)
@@ -1300,9 +1281,9 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
 
 //-------------------------------------------------------------------------------
 
-/** 
+/**
  * Toggle displayFinished setting, held as a NP preference, as it is shared between frontend and backend
-*/
+ */
 export async function toggleDisplayFinished(): Promise<void> {
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
@@ -1323,15 +1304,14 @@ export async function toggleDisplayFinished(): Promise<void> {
     const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
     // clo(updatedConfig, 'updatedConfig at end of toggle...()')
     await renderProjectLists(updatedConfig, false)
-  }
-  catch (error) {
+  } catch (error) {
     logError('toggleDisplayFinished', error.message)
   }
 }
 
-/** 
+/**
  * Toggle displayFinished setting, held as a NP preference, as it is shared between frontend and backend
-*/
+ */
 export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
     // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
@@ -1346,8 +1326,7 @@ export async function toggleDisplayOnlyDue(): Promise<void> {
     const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
     // clo(updatedConfig, 'updatedConfig at end of toggle...()')
     await renderProjectLists(updatedConfig, false)
-  }
-  catch (error) {
+  } catch (error) {
     logError('toggleDisplayOnlyDue', error.message)
   }
 }
