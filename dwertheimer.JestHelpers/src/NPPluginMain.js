@@ -150,7 +150,7 @@ export async function generateMock(incoming: ?string = ''): Promise<void> {
     // createMockClass(pl[0].commands[0], 'PluginCommandObjectMock')
 
     const name = await getInput('What is the name of the mock?')
-    // console.log(this[name])
+
     if (name && this[name]) createMockOutput(this[name], name)
     else console.log(`No object for ${name || ''}`)
   } catch (error) {
@@ -195,7 +195,16 @@ export function getNotePlan(): any {
 export function outputEditorJson() {
   try {
     const e = Editor
-    const nObj = { title: e.title, filename: e.filename, type: e.type, paragraphs: [] }
+    const nObj = {
+      title: e.title,
+      filename: e.filename,
+      type: e.type,
+      paragraphs: [],
+      frontmatterAttributes: e.frontmatterAttributes,
+      frontmatterTypes: e.frontmatterTypes,
+      linkedItems: e.linkedItems,
+      datedTodos: e.datedTodos,
+    }
     nObj.paragraphs = e.paragraphs.map((p) => ({
       content: p.content,
       rawContent: p.rawContent,
@@ -209,18 +218,11 @@ export function outputEditorJson() {
     }))
     console.log(`--- Editor ---`)
     console.log(JSON.stringify(nObj, null, 2))
-    clo(Editor.frontmatterAttributes, `Editor.frontmatterAttributes `)
-    clo(Editor.note?.frontmatterAttributes, `Editor.note.frontmatterAttributes `)
-    clo(Editor.frontmatterTypes, `Editor.frontmatterTypes `)
-    clo(Editor.note?.frontmatterTypes, `Editor.note.frontmatterTypes `)
-    clo(Editor.linkedItems, `Editor.linkedItems `)
-    clo(Editor.note?.linkedItems, `Editor.note.linkedItems `)
-    clo(Editor.datedTodos, `Editor.datedTodos `)
-    clo(Editor.note?.datedTodos, `Editor.note.datedTodos  `)
 
     console.log(`--- /Editor ---`)
     console.log(`--- For debugging paras ---`)
     nObj.paragraphs.forEach((p) => console.log(`[${p.lineIndex}]: type=${p.type} content="${p.content}" heading:"${p.heading}"`))
+    return {}
   } catch (error) {
     logError(pluginJson, JSON.stringify(error))
   }

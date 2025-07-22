@@ -5,7 +5,7 @@
   "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.4.0",
-  "plugin.version": "0.1.0",
+  "plugin.version": "1.0.0",
   "plugin.description": "Plugin for helping to create Jest/Mocks",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
