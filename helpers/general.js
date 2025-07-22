@@ -33,11 +33,30 @@ constructor(iterable ?: Iterable < [string, TVal] >) {
   }
 }
 
+<<<<<<< Updated upstream
 set(key: string, value: TVal): this {
   const keyLowerCase = typeof key === 'string' ? key.toLowerCase() : key
   if (!this.#keysMap.has(keyLowerCase)) {
     this.#keysMap.set(keyLowerCase, key) // e.g. 'test': 'TEst'
     // console.log(`new map entry: public '${keyLowerCase}' and private '${key}'`)
+||||||| Stash base
+  set(key: string, value: TVal): this {
+    const keyLowerCase = typeof key === 'string' ? key.toLowerCase() : key
+    if (!this.#keysMap.has(keyLowerCase)) {
+      this.#keysMap.set(keyLowerCase, key) // e.g. 'test': 'TEst'
+      // console.log(`new map entry: public '${keyLowerCase}' and private '${key}'`)
+    }
+    super.set(keyLowerCase, value) // set main Map to use 'test': value
+    return this
+=======
+  set(key: string, value: TVal): this {
+    const keyLowerCase = typeof key === 'string' ? key.toLowerCase() : key
+    if (!this.#keysMap.has(keyLowerCase)) {
+      this.#keysMap.set(keyLowerCase, key) // e.g. 'test': 'TEst'
+    }
+    super.set(keyLowerCase, value) // set main Map to use 'test': value
+    return this
+>>>>>>> Stashed changes
   }
   super.set(keyLowerCase, value) // set main Map to use 'test': value
   return this
@@ -257,7 +276,7 @@ export function createOpenOrDeleteNoteCallbackUrl(
   const paramStr = isLineLink ? 'noteTitle' : isFilename ? `filename` : paramType === 'date' ? `noteDate` : `noteTitle`
   const xcb = `noteplan://x-callback-url/${isDeleteNote ? 'deleteNote' : 'openNote'}?${paramStr}=`
   const head = heading && heading.length ? encodePlusParens(heading.replace('#', '')) : ''
-  // console.log(`createOpenOrDeleteNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
+
   const encodedTitleOrFilename = encodePlusParens(titleOrFilename)
   const openAs = openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
   let retVal = ''
@@ -392,7 +411,6 @@ export function createPrettyRunPluginLink(linkText: string, pluginID: string, co
  * @tests available
  */
 export function getStringFromList(list: $ReadOnlyArray<string>, search: string): string {
-  // console.log(`getsearchFromList for: ${search}`)
   const res = list.filter((m) => m === search)
   return res.length > 0 ? res[0] : ''
 }
@@ -457,7 +475,7 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
     }
     // $FlowIgnore(incompatible-type) as can produce 'any'
     const paramObj: {} = await json5.parse(paramString)
-    // console.log(typeof paramObj)
+
     if (typeof paramObj !== 'object') {
       throw new Error('JSON5 parsing did not return an object')
     }

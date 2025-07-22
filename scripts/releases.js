@@ -199,7 +199,6 @@ async function getReleaseFileList(pluginDevDirFullPath, appPluginsPath, dependen
     }
   }
 
-  // console.log(`>> Releases fileList:\n${JSON.stringify(fileList)}`)
   if (fileList.files.length < 2) goodToGo = false
   if (goodToGo === false) {
     console.log(
@@ -275,7 +274,6 @@ async function removePlugin(versionedTagName, sendToGithub = false) {
       console.log(`==> ${COMMAND}: Removing previous version "${versionedTagName}" on github...`)
       // eslint-disable-next-line no-unused-vars
       const resp = await runShellCommand(removeCommand)
-      // console.log(`...response: ${JSON.stringify(resp.trim())}`)
     }
   }
 }
@@ -306,7 +304,7 @@ async function main() {
 
     if (fileList) {
       const versionedTagName = getReleaseTagName(pluginName, versionNumber)
-      // console.log(`==> ${COMMAND}: This version/tag will be:\n\t${versionedTagName}`)
+
       ensureVersionIsNew(existingRelease, versionedTagName)
       await releasePlugin(versionedTagName, pluginData, fileList, !TEST)
       if (existingRelease) await removePlugin(existingRelease.tag, !TEST)

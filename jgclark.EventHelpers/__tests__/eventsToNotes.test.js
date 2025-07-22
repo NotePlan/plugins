@@ -131,17 +131,13 @@ describe('eventsToNotes.js tests', () => {
     test('event 2 format 3 for @EasyTarget with newlines and asterisks', () => {
       const result = e.smartStringReplace(format3, replacements2)
       const expected = '### [20:00:00] title of event2 with <brackets> & more\n- \n \n*****\n'
-      // console.log(result)
-      // console.log(result.length)
-      // console.log(expected.length)
+
       expect(result).toEqual(expected)
     })
     test('event 2 format 4 for @EasyTarget with multiple new lines', () => {
       const result = e.smartStringReplace(format4, replacements2)
       const expected = '### [20:00:00] title of event2 with <brackets> & more\n- \n\n\n\n\n'
-      // console.log(result)
-      // console.log(result.length)
-      // console.log(expected.length)
+
       expect(result).toEqual(expected)
     })
     test('event 1 format 5 date test', () => {

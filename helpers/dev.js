@@ -453,7 +453,6 @@ export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array
 export const getFilteredProps = (object: any): Array<string> => {
   const ignore = ['toString', 'toLocaleString', 'valueOf', 'hasOwnProperty', 'propertyIsEnumerable', 'isPrototypeOf']
   if (typeof object !== 'object' || Array.isArray(object)) {
-    // console.log(`getFilteredProps improper type: ${typeof object}`)
     return []
   }
   return getAllPropertyNames(object).filter((prop) => !/(^__)|(constructor)/.test(prop) && !ignore.includes(prop))
@@ -751,7 +750,7 @@ export function logTimer(functionName: string, startTime: Date, explanation: str
   if (warningThreshold && difference > warningThreshold) {
     // const msg = `${dt().padEnd(19)} | ⏱️ ⚠️ ${functionName} | ${output}`
     const msg = `⏱️ ⚠️ ${output}`
-    // console.log(msg)
+
     log(functionName, msg, 'DEBUG')
   } else {
     const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
@@ -759,7 +758,7 @@ export function logTimer(functionName: string, startTime: Date, explanation: str
     if (pluginSettings && pluginSettings.hasOwnProperty('_logTimer') && pluginSettings['_logTimer'] === true) {
       // const msg = `${dt().padEnd(19)} | ⏱️ ${functionName} | ${output}`
       const msg = `⏱️ ${output}`
-      // console.log(msg)
+
       log(functionName, msg, 'DEBUG')
     }
   }

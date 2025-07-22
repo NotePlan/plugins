@@ -318,9 +318,7 @@ describe(`${PLUGIN_NAME}`, () => {
       }
 
       let data = {
-        events: function (data = {}) {
-          // console.log(data)
-        },
+        events: function (data = {}) {},
       }
 
       let renderedData = await templateInstance.render(templateData, data)

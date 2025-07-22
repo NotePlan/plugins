@@ -298,7 +298,6 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
   // SOURCE: https://stackoverflow.com/questions/12812902/javascript-regular-expression-matching-cityname // how to take only specific parts
   const reg = /(\d*[\.,])?(\d+)(\s?%)(\s+)(of)(\s+)(\d*[\.,])?(\d+\s?)/g
   while ((match = reg.exec(strToBeParsed))) {
-    // console.log(match);
     const num = match[1] ? match[1] + match[2] : match[2]
     const dest = match[7] ? match[7] + match[8] : match[8]
     const sostituzione = (Number(dest) * (Number(num) / 100)).toString()

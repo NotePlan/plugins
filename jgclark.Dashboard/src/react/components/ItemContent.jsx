@@ -79,8 +79,6 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
     })
   }
 
-  // console.log(`-> ${mainContent}`)
-
   // if hasChild, then set suitable icon
   // v1: use'fa-arrow-down-from-line' icon
   // v2:
@@ -136,11 +134,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
       <a className="dialogTriggerIcon">
         <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenEditDialog}></i>
       </a>
-      {showItemNoteLink && <ItemNoteLink
-        item={item}
-        thisSection={thisSection}
-        alwaysShowNoteTitle={false}
-      />}
+      {showItemNoteLink && <ItemNoteLink item={item} thisSection={thisSection} alwaysShowNoteTitle={false} />}
     </div>
   )
 }
@@ -281,7 +275,6 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
     if (captures) {
       // clo(captures, 'results from [[notelinks]] match:')
       for (const capturedTitle of captures) {
-        // console.log(`makeParaContet...: - making notelink with ${thisItem.filename}, ${capturedTitle}`)
         // Replace [[notelinks]] with HTML equivalent, aware that this will interrupt the <a>...</a> that will come around the whole string, and so it needs to make <a>...</a> regions for the rest of the string before and after the capture.
         const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(capturedTitle, '') // don't want folder part here
         output = output.replace(`[[${capturedTitle}]]`, `</a>${noteTitleWithOpenAction}<a>`)

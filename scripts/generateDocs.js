@@ -57,8 +57,6 @@ async function genDocsForValue(node, index, folderPath = pathToDocs) {
     for (const prop of node.id.typeAnnotation.typeAnnotation.properties) {
       console.log(generate(prop).code)
     }
-
-    // console.log(node.id.typeAnnotation.typeAnnotation)
   }
 }
 

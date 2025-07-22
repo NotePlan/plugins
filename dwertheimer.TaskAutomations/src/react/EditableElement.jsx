@@ -22,7 +22,7 @@ export const EditableElement = (props) => {
     ref: element,
     onKeyUp: onMouseUp,
   })
-  // console.log(`WebView: EditableElement elements=`, elements)
+
   return elements
 }
 

@@ -136,7 +136,7 @@ export const TIMEBLOCK_ACTIVE_PARA_TYPES = ['title', 'open', 'list', 'checklist'
 // export const RE_TIMEBLOCK = `(${RE_TIMEBLOCK_PART_A}|${RE_TIMEBLOCK_PART_B}|${RE_TIMEBLOCK_PART_C})`
 // // Put all together
 // export const RE_TIMEBLOCK_IN_LINE = `${RE_START_OF_LINE}${RE_TIMEBLOCK}${RE_END_OF_LINE}`
-// // console.log(RE_TIMEBLOCK_IN_LINE)
+//
 
 //-----------------------------------------------------------------------------
 
@@ -144,8 +144,6 @@ export const TIMEBLOCK_ACTIVE_PARA_TYPES = ['title', 'open', 'list', 'checklist'
 // - tight match requiring HH:MM[A][-HH:MM[A]] with possible spaces before the am/pm
 export const RE_TIMEBLOCK = `${RE_TIME}${RE_AMPM_OPT}(${RE_TIME_TO}${RE_TIME}${RE_AMPM_OPT})?`
 export const RE_TIMEBLOCK_IN_LINE = `${RE_START_OF_LINE}${RE_TIMEBLOCK}`
-
-// console.log(RE_TIMEBLOCK_IN_LINE)
 
 //-----------------------------------------------------------------------------
 // THEMES
@@ -167,7 +165,7 @@ export const RE_TIMEBLOCK_IN_LINE = `${RE_START_OF_LINE}${RE_TIMEBLOCK}`
 export function isTimeBlockLine(contentString: string, mustContainStringArg: string = ''): boolean {
   try {
     // Get the setting from arg or from NP setting
-    // console.log(typeof mustContainStringArg, typeof DataStore)
+
     let mustContainString = mustContainStringArg && typeof mustContainStringArg === 'string' ? mustContainStringArg : ''
     if (mustContainString === '') {
       // If DataStore.preference gives an error, or is not available, or gives an undefined answer, then treat as an empty string
@@ -270,10 +268,11 @@ export function isActiveOrFutureTimeBlockPara(para: TParagraph, mustContainStrin
   const startTimeMom = moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
   const endTimeStr = getEndTimeStrFromParaContent(para.content) ?? ''
   // logDebug('isActiveOrFutureTimeBlockPara', `${startTimeStr} / ${endTimeStr}`)
-  const endTimeMom = (endTimeStr !== '' && endTimeStr !== 'error')
-    ? moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
-    // Add 15 mins on from start time (this appears to be the NP default duration).
-    : moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH']).add(15, 'minutes')
+  const endTimeMom =
+    endTimeStr !== '' && endTimeStr !== 'error'
+      ? moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
+      : // Add 15 mins on from start time (this appears to be the NP default duration).
+        moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH']).add(15, 'minutes')
   // Special syntax for moment.isBetween which allows the end time minute to be excluded.
   const isCurrentTB = currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')
   // logDebug('isActiveOrFutureTimeBlockPara', `Found${isCurrentTB ? '' : ' NOT'} active/future timeblock ${startTimeMom.format('HH:mm')} - ${endTimeMom.format('HH:mm')} from ${tbString}`)
@@ -441,10 +440,11 @@ export function getCurrentTimeBlockPara(note: TNote, excludeClosedParas: boolean
         const startTimeStr = getStartTimeStrFromParaContent(para.content)
         const startTimeMom = moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
         const endTimeStr = getEndTimeStrFromParaContent(para.content)
-        const endTimeMom = (endTimeStr !== '' && endTimeStr !== 'error')
-          ? moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
-          // Add 15 mins on from start time (this appears to be the NP default duration).
-          : moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH']).add(15, 'minutes')
+        const endTimeMom =
+          endTimeStr !== '' && endTimeStr !== 'error'
+            ? moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
+            : // Add 15 mins on from start time (this appears to be the NP default duration).
+              moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH']).add(15, 'minutes')
         logDebug('getCurrentTimeBlockPara', `${startTimeMom.format('HH:mm')} - ${endTimeMom.format('HH:mm')} (${endTimeStr}) from ${timeBlockString}`)
 
         if (currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')) {

@@ -152,7 +152,6 @@ export default {
             dashboardSettings: getContext().dashboardSettings,
           })
 
-          // console.log(`=== Perspective ${perspectiveName} active; now pausing before waiting for dashboardSettings to match allOffSettings ===`)
           // await pause(`After this we will wait for all dashboardSettings.show* to be off`)
           console.log(`=== Waiting for the settings to match the ones we set (all show==false) and lastModified to match the timestamp we set: ${now}`)
 

@@ -394,7 +394,7 @@ describe(`${PLUGIN_NAME}`, () => {
         // output order is the reverse of that order
         // Note that types will be unreliable because rawContent is being pasted
         // so we're just checking the content
-        // console.log(`sortTasks result`, result)
+
         expect(result[8].content).toEqual('6-checklistCancelled')
         expect(result[7].content).toEqual('5-cancelled')
         expect(result[6].content).toEqual('4-checklistDone')
@@ -579,7 +579,7 @@ describe(`${PLUGIN_NAME}`, () => {
             const shouldBe = `${p.rawContent}`
             const newContent = `${result[i].rawContent}`
             // uncomment the following line if this test is failing and it will give you more clues on how far it got
-            // console.log(`sortTasks: [${i}]: (result) ${newContent} ${newContent === shouldBe ? '===' : ' !== '} "${shouldBe}" (expected)`)
+
             // Put breakpoint on the expect and compare the objects in the debugger
             expect(newContent).toMatch(shouldBe)
           })

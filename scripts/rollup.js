@@ -204,7 +204,6 @@ const dt = () => {
                 await await fs.copyFile(filePath, path.join(dataFolder, dependency))
               }
               dependenciesCopied++
-              // console.log(`Copying ${dependency} to ${targetFolder}`)
             } else {
               console.log(colors.red.bold(`Cannot copy plugin.dependency "${dependency}" (${filePath}) as it doesn't exist at this location.`))
             }
@@ -481,13 +480,11 @@ const dt = () => {
     let requiredFilesWatchPlugin = null
     const requiredFilesInDevFolder = path.join(pluginPath, 'requiredFiles')
     if (existsSync(requiredFilesInDevFolder)) {
-      // console.log(colors.yellow(`\n==> Gathering "${path.basename(pluginPath)}/requiredFiles" files`))
       requiredFilesWatchPlugin = {
         name: 'watch-external-files',
         async buildStart() {
           const files = await fg(path.join(requiredFilesInDevFolder, '**/*'))
           for (const file of files) {
-            // console.log(`Watching ${file}`)
             // $FlowFixMe - this works but Flow doesn't like "this" inside a function
             this.addWatchFile(file)
           }

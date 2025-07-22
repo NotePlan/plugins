@@ -15,14 +15,8 @@ class CustomReporter {
 
   // eslint-disable-next-line no-unused-vars
   onRunComplete(testContexts, results) {
-    // console.log('Custom reporter output:')
-    // console.log('global config: ', this._globalConfig)
-    // console.log('options for this reporter from Jest config: ', this._options)
-    // console.log('reporter context passed from test scheduler: ', this._context)
-    // console.log('\n\ntest testContexts: \n', testContexts)
-    // console.log('\n\ntest results: \n', results)
     const failedObjects = results?.testResults?.filter((result) => result.numFailingTests > 0) || []
-    // console.log(failedObjects)
+
     const activeTests = results.numTotalTests - results.numPendingTests
     const fails = results.numFailedTests
       ? colors.red.inverse(` ${results.numFailedTests} tests failed in ${failedObjects.length} test suite${failedObjects.length > 1 ? 's ' : ' '}`)
