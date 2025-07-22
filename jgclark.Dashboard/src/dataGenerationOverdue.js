@@ -17,6 +17,7 @@ import { sortListBy } from '@helpers/sorting'
 // ----------------------------------------------------------
 /**
  * Generate data for a section for Overdue tasks
+ * TODO: Send Yesterday items to getRelevantOverdueTasks() somehow
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
@@ -83,6 +84,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     } else {
       // Get overdue tasks (de-duping any sync'd lines)
       // Note: Cannot move the reduce into here otherwise separate call to this function by scheduleAllOverdueOpenToToday() doesn't have all it needs to work
+      // TODO: Send Yesterday items to getRelevantOverdueTasks() somehow
       const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, [])
       overdueParas = filteredOverdueParas
       preLimitCount = preLimitOverdueCount
@@ -140,10 +142,11 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       items.push({
         ID: `${sectionNumStr}-${String(overdueParas.length)}`,
         itemType: 'preLimitOverdues',
-        message: `There are ${preLimitCount - overdueParas.length} overdue tasks older than the window set to ${config.lookBackDaysForOverdue} days`,
+        // itemType: 'filterIndicator',
+        message: `There are ${preLimitCount - overdueParas.length} overdue tasks older than the window set to ${config.lookBackDaysForOverdue} days. Settings:`,
+        settingsDialogAnchor: 'lookBackDaysForOverdue',
       })
     }
-    logDebug('getOverdueSectionData', `- items: ${JSON.stringify(items)}`)
 
     const section: TSection = {
       ID: sectionNumStr,

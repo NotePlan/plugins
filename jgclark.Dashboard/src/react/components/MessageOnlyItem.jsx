@@ -10,6 +10,7 @@ import { useAppContext } from './AppContext.jsx'
 type Props = {
   message: string,
   contentClassName?: string,
+  rowIconClassName?: string,
   closingFAIconClassName?: string,
   settingsDialogAnchor?: string,
 }
@@ -17,7 +18,11 @@ type Props = {
 /**
  * Component for displaying a message when there are no tasks.
  */
-const MessageOnlyItem = ({ message, contentClassName = '', closingFAIconClassName = '', settingsDialogAnchor = '' }: Props): Node => {
+const MessageOnlyItem = ({ message,
+  contentClassName = '',
+  rowIconClassName = '',
+  closingFAIconClassName = '',
+  settingsDialogAnchor = '' }: Props): Node => {
   const { setReactSettings } = useAppContext()
   const contentClassNameToUse = contentClassName || 'messageOnlyItem'
 
@@ -39,12 +44,15 @@ const MessageOnlyItem = ({ message, contentClassName = '', closingFAIconClassNam
 
   return (
     <div className="sectionItemRow" data-section-type="">
-      {/* <div className="TaskItem checked"> */}
-      {/* <i className="fa-regular fa-fw  fa-circle-check"></i> */}
-      {/* </div> */}
+      {rowIconClassName && (
+        <div>
+          <i className={rowIconClassName}></i>
+        </div>
+      )}
       <div className="sectionItemContent sectionItem">
         <div className={contentClassNameToUse}>
-          {message} {settingsDialogAnchor && <i className="fa-solid fa-gear" onClick={handleSettingsLinkClick}></i>}{' '}
+          {message}{' '}
+          {settingsDialogAnchor && <i className="fa-solid fa-gear" onClick={handleSettingsLinkClick}></i>}{' '}
           {closingFAIconClassName && <i className={closingFAIconClassName}></i>}
         </div>
       </div>
