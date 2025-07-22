@@ -5,6 +5,7 @@ import pluginJson from '../plugin.json' // gives you access to the contents of p
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
+import { isTriggerLoop } from '@helpers/NPFrontMatter'
 
 /**
  * NOTEPLAN PER-NOTE TRIGGERS
@@ -27,16 +28,8 @@ export async function onOpen(note: TNote): Promise<void> {
     // Try to guard against infinite loops of opens/refreshing
     // You can delete this code if you are sure that your onOpen trigger will not cause an infinite loop
     // But the safest thing to do is put your code inside the if loop below to ensure it runs no more than once every 15s
-    const now = new Date()
-    if (Editor?.note?.changedDate) {
-      const lastEdit = new Date(Editor?.note?.changedDate)
-      if (now.getTime() - lastEdit.getTime() > 15000) {
-        logDebug(pluginJson, `onOpen ${timer(lastEdit)} since last edit`)
-        // Put your code here or call a function that does the work
-      } else {
-        logDebug(pluginJson, `onOpen: Only ${timer(lastEdit)} since last edit (hasn't been 15s)`)
-      }
-    }
+    if (Editor?.note && isTriggerLoop(Editor.note)) return
+    // Put your code here or call a function that does the work
   } catch (error) {
     logError(pluginJson, `onOpen: ${JSP(error)}`)
   }
@@ -49,6 +42,8 @@ export async function onOpen(note: TNote): Promise<void> {
 export async function onEditorWillSave() {
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onEditorWillSave running with note in Editor:"${String(Editor.filename)}"`)
+    // Put your code here or call a function that does the work
+    if (Editor?.note && isTriggerLoop(Editor.note)) return
     // Put your code here or call a function that does the work
     // Note: as stated in the documentation, if you want to change any content in the Editor
     // before the file is written, you should NOT use the *note* variable here to change content

@@ -8,6 +8,7 @@ import { getRelativeDates } from './NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 import { getHeadingsFromNote } from './NPnote'
+import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 function parseJSON5(contents: string): ?{ [string]: ?mixed } {
@@ -167,8 +168,8 @@ export async function showMessageWithList(message: string, list: Array<string>, 
   const listToShow = list.slice(0, safeListLimitToDisplay)
   const listIsLimited = list.length > safeListLimitToDisplay
   const listToShowString = listToShow.join('\n')
-  const listIsLimitedString = listIsLimited ? `\n  ... and ${ list.length - safeListLimitToDisplay } more` : ''
-  const messageToShow = `${ message } \n${ listToShowString }${ listIsLimitedString }`
+  const listIsLimitedString = listIsLimited ? `\n  ... and ${list.length - safeListLimitToDisplay} more` : ''
+  const messageToShow = `${message} \n${listToShowString}${listIsLimitedString}`
   await CommandBar.prompt(dialogTitle, messageToShow, [confirmButton])
 }
 
@@ -213,15 +214,16 @@ export async function showMessageYesNoCancel(message: string, choicesArray: Arra
 }
 
 /**
- * Let user pick from a nicely-indented list of available folders (or / for root, or optionally create a new folder)
+ * Let user pick from a nicely-indented list of available folders (or / for root, or optionally give a new folder name).
+ * This now shows teamspaces as a special case, with a teamspace icon. TODO: show Teamspace root folder.
+ * Note: the API does not allow for creation of the folder, so all this does is pass back a path which you will need to handle creating.
  * @author @jgclark + @dwertheimer
  *
  * @param {string} msg - text to display to user
  * @param {boolean} includeArchive - if true, include the Archive folder in the list of folders; default is false
- * @param {boolean} includeNewFolderOption - if true, add a 'New Folder' option that will allow users to create a new folder and select it; IMPORTANT
- * NOTE: the API does not allow for creation of the folder, so all this does is pass back a path which will be created when the user saves/moves the note
- * If your use case does not include the creation or moving of a note to the chosen path, this option will not work for you
- * @param {string} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder) - default is root (/) -- set to "/" to force start at root
+ * @param {boolean} includeNewFolderOption - if true, add a 'New Folder' option that will allow users to create a new folder and select it.
+ * @param {string} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder) - default is root (/) -- set to "/" to force start at root.
+ * @param {boolean} includeFolderPath - (optional: default true) Show the folder path (or most of it), not just the last folder name, to give more context.
  * @returns {string} - returns the user's folder choice (or / for root)
  */
 export async function chooseFolder(msg: string, includeArchive?: boolean = false, includeNewFolderOption?: boolean = false, startFolder?: string): Promise<string> {

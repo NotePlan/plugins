@@ -27,7 +27,7 @@ describe('useSectionSortAndFilter', () => {
 
       // now do the main sort of items
       const sortedData = sh.reorderChildrenAfterParents(yesterdayItemsWithParas)
-      clof(sortedData, 'sortedData', ['ID', 'parentID', 'para.priority', 'para.indentLevel', 'para.content'])
+      clof(sortedData, 'sortedData', ['ID', 'parentID', 'para.priority', 'para.indents', 'para.content'])
 
       // strip out .para from the demo data objects (to simplify the test)
       const sortedDataWithoutParas = sortedData.slice()
@@ -51,7 +51,7 @@ describe('useSectionSortAndFilter', () => {
 
       // now do the re-ordering of children of the sorted items
       const reorderedData = sh.reorderChildrenAfterParents(sortedDataWithoutParas)
-      clof(reorderedData, 'reorderedData', ['ID', 'parentID', 'para.priority', 'para.indentLevel', 'para.content'])
+      clof(reorderedData, 'reorderedData', ['ID', 'parentID', 'para.priority', 'para.indents', 'para.content'])
 
       const expectedOrderedResult = [
         { ID: '2-5', itemType: 'open', parentID: '' },

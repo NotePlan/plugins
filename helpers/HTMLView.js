@@ -919,7 +919,8 @@ export function convertBoldAndItalicToHTML(input: string): string {
   }
 
   // add basic **bold** or __bold__ styling
-  const RE_BOLD_PHRASE = new RegExp(/([_\*]{2})([^_*]+?)\1/, 'g')
+  // Use word boundaries for underscore-based bold formatting to ignore underscores in middle of words
+  const RE_BOLD_PHRASE = new RegExp(/(\*\*|\b__)([^_*]+?)\1/, 'g')
   const boldMatches = output.match(RE_BOLD_PHRASE)
   if (boldMatches) {
     // clo(boldMatches, 'boldMatches')
@@ -935,7 +936,8 @@ export function convertBoldAndItalicToHTML(input: string): string {
 
   // add basic *italic* or _italic_ styling
   // Note: uses a simplified regex that needs to come after bold above
-  const RE_ITALIC_PHRASE = new RegExp(/([_\*])([^*]+?)\1/, 'g')
+  // Use word boundaries for underscore-based italic formatting to ignore underscores in middle of words
+  const RE_ITALIC_PHRASE = new RegExp(/(\*|\b_)([^*]+?)\1/, 'g')
   const italicMatches = output.match(RE_ITALIC_PHRASE)
   if (italicMatches) {
     // clo(italicMatches, 'italicMatches')
@@ -992,7 +994,7 @@ export function convertHashtagsToHTML(input: string): string {
   let output = input
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d\'\"]+(\s|$))(#([^\'\"\s]|[\-_\/])+?\(.*?\)|#([^\'\"\s]|[\-_\/])+)/) // regex from @EduardMe's file without :punct:
-  const captures = output.match(/\B(?:#|＃)((?![\p{N}_/]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_/]{1,60}))/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+  const captures = output.match(/\B(?:#|＃)((?![\p{N}_/]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_/-]{1,60}))/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
   if (captures) {
     // clo(captures, 'results from hashtag matches:')
     for (const capture of captures) {
@@ -1011,7 +1013,7 @@ export function convertMentionsToHTML(input: string): string {
   let output = input
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/) // regex from @EduardMe's file, without [:punct:]
-  const captures = output.match(/\B@((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60})(\(.*?\))?)/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+  const captures = output.match(/\B@((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_-]{1,60})(\(.*?\))?)/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
   if (captures) {
     // clo(captures, 'results from mention matches:')
     for (const capture of captures) {

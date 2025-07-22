@@ -122,7 +122,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
             noteType: 'Notes',
             rawContent: '',
             priority: -1,
-            indentLevel: 0,
+            indents: 0,
           },
         })
       }

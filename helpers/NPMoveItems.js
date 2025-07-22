@@ -11,8 +11,8 @@ import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { getNoteByFilename } from '@helpers/note'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { getParaAndAllChildren } from '@helpers/parentsAndChildren'
-import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, smartAppendPara, smartCreateSectionsAndPara, smartPrependPara } from '@helpers/paragraph'
-import { findParaFromStringAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
+import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, convertRawContentToContent, smartAppendPara, smartCreateSectionsAndPara, smartPrependPara } from '@helpers/paragraph'
+import { findParaFromRawContentAndFilename, findParaFromStringAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
 import { chooseHeading, chooseNote, displayTitleWithRelDate, showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -20,20 +20,20 @@ import { chooseHeading, chooseNote, displayTitleWithRelDate, showMessage, showMe
  * Move an item (given by its content and filename) and move to a note specified by the user.
  * Note: designed to be used by HTMLView plugins where proper Paragraphs aren't available.
  * @param {string} origFilename line is currently in
- * @param {string} paraContent content of line
+ * @param {string} rawContentIn content of line
  * @param {ParagraphType} type of item
  * @param {number} newHeadingLevel for new Headings
  * @returns {TNote} returns new note the line was moved to
  */
-export async function moveItemToRegularNote(origFilename: string, paraContent: string, itemType: ParagraphType, newHeadingLevel: number = 2): Promise<TNote | null> {
+export async function moveItemToRegularNote(origFilename: string, rawContentIn: string, itemType: ParagraphType, newHeadingLevel: number = 2): Promise<TNote | null> {
   try {
-    logDebug('moveItemToRegularNote', `Starting with {${paraContent}} in ${origFilename}, itemType: ${itemType}`)
+    logDebug('moveItemToRegularNote', `Starting with {${rawContentIn}} in ${origFilename}, itemType: ${itemType}`)
 
     // find para in the given origFilename
-    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(origFilename, paraContent)
+    const possiblePara: TParagraph | boolean = findParaFromRawContentAndFilename(origFilename, rawContentIn)
     if (typeof possiblePara === 'boolean') {
-      logWarn('moveItemToRegularNote', `Cannot find paragraph {${paraContent}} in note '${origFilename}'. Likely cause: updated note since last Dashboard refresh.`)
-      showMessage(`Cannot find paragraph {${paraContent}} in note '${origFilename}'. Have you updated this line in the note since the last Dashboard refresh?`, 'OK', 'Dashboard: Move Item', false)
+      logWarn('moveItemToRegularNote', `Cannot find paragraph {${rawContentIn}} in note '${origFilename}'. Likely cause: updated note since last Dashboard refresh.`)
+      showMessage(`Cannot find paragraph {${rawContentIn}} in note '${origFilename}'. Have you updated this line in the note since the last Dashboard refresh?`, 'OK', 'Dashboard: Move Item', false)
       return null
     }
 
@@ -49,15 +49,15 @@ export async function moveItemToRegularNote(origFilename: string, paraContent: s
     logDebug('moveItemToRegularNote', `- Moving from note '${displayTitle(origNote)}' to '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // If there's a >date in the line, ask whether to remove it
-    let paraContentToUse = paraContent
-    const schedDates = findScheduledDates(paraContent)
+    let paraRawContentToUse = rawContentIn
+    const schedDates = findScheduledDates(rawContentIn)
     if (schedDates.length) {
       const message = (schedDates.length === 1)
         ? `Remove the scheduled date '${schedDates[0]}'?`
         : `Remove the scheduled dates [${schedDates.join(',')}]?`
       const removeDate = await showMessageYesNo(message, ['Yes', 'No'], `Move ${itemType}`, false)
       if (removeDate === 'Yes') {
-        paraContentToUse = removeDateTagsAndToday(paraContent, true)
+        paraRawContentToUse = removeDateTagsAndToday(rawContentIn, true)
       }
     }
 
@@ -67,9 +67,9 @@ export async function moveItemToRegularNote(origFilename: string, paraContent: s
     // Add text to the new location in destination note
     logDebug('moveItemToRegularNote', `- newHeadingLevel: ${newHeadingLevel}`)
     if (itemType === 'open') {
-      coreAddTaskToNoteHeading(destNote, headingToFind, paraContentToUse, newHeadingLevel, false)
+      coreAddTaskToNoteHeading(destNote, headingToFind, paraRawContentToUse, newHeadingLevel, false)
     } else if (itemType === 'checklist') {
-      coreAddChecklistToNoteHeading(destNote, headingToFind, paraContentToUse, newHeadingLevel, false)
+      coreAddChecklistToNoteHeading(destNote, headingToFind, paraRawContentToUse, newHeadingLevel, false)
     } else {
       logError('moveItemToRegularNote', `- not (yet) designed to handle item type ${itemType}`)
     }
@@ -81,13 +81,13 @@ export async function moveItemToRegularNote(origFilename: string, paraContent: s
     const updatedDestNote = DataStore.updateCache(noteAfterChanges, false)
 
     // delete from existing location
-    const origPara = findParaFromStringAndFilename(origFilename, paraContent)
+    const origPara = findParaFromRawContentAndFilename(origFilename, rawContentIn)
     if (origNote && origPara) {
       logDebug('moveItemToRegularNote', `- Removing 1 para from original note ${origFilename}`)
       origNote.removeParagraph(origPara)
       DataStore.updateCache(origNote, false)
     } else {
-      logWarn('moveItemToRegularNote', `couldn't remove para {${paraContent}} from original note ${origFilename} because note or paragraph couldn't be found`)
+      logWarn('moveItemToRegularNote', `couldn't remove para {${rawContentIn}} from original note ${origFilename} because note or paragraph couldn't be found`)
     }
     // Return the destNote
     return updatedDestNote
@@ -111,12 +111,12 @@ export async function moveItemToRegularNote(origFilename: string, paraContent: s
  * @author @jgclark
  * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
- * @param {string} paraRawContent raw content of the para to move
+ * @param {string} paraRawContentIn raw content of the para to move
  * @param {string?} heading which will be created if necessary
  * @param {number?} newTaskSectionHeadingLevel heading level to use for new headings (optional, defaults to 2). If set to 0, then no new heading will be created if it doesn't already exist.
  * @returns {TNote | false} if succesful pass the new note, otherwise false
  */
-export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraRawContent: string, heading: string = '', newTaskSectionHeadingLevel: number = 2): TNote | false {
+export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraRawContentIn: string, heading: string = '', newTaskSectionHeadingLevel: number = 2): TNote | false {
   logDebug('moveItemBetweenCalendarNotes', `starting for ${NPFromDateStr} to ${NPToDateStr} under heading '${heading}' with newTaskSectionHeadingLevel ${String(newTaskSectionHeadingLevel)} ${typeof newTaskSectionHeadingLevel}`)
 
   try {
@@ -130,20 +130,26 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
     }
 
     // find para in the originNote
-    const matchedPara: TParagraph | boolean = findParaFromStringAndFilename(originNote.filename, paraRawContent)
+    const matchedPara: TParagraph | boolean = findParaFromRawContentAndFilename(originNote.filename, paraRawContentIn)
     if (typeof matchedPara === 'boolean') {
-      logWarn('moveItemBetweenCalendarNotes', `Cannot find paragraph {${paraRawContent}} in note '${NPFromDateStr}'. Likely cause: updated note since last Dashboard refresh.`)
-      showMessage(`Cannot find paragraph {${paraRawContent}} in calendar note '${NPFromDateStr}'. Have you updated this line in the note since the last Dashboard refresh?`, 'OK', 'Dashboard: Move Item', false)
+      logWarn('moveItemBetweenCalendarNotes', `Cannot find paragraph {${paraRawContentIn}} in note '${NPFromDateStr}'. Likely cause: updated note since last Dashboard refresh.`)
+      showMessage(`Cannot find paragraph {${paraRawContentIn}} in calendar note '${NPFromDateStr}'. Have you updated this line in the note since the last Dashboard refresh?`, 'OK', 'Dashboard: Move Item', false)
       return false
     }
 
-    // Remove any scheduled date on the parent para
-    const updatedMatchedPara = removeDateTagsAndToday(paraRawContent, true)
-    matchedPara.content = updatedMatchedPara
-    originNote.updateParagraph(matchedPara)
-
+    // Now get the parent para and all its children (if any)
     const matchedParaAndChildren = getParaAndAllChildren(matchedPara)
-    const newContent = parasToText(matchedParaAndChildren)
+
+    // Remove any scheduled date on the parent para's content
+    const matchedParaRawContentWithoutDateTags = removeDateTagsAndToday(matchedPara.rawContent, true)
+    clo(matchedParaRawContentWithoutDateTags, 'moveItems... matchedParaRawContentWithoutDateTags=')
+    // Now make new content with the parent para's content without the date tags plus remaining child para text
+    let newContent = parasToText(matchedParaAndChildren)
+    clo(newContent, 'moveItems... newContent before replace=')
+    newContent = newContent.replace(matchedPara.rawContent, matchedParaRawContentWithoutDateTags)
+    clo(newContent, 'moveItems... newContent after replace=')
+
+    // FIXME: the removeDateTags (or similar) is not working as expected
 
     // Add to destNote
     // Handle options for where to insert the new lines (see also NPScheduleItems::scheduleItem())
@@ -221,7 +227,7 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
 
     return destNote
   } catch (err) {
-    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message} moving {${paraRawContent}} from ${NPFromDateStr} to ${NPToDateStr}`)
+    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message} moving {${paraRawContentIn}} from ${NPFromDateStr} to ${NPToDateStr}`)
     return false
   }
 }

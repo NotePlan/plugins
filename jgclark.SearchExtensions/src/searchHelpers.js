@@ -4,7 +4,7 @@
 // Search Extensions helpers
 // Note: some types + funcs now in @helpers/extendedSearch.js
 // Jonathan Clark
-// Last updated 2025-03-21 for v2.0.0, @jgclark
+// Last updated 2025-07-18 for v2.0.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -34,7 +34,7 @@ import { showMessageYesNo } from '@helpers/userInput'
 // Note: named before needing to add the 'type' item
 export type noteAndLine = {
   noteFilename: string,
-  line: string,  // contents of the paragraph
+  line: string,  // rawContent of the paragraph
   index: number, // index number of the paragraph, to do any necessary further lookups
 }
 

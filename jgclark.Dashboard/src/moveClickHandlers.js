@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2025-07-11 for v2.3.0.b
+// Last updated 2025-07-18 for v2.3.0.b6
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -44,10 +44,11 @@ import { showMessage } from '@helpers/userInput'
  */
 export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-    const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
+    // TEST: change from content to rawContent
+    const { filename, rawContent, controlStr } = validateAndFlattenMessageObject(data)
     const config = await getDashboardSettings()
     const dateOrInterval = String(controlStr)
-    logDebug('doMoveFromCalToCal', `Starting with controlStr ${controlStr}`)
+    logDebug('doMoveFromCalToCal', `Starting with controlStr ${controlStr} and rawContent {${rawContent}}`)
 
     let startDateStr = getDateStringFromCalendarFilename(filename, true)
     let newDateStr = ''
@@ -83,8 +84,9 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
     logDebug('doMoveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
 
     // Do the actual move 
+    // TEST: ensure content is actually rawContent
     const res = await moveItemBetweenCalendarNotes(startDateStr,
-      newDateStr, content,
+      newDateStr, rawContent,
       config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
 
     if (res) {
@@ -108,32 +110,36 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, itemType, item } = validateAndFlattenMessageObject(data)
-  if (!(item?.ID)) {
-    logError('doMoveToNote', `- no ID for item: ${JSP(item)}`)
-    return handlerResult(false)
-  }
-  logDebug('doMoveToNote', `starting for ID ${item.ID} (${filename} / ${content} / ${itemType})`)
-  const newNote: TNote | null = await moveItemToRegularNote(filename, content, itemType)
+  try {
+    const { filename, content, itemType, item } = validateAndFlattenMessageObject(data)
+    if (!(item?.ID)) {
+      logError('doMoveToNote', `- no ID for item: ${JSP(item)}`)
+      return handlerResult(false)
+    }
+    logDebug('doMoveToNote', `starting for ID ${item.ID} (${filename} / ${content} / ${itemType})`)
+    const newNote: TNote | null = await moveItemToRegularNote(filename, content, itemType)
 
-  if (!newNote) {
-    logError('doMoveToNote', `- no new note for ID ${item.ID}`)
-    return handlerResult(false)
-  }
+    if (!newNote) {
+      logError('doMoveToNote', `- no new note for ID ${item.ID}`)
+      return handlerResult(false)
+    }
 
-  const newParagraph: TParagraph | boolean = findParaFromStringAndFilename(newNote.filename, content)
-  if (typeof newParagraph === 'boolean') {
-    logError('doMoveToNote', `- no new paragraph for ID ${item.ID}`)
-  }
-
-  // If success, then update the display
-  if (newNote) {
-    logDebug('doMoveToNote', `Success: moved to -> '${displayTitle(newNote)}'`)
-    // Update the display for this line (as it will probably still be relevant in its section)
-    logDebug('doMoveToNote', `- Sending update line request for ID ${item.ID}`)
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([newParagraph])[0] })
-  } else {
+    const newParagraph: TParagraph | boolean = findParaFromStringAndFilename(newNote.filename, content)
+    if (typeof newParagraph === 'boolean') {
+      logError('doMoveToNote', `- no new paragraph for ID ${item.ID}`)
+    } else {
+      // If success, then update the display
+      if (newNote) {
+        logDebug('doMoveToNote', `Success: moved to -> '${displayTitle(newNote)}'`)
+        // Update the display for this line (as it will probably still be relevant in its section)
+        logDebug('doMoveToNote', `- Sending update line request for ID ${item.ID}`)
+        return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([newParagraph])[0] })
+      }
+    }
     return handlerResult(false)
+  } catch (error) {
+    logError('doMoveToNote', JSP(error))
+    return { success: false }
   }
 }
 

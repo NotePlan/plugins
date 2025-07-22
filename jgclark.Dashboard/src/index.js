@@ -82,13 +82,14 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     // Migrate some setting names to new names.
     // Note: can't easily be done with updateSettingData() in index.js as there can be multiple copies of these settings at different object levels.
-    logInfo(pluginJson, `- renaming any necessary keys from 2.1.x to 2.2.x ...`)
+    // logInfo(pluginJson, `- renaming any necessary keys from 2.1.x to 2.2.x ...`)
     const keysToChange = {
-      perspectivesEnabled: 'usePerspectives',
-      includeFolderName: 'showFolderName',
-      includeScheduledDates: 'showScheduledDates',
-      includeTaskContext: 'showTaskContext',
+      //   perspectivesEnabled: 'usePerspectives',
+      //   includeFolderName: 'showFolderName',
+      //   includeScheduledDates: 'showScheduledDates',
+      //   includeTaskContext: 'showTaskContext',
     }
+
     const initialDashboardSettings = JSON.parse(initialSettings.dashboardSettings)
     const defaults = getDashboardSettingsDefaultsWithSectionsSetToFalse()
     const migratedDashboardSettings = { ...defaults, ...renameKeys(initialDashboardSettings, keysToChange) }
