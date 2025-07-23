@@ -1,5 +1,9 @@
 # m1well.Expenses Plugin Changelog
 
+## [1.7.3] - 2022-07-23 (@dwertheimer)
+### Changed
+- add more descriptive text for text input
+
 ## [1.7.2] - 2022-04-26 (@jgclark)
 ### Changed
 - remove references to previous _configuration note system; all comes through Plugin settings screen
