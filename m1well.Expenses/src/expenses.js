@@ -13,7 +13,7 @@ import {
   createAggregationExpenseRowWithDelimiter,
   createTrackingExpenseRowWithConfig,
   extractExpenseRowFromCsvRow,
-  stringifyShortcutList
+  stringifyShortcutList,
 } from './expensesHelper'
 import type { Config, ExpenseTrackingRow } from './expensesModels'
 import { amountOk, categoryOk, validateConfig } from './expensesChecks'
@@ -29,9 +29,7 @@ const CONFIG_KEYS = {
   fixedExpenses: 'fixedExpenses',
 }
 
-const TRACKING_MODE = [
-  'Individual', 'Shortcuts', 'Fixed'
-]
+const TRACKING_MODE = ['Individual', 'Shortcuts', 'Fixed']
 
 // if there is no config in the '_configuration' file, then provide an example config
 const EXAMPLE_CONFIG = `  
@@ -154,16 +152,14 @@ const expensesAggregate = async (): Promise<boolean> => {
   const year = Number(await CommandBar.showInput('Please type in the year to aggregate', 'Start aggregate'))
 
   const noteTitleTracking = `${year} Expenses Tracking`
-  if (!await provideAndCheckNote(noteTitleTracking, config.folderPath, false, year)) {
+  if (!(await provideAndCheckNote(noteTitleTracking, config.folderPath, false, year))) {
     return false
   }
 
   const trackingNote = DataStore.projectNoteByTitle(noteTitleTracking)?.[0]
 
   if (trackingNote) {
-    const trackedData = trackingNote.paragraphs
-      .filter(para => !para.rawContent.startsWith('#'))
-      .map(para => extractExpenseRowFromCsvRow(para.rawContent, config))
+    const trackedData = trackingNote.paragraphs.filter((para) => !para.rawContent.startsWith('#')).map((para) => extractExpenseRowFromCsvRow(para.rawContent, config))
 
     if (!checkDataQualityBeforeAggregate(trackedData, year, config)) {
       return false
@@ -172,7 +168,7 @@ const expensesAggregate = async (): Promise<boolean> => {
     const aggregatedData = aggregateByCategoriesAndMonth(trackedData, config.delimiter)
 
     const noteTitleAggregate = `${year} Expenses Aggregate`
-    if (!await provideAndCheckNote(noteTitleAggregate, config.folderPath, true)) {
+    if (!(await provideAndCheckNote(noteTitleAggregate, config.folderPath, true))) {
       return false
     }
 
@@ -182,9 +178,9 @@ const expensesAggregate = async (): Promise<boolean> => {
       await Editor.openNoteByTitle(noteTitleAggregate)
       const note = Editor.note
       if (note) {
-        note.removeParagraphs(note.paragraphs.filter(para => !para.rawContent.startsWith('#')))
+        note.removeParagraphs(note.paragraphs.filter((para) => !para.rawContent.startsWith('#')))
         // add results
-        aggregatedData.forEach(aggregated => {
+        aggregatedData.forEach((aggregated) => {
           if (aggregated.year) {
             lines.push(createAggregationExpenseRowWithDelimiter(aggregated, config))
           }
@@ -214,12 +210,12 @@ const individualTracking = async (): Promise<boolean> => {
 
   const title = `${getYear(currentDate)} Expenses Tracking`
 
-  if (!await provideAndCheckNote(title, config.folderPath, true)) {
+  if (!(await provideAndCheckNote(title, config.folderPath, true))) {
     return false
   }
 
   const category = await CommandBar.showOptions(config.categories, 'Please choose category')
-  const text = await getInputTrimmed('Please type in some text (no semicolon)', 'Add text to expenses line')
+  const text = await getInputTrimmed('Please type in some text (no semicolon)', 'Add text to expenses line', 'What was it?')
   let amount = await inputNumber('Please type in amount')
 
   let amountCheck = amountOk(amount)
@@ -244,7 +240,7 @@ const individualTracking = async (): Promise<boolean> => {
   }
   if (note) {
     note.appendParagraph(createTrackingExpenseRowWithConfig(expenseRow, config), 'text')
-    await CommandBar.showOptions([ 'OK' ], 'Individual Expenses saved')
+    await CommandBar.showOptions(['OK'], 'Individual Expenses saved')
   }
 
   return true
@@ -266,7 +262,7 @@ const shortcutsTracking = async (): Promise<boolean> => {
 
   const title = `${getYear(currentDate)} Expenses Tracking`
 
-  if (!await provideAndCheckNote(title, config.folderPath, true)) {
+  if (!(await provideAndCheckNote(title, config.folderPath, true))) {
     return false
   }
 
@@ -305,7 +301,7 @@ const shortcutsTracking = async (): Promise<boolean> => {
   }
   if (note) {
     note.appendParagraph(createTrackingExpenseRowWithConfig(expenseRow, config), 'text')
-    await CommandBar.showOptions([ 'OK' ], 'Shortcut Expenses saved')
+    await CommandBar.showOptions(['OK'], 'Shortcut Expenses saved')
   }
 
   return true
@@ -327,7 +323,7 @@ const fixedTracking = async (): Promise<boolean> => {
 
   const title = `${getYear(currentDate)} Expenses Tracking`
 
-  if (!await provideAndCheckNote(title, config.folderPath, true)) {
+  if (!(await provideAndCheckNote(title, config.folderPath, true))) {
     return false
   }
 
@@ -337,14 +333,14 @@ const fixedTracking = async (): Promise<boolean> => {
 
   const note = DataStore.projectNoteByTitle(title)?.[0]
   config.fixedExpenses
-    .filter(exp => exp.active && (exp.month === 0 || exp.month === month))
-    .map(exp => {
+    .filter((exp) => exp.active && (exp.month === 0 || exp.month === month))
+    .map((exp) => {
       if (!categoryOk(exp.category, config.categories)) {
         exp.category = `>>WRONG CATEGORY (${exp.category})<<`
       }
       return exp
     })
-    .forEach(exp => {
+    .forEach((exp) => {
       const expenseRow = {
         date: currentDate,
         category: exp.category,
@@ -356,7 +352,7 @@ const fixedTracking = async (): Promise<boolean> => {
 
   if (note) {
     note.appendParagraph(lines.join('\n'), 'text')
-    await CommandBar.showOptions([ 'OK' ], 'Fixed Expenses saved')
+    await CommandBar.showOptions(['OK'], 'Fixed Expenses saved')
   }
 
   return true
@@ -378,12 +374,10 @@ const provideConfig = async (): Promise<any> => {
       throw new Error(`Cannot find settings for Expenses plugin`)
     }
     return fromSettings
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     return null // for completeness
   }
-
 }
 
 /**
@@ -391,10 +385,7 @@ const provideConfig = async (): Promise<any> => {
  *
  * @private
  */
-const provideAndCheckNote = async (title: string,
-                                   folderPath: string,
-                                   createNote: boolean,
-                                   year?: number): Promise<boolean> => {
+const provideAndCheckNote = async (title: string, folderPath: string, createNote: boolean, year?: number): Promise<boolean> => {
   const notes = DataStore.projectNoteByTitle(title)
 
   // create note if it de
@@ -444,7 +435,6 @@ const checkDataQualityBeforeAggregate = (rows: ExpenseTrackingRow[], year: numbe
       logError(pluginJson, `amount at: ${createTrackingExpenseRowWithConfig(row, config)}`)
       return false
     }
-
   }
 
   return true
