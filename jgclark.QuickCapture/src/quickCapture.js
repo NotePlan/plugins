@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 4.4.2024 for v0.16.0+ by @jgclark
+// last update 2025-07-20 for v0.16.2 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -211,7 +211,7 @@ export async function addTaskToNoteHeading(
 
     // Start a longish sort job in the background
     CommandBar.onAsyncThread()
-    const allCalNotesProm: Array<TNote> = allNotesSortedByChanged() // Note: deliberately no await: this is resolved later
+    const regularNotesProm: Array<TNote> = projectNotesSortedByChanged() // Note: deliberately no await: this is resolved later
     CommandBar.onMainThread()// no await
 
     // Get text details from arg2 or user
@@ -227,8 +227,8 @@ export async function addTaskToNoteHeading(
     logDebug('addTextToNoteHeading(qath)', `headingLevel: ${String(headingLevel)}`)
 
     // Get note details from arg0 or user
-    const allNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
-    const note = await getNoteFromParamOrUser('task', noteTitleArg, false, allNotes)
+    const regularNotes = await regularNotesProm // here's where we resolve the promise and have the sorted list
+    const note = await getNoteFromParamOrUser('task', noteTitleArg, false, true, regularNotes) // NB: include future calendar notes
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
