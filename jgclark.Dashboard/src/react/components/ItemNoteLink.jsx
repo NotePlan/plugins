@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show Note Links after main item content
-// Last updated 2025-05-02 for v2.2.2 by @jgclark
+// Last updated 2025-07-22 for v2.3.0.b by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
@@ -48,7 +48,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
         ? 'fa-light fa-calendar-days'
         : (isQuarterlyDateStr(filename))
           ? 'fa-light fa-calendar-range'
-          : 'fa-regular fa-file-lines'
+          : 'fa-light fa-file-lines'
   const parsedTeamspace = parseTeamspaceFilename(filename)
   const filenameWithoutTeamspacePrefix = parsedTeamspace.filename
   const isFromTeamspace = parsedTeamspace.isTeamspace
@@ -93,6 +93,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
       <a className={`noteTitle`} onClick={handleLinkClick}>
         {/* If it's a teamspace note prepend that icon + title */}
         {isFromTeamspace && teamspaceIndicator}
+        {/* Show note title if wanted */}
         {showNoteTitle && (
           <>
             <i className={`${noteIconToUse} pad-right`}></i>

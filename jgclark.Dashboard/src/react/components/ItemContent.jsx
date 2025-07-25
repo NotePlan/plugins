@@ -31,7 +31,6 @@ import {
   convertBoldAndItalicToHTML,
 } from '@helpers/HTMLView'
 import { RE_SCHEDULED_DATES_G } from '@helpers/regex'
-// import { getTimeBlockString } from '@helpers/timeblocks'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/ItemContent.css'
 
@@ -79,13 +78,17 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
     })
   }
 
+  // TODO: decide whether to keep this, perhaps as a hidden setting
+  // Remove tag/mention, if they match the item's sectionCode
+  // if (thisSection.sectionCode === 'TAG') {
+  //   const sectionTagOrMention = thisSection.name
+  //   mainContent = mainContent.replace(sectionTagOrMention, '')
+  // }
+
   // console.log(`-> ${mainContent}`)
 
-  // if hasChild, then set suitable icon
-  // v1: use'fa-arrow-down-from-line' icon
-  // v2:
-  // const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-regular fa-block-quote parentMarker pad-left"></i> : ''
-  // v3: switch to ellipsis to match what main Editor has just got in 3.15.2
+  // If hasChild, then set suitable display indicator
+  // (Earlier options had used 'fa-arrow-down-from-line' and 'fa-block-quote' icons. But switched to ellipsis to match what main Editor added in 3.15.2)
   const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-solid fa-ellipsis parentMarker"></i> : ''
 
   // Note: this section now deliberately disabled

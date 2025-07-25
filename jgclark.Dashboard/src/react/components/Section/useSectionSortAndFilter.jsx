@@ -6,7 +6,7 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2025-05-26 for v2.3.0
+// Last updated 2025-07-22 for v2.3.0.b
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -138,10 +138,18 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
   return { filteredItems, itemsToShow, numFilteredOut, limitApplied }
 }
 
-// sort items by priority, startTime, endTime
+// sort items by itemType, priority, startTime, endTime
 // Note: deliberately not using alphabetic on content, so original note order is preserved as far as possible
 export function itemSort(a: TSectionItem, b: TSectionItem): number {
-  // Sort by priority (first)
+  // Sort by itemType (first) with 'open' and 'checklist' coming before all other types
+  // Note: this is a bit of a hack. Ideally we would filter these out before using itemSort.
+  const itemTypeA = ['open', 'checklist'].includes(a.itemType) ? 1 : 0
+  const itemTypeB = ['open', 'checklist'].includes(b.itemType) ? 1 : 0
+  if (itemTypeA !== itemTypeB) {
+    return itemTypeB - itemTypeA
+  }
+
+  // Sort by priority (second)
   const priorityA = a.para?.priority ?? 0
   const priorityB = b.para?.priority ?? 0
   if (priorityA !== priorityB) {

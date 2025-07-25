@@ -2,13 +2,12 @@
 //--------------------------------------------------------------------------
 // A grid layout for items within a section.
 // Called by ItemGrid component.
-// Last updated 2025-03-28 for v2.2.0.a10
+// Last updated 2025-07-22 for v2.3.0.b by @jgclark
 //--------------------------------------------------------------------------
 
 import React from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 import ItemRow from './ItemRow.jsx'
-// import { useAppContext } from './AppContext.jsx'
 import { logDebug, logInfo } from '@helpers/react/reactDev.js'
 
 // Set to true to see some subtle shading of section backgrounds
@@ -27,7 +26,8 @@ function ItemGrid({ items, thisSection }: Props): React$Node {
       ))
     : []
 
-  // Add a subtle green background colour to the section if there are no items, or if the first item is a congrats message,
+  // Calculate a subtle green background colour for the section if there are no items, 
+  // or if the first item is a congrats message,
   // or if the section has asked for a coloured background.
   const sectionBackgroundColor =
     items.length === 0 || items[0].itemType === 'itemCongrats'
@@ -36,6 +36,8 @@ function ItemGrid({ items, thisSection }: Props): React$Node {
         ? `color-mix(in srgb, var(--bg-main-color), var(--fg-${thisSection.sectionTitleColorPart}) 4%)`
       : 'var(--bg-main-color)'
   // if (sectionBackgroundColor !== 'var(--bg-main-color)') logDebug('ItemGrid', `sectionBackgroundColor: ${sectionBackgroundColor} from ${String(items.length)} items`)
+
+  // RENDER ------------------------------------------------------------
 
   return (
     <div className="sectionItemsGrid" id={`${thisSection.ID}-Section`} style={{ backgroundColor: sectionBackgroundColor }}>

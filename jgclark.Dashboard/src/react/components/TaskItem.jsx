@@ -3,7 +3,7 @@
 // Dashboard React component to create a full content line for a Task item: 
 // icon, content, noteLink and the fa-edit icon at the end.
 // 
-// Last updated for v2.1.0.b
+// Last updated 2025-07-22 for v2.3.0.b6
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useState } from 'react'
@@ -58,7 +58,7 @@ function TaskItem({ item, thisSection }: Props): Node {
 
   // Add an indent level to the start of the item iff it is a child and it has a selected parent
   // TODO: and test that parent is being shown!
-  const indentLevelToDisplay = /* item.para?.isAChild && */ item.parentID && item.parentID !== '' ? item.para?.indentLevel ?? 0 : 0
+  const indentLevelToDisplay = /* item.para?.isAChild && */ item.parentID && item.parentID !== '' ? item.para?.indents ?? 0 : 0
 
   return (
     visible ? (
@@ -72,7 +72,6 @@ function TaskItem({ item, thisSection }: Props): Node {
           item={item}
           respondToClicks={true}
           onIconClick={handleIconClick}
-          // timeblockStr={timeblockStr}
         />
         <ItemContent item={item} thisSection={thisSection} />
       </div>

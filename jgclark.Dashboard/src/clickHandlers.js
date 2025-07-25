@@ -335,7 +335,7 @@ export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerRe
   // find the updated para
   const updatedParagraph: TParagraph | boolean = findParaFromStringAndFilename(filename, updatedContent)
   if (typeof updatedParagraph === 'boolean') {
-    logError(`doUnscheduleItem`, `couldn't find para for filename ${filename} and content ${updatedContent}. Will update current section ${sectionCodes}`) 
+    logError(`doUnscheduleItem`, `couldn't find para for filename ${filename} and content ${updatedContent}. Will update current section ${sectionCodes}`)
 
     return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: sectionCodes })
   } else {
@@ -497,12 +497,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
           const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: JSON.stringify(newSettings) })
           return handlerResult(res)
         } else {
-          clo(
-            diff,
-            `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings: ${JSP(diff)} keys:${Object.keys(diff).length} ${Object.keys(diff).join(
-              ', ',
-            )}`,
-          )
+          clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings: ${Object.keys(diff).length} keys: ${Object.keys(diff).join(', ')}`)
         }
         // ignore dashboard changes in the perspective definition until it is saved explicitly
         // but we need to set the isModified flag on the perspective
@@ -526,16 +521,13 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
   const combinedUpdatedSettings = { ...(await getSettings('jgclark.Dashboard')), [settingName]: JSON.stringify(newSettings) }
 
   if (perspectivesToSave) {
-    const debugInfo = perspectivesToSave.map(
-        (ps) =>
-        `${ps.name} excludedFolders=[${String(ps.dashboardSettings?.excludedFolders) ?? ''} ${ps.isModified ? 'modified' : ''} ${ps.isActive ? '<active>' : ''}`,
-      )
+    const debugInfo = perspectivesToSave
+      .map((ps) => `${ps.name} excludedFolders=[${String(ps.dashboardSettings?.excludedFolders) ?? ''} ${ps.isModified ? 'modified' : ''} ${ps.isActive ? '<active>' : ''}`)
       .join(`\n\t`)
     logDebug(`doDashboardSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
 
     combinedUpdatedSettings.perspectiveSettings = JSON.stringify(perspectivesToSave)
   }
-
 
   const res = await saveSettings(pluginID, combinedUpdatedSettings)
   const updatedPluginData = { [settingName]: newSettings } // was also: pushFromServer: { [settingName]: true }

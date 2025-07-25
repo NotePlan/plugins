@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-05-27 for v2.3.0
+// Last updated 2025-07-22 for v2.3.0.b
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -335,8 +335,9 @@ export async function getSavedSearchResults(
       if (config.usePerspectives && config.applyCurrentFilteringToSearch) {
         const perspectiveSettings = await getPerspectiveSettings()
         const perspectiveName = getActivePerspectiveName(perspectiveSettings)
-        message += ` using '${perspectiveName}' Perspective filtering. You can turn off Perspective filtering in the Dashboard settings:`
-        settingsDialogAnchor = 'searchSection'
+        const perspectiveDisplayName = (perspectiveName === '-') ? 'default' : `'${perspectiveName}'`
+        message += ` using ${perspectiveDisplayName} Perspective filtering. You can turn off Perspective filtering in the Dashboard settings:`
+        settingsDialogAnchor = 'applyCurrentFilteringToSearch'
 
       }
       // Add a link to the section offering to open settings

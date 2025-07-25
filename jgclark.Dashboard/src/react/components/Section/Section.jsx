@@ -66,6 +66,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     }
 
     let sectionItems = section.sectionItems
+
     // If the section is present, but has no items, add a suitable message/itemType
     // Note: done here, rather than in the dataGeneration* functions, as items can be removed in the front-end, before the back-end is told to refresh.
     if (!sectionItems || sectionItems.length === 0) {
