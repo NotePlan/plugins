@@ -233,14 +233,67 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
 }
 
 /**
+ * TEST:
+ * Appends multiple lines of text to a chosen note, as separate paragraphs, but more smartly than usual.
+ * I.e. adds before any ## Done or ## Completed archive section.
+ * Note: does work on a single line too
+ * @author @jgclark
+ *
+ * @param {TNote} note - the note to append to
+ * @param {Array<string>} paraTextArr - an array of text to append
+ * @param {Array<ParagraphType>} paragraphTypeArr - a matching array of the type of the paragraphs to append
+ */
+export function smartAppendParas(note: TNote, paraTextArr: Array<string>, paraTypeArr: Array<ParagraphType>): void {
+  // Get the smarter insertion point
+  const firstInsertionLine = findEndOfActivePartOfNote(note)
+  logDebug('paragraph/smartAppendParas', `inserting ${String(paraTextArr.length)} paras; firstInsertionLine = ${firstInsertionLine}`)
+  // Insert the text as paragraphs from this point
+  for (let i = 0; i < paraTextArr.length; i++) {
+    logDebug('paragraph/smartAppendParas', `- ${String(i)}: "${paraTextArr[i]}" type ${paraTypeArr[i]}`)
+    note.insertParagraph(paraTextArr[i], firstInsertionLine + i, paraTypeArr[i])
+  }
+}
+
+/**
+ * TEST:
+ * Prepends multiple lines of text to a chosen note, as separate paragraphs, but more smartly than usual.
+ * I.e. if the note starts with YAML frontmatter
+ * or a metadata line (= starts with a hashtag), then add after that.
+ * Note: does work on a single line too
+ * @author @jgclark
+ *
+ * @param {TNote} note - the note to prepend to
+ * @param {Array<string>} paraTextArr - an array of text to prepend
+ * @param {Array<ParagraphType>} paragraphTypeArr - a matching array of the type of the paragraphs to prepend
+ */
+export function smartPrependParas(note: TNote, paraTextArr: Array<string>, paraTypeArr: Array<ParagraphType>): void {
+  // Get the smarter insertion point
+  const firstInsertionLine = findStartOfActivePartOfNote(note)
+  logDebug('paragraph/smartPrependParas', `inserting ${String(paraTextArr.length)} paras; firstInsertionLine = ${firstInsertionLine}`)
+  // Insert the text as paragraphs from this point
+  for (let i = 0; i < paraTextArr.length; i++) {
+    logDebug('paragraph/smartPrependParas', `- ${String(i)}: "${paraTextArr[i]}" type ${paraTypeArr[i]}`)
+    note.insertParagraph(paraTextArr[i], firstInsertionLine + i, paraTypeArr[i])
+  }
+}
+
+/**
  * Add a new paragraph and preceding heading(s) to a note. If the headings already exist, then don't add them again, but insert the paragraph after the existing headings.
  * @param {TNote} destNote
  * @param {string} paraText 
  * @param {ParagraphType} paragraphType 
  * @param {Array<string>} headingArray - the headings from H1 (or H2) downwards
  * @param {number} firstHeadingLevel - the level of the first heading given (1, 2, 3, etc.)
+ * @param {boolean} shouldAppend - whether to append the paragraph after the headings or not. TEST:
  */
-export function smartCreateSectionsAndPara(destNote: TNote, paraText: string, paragraphType: ParagraphType, headingArray: Array<string>, firstHeadingLevel: number): void {
+export function smartCreateSectionsAndPara(
+  destNote: TNote,
+  paraText: string,
+  paragraphType: ParagraphType,
+  headingArray: Array<string>,
+  firstHeadingLevel: number,
+  shouldAppend: boolean = false
+): void {
   try {
     // Work out which of the given headings already exist.
     // Form a parallel array of existing headings, with empty strings for any that don't exist.
@@ -271,9 +324,12 @@ export function smartCreateSectionsAndPara(destNote: TNote, paraText: string, pa
           logInfo('paragraph/smartCreateSections', `noting existing heading "${thisHeadingPara.content}" at line ${String(latestInsertionLineIndex - 1)} level ${String(thisHeadingPara.headingLevel)}`)
         } else {
           // Heading doesn't exist, so add it
+          const insertionIndex = (shouldAppend)
+            ? findEndOfActivePartOfNote(destNote) + 1
+            : latestInsertionLineIndex
           // $FlowFixMe[incompatible-call] headingLevel is a number, but the API expects an enumeration
-          destNote.insertHeading(headingArray[i], latestInsertionLineIndex, firstHeadingLevel + i)
-          logInfo('paragraph/smartCreateSections', `added heading "${headingArray[i]}" at line ${String(latestInsertionLineIndex)} level ${String(firstHeadingLevel + i)}`)
+          destNote.insertHeading(headingArray[i], insertionIndex, firstHeadingLevel + i)
+          logInfo('paragraph/smartCreateSections', `added heading "${headingArray[i]}" at line ${String(insertionIndex)} level ${String(firstHeadingLevel + i)}`)
         }
       }
     } else {
@@ -285,29 +341,6 @@ export function smartCreateSectionsAndPara(destNote: TNote, paraText: string, pa
     logInfo('paragraph/smartCreateSections', `inserting para after heading "${headingArray[headingArray.length - 1]}" (i.e. line ${String(latestInsertionLineIndex + 1)})`)
   } catch (err) {
     logError('paragraph/smartCreateSections', err.message)
-  }
-}
-
-/**
- * TEST:
- * Prepends multiple lines of text to a chosen note, as separate paragraphs, but more smartly than usual.
- * I.e. if the note starts with YAML frontmatter
- * or a metadata line (= starts with a hashtag), then add after that.
- * Note: does work on a single line too
- * @author @jgclark
- *
- * @param {TNote} note - the note to prepend to
- * @param {Array<string>} paraTextArr - an array of text to prepend
- * @param {Array<ParagraphType>} paragraphTypeArr - a matching array of the type of the paragraphs to prepend
- */
-export function smartPrependParas(note: TNote, paraTextArr: Array<string>, paraTypeArr: Array<ParagraphType>): void {
-  // Get the smarter insertion point
-  const firstInsertionLine = findStartOfActivePartOfNote(note)
-  logDebug('paragraph/smartPrependParas', `inserting ${String(paraTextArr.length)} paras; firstInsertionLine = ${firstInsertionLine}`)
-  // Insert the text as paragraphs from this point
-  for (let i = 0; i < paraTextArr.length; i++) {
-    logDebug('paragraph/smartPrependParas', `- ${String(i)}: "${paraTextArr[i]}" type ${paraTypeArr[i]}`)
-    note.insertParagraph(paraTextArr[i], firstInsertionLine + i, paraTypeArr[i])
   }
 }
 
@@ -332,10 +365,11 @@ export function insertParas(note: TNote, insertionIndex: number, paraTextArr: Ar
 
 /**
  * Works out where the first 'active' line of the note is, following the first paragraph of type 'title', or frontmatter (if present).
- * Additionally, it skips past any front-matter like section in a project note, as used by the Reviews plugin before frontmatter was supported.
+ * Additionally, it skips past any front-matter-like section in a project note, as used by the Reviews plugin before frontmatter was supported.
  * This is indicated by a #hashtag starting the next line. If there is, run on to next heading or blank line.
  * A task/checklist item marks the end of the frontmatter-like section.
  * Note: given this is a precursor to writing to a note, it first checks if the note is completely empty (0 lines). If so, a first 'empty' line is added, to avoid edge cases in calling code.
+ * Note: now also copes with a frontmatter section but with a `# title` line that comes after it.
  * Note: Really should live in helpers/NPParagraph.js, but that introduces a circular dependency, so leaving here.
  * @author @jgclark
  * @tests in jest file
@@ -367,6 +401,10 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
     } else {
       logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, finishing at line ${String(endOfFMIndex)}, so looking at line after it`)
       startOfActive = endOfFMIndex + 1
+      // But if that line is a `# title` line, then skip it
+      if (paras[startOfActive].type === 'title' && paras[startOfActive].headingLevel === 1) {
+        startOfActive += 1
+      }
     }
     // If there is no line after title or FM, add a blank line to use (NB: length = line index + 1)
     if (paras.length === startOfActive) {
