@@ -24,6 +24,7 @@ beforeEach(() => {
 })
 
 describe('paragraph.js', () => {
+
   describe('termNotInURL()', () => {
     test('should find search term in a URL', () => {
       const result = p.isTermInURL('tennis', 'Something about http://www.tennis.org/')
@@ -273,25 +274,24 @@ describe('paragraph.js', () => {
     })
     const noteI = {
       paragraphs: [
-        { type: 'title', lineIndex: 0, content: 'NoteI Title', headingLevel: 1 },
-        { type: 'text', lineIndex: 1, content: 'first line of preamble' },
-        { type: 'text', lineIndex: 2, content: 'next preamble followed by blank line' },
-        { type: 'title', lineIndex: 3, content: 'Section 1', headingLevel: 2 },
-        { type: 'open', lineIndex: 4, content: 'task 1' },
-        { type: 'text', lineIndex: 5, content: 'some ordinary text' },
-        { type: 'empty', lineIndex: 6 },
-        { type: 'title', lineIndex: 7, content: 'Section 2', headingLevel: 3 },
-        { type: 'quote', lineIndex: 8, content: 'quotation' },
-        { type: 'done', lineIndex: 9, content: 'task 3 done' },
+        { type: 'separator', lineIndex: 0, content: '---' },
+        { type: 'text', lineIndex: 1, content: 'field: value here', headingLevel: 0 },
+        { type: 'separator', lineIndex: 2, content: '---' },
+        { type: 'title', lineIndex: 3, content: 'Title outside Frontmatter', headingLevel: 1 },
+        { type: 'text', lineIndex: 4, content: 'first line of preamble' },
+        { type: 'text', lineIndex: 5, content: 'next preamble followed by blank line' },
+        { type: 'text', lineIndex: 6, content: 'some ordinary text' },
+        { type: 'empty', lineIndex: 7 },
+        { type: 'title', lineIndex: 8, content: 'Section 2', headingLevel: 3 },
       ],
     }
-    test('note H: with allowPreamble true, find at lineIndex 4', () => {
+    test('note I: with allowPreamble true, find at lineIndex 8', () => {
       const result = p.findStartOfActivePartOfNote(noteI, true)
-      expect(result).toEqual(3)
+      expect(result).toEqual(8)
     })
-    test('note H: with allowPreamble false, find at lineIndex 1', () => {
+    test('note I: with allowPreamble false, find at lineIndex 4', () => {
       const result = p.findStartOfActivePartOfNote(noteI, false)
-      expect(result).toEqual(1)
+      expect(result).toEqual(4)
     })
   })
 
@@ -477,16 +477,3 @@ describe('paragraph.js', () => {
     })
   })
 })
-
-// TODO: turn into jest tests
-// /** tests for above function */
-// function testTermInNotelinkOrURI() {
-//   logDebug('test1 -> false', String(isTermInNotelinkOrURI('[[link with#tag]] but empty search term', '')))
-//   logDebug('test2 -> true', String(isTermInNotelinkOrURI('[[link with#tag]]', '#tag')))
-//   logDebug('test3 -> false', String(isTermInNotelinkOrURI('[[link without that tag]]', '#tag')))
-//   logDebug('test4 -> false', String(isTermInNotelinkOrURI('string has #tag [[but link without]]', '#tag')))
-//   logDebug('test5 -> false', String(isTermInNotelinkOrURI('string has [[but link without]] and  #tag after', '#tag')))
-//   logDebug('test6 -> true', String(isTermInNotelinkOrURI('term is in URL http://bob.com/page#tag', '#tag')))
-//   logDebug('test7 -> false', String(isTermInNotelinkOrURI('string has http://bob.com/page #tag', '#tag')))
-//   logDebug('test8 -> false', String(isTermInNotelinkOrURI('string has #tag before not in http://bob.com/URL', '#tag')))
-// }

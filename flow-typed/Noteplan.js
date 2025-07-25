@@ -1883,6 +1883,7 @@ filename: string;  /* Idea: TRegularFilename | TCalendarFilename; */
 
   /**
    * Inserts a todo below the given title of a heading (at the beginning or end of existing text)
+   * Warning: API bug edge case exists, described at https://github.com/NotePlan/plugins/issues/429
    * @param {string} content - Text of the todo
    * @param {string} headingTitle - Title of the heading (without '#  Markdown)
    * @param {boolean} shouldAppend - If the todo should be appended at the bottom of existing text
@@ -1892,6 +1893,7 @@ filename: string;  /* Idea: TRegularFilename | TCalendarFilename; */
 
   /**
    * Inserts a paragraph below the given title of a heading (at the beginning or end of existing text)
+   * Warning: API bug edge case exists here, described at https://github.com/NotePlan/plugins/issues/429
    * @param {string} content - Text of the paragraph
    * @param {ParagraphType} paragraphType
    * @param {string} headingTitle - Title of the heading (without '#  Markdown)
