@@ -255,7 +255,7 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
           return
         } else {
           if (noteTitle?.length) {
-            logDebug(pluginJson, `templateRunnerExecute is other type noteTitle:${noteTitle}`)
+            logDebug(pluginJson, `templateRunnerExecute looking for a regular note named: "${noteTitle}"`)
 
             // must be a regular note we're looking for
             let notes: Array<TNote> | null | void = []
@@ -265,12 +265,9 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
                 notes = [edNote]
               }
             }
-            if (!notes || !notes.length) {
-              await CommandBar.prompt(`Unable to locate note matching "${noteTitle}"`, 'Could not find note')
-              return
-            }
             notes = await DataStore.projectNoteByTitle(noteTitle)
             const length = notes ? notes.length : 0
+            clo(notes, `templateRunnerExecute notes found for "${noteTitle}"`)
             if (!notes || length == 0 || (notes && notes.length > 1)) {
               let msg = `Unable to locate any notes matching "${noteTitle}"`
               if (length > 1) {

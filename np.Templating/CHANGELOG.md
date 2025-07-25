@@ -9,6 +9,7 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 - Fix bug with scriptlet slurping tags <%_ and _%>
 - Add `web.services` to globals to get automatic await stmt
 - Change timeout message for web services to be more helpful (esp for advice, verse, quote, and weather)
+- Fix TemplateRunner bug where it was not finding notes by title
 
 ## [2.0.7] 2025-07-15 @dwertheimer
 - Fix renderTemplate() bug that was showing frontmatter in result
