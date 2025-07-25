@@ -160,7 +160,6 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   newDashboardSettings = removeInvalidTagSections(newDashboardSettings) // just to make sure we don't have any invalid tag sections left over from previous perspectives
   newDashboardSettings.lastChange = `_Switched to perspective ${switchToName} ${dt()} changed from plugin`
   logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
-  clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
 
   // Use helper to save settings from now on, not unreliable `DataStore.settings = {...}`
   // TEST: FIXME: DBW suspects this is not working as expected, because DataStore.settings is not correct here.
