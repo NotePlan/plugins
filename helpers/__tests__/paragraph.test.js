@@ -24,6 +24,7 @@ beforeEach(() => {
 })
 
 describe('paragraph.js', () => {
+
   describe('termNotInURL()', () => {
     test('should find search term in a URL', () => {
       const result = p.isTermInURL('tennis', 'Something about http://www.tennis.org/')
@@ -476,16 +477,3 @@ describe('paragraph.js', () => {
     })
   })
 })
-
-// TODO: turn into jest tests
-// /** tests for above function */
-// function testTermInNotelinkOrURI() {
-//   logDebug('test1 -> false', String(isTermInNotelinkOrURI('[[link with#tag]] but empty search term', '')))
-//   logDebug('test2 -> true', String(isTermInNotelinkOrURI('[[link with#tag]]', '#tag')))
-//   logDebug('test3 -> false', String(isTermInNotelinkOrURI('[[link without that tag]]', '#tag')))
-//   logDebug('test4 -> false', String(isTermInNotelinkOrURI('string has #tag [[but link without]]', '#tag')))
-//   logDebug('test5 -> false', String(isTermInNotelinkOrURI('string has [[but link without]] and  #tag after', '#tag')))
-//   logDebug('test6 -> true', String(isTermInNotelinkOrURI('term is in URL http://bob.com/page#tag', '#tag')))
-//   logDebug('test7 -> false', String(isTermInNotelinkOrURI('string has http://bob.com/page #tag', '#tag')))
-//   logDebug('test8 -> false', String(isTermInNotelinkOrURI('string has #tag before not in http://bob.com/URL', '#tag')))
-// }
