@@ -136,7 +136,12 @@ export function getJSDateStartOfToday(): Date {
 // Note: there are others in NPdateTime.js that use locale settings
 
 // Get current time in various ways
-export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
+export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => {
+  if (format.includes('%')) {
+    return strftime(format)
+  }
+  return moment().format(format)
+}
 
 // Note: there are others in NPdateTime.js that use locale settings
 
@@ -185,7 +190,7 @@ export function getCalendarNoteTimeframe(note: TNote): false | 'day' | 'week' | 
   return false // all other cases
 }
 
-export const isDailyDateStr = (dateStr: string): boolean => (new RegExp(RE_DATE).test(dateStr) || new RegExp(RE_NP_DAY_SPEC).test(dateStr))
+export const isDailyDateStr = (dateStr: string): boolean => new RegExp(RE_DATE).test(dateStr) || new RegExp(RE_NP_DAY_SPEC).test(dateStr)
 
 export const isWeeklyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_WEEK_SPEC).test(dateStr)
 
@@ -257,10 +262,7 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
   }
   // logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith ? replaceWith : 'null'}, repl=${repl ? repl : 'null'}`)
   while (str && isScheduled(str)) {
-    str = str
-      .replace(RE_SCHEDULED_DATES_G, '')
-      .replace(/ {2,}/g, ' ')
-      .trim()
+    str = str.replace(RE_SCHEDULED_DATES_G, '').replace(/ {2,}/g, ' ').trim()
   }
   // logDebug(`replaceArrowDatesInString: AFTER will return ${repl && repl.length > 0 ? `${str} ${repl}` : str}`)
   return repl && repl.length > 0 ? `${str} ${repl}` : str
@@ -296,7 +298,7 @@ export type HourMinObj = { h: number, m: number }
  * Change YYYY-MM-DD to YYYYMMDD, if needed. Leave the rest of the string (which is expected to be a filename) unchanged.
  * Note: updated in Apr 2025 to cope with Teamspace Calendar notes (with leading %%NotePlanCloud%%/UUID/) as well as private daily notes.
  * @param {string} dailyNoteFilename
- * @returns {string} with YYYYMMDD in place of YYYY-MM-DD where found. 
+ * @returns {string} with YYYYMMDD in place of YYYY-MM-DD where found.
  */
 export function convertISODateFilenameToNPDayFilename(dailyNoteFilename: string): string {
   const matches = dailyNoteFilename.match(RE_ISO_DATE)
@@ -849,7 +851,7 @@ export function relativeDateFromDate(date: Date): string {
  * @test - available in jest file
  */
 export function getWeek(inDate: Date): number {
-  // New method using 'moment' library, with Monday first day of week
+  // New method using 'moment/min/moment-with-locales' library, with Monday first day of week
   const dateMoment = moment(inDate)
   return Number(dateMoment.format('W'))
 
@@ -889,7 +891,7 @@ export function getWeek(inDate: Date): number {
  * @returns {string}
  */
 export function getNPWeekStr(inDate: Date): string {
-  // Using 'moment' library, with Monday first day of week
+  // Using 'moment/min/moment-with-locales' library, with Monday first day of week
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_WEEK)
 }
@@ -899,7 +901,7 @@ export function getNPWeekStr(inDate: Date): string {
  * @returns {string}
  */
 export function getNPMonthStr(inDate: Date): string {
-  // Using 'moment' library instead of NP calls
+  // Using 'moment/min/moment-with-locales' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_MONTH)
 }
@@ -909,7 +911,7 @@ export function getNPMonthStr(inDate: Date): string {
  * @returns {string}
  */
 export function getNPQuarterStr(inDate: Date): string {
-  // Using 'moment' library instead of NP calls
+  // Using 'moment/min/moment-with-locales' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_QUARTER)
 }
@@ -919,7 +921,7 @@ export function getNPQuarterStr(inDate: Date): string {
  * @returns {string}
  */
 export function getNPYearStr(inDate: Date): string {
-  // Using 'moment' library instead of NP calls
+  // Using 'moment/min/moment-with-locales' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_YEAR)
 }
@@ -1032,14 +1034,14 @@ export function getNPDateFormatForFilenameFromOffsetUnit(unit: string): string {
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_DAY // = YYYYMMDD not display format
       : unit === 'w'
-        ? MOMENT_FORMAT_NP_WEEK
-        : unit === 'm'
-          ? MOMENT_FORMAT_NP_MONTH
-          : unit === 'q'
-            ? MOMENT_FORMAT_NP_QUARTER
-            : unit === 'y'
-              ? MOMENT_FORMAT_NP_WEEK
-              : ''
+      ? MOMENT_FORMAT_NP_WEEK
+      : unit === 'm'
+      ? MOMENT_FORMAT_NP_MONTH
+      : unit === 'q'
+      ? MOMENT_FORMAT_NP_QUARTER
+      : unit === 'y'
+      ? MOMENT_FORMAT_NP_WEEK
+      : ''
   return momentDateFormat
 }
 
@@ -1054,14 +1056,14 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_ISO // = YYYY-MM-DD not filename format
       : unit === 'w'
-        ? MOMENT_FORMAT_NP_WEEK
-        : unit === 'm'
-          ? MOMENT_FORMAT_NP_MONTH
-          : unit === 'q'
-            ? MOMENT_FORMAT_NP_QUARTER
-            : unit === 'y'
-              ? MOMENT_FORMAT_NP_YEAR
-              : ''
+      ? MOMENT_FORMAT_NP_WEEK
+      : unit === 'm'
+      ? MOMENT_FORMAT_NP_MONTH
+      : unit === 'q'
+      ? MOMENT_FORMAT_NP_QUARTER
+      : unit === 'y'
+      ? MOMENT_FORMAT_NP_YEAR
+      : ''
   return momentDateFormat
 }
 
@@ -1093,7 +1095,7 @@ export function getPeriodOfNPDateStr(dateStr: string): string {
 
 /**
  * Calculate an offset date of a NP Daily/Weekly/Monthly/Quarterly/Yearly date string, and return as a JS Date.
- * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for  strings as well. Docs: https://momentjs.com/docs/#/get-set/
+ * v5 method, using 'moment/min/moment-with-locales' library to avoid using NP calls, now extended to allow for  strings as well. Docs: https://momentjs.com/docs/#/get-set/
  * @author @jgclark
  *
  * @param {string} baseDateStrIn is type ISO Date (i.e. YYYY-MM-DD), NP's filename format YYYYMMDD, or NP Weekly/Monthly/Quarterly/Yearly date strings
@@ -1163,7 +1165,7 @@ export function splitIntervalToParts(intervalStr: string): { number: number, typ
 
 /**
  * Calculate an offset date of any date interval NP supports, and return _in whichever format was supplied_.
- * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly, Monthly etc. strings as well.
+ * v5 method, using 'moment/min/moment-with-locales' library to avoid using NP calls, now extended to allow for Weekly, Monthly etc. strings as well.
  * WARNING: don't use when you want the output to be in week format, as the moment library doesn't understand different start-of-weeks. Use NPdateTime::getNPWeekData() instead.
  * Moment docs: https://momentjs.com/docs/#/get-set/
  * - 'baseDateIn' the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
@@ -1315,7 +1317,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
 /**
  * Calculate an offset date of a NP daily date (ISO format YYYY-MM-DD), and return _in whichever of the NotePlan date string formats were supplied in 'offsetInterval' (YYYY-MM-DD / YYYY-Wnn / YYYY-MM / YYYY-Qn / YYYY)_.
  * If the date to offset isn't supplied, today's date will be used.
- * (Uses 'moment' library to avoid using NP calls. Docs: https://momentjs.com/docs/#/get-set/)
+ * (Uses 'moment/min/moment-with-locales' library to avoid using NP calls. Docs: https://momentjs.com/docs/#/get-set/)
  * @author @jgclark
  * @param {string} offsetInterval of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
  * @param {string?} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type. If not given then today's date is used.
@@ -1442,7 +1444,9 @@ export function includesScheduledFurtherFutureDate(line: string, futureStartsInD
  */
 export function filenameIsInFuture(filename: string, fromYYYYMMDDDateStringFromDate: string = getTodaysDateUnhyphenated()): boolean {
   const today = new Date(
-    parseInt(fromYYYYMMDDDateStringFromDate.slice(0, 4)), parseInt(fromYYYYMMDDDateStringFromDate.slice(4, 6), 10) - 1, parseInt(fromYYYYMMDDDateStringFromDate.slice(6, 8), 10)
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(0, 4)),
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(4, 6), 10) - 1,
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(6, 8), 10),
   )
 
   // Test for daily notes

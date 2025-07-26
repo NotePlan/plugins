@@ -1,0 +1,15 @@
+<% 
+// This complex template tests various patterns
+
+// Regular JavaScript code near the top that shouldn't be affected
+const dayNum = date.dayNumber(`${date.format('YYYY-MM-DD',Editor.note.title)}`)
+const isWeekday = dayNum >= 1 && dayNum <= 5
+const isWeekend = !isWeekday
+const data = { numDays: 14, sectionHeading: 'Test' }; // Regular JS object notation
+
+// Valid JavaScript object in a variable (shouldn't be affected)
+const options = { key: 'value', another: 123 };
+
+// Another DataStore call (make sure this one is already in double quotes as a test)
+await DataStore.invokePluginCommandByName('Command3','plugin.id',[{"test":true}])
+-%> 

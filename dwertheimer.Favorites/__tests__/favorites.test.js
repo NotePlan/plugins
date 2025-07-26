@@ -5,7 +5,7 @@ import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note b
 import * as f from '../src/favorites'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 import { getFavoriteDefault, favoriteNotes, getFaveOptionsArray, titleHasFavoriteIcon, getFavoritedTitle, removeFavoriteFromTitle, noteIsFavorite } from '../src/favorites'
-import { noteHasFrontMatter, getFrontMatterAttributes } from '@helpers/NPFrontMatter'
+import { noteHasFrontMatter, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -30,7 +30,7 @@ jest.mock('../src/favorites', () => ({
 
 jest.mock('@helpers/NPFrontMatter', () => ({
   noteHasFrontMatter: jest.fn(() => true),
-  getFrontMatterAttributes: jest.fn(() => ({ favorite: true })),
+  getFrontmatterAttributes: jest.fn(() => ({ favorite: true })),
   hasFrontMatter: jest.fn(() => true),
   getAttributes: jest.fn(() => ({ favorite: true })),
 }))

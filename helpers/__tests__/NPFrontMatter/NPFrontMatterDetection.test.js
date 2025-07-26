@@ -128,7 +128,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    describe('getFrontMatterNotes()', () => {
+    describe('getFrontmatterNotes()', () => {
       /**
        * Reset the DataStore.projectNotes and set the template folder before each test.
        */
@@ -141,7 +141,7 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should return empty array when no notes have frontmatter attributes', () => {
         const note = new Note({ filename: 'note-empty.md', frontmatterAttributes: {} })
         DataStore.projectNotes.push(note)
-        const result = f.getFrontMatterNotes()
+        const result = f.getFrontmatterNotes()
         expect(result.length).toBe(0)
       })
 
@@ -151,7 +151,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const note3 = new Note({ filename: 'note3.md', frontmatterAttributes: {} })
         const note4 = new Note({ filename: 'note4.md', frontmatterAttributes: { title: 'Note4' } })
         DataStore.projectNotes.push(note1, note2, note3, note4)
-        const result = f.getFrontMatterNotes()
+        const result = f.getFrontmatterNotes()
         expect(result).toContain(note1)
         expect(result).not.toContain(note2)
         expect(result).toContain(note4)
@@ -164,7 +164,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const note2 = new Note({ filename: '@Templates/template1.md', frontmatterAttributes: { title: 'Template Note', foo: 'baz' } })
         const note3 = new Note({ filename: 'note3.md', frontmatterAttributes: { title: 'Note3' } })
         DataStore.projectNotes.push(note1, note2, note3)
-        const result = f.getFrontMatterNotes(true)
+        const result = f.getFrontmatterNotes(true)
         expect(result).toContain(note1)
         expect(result).toContain(note2)
         expect(result).toContain(note3)
@@ -177,7 +177,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const note3 = new Note({ filename: '@Templates/template2.md', frontmatterAttributes: { title: 'Template Note2', foo: 'qux' } })
         const note4 = new Note({ filename: 'note4.md', frontmatterAttributes: { title: 'Note4' } })
         DataStore.projectNotes.push(note1, note2, note3, note4)
-        const result = f.getFrontMatterNotes(false, true)
+        const result = f.getFrontmatterNotes(false, true)
         expect(result).toContain(note2)
         expect(result).toContain(note3)
         expect(result).not.toContain(note1)

@@ -8,7 +8,6 @@
 // * [Allow other date styles in /process date offsets](https://github.com/NotePlan/plugins/issues/221) from Feb 2021 -- but much harder than it looks.
 // * Also allow other date styles in /shift? -- as above
 
-
 import pluginJson from '../plugin.json'
 import { getEventsSettings } from './eventsHelpers'
 import { timeBlocksToCalendar } from './timeblocks'
@@ -48,8 +47,8 @@ import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@hel
 export async function shiftDates(): Promise<void> {
   try {
     const config = await getEventsSettings()
-    const RE_ISO_DATE_ALL = new RegExp(RE_ISO_DATE, "g")
-    const RE_NP_WEEK_ALL = new RegExp(RE_NP_WEEK_SPEC, "g")
+    const RE_ISO_DATE_ALL = new RegExp(RE_ISO_DATE, 'g')
+    const RE_NP_WEEK_ALL = new RegExp(RE_NP_WEEK_SPEC, 'g')
 
     // Get working selection as an array of paragraphs
     const { paragraphs, selection, note } = Editor
@@ -65,7 +64,7 @@ export async function shiftDates(): Promise<void> {
       // Use just the selected paragraphs
       pArr = Editor.selectedParagraphs
     } else {
-    // Use the whole note
+      // Use the whole note
       pArr = paragraphs.slice(0, findEndOfActivePartOfNote(note))
     }
     logDebug(pluginJson, `shiftDates starting for ${pArr.length} lines`)
@@ -97,7 +96,7 @@ export async function shiftDates(): Promise<void> {
         let updatedContent = stripBlockIDsFromString(origContent)
 
         // If wanted, remove @done(...) part
-        const doneDatePart = (updatedContent.match(RE_DONE_DATE_OPT_TIME)) ?? ['']
+        const doneDatePart = updatedContent.match(RE_DONE_DATE_OPT_TIME) ?? ['']
         // logDebug(pluginJson, `>> ${String(doneDatePart)}`)
         if (config.removeDoneDates && doneDatePart[0] !== '') {
           updatedContent = updatedContent.replace(doneDatePart[0], '')
@@ -137,7 +136,7 @@ export async function shiftDates(): Promise<void> {
         if (updatedContent.match(RE_ISO_DATE)) {
           // Process all YYYY-MM-DD dates in the line
           dates = updatedContent.match(RE_ISO_DATE_ALL) ?? []
-          for (let thisDate of dates) {
+          for (const thisDate of dates) {
             originalDateStr = thisDate
             shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
             // Replace date part with the new shiftedDateStr
@@ -151,7 +150,7 @@ export async function shiftDates(): Promise<void> {
         if (updatedContent.match(RE_NP_WEEK_SPEC)) {
           // Process all YYYY-Www dates in the line
           dates = updatedContent.match(RE_NP_WEEK_ALL) ?? []
-          for (let thisDate of dates) {
+          for (const thisDate of dates) {
             originalDateStr = thisDate
             // v1: but doesn't handle different start-of-week settings
             // shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
@@ -246,7 +245,9 @@ export async function processDateOffsets(): Promise<void> {
 
       while (n < endOfActive) {
         // Make a note if this contains a time block
-        if (isTimeBlockPara(paragraphs[n])) { numFoundTimeblocks++ }
+        if (isTimeBlockPara(paragraphs[n])) {
+          numFoundTimeblocks++
+        }
 
         let content = paragraphs[n].content
         // As we're about to update the string, let's first unhook it from any sync'd copies
@@ -300,11 +301,14 @@ export async function processDateOffsets(): Promise<void> {
             // We have a date offset in the line
             if (currentTargetDate === '' && lastCalcDate === '') {
               // This is currently an orphaned date offset
-              logInfo(processDateOffsets, `Line ${paragraphs[n].lineIndex}: offset date '${dateOffsetString}' is an orphan, as no currentTargetDate or lastCalcDate is set. Will ask user for a date.`)
+              logInfo(
+                processDateOffsets,
+                `Line ${paragraphs[n].lineIndex}: offset date '${dateOffsetString}' is an orphan, as no currentTargetDate or lastCalcDate is set. Will ask user for a date.`,
+              )
 
               // now ask for the date to use instead
               currentTargetDate = await datePicker(`{ question: 'Please enter a base date to use to offset against for "${content}"' }`, {})
-              if (currentTargetDate === '') {
+              if (currentTargetDate === '' || currentTargetDate === false) {
                 logError(processDateOffsets, `- Still no valid CTD, so stopping.`)
                 return
               } else {

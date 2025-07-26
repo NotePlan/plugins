@@ -11,6 +11,8 @@ import { filenameDateString } from '@helpers/dateTime'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph /*, mockWasCalledWithString */ } from '@mocks/index'
 
+const unhyphenatedDate = (date: Date) => moment(date).format('YYYYMMDD')
+
 beforeAll(() => {
   global.Calendar = Calendar
   global.Clipboard = Clipboard
@@ -35,7 +37,7 @@ const filenameToday = `${filenameDateString(new Date())}.md`
 
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]
 const note = new Note({ paragraphs })
-note.filename = `${ISOToday.replace(/-/g, '')}.md`
+note.filename = `${unhyphenatedDate(new Date())}.md`
 Editor.note = note
 Editor.filename = note.filename
 

@@ -7,6 +7,11 @@ const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
 
 describe(`${PLUGIN_NAME}`, () => {
+  beforeEach(() => {
+    global.DataStore = {
+      settings: { _logLevel: 'none' },
+    }
+  })
   let moduleInstance
   beforeEach(() => {
     moduleInstance = new WebModule()
@@ -45,6 +50,12 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`should fetch service`, async () => {
       const service = jest.spyOn(moduleInstance, 'service')
       await moduleInstance.service()
+      expect(service).toBeCalled()
+    })
+
+    it(`should fetch journal prompt`, async () => {
+      const service = jest.spyOn(moduleInstance, 'journalingQuestion')
+      await moduleInstance.journalingQuestion()
       expect(service).toBeCalled()
     })
   })

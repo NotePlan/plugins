@@ -12,7 +12,9 @@ import { getWeather } from './weather'
 import { getService } from './data/service'
 import { getDailyQuote } from './quote'
 import { getAffirmation } from './affirmation'
+import { getStoicQuote } from './stoicQuotes'
 import { getWeatherSummary } from './weatherSummary'
+import { journalingQuestion } from './journal'
 
 export default class WebModule {
   async advice(): Promise<string> {
@@ -25,6 +27,10 @@ export default class WebModule {
 
   async quote(): Promise<string> {
     return await getDailyQuote()
+  }
+
+  async stoicQuote(): Promise<string> {
+    return await getStoicQuote()
   }
 
   async weather(templateConfig: any, params: string = ''): Promise<string> {
@@ -46,5 +52,14 @@ export default class WebModule {
   async wotd(templateConfig: any, params: any = ''): Promise<string> {
     const confg = { ...templateConfig, ...params }
     return await getWOTD(confg)
+  }
+
+  async journalingQuestion(): Promise<string> {
+    return await journalingQuestion()
+  }
+
+  async getRandomLine(noteTitle: string): Promise<string> {
+    const noteModule = new (await import('./NoteModule')).default({})
+    return await noteModule.getRandomLine(noteTitle)
   }
 }

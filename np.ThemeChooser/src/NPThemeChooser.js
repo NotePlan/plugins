@@ -8,7 +8,7 @@ import { isBuiltInTheme } from './support/themeHelpers'
 import { getThemeObj } from './NPThemeShared'
 import { showMessage, showMessageYesNo, chooseOption } from '@helpers/userInput'
 import { sortListBy } from '@helpers/sorting'
-import { getFrontMatterAttributes, addTrigger, updateFrontMatterVars } from '@helpers/NPFrontMatter.js'
+import { getFrontmatterAttributes, addTrigger, updateFrontMatterVars } from '@helpers/NPFrontMatter.js'
 
 /**
  * Get the theme object by name
@@ -279,7 +279,7 @@ export async function toggleTheme() {
 export async function changeThemeFromFrontmatter() {
   try {
     logDebug(pluginJson, `changeThemeFromFrontmatter running`)
-    const frontMatter = getFrontMatterAttributes(Editor)
+    const frontMatter = getFrontmatterAttributes(Editor)
     if (frontMatter && frontMatter.theme) {
       const themeName = frontMatter.theme
       // validate that a theme of that name exists

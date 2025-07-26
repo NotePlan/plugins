@@ -1005,7 +1005,7 @@ export function getRelativeDates(): Array<Object> {
     const todayMom = moment()
 
     if (typeof DataStore !== 'object' || !DataStore) {
-      logDebug('NPdateTime::getRelativeDates', `NP DataStore functions are not available, so returning an empty set.`)
+      // logDebug('NPdateTime::getRelativeDates', `NP DataStore functions are not available, so returning an empty set.`)
       return [{}]
     }
 

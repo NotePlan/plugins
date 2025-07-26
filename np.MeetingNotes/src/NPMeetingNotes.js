@@ -4,14 +4,15 @@ const scriptLoad = new Date()
 
 import moment from 'moment-business-days'
 
+import { getTemplate } from '../../np.Templating/lib/core'
 import pluginJson from '../plugin.json'
-import { showMessage, chooseFolder, chooseOption } from '../../helpers/userInput'
+import { showMessage, chooseFolder, chooseOption, showMessageYesNo } from '../../helpers/userInput'
 import { getNoteByFilename } from '../../helpers/note'
 import { isCalendarNoteFilename } from '@helpers/regex'
 import { log, logDebug, logError, clo, JSP, timer } from '@helpers/dev'
 import { findProjectNoteUrlInText } from '@helpers/urls'
 import { getAttributes } from '@helpers/NPFrontMatter'
-import NPTemplating from 'NPTemplating'
+import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
 
 /**
  * Insert a template into a daily note or the current editor.
@@ -28,32 +29,33 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
   }
 
   logDebug(pluginJson, 'get content of template for rendering')
-  let templateContent = DataStore.projectNoteByFilename(templateFilename)?.content
+  const templateNote = DataStore.projectNoteByFilename(templateFilename)
+  let templateContent = templateNote?.content
 
   if (!templateContent) {
-    logError(pluginJson, `couldnt load content of template "${templateFilename}", try NPTemplating method`)
-    templateContent = await NPTemplating.getTemplate(templateFilename)
+    logError(pluginJson, `couldnt load content of template "${templateFilename}"`)
+    templateContent = await getTemplate(templateFilename)
     //
     // templateContent = await DataStore.invokePluginCommandByName('getTemplate', 'np.Templating', [templateFilename])
     return
   }
 
-  logDebug(pluginJson, 'preRender() template')
-  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent)
+  logDebug(pluginJson, 'calling renderFrontmatter() to pre-render template')
+  const { frontmatterBody: templateBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateContent])
 
-  // const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent])
+  // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
+  if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
 
-  logDebug(pluginJson, 'render() template')
-  const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+  logDebug(pluginJson, `render() template with frontmatterAttributes: [${Object.keys(frontmatterAttributes).join(', ')}]`)
 
-  // const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
+  const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [templateBody, frontmatterAttributes])
 
   if (dailyNoteDate) {
     logDebug(pluginJson, `apply rendered template to daily note with date ${String(dailyNoteDate)}`)
     const note = DataStore.calendarNoteByDate(dailyNoteDate, timeframe)
     if (note) {
       if (note.content && note.content !== '') {
-        note.content += '\n\n' + result
+        note.content += `\n\n${result}`
       } else {
         note.content = result
       }
@@ -67,18 +69,6 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
       Editor.insertTextAtCursor(result)
     }
   }
-}
-
-/**
- * Insert a template into a daily note or the current editor.
- * Called from the 'insert template' button of an empty note.
- * Called from 'insert template' context menu or "/-commands"
- * @param {string} origFileName -> (optional) Template filename, if not set the user will be asked
- * @param {Date} dailyNoteDate -> (optional) Date of the daily note, if not set the current editor will be used
- */
-export async function renderNoteTemplate(origFileName: string, dailyNoteDate: Date): Promise<string> {
-  logDebug(pluginJson, 'renderNoteTemplate')
-  return 'hello world'
 }
 
 /**
@@ -108,6 +98,7 @@ async function askWhichNoteToOpen(filenames: Array<string>): Promise<string> {
  * @param {string} template
  */
 export async function newMeetingNoteFromID(eventID: string, template?: string): Promise<void> {
+  const startTime = new Date()
   try {
     logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNoteFromID id:${eventID} template:${String(template)}`)
     const selectedEvent: TCalendarItem = await Calendar.eventByID(eventID)
@@ -153,6 +144,7 @@ export async function newMeetingNoteFromID(eventID: string, template?: string): 
   } catch (error) {
     logError(pluginJson, `error in newMeetingNoteFromID: ${JSP(error)}`)
   }
+  logDebug(pluginJson, `newMeetingNoteFromID: finished after ${timer(startTime)}`)
 }
 
 /**
@@ -177,15 +169,27 @@ async function selectEventAndTemplate(
  * @returns {Promise<{result: string, attrs: any}>}
  */
 async function renderTemplateForEvent(selectedEvent, templateFilename): Object {
-  let templateData, templateContent
+  logDebug(pluginJson, `${timer(scriptLoad)} - renderTemplateForEvent: templateFilename: "${templateFilename}"; selectedEvent.title: "${selectedEvent?.title}"`)
+  let templateVariables, templateContent
   if (selectedEvent) {
-    templateData = generateTemplateData(selectedEvent)
+    templateVariables = generateEventData(selectedEvent)
   }
   if (templateFilename) {
     templateContent = DataStore.projectNoteByFilename(templateFilename)?.content || ''
   }
-  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
-  const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+  logDebug(
+    pluginJson,
+    `${timer(scriptLoad)} - renderTemplateForEvent: calling renderFrontmatter() with content and variables (${
+      templateVariables ? Object.keys(templateVariables).join(', ') : 'none'
+    })`,
+  )
+  const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateContent, templateVariables])
+
+  clo(frontmatterBody, 'renderTemplateForEvent frontmatterBody:')
+  clo(frontmatterAttributes, 'renderTemplateForEvent frontmatterAttributes:')
+
+  const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes, templateVariables])
+
   return { result, attrs: frontmatterAttributes }
 }
 
@@ -261,6 +265,9 @@ async function handleExistingNotes(_noteTitle: string, renderedContent: string, 
     }
   } else {
     logDebug(pluginJson, `handleExistingNotes: creating note with content:"${noteContent}"`)
+    if (/choose|select/i.test(folder)) {
+      folder = await chooseFolder('Choose a folder to create note in', false, true)
+    }
     noteTitle = (await newNoteWithFolder(noteContent, folder)) ?? '<error>'
   }
   return noteTitle
@@ -311,9 +318,10 @@ async function createNoteAndLinkEvent(selectedEvent: TCalendarItem | null, rende
  */
 export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string, forceNewNote: boolean = false): Promise<void> {
   const { selectedEvent, templateFilename } = await selectEventAndTemplate(_selectedEvent, _templateFilename)
-  logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: got selectedEvent and templateFilename`)
+  logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: got selectedEvent and templateFilename; calling renderTemplateForEvent()`)
   const { result, attrs } = await renderTemplateForEvent(selectedEvent, templateFilename)
   logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: rendered template`)
+  clo(result, 'rendered template:')
   await createNoteAndLinkEvent(selectedEvent, result, attrs, forceNewNote)
   logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: created note and linked event`)
 }
@@ -354,11 +362,15 @@ function writeNoteLinkIntoEvent(selectedEvent: TCalendarItem, newTitle: string):
  * @param {string} folder - The folder where the note is located.
  * @returns {Promise<CoreNoteFields>} The note.
  */
-async function getNoteBasedOnName(noteName: string, folder: string): Promise<CoreNoteFields> {
+async function getNoteBasedOnName(noteName: string, folder: string): Promise<CoreNoteFields | null> {
+  logDebug(`np.MeetingNotes getNoteBasedOnName: "${noteName}" folder: ${folder}`)
   if (noteName === '<select>') {
     return await getNoteFromSelection(folder)
-  } else if (noteName === '<current>') {
+  } else if (/<current>/i.test(noteName)) {
     return getNoteFromEditor()
+  } else if (/<today>/i.test(noteName)) {
+    await Editor.openNoteByDate(new Date())
+    return Editor
   } else {
     return getNoteByTitle(noteName, folder)
   }
@@ -404,10 +416,10 @@ function getNoteFromEditor(): CoreNoteFields {
  * @param {string} folder - The folder where the note is located.
  * @returns {CoreNoteFields} The note.
  */
-function getNoteByTitle(noteName: string, folder: string): CoreNoteFields {
+function getNoteByTitle(noteName: string, folder: string): CoreNoteFields | null {
   const availableNotes = DataStore.projectNoteByTitle(noteName)
   if (availableNotes && availableNotes.length > 0) {
-    if (folder) {
+    if (folder && !/choose|select/i.test(folder)) {
       const filteredNotes = availableNotes?.filter((n) => n.filename.startsWith(folder)) ?? []
       if (filteredNotes.length > 0) {
         return filteredNotes[0]
@@ -474,10 +486,13 @@ async function updateNoteContent(note: CoreNoteFields, location: string, content
  * @param {string} content - The new content.
  * @returns {Promise<string|null>} The title of the note or null.
  */
-async function appendPrependNewNote(noteName: string, location: string, folder: string = '', content: string): Promise<string | null> {
+async function appendPrependNewNote(noteName: string, location: string, _folder: string = '', content: string): Promise<string | null> {
   try {
+    let folder = _folder
+    logDebug(`np.MeetingNotes appendPrependNewNote noteName=${noteName} location:${location} folder:${folder}`)
     let note = await getNoteBasedOnName(noteName, folder)
     if (!note) {
+      if (/<choose>|<select>/i.test(folder)) folder = await chooseFolder('Choose folder to create note in', false, true)
       note = await createNewNoteIfNotFound(noteName, folder)
     }
 
@@ -563,17 +578,24 @@ const errorReporter = async (error: any, note: TNote) => {
  */
 async function chooseTemplateIfNeededFromTemplateTitle(templateTitle?: string, onlyMeetingNotes: boolean = false): Promise<?string> {
   // Get the filename and then pass to the main function
-  logDebug(pluginJson, `${timer(scriptLoad)} - chooseTemplateIfNeededFromTemplateTitle starting`)
+  logDebug(
+    pluginJson,
+    `${timer(scriptLoad)} - chooseTemplateIfNeededFromTemplateTitle starting with templateTitle: "${String(templateTitle)}" and onlyMeetingNotes: ${String(onlyMeetingNotes)}`,
+  )
   if (templateTitle) {
-    const matchingTemplates = DataStore.projectNotes.filter((n) => n.title === templateTitle)
-    logDebug(pluginJson, `${timer(scriptLoad)}- got ${matchingTemplates.length} template matches from '${templateTitle}'`)
-    if (matchingTemplates && matchingTemplates.length > 0) {
-      return await chooseTemplateIfNeeded(matchingTemplates[0].filename, onlyMeetingNotes)
+    if (!templateTitle.endsWith('.md') && !templateTitle.endsWith('.txt')) {
+      const matchingTemplates = DataStore.projectNotes.filter((n) => n.title === templateTitle)
+      logDebug(pluginJson, `${timer(scriptLoad)}- got ${matchingTemplates.length} template title matches for '${templateTitle}'`)
+      if (matchingTemplates && matchingTemplates.length > 0) {
+        logDebug(pluginJson, `${timer(scriptLoad)}- choosing the first template title match for '${templateTitle}'; filename: ${matchingTemplates[0].filename}`)
+        return await chooseTemplateIfNeeded(matchingTemplates[0].filename, onlyMeetingNotes)
+      }
     } else {
-      return await chooseTemplateIfNeeded(templateTitle, onlyMeetingNotes)
+      logDebug(pluginJson, `${timer(scriptLoad)}- we have a filename (template name ends with .md or .txt), so sending filename directly to chooseTemplateIfNeeded`)
     }
+    return await chooseTemplateIfNeeded(templateTitle, onlyMeetingNotes)
   }
-  logDebug(pluginJson, `${timer(scriptLoad)} - chooseTemplateIfNeededFromTemplateTitle ending`)
+  logDebug(pluginJson, `${timer(scriptLoad)} - no template title provided; chooseTemplateIfNeededFromTemplateTitle ending`)
   return await chooseTemplateIfNeeded('', onlyMeetingNotes)
 }
 
@@ -586,7 +608,10 @@ async function chooseTemplateIfNeededFromTemplateTitle(templateTitle?: string, o
  * @returns {Promise<string>} filename of the template
  */
 async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNotes: boolean = false): Promise<?string> {
-  logDebug(pluginJson, `${timer(scriptLoad)} - chooseTemplateIfNeeded`)
+  logDebug(
+    pluginJson,
+    `${timer(scriptLoad)} - chooseTemplateIfNeeded() starting with templateFilename: "${String(templateFilename)}" and onlyMeetingNotes: ${String(onlyMeetingNotes)}`,
+  )
   try {
     if (!templateFilename) {
       logDebug(pluginJson, `${timer(scriptLoad)} - no template was defined, find all available templates and show them`)
@@ -638,7 +663,7 @@ async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNote
           : { index: 0 }
       return templates[selectedTemplate.index].filename
     } else {
-      logDebug(pluginJson, `will use Template file '${templateFilename}' ...`)
+      logDebug(pluginJson, `Will use Template file '${templateFilename}'`)
     }
     return templateFilename
   } catch (error) {
@@ -689,16 +714,16 @@ async function chooseEventIfNeeded(selectedEvent?: TCalendarItem | null): Promis
 }
 
 /**
- * Creates template data as input for np.Templating to parse a template.
+ * Creates event data object (properties/methods) to be used as input for np.Templating to parse a template.
  * @param {TCalendarItem} selectedEvent
  * @returns {Object} data and methods for the template
  */
-function generateTemplateData(selectedEvent: TCalendarItem): { data: Object, methods: Object } {
+function generateEventData(selectedEvent: TCalendarItem): { data: Object, methods: Object } {
   if (!selectedEvent) {
-    logError(pluginJson, 'generateTemplateData: no event provided')
+    logError(pluginJson, 'generateEventData: no event provided')
     return { data: {}, methods: {} }
   }
-  logDebug(pluginJson, `generateTemplateData running for event titled: "${selectedEvent.title}"`)
+  logDebug(pluginJson, `generateEventData populating event details for event titled: "${selectedEvent?.title}"`)
   return {
     data: {
       eventTitle: selectedEvent.title,
@@ -709,14 +734,18 @@ function generateTemplateData(selectedEvent: TCalendarItem): { data: Object, met
       eventAttendeeNames: selectedEvent && selectedEvent?.attendees?.length ? selectedEvent.attendeeNames.join(', ') : '',
       eventLocation: selectedEvent.location, // not yet documented!
       eventCalendar: selectedEvent.calendar,
+      eventDateValue: selectedEvent.date,
+      eventEndDateValue: selectedEvent.endDate,
     },
     methods: {
-      eventDate: (format: string = 'YYYY MM DD') => {
-        return moment(selectedEvent.date).format(`${format}`)
-      },
-      eventEndDate: (format: string = 'YYYY MM DD') => {
-        return moment(selectedEvent.endDate).format(`${format}`)
-      },
+      // NOTE: functions cannot be passed via DataStore.invokePluginCommandByName(), so we will have to create these methods in np.Templating render pipeline
+      // If you are looking for them, they are in restoreEventDateMethods() in np.Templating/lib/rendering/templateProcessor.js
+      // eventDate: (format: string = 'YYYY MM DD') => {
+      //   return moment(selectedEvent.date).format(`${format}`)
+      // },
+      // eventEndDate: (format: string = 'YYYY MM DD') => {
+      //   return moment(selectedEvent.endDate).format(`${format}`)
+      // },
     },
   }
 }

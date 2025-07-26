@@ -36,7 +36,7 @@ import type { CodeBlock } from '../../helpers/codeBlocks'
 import { type LineInfo, parse, isLineType, checkIfUnit } from './support/solver'
 import { getParagraphContainingPosition, getSelectedParagraphLineIndex } from '@helpers/NPParagraph'
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
-import { createRunPluginCallbackUrl, formatWithFields, CreateUUID } from '@helpers/general'
+import { createRunPluginCallbackUrl, formatWithFields, getRandomUUID } from '@helpers/general'
 import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import { getAttributes } from '@helpers/NPFrontMatter'
 
@@ -446,7 +446,7 @@ export async function insertMathBlock() {
   try {
     const { includeCalc, includeClear, includeTotals } = DataStore.settings
     // NOTE: this relies on the calculate command being the first in the list in plugin.json
-    const guid = CreateUUID(8)
+    const guid = getRandomUUID(8)
     const calcLink = includeCalc ? `[Calculate](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][0].name, [guid])})` : ''
     const clrLink = includeClear ? `[Clear](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][1].name, [guid])})` : ''
     const totLink = includeTotals ? `[Totals](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][2].name, [guid])})` : ''

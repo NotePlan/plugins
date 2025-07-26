@@ -11,6 +11,8 @@ import * as configFile from '../src/config'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, mockWasCalledWithString } from '@mocks/index'
 
+const unhyphenatedDate = (date: Date) => moment(date).format('YYYYMMDD')
+
 beforeAll(() => {
   global.Calendar = Calendar
   global.Clipboard = Clipboard
@@ -31,8 +33,7 @@ beforeAll(() => {
 
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]
 const note = new Note({ paragraphs })
-const ISOToday = moment().format('YYYY-MM-DD').replace(/-/g, '')
-note.filename = `${ISOToday}.md`
+note.filename = `${unhyphenatedDate(new Date())}.md`
 Editor.note = note
 Editor.filename = note.filename
 
@@ -98,14 +99,12 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         expect(result).toEqual(false)
       })
       test('should return false if Editor is open to another day', () => {
-        const ISOTomorrow = moment().add(1, 'day').format('YYYY-MM-DD').replace(/-/g, '')
-        Editor.filename = `${ISOTomorrow}.md`
+        Editor.filename = `${unhyphenatedDate(new Date('2020-01-01'))}.md`
         const result = mainFile.editorIsOpenToToday()
         expect(result).toEqual(false)
       })
       test('should return true if Editor is open to is today', () => {
-        const ISOToday = moment().format('YYYY-MM-DD').replace(/-/g, '')
-        Editor.filename = `${ISOToday}.md`
+        Editor.filename = `${unhyphenatedDate(new Date())}.md`
         const result = mainFile.editorIsOpenToToday()
         expect(result).toEqual(true)
       })

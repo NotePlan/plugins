@@ -1,13 +1,21 @@
-/* global jest */
+/* global jest, describe, test, expect */
 
 global.console = {
   ...console,
   log: jest.fn(),
+  error: jest.fn(),
   debug: jest.fn(),
 }
 
-describe('Placeholder', () => {
-  test('Placeholder', async () => {
-    expect(true).toBe(true)
+global.DataStore = {
+  settings: { _logLevel: 'none' },
+  projectNotes: [],
+  calendarNotes: [],
+}
+
+describe('Test Environment Setup', () => {
+  test('should have mocked console', async () => {
+    await Promise.resolve()
+    expect(global.console.log).toBeDefined()
   })
 })

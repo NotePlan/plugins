@@ -22,7 +22,7 @@ export { templateSamples } from './Templating'
 export { templateExecute } from './Templating'
 export { templateRunner } from './Templating'
 export { templateWOTD } from './Templating'
-export { addFrontmatterToTemplate } from './NPEditor'
+export { addFrontmatterToTemplate } from './NPTemplateRunner'
 
 // np.Templating Utility Commands
 export { templateAbout } from './Templating'
@@ -32,8 +32,11 @@ export { templateTest } from './Templating'
 
 // exported to support DataStore.invokePluginCommandByName
 export { getTemplate } from './Templating'
-export { preRender } from './Templating'
+export { renderFrontmatter } from './Templating'
 export { render } from './Templating'
 export { renderTemplate } from './Templating'
 
 export { templateFileByTitle } from './Templating'
+
+// Allow for mobile editing of settings
+export { editSettings } from '@helpers/NPSettings'

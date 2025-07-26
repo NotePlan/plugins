@@ -45,27 +45,50 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
 }
 
 /**
- * Ask user to choose from a set of options (from nmn.sweep) using CommandBar
+ * Show a list of options to the user and return which option they picked (optionally with a modifier key, optionally with ability to create a new item)
  * @author @dwertheimer based on @nmn chooseOption
  *
  * @param {string} message - text to display to user
- * @param {Array<T>} options - array of label:value options to present to the user
- * @return {{ label:string, value:string, index: number, keyModifiers: Array<string> }} - the value attribute of the user-chosen item
- * keyModifiers is an array of 0+ strings, e.g. ["cmd", "opt", "shift", "ctrl"] that were pressed while selecting a result.
+ * @param {Array<Option<T>>} options - array of options to display
+ * @param {boolean} allowCreate - add an option to create a new item (default: false)
+ * @returns {Promise<{value: T, label: string, index: number, keyModifiers: Array<string>}>} - Promise resolving to the result
+ * see CommandBar.showOptions for more info
  */
-// @nmn we need some $FlowFixMe
 export async function chooseOptionWithModifiers<T, TDefault = T>(
   message: string,
   options: $ReadOnlyArray<Option<T>>,
+  allowCreate: boolean = false,
 ): Promise<{ ...TDefault, index: number, keyModifiers: Array<string> }> {
   logDebug('userInput / chooseOptionWithModifiers()', `About to showOptions with ${options.length} options & prompt:"${message}"`)
+
+  // Add the "Add new item" option if allowCreate is true
+  let displayOptions = [...options]
+  if (allowCreate) {
+    displayOptions = [{ label: '➕ Add new item', value: '__ADD_NEW__' }, ...options]
+  }
+
   // $FlowFixMe[prop-missing]
   const { index, keyModifiers } = await CommandBar.showOptions(
-    options.map((option) => option.label),
+    displayOptions.map((option) => option.label),
     message,
   )
+
+  // Check if the user selected "Add new item"
+  if (allowCreate && index === 0) {
+    const result = await getInput('Enter new item:', 'OK', 'Add New Item')
+    if (result && typeof result === 'string') {
+      // Return a custom result with the new item
+      return {
+        value: result,
+        label: result,
+        index: -1, // -1 indicates a custom entry
+        keyModifiers: keyModifiers || [],
+      }
+    }
+  }
+
   // $FlowFixMe[incompatible-return]
-  return { ...options[index], index, keyModifiers }
+  return { ...displayOptions[index], index, keyModifiers }
 }
 
 /**
@@ -145,8 +168,8 @@ export async function showMessageWithList(message: string, list: Array<string>, 
   const listToShow = list.slice(0, safeListLimitToDisplay)
   const listIsLimited = list.length > safeListLimitToDisplay
   const listToShowString = listToShow.join('\n')
-  const listIsLimitedString = listIsLimited ? `\n  ... and ${ list.length - safeListLimitToDisplay } more` : ''
-  const messageToShow = `${ message } \n${ listToShowString }${ listIsLimitedString }`
+  const listIsLimitedString = listIsLimited ? `\n  ... and ${list.length - safeListLimitToDisplay} more` : ''
+  const messageToShow = `${message} \n${listToShowString}${listIsLimitedString}`
   await CommandBar.prompt(dialogTitle, messageToShow, [confirmButton])
 }
 
@@ -203,123 +226,80 @@ export async function showMessageYesNoCancel(message: string, choicesArray: Arra
  * @param {boolean} includeFolderPath - (optional: default true) Show the folder path (or most of it), not just the last folder name, to give more context.
  * @returns {string} - returns the user's folder choice (or / for root)
  */
-export async function chooseFolder(msg: string, 
-  includeArchive?: boolean = false, 
-  includeNewFolderOption?: boolean = false, 
-  startFolder?: string = '/', 
-  includeFolderPath?: boolean = true
-): Promise<string> {
-  try {
-    const maxLengthFolderPathToShow = 50 // OK on desktop and iOS, at least for @jgclark
-    const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
-    const NEW_FOLDER = `➕ (Add New Folder${ IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : '' })`
-    let folder: string
-    let folders = []
-    if (includeNewFolderOption) {
-      folders.push(NEW_FOLDER)
-    }
-    folders = [...folders, ...DataStore.folders.slice()] // excludes Trash
-    if (startFolder?.length && startFolder !== '/') {
-      folders = folders.filter((f) => f === NEW_FOLDER || f.startsWith(startFolder))
-    } else {
-      const archiveFolders = folders.filter((f) => f.startsWith('@Archive'))
-      const otherSpecialFolders = folders.filter((f) => f.startsWith('@') && !f.startsWith('@Archive'))
-      // Remove special folders from list
-      folders = folders.filter((f) => !f.startsWith('@'))
-      // Now add them back on at the end, with @Archive going last
-      folders = [...folders, ...otherSpecialFolders]
-      if (includeArchive) {
-        folders = [...folders, ...archiveFolders]
-      }
-    }
-    let value: string = ''
-    let keyModifiers: Array<string> = []
-    if (folders.length > 0) {
-      // get list of teamspaces
-      const teamspaceDefs = getAllTeamspaceIDsAndTitles()
-      clo(teamspaceDefs)
-
-      // make a slightly fancy list with indented labels, different from plain values
-      const folderOptionList: Array<any> = []
-      for (const f of folders) {
-        // logDebug(`helpers / userInput`, `chooseFolder f:${ f }`)
-        const isTeamspaceFolder = teamspaceDefs.some((teamspaceDef) => f.includes(teamspaceDef.id))
-        if (f === NEW_FOLDER) {
-          folderOptionList.push({ label: NEW_FOLDER, value: NEW_FOLDER })
-        } else if (f !== '/') {
-          let folderLabel = ''
-          const folderParts = f.split('/')
-          const icon = (isTeamspaceFolder) 
-          ? `👥`
-            : (folderParts[0]==='@Archive')
-              ? `🗄️` 
-              : (folderParts[0]==='@Templates')
-                ? '📝' 
-                : '📁'
-          
-          if (isTeamspaceFolder) {
-            const thisTeamspaceDef = teamspaceDefs.find((thisTeamspaceDef) => f.includes(thisTeamspaceDef.id)) ?? { id: '', title: '(error)' }
-            const teamspaceTitle = getTeamspaceTitleFromID(thisTeamspaceDef.id)
-            if (includeFolderPath) {
-              folderLabel = `${ icon } ${ teamspaceTitle } / ${ folderParts.slice(2).join(' / ') }`
-            } else {
-  folderLabel = `${icon} ${folderParts.slice(2).join(' / ')}`
-}
-          } else if (includeFolderPath) {
-  // Get the folder path prefix, and truncate it if it's too long
-  if (f.length >= maxLengthFolderPathToShow) {
-    const folderPathPrefix = `${f.slice(0, maxLengthFolderPathToShow - folderParts[folderParts.length - 1].length)} …${folderParts[folderParts.length - 1]} `
-    folderLabel = `${icon} ${folderPathPrefix} `
+export async function chooseFolder(msg: string, includeArchive?: boolean = false, includeNewFolderOption?: boolean = false, startFolder?: string): Promise<string> {
+  const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
+  const NEW_FOLDER = `➕ (Add New Folder${IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : ''})`
+  let folder: string
+  let folders = []
+  if (includeNewFolderOption) {
+    folders.push(NEW_FOLDER)
+  }
+  folders = [...folders, ...DataStore.folders.slice()] // excludes Trash
+  if (startFolder?.length && startFolder !== '/') {
+    folders = folders.filter((f) => f === NEW_FOLDER || f.startsWith(startFolder))
   } else {
-    folderLabel = `${icon} ${folderParts.join(' / ')} `
-  }
-} else {
-  // Replace earlier parts of the path with indentation spaces
-  for (let i = 0; i < folderParts.length - 1; i++) {
-    folderParts[i] = '     '
-  }
-  folderParts[folderParts.length - 1] = `${icon} ${folderParts[folderParts.length - 1]}`
-  folderLabel = folderParts.join('')
-}
-folderOptionList.push({ label: folderLabel, value: f })
-        } else {
-  // deal with special case for root folder
-  folderOptionList.push({ label: '📁 /', value: '/' })
-}
-      }
-; ({ value, keyModifiers } = await chooseOptionWithModifiers(msg, folderOptionList))
-if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
-  folder = NEW_FOLDER
-} else {
-  folder = value
-}
-logDebug(`helpers / userInput`, `chooseFolder folder:${folder} value:${value} keyModifiers:${String(keyModifiers)} keyModifiers.indexOf('opt') = ${keyModifiers.indexOf('opt')} `)
-    } else {
-  // no Folders so go to root
-  folder = '/'
-}
-// logDebug('userInput / chooseFolder', `-> ${ folder } `)
-if (folder === NEW_FOLDER) {
-  const optClicked = value?.length && keyModifiers && keyModifiers.indexOf('opt') > -1
-  const newFolderName = await CommandBar.textPrompt(
-    `Create new folder${optClicked ? ` inside folder:\n"${value || ''}".` : '...\nYou will choose where to create the folder in the next step.'} `,
-    'Folder name:',
-    '',
-  )
-  if (newFolderName && newFolderName.length) {
-    const inWhichFolder =
-      optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder ? (${startFolder ?? '/'} for root)`, includeArchive, false, startFolder)
-    if (inWhichFolder) {
-      folder = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
+    const archiveFolders = folders.filter((f) => f.startsWith('@Archive'))
+    const otherSpecialFolders = folders.filter((f) => f.startsWith('@') && !f.startsWith('@Archive'))
+    // Remove special folders from list
+    folders = folders.filter((f) => !f.startsWith('@'))
+    // Now add them back on at the end, with @Archive going last
+    folders = [...folders, ...otherSpecialFolders]
+    if (includeArchive) {
+      folders = [...folders, ...archiveFolders]
     }
   }
-}
-logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
-return folder
-  } catch (error) {
-  logError('userInput / chooseFolder', error.message)
-  return ''
-}
+  let value, keyModifiers
+  if (folders.length > 0) {
+    // make a slightly fancy list with indented labels, different from plain values
+    const folderOptionList: Array<any> = []
+    for (const f of folders) {
+      if (f === NEW_FOLDER) {
+        folderOptionList.push({ label: NEW_FOLDER, value: NEW_FOLDER })
+      } else if (f !== '/') {
+        const folderParts = f.split('/')
+        const icon = folderParts[0] === '@Archive' ? `🗄️` : folderParts[0] === '@Templates' ? '📝' : '📁'
+        // Replace earlier parts of the path with indentation spaces
+        for (let i = 0; i < folderParts.length - 1; i++) {
+          folderParts[i] = '     '
+        }
+        folderParts[folderParts.length - 1] = `${icon} ${folderParts[folderParts.length - 1]}`
+        const folderLabel = folderParts.join('')
+        folderOptionList.push({ label: folderLabel, value: f })
+      } else {
+        // deal with special case for root folder
+        folderOptionList.push({ label: '📁 /', value: '/' })
+      }
+    }
+    // const re = await CommandBar.showOptions(folders, msg)
+    ;({ value, keyModifiers } = await chooseOptionWithModifiers(msg, folderOptionList))
+    if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
+      folder = NEW_FOLDER
+    } else {
+      folder = value
+    }
+    logDebug(`helpers/userInput`, `chooseFolder folder:${folder} value:${value} keyModifiers:${keyModifiers} keyModifiers.indexOf('opt')=${keyModifiers.indexOf('opt')}`)
+  } else {
+    // no Folders so go to root
+    folder = '/'
+  }
+  // logDebug('userInput / chooseFolder', `-> ${folder}`)
+  if (folder === NEW_FOLDER) {
+    const optClicked = value?.length && keyModifiers && keyModifiers.indexOf('opt') > -1
+    const newFolderName = await CommandBar.textPrompt(
+      `Create new folder${optClicked ? ` inside folder:\n"${value || ''}".` : '...\nYou will choose where to create the folder in the next step.'}`,
+      'Folder name:',
+      '',
+    )
+    if (newFolderName && newFolderName.length) {
+      const inWhichFolder =
+        optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder? (${startFolder ?? '/'} for root)`, includeArchive, false, startFolder)
+      if (inWhichFolder) {
+        folder = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
+      }
+    }
+  }
+  logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
+  return folder
 }
 
 /**
@@ -360,13 +340,14 @@ export async function chooseHeading(
  * Ask for a date interval from user, using CommandBar
  * @author @jgclark
  *
- * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
+ * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter in a JSON string. if it's a normal string, it will be treated as the question.
  * @return {string} - the returned interval string, or empty if an invalid string given
  */
 export async function askDateInterval(dateParams: string): Promise<string> {
   // logDebug('askDateInterval', `starting with '${dateParams}':`)
   const dateParamsTrimmed = dateParams?.trim() || ''
-  const paramConfig = dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? parseJSON5(dateParams) : dateParamsTrimmed !== '' ? parseJSON5(`{${dateParams}}`) : {}
+  const isJSON = dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
+  const paramConfig = isJSON ? parseJSON5(dateParams) : dateParamsTrimmed !== '' ? { question: dateParams } : {}
   // logDebug('askDateInterval', `param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }
@@ -408,20 +389,30 @@ export async function askForISODate(question: string): Promise<string> {
  * TODO: in time @EduardMe should produce a native API call that can improve this.
  * @author @jgclark, based on @nmn code
  *
- * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
+ * @param {string|object} dateParams - given parameters -- currently only looks for {question:'question test'} and {defaultValue:'YYYY-MM-DD'} and {canBeEmpty: false} parameters
  * @param {[string]: ?mixed} config - previously used as settings from _configuration note; now ignored
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
-export async function datePicker(dateParams: string, config?: { [string]: ?mixed } = {}): Promise<string> {
+export async function datePicker(dateParams: string | Object, config?: { [string]: ?mixed } = {}): Promise<string | false> {
   try {
     const dateConfig = config.date ?? {}
     // $FlowIgnore[incompatible-call]
-    clo(dateConfig, 'userInput / datePicker dateConfig object:')
-    const dateParamsTrimmed = dateParams.trim()
-    const paramConfig =
-      dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? parseJSON5(dateParams) : dateParamsTrimmed !== '' ? parseJSON5(`{${dateParams}}`) : {}
+    clo(dateConfig, `userInput / datePicker dateParams="${JSON.stringify(dateParams)}" dateConfig typeof="${typeof dateConfig}" keys=${Object.keys(dateConfig || {}).toString()}`)
+    let paramConfig = dateParams
+    if (typeof dateParams === 'string') {
+      // JSON stringified string
+      const dateParamsTrimmed = dateParams.trim()
+      paramConfig = dateParamsTrimmed
+        ? dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
+          ? parseJSON5(dateParams)
+          : dateParamsTrimmed !== ''
+          ? parseJSON5(`{${dateParams}}`)
+          : {}
+        : {}
+    }
+
     // $FlowIgnore[incompatible-type]
-    logDebug('userInput / datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
+    logDebug('userInput / datePicker', `params: ${JSON.stringify(dateParams)} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
       // $FlowIgnore[exponential-spread] known to be very small objects
@@ -439,15 +430,17 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     // const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
     const reply = await CommandBar.textPrompt('Date Picker', question, defaultValue)
     if (typeof reply === 'string') {
-      const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
-      if (!reply2.match(RE_DATE)) {
-        await showMessage(`Sorry: ${reply2} wasn't a date of form YYYY-MM-DD`, `OK`, 'Error')
-        return ''
+      if (!allSettings.canBeEmpty) {
+        const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
+        if (!reply2.match(RE_DATE)) {
+          await showMessage(`FYI: ${reply2} wasn't a date in the preferred form YYYY-MM-DD`, `OK`, 'Warning')
+          return ''
+        }
       }
-      return reply2
+      return reply
     } else {
-      logWarn('userInput / datePicker', 'User cancelled date input')
-      return ''
+      logWarn('userInput / datePicker', `User cancelled date input: ${typeof reply}: "${String(reply)}"`)
+      return false
     }
   } catch (e) {
     logError('userInput / datePicker', e.message)
@@ -671,9 +664,7 @@ export async function chooseNote(
     opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
-  const noteToReturn = (opts[index] === '[New note]')
-    ? await createNewNote()
-    : sortedNoteListFiltered[index]
+  const noteToReturn = opts[index] === '[New note]' ? await createNewNote() : sortedNoteListFiltered[index]
   return noteToReturn ?? null
 }
 

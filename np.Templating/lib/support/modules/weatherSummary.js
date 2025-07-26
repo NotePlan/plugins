@@ -2,7 +2,7 @@
 /* eslint-disable */
 
 import pluginJson from '../../../plugin.json'
-import { logError } from '../../../../helpers/dev'
+import { logError, logDebug } from '../../../../helpers/dev'
 import { stringReplace } from '../../../../helpers/general'
 
 /**
@@ -75,7 +75,9 @@ export async function getWeatherSummary(format: string): Promise<string> {
   const getWeatherURL = 'https://wttr.in/?format=j1'
   let jsonIn, allWeatherData
   try {
+    logDebug(`getWeatherSummary: Fetching ${getWeatherURL}`)
     jsonIn = await fetch(getWeatherURL)
+    logDebug(`getWeatherSummary: received response: ${jsonIn.length} chars`)
     if (jsonIn != null) {
       try {
         // $FlowIgnore[incompatible-call]
@@ -84,7 +86,7 @@ export async function getWeatherSummary(format: string): Promise<string> {
         logError(`'${error.message}' parsing Weather data lookup`)
         return `**Error '${error.message}' parsing Weather data lookup.**`
       }
-
+      logDebug(`getWeatherSummary: received ${JSON.stringify(allWeatherData)}`)
       // Work out some specific values from harder-to-reach parts of the JSON
       const areaName = areaNameOverride(allWeatherData.nearest_area[0]?.areaName[0]?.value ?? '(no nearest_area returned)')
       const region = allWeatherData.nearest_area[0].region[0].value ?? '(no region returned)'
@@ -127,6 +129,7 @@ export async function getWeatherSummary(format: string): Promise<string> {
         const value = allWeatherData.current_condition[0][key] ?? '(missing)'
         output = output.replace(`:${key}:`, value)
       }
+      logDebug(`getWeatherSummary returning output ${output}`)
       return output
     } else {
       logError(pluginJson, 'Null JSON returned from Weather data lookup.')

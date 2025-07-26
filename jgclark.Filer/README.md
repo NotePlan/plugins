@@ -61,7 +61,7 @@ There are a number of settings to make it useful for a variety of ways of organi
 - Allow preamble before first heading? If set, some 'preamble' lines are allowed directly after the title. When filing/moving/inserting items with these commands, this preamble will be left in place, up to and including the first blank line, heading or separator. Otherwise the first heading will be directly after the note's title line (or frontmatter if used).
 - Tag that indicates a [[note link]] should be ignored: If this tag (e.g. "#ignore") is included in a line with a [[note link]] then it (and where relevant the rest of its block) will not be moved or copied.
 
-In the demo above, the daily note includes the date ("Tues 21/3") as part of the (sub)heading. As this is copied into the project log, it serves as an automatic index in that note. To add today's date in whatever style you wish is relatively simple using the [date commands in the Templating plugin](https://nptemplating-docs.netlify.app/docs/templating-examples/date-time).
+In the demo above, the daily note includes the date ("Tues 21/3") as part of the (sub)heading. As this is copied into the project log, it serves as an automatic index in that note. To add today's date in whatever style you wish is relatively simple using the [date commands in the Templating plugin](https://noteplan.co/templates/docsdocs/templating-examples/date-time).
 
 The **/... (recently changed)** versions of these commands operate on recently-changed calendar notes, not just the currently open one. To contol this there's an additional setting:
 - How many days to include in 'recent' changes to calendar notes? This sets how many days' worth of changes to calendar notes to include? To include all days, set to 0.

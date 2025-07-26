@@ -6,7 +6,7 @@
  * For functions: check whether async or not & add params & return value
  *
  */
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import * as chrono from 'chrono-node'
 
 export const Calendar = {

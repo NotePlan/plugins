@@ -29,7 +29,7 @@
  * logError(pluginJson,"All users will see these fatal/error messages")
  */
 
-import { getFrontMatterAttributes } from '../../helpers/NPFrontMatter'
+import { getFrontmatterAttributes } from '../../helpers/NPFrontMatter'
 import { getTodaysDateAsArrowDate, getTodaysDateUnhyphenated } from '../../helpers/dateTime'
 import pluginJson from '../plugin.json'
 import { log, logInfo, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
@@ -75,8 +75,8 @@ const setup: {
    */
   set newFolder(passedFolder: string) {
     // remove leading and tailing slashes
-    passedFolder = passedFolder.replace(/\/+$/, "")
-    passedFolder = passedFolder.replace(/^\/+/, "")
+    passedFolder = passedFolder.replace(/\/+$/, '')
+    passedFolder = passedFolder.replace(/^\/+/, '')
     this.folder = passedFolder
   },
   /**
@@ -199,7 +199,7 @@ export async function syncProject() {
   const note: ?TNote = Editor.note
   if (note) {
     // check to see if this has any frontmatter
-    const frontmatter: ?Object = getFrontMatterAttributes(note)
+    const frontmatter: ?Object = getFrontmatterAttributes(note)
     clo(frontmatter)
     let check: boolean = true
     if (frontmatter) {
@@ -391,9 +391,9 @@ async function pullTodoistTasksByProject(project_id: string): Promise<any> {
     let filter = ''
     if (setup.useTeamAccount) {
       if (setup.addUnassigned) {
-        filter = "?filter=!assigned to: others"
+        filter = '?filter=!assigned to: others'
       } else {
-        filter = "?filter=assigned to: me"
+        filter = '?filter=assigned to: me'
       }
     }
     const result = await fetch(`${todo_api}/tasks?project_id=${project_id}${filter}`, getRequestObject())

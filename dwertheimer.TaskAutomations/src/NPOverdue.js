@@ -1,6 +1,6 @@
 // @flow
 
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { reviewOverdueTasksByNote, getNotesAndTasksToReview, getNotesWithOpenTasks, getReferencesForReview } from './NPTaskScanAndProcess'
 import { filenameDateString, getTodaysDateHyphenated, getDateOptions, RE_DATE } from '@helpers/dateTime'

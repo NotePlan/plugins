@@ -71,7 +71,7 @@ export function helpInfo(section: string, userDocPage?: string): string {
   }
 
   let msg = ''
-  // msg += `For more information please refer to "${section}"\n\nhttps://nptemplating-docs.netlify.app/docs/${docPage}`
+  // msg += `For more information please refer to "${section}"\n\nhttps://noteplan.co/templates/docsdocs/${docPage}`
   msg += `For more information please refer to "${section}"\n\nhttps://noteplan.co/plugins/templating/${docPage}`
 
   return msg
@@ -97,6 +97,6 @@ export function debug(debugInfo: any, preamble: string = '', logInfo: string = '
       clo(debugInfo, preamble, 4)
     }
     log(pluginJson, premambe, 'DEBUG')
-    console.log('') // add a little visual space
+    logDebug('') // add a little visual space
   }
 }

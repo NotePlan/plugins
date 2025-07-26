@@ -1,114 +1,84 @@
 /*-------------------------------------------------------------------------------------------
- * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rig`hts reserved.
+ * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
 // @flow
 /* eslint-disable */
 
+import moment from 'moment/min/moment-with-locales'
+
 import pluginJson from '../plugin.json'
 
 import { datePicker, askDateInterval } from '@helpers/userInput'
 import { getFormattedTime } from '@helpers/dateTime'
 import DateModule from './support/modules/DateModule'
-import { now, timestamp } from './support/modules/DateModule'
+import { format } from './support/modules/DateModule'
 import { time } from './support/modules/TimeModule'
 import { getAffirmation } from './support/modules/affirmation'
 import { getAdvice } from './support/modules/advice'
 import { getDailyQuote } from './support/modules/quote'
+import { getStoicQuote } from './support/modules/stoicQuotes'
+import { getVerse } from './support/modules/verse'
 import { getWOTD } from './support/modules/wotd'
 import { getWeather } from './support/modules/weather'
 import { getWeatherSummary } from './support/modules/weatherSummary'
 import { parseJSON5 } from '@helpers/general'
 import { getSetting } from '../../helpers/NPConfiguration'
-import { log, logError, clo } from '@helpers/dev'
+import { log, logError, clo, logDebug } from '@helpers/dev'
+import { getNote } from '@helpers/note'
+import { journalingQuestion } from './support/modules/journal'
+import FrontmatterModule from './support/modules/FrontmatterModule'
+import { isCommandAvailable, invokePluginCommandByName, transformInternationalDateFormat } from './utils'
 
-export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
-  const defaultConfig = config?.date ?? {}
-  const dateParamsTrimmed = dateParams?.trim() || ''
-  const paramConfig =
-    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
-  // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
-  // ... = "gather the remaining parameters into an array"
-  const finalArguments: { [string]: mixed } = {
-    ...defaultConfig,
-    ...paramConfig,
-  }
-
-  // Grab just locale parameter
-  const { locale, ...otherParams } = (finalArguments: any)
-
-  const localeParam = locale != null ? String(locale) : []
-  const secondParam = {
-    dateStyle: 'short',
-    ...otherParams,
-  }
-
-  return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date())
-}
-
-async function isCommandAvailable(pluginId: string, pluginCommand: string): Promise<boolean> {
-  try {
-    let result = DataStore.installedPlugins().filter((plugin) => {
-      return plugin.id === pluginId
-    })
-
-    let commands = typeof result !== 'undefined' && Array.isArray(result) && result.length > 0 && result[0].commands
-    if (commands) {
-      // $FlowIgnore
-      let command = commands.filter((command) => {
-        return command.name === pluginCommand
-      })
-
-      return Array.isArray(command) && command.length > 0
-    } else {
-      return false
-    }
-  } catch (error) {
-    logError(pluginJson, error)
-    return false
-  }
-}
-
-async function invokePluginCommandByName(pluginId: string = '', pluginCommand: string = '', args: $ReadOnlyArray<mixed> = []) {
-  if (await isCommandAvailable(pluginId, pluginCommand)) {
-    return (await DataStore.invokePluginCommandByName(pluginCommand, pluginId, args)) || ''
-  } else {
-    // const info = helpInfo('Plugin Error')
-    const info = ''
-    return `**Unable to locate "${pluginId} :: ${pluginCommand}".  Make sure "${pluginId}" plugin has been installed.**\n\n${info}`
-  }
-}
-
-/*
-   np.Templating Global Methods
-*/
-
+/**
+ * Collection of global methods available in NotePlan Templating
+ */
 const globals = {
+  moment: moment,
+
   affirmation: async (): Promise<string> => {
-    return getAffirmation()
+    return await getAffirmation()
+  },
+
+  stoicQuote: async (): Promise<string> => {
+    return await getStoicQuote()
   },
 
   advice: async (): Promise<string> => {
-    return getAdvice()
+    return await getAdvice()
+  },
+
+  datePicker: async (params: ?string, config: any): Promise<string | false> => {
+    return await datePicker(params, config)
   },
 
   quote: async (): Promise<string> => {
-    return getDailyQuote()
+    return await getDailyQuote()
+  },
+
+  verse: async (): Promise<string> => {
+    return await getVerse()
+  },
+
+  format: async (formatstr: string = '%Y-%m-%d %I:%M:%S %P'): Promise<string> => {
+    return await format(formatstr)
   },
 
   wotd: async (): Promise<string> => {
-    return getWOTD()
+    return await getWOTD()
+  },
+
+  journalingQuestion: async (): Promise<string> => {
+    return await journalingQuestion()
   },
 
   legacyDate: async (params: any = ''): Promise<string> => {
-    // $FlowIgnore
-    return await processDate(JSON.stringify(params))
+    return await transformInternationalDateFormat(JSON.stringify(params), {})
   },
 
   progressUpdate: async (params: any): Promise<string> => {
     return await invokePluginCommandByName('jgclark.Summaries', 'progressUpdate', [params])
-    // Note: Previously did JSON.stringify(params), but removing this means we can distinguish between template and callback triggers in the plugin code. 
   },
 
   todayProgressFromTemplate: async (params: any): Promise<string> => {
@@ -116,22 +86,20 @@ const globals = {
   },
 
   weather: async (formatParam: string = ''): Promise<string> => {
-    let weatherFormat = await getSetting(pluginJson['plugin.id'], 'weatherFormat', '') || ''
+    let weatherFormat = (await getSetting(pluginJson['plugin.id'], 'weatherFormat', '')) || ''
     if (formatParam.length > 0) {
       weatherFormat = formatParam
     }
-    return weatherFormat === 0 ? await getWeather() : await getWeatherSummary(weatherFormat)
+    logDebug(`weather format: "${weatherFormat}", will call ${weatherFormat.length === 0 ? 'getWeather' : 'getWeatherSummary'}`)
+    return weatherFormat.length === 0 ? await getWeather() : await getWeatherSummary(weatherFormat)
   },
 
   date8601: async (): Promise<string> => {
-    // $FlowIgnore
     return await invokePluginCommandByName('dwertheimer.DateAutomations', 'date8601', null)
   },
 
-  // NOTE: This specific method would create a collision against DateModule I believe (needs testing)
-  currentDate: async (params: any): string => {
-    // $FlowIgnore
-    return await processDate(JSON.stringify(params))
+  currentDate: async (params: any): Promise<string> => {
+    return await transformInternationalDateFormat(JSON.stringify(params), {})
   },
 
   pickDate: async (dateParams: any = '', config: { [string]: ?mixed }): Promise<string> => {
@@ -143,23 +111,19 @@ const globals = {
   },
 
   events: async (dateParams?: any): Promise<string> => {
-    return invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(dateParams)])
+    return await invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(dateParams)])
   },
 
   listTodaysEvents: async (params?: any = ''): Promise<string> => {
-    return invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(params)])
+    return await invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(params)])
   },
 
   matchingEvents: async (params: ?any = ''): Promise<string> => {
-    return invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
+    return await invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
   },
 
   listMatchingEvents: async (params: ?any = ''): Promise<string> => {
-    return invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
-  },
-
-  sweepTasks: async (params: any = ''): Promise<string> => {
-    return invokePluginCommandByName('nmn.sweep', 'sweepTemplate', [JSON.stringify(params)])
+    return await invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
   },
 
   formattedDateTime: (params: any): string => {
@@ -168,16 +132,17 @@ const globals = {
   },
 
   weekDates: async (params: any): Promise<string> => {
-    // $FlowIgnore
-    return invokePluginCommandByName('dwertheimer.DateAutomations', 'getWeekDates', [JSON.stringify(params)])
+    return await invokePluginCommandByName('dwertheimer.DateAutomations', 'getWeekDates', [JSON.stringify(params)])
   },
 
-  now: async (): Promise<string> => {
-    return now()
+  now: async (format?: string, offset?: string | number): Promise<string> => {
+    const dateModule = new DateModule()
+    return dateModule.now(format, offset)
   },
 
-  timestamp: async (): Promise<string> => {
-    return timestamp()
+  timestamp: async (format?: string): Promise<string> => {
+    const dateModule = new DateModule()
+    return dateModule.timestamp(format)
   },
 
   currentTime: async (): Promise<string> => {
@@ -185,17 +150,147 @@ const globals = {
   },
 
   currentDate: async (): Promise<string> => {
-    return now()
+    return globals.now()
   },
 
   selection: async (): Promise<string> => {
-    return Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
+    return await Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
+  },
+
+  getRandomLine: async (noteTitle: string): Promise<string> => {
+    const noteModule = new (await import('./support/modules/NoteModule')).default({})
+    return await noteModule.getRandomLine(noteTitle)
   },
 
   clo: (obj: any, preamble: string = '', space: string | number = 2): void => {
     clo(obj, preamble, space)
   },
+
+  getValuesForKey: async (tag: string): Promise<string> => {
+    try {
+      const frontmatterModule = new FrontmatterModule()
+      const result = await frontmatterModule.getValuesForKey(tag)
+      return result
+    } catch (error) {
+      logError(pluginJson, `getValuesForKey error: ${error}`)
+      return ''
+    }
+  },
+
+  // Fix Flow type error by making parameter optional and handling null case
+  getFrontmatterAttributes: (note?: CoreNoteFields): { [string]: string } => {
+    try {
+      const targetNote = note || Editor?.note
+      if (!targetNote) {
+        logError(pluginJson, `getFrontmatterAttributes: note is null or undefined`)
+        return {}
+      }
+
+      const frontmatterModule = new FrontmatterModule()
+      return frontmatterModule.getFrontmatterAttributes(targetNote)
+    } catch (error) {
+      logError(pluginJson, `getFrontmatterAttributes error: ${error}`)
+      return {}
+    }
+  },
+
+  updateFrontmatterVars: (note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean => {
+    try {
+      const frontmatterModule = new FrontmatterModule()
+      return frontmatterModule.updateFrontMatterVars(note, newAttributes, deleteMissingAttributes)
+    } catch (error) {
+      logError(pluginJson, `frontmatter.updateFrontMatterVars error: ${error}`)
+      return false
+    }
+  },
+
+  updateFrontmatterAttributes: (note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean => {
+    try {
+      const frontmatterModule = new FrontmatterModule()
+      return frontmatterModule.updateFrontmatterAttributes(note, newAttributes, deleteMissingAttributes)
+    } catch (error) {
+      logError(pluginJson, `frontmatter.updateFrontmatterAttributes error: ${error}`)
+      return false
+    }
+  },
+
+  // Fix Flow type error by being more explicit about return type
+  getNote: async (...params: any): Promise<TNote | null> => {
+    if (params.length === 0) {
+      return Editor.note || null
+    }
+    return (await getNote(...params)) || null
+  },
 }
 
-// module.exports = globals
 export default globals
+
+/**
+ * List of async functions that should be awaited when called in templates
+ */
+export const asyncFunctions = [
+  'CommandBar.chooseOption',
+  'CommandBar.prompt',
+  'CommandBar.textInput',
+  'DataStore.invokePluginCommandByName',
+  'advice',
+  'affirmation',
+  'currentDate',
+  'currentTime',
+  'datePicker',
+  'date8601',
+  'doSomethingElse',
+  'events',
+  'existingAwait',
+  'format',
+  'frontmatter.getValuesForKey',
+  'frontmatter.getFrontmatterAttributes',
+  'frontmatter.updateFrontmatterVars',
+  'frontmatter.updateFrontmatterAttributes',
+  'frontmatter.properties',
+  'frontmatter.getFrontmatterAttributes',
+  'frontmatter.updateFrontMatterVars',
+  'frontmatter.updateFrontMatterAttributes',
+  'getFrontmatterAttributes',
+  'getNote',
+  'getValuesForKey',
+  'invokePluginCommandByName',
+  'journalingQuestion',
+  'listEvents',
+  'listMatchingEvents',
+  'listTodaysEvents',
+  'logError',
+  'matchingEvents',
+  'note.content',
+  'note.getRandomLine',
+  'note.selection',
+  'np.weather',
+  'now',
+  'processData',
+  'progressUpdate',
+  'stoicQuote',
+  'todayProgressFromTemplate',
+  'quote',
+  'selection',
+  'tasks.getSyncedOpenTasksFrom',
+  'timestamp',
+  'updateFrontmatterVars',
+  'updateFrontmatterAttributes',
+  'verse',
+  'weather',
+  'web.advice',
+  'web.affirmation',
+  'web.journalingQuestion',
+  'web.quote',
+  'web.services',
+  'web.stoicQuote',
+  'web.verse',
+  'web.weather',
+  'weekDates',
+  'wotd',
+]
+
+/**
+ * Top-level NotePlan objects available globally in templates
+ */
+export const notePlanTopLevelObjects = ['Editor', 'DataStore', 'CommandBar', 'Calendar', 'NotePlan', 'HTMLView', 'Clipboard', 'Range', 'CalendarItem', 'fetch', 'globalThis']

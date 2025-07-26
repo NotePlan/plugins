@@ -6,8 +6,9 @@
  * -----------------------------------------------------------------------------------------*/
 
 import fm from 'front-matter'
-import { JSP, logError } from '@helpers/dev'
-import { getSanitizedFmParts } from '@helpers/NPFrontMatter'
+import pluginJson from '../../../plugin.json'
+import { JSP, logError, logDebug } from '@helpers/dev'
+import { getSanitizedFmParts, getValuesForFrontmatterTag, updateFrontMatterVars, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 
 export default class FrontmatterModule {
   // $FlowIgnore
@@ -19,8 +20,22 @@ export default class FrontmatterModule {
   }
 
   isFrontmatterTemplate(templateData: string): boolean {
+    // First check if the template has the frontmatter structure (starts with --- and has another ---)
+    const lines = templateData.split('\n')
+    if (lines.length >= 2 && lines[0].trim() === '---') {
+      // Find the second --- separator
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim() === '---') {
+          return true
+        }
+      }
+    }
+
+    // Fallback to the original method for edge cases
     const parts = getSanitizedFmParts(templateData)
-    return parts?.attributes && Object.keys(parts.attributes).length ? true : false
+    const hasAttributes = parts?.attributes && Object.keys(parts.attributes).length > 0
+    logDebug(pluginJson, `FrontmatterModule.isFrontmatterTemplate: Fallback check - hasAttributes=${String(hasAttributes)}`)
+    return hasAttributes
   }
 
   getFrontmatterBlock(templateData: string): string {
@@ -47,6 +62,10 @@ export default class FrontmatterModule {
       })
       // fmData.body = fmData.body.replace(/---/gi, '*****')
 
+      // Add debug logging
+      logDebug(pluginJson, `FrontmatterModule.parse: Extracted body with ${fmData?.body?.length || 0} chars: "${(fmData?.body || '').substring(0, 200)}..."`)
+      logDebug(pluginJson, `FrontmatterModule.parse: Extracted attributes: ${JSON.stringify(fmData?.attributes || {})}`)
+
       return fmData
     } else {
       return {}
@@ -62,7 +81,7 @@ export default class FrontmatterModule {
 
       return fmData && fmData?.attributes ? fmData.attributes : {}
     } catch (error) {
-      // console.log(error)
+      // logDebug(error)
       return {}
     }
   }
@@ -71,6 +90,95 @@ export default class FrontmatterModule {
     const fmData = getSanitizedFmParts(templateData)
 
     return fmData && fmData?.body ? fmData.body : ''
+  }
+
+  /**
+   * Get all the values in frontmatter for all notes for a given key
+   * @param {string} tag - The frontmatter key to search for
+   * @returns {Promise<string>} JSON string representation of the values array
+   */
+  async getValuesForKey(tag: string): Promise<string> {
+    try {
+      // Get the values using the frontmatter helper
+      const values = await getValuesForFrontmatterTag(tag)
+
+      // Convert to string
+      const result = JSON.stringify(values).trim()
+      logDebug(pluginJson, `FrontmatterModule.getValuesForKey: ${tag} = ${result}`)
+
+      // Return the string result
+      return result
+    } catch (error) {
+      // Log the error but don't throw it - this helps with resilience
+      logError(pluginJson, `FrontmatterModule.getValuesForKey error: ${error}`)
+
+      // Return an empty array string as fallback
+      return ''
+    }
+  }
+
+  /**
+   * Get all frontmatter attributes from a note or an empty object if the note has no front matter
+   * @param {CoreNoteFields} note - The note to get attributes from
+   * @returns {{ [string]: string }} Object of attributes or empty object if the note has no front matter
+   */
+  getFrontmatterAttributes(note: CoreNoteFields): { [string]: string } {
+    try {
+      // Defensive check: ensure the note object exists and has the expected structure
+      if (!note) {
+        logError(pluginJson, `FrontmatterModule.getFrontmatterAttributes: note is null or undefined`)
+        return {}
+      }
+
+      // Call the NPFrontMatter helper, which handles null/undefined frontmatterAttributes
+      return getFrontmatterAttributes(note)
+    } catch (error) {
+      logError(pluginJson, `FrontmatterModule.getFrontmatterAttributes error: ${error}`)
+      return {}
+    }
+  }
+
+  /**
+   * Update existing front matter attributes based on the provided newAttributes
+   * @param {TEditor | TNote} note - The note to update
+   * @param {{ [string]: string }} newAttributes - The complete set of desired front matter attributes
+   * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in newAttributes (default: false)
+   * @returns {boolean} Whether the front matter was updated successfully
+   */
+  updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
+    return updateFrontMatterVars(note, newAttributes, deleteMissingAttributes)
+  }
+
+  /**
+   * Alias for updateFrontMatterVars - Update existing front matter attributes
+   * @param {TEditor | TNote} note - The note to update
+   * @param {{ [string]: string }} newAttributes - The complete set of desired front matter attributes
+   * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in newAttributes (default: false)
+   * @returns {boolean} Whether the front matter was updated successfully
+   */
+  updateFrontmatterAttributes(note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
+    return this.updateFrontMatterVars(note, newAttributes, deleteMissingAttributes)
+  }
+
+  /**
+   * Get all frontmatter properties/attributes from a note as an object
+   * @param {CoreNoteFields} note - The note to get properties from (defaults to Editor.note if not provided)
+   * @returns {{ [string]: string }} Object of all frontmatter properties
+   */
+  properties(note: CoreNoteFields = Editor?.note): { [string]: string } {
+    try {
+      // Defensive check: ensure the note object exists
+      if (!note) {
+        logError(pluginJson, `FrontmatterModule.properties: note is null or undefined`)
+        return {}
+      }
+
+      // Use the existing getFrontmatterAttributes method
+      return this.getFrontmatterAttributes(note)
+    } catch (error) {
+      logError(pluginJson, `FrontmatterModule.properties error: ${error}`)
+      return {}
+    }
   }
 
   convertProjectNoteToFrontmatter(projectNote: string = ''): any {

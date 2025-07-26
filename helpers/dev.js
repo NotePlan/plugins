@@ -4,7 +4,7 @@
 import isEqual from 'lodash-es/isEqual'
 import isObject from 'lodash-es/isObject'
 import isArray from 'lodash-es/isArray'
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 
 /**
  * NotePlan API properties which should not be traversed when stringifying an object
@@ -782,13 +782,20 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
     // Parse argsAsJSON (if any) into argObj using JSON
     if (argsAsString) {
       const argObj = {}
-      argsAsString.split(';').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
+      argsAsString.split(';').forEach((arg) => {
+        if (arg.split('=').length === 2) {
+          let key = arg.split('=')[0].trim()
+          if (key.startsWith('await ')) key = key.slice(6) // deal with a special case where templating is adding await to our params
+          const value = arg.split('=')[1].trim()
+          argObj[key] = value
+        }
+      })
       // use the built-in way to add (or override) from argObj into config
       const configOut = Object.assign(config)
 
       // Attempt to change arg values that are numerics or booleans to the right types, otherwise they will stay as strings
       for (const key in argObj) {
-        let value = argObj[key]
+        let value = argObj[key].trim()
         logDebug(`dev.js`, `overrideSettingsWithStringArgs key:${key} value:${argObj[key]} typeof:${typeof argObj[key]} !isNaN(${value}):${String(!isNaN(argObj[key]))}`)
         if (!isNaN(value) && value !== '') {
           // Change to number type

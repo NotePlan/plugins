@@ -45,6 +45,11 @@ jest.mock('@helpers/dev', () => ({
 // }));
 
 describe('NPTemplateNoteHelpers', () => {
+  beforeEach(() => {
+    global.DataStore = {
+      settings: { _logLevel: 'none' },
+    }
+  })
   describe('getTemplateNote', () => {
     beforeEach(() => {
       jest.clearAllMocks()

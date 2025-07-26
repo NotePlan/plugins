@@ -1,8 +1,76 @@
-# np.Templating Changelog
+# Templating Changelog
 
-## About np.Templating Plugin
+## About Templating Plugin
 
-See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
+See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
+
+## [2.0.8] 2025-07-19 @dwertheimer
+- Insert/AppendTemplate on a blank notewith folder will create a new note in the folder and move the current note to the trash
+- Insert/AppendTemplate on a non-blank note with folder will prompt the user whether to move the current note to the folder
+- Fix edge case where `getValuesForKey` was not working correctly
+- Fix bug with scriptlet slurping tags <%_ and _%>
+- Add `web.services` to globals to get automatic await stmt
+- Change timeout message for web services to be more helpful (esp for advice, verse, quote, and weather)
+- Fix TemplateRunner bug where it was not finding notes by title
+
+## [2.0.7] 2025-07-15 @dwertheimer
+- Fix renderTemplate() bug that was showing frontmatter in result
+
+## [2.0.6] 2025-07-11 @dwertheimer
+- Replace all smart quotes with straight quotes (works around auto-inserted smart quotes in Mac, iOS, and iPadOS)
+
+## [2.0.5] 2025-07-08 @dwertheimer
+- You can now add properties to a generated note by adding it using three dashes "---"
+- Fix bug where new note frontmatter was not being processed correctly if there were no templating tags
+
+## [2.0.4] 2025-07-03 @dwertheimer
+- Fix limitation where template strings were not being evaluated in include/import tags
+
+## [2.0.3] 2025-06-28 @dwertheimer
+- Improve AI error handling analysis to include more context vars/functions in the prompt
+
+## [2.0.2] 2025-06-26 @dwertheimer
+- Add `stoicQuote` to globals and web module
+- Add `verse` to globals and web module
+- Add `note.getRandomLine` to NoteModule
+
+## [2.0.1] 2025-06-25 @dwertheimer
+- Fix bug @jgclark found where multi-line JS inside a single tag was not working
+
+## [2.0.0] 2025-XX-XX @dwertheimer
+- Update `Add Frontmatter/Properties to Template` command name
+- add tag function `getValuesForKey` to get all values for a given frontmatter tag
+- add tag function `promptKey` to prompt user for a value with a lot of flexibility on which folders to search for the value etc.
+- add tag function `getNote` to get a note by title, filename, or by id
+- add `<select XXX>` to allow for selecting a folder from a reduced list of folders starting with XXX
+- update `date` module to use NotePlan's week numbering compatibility with NotePlan's user-configurable week start day preferences
+- fix promises and lack of await keyword in template tags
+- add openTasks, completedTasks, openChecklists, completedChecklists to NoteModule
+- Change documentation links to point to new documentation site
+- Fix the long-standing bug where template errors did not show proper line number, esp. when longer code blocks
+- Improve templating error handling/making suggestions for how to fix on JS code execution errors
+- Add detection/messaging of template function calls called without parentheses
+- Add ability to pass newNoteTitle argument to `templateNew` command and JSON vars for Shortcuts support
+- Added `incrementalRender` setting to allow for turning off incremental render debugging of templates when they fail to render
+- Added `editSettings` command to allow for mobile editing of plugin settings
+- Fix long-standing bug where date.format did not work correctly
+- Fix templaterunner bug where the file was not opening in the Editor
+- Add <current> to templateAppend command for easy testing of templates
+- Add `journalingQuestion` commands to WebModule per Tim Shaker - https://discord.com/channels/763107030223290449/963950027946999828/1051665188648132648
+- Add `date.daysUntil` to DateModule
+- Fix bug in promises in date shorthand codes
+- add note.currentNote() to NoteModule
+- fixed formattedDateTime to work with strftime format (what it was) or moment (what we use everywhere else)
+- added `moment` to globals
+- fixed `now` which did not match the documentation -- now works with simple offsetDays
+- fixed date8601 bug in the date module
+
+### Developer
+- Massively refactored rendering pipeline (NPTemplating) to make it easier to understand and maintain
+- Added a lot of logging to help debug issues with templating that users may encounter
+- Added event methods eventDate and eventEndDate to the templating context object so Meeting Notes could use DataStore.invoke which serializes and otherwise drops functions. this allows Meeting Notes to not need updating but always use the latest Templating
+- Added `init` method to Templating.js to allow for automatic updates to the plugin (crazy that it was not there before)
+
 
 ## [1.12.0] 2025-03-09 @dwertheimer
 
@@ -15,7 +83,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 
 ## [1.11.4] 2025-03-07 @dwertheimer
 
-- Fix: templateFileByTitleEx (templateRunner) was failing to process EJS tags in the frontmatter of receiving template (thx @jgclark)
+- Fix: templateRunnerExecute (templateRunner) was failing to process EJS tags in the frontmatter of receiving template (thx @jgclark)
 
 ## [1.11.3] 2025-03-06 @dwertheimer
 
@@ -171,7 +239,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 
 ## [2.0.0-alpha.05] - 2022-07-17 (mikeerickson)
 
-- Added preRender code to `NPTemplating.renderTemplate`
+- Added renderFrontmatter code to `NPTemplating.renderTemplate`
 
 ## [2.0.0-alpha.04] - 2022-07-17 (mikeerickson)
 
@@ -236,7 +304,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 ## [1.2.0-beta.07] - 2022-05-26 (mikeerickson)
 
 - added `NPTemplating.getTemplate` export, supporting `DataStore.invokePluginCommandByName`
-- added `NPTemplating.preRender` export, supporting `DataStore.invokePluginCommandByName`
+- added `NPTemplating.renderFrontmatter` export, supporting `DataStore.invokePluginCommandByName`
 - added `NPTemplating.render` export, supporting `DataStore.invokePluginCommandByName`
 
 ## [1.2.0-beta.06] - 2022-05-24 (mikeerickson)
@@ -399,11 +467,11 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 
 ## [1.0.0-beta.38] - 2022-04-12 (mikeerickson)
 
-- fixed second regression, spreading `userData` from `.preRender` to `frontmatterAttributes` (@EduardMe)
+- fixed second regression, spreading `userData` from `.renderFrontmatter` to `frontmatterAttributes` (@EduardMe)
 
 ## [1.0.0-beta.37] - 2022-04-12 (mikeerickson)
 
-- fixed regression in `np.Templating.preRender` (@EduardMe)
+- fixed regression in `np.Templating.renderFrontmatter` (@EduardMe)
 
 ## [1.0.0-beta.36] - 2022-04-12 (mikeerickson)
 
@@ -446,9 +514,9 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 
 ## [1.0.0-beta.31] - 2022-04-09 (mikeerickson)
 
-- Added `NPTemplating.preRender` which will render frontmatter attributes
+- Added `NPTemplating.renderFrontmatter` which will render frontmatter attributes
 - Refactored `FrontMatter.render` to `FrontMatter.parse`
-- Updated `np:qtn` and `np:mtn` to use new `NPTemplating.preRender` method
+- Updated `np:qtn` and `np:mtn` to use new `NPTemplating.renderFrontmatter` method
 
 ## [1.0.0-beta.30] - 2022-04-05 (mikeerickson)
 

@@ -1,7 +1,7 @@
 /* eslint-disable import/order */
 // @flow
 
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import { getPluginJson, saveSettings } from './NPConfiguration'
 import { getInput, showMessage, showMessageYesNo, chooseOption } from './userInput'
 import { clo, JSP, log, logDebug, logError, logInfo, timer } from '@helpers/dev'

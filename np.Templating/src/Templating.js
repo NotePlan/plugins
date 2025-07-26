@@ -7,13 +7,12 @@
  * -----------------------------------------------------------------------------------------*/
 
 import { log, clo, logDebug, logError } from '@helpers/dev'
-import { getCodeBlocksOfType } from '@helpers/codeblocks'
+import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
-import { timestamp } from '@templatingModules/DateModule'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
 
-import { getTemplateFolder } from 'NPTemplating'
+import { getTemplateFolder } from '../lib/config/configManager'
 import { helpInfo } from '../lib/helpers'
 import { getSetting } from '@helpers/NPConfiguration'
 import { smartPrependPara, smartAppendPara } from '@helpers/paragraph'
@@ -21,28 +20,35 @@ import { showMessage } from '@helpers/userInput'
 
 // helpers
 import { getWeatherSummary } from '../lib/support/modules/weatherSummary'
+import { getWeather } from '../lib/support/modules/weather'
 import { getAffirmation } from '../lib/support/modules/affirmation'
 import { getAdvice } from '../lib/support/modules/advice'
-import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 
 import { initConfiguration, updateSettingData } from '@helpers/NPConfiguration'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 import { hasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
 
 // Editor
-import { templateFileByTitleEx } from './NPEditor'
+import { templateRunnerExecute } from './NPTemplateRunner'
 import { getNoteByFilename } from '../../helpers/note'
 
+/**
+ * NotePlan calls this function every time the plugin is run (any command in this plugin, including triggers)
+ * You should not need to edit this function. All work should be done in the commands themselves
+ */
 export async function init(): Promise<void> {
   try {
-    // executes before any np.Templating command
+    // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
+    // DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) => pluginUpdated(pluginJson, r))
+    DataStore.installOrUpdatePluginsByID(['np.Templating'], false, false, false)
   } catch (error) {
-    logError(pluginJson, error)
+    logError(pluginJson, error.message)
   }
 }
 
@@ -75,7 +81,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
     // clo(pluginList)
 
     const version = await DataStore.invokePluginCommandByName('np:about', 'np.Templating', [{}])
-    console.log(version)
+    logDebug(version)
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -109,11 +115,16 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
-      const templateData = await NPTemplating.getTemplate(selectedTemplate)
-      const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+
+      const templateNote = await DataStore.projectNoteByFilename(selectedTemplate)
+      const templateData = templateNote?.content || ''
+      const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
+
+      // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
+      if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
 
       // $FlowIgnore
-      const renderedTemplate = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+      const renderedTemplate = await NPTemplating.render(frontmatterBody, frontmatterAttributes, { frontmatterProcessed: true })
 
       Editor.insertTextAtCursor(renderedTemplate)
     } else {
@@ -131,11 +142,33 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
 
       // $FlowIgnore
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
-      const templateData = await NPTemplating.getTemplate(selectedTemplate)
-      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
-      let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
+      let templateData, templateNote
+      if (/<current>/i.test(selectedTemplate)) {
+        if (!Editor.filename.startsWith(`@Templates`)) {
+          logError(pluginJson, `You cannot use the <current> prompt in a template that is not located in the @Templates folder; Editor.filename=${Editor.filename}`)
+          await showMessage(pluginJson, `OK`, `You cannot use the <current> prompt in a template that is not located in the @Templates folder`)
+          return
+        }
+        templateNote = Editor.note
+        templateData = Editor.content
+      } else {
+        templateNote = await DataStore.projectNoteByFilename(selectedTemplate)
+        templateData = templateNote?.content || ''
+      }
 
-      let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
+      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
+
+      // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
+      if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
+
+      // Create frontmatter object that includes BOTH the attributes AND the methods
+      // This ensures frontmatter.* methods work in templates
+      const frontmatterModule = new FrontmatterModule()
+      const frontmatterWithMethods = Object.assign(frontmatterModule, frontmatterAttributes)
+
+      let data = { ...frontmatterAttributes, frontmatter: frontmatterWithMethods }
+
+      let renderedTemplate = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
 
       const location = frontmatterAttributes?.location || 'append'
       if (location === 'cursor') {
@@ -168,9 +201,15 @@ export async function templateInvoke(templateName?: string): Promise<void> {
       // $FlowIgnore
       const selectedTemplate = selectedTemplateFilename ?? (await NPTemplating.chooseTemplate())
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
-      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
-      let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
-      const templateResult = await NPTemplating.render(frontmatterBody, data)
+      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
+
+      // Create frontmatter object that includes BOTH the attributes AND the methods
+      // This ensures frontmatter.* methods work in templates
+      const frontmatterModule = new FrontmatterModule()
+      const frontmatterWithMethods = Object.assign(frontmatterModule, frontmatterAttributes)
+
+      let data = { ...frontmatterAttributes, frontmatter: frontmatterWithMethods }
+      const templateResult = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
 
       const location = frontmatterAttributes?.location || 'append'
 
@@ -203,11 +242,27 @@ export async function templateInvoke(templateName?: string): Promise<void> {
   }
 }
 
-export async function templateNew(templateTitle: string = '', _folder?: string, args?: Object): Promise<void> {
+/**
+ * Create a new note from a template
+ * @param {string} templateTitle - The title of the template to use
+ * @param {string} _folder - The folder to create the new note in
+ * @param {string} newNoteTitle - The title of the new note to create
+ * @param {Object|string} args - The arguments to pass to the template - can be an object or a stringified object (e.g. JSON.stringify({foo: 'bar'}))
+ * @returns {Promise<void>}
+ */
+export async function templateNew(templateTitle: string = '', _folder?: string, newNoteTitle?: string, _args?: Object | string): Promise<void> {
   try {
-    clo(args, `🤵 DBWDELETEME NPTemplating.templateNew templateTitle=${templateTitle} _folder=${_folder || ''} args=`)
+    let args = _args
+    if (typeof _args === 'string') {
+      args = JSON.parse(_args)
+    } else if (!args) {
+      args = {}
+    }
+
     let selectedTemplate // will be a filename
-    if (templateTitle?.trim().length) {
+    if (/<current>/i.test(templateTitle)) {
+      selectedTemplate = Editor.filename
+    } else if (templateTitle?.trim().length) {
       const options = await NPTemplating.getTemplateList()
       const chosenOpt = options.find((option) => option.label === templateTitle)
       if (chosenOpt) {
@@ -222,36 +277,28 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
 
     let folder = _folder ?? ''
-    let noteTitle = ''
 
-    let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, args)
-    frontmatterAttributes = { ...frontmatterAttributes, ...args }
+    let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData, args)
+    frontmatterAttributes = { ...frontmatterAttributes, ...(typeof args === 'object' ? args : {}) }
 
-    if (/select|choose/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {
+    // select/choose is by default not closed because it could contain a folder name
+    if (/<select|<choose|<current>/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {
       // dbw note: I'm not sure I understand the second part of this condition, but it's always been that way, so not changing it
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
 
-    if (frontmatterAttributes.hasOwnProperty('newNoteTitle')) {
-      noteTitle = frontmatterAttributes.newNoteTitle
-    } else {
-      const title = await CommandBar.textPrompt('Template', 'Enter New Note Title', '')
-      if (typeof title === 'boolean' || title.length === 0) {
-        return // user did not provide note title (Cancel) abort
-      }
-      noteTitle = title
+    const noteTitle = newNoteTitle || frontmatterAttributes.newNoteTitle || (await CommandBar.textPrompt('Template', 'Enter New Note Title', ''))
+    if (typeof noteTitle === 'boolean' || noteTitle.length === 0) {
+      return // user did not provide note title (Cancel) abort
     }
 
     if (noteTitle.length === 0) {
       return
     }
 
-    logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew about to create new note with noteTitle=${noteTitle} folder=${folder}`)
     const filename = DataStore.newNote(noteTitle, folder) || ''
-    logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew we just createdfilename=${filename}`)
 
     if (filename) {
-      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 about to render template with filename=${filename}`)
       const data = {
         data: {
           ...frontmatterAttributes,
@@ -260,26 +307,19 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
           },
         },
       }
-      clo(data, `🤵 DBWDELETEME NPTemplating.templateNew2 before render filename=${filename} args=`)
-      const templateResult = await NPTemplating.render(frontmatterBody, data)
-      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 templateResult = ${templateResult}`)
+
+      const templateResult = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
 
       await Editor.openNoteByFilename(filename)
-      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Opened filename=${filename} Editor.content = ${Editor.content || ''}`)
 
       const renderedTemplateHasFM = hasFrontMatter(templateResult)
-      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 hasFM=${renderedTemplateHasFM}`)
+
       if (renderedTemplateHasFM) {
-        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.content before setting to templateResult = ${Editor.content}; templateResult = ${templateResult}`)
-        clo(Editor.frontmatterAttributes, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.frontmatterAttributes before setting Editor.content to templateResult = `)
         Editor.content = templateResult
-        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.content before updateFrontMatterVars = ${Editor.content}`)
-        clo(Editor.frontmatterAttributes, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.frontmatterAttributes before updateFrontMatterVars = `)
+
         updateFrontMatterVars(Editor, { title: noteTitle })
-        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 after updateFrontMatterVars Editor.content: ${Editor.content}`)
       } else {
         Editor.content = `# ${noteTitle}\n${templateResult}`
-        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.content = ${Editor.content}`)
       }
       selectFirstNonTitleLineInEditor()
     } else {
@@ -317,7 +357,7 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
       let folder = ''
 
       if (isFrontmatter) {
-        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
         let folder = frontmatterAttributes?.folder?.trim() ?? ''
         if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
@@ -346,7 +386,7 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
           }
 
           // $FlowIgnore
-          let finalRenderedData = await NPTemplating.render(frontmatterBody, data)
+          let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
 
           await Editor.openNoteByFilename(filename)
 
@@ -413,7 +453,7 @@ export async function templateMeetingNote(templateName: string = '', templateDat
       let folder = ''
 
       if (isFrontmatter) {
-        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
         let folder = frontmatterAttributes?.folder.trim() ?? ''
         if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
@@ -425,7 +465,7 @@ export async function templateMeetingNote(templateName: string = '', templateDat
           newNoteTitle = frontmatterAttributes.newNoteTitle
         } else {
           const format = await getSetting('np.Templating', 'timestampFormat')
-          const info = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', timestamp(format))
+          const info = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', new DateModule().timestamp(format))
           newNoteTitle = info ? info : ''
           if (typeof newNoteTitle === 'boolean' || newNoteTitle.length === 0) {
             return // user did not provide note title (Cancel) abort
@@ -452,7 +492,7 @@ export async function templateMeetingNote(templateName: string = '', templateDat
             },
           }
 
-          let finalRenderedData = await NPTemplating.render(frontmatterBody, data)
+          let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
 
           await Editor.openNoteByFilename(filename)
 
@@ -555,7 +595,7 @@ export async function templateQuote(): Promise<string> {
 export async function templateRunner(...args: Array<string>) {
   try {
     if (args.length > 0) {
-      templateFileByTitle(args[0], args[1] === 'true', args.length > 2 ? args[2] : '')
+      templateFileByTitle(args[0], args[1] === 'true' || args[1] === true, args.length > 2 ? args[2] : '')
     } else {
       await CommandBar.prompt(`No arguments (with template name) were given to the templateRunner."`, helpInfo('Presets'))
     }
@@ -581,7 +621,7 @@ export async function templateSamples(): Promise<void> {
   const numSamples = 10
   const result = await CommandBar.prompt(`This will create ${numSamples} template samples in your Templates folder`, 'Are you sure you wish to continue?', ['Continue', 'Cancel'])
   if (result === 0) {
-    console.log('Create Samples')
+    logDebug('Create Samples')
   }
 }
 
@@ -683,8 +723,9 @@ export async function getTemplate(templateName: string = '', options: any = { sh
   return await NPTemplating.getTemplate(templateName, options)
 }
 
-export async function preRender(templateData: string = '', userData: any = {}): Promise<any> {
-  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, userData)
+export async function renderFrontmatter(templateData: string = '', userData: any = {}): Promise<any> {
+  logDebug(pluginJson, `renderFrontmatter: calling renderFrontmatter() with templateData: "${templateData}" and userData: ${JSON.stringify(userData)}`)
+  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData, userData)
 
   return { frontmatterBody, frontmatterAttributes }
 }
@@ -698,5 +739,5 @@ export async function renderTemplate(templateName: string = '', userData: any = 
 }
 
 export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = '') {
-  await templateFileByTitleEx(selectedTemplate, openInEditor, args)
+  await templateRunnerExecute(selectedTemplate, openInEditor, args)
 }

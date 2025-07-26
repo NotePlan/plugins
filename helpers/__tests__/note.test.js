@@ -1,7 +1,7 @@
 /* global describe, test, expect, beforeAll, jest, beforeEach */
 import colors from 'chalk'
 import * as n from '../note'
-import { Note, DataStore, Calendar } from '@mocks/index'
+import { Note, DataStore, Calendar, Editor } from '@mocks/index'
 import { hyphenatedDateString } from '@helpers/dateTime'
 
 const PLUGIN_NAME = `helpers/note`
@@ -22,6 +22,7 @@ import { isValidCalendarNoteFilename, isValidCalendarNoteTitleStr, convertISOToY
 
 beforeAll(() => {
   global.DataStore = DataStore // so we see DEBUG logs in VSCode Jest debugs
+  global.Editor = Editor
   global.Calendar = Calendar
   DataStore.settings['_logLevel'] = 'none' // change 'none' to 'DEBUG' to get more logging, or 'none' for quiet
 })
@@ -410,12 +411,9 @@ describe(`${PLUGIN_NAME}`, () => {
     /**
      * Tests for when name parameter is empty
      */
-    test('should return null when name is empty', async () => {
-      // Mock the convertISOToYYYYMMDD function to return the input
-      convertISOToYYYYMMDD.mockImplementation((str) => str)
-
-      const result = await n.getNote('')
-      expect(result).toBeNull()
+    test('should return Editor.note when name is empty', async () => {
+      const result = await n.getNote()
+      expect(result).toEqual(Editor.note)
     })
 
     /**
@@ -481,9 +479,9 @@ describe(`${PLUGIN_NAME}`, () => {
         return str
       })
 
-      const result = await n.getNote('2023-01-01', false)
+      const result = await n.getNote('2023-01-01')
 
-      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('20230101')
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2023-01-01')
       expect(result).toEqual(mockNote)
     })
 
@@ -807,7 +805,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(DataStore.projectNoteByTitle).not.toHaveBeenCalled()
 
       // Should call calendarNoteByDateString with the converted name since isProjectNote is null
-      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('20240101')
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2024-01-01')
 
       // Should return the calendar note
       expect(result).toEqual(mockCalendarNote)

@@ -1,0 +1,23 @@
+<%# Template with a JavaScript syntax error that should report the correct line number %>
+
+<% 
+// This is a multi-line block of JavaScript
+// with an error on line 12 (missing closing parenthesis)
+
+// First some valid code
+const testVar1 = 'test';
+const testVar2 = 42;
+const testVar3 = true;
+
+// Here's the error on line 12
+if (testVar3 === true 
+  // Error is here - missing closing parenthesis
+  console.log('This will cause a syntax error');
+%>
+
+<% 
+// Another valid code block after the error
+const validCode = 'This should not execute due to the previous error';
+%>
+
+<% await DataStore.invokePluginCommandByName('Test','plugin.id',['{"key":"value"}']) %> 
