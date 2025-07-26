@@ -4,6 +4,78 @@
 
 # 🧩 Templating plugin for Noteplan
 
+Here’s a grouped **release announcement** message summarizing the **new features and improvements** in the latest Templating plugin updates (v2.0.0–2.0.8), leaving out bug fixes:
+
+---
+
+### 🆕 Templating Plugin v2.0.x — Major Features & Enhancements
+
+We’re excited to announce a major series of updates to the Templating plugin, packed with powerful new features, workflow enhancements, and developer tools. Here’s what’s new:
+
+---
+
+#### 📄 **Template Note Creation & Insertion**
+
+* You can now use `InsertTemplate` or `AppendTemplate` to:
+
+  * 🆕 Automatically create a new note in the specified folder when used on a blank note.
+  * 📁 Prompt to move the current note to the target folder if it's not blank.
+* Support for `newNoteTitle` argument and JSON vars for better **Shortcuts** integration.
+* `templateAppend` command improvements for **easier testing**.
+
+---
+
+#### 🧠 **Smarter & More Flexible Template Tags**
+
+* New tag functions:
+
+  * `getValuesForKey`: retrieve all values for a specific frontmatter key.
+  * `promptKey`: interactive user prompts with folder filtering.
+  * `getNote`: fetch notes by title, filename, or ID.
+* `<select XXX>` now allows for **folder selection from filtered list**.
+* Support for adding properties with `---` block in templates.
+
+---
+
+#### 📅 **Date & Time Enhancements**
+
+* `date.daysUntil` added.
+* `formattedDateTime` now supports both `strftime` and `moment.js`.
+* `now` works correctly with `offsetDays`.
+* `date8601` bug fixed.
+* Updated to match NotePlan’s **week numbering and week start** settings.
+
+---
+
+#### 🧾 **Note & Task Utilities**
+
+* New functions in `NoteModule`:
+
+  * `note.currentNote()`
+  * `note.getRandomLine()`
+  * `openTasks`, `completedTasks`, `openChecklists`, `completedChecklists`
+* Added `eventDate` and `eventEndDate` for use with Meeting Notes.
+* Stoic quotes, Bible verses, journaling questions now available in `web.services`.
+
+---
+
+#### 🌐 **Web Services Enhancements**
+
+* `web.services` now globally accessible with automatic `await`.
+* Improved timeout messages for advice, verse, quote, and weather services.
+
+---
+
+#### 🔗 **Documentation**
+
+* All plugin documentation links now point to the **new documentation site**.
+
+---
+
+Thanks to everyone who submitted feature requests, especially @jgclark and Tim Shaker! As always, feedback is welcome.
+
+---
+
 **Templating** is a template language plugin for NotePlan that lets you insert variables and method results into your notes. It will also let you execute custom JavaScript constructed in the templates providing a rich note taking system.
 
 ## Documentation
