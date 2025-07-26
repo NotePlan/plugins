@@ -5,6 +5,8 @@
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
 ## [2.0.8] 2025-07-19 @dwertheimer
+- Insert/AppendTemplate on a blank notewith folder will create a new note in the folder and move the current note to the trash
+- Insert/AppendTemplate on a non-blank note with folder will prompt the user whether to move the current note to the folder
 - Fix edge case where `getValuesForKey` was not working correctly
 - Fix bug with scriptlet slurping tags <%_ and _%>
 - Add `web.services` to globals to get automatic await stmt

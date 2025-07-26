@@ -34,7 +34,7 @@ export async function chooseTemplate(tags?: any = '*', promptMessage: string = '
       templateGroupTemplatesByFolder = userOptions.templateGroupTemplatesByFolder
     }
 
-    const templateList = await getTemplateList(tags)
+    const templateList = await getTemplateList(tags) // an array of {label: the title, value: the filename}
 
     let options = []
     for (const template of templateList) {
@@ -88,7 +88,7 @@ export async function getFilenameFromTemplate(note: string = ''): Promise<string
  * Templates can define their types in frontmatter, and this method filters by those types.
  * @async
  * @param {any} [types='*'] - The types to filter by, '*' for all types
- * @returns {Promise<Array<{label: string, value: string}>>} A promise that resolves to the filtered template list
+ * @returns {Promise<Array<{label: string, value: string}>>} A promise that resolves to the filtered template list {label: the title, value: the filename}
  */
 export async function getTemplateList(types: any = '*'): Promise<any> {
   try {

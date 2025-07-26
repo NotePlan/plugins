@@ -6,12 +6,14 @@ import moment from 'moment-business-days'
 
 import { getTemplate } from '../../np.Templating/lib/core'
 import pluginJson from '../plugin.json'
-import { showMessage, chooseFolder, chooseOption } from '../../helpers/userInput'
+import { showMessage, chooseFolder, chooseOption, showMessageYesNo } from '../../helpers/userInput'
 import { getNoteByFilename } from '../../helpers/note'
 import { isCalendarNoteFilename } from '@helpers/regex'
 import { log, logDebug, logError, clo, JSP, timer } from '@helpers/dev'
 import { findProjectNoteUrlInText } from '@helpers/urls'
 import { getAttributes } from '@helpers/NPFrontMatter'
+import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
+
 /**
  * Insert a template into a daily note or the current editor.
  * Called from the 'insert template' button of an empty note.
@@ -27,7 +29,8 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
   }
 
   logDebug(pluginJson, 'get content of template for rendering')
-  let templateContent = DataStore.projectNoteByFilename(templateFilename)?.content
+  const templateNote = DataStore.projectNoteByFilename(templateFilename)
+  let templateContent = templateNote?.content
 
   if (!templateContent) {
     logError(pluginJson, `couldnt load content of template "${templateFilename}"`)
@@ -38,11 +41,14 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
   }
 
   logDebug(pluginJson, 'calling renderFrontmatter() to pre-render template')
-  const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateContent])
+  const { frontmatterBody: templateBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateContent])
+
+  // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
+  if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
 
   logDebug(pluginJson, `render() template with frontmatterAttributes: [${Object.keys(frontmatterAttributes).join(', ')}]`)
 
-  const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
+  const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [templateBody, frontmatterAttributes])
 
   if (dailyNoteDate) {
     logDebug(pluginJson, `apply rendered template to daily note with date ${String(dailyNoteDate)}`)

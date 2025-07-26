@@ -29,6 +29,7 @@ import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 import { initConfiguration, updateSettingData } from '@helpers/NPConfiguration'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 import { hasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
@@ -114,8 +115,13 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
-      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+
+      const templateNote = await DataStore.projectNoteByFilename(selectedTemplate)
+      const templateData = templateNote?.content || ''
       const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
+
+      // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
+      if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
 
       // $FlowIgnore
       const renderedTemplate = await NPTemplating.render(frontmatterBody, frontmatterAttributes, { frontmatterProcessed: true })
@@ -136,18 +142,24 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
 
       // $FlowIgnore
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
-      let templateData
+      let templateData, templateNote
       if (/<current>/i.test(selectedTemplate)) {
         if (!Editor.filename.startsWith(`@Templates`)) {
           logError(pluginJson, `You cannot use the <current> prompt in a template that is not located in the @Templates folder; Editor.filename=${Editor.filename}`)
           await showMessage(pluginJson, `OK`, `You cannot use the <current> prompt in a template that is not located in the @Templates folder`)
           return
         }
+        templateNote = Editor.note
         templateData = Editor.content
       } else {
-        templateData = await NPTemplating.getTemplate(selectedTemplate)
+        templateNote = await DataStore.projectNoteByFilename(selectedTemplate)
+        templateData = templateNote?.content || ''
       }
+
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
+
+      // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
+      if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
 
       // Create frontmatter object that includes BOTH the attributes AND the methods
       // This ensures frontmatter.* methods work in templates
@@ -267,7 +279,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     let folder = _folder ?? ''
 
     let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData, args)
-    frontmatterAttributes = { ...frontmatterAttributes, ...args }
+    frontmatterAttributes = { ...frontmatterAttributes, ...(typeof args === 'object' ? args : {}) }
 
     // select/choose is by default not closed because it could contain a folder name
     if (/<select|<choose|<current>/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {

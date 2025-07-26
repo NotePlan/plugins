@@ -86,9 +86,9 @@ class NPTemplating {
    * @param {any} [tags='*'] - Tags to filter templates by, defaults to all templates
    * @param {string} [promptMessage='Choose Template'] - The message to display in the selection UI
    * @param {any} [userOptions=null] - Additional options to customize selection behavior
-   * @returns {Promise<any>} A promise that resolves to the selected template
+   * @returns {Promise<any>} A promise that resolves to the selected template's title
    */
-  static async chooseTemplate(tags?: any = '*', promptMessage: string = 'Choose Template', userOptions: any = null): Promise<any> {
+  static async chooseTemplate(tags?: any = '*', promptMessage: string = 'Choose Template', userOptions: any = null): Promise<string> {
     try {
       await this.setup()
       return chooseTemplate(tags, promptMessage, userOptions)
