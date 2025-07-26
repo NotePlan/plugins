@@ -54,7 +54,8 @@ import {
   makePluginCommandButton,
   showHTMLV2
 } from '@helpers/HTMLView'
-import { getOrMakeNote, numberOfOpenItemsInNote } from '@helpers/note'
+import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
+import { numberOfOpenItemsInNote } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 import {
@@ -668,7 +669,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         const noteTitleWithoutHash = `${tagWithoutHash} Review List`
 
         // Do the main work
-        const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, config.folderToStore)
+        const note: ?TNote = await getOrMakeRegularNoteInFolder(noteTitleWithoutHash, config.folderToStore)
         if (note != null) {
           const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`{"projectTypeTags":["${tag}"]}`)) //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`projectTypeTags=${tag}`)
 
@@ -712,7 +713,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
     } else {
       // We will just use all notes with a @review() string, in one go
       const noteTitle = `Review List`
-      const note: ?TNote = await getOrMakeNote(noteTitle, config.folderToStore)
+      const note: ?TNote = await getOrMakeRegularNoteInFolder(noteTitle, config.folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
         const [outputArray, noteCount, due] = await generateReviewOutputLines('', 'Markdown', config)

@@ -5,7 +5,7 @@ import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 import { buildReadwiseFrontMatter, buildReadwiseMetadataHeading, buildReadwiseNoteTitle, removeNewlines } from './NPReadwiseHelpers'
 import { writeReadwiseSyncLogLine } from './NPReadwiseSyncLog'
 import { logDebug, logError } from '@helpers/dev'
-import { getOrMakeNote } from '@helpers/note'
+import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 
 /**
  * Gets or creates the note for the readwise data
@@ -26,7 +26,7 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
     }
   }
   try {
-    outputNote = await getOrMakeNote(title, baseFolder, '')
+    outputNote = await getOrMakeRegularNoteInFolder(title, baseFolder, '')
   } catch (error) {
     logError(pluginJson, error)
   }

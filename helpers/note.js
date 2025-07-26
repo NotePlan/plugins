@@ -23,7 +23,7 @@ import {
   convertISOToYYYYMMDD,
 } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFolderListMinusExclusions, getFolderFromFilename, getRegularNotesInFolder, projectNotesFromFilteredFolders } from '@helpers/folders'
+import { getFolderListMinusExclusions, getFolderFromFilename, projectNotesFromFilteredFolders } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { noteHasFrontMatter, getFrontMatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
@@ -298,58 +298,7 @@ export function getNoteTypeByFilename(filename: string): ?NoteType {
   }
 }
 
-/**
- * Get or create the relevant regular note in the given folder (not calendar notes)
- * Now extended to cope with titles with # characters: these are stripped out first, as they are stripped out by NP when reporting a note.title
- * If it makes a new note, it will add the title first.
- * @author @jgclark
- *
- * @param {string} noteTitle - title of note to look for
- * @param {string} noteFolder - folder to look in (must be full path or "/")
- * @param {boolean?} partialTitleToMatch - optional partial note title to use with a starts-with not exact match
- * @return {Promise<TNote>} - note object
- */
-export async function getOrMakeNote(noteTitle: string, noteFolder: string, partialTitleToMatch: string = ''): Promise<?TNote> {
-  logDebug('note / getOrMakeNote', `starting with noteTitle '${noteTitle}' / folder '${noteFolder}' / partialTitleToMatch ${partialTitleToMatch}`)
-  let existingNotes: $ReadOnlyArray<TNote> = []
-
-  // If we want to do a partial match, see if matching note(s) have already been created (ignoring @Archive and @Trash)
-  if (partialTitleToMatch) {
-    const partialTestString = partialTitleToMatch.split('#').join('')
-    const allNotesInFolder = getRegularNotesInFolder(noteFolder)
-    existingNotes = allNotesInFolder.filter((f) => f.title?.startsWith(partialTestString))
-    logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing partial '${partialTestString}' note matches`)
-  } else {
-    // Otherwise do an exact match on noteTitle
-    const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
-    // now filter out wrong folders
-    existingNotes = potentialNotes && noteFolder !== '/' ? potentialNotes.filter((n) => n.filename.startsWith(noteFolder)) : potentialNotes
-    logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing '${noteTitle}' note(s)`)
-  }
-
-  if (existingNotes.length > 0) {
-    logDebug('note / getOrMakeNote', `- first matching note filename = '${existingNotes[0].filename}'`)
-    return existingNotes[0] // return the only or first match (if more than one)
-  } else {
-    logDebug('note / getOrMakeNote', `- found no existing notes, so will try to make one`)
-    // no existing note, so need to make a new one
-    const noteFilename = await DataStore.newNote(noteTitle, noteFolder)
-    // NB: filename here = folder + filename
-    if (noteFilename != null && noteFilename !== '') {
-      logDebug('note / getOrMakeNote', `- newNote filename: ${String(noteFilename)}`)
-      const note = await DataStore.projectNoteByFilename(noteFilename)
-      if (note != null) {
-        return note
-      } else {
-        logError('note / getOrMakeNote', `can't read new ${noteTitle} note`)
-        return
-      }
-    } else {
-      logError('note / getOrMakeNote', `empty filename of new ${noteTitle} note`)
-      return
-    }
-  }
-}
+// Note: getOrMakeRegularNoteInFolder has moved to NPnote.js. Import from '@helpers/NPnote' instead.
 
 /**
  * Find a unique note title for the given text (e.g. "Title", "Title 01" (if "Title" exists, etc.))

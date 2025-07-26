@@ -6,7 +6,7 @@
 
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayFolderAndTitle } from '@helpers/general'
-import { getOrMakeNote } from '@helpers/note'
+import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 
 const outputNoteName = 'Published Notes'
 const publicURLPrefix = 'https://noteplan.co/n/'
@@ -32,7 +32,7 @@ export async function listPublishedNotes(): Promise<void> {
     const outString = outputArray.join('\n')
 
     // let outputNote = DataStore.projectNoteByTitle(outputNoteName)
-    const outputNote = await getOrMakeNote(outputNoteName, "/")
+    const outputNote = await getOrMakeRegularNoteInFolder(outputNoteName, "/")
     // fresh test to see if we now have the note
     if (outputNote != null) {
       outputNote.content = outString // overwrite what was there before

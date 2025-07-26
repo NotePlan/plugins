@@ -13,7 +13,8 @@ import {
   // projectNotesFromFilteredFolders
 } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
-import { getOrMakeNote, replaceSection } from '@helpers/note'
+import { replaceSection } from '@helpers/note'
+import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import {
   chooseFolder,
@@ -125,7 +126,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
           return
         }
         // Make the note
-        note = await getOrMakeNote(requestedTitle, folderName)
+        note = await getOrMakeRegularNoteInFolder(requestedTitle, folderName)
       } else {
         note = possibleNotes[0]
         folderName = getFolderFromFilename(note.filename)

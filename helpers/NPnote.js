@@ -8,11 +8,11 @@ import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
 import * as dt from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { getFolderFromFilename } from '@helpers/folders'
+import { getFolderFromFilename, getRegularNotesInFolder } from '@helpers/folders'
 import { displayTitle, isValidUUID } from '@helpers/general'
+import { noteType } from '@helpers/note'
 import { endOfFrontmatterLineIndex, ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
-import { noteType } from '@helpers/note'
 import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
@@ -1054,6 +1054,10 @@ export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
   const justFolderName = getFolderFromFilename(note.filename)
 
   // Get new title for note, though with any '/:@$' replaced with '_'
+  if (!note.title) {
+    logWarn('getFSSafeFilenameFromNoteTitle', `No title found in note ${note.filename}. Returning empty string.`)
+    return ''
+  }
   let filesystemSafeTitle = note.title
     .trim()
     .replaceAll('\\', '_')
@@ -1077,5 +1081,59 @@ export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
   } else {
     logWarn('NPnote.js', `getFSSafeFilenameFromNoteTitle(): No title found in note ${note.filename}. Returning empty string.`)
     return ''
+  }
+}
+
+/**
+ * Get or create the relevant regular note in the given folder (not calendar notes)
+ * Note: titles with # characters are stripped out first, as they are stripped out by NP when reporting a note.title
+ * If it makes a new note, it will add the title first.
+ * TODO: is this teamspace-aware?
+ * @author @jgclark
+ *
+ * @param {string} noteTitle - title of note to look for
+ * @param {string} noteFolder - folder to look in (must be full path or "/")
+ * @param {boolean?} partialTitleToMatch - optional partial note title to use with a starts-with not exact match
+ * @return {Promise<TNote>} - note object
+ */
+export async function getOrMakeRegularNoteInFolder(noteTitle: string, noteFolder: string, partialTitleToMatch: string = ''): Promise<?TNote> {
+  logDebug('note / getOrMakeRegularNoteInFolder', `starting with noteTitle '${noteTitle}' / folder '${noteFolder}' / partialTitleToMatch ${partialTitleToMatch}`)
+  let existingNotes: $ReadOnlyArray<TNote> = []
+
+  // If we want to do a partial match, see if matching note(s) have already been created (ignoring @Archive and @Trash)
+  if (partialTitleToMatch) {
+    const partialTestString = partialTitleToMatch.split('#').join('')
+    const allNotesInFolder = getRegularNotesInFolder(noteFolder)
+    existingNotes = allNotesInFolder.filter((f) => f.title?.startsWith(partialTestString))
+    logDebug('note / getOrMakeRegularNoteInFolder', `- found ${existingNotes.length} existing partial '${partialTestString}' note matches`)
+  } else {
+    // Otherwise do an exact match on noteTitle
+    const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
+    // now filter out wrong folders
+    existingNotes = potentialNotes && noteFolder !== '/' ? potentialNotes.filter((n) => n.filename.startsWith(noteFolder)) : potentialNotes
+    logDebug('note / getOrMakeRegularNoteInFolder', `- found ${existingNotes.length} existing '${noteTitle}' note(s)`)
+  }
+
+  if (existingNotes.length > 0) {
+    logDebug('note / getOrMakeRegularNoteInFolder', `- first matching note filename = '${existingNotes[0].filename}'`)
+    return existingNotes[0] // return the only or first match (if more than one)
+  } else {
+    logDebug('note / getOrMakeRegularNoteInFolder', `- found no existing notes, so will try to make one`)
+    // no existing note, so need to make a new one
+    const noteFilename = await DataStore.newNote(noteTitle, noteFolder)
+    // NB: filename here = folder + filename
+    if (noteFilename != null && noteFilename !== '') {
+      logDebug('note / getOrMakeRegularNoteInFolder', `- newNote filename: ${String(noteFilename)}`)
+      const note = await DataStore.projectNoteByFilename(noteFilename)
+      if (note != null) {
+        return note
+      } else {
+        logError('note / getOrMakeRegularNoteInFolder', `can't read new ${noteTitle} note`)
+        return
+      }
+    } else {
+      logError('note / getOrMakeRegularNoteInFolder', `empty filename of new ${noteTitle} note`)
+      return
+    }
   }
 }
