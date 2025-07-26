@@ -258,7 +258,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     } else if (!args) {
       args = {}
     }
-    clo(args, `🤵 DBWDELETEME NPTemplating.templateNew templateTitle=${templateTitle} _folder=${_folder || ''} newNoteTitle=${newNoteTitle} args= ${typeof args}=`)
+
     let selectedTemplate // will be a filename
     if (/<current>/i.test(templateTitle)) {
       selectedTemplate = Editor.filename
@@ -296,12 +296,9 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       return
     }
 
-    logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew about to create new note with noteTitle=${noteTitle} folder=${folder}`)
     const filename = DataStore.newNote(noteTitle, folder) || ''
-    logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew we just createdfilename=${filename}`)
 
     if (filename) {
-      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 about to render template with filename=${filename}`)
       const data = {
         data: {
           ...frontmatterAttributes,
@@ -310,26 +307,19 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
           },
         },
       }
-      clo(data, `🤵 DBWDELETEME NPTemplating.templateNew2 before render filename=${filename} args=`)
+
       const templateResult = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
-      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 templateResult = ${templateResult}`)
 
       await Editor.openNoteByFilename(filename)
-      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Opened filename=${filename} Editor.content = ${Editor.content || ''}`)
 
       const renderedTemplateHasFM = hasFrontMatter(templateResult)
-      logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 hasFM=${renderedTemplateHasFM}`)
+
       if (renderedTemplateHasFM) {
-        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.content before setting to templateResult = ${Editor.content}; templateResult = ${templateResult}`)
-        clo(Editor.frontmatterAttributes, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.frontmatterAttributes before setting Editor.content to templateResult = `)
         Editor.content = templateResult
-        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.content before updateFrontMatterVars = ${Editor.content}`)
-        clo(Editor.frontmatterAttributes, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.frontmatterAttributes before updateFrontMatterVars = `)
+
         updateFrontMatterVars(Editor, { title: noteTitle })
-        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 after updateFrontMatterVars Editor.content: ${Editor.content}`)
       } else {
         Editor.content = `# ${noteTitle}\n${templateResult}`
-        logDebug(pluginJson, `🤵 DBWDELETEME NPTemplating.templateNew2 Editor.content = ${Editor.content}`)
       }
       selectFirstNonTitleLineInEditor()
     } else {
