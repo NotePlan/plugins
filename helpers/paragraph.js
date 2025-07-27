@@ -589,8 +589,8 @@ export function findHeadingStartsWith(note: CoreNoteFields, headingToFind: strin
  * @author @dwertheimer
  */
 export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $ReadOnlyArray<TParagraph> {
-  const notSyncedArr = [],
-    syncedMap = new Map()
+  const notSyncedArr = []
+  const syncedMap: Map<string, TParagraph> = new Map()
   paras.forEach(function (p) {
     if (p.blockId) {
       syncedMap.set(p.blockId, p)

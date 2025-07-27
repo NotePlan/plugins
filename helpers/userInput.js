@@ -3,12 +3,14 @@
 // Specialised user input functions
 
 import json5 from 'json5'
+import moment from 'moment/min/moment-with-locales'
 import { getDateStringFromCalendarFilename, RE_DATE, RE_DATE_INTERVAL } from './dateTime'
-import { getRelativeDates } from './NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
-import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
-import { getHeadingsFromNote } from './NPnote'
+import { getFolderFromFilename } from './folders'
+import { getRelativeDates } from './NPdateTime'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
+import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
+import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 function parseJSON5(contents: string): ?{ [string]: ?mixed } {
@@ -568,19 +570,25 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
   return answers
 }
 
+// For speed, pre-compute the relative dates
 const relativeDates = getRelativeDates()
 
 /**
- * Create a new note with a given title, content, and in a specified folder.
+ * Create a new regular note with a given title, content, and in a specified folder.
  * If title, content, or folder is not provided, it will prompt the user for input.
- *
+ * Note: ideally would live in NPnote.js, but it's here because it uses other functions in userInput.
+ * @author @dwertheimer
+ * 
  * @param {string} [_title] - The title of the new note.
  * @param {string} [_content] - The content of the new note.
  * @param {string} [_folder] - The folder to create the new note in.
  * @returns {Promise<Note | false>} - The newly created note, or false if the operation was cancelled.
  */
-export async function createNewNote(_title?: string = '', _content?: string = '', _folder?: string = ''): Promise<Note | null> {
-  const title = _title || (await getInput('Title of new note', 'OK', 'New Note', ''))
+export async function createNewRegularNote(
+  _title?: string = '',
+  _content?: string = '',
+  _folder?: string = ''): Promise<Note | null> {
+  const title = _title || (await getInput('Title of new note', 'OK', 'New Note', '')) && 'error'
   const content = _content
   if (title) {
     const folder = _folder || (await chooseFolder('Select folder to add note in:', false, true))
@@ -598,9 +606,13 @@ export async function createNewNote(_title?: string = '', _content?: string = ''
  * Note: Forked from helpers/general.js, but needed here anyway to avoid a circular dependency
  * @param {CoreNoteFields} noteIn
  * @param {boolean} showRelativeDates? (default: false)
+ * @param {boolean} showFolderPath? (default: false)
  * @returns {string}
  */
-export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDates: boolean = true): string {
+export function displayTitleWithRelDate(
+  noteIn: CoreNoteFields,
+  showRelativeDates: boolean = true,
+  showFolderPath: boolean = false): string {
   if (noteIn.type === 'Calendar') {
     let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
     if (showRelativeDates) {
@@ -608,13 +620,31 @@ export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDate
         if (calNoteTitle === rd.dateStr) {
           // logDebug('displayTitleWithRelDate',`Found match with ${rd.dateStr} => ${rd.relName}`)
           calNoteTitle = `${rd.dateStr}\t(📆 ${rd.relName})`
+          break
         }
       }
     }
     return calNoteTitle
   } else {
-    return noteIn.title ?? '(error)'
+    return (showFolderPath)
+      ? getDisplayTitleAndPathForRegularNote(noteIn)
+      : noteIn.title ?? '(error)'
   }
+}
+
+export function getDisplayTitleAndPathForRegularNote(noteIn: CoreNoteFields): string {
+  if (noteIn.type === 'Calendar') {
+    logError('getDisplayTitleAndPathForRegularNote', `Calendar note ${noteIn.filename} passed in`)
+    return noteIn.filename
+  }
+  if (!noteIn.title) {
+    logError('getDisplayTitleAndPathForRegularNote', `Regular note ${noteIn.filename} has no title`)
+    return noteIn.filename
+  }
+  const title = noteIn.title
+  const path = getFolderFromFilename(noteIn.filename)
+  const displayTitle = `${path !== '/' ? `${path}/` : ''} ${title}`
+  return displayTitle
 }
 
 /**
@@ -672,8 +702,82 @@ export async function chooseNote(
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
   const noteToReturn = (opts[index] === '[New note]')
-    ? await createNewNote()
+    ? await createNewRegularNote()
     : sortedNoteListFiltered[index]
+  return noteToReturn ?? null
+}
+
+/**
+ * Choose a particular note from a list of notes shown to the user, with a number of display options.
+ * Note: no try-catch, so that failure can stop processing.
+ * @author @jgclark, heavily extending earlier function by @dwertheimer
+ * 
+ * @param {string} promptText - text to display in the CommandBar
+ * @param {Array<TNote>} regularNotes - a list of regular notes to choose from. If empty, all regular notes will be used (apart from Trash)
+ * @param {boolean} includeCalendarNotes - include calendar notes in the list
+ * @param {boolean} includeFutureCalendarNotes - include future calendar notes in the list
+ * @param {boolean} currentNoteFirst - add currently open note to the front of the list
+ * @param {boolean} allowNewRegularNoteCreation - add option for user to create new note to return instead of choosing existing note
+ * @returns {CoreNoteFields | null} note
+ */
+export async function chooseNoteV2(
+  promptText?: string = 'Choose a note',
+  regularNotes: Array<TNote> = [],
+  includeCalendarNotes?: boolean = true,
+  includeFutureCalendarNotes?: boolean = false,
+  currentNoteFirst?: boolean = false,
+  allowNewRegularNoteCreation?: boolean = false,
+): Promise<TNote | null> {
+  let noteList: Array<TNote> = regularNotes
+  if (includeCalendarNotes) {
+    noteList = noteList.concat(DataStore.calendarNotes)
+  }
+  // $FlowIgnore[unsafe-arithmetic]
+  const sortedNoteList = noteList.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  // Form the options to give to the CommandBar: titles of regular notes
+  const opts = sortedNoteList.map((note) => {
+    // Show titles with relative dates, but without path
+    return displayTitleWithRelDate(note, true, false)
+  })
+
+  // If wanted, add future calendar notes to the list, where not already present
+  if (includeFutureCalendarNotes) {
+    const weekAgoMom = moment().subtract(7, 'days')
+    const weekAgoDate = weekAgoMom.toDate()
+    for (const rd of relativeDates) {
+      const matchingNote = sortedNoteList.find((note) => note.title === rd.dateStr)
+      if (!matchingNote) {
+        // Make a temporary partial note for this date
+        // $FlowIgnore[prop-missing]
+        const newNote: TNote = {
+          title: rd.dateStr,
+          type: 'Calendar',
+          // TODO: get this applied to the earlier sort
+          changedDate: weekAgoDate,
+        }
+        sortedNoteList.push(newNote)
+        opts.push(`${rd.dateStr}\t(📆 ${rd.relName})\t[New note]`)
+      }
+    }
+  }
+
+  // Now set up other options for showOptions
+  const { note } = Editor
+  if (allowNewRegularNoteCreation) {
+    opts.unshift('[New note]')
+    // $FlowIgnore[incompatible-call] just to keep the indexes matching; won't be used
+    // $FlowIgnore[prop-missing]
+    sortedNoteList.unshift({ title: '[New note]', type: 'Notes' }) // just keep the indexes matching
+  }
+  if (currentNoteFirst && note) {
+    sortedNoteList.unshift(note)
+    opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
+  }
+  // Now show the options to the user
+  const { index } = await CommandBar.showOptions(opts, promptText)
+  const noteToReturn = (opts[index].includes('[New note]'))
+    ? await getOrMakeCalendarNote(sortedNoteList[index].title)
+    : sortedNoteList[index]
   return noteToReturn ?? null
 }
 

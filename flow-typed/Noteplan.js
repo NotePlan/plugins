@@ -601,7 +601,7 @@ declare class DataStore {
    * Note: ISO Daily dateString available from v3.17.0
    * Note: Some timeframes available from v3.7.2
    * Note: 'parent' available from v3.17.0
-   * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty.
+   * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty (or undefined?), but can be set).
    * @param {string} dateString
    * @param {TTeamspaceID? | string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
    * @returns {NoteObject}
@@ -1362,6 +1362,8 @@ declare interface Paragraph {
    * Children are counted until a blank line, HR, title, or another item at the same level as the parent task. So for items to be counted as children, they need to be contiguous vertically.
    * Important note: .children() for a task paragraph will return every child, grandchild, greatgrandchild, etc.
    * So a task that has a child task that has a child task will have 2 children (and the first child will have one).
+   * If it returns empty array, it means there are no children.
+   * If it returns undefined, it means there has been a failure.
    * Note: Available from v3.3
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    * WARNING: appears to be unreliable on iOS.
@@ -2044,7 +2046,7 @@ resolveConflictWithOtherVersion(): void;
  */
 +isTeamspaceNote: boolean;
 /**
- * The ID of the teamspace the note belongs to (will be undefined for private notes).
+ * The ID of the teamspace the note belongs to (will be undefined for private notes). This ID has the syntax of a UUID.
  * Note: Available from v3.17.0
  * @returns {?string}
  */

@@ -994,12 +994,15 @@ export function localeRelativeDateFromNumber(diffIn: number, useShortStyle: bool
 }
 
 /**
- * Get array of dates relative to today for day, week and month.
- * Note: now tests to see if NP API calls are available, and if not returns an empty array
+ * Get array of dates relative to today for day, week and month. Returns a list of objects with the following properties:
+ * - relName: string - the relative date name (e.g. 'today', 'yesterday', 'in 2 days', 'this week', 'last week', 'next week', 'this month', 'last month', 'next month', 'this quarter', 'last quarter', 'next quarter')
+ * - dateStr: string - the date string in the format of the note title (e.g. '2025-01-01', '2025-01-02', '2025-01-03', '2025-01-04', '2025-01-05', '2025-01-06', '2025-01-07', '2025-01-08', '2025-01-09', '2025-01-10')
+ * - note: TNote - the note object for the relative date (if available)
+ * Note: tests to see if NP API calls are available, and if not returns an empty array
  * @author @jgclark
- * @returns {Array<Object>} relative date name, relative date string, TNote for that relative date
+ * @returns {Array<{relName:string, dateStr:string, note:?TNote}>} relative date name, relative date string, TNote for that relative date
  */
-export function getRelativeDates(): Array<Object> {
+export function getRelativeDates(): Array<{ relName: string, dateStr: string, note: ?TNote }> {
   try {
     const relativeDates = []
     const todayMom = moment()
@@ -1017,6 +1020,14 @@ export function getRelativeDates(): Array<Object> {
     relativeDates.push({ relName: 'yesterday', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
     relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    for (let i = 6; i > 1; i--) {
+      thisDateStr = moment(todayMom).subtract(i, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+      relativeDates.push({ relName: `${i} days ago`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    }
+    for (let i = 2; i < 7; i++) {
+      thisDateStr = moment(todayMom).add(i, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+      relativeDates.push({ relName: `in ${i} days`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    }
 
     // Weeks
     // Note: can't start with moment as NP weeks count differently
@@ -1034,22 +1045,52 @@ export function getRelativeDates(): Array<Object> {
     // $FlowIgnore[incompatible-use]
     thisDateStr = thisNPWeekInfo.weekString
     relativeDates.push({ relName: 'next week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    for (let i = -11; i < -1; i++) {
+      // $FlowIgnore[incompatible-type]
+      thisNPWeekInfo = getNPWeekData(new Date(), i)
+      // $FlowIgnore[incompatible-use]
+      thisDateStr = thisNPWeekInfo.weekString
+      relativeDates.push({ relName: `${-i} weeks ago`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    }
+    for (let i = 2; i < 11; i++) {
+      // $FlowIgnore[incompatible-type]
+      thisNPWeekInfo = getNPWeekData(new Date(), i)
+      // $FlowIgnore[incompatible-use]
+      thisDateStr = thisNPWeekInfo.weekString
+      relativeDates.push({ relName: `${i} weeks' time`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    }
 
     // Months
-    thisDateStr = moment(todayMom).startOf('month').format(MOMENT_FORMAT_NP_MONTH)
-    relativeDates.push({ relName: 'this month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    for (let i = -12; i < -1; i++) {
+      thisDateStr = moment(todayMom).add(i, 'months').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
+      relativeDates.push({ relName: `${-i} months ago`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    }
     thisDateStr = moment(todayMom).subtract(1, 'month').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
     relativeDates.push({ relName: 'last month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).startOf('month').format(MOMENT_FORMAT_NP_MONTH)
+    relativeDates.push({ relName: 'this month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     thisDateStr = moment(todayMom).add(1, 'month').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
     relativeDates.push({ relName: 'next month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    for (let i = 2; i < 12; i++) {
+      thisDateStr = moment(todayMom).add(i, 'months').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
+      relativeDates.push({ relName: `${i} months' time`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    }
 
     // Quarters
-    thisDateStr = moment(todayMom).startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
-    relativeDates.push({ relName: 'this quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    for (let i = -4; i < -1; i++) {
+      thisDateStr = moment(todayMom).add(i, 'quarters').startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
+      relativeDates.push({ relName: `${-i} quarters ago`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    }
     thisDateStr = moment(todayMom).subtract(1, 'quarter').startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
     relativeDates.push({ relName: 'last quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
+    relativeDates.push({ relName: 'this quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     thisDateStr = moment(todayMom).add(1, 'quarter').startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
     relativeDates.push({ relName: 'next quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    for (let i = 2; i < 5; i++) {
+      thisDateStr = moment(todayMom).add(i, 'quarters').startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
+      relativeDates.push({ relName: `${i} quarters' time`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    }
 
     // for (const rd of relativeDates) {
     //   const noteTitle = (rd.note) ? displayTitle(rd.note) : '(error)'
@@ -1058,6 +1099,7 @@ export function getRelativeDates(): Array<Object> {
     return relativeDates
   } catch (err) {
     logError('getRelativeDates', `${err.name}: ${err.message}`)
+    // $FlowIgnore[prop-missing]
     return [{}] // for completeness
   }
 }

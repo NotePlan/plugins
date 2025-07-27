@@ -1,8 +1,14 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
-## [0.16.2] - 2025-07-25
+## [0.17.0] - 2025-07-28
+### New
+- commands where you can select a calendar note to use from the command bar, now 
+  - show and allow you to pick future calendar notes, even that haven't already been created.
+  - annotate more calendar dates with their relative date (e.g. "in 3 days time")
+### Fixed
 - fix commands that deal with the edge case where a note has frontmatter but the `# Title` is not in it
+- fix edge case with '/qpc' command
 
 ## [0.16.1] - 2025-02-15
 ### Changed

@@ -2,17 +2,17 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 2025-07-20 for v0.16.2 by @jgclark
+// last update 2025-07-28 for v0.17.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
-  getNoteFromParamOrUser,
+  // getNoteFromParamOrUser,
   getQuickCaptureSettings,
   type QCConfigType,
 } from './quickCaptureHelpers'
 import {
-  getDateStringFromCalendarFilename,
+  // getDateStringFromCalendarFilename,
   getDisplayDateStrFromFilenameDateStr,
   getTodaysDateUnhyphenated,
   RE_ISO_DATE,
@@ -20,17 +20,23 @@ import {
 } from '@helpers/dateTime'
 import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { allNotesSortedByChanged, calendarNotesSortedByChanged, projectNotesSortedByChanged, weeklyNotesSortedByChanged } from '@helpers/note'
+import {
+  allNotesSortedByChanged,
+  // calendarNotesSortedByChanged,
+  projectNotesSortedByChanged, weeklyNotesSortedByChanged
+} from '@helpers/note'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import {
   findEndOfActivePartOfNote,
   findHeadingStartsWith,
   findStartOfActivePartOfNote,
   smartAppendPara,
+  // smartCreateSectionsAndPara,
   smartPrependPara
 } from '@helpers/paragraph'
 import {
   chooseHeading,
+  chooseNoteV2,
   displayTitleWithRelDate,
   showMessage,
 } from '@helpers/userInput'
@@ -152,14 +158,14 @@ export async function addChecklistToNoteHeading(
 
     // Start a longish sort job in the background
     CommandBar.onAsyncThread()
-    const allCalNotesProm: Array<TNote> = allNotesSortedByChanged() // Note: deliberately no await: this is resolved later
+    const regularNotesProm: Array<TNote> = allNotesSortedByChanged() // Note: deliberately no await: this is resolved later
     CommandBar.onMainThread()// no await
 
     // Get text details from arg2 or user
-    const checklistText = (textArg != null && textArg !== '')
+    let checklistText = (textArg != null && textArg !== '')
       ? textArg
       : await CommandBar.showInput(`Type the checklist`, `Add checklist '%@' ${config.textToAppendToTasks}`)
-    // const text = `${checklistText} ${config.textToAppendToTasks}`.trimEnd()
+    checklistText = `${checklistText} ${config.textToAppendToTasks}`.trimEnd()
 
     // Get heading level details from arg3 (or default to the config setting)
     const headingLevel = (headingLevelArg != null && headingLevelArg !== '' && !isNaN(headingLevelArg))
@@ -168,11 +174,12 @@ export async function addChecklistToNoteHeading(
     logDebug('addChecklistToNoteHeading(qach)', `headingLevel: ${String(headingLevel)}`)
 
     // Get note details from arg0 or user
-    const allNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
-    const note = await getNoteFromParamOrUser('checklist', noteTitleArg, false, allNotes)
+    const regularNotes = await regularNotesProm // here's where we resolve the promise and have the sorted list
+    const note = await chooseNoteV2(`Select note for new checklist`, regularNotes, true, true, false, false)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
+    logDebug('addTaskToNoteHeading(qath)', `-> '${displayTitle(note)}'`)
 
     // Get heading details from arg1 or user
     // If we're asking user, we use function that allows us to first add a new heading at start/end of note
@@ -215,10 +222,10 @@ export async function addTaskToNoteHeading(
     CommandBar.onMainThread()// no await
 
     // Get text details from arg2 or user
-    const taskText = (textArg != null && textArg !== '')
+    let taskText = (textArg != null && textArg !== '')
       ? textArg
       : await CommandBar.showInput(`Type the task`, `Add task '%@' ${config.textToAppendToTasks}`)
-    // const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
+    taskText = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
 
     // Get heading level details from arg3 (or default to the config setting)
     const headingLevel = (headingLevelArg != null && headingLevelArg !== '' && !isNaN(headingLevelArg))
@@ -228,10 +235,11 @@ export async function addTaskToNoteHeading(
 
     // Get note details from arg0 or user
     const regularNotes = await regularNotesProm // here's where we resolve the promise and have the sorted list
-    const note = await getNoteFromParamOrUser('task', noteTitleArg, false, true, regularNotes) // NB: include future calendar notes
+    const note = await chooseNoteV2(`Select note for new task`, regularNotes, true, true, false, false)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
+    logDebug('addTaskToNoteHeading(qath)', `-> '${displayTitle(note)}'`)
 
     // Get heading details from arg1 or user
     // If we're asking user, we use function that allows us to first add a new heading at start/end of note
@@ -248,13 +256,13 @@ export async function addTaskToNoteHeading(
 }
 
 /** /qalh
- * FIXME(@EduardMe): adding a line after an earlier non-heading line with same text as the heading line? Raised as bug https://github.com/NotePlan/plugins/issues/429.
- * TODO: When fixed check using index.js::tempAddParaTest()
- *
  * Add general text to a regular note's heading the user picks.
  * Extended in v0.9 to allow use from x-callback with three passed arguments.
  * Extended in v0.10 to allow use from x-callback with some empty arguments: now asks users to supply missing arguments.
  * Note: duplicate headings not properly handled, due to NP architecture.
+ * - FIXME(@EduardMe): adding a line after an earlier non-heading line with same text as the heading line? Raised as bug https://github.com/NotePlan/plugins/issues/429.
+ * - When fixed check using index.js::temp429BugTest()
+ *
  * @author @jgclark
  * @param {string?} noteTitleArg note title to use (can be YYYY-MM-DD or YYYYMMDD)
  * @param {string?} headingArg
@@ -274,7 +282,7 @@ export async function addTextToNoteHeading(
     // Start a longish sort job in the background
     CommandBar.onAsyncThread()
     // logDebug('', `on async thread`)
-    const allNotesProm: Array<TNote> = allNotesSortedByChanged() // Note: deliberately no await: this is resolved later
+    const regularNotesProm: Array<TNote> = projectNotesSortedByChanged() // Note: deliberately no await: this is resolved later
     CommandBar.onMainThread()// no await
     // logDebug('', `back on main thread`)
 
@@ -284,17 +292,17 @@ export async function addTextToNoteHeading(
       : await CommandBar.showInput('Type the text to add', `Add text '%@' ${config.textToAppendToTasks}`)
 
     // Get heading level details from arg3
-    const headingLevel = (headingLevelArg != null && headingLevelArg !== '')
+    const headingLevel = (headingLevelArg != null && headingLevelArg !== '' && !isNaN(headingLevelArg))
       ? Number(headingLevelArg)
       : config.headingLevel
     logDebug('addTextToNoteHeading(qalh)', `headingLevel: ${String(headingLevel)}`)
 
     // Get note details from arg0 or user
-    const allNotes = await allNotesProm // here's where we resolve the promise and have the sorted list
-    logDebug('addTextToNoteHeading(qalh)', `Starting with noteTitleArg '${noteTitleArg}'`)
-    const note = await getNoteFromParamOrUser('Select note to add to', noteTitleArg, false, allNotes)
+    const regularNotes = await regularNotesProm // here's where we resolve the promise and have the sorted list
+    // const note = await getNoteFromParamOrUser('task', noteTitleArg, regularNotes)
+    const note = await chooseNoteV2(`Select note for new text`, regularNotes, true, true, false, false)
     if (note == null) {
-      return // stop if can't get note
+      throw new Error(`Couldn't get a valid note, Stopping.`)
     }
     logDebug('addTextToNoteHeading(qalh)', `-> '${displayTitle(note)}'`)
 
@@ -303,43 +311,9 @@ export async function addTextToNoteHeading(
     const heading = (headingArg != null && headingArg !== '')
       ? headingArg
       : await chooseHeading(note, true, true, false, headingLevel)
-    // Add todo to the heading in the note, or if blank heading,
-    // then then user has chosen to append to end of note, without a heading
-    if (heading === '<<top of note>>') {
-      // Handle this special case
-      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to start of active part of note '${displayTitleWithRelDate(note)}'`)
-      note.insertParagraph(textToAdd, findStartOfActivePartOfNote(note), 'text')
-    }
-    else if (heading === '' || heading === '<<bottom of note>>') {
-      // Handle bottom of note
-      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to end of '${displayTitleWithRelDate(note)}'`)
-      note.insertParagraph(textToAdd, findEndOfActivePartOfNote(note) + 1, 'text')
-    }
-    else {
-      const matchedHeading = findHeadingStartsWith(note, heading)
-      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to '${displayTitleWithRelDate(note)}' below matchedHeading '${matchedHeading}' (heading was '${heading}')`)
-      if (matchedHeading !== '') {
-      // Heading does exist in note already
-        note.addParagraphBelowHeadingTitle(
-          textToAdd,
-          'text',
-          (matchedHeading !== '') ? matchedHeading : heading,
-          config.shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
-          true, // create heading if needed (possible if supplied via headingArg)
-        )
-      } else {
-        // We need to a new heading either at top or bottom, depending what config.shouldAppend says
-        const headingMarkers = '#'.repeat(headingLevel)
-        const headingToUse = `${headingMarkers} ${heading}`
-        const insertionIndex = config.shouldAppend
-          ? findEndOfActivePartOfNote(note) + 1
-          : findStartOfActivePartOfNote(note)
-        logDebug('addTextToNoteHeading', `- adding new heading '${headingToUse}' at line index ${insertionIndex}`)
-        note.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
-        logDebug('addTextToNoteHeading', `- then adding text '${textToAdd}' after `)
-        note.insertParagraph(textToAdd, insertionIndex + 1, 'text')
-      }
-    }
+
+    // Call helper to do the main work
+    coreAddTaskToNoteHeading(note, heading, textToAdd, headingLevel, config.shouldAppend)
   }
   catch (err) {
     logError(pluginJson, `addTextToNoteHeading: ${err.name}: ${err.message}`)
@@ -362,53 +336,39 @@ export async function prependTaskToCalendarNote(
   try {
     const config = await getQuickCaptureSettings()
     let note: ?TNote
-    let dateStr = ''
+    const textToAppendToTasks = config.textToAppendToTasks ? ` ${config.textToAppendToTasks}` : ''
 
-    // Start a longish sort job in the background
-    CommandBar.onAsyncThread()
-    // logDebug('', `on async thread`)
-    const allCalNotesProm: Array<TNote> = calendarNotesSortedByChanged() // Note: deliberately no await: this is resolved later
-    CommandBar.onMainThread()// no await
-    // logDebug('', `back on main thread`)
-
-    // Get text to use from arg0 or user
+    // Get text to use from arg1 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput(`Type the task`, `Add task '%@' ${config.textToAppendToTasks}`)
+      : await CommandBar.showInput(`Type the task`, `Prepend task '%@'${textToAppendToTasks}`)
 
-    // Get calendar note to use
+    // Get note details from arg0 or user
     if (dateArg != null && dateArg !== '') {
       // change YYYY-MM-DD to YYYYMMDD, if needed
       const dateArgToMatch = dateArg.match(RE_ISO_DATE)
         ? convertISODateFilenameToNPDayFilename(dateArg)
         : dateArg // for regular note titles, and weekly notes
       note = DataStore.calendarNoteByDateString(dateArgToMatch)
-    }
-    if (note != null) {
-      logDebug('prependTaskToCalendarNote', `- from dateArg, daily note = '${displayTitleWithRelDate(note)}'`)
     } else {
-      // Get details interactively from user
-      const allCalNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
-      const calendarNoteTitles = allCalNotes.map((f) => displayTitleWithRelDate(f)) ?? ['error: no calendar notes found']
-      const res = await CommandBar.showOptions(calendarNoteTitles, 'Select calendar note for new todo')
-      dateStr = getDateStringFromCalendarFilename(allCalNotes[res.index].filename)
-      note = DataStore.calendarNoteByDateString(dateStr)
+      note = await chooseNoteV2(`Select note for new task`, [], true, true, false, false)
     }
 
-    if (note != null) {
-      const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
-      logDebug('prependTaskToCalendarNote', `- Prepending task '${text}' to '${displayTitleWithRelDate(note)}'`)
-      smartPrependPara(note, text, 'open')
-    } else {
-      logError('prependTaskToCalendarNote', `- Can't get calendar note ${dateArg}`)
+    if (note == null) {
+      throw new Error(`Couldn't get a valid note, Stopping.`)
     }
+    logDebug('addTaskToNoteHeading(qath)', `-> '${displayTitle(note)}'`)
+
+    const text = `${taskText}${textToAppendToTasks}`.trimEnd()
+    logDebug('prependTaskToCalendarNote', `- Prepending task '${text}' to '${displayTitleWithRelDate(note)}'`)
+    smartPrependPara(note, text, 'open')
   } catch (err) {
     logError(pluginJson, `prependTaskToCalendarNote: ${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
 }
 
-/** /qac (was /qad)
+/** /qac
  * Append to a Calendar note
  * Extended in v0.9.0 to allow use from x-callback with single passed argument. Helpfully, doesn't fail if extra arguments passed
  * @author @jgclark
@@ -423,46 +383,31 @@ export async function appendTaskToCalendarNote(
   try {
     const config = await getQuickCaptureSettings()
     let note: ?TNote
-    let dateStr = ''
+    const textToAppendToTasks = config.textToAppendToTasks ? ` ${config.textToAppendToTasks}` : ''
 
-    // Start a longish sort job in the background
-    CommandBar.onAsyncThread()
-    // logDebug('', `on async thread`)
-    const allCalNotesProm: Array<TNote> = calendarNotesSortedByChanged() // Note: deliberately no await: this is resolved later
-    CommandBar.onMainThread()// no await
-    // logDebug('', `back on main thread`)
-
-    // Get text to use from arg0 or user
+    // Get text to use from arg1 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput(`Type the task`, `Add task '%@' ${config.textToAppendToTasks}`)
+      : await CommandBar.showInput(`Type the task`, `Append task '%@' ${textToAppendToTasks}`)
 
-    // Get daily note to use
+    // Get note details from arg0 or user
     if (dateArg != null && dateArg !== '') {
       // change YYYY-MM-DD to YYYYMMDD, if needed
       const dateArgToMatch = dateArg.match(RE_ISO_DATE)
         ? convertISODateFilenameToNPDayFilename(dateArg)
         : dateArg // for regular note titles, and weekly notes
       note = DataStore.calendarNoteByDateString(dateArgToMatch)
-    }
-    if (note != null) {
-      logDebug('appendTaskToCalendarNote', `- from dateArg, daily note = '${displayTitleWithRelDate(note)}'`)
     } else {
-      // Get details interactively from user
-      const allCalNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
-      const calendarNoteTitles = allCalNotes.map((f) => displayTitleWithRelDate(f)) ?? ['error: no calendar notes found']
-      const res = await CommandBar.showOptions(calendarNoteTitles, 'Select calendar note for new todo')
-      dateStr = getDateStringFromCalendarFilename(allCalNotes[res.index].filename)
-      note = DataStore.calendarNoteByDateString(dateStr)
+      note = await chooseNoteV2(`Select note for new task`, [], true, true, false, false)
     }
+    if (note == null) {
+      throw new Error(`Couldn't get a valid note, Stopping.`)
+    }
+    logDebug('appendTaskToCalendarNote', `- from dateArg, daily note = '${displayTitleWithRelDate(note)}'`)
 
-    if (note != null) {
-      const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
-      logDebug('appendTaskToCalendarNote', `- Appending task '${text}' to ${displayTitleWithRelDate(note)}`)
-      smartAppendPara(note, text, 'open')
-    } else {
-      logError('appendTaskToCalendarNote', `- Can't get calendar note for ${dateStr}`)
-    }
+    const text = `${taskText}${textToAppendToTasks}`.trimEnd()
+    logDebug('appendTaskToCalendarNote', `- Appending task '${text}' to ${displayTitleWithRelDate(note)}`)
+    smartAppendPara(note, text, 'open')
   } catch (err) {
     logError(pluginJson, `appendTaskToCalendarNote: ${err.name}: ${err.message}`)
     await showMessage(err.message)

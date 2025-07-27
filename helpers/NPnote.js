@@ -1094,7 +1094,7 @@ export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
  * @param {string} noteTitle - title of note to look for
  * @param {string} noteFolder - folder to look in (must be full path or "/")
  * @param {boolean?} partialTitleToMatch - optional partial note title to use with a starts-with not exact match
- * @return {Promise<TNote>} - note object
+ * @returns {Promise<TNote>} - note object
  */
 export async function getOrMakeRegularNoteInFolder(noteTitle: string, noteFolder: string, partialTitleToMatch: string = ''): Promise<?TNote> {
   logDebug('note / getOrMakeRegularNoteInFolder', `starting with noteTitle '${noteTitle}' / folder '${noteFolder}' / partialTitleToMatch ${partialTitleToMatch}`)
@@ -1135,5 +1135,42 @@ export async function getOrMakeRegularNoteInFolder(noteTitle: string, noteFolder
       logError('note / getOrMakeRegularNoteInFolder', `empty filename of new ${noteTitle} note`)
       return
     }
+  }
+}
+
+/**
+ * Get or create the relevant calendar note
+ * TODO: make teamspace-aware
+ * @author @jgclark
+ *
+ * @param {string} calendarDateStr - date string to look for (e.g. '20250726' or '2025-W30')
+ * @returns {TNote} - note object
+ */
+export function getOrMakeCalendarNote(calendarDateStr: string): ?TNote {
+  try {
+    logDebug('NPnote/getOrMakeCalendarNote', `starting with calendarDateStr '${calendarDateStr}'`)
+    let dateStrToUse = calendarDateStr
+    // First convert from ISO to calendar filename format if needed
+    if (dt.isDailyDateStr(calendarDateStr)) {
+      dateStrToUse = dt.convertISOToYYYYMMDD(calendarDateStr)
+    }
+    if (!dt.isValidCalendarNoteFilenameWithoutExtension(dateStrToUse)) {
+      throw new Error(`Invalid calendar date string: ${dateStrToUse}`)
+    }
+
+    const calendarNote: ?TNote = DataStore.calendarNoteByDateString(dateStrToUse)
+    if (!calendarNote) {
+      throw new Error(`Cannot find or make calendar note for ${calendarDateStr}, for reasons I don't understand.`)
+    }
+
+    // If the note has no content -- which it will if the note hasn't been created before now -- set it to empty string
+    if (!calendarNote?.content) {
+      logWarn('NPnote/getOrMakeCalendarNote', `Calendar note ${dateStrToUse} has no defined content. Will set it to empty string.`)
+      calendarNote.content = ''
+    }
+    return calendarNote
+  } catch (err) {
+    logError('NPnote/getOrMakeCalendarNote', `${err.name}: ${err.message}`)
+    return null
   }
 }

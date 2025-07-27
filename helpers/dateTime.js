@@ -1710,3 +1710,31 @@ export function convertISOToYYYYMMDD(dateStr: string): string {
   }
   return dateStr
 }
+
+/**
+ * Calculate the number of days until due for a given date (negative if overdue)
+ * TODO: tests!
+ * @author @dwertheimer
+ * @param {string|Date} fromDate (in YYYY-MM-DD format if string)
+ * @param {string|Date} toDate (in YYYY-MM-DD format if string)
+ * @returns {number}
+ */
+export function calculateDaysOverdue(fromDate: string | Date, toDate: string | Date): number {
+  if (!fromDate || !toDate) {
+    return 0
+  }
+
+  const fromDateMom = moment(fromDate, 'YYYY-MM-DD')
+  const toDateMom = moment(toDate, 'YYYY-MM-DD')
+  const diffDays = fromDateMom.diff(toDateMom, 'days', true) // negative for overdue
+
+  const floor = Math.floor(diffDays)
+  // const ceil = Math.ceil(diffDays)
+
+  // overdue
+  if (diffDays < 0) {
+    return Object.is(floor, -0) ? -1 : floor
+  }
+  // not overdue
+  return Object.is(floor, -0) ? 0 : floor
+}
