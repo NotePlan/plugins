@@ -7,18 +7,20 @@
 import moment from 'moment/min/moment-with-locales'
 import type { TDashboardSettings, TSection, TSectionItem, TSectionDetails } from './types'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
-import {
-  createSectionItemObject,
-  isLineDisallowedByIgnoreTerms,
-  makeDashboardParas,
-} from './dashboardHelpers'
+import { createSectionItemObject, isLineDisallowedByIgnoreTerms, makeDashboardParas } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
-import { addTagMentionCacheDefinitions, getFilenamesOfNotesWithTagOrMentions, isTagMentionCacheAvailableforItem, scheduleTagMentionCacheGeneration, WANTED_PARA_TYPES } from './tagMentionCache'
+import {
+  addTagMentionCacheDefinitions,
+  getFilenamesOfNotesWithTagOrMentions,
+  isTagMentionCacheAvailableforItem,
+  scheduleTagMentionCacheGeneration,
+  WANTED_PARA_TYPES,
+} from './tagMentionCache'
 import { filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import { getFrontMatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
+import { getFrontmatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { getNoteByFilename } from '@helpers/note'
 import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
@@ -80,10 +82,13 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       const cacheIsAvailable = isTagMentionCacheAvailableforItem(thisTag)
       if (config.FFlag_UseTagCache && cacheIsAvailable) {
         // Use Cache
-        logInfo('getTaggedSectionData', `- using cache for 
-        ${thisTag}`)
+        logInfo(
+          'getTaggedSectionData',
+          `- using cache for 
+        ${thisTag}`,
+        )
         let filenamesWithTagFromCache: Array<string> = []
-          ;[filenamesWithTagFromCache, comparisonDetails] = await getFilenamesOfNotesWithTagOrMentions([thisTag], true, turnOnAPIComparison)
+        ;[filenamesWithTagFromCache, comparisonDetails] = await getFilenamesOfNotesWithTagOrMentions([thisTag], true, turnOnAPIComparison)
 
         // This is taking about 2ms per note for JGC
         filenamesWithTagFromCache.forEach((filename) => {
@@ -97,7 +102,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         logTimer('getTaggedSectionData', thisStartTime, `- from CACHE found ${notesWithTag.length} notes with ${thisTag}`)
         // $FlowIgnore[unsafe-arithmetic]
         // cacheLookupTime = new Date() - cachedOperationStartTime
-        source = (turnOnAPIComparison) ? 'using CACHE + API' : 'using just CACHE'
+        source = turnOnAPIComparison ? 'using CACHE + API' : 'using just CACHE'
       } else {
         // Use API
         logInfo('getTaggedSectionData', `- using API only for ${thisTag}`)
@@ -126,18 +131,16 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         // If we want to use note tags, and the note has a 'note-tag' field in its FM, then work out if the note-tag matches this particular tag/mention.
         let hasMatchingNoteTag = false
         if (noteHasFrontMatter(n)) {
-          const noteTagAttribute = getFrontMatterAttribute(n, 'note-tag')
+          const noteTagAttribute = getFrontmatterAttribute(n, 'note-tag')
           const noteTagList = noteTagAttribute ? stringListOrArrayToArray(noteTagAttribute, ',') : []
           if (noteTagList.length > 0) {
-            hasMatchingNoteTag = noteTagList && noteTagList.some(tag => caseInsensitiveMatch(tag, thisTag))
+            hasMatchingNoteTag = noteTagList && noteTagList.some((tag) => caseInsensitiveMatch(tag, thisTag))
 
             logInfo('getTaggedSectionData', `-> noteTag(s) '${String(noteTagList)}' is ${hasMatchingNoteTag ? 'a' : 'NOT a'} match for ${thisTag}`)
           }
         }
         // Add the paras that contain the tag/mention, unless this is a noteTag, in which case add all paras if FM field 'note-tag' matches. (Later we filter down to open non-scheduled items).
-        const tagParasFromNote = (hasMatchingNoteTag)
-          ? paras
-          : paras.filter((p) => caseInsensitiveSubstringMatch(thisTag, p.content))
+        const tagParasFromNote = hasMatchingNoteTag ? paras : paras.filter((p) => caseInsensitiveSubstringMatch(thisTag, p.content))
         logTimer('getTaggedSectionData', thisStartTime, `- found ${tagParasFromNote.length} ${thisTag} items in "${n.filename}"`)
 
         // Further filter out checklists and otherwise empty items
@@ -203,10 +206,10 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
           config.overdueSortOrder === 'priority'
             ? ['-priority', '-changedDate']
             : config.overdueSortOrder === 'earliest'
-              ? ['changedDate', '-priority']
-              : config.overdueSortOrder === 'due date'
-                ? ['dueDate', '-priority']
-                : ['-changedDate', '-priority'] // 'most recent'
+            ? ['changedDate', '-priority']
+            : config.overdueSortOrder === 'due date'
+            ? ['dueDate', '-priority']
+            : ['-changedDate', '-priority'] // 'most recent'
         const sortedTagParas = sortListBy(dashboardParas, sortOrder)
         logTimer('getTaggedSectionData', thisStartTime, `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)}`)
 
