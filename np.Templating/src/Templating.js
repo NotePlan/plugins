@@ -115,9 +115,19 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
-
-      const templateNote = await getNote(selectedTemplate, true, `@Templates`)
-      const templateData = templateNote?.content || ''
+      let templateData, templateNote
+      if (/<current>/i.test(selectedTemplate)) {
+        if (!Editor.filename.startsWith(`@Templates`)) {
+          logError(pluginJson, `You cannot use the <current> prompt in a template that is not located in the @Templates folder; Editor.filename=${Editor.filename}`)
+          await showMessage(pluginJson, `OK`, `You cannot use the <current> prompt in a template that is not located in the @Templates folder`)
+          return
+        }
+        templateNote = Editor.note
+        templateData = Editor.content
+      } else {
+        templateNote = await getNote(selectedTemplate, true, `@Templates`)
+        templateData = templateNote?.content || ''
+      }
       const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
       // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
@@ -152,7 +162,7 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
         templateNote = Editor.note
         templateData = Editor.content
       } else {
-        templateNote = await getNote(templateName, true, `@Templates`)
+        templateNote = await getNote(selectedTemplate, true, `@Templates`)
         templateData = templateNote?.content || ''
       }
 
