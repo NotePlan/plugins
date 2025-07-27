@@ -2,7 +2,7 @@
 // import colors from 'chalk'
 // import /* differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, */ 'date-fns'
 import * as tb from '../src/timeblocking-helpers'
-import * as byTagMode from '../src/byTagMode'
+import * as byTagMode from '../src/timeblocking-helpers'
 import { getTasksByType } from '@helpers/sorting'
 
 import { JSP } from '@helpers/dev'
