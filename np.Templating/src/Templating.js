@@ -11,7 +11,7 @@ import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
-
+import { getNote } from '@helpers/note'
 import { getTemplateFolder } from '../lib/config/configManager'
 import { helpInfo } from '../lib/helpers'
 import { getSetting } from '@helpers/NPConfiguration'
@@ -116,7 +116,7 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
 
-      const templateNote = await DataStore.projectNoteByFilename(selectedTemplate)
+      const templateNote = await getNote(selectedTemplate, true, `@Templates`)
       const templateData = templateNote?.content || ''
       const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
@@ -137,9 +137,9 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
 
 export async function templateAppend(templateName: string = ''): Promise<void> {
   try {
+    logDebug('templateAppend', `Starting templateAppend with templateName=${templateName}`)
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const content: string = Editor.content || ''
-
       // $FlowIgnore
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
       let templateData, templateNote
@@ -152,7 +152,7 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
         templateNote = Editor.note
         templateData = Editor.content
       } else {
-        templateNote = await DataStore.projectNoteByFilename(selectedTemplate)
+        templateNote = await getNote(templateName, true, `@Templates`)
         templateData = templateNote?.content || ''
       }
 
