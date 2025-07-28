@@ -14,6 +14,18 @@
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
+      "name": "quick add task to inbox",
+      "alias": [
+        "int"
+      ],
+      "description": "Quickly add a task to your chosen Inbox note",
+      "jsFunction": "addTaskToInbox",
+      "arguments": [
+        "text to add",
+        "title of destination note (or 'Daily' or 'Weekly')"
+      ]
+    },
+    {
       "name": "quick add text to inbox",
       "alias": [
         "jot",
@@ -21,18 +33,6 @@
       ],
       "description": "Quickly 'jot' (add some text) to your chosen Inbox note",
       "jsFunction": "addJotToInbox",
-      "arguments": [
-        "text to add",
-        "title of destination note (or 'Daily' or 'Weekly')"
-      ]
-    },
-    {
-      "name": "quick add task to inbox",
-      "alias": [
-        "int"
-      ],
-      "description": "Quickly add a task to your chosen Inbox note",
-      "jsFunction": "addTaskToInbox",
       "arguments": [
         "text to add",
         "title of destination note (or 'Daily' or 'Weekly')"
@@ -245,7 +245,15 @@
     {
       "key": "inboxTitle",
       "title": "Inbox note title",
-      "description": "If the previous setting is set to 'Fixed', this is where you set the Title of that note. Default \"📥 Inbox\"",
+      "description": "If the first setting is 'Fixed', this is where you set the Title of that note. Default \"📥 Inbox\"",
+      "type": "string",
+      "default": "Inbox 📥",
+      "required": false
+    },
+    {
+      "key": "inboxHeading",
+      "title": "Inbox Heading",
+      "description": "If the first setting is 'Daily' or 'Weekly', this is the Heading that inbox items are added under. If not set, then it will append or prepend to the note (as set below).",
       "type": "string",
       "default": "📥 Inbox",
       "required": false

@@ -18,6 +18,7 @@ import { chooseNoteV2, displayTitleWithRelDate, showMessage } from '@helpers/use
 export type QCConfigType = {
   inboxLocation: string,
   inboxTitle: string,
+  inboxHeading: string,
   textToAppendToTasks: string,
   textToAppendToJots: string,
   addInboxPosition: string,

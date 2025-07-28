@@ -6,9 +6,13 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - commands where you can select a calendar note to use from the command bar, now 
   - show and allow you to pick future calendar notes, even that haven't already been created.
   - annotate more calendar dates with their relative date (e.g. "in 3 days time")
+- new setting 'Inbox Heading'. If the Inbox location is set to 'Daily' or 'Weekly' note, this is the Heading that inbox items are added under. If not set, then it will append or prepend to the note (as set below).
+
 ### Fixed
 - fix commands that deal with the edge case where a note has frontmatter but the `# Title` is not in it
 - fix edge case with '/qpc' command
+- text of some placeholders
+- appending text in commands other than the "/quick add ... to inbox" ones
 
 ## [0.16.1] - 2025-02-15
 ### Changed

@@ -32,7 +32,8 @@ The command `/quick add task to inbox` requires configuring, by clicking on the 
 
 The settings are:
 - Where is your Inbox?: Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note. Or  choose 'Fixed' and then add the note title in the next setting
-- InboxTitle: If the previous setting is set to 'Fixed', this is where you set the Title of that note. (Default: "📥 Inbox".)
+  - Inbox note title: If the previous setting is set to 'Fixed', this is where you set the Title of that note. (Default: "Inbox 📥".)
+  - Inbox Heading: If the first setting is 'Daily' or 'Weekly', this is the Heading that inbox items are added under. If not set, then it will append or prepend to the note (as set below).
 - Text to append to new inbox jots: optional text  (that can include hashtags, mentions or emojis) to add on the end of any text 'jots' captured to the inbox. By default it is '💡'.
 - Text to append to new inbox tasks: optional text  (that can include hashtags, mentions or emojis) to add on the end of any tasks captured to the inbox.
 - Where to add in notes?: either "prepend" (start) or "append" (end) in Inbox (and the other commands which use the term 'add'). Note: if the note has frontmatter, the item will be added _after_ that.

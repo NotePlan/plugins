@@ -57,7 +57,7 @@ export async function prependTaskToNote(
 ): Promise<void> {
   try {
     logDebug(pluginJson, `starting /qpt`)
-    const config: QCConfigType = await getQuickCaptureSettings()
+    // const config: QCConfigType = await getQuickCaptureSettings()
     let note: TNote
 
     if (noteTitleArg != null && noteTitleArg !== '') {
@@ -79,9 +79,9 @@ export async function prependTaskToNote(
     // Get text to use from arg0 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput(`Type the task`, `Prepend '%@' ${config.textToAppendToTasks}`)
+      : await CommandBar.showInput(`Type the task`, `Prepend '%@'`)
 
-    const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
+    const text = `${taskText}`.trimEnd()
     logDebug('prependTaskToNote', `- Prepending task '${text}' to '${displayTitleWithRelDate(note)}'`)
     smartPrependPara(note, text, 'open')
   } catch (err) {
@@ -103,8 +103,9 @@ export async function appendTaskToNote(
 ): Promise<void> {
   logDebug(pluginJson, `starting /qat`)
   try {
-    const config: QCConfigType = await getQuickCaptureSettings()
+    // const config: QCConfigType = await getQuickCaptureSettings()
     let note: TNote
+
     if (noteTitleArg != null && noteTitleArg !== '') {
       // Check this is a valid note first
       const wantedNotes = DataStore.projectNoteByTitle(noteTitleArg, true, false)
@@ -124,9 +125,9 @@ export async function appendTaskToNote(
     // Get text to use from arg0 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput(`Type the task`, `Append '%@' ${config.textToAppendToTasks}`)
+      : await CommandBar.showInput(`Type the task`, `Append '%@'`)
 
-    const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
+    const text = `${taskText}`.trimEnd()
     logDebug('appendTaskToNote', `- Appending task '${text}' to '${displayTitleWithRelDate(note)}'`)
     // note.appendTodo(text)
     smartAppendPara(note, text, 'open')
@@ -155,7 +156,6 @@ export async function addChecklistToNoteHeading(
   try {
     logDebug(pluginJson, `starting /qach with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
     const config = await getQuickCaptureSettings()
-
     // Start a longish sort job in the background
     CommandBar.onAsyncThread()
     const regularNotesProm: Array<TNote> = allNotesSortedByChanged() // Note: deliberately no await: this is resolved later
@@ -164,8 +164,8 @@ export async function addChecklistToNoteHeading(
     // Get text details from arg2 or user
     let checklistText = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput(`Type the checklist`, `Add checklist '%@' ${config.textToAppendToTasks}`)
-    checklistText = `${checklistText} ${config.textToAppendToTasks}`.trimEnd()
+      : await CommandBar.showInput(`Type the checklist`, `Add checklist '%@'`)
+    checklistText = `${checklistText}`.trimEnd()
 
     // Get heading level details from arg3 (or default to the config setting)
     const headingLevel = (headingLevelArg != null && headingLevelArg !== '' && !isNaN(headingLevelArg))
@@ -224,8 +224,8 @@ export async function addTaskToNoteHeading(
     // Get text details from arg2 or user
     let taskText = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput(`Type the task`, `Add task '%@' ${config.textToAppendToTasks}`)
-    taskText = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
+      : await CommandBar.showInput(`Type the task`, `Add task '%@'`)
+    taskText = `${taskText}`.trimEnd()
 
     // Get heading level details from arg3 (or default to the config setting)
     const headingLevel = (headingLevelArg != null && headingLevelArg !== '' && !isNaN(headingLevelArg))
@@ -289,7 +289,7 @@ export async function addTextToNoteHeading(
     // Get text details from arg2 or user
     const textToAdd = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput('Type the text to add', `Add text '%@' ${config.textToAppendToTasks}`)
+      : await CommandBar.showInput('Type the text to add', `Add text '%@'`)
 
     // Get heading level details from arg3
     const headingLevel = (headingLevelArg != null && headingLevelArg !== '' && !isNaN(headingLevelArg))
@@ -299,7 +299,6 @@ export async function addTextToNoteHeading(
 
     // Get note details from arg0 or user
     const regularNotes = await regularNotesProm // here's where we resolve the promise and have the sorted list
-    // const note = await getNoteFromParamOrUser('task', noteTitleArg, regularNotes)
     const note = await chooseNoteV2(`Select note for new text`, regularNotes, true, true, false, false)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
@@ -336,12 +335,11 @@ export async function prependTaskToCalendarNote(
   try {
     const config = await getQuickCaptureSettings()
     let note: ?TNote
-    const textToAppendToTasks = config.textToAppendToTasks ? ` ${config.textToAppendToTasks}` : ''
 
     // Get text to use from arg1 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput(`Type the task`, `Prepend task '%@'${textToAppendToTasks}`)
+      : await CommandBar.showInput(`Type the task`, `Prepend task '%@'`)
 
     // Get note details from arg0 or user
     if (dateArg != null && dateArg !== '') {
@@ -359,7 +357,7 @@ export async function prependTaskToCalendarNote(
     }
     logDebug('addTaskToNoteHeading(qath)', `-> '${displayTitle(note)}'`)
 
-    const text = `${taskText}${textToAppendToTasks}`.trimEnd()
+    const text = `${taskText}`.trimEnd()
     logDebug('prependTaskToCalendarNote', `- Prepending task '${text}' to '${displayTitleWithRelDate(note)}'`)
     smartPrependPara(note, text, 'open')
   } catch (err) {
@@ -383,12 +381,11 @@ export async function appendTaskToCalendarNote(
   try {
     const config = await getQuickCaptureSettings()
     let note: ?TNote
-    const textToAppendToTasks = config.textToAppendToTasks ? ` ${config.textToAppendToTasks}` : ''
 
     // Get text to use from arg1 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput(`Type the task`, `Append task '%@' ${textToAppendToTasks}`)
+      : await CommandBar.showInput(`Type the task`, `Append task '%@'`)
 
     // Get note details from arg0 or user
     if (dateArg != null && dateArg !== '') {
@@ -405,7 +402,7 @@ export async function appendTaskToCalendarNote(
     }
     logDebug('appendTaskToCalendarNote', `- from dateArg, daily note = '${displayTitleWithRelDate(note)}'`)
 
-    const text = `${taskText}${textToAppendToTasks}`.trimEnd()
+    const text = `${taskText}`.trimEnd()
     logDebug('appendTaskToCalendarNote', `- Appending task '${text}' to ${displayTitleWithRelDate(note)}`)
     smartAppendPara(note, text, 'open')
   } catch (err) {
@@ -434,7 +431,7 @@ export async function appendTaskToWeeklyNote(
     // Get text to use from arg0 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput(`Type the task`, `Add task '%@' ${config.textToAppendToTasks}`)
+      : await CommandBar.showInput(`Type the task`, `Add task '%@'`)
 
     // Get weekly note to use
     if (dateArg != null && dateArg !== '') {
@@ -451,7 +448,7 @@ export async function appendTaskToWeeklyNote(
     }
 
     if (note != null) {
-      const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
+      const text = `${taskText}`.trimEnd()
       logDebug(pluginJson, `- appending task '${text}' to ${displayTitleWithRelDate(note)}`)
       smartAppendPara(note, text, 'open')
       // note.appendTodo(text)
