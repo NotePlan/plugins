@@ -11,6 +11,7 @@ import { getRelativeDates } from './NPdateTime'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
 import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
+import { parseTeamspaceFilename } from './teamspace'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 function parseJSON5(contents: string): ?{ [string]: ?mixed } {
@@ -632,6 +633,11 @@ export function displayTitleWithRelDate(
   }
 }
 
+/**
+ * Get the display title and path for a regular note, with support for Teamspace notes.
+ * @param {CoreNoteFields} noteIn
+ * @returns {string}
+ */
 export function getDisplayTitleAndPathForRegularNote(noteIn: CoreNoteFields): string {
   if (noteIn.type === 'Calendar') {
     logError('getDisplayTitleAndPathForRegularNote', `Calendar note ${noteIn.filename} passed in`)
@@ -642,8 +648,18 @@ export function getDisplayTitleAndPathForRegularNote(noteIn: CoreNoteFields): st
     return noteIn.filename
   }
   const title = noteIn.title
-  const path = getFolderFromFilename(noteIn.filename)
-  const displayTitle = `${path !== '/' ? `${path}/` : ''} ${title}`
+  let displayTitle = ''
+  const possTeamspaceDetails = parseTeamspaceFilename(noteIn.filename)
+  if (possTeamspaceDetails.isTeamspace) {
+    const teamspaceName = possTeamspaceDetails.teamspaceID ? `[👥 ${getTeamspaceTitleFromID(possTeamspaceDetails.teamspaceID)}] ` : ''
+    const filenameToUse = possTeamspaceDetails.filename
+    const path = filenameToUse !== '' ? `${filenameToUse} / ` : ''
+    displayTitle = `${teamspaceName}${path}${title}`
+  } else {
+    const folder = getFolderFromFilename(noteIn.filename)
+    const path = folder === '/' ? '' : `${folder} / `
+    displayTitle = `${path}${title}`
+  }
   return displayTitle
 }
 
@@ -709,11 +725,12 @@ export async function chooseNote(
 
 /**
  * Choose a particular note from a list of notes shown to the user, with a number of display options.
+ * The 'regularNotes' parameter allows both a subset of notes to be used, and to allow the generation of the list (which can take appreciable time) to happen at a less noticeable time.
  * Note: no try-catch, so that failure can stop processing.
  * @author @jgclark, heavily extending earlier function by @dwertheimer
  * 
  * @param {string} promptText - text to display in the CommandBar
- * @param {Array<TNote>} regularNotes - a list of regular notes to choose from. If empty, all regular notes will be used (apart from Trash)
+ * @param {Array<TNote>} regularNotes - a list of regular notes to choose from. 
  * @param {boolean} includeCalendarNotes - include calendar notes in the list
  * @param {boolean} includeFutureCalendarNotes - include future calendar notes in the list
  * @param {boolean} currentNoteFirst - add currently open note to the front of the list
@@ -737,7 +754,7 @@ export async function chooseNoteV2(
   // Form the options to give to the CommandBar: titles of regular notes
   const opts = sortedNoteList.map((note) => {
     // Show titles with relative dates, but without path
-    return displayTitleWithRelDate(note, true, false)
+    return displayTitleWithRelDate(note, true, true)
   })
 
   // If wanted, add future calendar notes to the list, where not already present
@@ -776,7 +793,7 @@ export async function chooseNoteV2(
   // Now show the options to the user
   const { index } = await CommandBar.showOptions(opts, promptText)
   const noteToReturn = (opts[index].includes('[New note]'))
-    ? await getOrMakeCalendarNote(sortedNoteList[index].title)
+    ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '')
     : sortedNoteList[index]
   return noteToReturn ?? null
 }

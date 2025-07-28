@@ -40,7 +40,7 @@ export function parseTeamspaceFilename(filenameIn: string): { filename: string, 
   if (isPossibleTeamspaceFilename) {
     const filename = filenameIn.split('/')[2]
     const teamspaceID = isPossibleTeamspaceFilename[1]
-    logDebug('parseTeamspaceFilename', `Teamspace filename: ${filename} / teamspaceID: ${teamspaceID} (from ${filenameIn})`)
+    // logDebug('parseTeamspaceFilename', `Teamspace filename: ${filename} / teamspaceID: ${teamspaceID} (from ${filenameIn})`)
     return { filename: filename, isTeamspace: true, teamspaceID }
   } else {
     // logDebug('parseTeamspaceFilename', `filename ${filenameIn} is not a teamspace note`)
