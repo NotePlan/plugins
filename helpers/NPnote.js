@@ -149,7 +149,8 @@ export function getTeamspaceDetailsFromNote(note: TNote): TTeamspace | null {
 export function getNoteFromFilename(filenameIn: string): TNote | null {
   try {
     let foundNote: TNote | null = null
-    const { filename, isTeamspace, teamspaceID } = parseTeamspaceFilename(filenameIn)
+    // eslint-disable-next-line no-unused-vars
+    const { filename, filepath, isTeamspace, teamspaceID } = parseTeamspaceFilename(filenameIn)
     // logInfo('NPnote/getNoteFromFilename', `- filenameIn: ${filenameIn} / filename: ${filename} / isTeamspace: ${String(isTeamspace)} /  teamspaceID: ${String(teamspaceID)}`)
     if (isTeamspace) {
       if (!teamspaceID) {
@@ -1171,6 +1172,25 @@ export function getOrMakeCalendarNote(calendarDateStr: string): ?TNote {
     return calendarNote
   } catch (err) {
     logError('NPnote/getOrMakeCalendarNote', `${err.name}: ${err.message}`)
+    return null
+  }
+}
+
+/**
+ * Get the noteType of a note from its filename
+ * Probably FIXME: need to update to support Teamspace notes
+ * @author @jgclark
+ * @param {string} filename of either Calendar or Notes type
+ * @returns {NoteType} Calendar | Notes
+ */
+export function getNoteTypeByFilename(filename: string): ?NoteType {
+  // logDebug('note/getNoteTypeByFilename', `Started for '${filename}'`)
+  const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
+  if (newNote != null) {
+    // logDebug('note/getNoteTypeByFilename', `-> note '${displayTitle(newNote)}`)
+    return newNote.type
+  } else {
+    logWarn('note/getNoteTypeByFilename', `-> couldn't find a note in either Notes or Calendar`)
     return null
   }
 }

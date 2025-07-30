@@ -279,24 +279,7 @@ export function getNoteByFilename(filename: string): ?TNote {
   }
 }
 
-/**
- * Get the noteType of a note from its filename
- * Probably FIXME: need to update to support Teamspace notes
- * @author @jgclark
- * @param {string} filename of either Calendar or Notes type
- * @returns {NoteType} Calendar | Notes
- */
-export function getNoteTypeByFilename(filename: string): ?NoteType {
-  // logDebug('note/getNoteTypeByFilename', `Started for '${filename}'`)
-  const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
-  if (newNote != null) {
-    // logDebug('note/getNoteTypeByFilename', `-> note '${displayTitle(newNote)}`)
-    return newNote.type
-  } else {
-    logWarn('note/getNoteTypeByFilename', `-> couldn't find a note in either Notes or Calendar`)
-    return null
-  }
-}
+// Note: getNoteByFilename has moved to NPnote.js. Import from '@helpers/NPnote' instead.
 
 // Note: getOrMakeRegularNoteInFolder has moved to NPnote.js. Import from '@helpers/NPnote' instead.
 

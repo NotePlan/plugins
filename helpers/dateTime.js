@@ -144,6 +144,7 @@ export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): strin
 export const nowUTCShortDateTimeISOString: string = moment().toISOString().replace('T', ' ').slice(0, 16)
 
 // Note: See getNoteType in note.js to get the type of a note
+// Note: these don't require DataStore calls
 export function isDailyNote(note: CoreNoteFields): boolean {
   const { filename } = parseTeamspaceFilename(note.filename)
   return new RegExp(RE_DAILY_NOTE_FILENAME).test(filename)
@@ -480,7 +481,7 @@ export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
 /**
  * Returns the NP string representation of a Calendar note's date, from its filename. Covers daily to yearly notes.
  * Extended in Apr 2025 to cover teamspace notes, which are prefixed with '[%%Supabase%%|%%NotePlanCloud%%]/<teamspaceID>/'
- * e.g. %%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md
+ * e.g. %%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md
  * Note: see related getDateStrForStartofPeriodFromCalendarFilename().
  * @param {string} filenameIn
  * @param {boolean} returnISODate - returns ISO daily note YYYY-MM-DD not actual filename YYYYMMDD

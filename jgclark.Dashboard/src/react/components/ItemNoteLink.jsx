@@ -57,6 +57,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
   // const linkStyle = 'folderName'
   const showNoteTitle = alwaysShowNoteTitle || item.para?.noteType === 'Notes' || filenameWithoutTeamspacePrefix !== thisSection.sectionFilename
 
+  // TODO: Break this out into a separate component
   let teamspaceIndicator = null
   if (isFromTeamspace) {
     const teamspaceTitle = item.teamspaceTitle && item.teamspaceTitle !== 'Unknown Teamspace' ? item.teamspaceTitle : ''

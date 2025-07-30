@@ -652,8 +652,10 @@ export function getDisplayTitleAndPathForRegularNote(noteIn: CoreNoteFields): st
   const possTeamspaceDetails = parseTeamspaceFilename(noteIn.filename)
   if (possTeamspaceDetails.isTeamspace) {
     const teamspaceName = possTeamspaceDetails.teamspaceID ? `[👥 ${getTeamspaceTitleFromID(possTeamspaceDetails.teamspaceID)}] ` : ''
-    const filenameToUse = possTeamspaceDetails.filename
-    const path = filenameToUse !== '' ? `${filenameToUse} / ` : ''
+    // const filenameToUse = possTeamspaceDetails.filename
+    // const path = filenameToUse !== '' ? `${filenameToUse} / ` : ''
+    let path = possTeamspaceDetails.filepath
+    path = path !== '/' ? `${path} / ` : ''
     displayTitle = `${teamspaceName}${path}${title}`
   } else {
     const folder = getFolderFromFilename(noteIn.filename)
