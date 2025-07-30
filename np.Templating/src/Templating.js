@@ -400,19 +400,11 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
 
           await Editor.openNoteByFilename(filename)
 
-          const lines = finalRenderedData.split('\n')
-          const startBlock = lines.indexOf('--')
-          const endBlock = startBlock === 0 ? lines.indexOf('--', startBlock + 1) : -1
+          const renderedTemplateHasFM = hasFrontMatter(finalRenderedData)
 
-          if (startBlock >= 0 && endBlock >= 0) {
-            lines[startBlock] = '---'
-            lines[endBlock] = '---'
-            const newContent = lines.join('\n')
-            Editor.content = newContent
-            logDebug(
-              pluginJson,
-              `TemplateDELETME templateQuickNote: ${filename} has note sub-frontmatter, so we replaced the existing content with the rendered frontmatter; note content is now: ${newContent}`,
-            )
+          if (renderedTemplateHasFM) {
+            Editor.content = finalRenderedData
+            updateFrontMatterVars(Editor, { title: newNoteTitle })
           } else {
             Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
           }
