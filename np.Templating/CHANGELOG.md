@@ -4,6 +4,9 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.10] 2025-07-30 @dwertheimer
+- Fix quick-note with frontmatter
+
 ## [2.0.9] 2025-07-27 @dwertheimer
 - Fix xcallback bug in append and insert
 
