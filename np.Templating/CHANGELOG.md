@@ -4,6 +4,9 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.9] 2025-07-27 @dwertheimer
+- Fix xcallback bug in append and insert
+
 ## [2.0.8] 2025-07-19 @dwertheimer
 - Insert/AppendTemplate on a blank notewith folder will create a new note in the folder and move the current note to the trash
 - Insert/AppendTemplate on a non-blank note with folder will prompt the user whether to move the current note to the folder

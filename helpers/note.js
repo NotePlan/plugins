@@ -20,7 +20,6 @@ import {
   RE_YEARLY_NOTE_FILENAME,
   isValidCalendarNoteFilename,
   isValidCalendarNoteTitleStr,
-  convertISOToYYYYMMDD,
 } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderListMinusExclusions, getFolderFromFilename, getRegularNotesInFolder, projectNotesFromFilteredFolders } from '@helpers/folders'
@@ -48,6 +47,7 @@ export function setTitle(note: CoreNoteFields, title: string): void {
       if (fmFields.hasOwnProperty('title')) {
         const newFmFields = { ...fmFields }
         newFmFields.title = title
+        // $FlowIgnore(incompatible-call)
         updateFrontMatterVars(note, newFmFields, true)
         titleIsChanged = true
       } else {
@@ -190,10 +190,15 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
   const hasExtension = noteName.endsWith('.md') || noteName.endsWith('.txt')
   const hasFolder = noteName.includes('/')
   const isCalendarNote = isValidCalendarNoteFilename(noteName) || isValidCalendarNoteTitleStr(noteName)
-  logDebug('note/getNote', `  isCalendarNote=${String(isCalendarNote)} ${isValidCalendarNoteFilename(noteName)} ${isValidCalendarNoteTitleStr(noteName)}`)
   logDebug(
     'note/getNote',
-    `  Will try to open filename: "${name} (${noteName})" using ${onlyLookInRegularNotes ? 'projectNoteByFilename' : 'noteByFilename'} ${hasExtension ? '' : ' (no extension)'} ${
+    `  isCalendarNote=${String(isCalendarNote)} isValidCalendarNoteFilename=${String(isValidCalendarNoteFilename(noteName))} isValidCalendarNoteTitleStr=${String(
+      isValidCalendarNoteTitleStr(noteName),
+    )}`,
+  )
+  logDebug(
+    'note/getNote',
+    `  Will try to open: "${name} (${noteName})" using ${onlyLookInRegularNotes ? 'projectNoteByFilename' : 'noteByFilename'} ${hasExtension ? '' : ' (no extension)'} ${
       hasFolder ? '' : ' (no folder)'
     } ${isCalendarNote ? ' (calendar note)' : ''}`,
   )
@@ -210,15 +215,15 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
     }
   } else {
     // not a filename, so try to find a note by title
-    logDebug('note/getNote', `  Trying to find note by title ${noteName} ${isCalendarNote ? ' (calendar note)' : ''}`)
+    logDebug('note/getNote', `  Trying to find note by title "${noteName}" ${isCalendarNote ? ' (calendar note)' : ''}`)
     if (isCalendarNote) {
-      logDebug('note/getNote', `  Trying to find calendar note by title ${noteName}`)
+      logDebug('note/getNote', `  Trying to find calendar note by title "${noteName}"`)
       if (onlyLookInRegularNotes) {
         logDebug('note/getNote', `  Trying to find calendar note by title ${name}`)
         // deal with the edge case of someone who has a project note with a title that could be a calendar note
         const potentialNotes = DataStore.projectNoteByTitle(name)
         if (potentialNotes && potentialNotes.length > 0) {
-          theNote = potentialNotes.find((n) => n.filename.startsWith(filePathStartsWith))
+          theNote = potentialNotes.find((n) => n.filename.startsWith(filePathStartsWith || ''))
         }
       } else {
         logDebug('note/getNote', `  Trying to find calendar note by date string ${noteName}`)
@@ -250,11 +255,9 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
         theNote = filteredNotes.length > 0 ? filteredNotes[0] : null
 
         logDebug(
-          `  Found ${potentialNotes.length} notes by title "${noteName}"; ${
-            filteredNotes.length
-          } matched path "${pathWithoutTitle}" and filePathStartsWith "${filePathStartsWith}" (${theNote?.filename || ''}); others were: [${potentialNotes
-            .map((n) => n.filename)
-            .join(', ')}]`,
+          `  Found ${potentialNotes.length} notes by title "${noteName}"; ${filteredNotes.length} matched path "${pathWithoutTitle}" and filePathStartsWith "${
+            filePathStartsWith || ''
+          }" (${theNote?.filename || ''}); others were: [${potentialNotes.map((n) => n.filename).join(', ')}]`,
         )
       }
     }
