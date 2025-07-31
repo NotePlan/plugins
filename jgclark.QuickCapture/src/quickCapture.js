@@ -31,7 +31,7 @@ import {
   findHeadingStartsWith,
   findStartOfActivePartOfNote,
   smartAppendPara,
-  // smartCreateSectionsAndPara,
+  smartCreateSectionsAndPara,
   smartPrependPara
 } from '@helpers/paragraph'
 import {
@@ -473,7 +473,8 @@ export async function appendTextToDailyJournal(textArg?: string = ''): Promise<v
     logDebug(pluginJson, `starting /qaj with arg0='${textArg}'`)
     const todaysDateStr = getTodaysDateUnhyphenated()
     const config = await getQuickCaptureSettings()
-
+    const journalHeading = config.journalHeading || ''
+    logDebug('appendTextToDailyJournal', `journalHeading = ${journalHeading}`)
     // Get input either from passed argument or ask user
     const text = (textArg != null && textArg !== '')
       ? textArg
@@ -481,10 +482,12 @@ export async function appendTextToDailyJournal(textArg?: string = ''): Promise<v
 
     const note = DataStore.calendarNoteByDate(new Date(), 'day')
     if (note != null) {
-      const matchedHeading = findHeadingStartsWith(note, config.journalHeading)
-      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
+      const matchedHeading = findHeadingStartsWith(note, journalHeading)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
-      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
+      // note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
+      const headingToUse = matchedHeading ? matchedHeading : journalHeading
+      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} with matchedHeading '${matchedHeading}' to heading '${headingToUse}' at level ${config.headingLevel}`)
+      smartCreateSectionsAndPara(note, text, 'text', [headingToUse], config.headingLevel, config.shouldAppend)
     } else {
       throw new Error(`Cannot find daily note for ${todaysDateStr}`)
     }
