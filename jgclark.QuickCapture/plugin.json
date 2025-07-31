@@ -22,7 +22,8 @@
       "jsFunction": "addTaskToInbox",
       "arguments": [
         "text to add",
-        "title of destination note (or 'Daily' or 'Weekly')"
+        "title of destination note (or 'Daily' or 'Weekly')",
+        "heading to add under (optional)"
       ]
     },
     {
@@ -35,7 +36,8 @@
       "jsFunction": "addJotToInbox",
       "arguments": [
         "text to add",
-        "title of destination note (or 'Daily' or 'Weekly')"
+        "title of destination note (or 'Daily' or 'Weekly')",
+        "heading to add under (optional)"
       ]
     },
     {
@@ -227,56 +229,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Inbox settings"
-    },
-    {
-      "key": "inboxLocation",
-      "title": "Where is your Inbox note?",
-      "description": "Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note.\nOr  choose 'Fixed' and then add the note title in the next setting.",
-      "type": "string",
-      "choices": [
-        "Daily",
-        "Weekly",
-        "Fixed"
-      ],
-      "default": "Weekly note",
-      "required": true
-    },
-    {
-      "key": "inboxTitle",
-      "title": "Inbox note title",
-      "description": "If the first setting is 'Fixed', this is where you set the Title of that note. Default \"📥 Inbox\"",
-      "type": "string",
-      "default": "Inbox 📥",
-      "required": false
-    },
-    {
-      "key": "inboxHeading",
-      "title": "Inbox Heading",
-      "description": "If the first setting is 'Daily' or 'Weekly', this is the Heading that inbox items are added under. If not set, then it will append or prepend to the note (as set below).",
-      "type": "string",
-      "default": "📥 Inbox",
-      "required": false
-    },
-    {
-      "key": "textToAppendToJots",
-      "type": "string",
-      "title": "Text to append to new inbox jots",
-      "description": "Optional text (that can include hashtags, mentions or emojis) that will be appended to all new text jots captured to the inbox.",
-      "default": "💡",
-      "required": false
-    },
-    {
-      "key": "textToAppendToTasks",
-      "type": "string",
-      "title": "Text to append to new inbox tasks",
-      "description": "Optional text (that can include hashtags, mentions or emojis) that will be appended to all new tasks captured to the inbox.",
-      "default": "",
-      "required": false
-    },
-    {
-      "type": "heading",
-      "title": "Other settings"
+      "title": "General settings"
     },
     {
       "key": "addInboxPosition",
@@ -299,10 +252,63 @@
       "required": true
     },
     {
+      "type": "heading",
+      "title": "Inbox settings"
+    },
+    {
+      "key": "inboxLocation",
+      "title": "Where is your Inbox note?",
+      "description": "Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note.\nOr  choose 'Fixed' and then add the note title in the next setting.",
+      "type": "string",
+      "choices": [
+        "Daily",
+        "Weekly",
+        "Fixed"
+      ],
+      "default": "Weekly note",
+      "required": true
+    },
+    {
+      "key": "inboxTitle",
+      "title": "Inbox note title",
+      "description": "If the Inbox note setting is 'Fixed', this is where you set the Title of that note. Default \"📥 Inbox\"",
+      "type": "string",
+      "default": "Inbox 📥",
+      "required": false
+    },
+    {
+      "key": "inboxHeading",
+      "title": "Inbox Heading",
+      "description": "If the Inbox note setting is 'Daily' or 'Weekly', this is the Heading that inbox items are added under. If not set, then it will append or prepend to the note (as set below).",
+      "type": "string",
+      "default": "📥 Inbox",
+      "required": false
+    },
+    {
+      "key": "textToAppendToJots",
+      "type": "string",
+      "title": "Text to append to new inbox jots",
+      "description": "Optional text (that can include hashtags, mentions or emojis) that will be appended to all new text jots captured to the inbox.",
+      "default": "💡",
+      "required": false
+    },
+    {
+      "key": "textToAppendToTasks",
+      "type": "string",
+      "title": "Text to append to new inbox tasks",
+      "description": "Optional text (that can include hashtags, mentions or emojis) that will be appended to all new tasks captured to the inbox.",
+      "default": "",
+      "required": false
+    },
+    {
+      "type": "heading",
+      "title": "Journal settings"
+    },
+    {
       "key": "journalHeading",
       "type": "string",
       "title": "Heading for your Journal entries",
-      "description": "Optional heading to add your journal entries under with /quick add to journal ... commands",
+      "description": "Optional heading to add your journal entries under with '/quick add to ... journal' commands",
       "default": "Journal",
       "required": false
     },
