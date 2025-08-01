@@ -7,7 +7,7 @@
  * -----------------------------------------------------------------------------------------*/
 
 import { log, logError, logDebug, logWarn } from '@helpers/dev'
-import { chooseOption, chooseFolder } from '@helpers/userInput'
+import { chooseOption, chooseFolder, showMessageYesNo } from '@helpers/userInput'
 import pluginJson from '../../plugin.json'
 import FrontmatterModule from '../support/modules/FrontmatterModule'
 import { normalizeToNotePlanFilename } from '../utils'
@@ -519,10 +519,32 @@ export async function templateExists(title: string = ''): Promise<boolean> {
 export async function getFolder(folder: string = '', promptMessage: string = 'Select folder'): Promise<string> {
   let selectedFolder = folder
   const folders = DataStore.folders
-  if (/select|choose/i.test(folder) || Editor?.type === 'Calendar' || selectedFolder.length === 0) {
-    selectedFolder = await chooseFolder(promptMessage, false, true)
-  } else if (folder == '<current>') {
-    const currentFilename = Editor.note?.filename
+  const isSelectFolder = /<select|<choose/i.test(folder)
+  const startFolder =
+    (folder.startsWith('<select ') || folder.startsWith('<SELECT ') || folder.startsWith('<choose ') || folder.startsWith('<CHOOSE ')) && folder.endsWith('>')
+      ? folder.slice(7, -1).trim()
+      : ''
+  const isCurrentFolder = /<current>/i.test(folder)
+  let folderExists = (!isSelectFolder && folders.includes(folder)) || (isSelectFolder && startFolder && folders.includes(startFolder))
+  logDebug(
+    pluginJson,
+    `getFolder: folder="${folder}" promptMessage="${promptMessage}" selectedFolder="${selectedFolder}" isSelectFolder="${String(isSelectFolder)}" folderExists="${String(
+      folderExists,
+    )}"`,
+  )
+  let createFolder = false
+  if (selectedFolder && !isSelectFolder && !folderExists && !isCurrentFolder) {
+    const wantToCreateFolder = await showMessageYesNo(`Folder "${folder}" does not exist. Create it?`, ['Yes', 'No'], 'Create Folder?')
+    if (wantToCreateFolder === 'No') {
+      selectedFolder = ''
+    } else {
+      folderExists = true // let it through and the note will be created in the new folder
+    }
+  }
+  if ((isSelectFolder && !startFolder) || (!isCurrentFolder && !folderExists) || (isCurrentFolder && Editor.type === 'Calendar')) {
+    const startFolder = (selectedFolder = await chooseFolder(promptMessage, false, true))
+  } else if (isCurrentFolder) {
+    const currentFilename = Editor?.filename
 
     if (typeof currentFilename === 'undefined') {
       selectedFolder = await chooseFolder(promptMessage, false, true)
@@ -533,7 +555,7 @@ export async function getFolder(folder: string = '', promptMessage: string = 'Se
         selectedFolder = parts.join('/')
       }
     }
-  } else if ((folder.startsWith('<select ') || folder.startsWith('<SELECT ') || folder.startsWith('<choose ') || folder.startsWith('<CHOOSE ')) && folder.endsWith('>')) {
+  } else if (startFolder) {
     // find the value inside the <select> tag
     // get everything after <select and before > including spaces
     const f = folder.slice(7, -1).trim()
