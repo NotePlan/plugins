@@ -22,7 +22,12 @@ import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
  * @param {Date} dailyNoteDate -> (optional) Date of the daily note, if not set the current editor will be used
  */
 export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Date, timeframe: string, shouldReplaceContent: boolean = false): Promise<void> {
-  logDebug(pluginJson, 'insertNoteTemplate')
+  logDebug(
+    pluginJson,
+    `insertNoteTemplate starting: origFileName:"${origFileName}", dailyNoteDate:"${dailyNoteDate?.toLocaleDateString() || ''}", timeframe:"${
+      timeframe || ''
+    }", shouldReplaceContent:"${String(shouldReplaceContent)}"`,
+  )
   const templateFilename = await chooseTemplateIfNeeded(origFileName, false)
   if (!templateFilename) {
     return
@@ -44,6 +49,7 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
   const { frontmatterBody: templateBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateContent])
 
   // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
+  logDebug(pluginJson, `insertNoteTemplate: about to checkAndProcessFolderAndNewNoteTitle`)
   if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
 
   logDebug(pluginJson, `render() template with frontmatterAttributes: [${Object.keys(frontmatterAttributes).join(', ')}]`)

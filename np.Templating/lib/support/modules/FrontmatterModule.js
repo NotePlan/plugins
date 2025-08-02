@@ -21,6 +21,7 @@ export default class FrontmatterModule {
 
   isFrontmatterTemplate(templateData: string): boolean {
     // First check if the template has the frontmatter structure (starts with --- and has another ---)
+    if (!templateData.startsWith('---')) return false
     const lines = templateData.split('\n')
     if (lines.length >= 2 && lines[0].trim() === '---') {
       // Find the second --- separator
@@ -30,12 +31,14 @@ export default class FrontmatterModule {
         }
       }
     }
-
     // Fallback to the original method for edge cases
-    const parts = getSanitizedFmParts(templateData)
-    const hasAttributes = parts?.attributes && Object.keys(parts.attributes).length > 0
-    logDebug(pluginJson, `FrontmatterModule.isFrontmatterTemplate: Fallback check - hasAttributes=${String(hasAttributes)}`)
-    return hasAttributes
+    // dbw note 2025-08-02: I can't imagine why this would ever be needed, so commenting out for now
+    // FIXME: remove this in the future if no edge cases are discovered
+    // const parts = getSanitizedFmParts(templateData)
+    // const hasAttributes = parts?.attributes && Object.keys(parts.attributes).length > 0
+    // logDebug(pluginJson, `FrontmatterModule.isFrontmatterTemplate: Fallback check - hasAttributes=${String(hasAttributes)} templateData:"${templateData}"`)
+    // return hasAttributes
+    return false
   }
 
   getFrontmatterBlock(templateData: string): string {

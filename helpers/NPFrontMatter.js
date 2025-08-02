@@ -770,9 +770,9 @@ export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: b
     // logError(`Frontmatter getAttributes error. COULD NOT SANITIZE CONTENT: "${error.message}". Returning empty values for this note: "${JSON.stringify(noteText)}"`)
 
     // Add debug logging to understand why fm library failed
-    logDebug(pluginJson, `getSanitizedFmParts: fm library failed with error: ${error.message}`)
-    logDebug(pluginJson, `getSanitizedFmParts: Original text: ${noteText.substring(0, 200)}...`)
-    logDebug(pluginJson, `getSanitizedFmParts: Sanitized text: ${sanitizedText.substring(0, 200)}...`)
+    // logDebug(pluginJson, `getSanitizedFmParts: fm library failed with error: ${error.message}`)
+    // logDebug(pluginJson, `getSanitizedFmParts: Original text: ${noteText.substring(0, 200)}...`)
+    // logDebug(pluginJson, `getSanitizedFmParts: Sanitized text: ${sanitizedText.substring(0, 200)}...`)
 
     // When fm library fails, we need to manually extract the body and attributes
     // Check if the text has frontmatter structure (starts with --- and has another ---)

@@ -2,6 +2,7 @@
 
 import { logDebug } from './dev'
 import { showMessageYesNo, showMessage } from './userInput'
+import { getFolderFromFilename } from '@helpers/folders'
 
 /**
  * Run Editor.save() if active Editor is dirty and needs saving
@@ -37,13 +38,15 @@ export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, 
   const isEditorEmpty = editorIsEmpty()
   const theFolder = frontmatterAttributes?.folder?.trim() || ''
   const newNoteTitle = frontmatterAttributes?.newNoteTitle?.trim() || ''
+  logDebug(`checkAndProcessFolderAndNewNoteTitle starting: templateNote:"${templateNote?.title || ''}", frontmatterAttributes:${JSON.stringify(frontmatterAttributes)}`)
   if (theFolder.length > 0 || newNoteTitle.length > 0) {
     if (isEditorEmpty) {
-      logDebug(`insertNoteTemplate: template has folder attribute, so moving empty note to trash and creating a new note in the folder`)
+      logDebug(`insertNoteTemplate: template has folder:"${theFolder}", newNoteTitle:"${newNoteTitle}", so moving empty note to trash and creating a new note in the folder`)
       // invoke the template with the folder attribute
       const emptyNoteFilename = Editor.filename
       const templateTitle = templateNote?.title
-      const argsArray = [templateTitle, theFolder, newNoteTitle]
+      const folderToUse = theFolder.length > 0 ? theFolder : getFolderFromFilename(Editor.filename)
+      const argsArray = [templateTitle, folderToUse === '/' ? '' : folderToUse, newNoteTitle, frontmatterAttributes]
       await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
       // move the empty note to the trash
       await DataStore.moveNote(emptyNoteFilename, '@Trash')

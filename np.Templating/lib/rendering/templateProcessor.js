@@ -46,6 +46,10 @@ import { log, logError, logDebug, logWarn, clo } from '@helpers/dev'
 export function logProgress(stepDescription: string, templateData: string, sessionData?: Object, userOptions?: Object): void {
   const verbose = Boolean(sessionData && sessionData.verboseLog)
   logDebug(`🔄 TEMPLATE PROCESSOR: ${stepDescription}${verbose ? ' (verboseLog)' : ''}`)
+  if (!templateData) {
+    logDebug(`🔄 TEMPLATE PROCESSOR PROBLEM FYI: logProgress called with empty templateData`)
+    return
+  }
 
   // Only log template data if verbose mode is on or if it's a key step
   const isStart = stepDescription.includes('START')
