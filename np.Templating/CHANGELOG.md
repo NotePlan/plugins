@@ -4,6 +4,9 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.12] 2025-08-02 @dwertheimer
+- Fix templateNew to handle blank meeting note edge case
+
 ## [2.0.11] 2025-07-31 @dwertheimer
 - Fix getFolder to handle <select XXX> and to honor folder attribute in quick-note templates
 

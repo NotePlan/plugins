@@ -131,6 +131,7 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
       const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
       // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
+      logDebug(pluginJson, `templateInsert: about to checkAndProcessFolderAndNewNoteTitle`)
       if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
 
       // $FlowIgnore
@@ -169,6 +170,7 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
       // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
+      logDebug(pluginJson, `templateAppend: about to checkAndProcessFolderAndNewNoteTitle`)
       if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
 
       // Create frontmatter object that includes BOTH the attributes AND the methods
@@ -287,13 +289,34 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
 
     let folder = _folder ?? ''
+    let frontmatterBody, frontmatterAttributes
+    logDebug(
+      pluginJson,
+      `templateNew: before renderFrontmatter:\n\targs:${JSON.stringify(Object.keys(typeof args === 'string' ? {} : args))}\n\ttemplateAttributes:${JSON.stringify(
+        Object.keys(templateAttributes),
+      )}`,
+    )
+    // In the case we have been passed rendered arguments (e.g. from the /insert button that rendered the frontmatter already)
+    // if every property in templateAttributes is in args, then we can use args to render the template
+    const argsKeys = typeof args === 'object' ? Object.keys(args) : []
+    const templateAttributesKeys = Object.keys(templateAttributes)
+    logDebug(pluginJson, `templateNew: argsKeys:${JSON.stringify(argsKeys)}\ntemplateAttributesKeys:${JSON.stringify(templateAttributesKeys)}`)
+    const allArgsKeysAreInTemplateAttributes = templateAttributesKeys.length && argsKeys.length && templateAttributesKeys.every((key) => argsKeys.includes(key))
+    if (allArgsKeysAreInTemplateAttributes) {
+      //FIXMME: it is going down this path but the frontmatterBody is empty
+      frontmatterAttributes = typeof args === 'object' ? args : {}
+      frontmatterBody = new FrontmatterModule().body(templateData)
+      logDebug(pluginJson, `templateNew: after skipping renderFrontmatter:\nfrontmatterBody:"${frontmatterBody}"\nfrontmatterAttributes:${JSON.stringify(frontmatterAttributes)}`)
+    } else {
+      logDebug(pluginJson, `templateNew: about to renderFrontmatter`)
+      const { frontmatterBody: fBody, frontmatterAttributes: fAttributes } = await NPTemplating.renderFrontmatter(templateData, args)
+      frontmatterBody = fBody
+      frontmatterAttributes = { ...fAttributes, ...(typeof args === 'object' ? args : {}) }
+    }
+    logDebug(pluginJson, `templateNew: after renderFrontmatter:\nfrontMatterBody:"${frontmatterBody}"\nfrontMatterAttributes:${JSON.stringify(frontmatterAttributes, null, 2)}`)
 
-    let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData, args)
-    frontmatterAttributes = { ...frontmatterAttributes, ...(typeof args === 'object' ? args : {}) }
-
-    // select/choose is by default not closed because it could contain a folder name
+    // select/choose is by default not closed with > because it could contain a folder name
     if (/<select|<choose|<current>/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {
-      // dbw note: I'm not sure I understand the second part of this condition, but it's always been that way, so not changing it
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
 
