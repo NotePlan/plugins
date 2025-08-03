@@ -323,6 +323,19 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
 }
 
 /**
+ * Return list of all regular notes, sorted by changed date (newest to oldest)
+ * @author @jgclark
+ * @param {Array<string>} foldersToExclude? (default: [])
+ * @return {Array<TNote>} array of notes
+ */
+export function allRegularNotesSortedByChanged(foldersToIgnore: Array<string> = []): Array<TNote> {
+  const regularNotes = projectNotesFromFilteredFolders(foldersToIgnore, true)
+  // $FlowIgnore(unsafe-arithmetic)
+  const regularNotesSorted = regularNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  return regularNotesSorted
+}
+
+/**
  * Return list of all notes, first Project notes (sorted by title) then Calendar notes (sorted by increasing date ~ title)
  * @author @jgclark
  * @param {Array<string>} foldersToExclude? (default: [])
