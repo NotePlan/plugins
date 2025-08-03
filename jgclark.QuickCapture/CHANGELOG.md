@@ -1,7 +1,7 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
-## [0.17.0] - 2025-07-???
+## [0.17.0] - 2025-08-???
 ### New
 - commands where you can select a calendar note to use from the command bar, now 
   - show and allow you to pick future calendar notes, even that haven't already been created.

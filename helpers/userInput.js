@@ -37,7 +37,7 @@ export type Option<T> = $ReadOnly<{
  * @param {string} message - text to display to user
  * @param {Array<T>} options - array of label:value options to present to the user
  * @param {TDefault} defaultValue - (optional) default value to use (default: options[0].value)
- * @return {TDefault} - the value attribute of the user-chosen item
+ * @returns {TDefault} - the value attribute of the user-chosen item
  */
 export async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnlyArray<Option<T>>, defaultValue: TDefault | null = null): Promise<T | TDefault> {
   const { index } = await CommandBar.showOptions(
@@ -48,27 +48,38 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
 }
 
 /**
- * Ask user to choose from a set of options (from nmn.sweep) using CommandBar
+ * Ask user to choose from a set of options using CommandBar
  * @author @dwertheimer based on @nmn chooseOption
  *
  * @param {string} message - text to display to user
  * @param {Array<T>} options - array of label:value options to present to the user
- * @return {{ label:string, value:string, index: number, keyModifiers: Array<string> }} - the value attribute of the user-chosen item
+ * @returns {{ label:string, value:string, index: number, keyModifiers: Array<string> }} - the value attribute of the user-chosen item
  * keyModifiers is an array of 0+ strings, e.g. ["cmd", "opt", "shift", "ctrl"] that were pressed while selecting a result.
  */
-// @nmn we need some $FlowFixMe
-export async function chooseOptionWithModifiers<T, TDefault = T>(
+// export async function chooseOptionWithModifiers<T, TDefault = T>(
+// message: string,
+// options: $ReadOnlyArray<Option<T>> | Array< TCommandBarOptionObject>,
+// ): Promise<{ ...TDefault, index: number, keyModifiers: Array<string> }> {
+// $FlowFixMe[prop-missing]
+export async function chooseOptionWithModifiers(
   message: string,
-  options: $ReadOnlyArray<Option<T>>,
-): Promise<{ ...TDefault, index: number, keyModifiers: Array<string> }> {
+  options: Array<string | TCommandBarOptionObject>,
+): Promise<TCommandBarResultObject> {
   logDebug('userInput / chooseOptionWithModifiers()', `About to showOptions with ${options.length} options & prompt:"${message}"`)
-  // $FlowFixMe[prop-missing]
-  const { index, keyModifiers } = await CommandBar.showOptions(
-    options.map((option) => option.label),
-    message,
-  )
-  // $FlowFixMe[incompatible-return]
-  return { ...options[index], index, keyModifiers }
+  // Check if the first option is a TCommandBarOptionObject (has a 'text' property)
+  if (typeof options[0] === 'object') {
+    // Use newer CommandBar.showOptions() from v3.18
+    const { index, keyModifiers } = await CommandBar.showOptions(options, message)
+    // $FlowFixMe[prop-missing]
+    return { value: (options[index]).text ?? '', index, keyModifiers }
+  } else {
+    // Use older CommandBar.showOptions() before v3.18
+    const { index, keyModifiers } = await CommandBar.showOptions(
+      options.map((option) => option),
+      message)
+    // $FlowFixMe[incompatible-return]
+    return { value: options[index] ?? '', index, keyModifiers }
+  }
 }
 
 /**
@@ -216,6 +227,7 @@ export async function chooseFolder(msg: string,
     const maxLengthFolderPathToShow = 50 // OK on desktop and iOS, at least for @jgclark
     const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
     const NEW_FOLDER = `➕ (Add New Folder${ IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : '' })`
+    const teamspaceDefs = getAllTeamspaceIDsAndTitles()
     let folder: string
     let folders = []
     if (includeNewFolderOption) {
@@ -238,17 +250,16 @@ export async function chooseFolder(msg: string,
     let value: string = ''
     let keyModifiers: Array<string> = []
     if (folders.length > 0) {
-      // get list of teamspaces
-      const teamspaceDefs = getAllTeamspaceIDsAndTitles()
-      clo(teamspaceDefs)
+
+      const simpleFolderOptions: Array<{ label: string, value: string }> = []
+      const decoratedFolderOptions: Array<TCommandBarOptionObject> = []
 
       // make a slightly fancy list with indented labels, different from plain values
-      const folderOptionList: Array<any> = []
       for (const f of folders) {
         // logDebug(`helpers / userInput`, `chooseFolder f:${ f }`)
         const isTeamspaceFolder = teamspaceDefs.some((teamspaceDef) => f.includes(teamspaceDef.id))
         if (f === NEW_FOLDER) {
-          folderOptionList.push({ label: NEW_FOLDER, value: NEW_FOLDER })
+          simpleFolderOptions.push({ label: NEW_FOLDER, value: NEW_FOLDER })
         } else if (f !== '/') {
           let folderLabel = ''
           const folderParts = f.split('/')
@@ -284,13 +295,20 @@ export async function chooseFolder(msg: string,
   folderParts[folderParts.length - 1] = `${icon} ${folderParts[folderParts.length - 1]}`
   folderLabel = folderParts.join('')
 }
-folderOptionList.push({ label: folderLabel, value: f })
+          simpleFolderOptions.push({ label: folderLabel, value: f })
+          // TODO: finish this
+          decoratedFolderOptions.push({
+            text: folderLabel,
+            icon: icon,
+            shortDescription: '',
+            color: 'grey-500',
+          })
         } else {
   // deal with special case for root folder
-  folderOptionList.push({ label: '📁 /', value: '/' })
+          simpleFolderOptions.push({ label: '📁 /', value: '/' })
 }
       }
-; ({ value, keyModifiers } = await chooseOptionWithModifiers(msg, folderOptionList))
+      const { value, keyModifiers } = await chooseOptionWithModifiers(msg, simpleFolderOptions.map((option) => option.label))
 if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
   folder = NEW_FOLDER
 } else {
@@ -746,17 +764,51 @@ export async function chooseNoteV2(
   includeFutureCalendarNotes?: boolean = false,
   currentNoteFirst?: boolean = false,
   allowNewRegularNoteCreation?: boolean = false,
-): Promise<TNote | null> {
+): Promise<?TNote> {
   let noteList: Array<TNote> = regularNotes
   if (includeCalendarNotes) {
     noteList = noteList.concat(DataStore.calendarNotes)
   }
   // $FlowIgnore[unsafe-arithmetic]
   const sortedNoteList = noteList.sort((first, second) => second.changedDate - first.changedDate) // most recent first
-  // Form the options to give to the CommandBar: titles of regular notes
-  const opts = sortedNoteList.map((note) => {
-    // Show titles with relative dates, but without path
-    return displayTitleWithRelDate(note, true, true)
+  // Form the options to give to the CommandBar.
+  // Note: We will set up the more advanced options for the `CommandBar.showOptions` call, but downgrade them if we're not running v3.18+ (b1413)
+  /**
+   * type TCommandBarOptionObject = {
+   * text: string,
+   * icon?: string,
+   * shortDescription?: string,
+   * color?: string,
+   * shortcutColor?: string,
+   * alpha?: number,
+   * darkAlpha?: number,
+   * }
+   */
+
+  // Start with titles of regular notes
+  const opts: Array<TCommandBarOptionObject> = sortedNoteList.map((note) => {
+    // Show titles with relative dates, but without path TODO:
+    const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
+    if (possTeamspaceDetails.isTeamspace) {
+      return {
+        text: note.title ?? '(error)',
+        // icon: note.type === 'Calendar' ? 'calendar-day' : 'file-lines',
+        icon: 'file-lines',
+        color: 'green-500',
+        shortDescription: getTeamspaceTitleFromID(possTeamspaceDetails.teamspaceID ?? ''),
+        alpha: 0.6,
+        darkAlpha: 0.6,
+      }
+    } else {
+      return {
+        text: displayTitleWithRelDate(note, true, true),
+        icon: 'file-lines',
+        color: 'gray-500',
+        shortDescription: '',
+        alpha: 0.5,
+        darkAlpha: 0.5,
+      }
+    }
   })
 
   // If wanted, add future calendar notes to the list, where not already present
@@ -775,7 +827,15 @@ export async function chooseNoteV2(
           changedDate: weekAgoDate,
         }
         sortedNoteList.push(newNote)
-        opts.push(`${rd.dateStr}\t(📆 ${rd.relName})\t[New note]`)
+        opts.push({
+          text: `${rd.dateStr}\t${rd.relName}`,
+          // text: `${rd.dateStr}\t(📆 ${rd.relName})\t[New note]`,
+          icon: 'calendar-plus',
+          color: 'green-500',
+          shortDescription: 'New Note',
+          alpha: 0.5,
+          darkAlpha: 0.5,
+        })
       }
     }
   }
@@ -783,21 +843,50 @@ export async function chooseNoteV2(
   // Now set up other options for showOptions
   const { note } = Editor
   if (allowNewRegularNoteCreation) {
-    opts.unshift('[New note]')
+    opts.unshift({
+      text: '[New note]',
+      icon: 'plus',
+      color: 'green-500',
+      shortDescription: 'Add',
+      shortcutColor: 'green-500',
+      alpha: 0.5,
+      darkAlpha: 0.5,
+    })
     // $FlowIgnore[incompatible-call] just to keep the indexes matching; won't be used
     // $FlowIgnore[prop-missing]
     sortedNoteList.unshift({ title: '[New note]', type: 'Notes' }) // just keep the indexes matching
   }
   if (currentNoteFirst && note) {
     sortedNoteList.unshift(note)
-    opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
+    opts.unshift({
+      text: `[Current note: "${displayTitleWithRelDate(Editor)}"]`,
+      icon: 'calendar-day',
+      color: 'gray-500',
+      shortDescription: '',
+      alpha: 0.5,
+      darkAlpha: 0.5,
+    })
   }
+
   // Now show the options to the user
-  const { index } = await CommandBar.showOptions(opts, promptText)
-  const noteToReturn = (opts[index].includes('[New note]'))
-    ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '')
-    : sortedNoteList[index]
-  return noteToReturn ?? null
+  let noteToReturn = null
+  if (NotePlan.environment.buildVersion >= 1413) {
+    logInfo('chooseNoteV2', `Using 3.18's advanced options for CommandBar.showOptions call`)
+  // use the more advanced options to the `CommandBar.showOptions` call
+    const { index } = await CommandBar.showOptions(opts, promptText)
+    noteToReturn = (opts[index].text.includes('[New note]'))
+      ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '')
+      : sortedNoteList[index]
+  } else {
+    // FIXME: use the basic options for the `CommandBar.showOptions` call. Get this by producing a simple array from the main options array.
+    logInfo('chooseNoteV2', `Using pre-3.18's basic options for CommandBar.showOptions call`)
+    const simpleOpts = opts.map((opt) => opt.text)
+    const { index } = await CommandBar.showOptions(simpleOpts, promptText)
+    noteToReturn = (simpleOpts[index].includes('[New note]'))
+      ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '')
+      : sortedNoteList[index]
+  }
+  return noteToReturn
 }
 
 /**

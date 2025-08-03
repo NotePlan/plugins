@@ -61,9 +61,8 @@ export function parseTeamspaceFilename(filenameIn: string): { filename: string, 
     const afterSecondSlash = filenameIn.split('/').slice(2).join('/')
 
     if (isCalendarNote) {
-      const filename = afterSecondSlash
-      logDebug('parseTeamspaceFilename', `Teamspace filename: ${filename} / teamspaceID: ${teamspaceID} (from ${filenameIn})`)
-      return { filename: filename, filepath: '', isTeamspace: true, teamspaceID }
+      logDebug('parseTeamspaceFilename', `Teamspace filename: ${afterSecondSlash} / teamspaceID: ${teamspaceID} (from ${filenameIn})`)
+      return { filename: afterSecondSlash, filepath: '', isTeamspace: true, teamspaceID }
     } else {
       // The final part of the filename is just a UUID, though you can get folder names before it.
       const filepath = afterSecondSlash.replace(lastPartOfFilename, '')
