@@ -1,6 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Specialised user input functions
+// Note: Most if not all use the CommandBar or DataStore APIs, so this really should be called 'NPUserInput.js'.
+//-----------------------------------------------------------------------------
 
 import json5 from 'json5'
 import moment from 'moment/min/moment-with-locales'
@@ -9,6 +11,7 @@ import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
 import { getFolderFromFilename } from './folders'
 import { getRelativeDates } from './NPdateTime'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
+import { calendarNotesSortedByChanged } from './note'
 import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 import { parseTeamspaceFilename } from './teamspace'
@@ -687,12 +690,12 @@ export function getDisplayTitleAndPathForRegularNote(noteIn: CoreNoteFields): st
  * Choose a particular note from a CommandBar list of notes
  * @author @dwertheimer extended by @jgclark to include 'relative date' indicators in displayed title
  * @param {boolean} includeProjectNotes
- * @param {boolean} includeCalendarNotes
- * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
- * @param {string} promptText - text to display in the CommandBar
- * @param {boolean} currentNoteFirst - add currently open note to the front of the list
- * @param {boolean} allowNewNoteCreation - add option for user to create new note to return instead of choosing existing note
- * @returns {TNote | null} note
+ * @param {boolean?} includeCalendarNotes
+ * @param {Array<string>?} foldersToIgnore - a list of folder names to ignore
+ * @param {string?} promptText - text to display in the CommandBar
+ * @param {boolean?} currentNoteFirst - add currently open note to the front of the list
+ * @param {boolean?} allowNewNoteCreation - add option for user to create new note to return instead of choosing existing note
+ * @returns {?TNote} note
  */
 export async function chooseNote(
   includeProjectNotes: boolean = true,
@@ -701,7 +704,7 @@ export async function chooseNote(
   promptText?: string = 'Choose a note',
   currentNoteFirst?: boolean = false,
   allowNewNoteCreation?: boolean = false,
-): Promise<TNote | null> {
+): Promise<?TNote> {
   let noteList: Array<TNote> = []
   const projectNotes = DataStore.projectNotes
   const calendarNotes = DataStore.calendarNotes
@@ -749,25 +752,26 @@ export async function chooseNote(
  * Note: no try-catch, so that failure can stop processing.
  * @author @jgclark, heavily extending earlier function by @dwertheimer
  * 
- * @param {string} promptText - text to display in the CommandBar
- * @param {Array<TNote>} regularNotes - a list of regular notes to choose from. 
- * @param {boolean} includeCalendarNotes - include calendar notes in the list
- * @param {boolean} includeFutureCalendarNotes - include future calendar notes in the list
- * @param {boolean} currentNoteFirst - add currently open note to the front of the list
- * @param {boolean} allowNewRegularNoteCreation - add option for user to create new note to return instead of choosing existing note
- * @returns {CoreNoteFields | null} note
+ * @param {string?} promptText - text to display in the CommandBar
+ * @param {Array<TNote>?} regularNotes - a list of regular notes to choose from. If not provided, all regular notes will be used.
+ * @param {boolean?} includeCalendarNotes - include calendar notes in the list
+ * @param {boolean?} includeFutureCalendarNotes - include future calendar notes in the list
+ * @param {boolean?} currentNoteFirst - add currently open note to the front of the list
+ * @param {boolean?} allowNewRegularNoteCreation - add option for user to create new note to return instead of choosing existing note
+ * @returns {?TNote} note
  */
 export async function chooseNoteV2(
-  promptText?: string = 'Choose a note',
-  regularNotes: Array<TNote> = [],
+  promptText: string = 'Choose a note',
+  regularNotes: $ReadOnlyArray<TNote> = DataStore.projectNotes,
   includeCalendarNotes?: boolean = true,
   includeFutureCalendarNotes?: boolean = false,
   currentNoteFirst?: boolean = false,
-  allowNewRegularNoteCreation?: boolean = false,
+  allowNewRegularNoteCreation?: boolean = true,
 ): Promise<?TNote> {
+  // $FlowIgnore[incompatible-type]
   let noteList: Array<TNote> = regularNotes
   if (includeCalendarNotes) {
-    noteList = noteList.concat(DataStore.calendarNotes)
+    noteList = noteList.concat(calendarNotesSortedByChanged())
   }
   // $FlowIgnore[unsafe-arithmetic]
   const sortedNoteList = noteList.sort((first, second) => second.changedDate - first.changedDate) // most recent first
@@ -787,13 +791,12 @@ export async function chooseNoteV2(
 
   // Start with titles of regular notes
   const opts: Array<TCommandBarOptionObject> = sortedNoteList.map((note) => {
-    // Show titles with relative dates, but without path TODO:
+    // Show titles with relative dates, but without path
     const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
     if (possTeamspaceDetails.isTeamspace) {
       return {
         text: note.title ?? '(error)',
-        // icon: note.type === 'Calendar' ? 'calendar-day' : 'file-lines',
-        icon: 'file-lines',
+        icon: note.type === 'Calendar' ? 'calendar-day' : 'file-lines',
         color: 'green-500',
         shortDescription: getTeamspaceTitleFromID(possTeamspaceDetails.teamspaceID ?? ''),
         alpha: 0.6,
@@ -801,12 +804,14 @@ export async function chooseNoteV2(
       }
     } else {
       return {
-        text: displayTitleWithRelDate(note, true, true),
-        icon: 'file-lines',
+        // text: displayTitleWithRelDate(note, true, true),
+        text: displayTitleWithRelDate(note, true, false),
+        icon: note.type === 'Calendar' ? 'calendar-day' : 'file-lines',
         color: 'gray-500',
-        shortDescription: '',
-        alpha: 0.5,
-        darkAlpha: 0.5,
+        // shortDescription: '',
+        shortDescription: note.type === 'Notes' ? getFolderFromFilename(note.filename) ?? '' : '',
+        alpha: 0.8,
+        darkAlpha: 0.8,
       }
     }
   })
