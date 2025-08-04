@@ -62,4 +62,30 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result.teamspaceID).toEqual('1b91b194-4c76-4a48-8d4d-4c499d64a919')
     })
   })
+
+  /*
+   * getFilenameWithoutTeamspaceID()
+   */
+  describe('getFilenameWithoutTeamspaceID()' /* function */, () => {
+    test('should parse a non-teamspace calendar filename', () => {
+      const result = t.getFilenameWithoutTeamspaceID('20250422.md')
+      expect(result).toEqual('20250422.md')
+    })
+    test('should parse a non-teamspace filename', () => {
+      const result = t.getFilenameWithoutTeamspaceID('TEST/teamspace testing.md')
+      expect(result).toEqual('TEST/teamspace testing.md')
+    })
+    test('should parse a Teamspace calendar filename', () => {
+      const result = t.getFilenameWithoutTeamspaceID('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
+      expect(result).toEqual('20250422.md')
+    })
+    test('should parse a Teamspace top-level regular note filename', () => {
+      const result = t.getFilenameWithoutTeamspaceID('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/5a31e9ea-732f-45ba-8464-11260522e0de')
+      expect(result).toEqual('5a31e9ea-732f-45ba-8464-11260522e0de')
+    })
+    test('should parse a Teamspace regular note filename in a folder', () => {
+      const result = t.getFilenameWithoutTeamspaceID('%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard Issues/9972af6a-ec7a-4fe5-87b9-9005aa0d122c')
+      expect(result).toEqual('Dashboard Issues/9972af6a-ec7a-4fe5-87b9-9005aa0d122c')
+    })
+  })
 })

@@ -8,7 +8,8 @@ import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
 import { formatISO9075, eachDayOfInterval, eachWeekendOfInterval, format, add } from 'date-fns'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
-import { parseTeamspaceFilename } from './teamspace'
+import { RE_TEAMSPACE_INDICATOR_AND_ID } from './regex'
+// import { parseTeamspaceFilename } from './teamspace'
 
 //-----------------------------------------------------------
 // CONSTANTS
@@ -146,27 +147,33 @@ export const nowUTCShortDateTimeISOString: string = moment().toISOString().repla
 // Note: See getNoteType in note.js to get the type of a note
 // Note: these don't require DataStore calls
 export function isDailyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // TEST: removal of this function call. (Which was trying (but failing) to remove a circular dependency.)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_DAILY_NOTE_FILENAME).test(filename)
 }
 
 export function isWeeklyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_WEEKLY_NOTE_FILENAME).test(filename)
 }
 
 export function isMonthlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_MONTHLY_NOTE_FILENAME).test(filename)
 }
 
 export function isQuarterlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_QUARTERLY_NOTE_FILENAME).test(filename)
 }
 
 export function isYearlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_YEARLY_NOTE_FILENAME).test(filename)
 }
 
@@ -479,8 +486,24 @@ export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
 }
 
 /**
+ * Remove the Teamspace ID from a filename, if it has one.
+ * Note: Deliberately not using DataStore calls.
+ * Note: This is a copy of the function in teamspace.js, to avoid a circular dependency.
+ * @param {string} filenameIn
+ * @returns {string} filename without Teamspace ID
+ */
+function getFilenameWithoutTeamspaceID(filenameIn: string): string {
+  const possibleTeamspaceFilename = filenameIn.match(RE_TEAMSPACE_INDICATOR_AND_ID)
+  if (possibleTeamspaceFilename) {
+    return filenameIn.replace(possibleTeamspaceFilename[0], '')
+  } else {
+    return filenameIn
+  }
+}
+
+/**
  * Returns the NP string representation of a Calendar note's date, from its filename. Covers daily to yearly notes.
- * Extended in Apr 2025 to cover teamspace notes, which are prefixed with '[%%Supabase%%|%%NotePlanCloud%%]/<teamspaceID>/'
+ * Extended in Apr 2025 to cover teamspace notes, which are prefixed with '%%NotePlanCloud%%/<teamspaceID>/'
  * e.g. %%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md
  * Note: see related getDateStrForStartofPeriodFromCalendarFilename().
  * @param {string} filenameIn
@@ -491,8 +514,7 @@ export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
 export function getDateStringFromCalendarFilename(filenameIn: string, returnISODate: boolean = false): string {
   try {
     // logDebug('gDSFCF', `for ${filenameIn} ...`)
-    const parsedDetails = parseTeamspaceFilename(filenameIn)
-    const filenameWithoutTeamspaceID = parsedDetails.filename
+    const filenameWithoutTeamspaceID = getFilenameWithoutTeamspaceID(filenameIn)
     // logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
 
     // Check for daily notes

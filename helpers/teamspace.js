@@ -10,12 +10,12 @@ import { RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME, RE_MONTHLY_NOTE_FILENA
 //-----------------------------------------------------------
 // CONSTANTS
 
-export const TEAMSPACE_FA_ICON = 'fa-regular fa-screen-users'
-
 // Match the filename for a Teamspace note (updated for v3.17.0)
 // Note: should really be using NotePlan.environment.teamspaceFilenamePrefix as part of the regex, but this needs to be available where NotePlan.environment is not available.
-export const RE_TEAMSPACE_NOTE_FILEPATH: RegExp = new RegExp(`^%%NotePlanCloud%%\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/`, 'i')
-export const RE_TEAMSPACE_NOTE_FILENAME: RegExp = new RegExp(`/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/`, 'i')
+// Following moved from teamspace.js to regex.js to avoid circular dependency
+import { RE_TEAMSPACE_INDICATOR_AND_ID } from './regex'
+
+export const TEAMSPACE_FA_ICON = 'fa-regular fa-screen-users'
 
 //-----------------------------------------------------------
 // FUNCTIONS
@@ -26,8 +26,26 @@ export const RE_TEAMSPACE_NOTE_FILENAME: RegExp = new RegExp(`/([0-9a-f]{8}-[0-9
  * @returns {boolean}
  */
 export function isTeamspaceNoteFromFilename(filenameIn: string): boolean {
-  const match = filenameIn.match(RE_TEAMSPACE_NOTE_FILEPATH)
+  const match = filenameIn.match(RE_TEAMSPACE_INDICATOR_AND_ID)
   return match !== null
+}
+
+/**
+ * Remove the Teamspace ID from a filename, if it has one.
+ * Note: Deliberately not using DataStore calls.
+ * @author @jgclark
+ * @tests in jest file teamspace.test.js
+ * 
+ * @param {string} filenameIn
+ * @returns {string} filename without Teamspace ID
+ */
+export function getFilenameWithoutTeamspaceID(filenameIn: string): string {
+  const possibleTeamspaceFilename = filenameIn.match(RE_TEAMSPACE_INDICATOR_AND_ID)
+  if (possibleTeamspaceFilename) {
+    return filenameIn.replace(possibleTeamspaceFilename[0], '')
+  } else {
+    return filenameIn
+  }
 }
 
 /**
@@ -40,12 +58,15 @@ export function isTeamspaceNoteFromFilename(filenameIn: string): boolean {
  * - teamspaceID: the ID of the teamspace if the note is a Teamspace note, undefined otherwise
  * Note: this deliberately doesn't use DataStore.* calls; another simpler function could be written that does.
  * Note: 'filename' is a rather odd thing for Teamspace regular notes: they are just are a UUID, without file extension
+ * @author @jgclark
+ * @tests in jest file teamspace.test.js
+ * 
  * @param {string} filenameIn - The full filename to check
  * @returns {{ filename: string, filepath: string, isTeamspace: boolean, teamspaceID?: string }}
  */
 export function parseTeamspaceFilename(filenameIn: string): { filename: string, filepath: string, isTeamspace: boolean, teamspaceID?: string } {
 
-  const possibleTeamspaceFilename = filenameIn.match(RE_TEAMSPACE_NOTE_FILEPATH)
+  const possibleTeamspaceFilename = filenameIn.match(RE_TEAMSPACE_INDICATOR_AND_ID)
   // Get the part after the last '/'
   const lastPartOfFilename = filenameIn.substring(filenameIn.lastIndexOf('/') + 1)
   // Note: could use DataStore.noteByFilename(filenameIn, 'Calendar'), and then note.type, but this method doesn't require a DataStore call
