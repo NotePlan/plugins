@@ -1290,6 +1290,143 @@ export async function getValuesForFrontmatterTag(
 }
 
 /**
+ * Analyze a template's structure to determine various characteristics
+ * @param {string} templateData - The template content to analyze
+ * @returns {Object} Analysis results with the following properties:
+ *   - hasNewNoteTitle: boolean - Whether template has 'newNoteTitle' in frontmatter
+ *   - hasOutputFrontmatter: boolean - Whether template has frontmatter in the output note (after the template frontmatter)
+ *   - hasOutputTitle: boolean - Whether template has a 'title' field in the output note's frontmatter
+ *   - hasInlineTitle: boolean - Whether template has an inline title (first non-frontmatter line starts with single #)
+ *   - templateFrontmatter: Object - The template's frontmatter attributes
+ *   - outputFrontmatter: Object - The output note's frontmatter attributes (if any)
+ *   - bodyContent: string - The template body content (after template frontmatter)
+ *   - inlineTitleText: string - The text of the inline title (if any)
+ */
+export function analyzeTemplateStructure(templateData: string): {
+  hasNewNoteTitle: boolean,
+  hasOutputFrontmatter: boolean,
+  hasOutputTitle: boolean,
+  hasInlineTitle: boolean,
+  templateFrontmatter: { [string]: string },
+  outputFrontmatter: { [string]: string },
+  bodyContent: string,
+  inlineTitleText: string,
+} {
+  try {
+    logDebug('analyzeTemplateStructure', `Analyzing template structure for template with ${templateData.length} characters`)
+
+    // Initialize return object
+    const result = {
+      hasNewNoteTitle: false,
+      hasOutputFrontmatter: false,
+      hasOutputTitle: false,
+      hasInlineTitle: false,
+      templateFrontmatter: {},
+      outputFrontmatter: {},
+      bodyContent: '',
+      inlineTitleText: '',
+    }
+
+    // Manually extract template frontmatter and body to handle malformed frontmatter
+    const lines = templateData.split('\n')
+    let templateFrontmatterEnd = -1
+    
+    // Find the end of template frontmatter (first --- block)
+    if (lines.length >= 2 && lines[0].trim() === '---') {
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim() === '---') {
+          templateFrontmatterEnd = i
+          break
+        }
+      }
+    }
+
+    if (templateFrontmatterEnd > 0) {
+      // Extract template frontmatter
+      const frontmatterLines = lines.slice(1, templateFrontmatterEnd)
+      const attributes: { [string]: string } = {}
+
+      // Parse the frontmatter lines manually
+      for (const line of frontmatterLines) {
+        const trimmedLine = line.trim()
+        if (trimmedLine && !trimmedLine.startsWith('#')) {
+          // Skip empty lines and comments
+          const colonIndex = trimmedLine.indexOf(':')
+          if (colonIndex > 0) {
+            const key = trimmedLine.substring(0, colonIndex).trim()
+            const value = trimmedLine.substring(colonIndex + 1).trim()
+            // Remove quotes if present, but always return as string
+            const cleanValue = value.replace(/^["'](.*)["']$/, '$1')
+            attributes[key] = String(cleanValue)
+          }
+        }
+      }
+
+      result.templateFrontmatter = attributes
+      result.bodyContent = lines.slice(templateFrontmatterEnd + 1).join('\n')
+    } else {
+      // No template frontmatter, use the whole content as body
+      result.bodyContent = templateData
+    }
+
+    // Check for newNoteTitle in template frontmatter
+    result.hasNewNoteTitle = 'newNoteTitle' in result.templateFrontmatter
+
+    // Check for output frontmatter in the body content
+    if (result.bodyContent) {
+      // Convert -- separators to --- for processing (like the templating system does)
+      let processedBodyContent = result.bodyContent
+      const bodyLines = processedBodyContent.split('\n')
+      const startBlock = bodyLines.indexOf('--')
+      const endBlock = startBlock >= 0 ? bodyLines.indexOf('--', startBlock + 1) : -1
+
+      if (startBlock >= 0 && endBlock >= 0) {
+        bodyLines[startBlock] = '---'
+        bodyLines[endBlock] = '---'
+        processedBodyContent = bodyLines.join('\n')
+      }
+
+      const outputParts = getSanitizedFmParts(processedBodyContent)
+      result.outputFrontmatter = outputParts.attributes || {}
+      result.hasOutputFrontmatter = Object.keys(result.outputFrontmatter).length > 0
+      result.hasOutputTitle = 'title' in result.outputFrontmatter
+    }
+
+    // Check for inline title in the body content
+    const inlineTitleResult = detectInlineTitleRobust(result.bodyContent)
+    result.hasInlineTitle = inlineTitleResult.hasInlineTitle
+    result.inlineTitleText = inlineTitleResult.inlineTitleText
+
+    logDebug(
+      'analyzeTemplateStructure',
+      `Analysis complete:
+      - hasNewNoteTitle: ${String(result.hasNewNoteTitle)}
+      - hasOutputFrontmatter: ${String(result.hasOutputFrontmatter)}
+      - hasOutputTitle: ${String(result.hasOutputTitle)}
+      - hasInlineTitle: ${String(result.hasInlineTitle)}
+      - templateFrontmatter keys: ${Object.keys(result.templateFrontmatter).join(', ')}
+      - outputFrontmatter keys: ${Object.keys(result.outputFrontmatter).join(', ')}
+      - bodyContent length: ${result.bodyContent.length}
+      - inlineTitleText: "${result.inlineTitleText}"`,
+    )
+
+    return result
+  } catch (error) {
+    logError('analyzeTemplateStructure', JSP(error))
+    return {
+      hasNewNoteTitle: false,
+      hasOutputFrontmatter: false,
+      hasOutputTitle: false,
+      hasInlineTitle: false,
+      templateFrontmatter: {},
+      outputFrontmatter: {},
+      bodyContent: '',
+      inlineTitleText: '',
+    }
+  }
+}
+
+/**
  * Helper function to get the folder path array from a note's filename
  * @param {string} filename - The note's filename
  * @returns {Array<string>} - Array of folder names in the path
@@ -1330,4 +1467,117 @@ function filterNotesByFolder(notes: Array<TNote>, folderString?: string, fullPat
       return filename.includes(`/${folderString}/`) || filename.startsWith(`${folderString}/`)
     }
   })
+}
+
+/**
+ * Example usage of analyzeTemplateStructure function
+ * This demonstrates how to use the function with different template structures
+ */
+export function demonstrateTemplateAnalysis(): void {
+  // Example a) Template with newNoteTitle
+  const templateA = `---
+title: my template
+newNoteTitle: foo
+---`
+
+  // Example b) Template with frontmatter in output note
+  const templateB = `---
+title: my template
+---
+--
+prop: this is in the resulting note
+--`
+
+  // Example c) Template with title field in resulting note
+  const templateC = `---
+title: this is the template's title
+---
+--
+title: this is in the resulting note's title
+--`
+
+  // Example d) Template with inline title
+  const templateD = `---
+title: my template title
+---
+--
+some: frontmatter
+--
+# an inline title`
+
+  logDebug('demonstrateTemplateAnalysis', '=== Example A: Template with newNoteTitle ===')
+  const analysisA = analyzeTemplateStructure(templateA)
+  clo(analysisA, 'Analysis A')
+
+  logDebug('demonstrateTemplateAnalysis', '=== Example B: Template with output frontmatter ===')
+  const analysisB = analyzeTemplateStructure(templateB)
+  clo(analysisB, 'Analysis B')
+
+  logDebug('demonstrateTemplateAnalysis', '=== Example C: Template with output title ===')
+  const analysisC = analyzeTemplateStructure(templateC)
+  clo(analysisC, 'Analysis C')
+
+  logDebug('demonstrateTemplateAnalysis', '=== Example D: Template with inline title ===')
+  const analysisD = analyzeTemplateStructure(templateD)
+  clo(analysisD, 'Analysis D')
+}
+
+/**
+ * Robust helper function to detect inline title in template body content
+ * Handles malformed frontmatter and multiple consecutive separators
+ * @param {string} bodyContent - The template body content
+ * @returns {{hasInlineTitle: boolean, inlineTitleText: string}}
+ */
+function detectInlineTitleRobust(bodyContent: string): { hasInlineTitle: boolean, inlineTitleText: string } {
+  if (!bodyContent) {
+    return { hasInlineTitle: false, inlineTitleText: '' }
+  }
+
+  const lines = bodyContent.split('\n')
+  let inFrontmatter = false
+  let frontmatterDepth = 0
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmedLine = line.trim()
+
+    // Track frontmatter separators (both --- and --)
+    if (trimmedLine === '---' || trimmedLine === '--') {
+      // If we're currently in frontmatter, this separator ends it
+      if (inFrontmatter) {
+        frontmatterDepth--
+        inFrontmatter = frontmatterDepth > 0
+      } else {
+        // If we're not in frontmatter, this separator starts it
+        frontmatterDepth++
+        inFrontmatter = true
+      }
+      continue
+    }
+
+    // Skip empty lines
+    if (trimmedLine === '') {
+      continue
+    }
+
+    // If we're in frontmatter, skip this line
+    if (inFrontmatter) {
+      continue
+    }
+
+    // We're out of frontmatter, check if this is an inline title
+    if (trimmedLine.startsWith('# ') && !trimmedLine.startsWith('##')) {
+      const titleText = trimmedLine.substring(2).trim()
+      return {
+        hasInlineTitle: true,
+        inlineTitleText: titleText,
+      }
+    }
+
+    // If we've found a non-empty line that's not an inline title, stop looking
+    // (we only want the first non-frontmatter line)
+    break
+  }
+
+  return { hasInlineTitle: false, inlineTitleText: '' }
 }
