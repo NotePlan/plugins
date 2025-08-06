@@ -16,6 +16,27 @@ import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 import { parseTeamspaceFilename } from './teamspace'
 
+//-------------------------------- Types --------------------------------------
+
+type TFolderIcon = {
+  firstLevelFolder: string,
+  icon: string,
+  color: string,
+  alpha?: number,
+  darkAlpha?: number,
+}
+
+//------------------------------ Constants ------------------------------------
+
+// Define icons to use in decorated CommandBar options
+const iconsToUseForSpecialFolders: Array<TFolderIcon> = [
+  { firstLevelFolder: '<CALENDAR>', icon: 'calendar-day', color: 'grey-500' },
+  { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'grey-500' },
+  { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'grey-500' },
+  { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'grey-500' },
+]
+
+//--------------------------- Local functions ---------------------------------
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 function parseJSON5(contents: string): ?{ [string]: ?mixed } {
   try {
@@ -793,7 +814,9 @@ export async function chooseNoteV2(
   const opts: Array<TCommandBarOptionObject> = sortedNoteList.map((note) => {
     // Show titles with relative dates, but without path
     const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
+    // Work out which icon to use for this note
     if (possTeamspaceDetails.isTeamspace) {
+      // Teamspace notes are currently (v3.18) only regular or calendar notes, not @Templates, @Archive or @Trash.
       return {
         text: note.title ?? '(error)',
         icon: note.type === 'Calendar' ? 'calendar-day' : 'file-lines',
@@ -803,15 +826,18 @@ export async function chooseNoteV2(
         darkAlpha: 0.6,
       }
     } else {
+      let folderFirstLevel = getFolderFromFilename(note.filename).split('/')[0]
+      if (note.type === 'Calendar') { folderFirstLevel = '<CALENDAR>' }
+      const folderIconDetails = iconsToUseForSpecialFolders.find((details) => details.firstLevelFolder === folderFirstLevel) ?? { icon: 'file-lines', color: 'gray-500' }
       return {
         // text: displayTitleWithRelDate(note, true, true),
         text: displayTitleWithRelDate(note, true, false),
-        icon: note.type === 'Calendar' ? 'calendar-day' : 'file-lines',
-        color: 'gray-500',
+        icon: folderIconDetails.icon,
+        color: folderIconDetails.color,
         // shortDescription: '',
         shortDescription: note.type === 'Notes' ? getFolderFromFilename(note.filename) ?? '' : '',
-        alpha: 0.8,
-        darkAlpha: 0.8,
+        alpha: folderIconDetails.alpha ?? 0.8,
+        darkAlpha: folderIconDetails.darkAlpha ?? 0.8,
       }
     }
   })
