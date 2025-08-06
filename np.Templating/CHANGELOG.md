@@ -4,6 +4,9 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.17] 2025-08-06 @dwertheimer
+- Fix bug where non-fm-body templates which started with -- were being treated as frontmatter
+
 ## [2.0.16] 2025-08-06 @dwertheimer
 - Add pivot offset to date.now() method
 

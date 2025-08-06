@@ -153,13 +153,14 @@ export default class DateModule {
         momentToProcess = moment(dateValue).add(dateOrOffset, 'days')
       } else if (typeof dateOrOffset === 'string' && dateOrOffset.trim().length > 0) {
         const dateStr = dateOrOffset.trim()
-        
+
         // Check if it looks like a date string (contains dashes, slashes, or is a full date)
-        const looksLikeDate = /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(dateStr) || 
-                             /^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(dateStr) ||
-                             /^[A-Za-z]+\s+\d{1,2},?\s+\d{4}/.test(dateStr) ||
-                             /^\d{4}-\d{2}-\d{2}T/.test(dateStr)
-        
+        const looksLikeDate =
+          /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(dateStr) ||
+          /^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(dateStr) ||
+          /^[A-Za-z]+\s+\d{1,2},?\s+\d{4}/.test(dateStr) ||
+          /^\d{4}-\d{2}-\d{2}T/.test(dateStr)
+
         if (looksLikeDate) {
           // Try to parse as a date first
           const parsedDate = moment(dateStr)

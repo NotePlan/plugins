@@ -628,7 +628,7 @@ final: frontmatter
       expect(result).toBe('Final Title')
     })
 
-    test('should handle template with subheading only (now detected as inline title)', () => {
+    test('should handle template with subheading only (not detected as inline title)', () => {
       const template = `---
 title: my template
 ---
@@ -638,6 +638,57 @@ Some content here`
       const result = getNoteTitleFromTemplate(template)
 
       expect(result).toBe('This is a subheading, not an inline title')
+    })
+
+    test('should detect H1 headings as inline titles', () => {
+      const template = `---
+title: my template
+---
+# This is an H1 heading and should be detected as inline title
+Some content here`
+
+      const result = getNoteTitleFromTemplate(template)
+
+      expect(result).toBe('This is an H1 heading and should be detected as inline title')
+    })
+
+    test('should not consider non-frontmatter separators as output frontmatter', () => {
+      const template = `---
+title: Test Template
+type: meeting-note
+---
+---
+## This is not frontmatter, just a separator
+
+Some content here`
+
+      const result = analyzeTemplateStructure(template)
+
+      expect(result.hasOutputFrontmatter).toBe(false)
+      expect(result.hasOutputTitle).toBe(false)
+      expect(Object.keys(result.outputFrontmatter).length).toBe(0)
+    })
+
+    test('should not detect inline title from content after invalid frontmatter', () => {
+      const template = `---
+**Event:** <%- calendarItemLink %>
+**Links:** <%- eventLink %>
+**Attendees:** <%- eventAttendees %>
+**Location:** <%- eventLocation %>
+---
+### Agenda
++ 
+
+### Notes
+- 
+
+### Actions
+* `
+
+      const result = analyzeTemplateStructure(template)
+
+      expect(result.hasInlineTitle).toBe(false)
+      expect(result.inlineTitleText).toBe('')
     })
   })
 })

@@ -757,6 +757,7 @@ export type FrontMatterDocumentObject = { attributes: { [string]: string }, body
  */
 export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: boolean = false): FrontMatterDocumentObject {
   let fmData = { attributes: {}, body: noteText, frontmatter: '' } //default
+
   // we need to pre-process the text to sanitize it instead of running fm because we need to
   // preserve #hashtags, @mentions etc. and fm will blank those lines  out as comments
   const sanitizedText = _sanitizeFrontmatterText(noteText || '', removeTemplateTagsInFM)
@@ -783,28 +784,36 @@ export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: b
         if (lines[i].trim() === '---') {
           // Extract everything between the first and second --- as frontmatter
           const frontmatterLines = lines.slice(1, i)
-          const attributes: { [string]: string } = {}
+          const frontmatterContent = frontmatterLines.join('\n')
 
-          // Parse the frontmatter lines manually when fm library fails
-          // This handles both cases: template tags and rendered template output
-          for (const line of frontmatterLines) {
-            const trimmedLine = line.trim()
-            if (trimmedLine && !trimmedLine.startsWith('#')) {
-              // Skip empty lines and comments
-              const colonIndex = trimmedLine.indexOf(':')
-              if (colonIndex > 0) {
-                const key = trimmedLine.substring(0, colonIndex).trim()
-                const value = trimmedLine.substring(colonIndex + 1).trim()
-                // Remove quotes if present, but always return as string
-                const cleanValue = value.replace(/^["'](.*)["']$/, '$1')
-                attributes[key] = String(cleanValue)
+          // Only treat as frontmatter if it's valid YAML
+          if (isValidYamlContent(frontmatterContent)) {
+            const attributes: { [string]: string } = {}
+
+            // Parse the frontmatter lines manually when fm library fails
+            // This handles both cases: template tags and rendered template output
+            for (const line of frontmatterLines) {
+              const trimmedLine = line.trim()
+              if (trimmedLine && !trimmedLine.startsWith('#')) {
+                // Skip empty lines and comments
+                const colonIndex = trimmedLine.indexOf(':')
+                if (colonIndex > 0) {
+                  const key = trimmedLine.substring(0, colonIndex).trim()
+                  const value = trimmedLine.substring(colonIndex + 1).trim()
+                  // Remove quotes if present, but always return as string
+                  const cleanValue = value.replace(/^["'](.*)["']$/, '$1')
+                  attributes[key] = String(cleanValue)
+                }
               }
             }
-          }
 
-          // Extract everything after the second --- as the body
-          const body = lines.slice(i + 1).join('\n')
-          fmData = { attributes: attributes, body: body, frontmatter: '' }
+            // Extract everything after the second --- as the body
+            const body = lines.slice(i + 1).join('\n')
+            fmData = { attributes: attributes, body: body, frontmatter: '' }
+          } else {
+            // Not valid YAML, treat the entire content as body
+            fmData = { attributes: {}, body: noteText, frontmatter: '' }
+          }
           break
         }
       }
@@ -1342,29 +1351,42 @@ export function analyzeTemplateStructure(templateData: string): {
     }
 
     if (templateFrontmatterEnd > 0) {
-      // Extract template frontmatter
+      // Extract template frontmatter content
       const frontmatterLines = lines.slice(1, templateFrontmatterEnd)
-      const attributes: { [string]: string } = {}
+      const frontmatterContent = frontmatterLines.join('\n')
 
-      // Parse the frontmatter lines manually
-      for (const line of frontmatterLines) {
-        const trimmedLine = line.trim()
-        if (trimmedLine && !trimmedLine.startsWith('#')) {
-          // Skip empty lines and comments
-          const colonIndex = trimmedLine.indexOf(':')
-          if (colonIndex > 0) {
-            const key = trimmedLine.substring(0, colonIndex).trim()
-            const value = trimmedLine.substring(colonIndex + 1).trim()
-            // Remove quotes if present, but always return as string
-            const cleanValue = value.replace(/^["'](.*)["']$/, '$1')
-            attributes[key] = String(cleanValue)
+      // Validate that the content between --- markers is actually valid YAML
+      if (isValidYamlContent(frontmatterContent)) {
+        const attributes: { [string]: string } = {}
+
+        // Parse the frontmatter lines manually
+        for (const line of frontmatterLines) {
+          const trimmedLine = line.trim()
+          if (trimmedLine) {
+            // Skip empty lines
+            const colonIndex = trimmedLine.indexOf(':')
+            if (colonIndex > 0) {
+              const key = trimmedLine.substring(0, colonIndex).trim()
+              const value = trimmedLine.substring(colonIndex + 1).trim()
+              // Remove quotes if present, but always return as string
+              const cleanValue = value.replace(/^["'](.*)["']$/, '$1')
+              attributes[key] = String(cleanValue)
+            }
           }
         }
-      }
 
-      result.templateFrontmatter = attributes
-      result.bodyContent = lines.slice(templateFrontmatterEnd + 1).join('\n')
-      logDebug('analyzeTemplateStructure', `Extracted body content (${result.bodyContent.length} chars): "${result.bodyContent.substring(0, 200)}..."`)
+        result.templateFrontmatter = attributes
+        result.bodyContent = lines.slice(templateFrontmatterEnd + 1).join('\n')
+        logDebug('analyzeTemplateStructure', `Extracted body content (${result.bodyContent.length} chars): "${result.bodyContent.substring(0, 200)}..."`)
+      } else {
+        // Not valid YAML, treat the entire content as body
+        result.templateFrontmatter = {}
+        result.bodyContent = templateData
+        logDebug(
+          'analyzeTemplateStructure',
+          `Invalid template frontmatter found, using whole content as body (${result.bodyContent.length} chars): "${result.bodyContent.substring(0, 200)}..."`,
+        )
+      }
     } else {
       // No template frontmatter, use the whole content as body
       result.bodyContent = templateData
@@ -1391,10 +1413,18 @@ export function analyzeTemplateStructure(templateData: string): {
         processedBodyContent = bodyLines.join('\n')
       }
 
-      const outputParts = getSanitizedFmParts(processedBodyContent)
-      result.outputFrontmatter = outputParts.attributes || {}
-      result.hasOutputFrontmatter = Object.keys(result.outputFrontmatter).length > 0
-      result.hasOutputTitle = 'title' in result.outputFrontmatter
+      // Use the isValidYamlContent function to validate that this is actually frontmatter
+      if (isValidYamlContent(processedBodyContent)) {
+        const outputParts = getSanitizedFmParts(processedBodyContent)
+        result.outputFrontmatter = outputParts.attributes || {}
+        result.hasOutputFrontmatter = Object.keys(result.outputFrontmatter).length > 0
+        result.hasOutputTitle = 'title' in result.outputFrontmatter
+      } else {
+        // Not valid frontmatter, so no output frontmatter
+        result.outputFrontmatter = {}
+        result.hasOutputFrontmatter = false
+        result.hasOutputTitle = false
+      }
     }
 
     // Check for inline title in the body content
@@ -1540,57 +1570,71 @@ function detectInlineTitleRobust(bodyContent: string): { hasInlineTitle: boolean
   }
 
   const lines = bodyContent.split('\n')
-  let inFrontmatter = false
-  let frontmatterDepth = 0
-
   logDebug('detectInlineTitleRobust', `Processing ${lines.length} lines of body content`)
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    const trimmedLine = line.trim()
+  // Check if the first line starts with frontmatter separators
+  if (lines.length >= 2 && lines[0].trim().startsWith('--')) {
+    // Find the end of the frontmatter block
+    let frontmatterEnd = -1
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim().startsWith('--')) {
+        frontmatterEnd = i
+        break
+      }
+    }
 
-    // Track frontmatter separators (both --- and --)
-    if (trimmedLine === '---' || trimmedLine === '--') {
-      // If we're currently in frontmatter, this separator ends it
-      if (inFrontmatter) {
-        frontmatterDepth--
-        inFrontmatter = frontmatterDepth > 0
-        logDebug('detectInlineTitleRobust', `Ending frontmatter block at line ${i}, depth now ${frontmatterDepth}`)
+    if (frontmatterEnd > 0) {
+      // Extract the frontmatter content and check if it's valid
+      const frontmatterContent = lines.slice(1, frontmatterEnd).join('\n')
+      const isValidFrontmatter = isValidYamlContent(frontmatterContent)
+      logDebug('detectInlineTitleRobust', `Frontmatter content: "${frontmatterContent}"`)
+      logDebug('detectInlineTitleRobust', `Is valid frontmatter: ${String(isValidFrontmatter)}`)
+
+      if (isValidFrontmatter) {
+        // Valid frontmatter - look for title in the first line after the block
+        if (frontmatterEnd + 1 < lines.length) {
+          const firstLineAfterFrontmatter = lines[frontmatterEnd + 1].trim()
+          if (firstLineAfterFrontmatter && firstLineAfterFrontmatter.match(/^#{1,6}\s+/)) {
+            const titleText = firstLineAfterFrontmatter.replace(/^#{1,6}\s+/, '').trim()
+            logDebug('detectInlineTitleRobust', `Found inline title after valid frontmatter: "${titleText}"`)
+            return {
+              hasInlineTitle: true,
+              inlineTitleText: titleText,
+            }
+          }
+        }
       } else {
-        // If we're not in frontmatter, this separator starts it
-        frontmatterDepth++
-        inFrontmatter = true
-        logDebug('detectInlineTitleRobust', `Starting frontmatter block at line ${i}, depth now ${frontmatterDepth}`)
-      }
-      continue
-    }
-
-    // Skip empty lines
-    if (trimmedLine === '') {
-      continue
-    }
-
-    // If we're in frontmatter, skip this line
-    if (inFrontmatter) {
-      logDebug('detectInlineTitleRobust', `Skipping frontmatter line ${i}: "${trimmedLine}"`)
-      continue
-    }
-
-    // We're out of frontmatter, check if this is an inline title
-    if (trimmedLine.match(/^#{1,6}\s+/)) {
-      const titleText = trimmedLine.replace(/^#{1,6}\s+/, '').trim()
-      logDebug('detectInlineTitleRobust', `Found inline title at line ${i}: "${titleText}"`)
-      return {
-        hasInlineTitle: true,
-        inlineTitleText: titleText,
+        // Invalid frontmatter - treat the first line as the title
+        const firstLine = lines[0].trim()
+        if (firstLine && firstLine.match(/^#{1,6}\s+/)) {
+          const titleText = firstLine.replace(/^#{1,6}\s+/, '').trim()
+          logDebug('detectInlineTitleRobust', `Found inline title in invalid frontmatter block: "${titleText}"`)
+          return {
+            hasInlineTitle: true,
+            inlineTitleText: titleText,
+          }
+        }
+        // If invalid frontmatter and first line is not a heading, no inline title
+        logDebug('detectInlineTitleRobust', 'Invalid frontmatter block, no inline title found')
+        return { hasInlineTitle: false, inlineTitleText: '' }
       }
     }
+  } else {
+    // No frontmatter - check the first non-empty line
+    for (let i = 0; i < lines.length; i++) {
+      const trimmedLine = lines[i].trim()
+      if (trimmedLine === '') continue
 
-    logDebug('detectInlineTitleRobust', `Line ${i} is not an inline title: "${trimmedLine}"`)
-
-    // If we've found a non-empty line that's not an inline title, stop looking
-    // (we only want the first non-frontmatter line)
-    break
+      if (trimmedLine.match(/^#{1,6}\s+/)) {
+        const titleText = trimmedLine.replace(/^#{1,6}\s+/, '').trim()
+        logDebug('detectInlineTitleRobust', `Found inline title in first line: "${titleText}"`)
+        return {
+          hasInlineTitle: true,
+          inlineTitleText: titleText,
+        }
+      }
+      break // Stop at first non-empty line
+    }
   }
 
   logDebug('detectInlineTitleRobust', 'No inline title found')
@@ -1635,4 +1679,38 @@ export function getNoteTitleFromTemplate(templateData: string): string {
     logError('getNoteTitleFromTemplate', JSP(error))
     return ''
   }
+}
+
+/**
+ * Check if content between --- markers is valid YAML-like content
+ * @param {string} content - The content to validate
+ * @returns {boolean} - Whether the content is valid YAML-like frontmatter
+ */
+export function isValidYamlContent(content: string): boolean {
+  if (!content || content.trim() === '') return false
+
+  const lines = content.split('\n')
+  let hasValidYamlLine = false
+
+  for (const line of lines) {
+    const trimmedLine = line.trim()
+    if (trimmedLine === '') continue // Skip empty lines
+
+    // Check for valid YAML patterns:
+    // 1. key: value (with optional spaces)
+    // 2. key: (empty value)
+    // 3. - item (list item)
+    const yamlPatterns = [
+      /^[a-zA-Z_][a-zA-Z0-9_]*\s*:\s*/, // key: value
+      /^[a-zA-Z_][a-zA-Z0-9_]*\s*:$/, // key: (empty value)
+      /^\s*-\s+/, // - item (list item)
+    ]
+
+    const isValidLine = yamlPatterns.some((pattern) => pattern.test(trimmedLine))
+    if (isValidLine) {
+      hasValidYamlLine = true
+    }
+  }
+
+  return hasValidYamlLine
 }
