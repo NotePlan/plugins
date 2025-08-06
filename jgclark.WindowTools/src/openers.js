@@ -27,7 +27,7 @@ export async function openNoteNewWindow(encodedNoteIdentifier: string = ''): Pro
     }
     // Ask for the note we want to open
     if (!note) {
-      note = await chooseNoteV2(`Select note to open in new window`, [], true, true, false, true)
+      note = await chooseNoteV2(`Select note to open in new window`, DataStore.projectNotes, true, true, false, true)
     }
     if (note) {
       const filename = note.filename
@@ -61,7 +61,7 @@ export async function openNoteNewSplit(encodedNoteIdentifier: string = ''): Prom
     }
     // Ask for the note we want to open
     if (!note) {
-      note = await chooseNoteV2(`Select note to open in new split window`, [], true, true, false, true)
+      note = await chooseNoteV2(`Select note to open in new split window`, DataStore.projectNotes, true, true, false, true)
     }
     if (note) {
       const filename = note.filename

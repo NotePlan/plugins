@@ -3,7 +3,7 @@ _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/ma
 
 ## [1.3.0] - 2025-???
 - updated **open note in new split** and **open note in new window** to support Teamspace notes
-- updated **open note in new split** and **open note in new window** to use a better decorated display of list of notes
+- updated **open note in new split** and **open note in new window** to use the newly-available more decorated note chooser
 
 ## [1.2.1] - 2025-02-01
 - **open window set** command is now smarter with plugin windows:
