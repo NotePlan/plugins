@@ -9,6 +9,7 @@ import { getRepeatSettings, RE_EXTENDED_REPEAT, type RepeatConfig } from '../jgc
 import { generateRepeatForPara } from '../jgclark.RepeatExtensions/src/repeatPara'
 import { trimString } from '@helpers/dataManipulation'
 import {
+  calculateDaysOverdue,
   getNPWeekStr,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
@@ -1090,35 +1091,6 @@ function endOfPeriod(periodType: string, paraDate: Date): Date | null {
 }
 
 /**
- * Calculate the number of days until due for a given date (negative if overdue)
- * TODO: really belongs in @helpers/dateTime.js
- * TODO: tests!
- * @author @dwertheimer
- * @param {string|Date} fromDate (in YYYY-MM-DD format if string)
- * @param {string|Date} toDate (in YYYY-MM-DD format if string)
- * @returns {number}
- */
-export function calculateDaysOverdue(fromDate: string | Date, toDate: string | Date): number {
-  if (!fromDate || !toDate) {
-    return 0
-  }
-
-  const fromDateMom = moment(fromDate, 'YYYY-MM-DD')
-  const toDateMom = moment(toDate, 'YYYY-MM-DD')
-  const diffDays = fromDateMom.diff(toDateMom, 'days', true) // negative for overdue
-
-  const floor = Math.floor(diffDays)
-  // const ceil = Math.ceil(diffDays)
-
-  // overdue
-  if (diffDays < 0) {
-    return Object.is(floor, -0) ? -1 : floor
-  }
-  // not overdue
-  return Object.is(floor, -0) ? 0 : floor
-}
-
-/**
  * Create a simple object version of a Paragraph object
  * NotePlan objects do not JSON.stringify() well, because most/all of the properties are on the prototype chain
  * after they come across the bridge from JS. If we want to send object data somewhere (e.g. to HTML/React window)
@@ -1405,7 +1377,7 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
  * If the rawContent is truncated with "..." it will match if the truncated version is the same as the start of the rawContent in a line in the note
  * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph rawContent at 300 chars).
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
- * Works on both Project and Calendar notes.
+ * Works on both Regular ('Project') and Calendar notes.
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} rawContent to find

@@ -13,7 +13,7 @@ import {
 import { toLocaleDateTimeString } from '@helpers/dateTime'
 import { clo, isObjectEmpty, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { getOrMakeNote } from '@helpers/note'
+import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 // import { addTrigger } from '@helpers/NPFrontMatter'
 import { constrainWindowSizeAndPosition } from '@helpers/NPWindows'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
@@ -145,7 +145,7 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     const noteTitle = (noteTitleArg !== '') ? noteTitleArg : config.noteTitleForDefinitions
     const windowSets = (windowSetsArg.length > 0) ? windowSetsArg : await readWindowSetDefinitions()
     logDebug(pluginJson, `writeWSsToNote() starting for folder '${noteFolder}' title '${noteTitle}' with ${windowSets.length} windowSets`)
-    const WSNote: ?TNote = await getOrMakeNote(noteTitle, noteFolder)
+    const WSNote: ?TNote = await getOrMakeRegularNoteInFolder(noteTitle, noteFolder)
     if (!WSNote) {
       throw new Error(`writeWSsToNote() no note found for '${noteTitle}' in folder '${noteFolder}'`)
     }

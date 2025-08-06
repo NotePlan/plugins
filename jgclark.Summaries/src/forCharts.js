@@ -29,7 +29,7 @@ import {
   pad,
 } from '@helpers/NPdateTime'
 import { clo, clof, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import { projectNotesFromFilteredFolders } from '@helpers/folders'
+import { getRegularNotesFromFilteredFolders } from '@helpers/folders'
 
 //-----------------------------------------------------------------------------
 
@@ -125,8 +125,8 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     await CommandBar.onAsyncThread()
     const startTime = new Date()
 
-    // do completed task (not checklist) counts from all Project Notes
-    const projNotes = projectNotesFromFilteredFolders(foldersToExclude, true)
+    // do completed task (not checklist) counts from all Regular Notes
+    const projNotes = getRegularNotesFromFilteredFolders(foldersToExclude, true)
     logDebug('generateTaskCompletionStats', `Summarising for ${projNotes.length} project notes`)
     for (const n of projNotes) {
       const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))

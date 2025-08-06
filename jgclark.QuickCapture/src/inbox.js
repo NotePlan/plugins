@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Inbox command for QuickCapture plugin
 // by Jonathan Clark
-// last update 10.2.2024 for v0.16.0 by @jgclark
+// last update 2025-07-28 for v0.17.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,7 +13,7 @@ import {
 } from './quickCaptureHelpers'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { smartAppendPara, smartPrependPara } from '@helpers/paragraph'
+import { smartCreateSectionsAndPara } from '@helpers/paragraph'
 import {
   // chooseFolder, chooseHeading,
   showMessage
@@ -25,15 +25,17 @@ import {
  * - append or prepend to the inbox note (default: append)
  * Can be used from x-callback with two passed arguments.
  * @author @jgclark
- * @param {string?) taskArg
+ * @param {string?) taskContentArg
  * @param {string?) inboxTitleArg
+ * @param {string?} inboxHeadingArg (if not given, will use setting 'inboxHeading')
  */
 export async function addTaskToInbox(
-  taskArg?: string = '',
+  taskContentArg?: string = '',
   inboxTitleArg?: string = '',
+  inboxHeading?: string = '',
 ): Promise<void> {
   try {
-    await addItemToInbox('task', taskArg, inboxTitleArg)
+    await addItemToInbox('task', taskContentArg, inboxTitleArg, inboxHeading)
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
@@ -46,15 +48,17 @@ export async function addTaskToInbox(
  * - append or prepend to the inbox note (default: append)
  * Can be used from x-callback with two passed arguments.
  * @author @jgclark
- * @param {string?) textArg
+ * @param {string?) textContentArg
  * @param {string?) inboxTitleArg
+ * @param {string?} inboxHeadingArg (if not given, will use setting 'inboxHeading')
  */
 export async function addJotToInbox(
-  textArg?: string = '',
+  textContentArg?: string = '',
   inboxTitleArg?: string = '',
+  inboxHeading?: string = '',
 ): Promise<void> {
   try {
-    await addItemToInbox('jot', textArg, inboxTitleArg)
+    await addItemToInbox('jot', textContentArg, inboxTitleArg, inboxHeading)
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
@@ -63,32 +67,45 @@ export async function addJotToInbox(
 
 /**
  * This adds a task to a special 'inbox' note. Possible configuration:
- * - add to the current Daily or Weekly note, or to a fixed note (through setting 'inboxLocation')
+ * - add to the current Daily or Weekly note, or to a fixed note (through setting 'inboxLocation') or to arg2 (if given)
  * - append or prepend to the inbox note (default: append)
  * Note: Internal function used by exported functions above.
  * @author @jgclark
- * @param {string?} itemType: 'task' (default) or 'jot'
- * @param {string?} taskArg (if not given, will ask user)
- * @param {string?} inboxTitleArg (if not given, will ask user)
+ * @param {string?} itemType: 'task' (default) or 'jot' (i.e. text)
+ * @param {string} itemContentArg (if empty, will ask user)
+ * @param {string} inboxTitleArg (if empty, will ask user)
+ * @param {string} inboxHeadingArg (if empty, will use setting 'inboxHeading')
  */
 async function addItemToInbox(
-  itemType: string = 'task',
-  itemArg?: string = '',
-  inboxTitleArg?: string = '',
+  itemType: string,
+  itemContentArg: string,
+  inboxTitleArg: string,
+  inboxHeadingArg: string,
 ): Promise<void> {
   try {
     // If this is a task, then type is 'open', otherwise treat as 'text'
     const paraType = itemType === 'task' ? 'open' : 'text' 
     const config = await getQuickCaptureSettings()
     logDebug(pluginJson, `addItemToInbox(): starting for ${itemType} (= paraType ${paraType}) with ${config.inboxLocation}`)
+    const textToAppend = (config.textToAppendToTasks && itemType === 'task')
+      ? ` ${config.textToAppendToTasks}`
+      : (config.textToAppendToJots && itemType === 'jot')
+        ? ` ${config.textToAppendToJots}`
+        : ''
+    const inboxHeading = (inboxHeadingArg !== '')
+      ? inboxHeadingArg
+      : (config.inboxHeading && config.inboxHeading !== '')
+        ? config.inboxHeading :
+        ''
 
-    // TEST: Extra possible arg
-    // let inboxNote: ?TNote
+    // TEST: Use of these args
     let inboxTitleToUse = ''
-    if (!inboxTitleArg || inboxTitleArg === '') {
+    if (inboxTitleArg !== '') {
+      inboxTitleToUse = inboxTitleArg
+      logDebug('addItemToInbox', `Title arg given: inboxTitleToUse=${inboxTitleToUse}`)
+    } else {
       switch (config.inboxLocation) {
         case "Daily": {
-          // inboxNote = DataStore.calendarNoteByDate(new Date(), "day")
           inboxTitleToUse = 'today'
           break
         }
@@ -99,7 +116,7 @@ async function addItemToInbox(
         }
 
         default: {
-          if (config.inboxTitle === '') {
+          if (!config.inboxTitle || config.inboxTitle === '') {
             throw new Error("Quick Capture to Inbox: please set the title of your chosen fixed Inbox note in Quick Capture preferences.")
           } else {
             inboxTitleToUse = config.inboxTitle
@@ -108,34 +125,26 @@ async function addItemToInbox(
         }
       }
       logDebug('addItemToInbox', `No title arg given: inboxTitleToUse=${inboxTitleToUse}`)
-    } else {
-      inboxTitleToUse = inboxTitleArg
-      logDebug('addItemToInbox', `Title arg given: inboxTitleToUse=${inboxTitleToUse}`)
     }
 
-    const inboxNote = await getNoteFromParamOrUser(`Inbox ${itemType}`, inboxTitleToUse, false)
-
+    const inboxNote = await getNoteFromParamOrUser(`Inbox ${itemType}`, inboxTitleToUse)
     if (!inboxNote) {
       throw new Error("Quick Add to Inbox: Couldn't get or make valid Inbox note.")
     }
 
     // Get item title either from passed argument or ask user
-    let itemText = (itemArg != null && itemArg !== '')
-      ? itemArg
-      : await CommandBar.showInput(`Type the ${itemType} to add to ${displayTitle(inboxNote)}`, `Add ${itemType} '%@' ${config.textToAppendToTasks}`)
-    if (itemType === 'task') {
-      itemText += ` ${config.textToAppendToTasks}`
-    } else if (itemType === 'jot') {
-      itemText += ` ${config.textToAppendToJots}`
+    let itemText = (itemContentArg != null && itemContentArg !== '')
+      ? itemContentArg
+      : await CommandBar.showInput(`Type the ${itemType} to add to ${displayTitle(inboxNote)}`, `Add ${itemType} '%@'${textToAppend}`)
+    if (itemType === 'jot') {
+      itemText += textToAppend
     }
 
     if (config.addInboxPosition === 'append') {
-      // inboxNote.appendTodo(itemText)
-      smartAppendPara(inboxNote, itemText, paraType)
+      smartCreateSectionsAndPara(inboxNote, itemText, paraType, [inboxHeading], config.headingLevel, true)
       logDebug(pluginJson, `- appended to note '${displayTitle(inboxNote)}'`)
     } else {
-      // inboxNote.prependTodo(itemText)
-      smartPrependPara(inboxNote, itemText, paraType)
+      smartCreateSectionsAndPara(inboxNote, itemText, paraType, [inboxHeading], config.headingLevel, false)
       logDebug(pluginJson, `- prepended to note '${displayTitle(inboxNote)}'`)
     }
   }

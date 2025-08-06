@@ -32,7 +32,8 @@ import {
   createPrettyRunPluginLink,
   // createRunPluginCallbackUrl
 } from '@helpers/general'
-import { getOrMakeNote, replaceSection } from '@helpers/note'
+import { replaceSection } from '@helpers/note'
+import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 // import { caseInsensitiveCompare } from '@helpers/sorting'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
@@ -172,7 +173,7 @@ export async function statsPeriod(periodCodeArg: string = '', periodNumberArg: n
 
       case 'note': {
         // Summaries note
-        const note = await getOrMakeNote(periodString, config.folderToStore)
+        const note = await getOrMakeRegularNoteInFolder(periodString, config.folderToStore)
         if (note == null) {
           logError('statsPeriod', `Cannot get new note`)
           await showMessage('There was an error getting the new note ready to write')

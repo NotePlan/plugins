@@ -17,10 +17,9 @@ import {
 } from '@helpers/general'
 import { differenceByPropVal, differenceByObjectEquality, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
-  getNoteByFilename, getNoteLinkForDisplay, getOrMakeNote,
-  replaceSection
+  getNoteByFilename, getNoteLinkForDisplay, numberOfOpenItemsInNote, replaceSection
 } from '@helpers/note'
-import { getNoteTitleFromFilename } from '@helpers/NPnote'
+import { getNoteTitleFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { fullWordMatch, trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
@@ -1066,7 +1065,7 @@ export async function writeSearchResultsToNote(
     }
 
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
-    const outputNote = await getOrMakeNote(requestedTitle, config.folderToStore, titleToMatch)
+    const outputNote = await getOrMakeRegularNoteInFolder(requestedTitle, config.folderToStore, titleToMatch)
 
     if (outputNote) {
       // If the relevant note has more than just a title line, decide whether to replace all contents, or just replace a given heading section

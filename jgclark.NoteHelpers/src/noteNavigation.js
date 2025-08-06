@@ -2,18 +2,18 @@
 //-----------------------------------------------------------------------------
 // Navigation functions for Note Helpers plugin for NotePlan
 // Jonathan Clark
-// Last updated 2.1.2024 for v0.19.0, @jgclark
+// Last updated 2025-08-03 for v1.2.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getSettings } from './noteHelpers'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { allNotesSortedByChanged } from '@helpers/note'
+import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import {
   chooseHeading,
-  chooseNote,
+  chooseNoteV2,
   showMessage
 } from '@helpers/userInput'
 import { findURLsInNote, findURLsInText, type LinkObject } from '@helpers/urls'
@@ -58,7 +58,7 @@ export async function jumpToNoteHeading(): Promise<void> {
     //   'Select note to jump to',
     // )
     // const note = notesList[re.index]
-    const note = await chooseNote(true, true, [], 'Select note to jump to', false)
+    const note = await chooseNoteV2(`Select note to jump to`, allRegularNotesSortedByChanged(), true, true, false, true)
 
     // Open the note in the Editor
     if (note != null && note.title != null) {
