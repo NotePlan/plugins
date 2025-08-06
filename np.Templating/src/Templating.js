@@ -30,6 +30,7 @@ import { initConfiguration, updateSettingData } from '@helpers/NPConfiguration'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 import { hasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
+import { getNoteTitleFromTemplate, analyzeTemplateStructure } from '@helpers/NPFrontMatter'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
@@ -264,6 +265,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
  */
 export async function templateNew(templateTitle: string = '', _folder?: string, newNoteTitle?: string, _args?: Object | string): Promise<void> {
   try {
+    logDebug(pluginJson, `templateNew: STARTING - templateTitle:"${templateTitle}", folder:"${_folder}", newNoteTitle:"${newNoteTitle}"`)
     let args = _args
     if (typeof _args === 'string') {
       args = JSON.parse(_args)
@@ -320,7 +322,15 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
 
-    const noteTitle = newNoteTitle || frontmatterAttributes.newNoteTitle || (await CommandBar.textPrompt('Template', 'Enter New Note Title', ''))
+    // Use the new function to get note title from template, checking both newNoteTitle and inline title
+    const templateNoteTitle = getNoteTitleFromTemplate(templateData)
+    logDebug(pluginJson, `templateNew: templateNoteTitle from getNoteTitleFromTemplate: "${templateNoteTitle}"`)
+    logDebug(pluginJson, `templateNew: newNoteTitle parameter: "${newNoteTitle}"`)
+    logDebug(pluginJson, `templateNew: frontmatterAttributes.newNoteTitle: "${frontmatterAttributes.newNoteTitle}"`)
+
+    const noteTitle = newNoteTitle || templateNoteTitle || frontmatterAttributes.newNoteTitle || (await CommandBar.textPrompt('Template', 'Enter New Note Title', ''))
+    logDebug(pluginJson, `templateNew: final noteTitle: "${noteTitle}"`)
+
     if (typeof noteTitle === 'boolean' || noteTitle.length === 0) {
       return // user did not provide note title (Cancel) abort
     }
@@ -350,9 +360,35 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       if (renderedTemplateHasFM) {
         Editor.content = templateResult
 
-        updateFrontMatterVars(Editor, { title: noteTitle })
+        // Always add title to frontmatter if we have a newNoteTitle from template frontmatter
+        // Only skip adding title if the template has an inline title but NO newNoteTitle
+        // OR if newNoteTitle and inline title are the same (no need to duplicate)
+        const analysis = analyzeTemplateStructure(templateData)
+        const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
+        const hasNewNoteTitle = analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle
+        const titlesAreSame = hasInlineTitle && hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle === analysis.inlineTitleText
+
+        if ((hasNewNoteTitle && !titlesAreSame) || !hasInlineTitle) {
+          updateFrontMatterVars(Editor, { title: noteTitle })
+        }
       } else {
-        Editor.content = `# ${noteTitle}\n${templateResult}`
+        // Check if the template already contains an inline title to avoid duplication
+        // Also check if we have newNoteTitle that should create frontmatter
+        const analysis = analyzeTemplateStructure(templateData)
+        const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
+        const hasNewNoteTitle = analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle
+        const titlesAreSame = hasInlineTitle && hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle === analysis.inlineTitleText
+
+        if (hasNewNoteTitle && !titlesAreSame) {
+          // We have newNoteTitle, so create frontmatter with title
+          Editor.content = `---\ntitle: ${noteTitle}\n---\n${templateResult}`
+        } else if (hasInlineTitle) {
+          // Template already has an inline title, don't add another one
+          Editor.content = templateResult
+        } else {
+          // No inline title in template, add the title
+          Editor.content = `# ${noteTitle}\n${templateResult}`
+        }
       }
       selectFirstNonTitleLineInEditor()
     } else {
@@ -365,6 +401,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
 
 export async function templateQuickNote(templateTitle: string = ''): Promise<void> {
   try {
+    logDebug(pluginJson, `templateQuickNote: STARTING - templateTitle:"${templateTitle}"`)
     const content: string = Editor.content || ''
     const templateFolder = await getTemplateFolder()
 
@@ -397,8 +434,12 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
           folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
         }
 
+        // Use the new function to get note title from template, checking both newNoteTitle and inline title
+        const templateNoteTitle = getNoteTitleFromTemplate(templateData)
         let newNoteTitle = ''
-        if (frontmatterAttributes?.newNoteTitle) {
+        if (templateNoteTitle) {
+          newNoteTitle = templateNoteTitle
+        } else if (frontmatterAttributes?.newNoteTitle) {
           newNoteTitle = frontmatterAttributes.newNoteTitle
         } else {
           newNoteTitle = (await CommandBar.textPrompt('Quick Note', 'Enter Note Title', '')) || ''
@@ -427,9 +468,35 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
 
           if (renderedTemplateHasFM) {
             Editor.content = finalRenderedData
-            updateFrontMatterVars(Editor, { title: newNoteTitle })
+            // Always add title to frontmatter if we have a newNoteTitle from template frontmatter
+            // Only skip adding title if the template has an inline title but NO newNoteTitle
+            // OR if newNoteTitle and inline title are the same (no need to duplicate)
+            const analysis = analyzeTemplateStructure(templateData)
+            const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
+            const hasNewNoteTitle = analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle
+            const titlesAreSame = hasInlineTitle && hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle === analysis.inlineTitleText
+
+            if ((hasNewNoteTitle && !titlesAreSame) || !hasInlineTitle) {
+              updateFrontMatterVars(Editor, { title: newNoteTitle })
+            }
           } else {
-            Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
+            // Check if the template already contains an inline title to avoid duplication
+            // Also check if we have newNoteTitle that should create frontmatter
+            const analysis = analyzeTemplateStructure(templateData)
+            const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
+            const hasNewNoteTitle = analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle
+            const titlesAreSame = hasInlineTitle && hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle === analysis.inlineTitleText
+
+            if (hasNewNoteTitle && !titlesAreSame) {
+              // We have newNoteTitle, so create frontmatter with title
+              Editor.content = `---\ntitle: ${newNoteTitle}\n---\n${finalRenderedData}`
+            } else if (hasInlineTitle) {
+              // Template already has an inline title, don't add another one
+              Editor.content = finalRenderedData
+            } else {
+              // No inline title in template, add the title
+              Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
+            }
           }
           selectFirstNonTitleLineInEditor()
         } else {
@@ -485,8 +552,12 @@ export async function templateMeetingNote(templateName: string = '', templateDat
           folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
         }
 
+        // Use the new function to get note title from template, checking both newNoteTitle and inline title
+        const templateNoteTitle = getNoteTitleFromTemplate(templateData)
         let newNoteTitle = ''
-        if (frontmatterAttributes?.newNoteTitle) {
+        if (templateNoteTitle) {
+          newNoteTitle = templateNoteTitle
+        } else if (frontmatterAttributes?.newNoteTitle) {
           newNoteTitle = frontmatterAttributes.newNoteTitle
         } else {
           const format = await getSetting('np.Templating', 'timestampFormat')
@@ -535,7 +606,17 @@ export async function templateMeetingNote(templateName: string = '', templateDat
               `TemplateDELETME templateMeetingNote: ${filename} has note sub-frontmatter, so we replaced the existing content with the rendered frontmatter; note content is now: ${newContent}`,
             )
           } else {
-            Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
+            // Check if the template already contains an inline title to avoid duplication
+            const analysis = analyzeTemplateStructure(templateData)
+            const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
+
+            if (hasInlineTitle) {
+              // Template already has an inline title, don't add another one
+              Editor.content = finalRenderedData
+            } else {
+              // No inline title in template, add the title
+              Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
+            }
           }
           selectFirstNonTitleLineInEditor()
         }

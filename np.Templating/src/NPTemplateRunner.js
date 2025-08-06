@@ -14,6 +14,7 @@ import { getISOWeekAndYear, getISOWeekString } from '@helpers/dateTime'
 import { getNPWeekData } from '@helpers/NPdateTime'
 import { getNote } from '@helpers/note'
 import { chooseNote } from '@helpers/userInput'
+import { getNoteTitleFromTemplate } from '@helpers/NPFrontMatter'
 
 import NPTemplating from '../lib/NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
@@ -167,9 +168,12 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData, argObj)
         clo(frontmatterAttributes, `templateRunnerExecute frontMatterAttributes after renderFrontmatter`)
         let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
-        if (data['newNoteTitle']) {
+        // Check for newNoteTitle in the data or template
+        const templateNoteTitle = getNoteTitleFromTemplate(templateData)
+        const templateNoteTitleToUse = data['newNoteTitle'] || templateNoteTitle
+        if (templateNoteTitleToUse) {
           // if form or template has a newNoteTitle field then we need to call templateNew
-          const argsArray = [selectedTemplate, data['folder'] || null, data['newNoteTitle'], argObj]
+          const argsArray = [selectedTemplate, data['folder'] || null, templateNoteTitleToUse, argObj]
           await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
           return
         }

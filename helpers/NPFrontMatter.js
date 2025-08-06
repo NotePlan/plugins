@@ -1330,7 +1330,7 @@ export function analyzeTemplateStructure(templateData: string): {
     // Manually extract template frontmatter and body to handle malformed frontmatter
     const lines = templateData.split('\n')
     let templateFrontmatterEnd = -1
-    
+
     // Find the end of template frontmatter (first --- block)
     if (lines.length >= 2 && lines[0].trim() === '---') {
       for (let i = 1; i < lines.length; i++) {
@@ -1364,9 +1364,14 @@ export function analyzeTemplateStructure(templateData: string): {
 
       result.templateFrontmatter = attributes
       result.bodyContent = lines.slice(templateFrontmatterEnd + 1).join('\n')
+      logDebug('analyzeTemplateStructure', `Extracted body content (${result.bodyContent.length} chars): "${result.bodyContent.substring(0, 200)}..."`)
     } else {
       // No template frontmatter, use the whole content as body
       result.bodyContent = templateData
+      logDebug(
+        'analyzeTemplateStructure',
+        `No template frontmatter found, using whole content as body (${result.bodyContent.length} chars): "${result.bodyContent.substring(0, 200)}..."`,
+      )
     }
 
     // Check for newNoteTitle in template frontmatter
@@ -1530,12 +1535,15 @@ some: frontmatter
  */
 function detectInlineTitleRobust(bodyContent: string): { hasInlineTitle: boolean, inlineTitleText: string } {
   if (!bodyContent) {
+    logDebug('detectInlineTitleRobust', 'No body content provided')
     return { hasInlineTitle: false, inlineTitleText: '' }
   }
 
   const lines = bodyContent.split('\n')
   let inFrontmatter = false
   let frontmatterDepth = 0
+
+  logDebug('detectInlineTitleRobust', `Processing ${lines.length} lines of body content`)
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
@@ -1547,10 +1555,12 @@ function detectInlineTitleRobust(bodyContent: string): { hasInlineTitle: boolean
       if (inFrontmatter) {
         frontmatterDepth--
         inFrontmatter = frontmatterDepth > 0
+        logDebug('detectInlineTitleRobust', `Ending frontmatter block at line ${i}, depth now ${frontmatterDepth}`)
       } else {
         // If we're not in frontmatter, this separator starts it
         frontmatterDepth++
         inFrontmatter = true
+        logDebug('detectInlineTitleRobust', `Starting frontmatter block at line ${i}, depth now ${frontmatterDepth}`)
       }
       continue
     }
@@ -1562,22 +1572,67 @@ function detectInlineTitleRobust(bodyContent: string): { hasInlineTitle: boolean
 
     // If we're in frontmatter, skip this line
     if (inFrontmatter) {
+      logDebug('detectInlineTitleRobust', `Skipping frontmatter line ${i}: "${trimmedLine}"`)
       continue
     }
 
     // We're out of frontmatter, check if this is an inline title
     if (trimmedLine.startsWith('# ') && !trimmedLine.startsWith('##')) {
       const titleText = trimmedLine.substring(2).trim()
+      logDebug('detectInlineTitleRobust', `Found inline title at line ${i}: "${titleText}"`)
       return {
         hasInlineTitle: true,
         inlineTitleText: titleText,
       }
     }
 
+    logDebug('detectInlineTitleRobust', `Line ${i} is not an inline title: "${trimmedLine}"`)
+
     // If we've found a non-empty line that's not an inline title, stop looking
     // (we only want the first non-frontmatter line)
     break
   }
 
+  logDebug('detectInlineTitleRobust', 'No inline title found')
   return { hasInlineTitle: false, inlineTitleText: '' }
+}
+
+/**
+ * Extract the note title from a template using analyzeTemplateStructure
+ * Checks for newNoteTitle in frontmatter first, then falls back to inline title if newNoteTitle is not found
+ * @param {string} templateData - The template content to analyze
+ * @returns {string} - The note title to use, or empty string if none found
+ */
+export function getNoteTitleFromTemplate(templateData: string): string {
+  try {
+    logDebug('getNoteTitleFromTemplate', `Analyzing template with ${templateData.length} characters`)
+    const analysis = analyzeTemplateStructure(templateData)
+
+    logDebug(
+      'getNoteTitleFromTemplate',
+      `Analysis results:
+      - hasNewNoteTitle: ${String(analysis.hasNewNoteTitle)}
+      - hasInlineTitle: ${String(analysis.hasInlineTitle)}
+      - templateFrontmatter keys: ${Object.keys(analysis.templateFrontmatter).join(', ')}
+      - inlineTitleText: "${analysis.inlineTitleText}"`,
+    )
+
+    // First check for newNoteTitle in template frontmatter
+    if (analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle) {
+      logDebug('getNoteTitleFromTemplate', `Found newNoteTitle in template frontmatter: "${analysis.templateFrontmatter.newNoteTitle}"`)
+      return analysis.templateFrontmatter.newNoteTitle
+    }
+
+    // If no newNoteTitle found, check for inline title
+    if (analysis.hasInlineTitle && analysis.inlineTitleText) {
+      logDebug('getNoteTitleFromTemplate', `Found inline title: "${analysis.inlineTitleText}"`)
+      return analysis.inlineTitleText
+    }
+
+    logDebug('getNoteTitleFromTemplate', 'No note title found in template')
+    return ''
+  } catch (error) {
+    logError('getNoteTitleFromTemplate', JSP(error))
+    return ''
+  }
 }
