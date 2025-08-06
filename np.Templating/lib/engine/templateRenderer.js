@@ -84,6 +84,7 @@ export function convertToDoubleDashesIfNecessary(templateData: string): string {
     lines[startBlock] = '--'
     lines[endBlock] = '--'
     returnedData = lines.join('\n')
+    logDebug(pluginJson, `convertToDoubleDashesIfNecessary: converted triple dashes to double dashes; templateData is now: "${templateData}"`)
   }
 
   return returnedData

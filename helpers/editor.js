@@ -3,6 +3,7 @@
 import { logDebug } from './dev'
 import { showMessageYesNo, showMessage } from './userInput'
 import { getFolderFromFilename } from '@helpers/folders'
+import { getNoteTitleFromTemplate } from './NPFrontMatter'
 
 /**
  * Run Editor.save() if active Editor is dirty and needs saving
@@ -37,7 +38,10 @@ export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, 
   // Check if the template wants the note to be created in a folder and if so, move the empty note to the trash and create a new note in the folder
   const isEditorEmpty = editorIsEmpty()
   const theFolder = frontmatterAttributes?.folder?.trim() || ''
-  const newNoteTitle = frontmatterAttributes?.newNoteTitle?.trim() || ''
+  
+  // Use the new function to get note title from template, checking both newNoteTitle and inline title
+  const newNoteTitle = getNoteTitleFromTemplate(templateNote?.content || '') || frontmatterAttributes?.newNoteTitle?.trim() || ''
+  
   logDebug(`checkAndProcessFolderAndNewNoteTitle starting: templateNote:"${templateNote?.title || ''}", frontmatterAttributes:${JSON.stringify(frontmatterAttributes)}`)
   if (theFolder.length > 0 || newNoteTitle.length > 0) {
     if (isEditorEmpty) {

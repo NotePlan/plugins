@@ -7,8 +7,8 @@
 
 import fm from 'front-matter'
 import pluginJson from '../../../plugin.json'
-import { JSP, logError, logDebug } from '@helpers/dev'
-import { getSanitizedFmParts, getValuesForFrontmatterTag, updateFrontMatterVars, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
+import { getSanitizedFmParts, isValidYamlContent, getValuesForFrontmatterTag, updateFrontMatterVars, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
+import { logDebug, logError, JSP } from '@helpers/dev'
 
 export default class FrontmatterModule {
   // $FlowIgnore
@@ -27,17 +27,13 @@ export default class FrontmatterModule {
       // Find the second --- separator
       for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim() === '---') {
-          return true
+          // Now validate that the content between the --- markers is actually YAML-like
+          // Extract the content between the first and second ---
+          const frontmatterContent = lines.slice(1, i).join('\n')
+          return isValidYamlContent(frontmatterContent)
         }
       }
     }
-    // Fallback to the original method for edge cases
-    // dbw note 2025-08-02: I can't imagine why this would ever be needed, so commenting out for now
-    // FIXME: remove this in the future if no edge cases are discovered
-    // const parts = getSanitizedFmParts(templateData)
-    // const hasAttributes = parts?.attributes && Object.keys(parts.attributes).length > 0
-    // logDebug(pluginJson, `FrontmatterModule.isFrontmatterTemplate: Fallback check - hasAttributes=${String(hasAttributes)} templateData:"${templateData}"`)
-    // return hasAttributes
     return false
   }
 

@@ -4,6 +4,23 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.17] 2025-08-06 @dwertheimer
+- Fix bug where non-fm-body templates which started with -- were being treated as frontmatter
+
+## [2.0.16] 2025-08-06 @dwertheimer
+- Add pivot offset to date.now() method
+
+## [2.0.15] 2025-08-06 @dwertheimer
+- Fix date module edge cases with timezones
+
+## [2.0.14] 2025-08-06 @dwertheimer
+- Make it possible for a template to have any level of heading for the title (was previously H1 only)
+
+## [2.0.13] 2025-08-05 @dwertheimer
+- Fix bug where inline H1 title was not being used in templateNew (thx @crussell)
+- Ensure that inline H1 title is not created in frontmatter even if there is other frontmatter being created
+- if there is newNoteTitle and also an inline H1 title, the newNoteTitle will take precedence and will be created in frontmatter
+
 ## [2.0.12] 2025-08-02 @dwertheimer
 - Fix templateNew to handle blank meeting note edge case
 
