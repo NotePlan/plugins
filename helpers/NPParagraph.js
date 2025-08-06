@@ -1377,7 +1377,7 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
  * If the rawContent is truncated with "..." it will match if the truncated version is the same as the start of the rawContent in a line in the note
  * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph rawContent at 300 chars).
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
- * Works on both Project and Calendar notes.
+ * Works on both Regular ('Project') and Calendar notes.
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} rawContent to find
