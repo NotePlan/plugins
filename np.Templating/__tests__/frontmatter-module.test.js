@@ -35,6 +35,36 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(false)
     })
 
+    it(`should return false for content with non-frontmatter separators`, async () => {
+      // This template has --- separators but no valid YAML content between them
+      const data = `---
+---
+# This is not frontmatter, just separators
+
+## Content here
+Some content that looks like it might be frontmatter but isn't`
+
+      let result = new FrontmatterModule().isFrontmatterTemplate(data)
+
+      expect(result).toEqual(false)
+    })
+
+    it(`should return false for content with separators that look like frontmatter but aren't`, async () => {
+      // This template has valid frontmatter followed by separators that aren't frontmatter
+      const data = `---
+title: Test Template
+type: meeting-note
+---
+---
+## This is not frontmatter, just a separator
+
+Some content here`
+
+      let result = new FrontmatterModule().isFrontmatterTemplate(data)
+
+      expect(result).toEqual(true) // The first block is valid frontmatter
+    })
+
     it(`should extract frontmatter attributes using ${method('.attributes')}`, async () => {
       const data = await factory('frontmatter-minimal.ejs')
 

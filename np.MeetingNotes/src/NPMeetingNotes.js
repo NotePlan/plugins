@@ -11,7 +11,7 @@ import { getNoteByFilename } from '../../helpers/note'
 import { isCalendarNoteFilename } from '@helpers/regex'
 import { log, logDebug, logError, clo, JSP, timer } from '@helpers/dev'
 import { findProjectNoteUrlInText } from '@helpers/urls'
-import { getAttributes } from '@helpers/NPFrontMatter'
+import { getAttributes, getNoteTitleFromTemplate } from '@helpers/NPFrontMatter'
 import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
 
 /**
@@ -210,7 +210,7 @@ function titleExistsInNote(content: string): string | null {
   // logDebug(pluginJson, `titleExistsInNote attributes?.title=${attributes?.title}`)
   // if (attributes?.title) return attributes.title // commenting this out because attributes is the template's attributes, not the resulting doc
   const lines = content.split('\n')
-  const headingLine = lines.find((l) => l.startsWith('# '))
+  const headingLine = lines.find((l) => l.match(/^#{1,6}\s+/))
   logDebug(pluginJson, `titleExistsInNote headingLine || null=${headingLine || 'null (no title in content)'}`)
   return headingLine || null
 }
@@ -227,7 +227,7 @@ function getNoteTitle(_noteTitle: string, renderedTemplateContent: string, attri
   // if (attributes?.title) return attributes.title
   // grab the first line of the result as the title
   const lines = renderedTemplateContent.split('\n')
-  const headingLine = lines.find((l) => l.startsWith('#')) // may need to infer the title from a ## title etc.
+  const headingLine = lines.find((l) => l.match(/^#{1,6}\s+/)) // may need to infer the title from a ## title etc.
   const noteTitle = headingLine ? headingLine.replace(/(^#*\s*)/, '').trim() : ''
   logDebug(pluginJson, `No title specified directly. Trying to infer it from the headingLine: "${headingLine || ''}" => "${noteTitle}"`)
   return noteTitle
@@ -292,7 +292,9 @@ async function createNoteAndLinkEvent(selectedEvent: TCalendarItem | null, rende
   const append: string = attrs?.append || ''
   const prepend: string = attrs?.prepend || ''
   const cursor: string = attrs?.cursor || ''
-  const newNoteTitle: string = attrs?.newNoteTitle || ''
+  // Use the new function to get note title from template, checking both newNoteTitle and inline title
+  const templateNoteTitle = getNoteTitleFromTemplate(renderedContent)
+  const newNoteTitle: string = templateNoteTitle || attrs?.newNoteTitle || ''
 
   let noteTitle: string = (append || prepend || cursor).trim()
   const location: string = append.length ? 'append' : cursor.length ? 'cursor' : 'prepend'

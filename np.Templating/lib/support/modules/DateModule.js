@@ -116,13 +116,14 @@ export default class DateModule {
       dateToFormat = dateInput // Already a valid Date object
     } else {
       // Default to current date if dateInput is empty, invalid, or unexpected type
-      dateToFormat = new Date()
+      // Use moment() to get current date consistently with timezone handling
+      dateToFormat = moment().toDate()
     }
 
     // Ensure dateToFormat is a valid, finite Date object for Intl.DateTimeFormat
     if (!(dateToFormat instanceof Date) || !isFinite(dateToFormat.getTime())) {
       // console.warn(`DateModule.format: dateToFormat is not a finite Date after processing input:`, dateInput, `. Defaulting to now.`);
-      dateToFormat = new Date() // Final fallback
+      dateToFormat = moment().toDate() // Final fallback - use moment for consistent timezone handling
     }
 
     let formattedDateString
@@ -136,50 +137,57 @@ export default class DateModule {
     return formattedDateString
   }
 
-  now(format = '', offset = '') {
+  now(format = '', dateOrOffset = '') {
     const locale = this.config?.templateLocale || 'en-US'
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     const effectiveFormat = typeof format === 'string' && format.length > 0 ? format : configFormat
-    const dateValue = new Date()
 
     this.setLocale()
-    let momentToProcess = moment(dateValue)
+    let momentToProcess
 
-    if (offset !== null && offset !== undefined && String(offset).trim().length > 0) {
-      const offsetStr = String(offset).trim()
-      let successfullyAppliedOffset = false
+    // Handle different types of second parameter
+    if (dateOrOffset !== null && dateOrOffset !== undefined && dateOrOffset !== '') {
+      if (typeof dateOrOffset === 'number') {
+        // Numeric offset - treat as days
+        const dateValue = moment().toDate()
+        momentToProcess = moment(dateValue).add(dateOrOffset, 'days')
+      } else if (typeof dateOrOffset === 'string' && dateOrOffset.trim().length > 0) {
+        const dateStr = dateOrOffset.trim()
 
-      // Try to parse as shorthand first (e.g., "1w", "-2m", "+7d")
-      // Regex: optional sign, numbers (with optional decimal), then letters
-      const shorthandMatch = offsetStr.match(/^([+-]?[0-9\.]+)([a-zA-Z]+)$/)
-      if (shorthandMatch) {
-        const value = parseFloat(shorthandMatch[1])
-        const unit = shorthandMatch[2]
-        if (!isNaN(value) && unit.length > 0) {
-          // Moment's add/subtract take positive magnitude for subtract
-          if (value < 0) {
-            momentToProcess = moment(dateValue).subtract(Math.abs(value), unit)
+        // Check if it looks like a date string (contains dashes, slashes, or is a full date)
+        const looksLikeDate =
+          /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(dateStr) ||
+          /^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(dateStr) ||
+          /^[A-Za-z]+\s+\d{1,2},?\s+\d{4}/.test(dateStr) ||
+          /^\d{4}-\d{2}-\d{2}T/.test(dateStr)
+
+        if (looksLikeDate) {
+          // Try to parse as a date first
+          const parsedDate = moment(dateStr)
+          if (parsedDate.isValid()) {
+            // It's a valid date, use it
+            momentToProcess = parsedDate
           } else {
-            momentToProcess = moment(dateValue).add(value, unit)
+            // Not a valid date, treat as offset
+            const dateValue = moment().toDate()
+            momentToProcess = moment(dateValue)
+            this._applyOffset(momentToProcess, dateStr)
           }
-          successfullyAppliedOffset = true
+        } else {
+          // Doesn't look like a date, treat as offset
+          const dateValue = moment().toDate()
+          momentToProcess = moment(dateValue)
+          this._applyOffset(momentToProcess, dateStr)
         }
+      } else {
+        // Unexpected type, use current date
+        const dateValue = moment().toDate()
+        momentToProcess = moment(dateValue)
       }
-
-      if (!successfullyAppliedOffset) {
-        // If not parsed as shorthand, try as a plain number (for days)
-        const numDays = parseFloat(offsetStr)
-        if (!isNaN(numDays)) {
-          momentToProcess = moment(dateValue).add(numDays, 'days')
-          successfullyAppliedOffset = true
-        }
-      }
-
-      // If offset was provided but couldn't be parsed, momentToProcess remains moment(dateValue)
-      // which means no offset is applied, or you could add a warning here.
-      // if (!successfullyAppliedOffset) {
-      //   console.warn(`DateModule.now: Could not parse offset: ${offsetStr}`)
-      // }
+    } else {
+      // No second parameter, use current date
+      const dateValue = moment().toDate()
+      momentToProcess = moment(dateValue)
     }
 
     let formattedDate
@@ -193,6 +201,39 @@ export default class DateModule {
     return this.isValid(formattedDate)
   }
 
+  _applyOffset(momentToProcess, offsetStr) {
+    let successfullyAppliedOffset = false
+
+    // Try to parse as shorthand first (e.g., "1w", "-2m", "+7d")
+    // Regex: optional sign, numbers (with optional decimal), then letters
+    const shorthandMatch = offsetStr.match(/^([+-]?[0-9\.]+)([a-zA-Z]+)$/)
+    if (shorthandMatch) {
+      const value = parseFloat(shorthandMatch[1])
+      const unit = shorthandMatch[2]
+      if (!isNaN(value) && unit.length > 0) {
+        // Moment's add/subtract take positive magnitude for subtract
+        if (value < 0) {
+          momentToProcess.subtract(Math.abs(value), unit)
+        } else {
+          momentToProcess.add(value, unit)
+        }
+        successfullyAppliedOffset = true
+      }
+    }
+
+    if (!successfullyAppliedOffset) {
+      // If not parsed as shorthand, try as a plain number (for days)
+      const numDays = parseFloat(offsetStr)
+      if (!isNaN(numDays)) {
+        momentToProcess.add(numDays, 'days')
+        successfullyAppliedOffset = true
+      }
+    }
+
+    // If offset was provided but couldn't be parsed, momentToProcess remains unchanged
+    // which means no offset is applied
+  }
+
   date8601() {
     return moment().format('YYYY-MM-DD')
   }
@@ -200,7 +241,7 @@ export default class DateModule {
   today(format = '') {
     this.setLocale()
 
-    return this.format(format, new Date())
+    return this.format(format, moment().toDate())
   }
 
   tomorrow(format = '') {
@@ -209,7 +250,7 @@ export default class DateModule {
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
 
-    const dateValue = moment(new Date()).add(1, 'days')
+    const dateValue = moment().add(1, 'days')
 
     return this.format(format, dateValue)
   }
@@ -218,7 +259,7 @@ export default class DateModule {
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
 
-    const dateValue = moment(new Date()).subtract(1, 'days')
+    const dateValue = moment().subtract(1, 'days')
 
     return this.format(format, dateValue)
   }

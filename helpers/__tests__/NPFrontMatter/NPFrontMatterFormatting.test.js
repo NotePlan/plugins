@@ -295,6 +295,73 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(expected)
     })
 
+    test('should not treat invalid YAML content as frontmatter', () => {
+      const before = `---
+**Event:** <%- calendarItemLink %>
+**Links:** <%- eventLink %>
+**Attendees:** <%- eventAttendees %>
+**Location:** <%- eventLocation %>
+---
+### Agenda
++ 
+
+### Notes
+- 
+
+### Actions
+* `
+      const result = f.getSanitizedFmParts(before)
+      // Should treat the entire content as body since the content between --- is not valid YAML
+      expect(result.attributes).toEqual({})
+      expect(result.body).toEqual(before)
+      expect(result.frontmatter).toEqual('')
+    })
+
+    test('should treat content with template tags as frontmatter', () => {
+      const before = `---
+title: <%- eventTitle %>
+date: <%- eventDate() %>
+type: meeting-note
+---
+# Meeting Notes
+
+Some content here.`
+      const result = f.getSanitizedFmParts(before)
+      // Should extract the frontmatter correctly even with template tags
+      expect(result.attributes).toEqual({
+        title: '<%- eventTitle %>',
+        date: '<%- eventDate() %>',
+        type: 'meeting-note',
+      })
+      expect(result.body).toEqual('# Meeting Notes\n\nSome content here.')
+      // The frontmatter field should contain the actual frontmatter content when fm library succeeds
+      expect(result.frontmatter).toContain('title:')
+      expect(result.frontmatter).toContain('date:')
+      expect(result.frontmatter).toContain('type:')
+    })
+
+    test('should treat valid YAML content as frontmatter even when fm library fails', () => {
+      const before = `---
+title: Valid YAML
+date: 2024-01-15
+type: note
+invalid_yaml: [unclosed array
+---
+# Valid Content
+
+This is the body.`
+      const result = f.getSanitizedFmParts(before)
+      // Should extract the frontmatter correctly using fallback logic
+      expect(result.attributes).toEqual({
+        title: 'Valid YAML',
+        date: '2024-01-15',
+        type: 'note',
+        invalid_yaml: '[unclosed array',
+      })
+      expect(result.body).toEqual('# Valid Content\n\nThis is the body.')
+      expect(result.frontmatter).toEqual('')
+    })
+
     describe('sanitizeFrontmatterInNote()', () => {
       test.skip('should do nothing if none are necesary', () => {
         const note = new Note({ content: 'baz' })

@@ -4,6 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [2.0.3] - 2025-08-06 @dwertheimer
+
+- Make it possible for a template to have any level of heading for the title (was previously H1 only)
+
+## [2.0.2] - 2025-08-05 @dwertheimer
+
+- Fix bug where inline H1 title was not being used in templateNew (thx @crussell)
+
 ## [2.0.1] - 2025-08-02 @dwertheimer
 
 - Add override when inserting a template into a blank note but template has folder or newNoteTitle attribute
