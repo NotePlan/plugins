@@ -169,8 +169,9 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
         clo(frontmatterAttributes, `templateRunnerExecute frontMatterAttributes after renderFrontmatter`)
         let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
         // Check for newNoteTitle in the data or template
-        const templateNoteTitle = getNoteTitleFromTemplate(templateData)
-        const templateNoteTitleToUse = data['newNoteTitle'] || templateNoteTitle
+        // For template runner, we only want to create new notes when there's an explicit newNoteTitle
+        // Don't use inline titles for template runner - they should only be used for templateNew
+        const templateNoteTitleToUse = data['newNoteTitle'] || null
         if (templateNoteTitleToUse) {
           // if form or template has a newNoteTitle field then we need to call templateNew
           const argsArray = [selectedTemplate, data['folder'] || null, templateNoteTitleToUse, argObj]

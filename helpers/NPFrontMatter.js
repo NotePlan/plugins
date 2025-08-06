@@ -1577,8 +1577,8 @@ function detectInlineTitleRobust(bodyContent: string): { hasInlineTitle: boolean
     }
 
     // We're out of frontmatter, check if this is an inline title
-    if (trimmedLine.startsWith('# ') && !trimmedLine.startsWith('##')) {
-      const titleText = trimmedLine.substring(2).trim()
+    if (trimmedLine.match(/^#{1,6}\s+/)) {
+      const titleText = trimmedLine.replace(/^#{1,6}\s+/, '').trim()
       logDebug('detectInlineTitleRobust', `Found inline title at line ${i}: "${titleText}"`)
       return {
         hasInlineTitle: true,

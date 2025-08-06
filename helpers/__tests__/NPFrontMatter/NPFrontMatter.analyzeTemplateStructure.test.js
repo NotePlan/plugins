@@ -257,19 +257,16 @@ note: frontmatter
       expect(result.inlineTitleText).toBe('')
     })
 
-    test('should not detect ## as inline title', () => {
+    test('should detect ## as inline title', () => {
       const template = `---
-title: template title
+title: my template
 ---
---
-note: frontmatter
---
-## This is not an inline title`
+## This is my H2 title`
 
       const result = analyzeTemplateStructure(template)
 
-      expect(result.hasInlineTitle).toBe(false)
-      expect(result.inlineTitleText).toBe('')
+      expect(result.hasInlineTitle).toBe(true)
+      expect(result.inlineTitleText).toBe('This is my H2 title')
     })
 
     test('should not detect inline title inside frontmatter', () => {
@@ -286,6 +283,119 @@ note: frontmatter
 
       expect(result.hasInlineTitle).toBe(true)
       expect(result.inlineTitleText).toBe('This is the real inline title')
+    })
+  })
+
+  describe('inline title detection with different heading levels', () => {
+    test('should detect H1 inline title', () => {
+      const template = `---
+title: my template
+---
+# This is my H1 title`
+
+      const result = analyzeTemplateStructure(template)
+
+      expect(result.hasInlineTitle).toBe(true)
+      expect(result.inlineTitleText).toBe('This is my H1 title')
+    })
+
+    test('should detect H2 inline title', () => {
+      const template = `---
+title: my template
+---
+## This is my H2 title`
+
+      const result = analyzeTemplateStructure(template)
+
+      expect(result.hasInlineTitle).toBe(true)
+      expect(result.inlineTitleText).toBe('This is my H2 title')
+    })
+
+    test('should detect H3 inline title', () => {
+      const template = `---
+title: my template
+---
+### This is my H3 title`
+
+      const result = analyzeTemplateStructure(template)
+
+      expect(result.hasInlineTitle).toBe(true)
+      expect(result.inlineTitleText).toBe('This is my H3 title')
+    })
+
+    test('should detect H6 inline title', () => {
+      const template = `---
+title: my template
+---
+###### This is my H6 title`
+
+      const result = analyzeTemplateStructure(template)
+
+      expect(result.hasInlineTitle).toBe(true)
+      expect(result.inlineTitleText).toBe('This is my H6 title')
+    })
+
+    test('should not detect subheading as inline title', () => {
+      const template = `---
+title: my template
+---
+# Main title
+## This is a subheading`
+
+      const result = analyzeTemplateStructure(template)
+
+      expect(result.hasInlineTitle).toBe(true)
+      expect(result.inlineTitleText).toBe('Main title')
+    })
+
+    test('should detect first heading when multiple headings exist', () => {
+      const template = `---
+title: my template
+---
+## First heading
+### Second heading
+#### Third heading`
+
+      const result = analyzeTemplateStructure(template)
+
+      expect(result.hasInlineTitle).toBe(true)
+      expect(result.inlineTitleText).toBe('First heading')
+    })
+  })
+
+  describe('getNoteTitleFromTemplate with different heading levels', () => {
+    test('should return H2 title when newNoteTitle is not present', () => {
+      const template = `---
+title: my template
+---
+## This is my H2 title`
+
+      const result = getNoteTitleFromTemplate(template)
+
+      expect(result).toBe('This is my H2 title')
+    })
+
+    test('should return H3 title when newNoteTitle is not present', () => {
+      const template = `---
+title: my template
+---
+### This is my H3 title`
+
+      const result = getNoteTitleFromTemplate(template)
+
+      expect(result).toBe('This is my H3 title')
+    })
+
+    test('should prioritize newNoteTitle over H2 inline title', () => {
+      const template = `---
+title: my template
+newNoteTitle: foo
+---
+## This is my H2 title`
+
+      const result = getNoteTitleFromTemplate(template)
+
+      expect(result).toBe('foo')
     })
   })
 
@@ -518,16 +628,16 @@ final: frontmatter
       expect(result).toBe('Final Title')
     })
 
-    test('should handle template with subheading only (not inline title)', () => {
+    test('should handle template with subheading only (now detected as inline title)', () => {
       const template = `---
-title: template title
+title: my template
 ---
 ## This is a subheading, not an inline title
-Some content`
+Some content here`
 
       const result = getNoteTitleFromTemplate(template)
 
-      expect(result).toBe('')
+      expect(result).toBe('This is a subheading, not an inline title')
     })
   })
 })
