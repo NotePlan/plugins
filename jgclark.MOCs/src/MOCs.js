@@ -10,7 +10,7 @@ import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
   // getFolderListMinusExclusions,
   getFolderFromFilename,
-  // projectNotesFromFilteredFolders
+  // regularNotesFromFilteredFolders
 } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { replaceSection } from '@helpers/note'

@@ -23,7 +23,7 @@ import {
   convertISOToYYYYMMDD,
 } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFolderListMinusExclusions, getFolderFromFilename, projectNotesFromFilteredFolders } from '@helpers/folders'
+import { getFolderListMinusExclusions, getFolderFromFilename, getRegularNotesFromFilteredFolders } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { noteHasFrontMatter, getFrontMatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
@@ -314,7 +314,7 @@ export function getUniqueNoteTitle(title: string): string {
  * @return {Array<TNote>} array of notes
  */
 export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Array<TNote> {
-  const projectNotes = projectNotesFromFilteredFolders(foldersToIgnore, true)
+  const projectNotes = getRegularNotesFromFilteredFolders(foldersToIgnore, true)
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
   // $FlowIgnore(unsafe-arithmetic)
@@ -329,7 +329,7 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
  * @return {Array<TNote>} array of notes
  */
 export function allRegularNotesSortedByChanged(foldersToIgnore: Array<string> = []): Array<TNote> {
-  const regularNotes = projectNotesFromFilteredFolders(foldersToIgnore, true)
+  const regularNotes = getRegularNotesFromFilteredFolders(foldersToIgnore, true)
   // $FlowIgnore(unsafe-arithmetic)
   const regularNotesSorted = regularNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
   return regularNotesSorted
@@ -426,7 +426,7 @@ export function projectNotesSortedByChanged(): Array<TNote> {
  */
 export function projectNotesSortedByTitle(foldersToExclude: Array<string> = [], excludeSpecialFolders: boolean = true): Array<TNote> {
   try {
-    const projectNotes = projectNotesFromFilteredFolders(foldersToExclude, excludeSpecialFolders)
+    const projectNotes = getRegularNotesFromFilteredFolders(foldersToExclude, excludeSpecialFolders)
     const notesSorted = projectNotes.sort(function (first, second) {
       const a = first.title?.toUpperCase() ?? '' // ignore upper and lowercase
       const b = second.title?.toUpperCase() ?? '' // ignore upper and lowercase
@@ -694,6 +694,7 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
  * Filter a list of paras against a list of folders to ignore (and the @... special folders) and return the filtered list.
  * Obviously requires going via the notes array and not the paras array
  * @author @jgclark building on @dwertheimer's work
+ * 
  * @param {Array<TNote>} notes - array of notes to review
  * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
  * @param {boolean} includeCalendar? - whether to include Calendar notes (default: true)
@@ -710,7 +711,7 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
     // logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
 
     if (dedupedNoteFilenameList.length > 0) {
-      const wantedFolders = getFolderListMinusExclusions(excludedFolders, true)
+      const wantedFolders = getFolderListMinusExclusions(excludedFolders, true, false, true)
       // filter out paras not in these notes
       const parasFiltered = paras.filter((p) => {
         const thisNoteFilename = p.note?.filename ?? 'error'
