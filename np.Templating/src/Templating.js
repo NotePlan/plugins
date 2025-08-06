@@ -6,7 +6,7 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { log, clo, logDebug, logError } from '@helpers/dev'
+import { log, clo, logDebug, logError, JSP } from '@helpers/dev'
 import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
@@ -26,7 +26,7 @@ import { getAdvice } from '../lib/support/modules/advice'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 
-import { initConfiguration, updateSettingData } from '@helpers/NPConfiguration'
+import { initConfiguration, updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 import { hasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
@@ -64,27 +64,11 @@ export async function onSettingsUpdated() {
 
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
-    let result: number = 0
-    const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
-    // if we don't have settings, this will be a first time install so we will perform migrations
-    if (typeof pluginSettingsData == 'undefined') {
-      result = updateSettingData(pluginJson)
-    }
-
-    // ===== PLUGIN SPECIFIC SETTING UPDATE CODE
-    // this will be different for all plugins, you can do whatever you wish to configuration
-    const templateSettings = await NPTemplating.updateOrInstall(DataStore.settings, pluginJson['plugin.version'])
-
-    // set application settings with any adjustments after template specific updates
-    DataStore.settings = { ...templateSettings }
-
-    const pluginList = DataStore.installedPlugins()
-    // clo(pluginList)
-
-    const version = await DataStore.invokePluginCommandByName('np:about', 'np.Templating', [{}])
-    logDebug(version)
+    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall running`)
+    await updateSettingData(pluginJson)
+    await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` })
   } catch (error) {
-    logError(pluginJson, error)
+    logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
   }
 }
 
