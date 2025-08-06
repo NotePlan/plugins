@@ -7,7 +7,7 @@ import { getDateStringFromCalendarFilename } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { getElementsFromTask } from './sorting'
 import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
-import { RE_MARKDOWN_LINK_PATH_CAPTURE, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH } from '@helpers/regex'
+import { RE_EVENT_LINK, RE_MARKDOWN_LINK_PATH_CAPTURE, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
 import { stripLinksFromString } from '@helpers/stringTransforms'
 
@@ -15,15 +15,23 @@ import { stripLinksFromString } from '@helpers/stringTransforms'
 
 /**
  * Perform substring match, ignoring case
- * Note: COPY TO AVOID CIRCULAR DEPENDENCY
+ * Note: COPY TO AVOID CIRCULAR DEPENDENCY from search.js
  */
 function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string): boolean {
-  const re = new RegExp(`${searchTerm}`, 'i') // = case insensitive match
-  return re.test(textToSearch)
+  try {
+    // First need to escape any special characters in the search term
+    const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`${escapedSearchTerm}$`, "i") // = case insensitive match
+    return re.test(textToSearch)
+  }
+  catch (error) {
+    logError('paragraph/caseInsensitiveSubstringMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
+    return false
+  }
 }
 
 /**
- * Check to see if search term is present within a URL or file path, using case insensitive searching.
+ * Check to see if search term is present within a string potentially containing aURL or file path, using case insensitive searching.
  * Now updated to _not match_ if the search term is present in the rest of the line.
  * @author @jgclark
  *
@@ -42,45 +50,93 @@ export function isTermInURL(term: string, searchString: string): boolean {
 }
 
 /**
- * Is 'term' (typically a #tag) found in [[...]] or a URL in a string which may contain 0 or more notelinks and URLs?
- * @tests are in a commented-out function in jest file
- * @param {string} input
- * @param {string} term
+ * Is 'term' (typically a #tag) found in a string potentially containing a URL [[...]] or a URL in a string which may contain 0 or more notelinks and URLs?
+ * 
+ * @tests available in jest file
+ * @param {string} term - term to check for
+ * @param {string} input - string to search in
  * @returns {boolean} true if found
  */
-export function isTermInNotelinkOrURI(input: string, term: string): boolean {
-  if (term === '') {
-    logWarn(`isTermInNotelinkOrURI`, `empty search term`)
-    return false
-  }
-  if (input === '') {
-    logWarn(`isTermInNotelinkOrURI`, `empty input string to search`)
-    return false
-  }
-  // Where is the term in the input?
-  const index = input.indexOf(term)
-  if (index < 0) {
-    // logDebug(`isTermInNotelinkOrURI`, `term ${term} not found in'${input}'`)
-    return false
-  }
-  // Find any [[...]] ranges
-  const matches = input.matchAll(RE_NOTELINK_G)
-  if (matches) {
-    for (const match of matches) {
-      const rangeStart = match.index
-      const rangeEnd = match.index + match[0].length
-      // logDebug(`isTermInNotelinkOrURI`, `[[...]] range: ${String(rangeStart)}-${String(rangeEnd)}`)
-      if (index >= rangeStart && index <= rangeEnd) {
-        return true
+export function isTermInNotelinkOrURI(term: string, input: string): boolean {
+  try {
+    if (term === '') {
+      logWarn(`isTermInNotelinkOrURI`, `empty search term`)
+      return false
+    }
+    if (input === '') {
+      logWarn(`isTermInNotelinkOrURI`, `empty input string to search`)
+      return false
+    }
+    // Where is the term in the input?
+    const index = input.indexOf(term)
+    if (index < 0) {
+      // logDebug(`isTermInNotelinkOrURI`, `term ${term} not found in '${input}'`)
+      return false
+    }
+    // Find any [[...]] ranges
+    const matches = input.matchAll(RE_NOTELINK_G)
+    if (matches) {
+      for (const match of matches) {
+        const rangeStart = match.index
+        const rangeEnd = match.index + match[0].length
+        // logDebug(`isTermInNotelinkOrURI`, `[[...]] range: ${String(rangeStart)}-${String(rangeEnd)}`)
+        if (index >= rangeStart && index <= rangeEnd) {
+          return true
+        }
       }
     }
+    // Check for URL ranges. Following isn't perfect, but close enough for URLs on their own or in a [markdown](link).
+    return isTermInURL(term, input)
+  } catch (error) {
+    logError(`isTermInNotelinkOrURI`, error.message)
+    return false
   }
-  // Check for URL ranges. Following isn't perfect, but close enough for URLs on their own or in a [markdown](link).
-  return isTermInURL(term, input)
 }
 
 /**
- * Check to see if search term is present within the path of a [...](path), using case insensitive searching.
+ * Is 'term' (typically a #tag) found in hidden parts of an NP Event Link `![📅](...)`?  I.e. Returns true only if it matches within UUID or Color-code part.
+ *
+ * @tests available in jest file
+ * @param {string} term - term to check for
+ * @param {string} input - string to search in
+ * @returns {boolean} true if found
+ */
+export function isTermInEventLinkHiddenPart(term: string, input: string): boolean {
+  try {
+    if (term === '') {
+      logWarn(`isTermInEventLinkHiddenPart`, `empty search term`)
+      return false
+    }
+    if (input === '') {
+      logWarn(`isTermInEventLinkHiddenPart`, `empty input string to search`)
+      return false
+    }
+    // Where is the term in the input?
+    const index = input.indexOf(term)
+    if (index < 0) {
+      // logDebug(`isTermInEventLinkHiddenPart`, `term ${term} not found in '${input}'`)
+      return false
+    }
+    // Find the (first) event link
+    const matches = input.match(RE_EVENT_LINK)
+    // logDebug(`isTermInEventLinkHiddenPart`, `matches: ${String(matches)}`)
+    if (matches) {
+      const eventUUID = matches[0].split(':::')[1]
+      const eventColorCode = matches[2]
+      logDebug(`isTermInEventLinkHiddenPart`, `Match in {${matches[0]}} / eventUUID: ${eventUUID} eventColorCode: ${eventColorCode} index: ${index}`)
+      if (eventUUID.includes(term) || eventColorCode.includes(term)) {
+        return true
+      }
+    }
+    return false
+  } catch (error) {
+    logError(`isTermInEventLinkHiddenPart`, error.message)
+    return false
+  }
+}
+
+/**
+ * Check to see if search term is present in 'path' part of a string potentially containing a markdown link [...](path), using case insensitive searching.
  * Now updated to _not match_ if the search term is present in the rest of the line.
  * @author @jgclark
  *
@@ -90,6 +146,7 @@ export function isTermInNotelinkOrURI(input: string, term: string): boolean {
  * @return {boolean} true if found
  */
 export function isTermInMarkdownPath(term: string, searchString: string): boolean {
+  try {
   // create version of searchString that doesn't include the URL and test that first
   const MDPathMatches = searchString.match(RE_MARKDOWN_LINK_PATH_CAPTURE) ?? []
   const thisMDPath = MDPathMatches[1] ?? ''
@@ -104,6 +161,10 @@ export function isTermInMarkdownPath(term: string, searchString: string): boolea
     }
   } else {
     // logDebug('paragraph/isTermInMarkdownPath', `No MD path -> false`)
+      return false
+    }
+  } catch (error) {
+    logError(`isTermInMarkdownPath`, error.message)
     return false
   }
 }

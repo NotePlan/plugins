@@ -12,7 +12,7 @@ import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
 import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
-import { isTermInNotelinkOrURI } from '@helpers/paragraph'
+import { isTermInEventLinkHiddenPart, isTermInNotelinkOrURI, isTermInMarkdownPath } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER, formRegExForUsersOpenTasks } from '@helpers/regex'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 
@@ -796,7 +796,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
     // logDebug(`Bridge::sendToHTMLWindow`, `result from the window: ${JSON.stringify(result)}`)
     return result
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError(pluginJson, `Bridge::sendToHTMLWindow: ${error.message}`)
   }
 }
 
@@ -957,24 +957,31 @@ export function convertBoldAndItalicToHTML(input: string): string {
 // Simplify NP event links
 // of the form `![📅](2023-01-13 18:00:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Contact X about Y:::#63DA38)`
 export function simplifyNPEventLinksForHTML(input: string): string {
+  try {
   let output = input
   const captures = output.match(RE_EVENT_LINK)
   if (captures) {
-    // clo(captures, 'results from NP event link matches:')
+    clo(captures, 'results from NP event link matches:')
     // Matches come in threes (plus full match), so process four at a time
     for (let c = 0; c < captures.length; c = c + 3) {
       const eventLink = captures[c]
       const eventTitle = captures[c + 1]
       const eventColor = captures[c + 2]
-      output = output.replace(eventLink, `<i class="fa-regular fa-calendar" style="color: ${eventColor}"></i> <span class="event-link">${eventTitle}</span>`)
+      output = output.replace(eventLink, `<i class="fa-light fa-calendar" style="color: ${eventColor}"></i> <span class="event-link">${eventTitle}</span>`)
     }
   }
-  return output
+    // logDebug('simplifyNPEventLinksForHTML', `{${input}} -> {${output}}`)
+    return output
+  } catch (error) {
+    logError(pluginJson, `simplifyNPEventLinksForHTML: ${error.message}`)
+    return input
+  }
 }
 
 // Simplify embedded images of the form ![image](...) by replacing with an icon.
 // (This also helps remove false positives for ! priority indicator)
 export function simplifyInlineImagesForHTML(input: string): string {
+  try {
   let output = input
   const captures = output.match(/!\[image\]\([^\)]+\)/g)
   if (captures) {
@@ -985,49 +992,82 @@ export function simplifyInlineImagesForHTML(input: string): string {
       // logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
     }
   }
-  return output
+    // logDebug('simplifyInlineImagesForHTML', `{${input}} -> {${output}}`)
+    return output
+  } catch (error) {
+    logError(pluginJson, `simplifyInlineImagesForHTML: ${error.message}`)
+    return input
+  }
 }
 
-// Display hashtags with .hashtag style. Now includes multi-part hashtags (e.g. #one/two/three)
-// Note: need to make only one capture group, and use 'g'lobal flag
+/**
+ * Display hashtags with .hashtag style. Now includes multi-part hashtags (e.g. #one/two/three)
+ * Ignores hashtag-like strings in URLs, markdown links, and event links.
+ * Note: need to make only one capture group, and use 'g'lobal flag.
+ * @param {string} input
+ * @returns {string}
+ */
 export function convertHashtagsToHTML(input: string): string {
-  let output = input
-  // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
-  // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d\'\"]+(\s|$))(#([^\'\"\s]|[\-_\/])+?\(.*?\)|#([^\'\"\s]|[\-_\/])+)/) // regex from @EduardMe's file without :punct:
-  const captures = output.match(/\B(?:#|＃)((?![\p{N}_/]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_/-]{1,60}))/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
-  if (captures) {
-    // clo(captures, 'results from hashtag matches:')
-    for (const capture of captures) {
-      // logDebug('convertHashtagsToHTML', `capture: ${capture}`)
-      if (!isTermInNotelinkOrURI(output, capture)) {
-        output = output.replace(capture, `<span class="hashtag">${capture}</span>`)
+  try {
+    // const RE_HASHTAG_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/, 'g') // regex from @EduardMe's file
+    // const RE_HASHTAG_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d\'\"]+(\s|$))(#([^\'\"\s]|[\-_\/])+?\(.*?\)|#([^\'\"\s]|[\-_\/])+)/, 'g') // regex from @EduardMe's file without :punct:
+    // now copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+    const RE_HASHTAG_G = new RegExp(/\B(?:#|＃)((?![\p{N}_\/\-]+(?:$|\s|\b))(?:[\p{L}\p{M}\p{N}_\/\-]{1,60}))/, 'gu')
+    const matches = input.match(RE_HASHTAG_G)
+    let output = input
+    if (matches) {
+      // logDebug('convertHashtagsToHTML', `results from hashtag matches: ${String(matches)}`)
+      for (const match of matches) {
+        logDebug('convertHashtagsToHTML', `- match: ${String(match)}`)
+        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output)) { continue }
+        output = output.replace(match, `<span class="hashtag">${match}</span>`)
       }
     }
+    // logDebug('convertHashtagsToHTML', `{${input}} -> {${output}}`)
+    return output
+  } catch (error) {
+    logError(pluginJson, `convertHashtagsToHTML: ${error.message}`)
+    return input
   }
-  return output
 }
 
-// Display mentions with .attag style. Now includes also parts in brackets directly after it.
-// Note: need to make only one capture group, and use 'g'lobal flag.
+/**
+ * Display mentions with .attag style. Now includes also parts in brackets directly after it.
+ * Ignores mention-like strings in URLs, markdown links, and event links.
+ * Note: need to make only one capture group, and use 'g'lobal flag.
+ * @param {string} input
+ * @returns {string}
+ */
 export function convertMentionsToHTML(input: string): string {
-  let output = input
-  // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
-  // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/) // regex from @EduardMe's file, without [:punct:]
-  const captures = output.match(/\B@((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_-]{1,60})(\(.*?\))?)/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
-  if (captures) {
-    // clo(captures, 'results from mention matches:')
-    for (const capture of captures) {
-      const match = capture //[2] // part from @
-      output = output.replace(match, `<span class="attag">${match}</span>`)
+  try {
+    let output = input
+    // regex from @EduardMe's file
+    // const RE_MENTION_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/, 'g')
+    // regex from @EduardMe's file, without [:punct:]
+    // const RE_MENTION_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/, 'g') 
+    // now copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+    const RE_MENTION_G = new RegExp(/\B@((?![\p{N}_]+(?:$|\s|\b))(?:[\p{L}\p{M}\p{N}_\/\-]{1,60})(\(.*?\))?)/, 'gu')
+    const matches = input.match(RE_MENTION_G)
+    if (matches) {
+      // logDebug('convertMentionsToHTML', `results from mention matches: ${String(matches)}`)
+      for (const match of matches) {
+        logDebug('convertMentionsToHTML', `- match: ${String(match)}`)
+        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output)) { continue }
+        output = output.replace(match, `<span class="attag">${match}</span>`)
+      }
     }
+    // logDebug('convertMentionsToHTML', `{${input}} -> {${output}}`)
+    return output
+  } catch (error) {
+    logError(pluginJson, `convertMentionsToHTML: ${error.message}`)
+    return input
   }
-  return output
 }
 
 /**
  * Convert markdown `pre-formatted` fragments to HTML with .code class
  * @param {string} input
- * @returns {string} output
+ * @returns {string}
  */
 export function convertPreformattedToHTML(input: string): string {
   let output = input
@@ -1056,9 +1096,14 @@ export function convertHighlightsToHTML(input: string): string {
   return output
 }
 
-// Display time blocks with .timeBlock style
-// Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
-// WARNING: can't be used from React, as this calls a DataStore function
+/**
+ * Display time blocks with .timeBlock style
+ * Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
+ * WARNING: can't be used from React, as this calls a DataStore function
+ * @param {string} input
+ * @param {string} timeblockTextMustContainString (optional)
+ * @returns {string}
+ */
 export function convertTimeBlockToHTML(input: string, timeblockTextMustContainString: string = ''): string {
   let output = input
   if (isTimeBlockLine(input, timeblockTextMustContainString)) {
@@ -1104,15 +1149,19 @@ export function convertStrikethroughToHTML(input: string): string {
   return output
 }
 
+/**
+ * Replace blockID sync indicator with icon
+ * Note: needs to go after #hashtag change above, as it includes a # marker for colors.
+ * @param {string} input
+ * @returns {string}
+ */
 export function convertNPBlockIDToHTML(input: string): string {
-  // Replace blockID sync indicator with icon
-  // NB: needs to go after #hashtag change above, as it includes a # marker for colors.
   let output = input
   const captures = output.match(RE_SYNC_MARKER)
   if (captures) {
     // clo(captures, 'results from RE_SYNC_MARKER match:')
     for (const capture of captures) {
-      output = output.replace(capture, '<i class="fa-solid fa-asterisk" style="color: #71b3c0;"></i>')
+      output = output.replace(capture, `<i class="fa-solid fa-asterisk" style="color: var(--block-id-color);"></i>`)
     }
   }
   return output

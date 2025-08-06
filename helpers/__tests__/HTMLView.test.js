@@ -12,7 +12,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging or 'none' to turn off
 })
 
 // import { clo, logDebug, logError, logWarn } from '@helpers/dev'
@@ -268,6 +268,7 @@ describe('convertBoldAndItalicToHTML()' /* function */, () => {
     const expected = 'foo <em>bar</em> and http://help.noteplan.co/something/this_end with a later_ to ignore'
     expect(result).toEqual(expected)
   })
+})
 
   describe('convertUnderlinedToHTML()' /* function */, () => {
     test('with no url or underlined', () => {
@@ -324,4 +325,86 @@ describe('convertBoldAndItalicToHTML()' /* function */, () => {
       expect(result).toEqual(orig)
     })
   })
+
+describe('convertHashtagsToHTML()' /* function */, () => {
+  test('with no hashtag', () => {
+    const orig = 'foo bar and nothing else'
+    const result = h.convertHashtagsToHTML(orig)
+    expect(result).toEqual(orig)
+  })
+  test('with hashtag', () => {
+    const orig = 'foo #bar and nothing else'
+    const expected = 'foo <span class="hashtag">#bar</span> and nothing else'
+    const result = h.convertHashtagsToHTML(orig)
+    expect(result).toEqual(expected)
+  })
+  test.skip('with emoji hashtag', () => {
+    const orig = 'foo #🇺🇸 and nothing else'
+    const expected = 'foo <span class="hashtag">#🇺🇸</span> and nothing else'
+    const result = h.convertHashtagsToHTML(orig)
+    expect(result).toEqual(expected)
+  })
+  test('with unicode hashtag', () => {
+    const orig = 'foo #КЛМНОПРСТУФ and nothing else'
+    const expected = 'foo <span class="hashtag">#КЛМНОПРСТУФ</span> and nothing else'
+    const result = h.convertHashtagsToHTML(orig)
+    expect(result).toEqual(expected)
+  })
+  test('with multi-part hashtag', () => {
+    const orig = 'foo #company/team/project bar'
+    const expected = 'foo <span class="hashtag">#company/team/project</span> bar'
+    const result = h.convertHashtagsToHTML(orig)
+    expect(result).toEqual(expected)
+  })
+  test('with multiple hashtags', () => {
+    const orig = 'foo #bar #baz and #nothing else'
+    const expected = 'foo <span class="hashtag">#bar</span> <span class="hashtag">#baz</span> and <span class="hashtag">#nothing</span> else'
+    const result = h.convertHashtagsToHTML(orig)
+    expect(result).toEqual(expected)
+  })
 })
+
+describe('convertMentionsToHTML()' /* function */, () => {
+  test('with no mention', () => {
+    const orig = 'foo bar and nothing else'
+    const result = h.convertMentionsToHTML(orig)
+    expect(result).toEqual(orig)
+  })
+  test('with mention', () => {
+    const orig = 'foo @bar and nothing else'
+    const expected = 'foo <span class="attag">@bar</span> and nothing else'
+    const result = h.convertMentionsToHTML(orig)
+    expect(result).toEqual(expected)
+  })
+  test('with mention with (...)', () => {
+    const orig = 'foo @bar(+2w) and nothing else'
+    const expected = 'foo <span class="attag">@bar(+2w)</span> and nothing else'
+    const result = h.convertMentionsToHTML(orig)
+    expect(result).toEqual(expected)
+  })
+  test.skip('with emoji mention', () => {
+    const orig = 'foo @🇺🇸 and nothing else'
+    const expected = 'foo <span class="attag">@🇺🇸</span> and nothing else'
+    const result = h.convertMentionsToHTML(orig)
+    expect(result).toEqual(expected)
+  })
+  test('with unicode mention', () => {
+    const orig = 'foo @КЛМНОПРСТУФ and nothing else'
+    const expected = 'foo <span class="attag">@КЛМНОПРСТУФ</span> and nothing else'
+    const result = h.convertMentionsToHTML(orig)
+    expect(result).toEqual(expected)
+  })
+  test('with multi-part mention', () => {
+    const orig = 'foo @company/team/project bar'
+    const expected = 'foo <span class="attag">@company/team/project</span> bar'
+    const result = h.convertMentionsToHTML(orig)
+    expect(result).toEqual(expected)
+  })
+  test('with multiple mentions', () => {
+    const orig = 'foo @bar @baz and @nothing else'
+    const expected = 'foo <span class="attag">@bar</span> <span class="attag">@baz</span> and <span class="attag">@nothing</span> else'
+    const result = h.convertMentionsToHTML(orig)
+    expect(result).toEqual(expected)
+  })
+})
+

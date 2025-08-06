@@ -311,8 +311,8 @@ button,
 	}
 
 	.event-link {
-		font-weight: 400;
-		border-color: var(--bg-alt-color);
+		font-weight: 500;
+		border-color: var(--divider-color);
 		border-radius: 3px;
 		border-width: 1px;
 		border-style: solid;
