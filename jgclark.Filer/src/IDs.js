@@ -10,10 +10,13 @@ import { addParasAsText, getFilerSettings } from './filerHelpers'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { saveEditorIfNecessary } from '@helpers/editor'
 import { displayTitle } from '@helpers/general'
-import { allNotesSortedByChanged } from '@helpers/note'
+import {
+  // allNotesSortedByChanged,
+  allRegularNotesSortedByChanged,
+} from '@helpers/note'
 // import { getSelectedParaIndex } from '@helpers/NPParagraph'
 import { parasToText } from '@helpers/paragraph'
-import { chooseHeading } from '@helpers/userInput'
+import { chooseHeading, chooseNoteV2 } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
@@ -32,17 +35,13 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
 
     // Get config settings
     const config = await getFilerSettings()
-
-    // Get current paragraph
-    const firstSelParaIndex = selectedParagraphs[0].lineIndex //getSelectedParaIndex()
+    const firstSelParaIndex = selectedParagraphs[0].lineIndex
     let para = note.paragraphs[firstSelParaIndex]
 
     // Add Line ID for the first paragraph (known as 'blockID' by API)
     note.addBlockID(para) // in this case, note is Editor.note, which is not saved in realtime. This has been causing race conditions at times.
     note.updateParagraph(para)
-    if (NotePlan.environment.buildVersion >= 1053) {
-      await saveEditorIfNecessary() // attempt to save this before reading it again (if running NP 3.9.3+)
-    }
+    Editor.save() // save the note as well. Needs NP 3.9.3 (build 1053) or later
     para = note.paragraphs[firstSelParaIndex] // refresh para
     const newBlockID = para.blockId
     if (newBlockID) {
@@ -56,26 +55,33 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     const selectedParasAsText = parasToText([para]) // i.e. turn single para into a single-iterm array
 
     // Decide where to copy the line to
-    const allNotes = allNotesSortedByChanged()
-    const res = await CommandBar.showOptions(
-      allNotes.map((n) => n.title ?? 'untitled'),
-      `Select note to copy the line to`,
-    )
-    const destNote = allNotes[res.index]
+    // V1
+    // const allNotes = allNotesSortedByChanged()
+    // const res = await CommandBar.showOptions(
+    //   allNotes.map((n) => n.title ?? 'untitled'),
+    //   `Select note to copy the line to`,
+    // )
+    // const destNote = allNotes[res.index]
     // Note: showOptions returns the first item if something else is typed. And I can't see a way to distinguish between the two.
+    // V2
+    const destNote = await chooseNoteV2('Select note to sync the line to', allRegularNotesSortedByChanged(), true, true, false, true)
+    if (!destNote) {
+      logWarn('addIDAndAddToOtherNote', `- No note chosen. Stopping.`)
+      return
+    }
 
     // Ask to which heading to add the selectedParas
     const headingToFind = await chooseHeading(destNote, true, true, false)
-    logDebug(pluginJson, `- Will add to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
+    logDebug('addIDAndAddToOtherNote', `- Will add to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // Add text to the new location in destination note
     addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection, true)
 
     // NB: handily, the blockId goes with it as part of the para.content
-    // logDebug(pluginJson, `- Inserting 1 para at index ${insertionIndex} into ${displayTitle(destNote)}`)
+    // logDebug('addIDAndAddToOtherNote', `- Inserting 1 para at index ${insertionIndex} into ${displayTitle(destNote)}`)
     // await destNote.insertParagraph(para.content, insertionIndex, paraType)
   }
   catch (error) {
-    logError(pluginJson, error.message)
+    logError('Filer/addIDAndAddToOtherNote', error.message)
   }
 }

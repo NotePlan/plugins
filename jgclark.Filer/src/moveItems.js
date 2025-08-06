@@ -12,13 +12,18 @@ import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { allNotesSortedByChanged } from '@helpers/note'
+// import { allNotesSortedByChanged } from '@helpers/note'
+import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { findHeading, parasToText } from '@helpers/paragraph'
 import {
   getParagraphBlock,
   selectedLinesIndex,
 } from '@helpers/NPParagraph'
-import { chooseHeading, showMessage } from '@helpers/userInput'
+import {
+  chooseHeading, showMessage,
+  // chooseNoteV2,
+  chooseNoteV2
+} from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
@@ -121,14 +126,20 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
 
     // Decide where to move to
     // Ask for the note we want to add the selectedParas
-    const allNotes = allNotesSortedByChanged()
-
-    const res = await CommandBar.showOptions(
-      allNotes.map((n) => n.title ?? 'untitled'),
-      `Select note to move ${(parasInBlock.length > 1) ? parasInBlock.length + ' lines' : 'current line'} to`,
-    )
-    const destNote = allNotes[res.index]
+    // V1
+    // const allNotes = allNotesSortedByChanged()
+    // const res = await CommandBar.showOptions(
+    //   allNotes.map((n) => n.title ?? 'untitled'),
+    //   `Select note to move ${(parasInBlock.length > 1) ? parasInBlock.length + ' lines' : 'current line'} to`,
+    // )
+    // const destNote = allNotes[res.index]
     // Note: showOptions returns the first item if something else is typed. And I can't see a way to distinguish between the two.
+    // V2
+    const destNote = await chooseNoteV2(`Select note to move ${(parasInBlock.length > 1) ? parasInBlock.length + ' lines' : 'current line'} to`, allRegularNotesSortedByChanged(), true, true, false, true)
+    if (!destNote) {
+      logWarn('addIDAndAddToOtherNote', `- No note chosen. Stopping.`)
+      return
+    }
 
     // Ask to which heading to add the selectedParas
     let headingToFind = await chooseHeading(destNote, true, true, false)
@@ -267,7 +278,7 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
     // Now check that the paras have been added -- it was sometimes failing probably with whitespace issues.
     const afterNumParasInDestNote = destNote.paragraphs.length
-    logDebug(pluginJson, `Added ${selectedNumLines} lines to ${destNote.title}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
+    logDebug(pluginJson, `Added ${selectedNumLines} lines to ${destNote.title ?? 'error'}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
     if (beforeNumParasInDestNote === afterNumParasInDestNote) {
       throw new Error(`Failed to add ${selectedNumLines} lines to ${displayTitle(destNote)}, so will stop before removing the lines from ${displayTitle(note)}.\nThis is normally caused by spaces on the start/end of the heading.`)
     }
@@ -388,7 +399,7 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
     addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
     // Now check that the paras have been added -- it was sometimes failing probably with whitespace issues.
     const afterNumParasInDestNote = destNote.paragraphs.length
-    logDebug(pluginJson, `Added ${selectedNumLines} lines to ${destNote.title}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
+    logDebug(pluginJson, `Added ${selectedNumLines} lines to ${destNote.title ?? 'error'}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
     if (beforeNumParasInDestNote === afterNumParasInDestNote) {
       throw new Error(`Failed to add ${selectedNumLines} lines to ${displayTitle(destNote)}, so will stop before removing the lines from ${displayTitle(note)}.\nThis is normally caused by spaces on the start/end of the heading.`)
     }
