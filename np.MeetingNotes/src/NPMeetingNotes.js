@@ -11,7 +11,7 @@ import { getNoteByFilename } from '../../helpers/note'
 import { isCalendarNoteFilename } from '@helpers/regex'
 import { log, logDebug, logError, clo, JSP, timer } from '@helpers/dev'
 import { findProjectNoteUrlInText } from '@helpers/urls'
-import { getAttributes, getNoteTitleFromTemplate } from '@helpers/NPFrontMatter'
+import { getAttributes, getNoteTitleFromTemplate, getNoteTitleFromRenderedContent } from '@helpers/NPFrontMatter'
 import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
 
 /**
@@ -47,11 +47,11 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
 
   logDebug(pluginJson, 'calling renderFrontmatter() to pre-render template')
   const { frontmatterBody: templateBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateContent])
-
+  if (Editor.type !== 'Calendar') {
   // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
   logDebug(pluginJson, `insertNoteTemplate: about to checkAndProcessFolderAndNewNoteTitle`)
   if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
-
+  }
   logDebug(pluginJson, `render() template with frontmatterAttributes: [${Object.keys(frontmatterAttributes).join(', ')}]`)
 
   const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [templateBody, frontmatterAttributes])
@@ -292,9 +292,15 @@ async function createNoteAndLinkEvent(selectedEvent: TCalendarItem | null, rende
   const append: string = attrs?.append || ''
   const prepend: string = attrs?.prepend || ''
   const cursor: string = attrs?.cursor || ''
-  // Use the new function to get note title from template, checking both newNoteTitle and inline title
-  const templateNoteTitle = getNoteTitleFromTemplate(renderedContent)
-  const newNoteTitle: string = templateNoteTitle || attrs?.newNoteTitle || ''
+  // Use the rendered frontmatter attributes first, then fall back to inline title detection
+  const renderedNewNoteTitle = attrs?.newNoteTitle
+  logDebug(pluginJson, `createNoteAndLinkEvent: rendered attrs.newNoteTitle: "${renderedNewNoteTitle}"`)
+
+  // For inline title detection, we need to use the rendered content
+  const templateNoteTitle = getNoteTitleFromRenderedContent(renderedContent)
+  logDebug(pluginJson, `createNoteAndLinkEvent: templateNoteTitle from getNoteTitleFromRenderedContent: "${templateNoteTitle}"`)
+
+  const newNoteTitle: string = renderedNewNoteTitle || templateNoteTitle || ''
 
   let noteTitle: string = (append || prepend || cursor).trim()
   const location: string = append.length ? 'append' : cursor.length ? 'cursor' : 'prepend'
