@@ -10,7 +10,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging. Or 'none' to get none.
 })
 
 beforeEach(() => {
@@ -133,9 +133,75 @@ describe('paragraph.js', () => {
       const result = p.isTermInMarkdownPath('CABBAGE', 'Something in [this link](http://example.com/cabbage/patch).')
       expect(result).toEqual(true)
     })
-    test('should find time within term within an event link', () => {
-      const result = p.isTermInMarkdownPath('07:15', '![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8)')
+  })
+
+  describe('isTermInEventLinkHiddenPart()', () => {
+    test('should return false for empty search term', () => {
+      const result = p.isTermInEventLinkHiddenPart('', 'This is an event: ![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8)')
+      expect(result).toEqual(false)
+    })
+    test('should return false with empty input string', () => {
+      const result = p.isTermInEventLinkHiddenPart('07:15', '')
+      expect(result).toEqual(false)
+    })
+    test('should return false when term is not in any part of input string', () => {
+      const result = p.isTermInEventLinkHiddenPart('Home', 'This is a work event: ![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work event with @Bob:::#1BADF8)')
+      expect(result).toEqual(false)
+    })
+    test('should return false when term is within datetime part of an event link', () => {
+      const result = p.isTermInEventLinkHiddenPart('07:15', '![📅](2022-05-06 07:15:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Work-out @ Home:::#1BADF8)')
+      expect(result).toEqual(false)
+    })
+    test('should return false when term is within title part of an event link', () => {
+      const result = p.isTermInEventLinkHiddenPart('Home', 'This is an event: ![📅](2022-05-06 07:15:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Work-out @ Home:::#1BADF8)')
+      expect(result).toEqual(false)
+    })
+    test('should find color-code (like a hashtag) within colour part of event link', () => {
+      const result = p.isTermInEventLinkHiddenPart('#1BADF8', '![📅](2022-05-06 07:15:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Work-out @ Home:::#1BADF8)')
       expect(result).toEqual(true)
+    })
+    test('should find "BC45" within UUID part of event link', () => {
+      const result = p.isTermInEventLinkHiddenPart('BC45', '![📅](2022-05-06 07:15:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Work-out @ Home:::#1BADF8)')
+      expect(result).toEqual(true)
+    })
+  })
+
+  /** tests for isTermInNotelinkOrURI */
+  describe('isTermInNotelinkOrURI', () => {
+    test('should return false for empty search term', () => {
+      expect(p.isTermInNotelinkOrURI('', '[[link with#tag]] but empty search term')).toBe(false)
+    })
+
+    test('should return true when term is in notelink', () => {
+      expect(p.isTermInNotelinkOrURI('#tag', '[[link with#tag]]')).toBe(true)
+    })
+
+    test('should return false when term is not in notelink', () => {
+      expect(p.isTermInNotelinkOrURI('#tag', '[[link without that tag]]')).toBe(false)
+    })
+
+    test('should return false when term is outside notelink', () => {
+      expect(p.isTermInNotelinkOrURI('#tag', 'string has #tag [[but link without]]')).toBe(false)
+    })
+
+    test('should return false when term is after notelink', () => {
+      expect(p.isTermInNotelinkOrURI('#tag', 'string has [[but link without]] and  #tag after')).toBe(false)
+    })
+
+    test('should return true when term is in URL', () => {
+      expect(p.isTermInNotelinkOrURI('#tag', 'term is in URL http://bob.com/page#tag')).toBe(true)
+    })
+
+    test('should return false (but not error) when complex mention is in URL', () => {
+      expect(p.isTermInNotelinkOrURI('@repeat(+2w)', 'term is in URL http://bob.com/page#tag')).toBe(false)
+    })
+
+    test('should return false when term is outside URL', () => {
+      expect(p.isTermInNotelinkOrURI('#tag', 'string has http://bob.com/page #tag')).toBe(false)
+    })
+
+    test('should return false when term is before URL', () => {
+      expect(p.isTermInNotelinkOrURI('#tag', 'string has #tag before not in http://bob.com/URL')).toBe(false)
     })
   })
 
@@ -477,16 +543,3 @@ describe('paragraph.js', () => {
     })
   })
 })
-
-// TODO: turn into jest tests
-// /** tests for above function */
-// function testTermInNotelinkOrURI() {
-//   logDebug('test1 -> false', String(isTermInNotelinkOrURI('[[link with#tag]] but empty search term', '')))
-//   logDebug('test2 -> true', String(isTermInNotelinkOrURI('[[link with#tag]]', '#tag')))
-//   logDebug('test3 -> false', String(isTermInNotelinkOrURI('[[link without that tag]]', '#tag')))
-//   logDebug('test4 -> false', String(isTermInNotelinkOrURI('string has #tag [[but link without]]', '#tag')))
-//   logDebug('test5 -> false', String(isTermInNotelinkOrURI('string has [[but link without]] and  #tag after', '#tag')))
-//   logDebug('test6 -> true', String(isTermInNotelinkOrURI('term is in URL http://bob.com/page#tag', '#tag')))
-//   logDebug('test7 -> false', String(isTermInNotelinkOrURI('string has http://bob.com/page #tag', '#tag')))
-//   logDebug('test8 -> false', String(isTermInNotelinkOrURI('string has #tag before not in http://bob.com/URL', '#tag')))
-// }

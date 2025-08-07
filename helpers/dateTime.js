@@ -8,7 +8,8 @@ import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
 import { formatISO9075, eachDayOfInterval, eachWeekendOfInterval, format, add } from 'date-fns'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
-import { parseTeamspaceFilename } from './teamspace'
+import { RE_TEAMSPACE_INDICATOR_AND_ID } from './regex'
+// import { parseTeamspaceFilename } from './teamspace'
 
 //-----------------------------------------------------------
 // CONSTANTS
@@ -149,28 +150,35 @@ export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): strin
 export const nowUTCShortDateTimeISOString: string = moment().toISOString().replace('T', ' ').slice(0, 16)
 
 // Note: See getNoteType in note.js to get the type of a note
+// Note: these don't require DataStore calls
 export function isDailyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // TEST: removal of this function call. (Which was trying (but failing) to remove a circular dependency.)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_DAILY_NOTE_FILENAME).test(filename)
 }
 
 export function isWeeklyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_WEEKLY_NOTE_FILENAME).test(filename)
 }
 
 export function isMonthlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_MONTHLY_NOTE_FILENAME).test(filename)
 }
 
 export function isQuarterlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_QUARTERLY_NOTE_FILENAME).test(filename)
 }
 
 export function isYearlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_YEARLY_NOTE_FILENAME).test(filename)
 }
 
@@ -480,9 +488,25 @@ export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
 }
 
 /**
+ * Remove the Teamspace ID from a filename, if it has one.
+ * Note: Deliberately not using DataStore calls.
+ * Note: This is a copy of the function in teamspace.js, to avoid a circular dependency.
+ * @param {string} filenameIn
+ * @returns {string} filename without Teamspace ID
+ */
+function getFilenameWithoutTeamspaceID(filenameIn: string): string {
+  const possibleTeamspaceFilename = filenameIn.match(RE_TEAMSPACE_INDICATOR_AND_ID)
+  if (possibleTeamspaceFilename) {
+    return filenameIn.replace(possibleTeamspaceFilename[0], '')
+  } else {
+    return filenameIn
+  }
+}
+
+/**
  * Returns the NP string representation of a Calendar note's date, from its filename. Covers daily to yearly notes.
- * Extended in Apr 2025 to cover teamspace notes, which are prefixed with '[%%Supabase%%|%%NotePlanCloud%%]/<teamspaceID>/'
- * e.g. %%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md
+ * Extended in Apr 2025 to cover teamspace notes, which are prefixed with '%%NotePlanCloud%%/<teamspaceID>/'
+ * e.g. %%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md
  * Note: see related getDateStrForStartofPeriodFromCalendarFilename().
  * @param {string} filenameIn
  * @param {boolean} returnISODate - returns ISO daily note YYYY-MM-DD not actual filename YYYYMMDD
@@ -492,8 +516,7 @@ export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
 export function getDateStringFromCalendarFilename(filenameIn: string, returnISODate: boolean = false): string {
   try {
     // logDebug('gDSFCF', `for ${filenameIn} ...`)
-    const parsedDetails = parseTeamspaceFilename(filenameIn)
-    const filenameWithoutTeamspaceID = parsedDetails.filename
+    const filenameWithoutTeamspaceID = getFilenameWithoutTeamspaceID(filenameIn)
     // logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
 
     // Check for daily notes
@@ -1713,4 +1736,32 @@ export function convertISOToYYYYMMDD(dateStr: string): string {
     return dateStr.replace(/-/g, '')
   }
   return dateStr
+}
+
+/**
+ * Calculate the number of days until due for a given date (negative if overdue)
+ * TODO: tests!
+ * @author @dwertheimer
+ * @param {string|Date} fromDate (in YYYY-MM-DD format if string)
+ * @param {string|Date} toDate (in YYYY-MM-DD format if string)
+ * @returns {number}
+ */
+export function calculateDaysOverdue(fromDate: string | Date, toDate: string | Date): number {
+  if (!fromDate || !toDate) {
+    return 0
+  }
+
+  const fromDateMom = moment(fromDate, 'YYYY-MM-DD')
+  const toDateMom = moment(toDate, 'YYYY-MM-DD')
+  const diffDays = fromDateMom.diff(toDateMom, 'days', true) // negative for overdue
+
+  const floor = Math.floor(diffDays)
+  // const ceil = Math.ceil(diffDays)
+
+  // overdue
+  if (diffDays < 0) {
+    return Object.is(floor, -0) ? -1 : floor
+  }
+  // not overdue
+  return Object.is(floor, -0) ? 0 : floor
 }

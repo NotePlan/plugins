@@ -22,7 +22,7 @@ import {
 import {
   getFolderFromFilename,
   notesInFolderSortedByTitle,
-  projectNotesFromFilteredFolders
+  getRegularNotesFromFilteredFolders,
 } from '@helpers/folders'
 import {
   createPrettyRunPluginLink,
@@ -294,8 +294,8 @@ export async function updateAllIndexes(): Promise<void> {
     // let config: noteHelpersConfigType = await getSettings()
 
     // Find all existing index Notes
-    const allProjectNotesToCheck = projectNotesFromFilteredFolders([], true)
-    const indexNotes = allProjectNotesToCheck.filter((n) => n.filename.endsWith(`_index.${DataStore.defaultFileExtension}`))
+    const allRegularNotesToCheck = getRegularNotesFromFilteredFolders([], true)
+    const indexNotes = allRegularNotesToCheck.filter((n) => n.filename.endsWith(`_index.${DataStore.defaultFileExtension}`))
     logDebug('updateAllIndexes', `Will update .index files in [${indexNotes.length}] folders ...`)
 
     // Update each in turn

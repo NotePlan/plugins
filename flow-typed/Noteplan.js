@@ -601,7 +601,7 @@ declare class DataStore {
    * Note: ISO Daily dateString available from v3.17.0
    * Note: Some timeframes available from v3.7.2
    * Note: 'parent' available from v3.17.0
-   * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty.
+   * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty (or undefined?), but can be set).
    * @param {string} dateString
    * @param {TTeamspaceID? | string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
    * @returns {NoteObject}
@@ -931,6 +931,22 @@ type PluginObject = {
   +commands: $ReadOnlyArray<PluginCommandObject>,
 }
 
+type TCommandBarResultObject = {
+  index: number, // (integer) index of the selected option
+  value: string, // (string) value of the selected option
+  keyModifiers: Array<string>, // (array of strings) keyboard modifier ("cmd", "opt", "shift", "ctrl") that were pressed while selecting a result.
+}
+
+type TCommandBarOptionObject = {
+  text: string,
+  icon?: string,
+  shortDescription?: string,
+  color?: string,
+  shortcutColor?: string,
+  alpha?: number,
+  darkAlpha?: number,
+}
+
 /**
  * Use CommandBar to get user input. Either by asking the user to type in a
  * free-form string, like a note title, or by giving him a list of choices.
@@ -957,21 +973,37 @@ declare class CommandBar {
   static hide(): void;
   // show(): void,
   /**
-   * Display an array of choices as a list (only strings) which the user can
-   * "fuzzy-search" filter by typing something.
-   * The user selection is returned as a Promise.
-   * So use it with `await CommandBar.showOptions(...)`.
-   * The result is a CommandBarResultObject (as Promise success result), which
-   * has `.value` and `.index`.
-   * Use the `.index` attribute to refer back to the selected item in the
-   * original array.
-   * Also can optionally set the default option text to show. (from 3.11.1)
-   * @param {$ReadOnlyArray<TOption>} options
-   * @param {string} placeholder
-   * @param {string?} optionTextDefault?
-   * @returns {Promise<{ +index: number, +value: TOption }>}
-   */
-  static showOptions<TOption: string = string>(options: $ReadOnlyArray<TOption>, placeholder: string, optionTextDefault?: string): Promise<{ +index: number, +value: TOption }>;
+  * Display an array of choices as a list which the user can "fuzzy-search" filter by typing something.
+  * The result is a CommandBarResultObject (as Promise success result), which has ".value" and ".index".
+  * 
+  * Options can be provided in two formats:
+  * 1. String array (for backward compatibility): ["Option 1", "Option 2", ...]
+  * 2. Object array (available from v3.18) with properties:
+  *    - text: string (required) - The display text
+  *    - icon: string (optional) - Icon to display (FontAwesome icon name)
+  *    - shortDescription: string (optional) - Text displayed on the right side (for display only, can be used as description or to show a shortut key - though does not provide actual keyboard shortcut functionality)
+  *    - color: string (optional) - Color for the icon (hex like "#FF0000" or tailwind color name)
+  *    - shortcutColor: string (optional) - Color for the shortcut text (hex or tailwind)
+  *    - alpha: number (optional) - Opacity for light theme (0-1). Default opacity will be used if not specified
+  *    - darkAlpha: number (optional) - Opacity for dark theme (0-1). Default opacity will be used if not specified
+  * 
+  * Example object format:
+  * [
+  *   { text: "Option 1", icon: "star", color: "#FFD700" },
+  *   { text: "Option 2", icon: "check", shortcut: "Premium", shortcutColor: "#00FF00" },
+  *   { text: "Option 3", icon: "info", shortcut: "Beta feature", alpha: 0.8, darkAlpha: 0.9 }
+  * ]
+  * 
+  * Use the ".index" attribute to refer back to the selected item in the original array.
+  * If you want to provide an existing search text that will be inserted into the command bar, use the third parameter.
+  * Note: The user selection is returned as a Promise. So use it with "await CommandBar.showOptions(...)".
+  * 
+  * @param {[String]|[TCommandBarOptionObject]} options - Array of strings or objects with options
+  * @param {String} placeholder - Placeholder text for the search input
+  * @param {String} searchText - Initial search text to populate
+  * @returns {Promise<TCommandBarResultObject>} - Promise resolving to result with .value, .index, and .keyModifiers
+  */
+  static showOptions(options: $ReadOnlyArray<string | TCommandBarOptionObject>, placeholder: string, searchText?: string): Promise<TCommandBarResultObject>;
   /**
    * Asks the user to enter something into the CommandBar.
    * Use the "placeholder" value to display a question, like "Type the name of the task".
@@ -1362,6 +1394,8 @@ declare interface Paragraph {
    * Children are counted until a blank line, HR, title, or another item at the same level as the parent task. So for items to be counted as children, they need to be contiguous vertically.
    * Important note: .children() for a task paragraph will return every child, grandchild, greatgrandchild, etc.
    * So a task that has a child task that has a child task will have 2 children (and the first child will have one).
+   * If it returns empty array, it means there are no children.
+   * If it returns undefined, it means there has been a failure.
    * Note: Available from v3.3
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    * WARNING: appears to be unreliable on iOS.
@@ -2044,7 +2078,7 @@ resolveConflictWithOtherVersion(): void;
  */
 +isTeamspaceNote: boolean;
 /**
- * The ID of the teamspace the note belongs to (will be undefined for private notes).
+ * The ID of the teamspace the note belongs to (will be undefined for private notes). This ID has the syntax of a UUID.
  * Note: Available from v3.17.0
  * @returns {?string}
  */

@@ -1,6 +1,13 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.2.0] - 2025-08-06
+### Added
+- can now access notes from Teamspaces
+- use improved note chooser (available from NP 3.18)
+<!-- ### Fixed
+- add sync was unreliable -->
+
 ## [1.1.6] - 2024-12-31
 - the **new note from clipboard** and **new note from selection** commands have moved to the NoteHelpers plugin.
 - workaround for **move ...** commands not working properly, which stem from trailing whitespace on Headings in the destination notes. (Thanks to @trmax + @magicnemo for help diagnosing the problem and suggesting a workaround.)

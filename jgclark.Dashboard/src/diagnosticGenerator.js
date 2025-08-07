@@ -16,7 +16,7 @@ import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { getTagMentionCacheSummary } from './tagMentionCache'
 import type { TPerspectiveDef } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { getOrMakeNote } from '@helpers/note'
+import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
@@ -98,7 +98,7 @@ export async function generateDiagnosticsFile() {
     output.push('```')
 
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
-    const outputNote = await getOrMakeNote(diagnosticsNoteTitle, '')
+    const outputNote = await getOrMakeRegularNoteInFolder(diagnosticsNoteTitle, '')
     outputNote.content = output.join('\n')
     const res = await showMessageYesNo(`Diagnostics for Dashboard written to note '${diagnosticsNoteTitle}' in your root folder. Use 'Show in Finder' from the note '...' menu to find it and send it to plugin authors. Would you like me to open this note now?`)
     logInfo('generateDiagnosticsFile', `Diagnostics written to note ${diagnosticsNoteTitle} (hopefully)`)

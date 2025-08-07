@@ -1,16 +1,17 @@
+/* eslint-disable require-await */
 // @flow
-
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 10.2.24 for v0.16.0, @jgclark
+// Last updated 2025-07-25 for v0.16.2, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 import { JSP, logDebug, logInfo, logError } from "@helpers/dev"
-import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+// import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
+import { insertParas, smartAppendParas, smartCreateSectionsAndPara, smartPrependParas } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
 
 export { addJotToInbox, addTaskToInbox } from './inbox'
@@ -75,11 +76,11 @@ export async function updateSettings() {
 }
 
 /**
-  note.addParagraphBelowHeadingTitle(
  * To test bug with .() API call reported in https://github.com/NotePlan/plugins/issues/429
+ * note.addParagraphBelowHeadingTitle(
  * Assumes a note titled 'Quick Capture qalh TEST'
  */
-export function tempAddParaTest(): void {
+export async function temp429BugTest(): Promise<void> {
   // $FlowIgnore[incompatible-use]
   const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
   note.addParagraphBelowHeadingTitle(
@@ -88,5 +89,65 @@ export function tempAddParaTest(): void {
     'Head C',
     true,
     false,
+  )
+}
+
+/**
+ * To test function paragraph::smartCreateSectionsAndPara()
+ * Assumes a note titled 'Quick Capture qalh TEST'
+ */
+export async function smartCreateTest(): Promise<void> {
+  // $FlowIgnore[incompatible-use]
+  const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
+  smartCreateSectionsAndPara(
+    note,
+    'test_text_addeed_below_heading by tempSmartCreateTest()',
+    'list',
+    ['Head E', 'Subhead EE'],
+    2,
+    false,
+  )
+}
+
+/**
+ * To test function paragraph::smartAppendParas()
+ * Assumes a note titled 'Quick Capture qalh TEST'
+ */
+export async function smartAppendParasTest(): Promise<void> {
+  // $FlowIgnore[incompatible-use]
+  const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
+  smartAppendParas(
+    note,
+    ['test adding list by smartAppendParas()', 'test adding text by smartAppendParas()', 'test adding checklist by smartAppendParas()'],
+    ['list', 'text', 'checklist'],
+  )
+}
+
+/**
+ * To test function paragraph::smartPrependParas()
+ * Assumes a note titled 'Quick Capture qalh TEST'
+ */
+export async function smartPrependParasTest(): Promise<void> {
+  // $FlowIgnore[incompatible-use]
+  const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
+  smartPrependParas(
+    note,
+    ['test adding list by smartPrependParas()', 'test adding text by smartPrependParas()', 'test adding checklist by smartPrependParas()'],
+    ['list', 'text', 'checklist'],
+  )
+}
+
+/**
+ * To test function paragraph::insertParas()
+ * Assumes a note titled 'Quick Capture qalh TEST'
+ */
+export async function insertParasTest(): Promise<void> {
+  // $FlowIgnore[incompatible-use]
+  const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
+  insertParas(
+    note,
+    4,
+    ['test adding list by insertParas()', 'test adding text by insertParas()', 'test adding checklist by insertParas()'],
+    ['list', 'text', 'checklist'],
   )
 }

@@ -103,7 +103,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     output.push(makeCSSSelector('html', tempSel))
     rootSel.push(`--bg-main-color: ${bgMainColor}`)
 
-    // Set sidebar from NP fixed colours
+    // Set the NP fixed colours for sidebar, divider, etc.
     if (currentThemeMode === 'light') {
       rootSel.push(`--fg-sidebar-color: #242E32`)
       rootSel.push(`--bg-sidebar-color: #ECECEC`) // moving from #F6F6F6 to #DADADA in 3 steps
@@ -112,6 +112,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       rootSel.push(`--fg-sidebar-color: #EBEBEB`)
       rootSel.push(`--bg-sidebar-color: #383838`)
       rootSel.push(`--divider-color: #52535B`)
+      rootSel.push(`--block-id-color: #71b3c0`)
     }
 
     // Set body:

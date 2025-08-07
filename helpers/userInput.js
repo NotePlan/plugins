@@ -1,15 +1,42 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Specialised user input functions
+// Note: Most if not all use the CommandBar or DataStore APIs, so this really should be called 'NPUserInput.js'.
+//-----------------------------------------------------------------------------
 
 import json5 from 'json5'
+import moment from 'moment/min/moment-with-locales'
 import { getDateStringFromCalendarFilename, RE_DATE, RE_DATE_INTERVAL } from './dateTime'
-import { getRelativeDates } from './NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
-import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
-import { getHeadingsFromNote } from './NPnote'
+import { getFolderFromFilename } from './folders'
+import { getRelativeDates } from './NPdateTime'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
+import { calendarNotesSortedByChanged } from './note'
+import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
+import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
+import { parseTeamspaceFilename } from './teamspace'
 
+//-------------------------------- Types --------------------------------------
+
+type TFolderIcon = {
+  firstLevelFolder: string,
+  icon: string,
+  color: string,
+  alpha?: number,
+  darkAlpha?: number,
+}
+
+//------------------------------ Constants ------------------------------------
+
+// Define icons to use in decorated CommandBar options
+const iconsToUseForSpecialFolders: Array<TFolderIcon> = [
+  { firstLevelFolder: '<CALENDAR>', icon: 'calendar-star', color: 'grey-500', alpha: 0.3, darkAlpha: 0.3 },
+  { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'grey-500' },
+  { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'grey-500' },
+  { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'grey-500' },
+]
+
+//--------------------------- Local functions ---------------------------------
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 function parseJSON5(contents: string): ?{ [string]: ?mixed } {
   try {
@@ -34,7 +61,7 @@ export type Option<T> = $ReadOnly<{
  * @param {string} message - text to display to user
  * @param {Array<T>} options - array of label:value options to present to the user
  * @param {TDefault} defaultValue - (optional) default value to use (default: options[0].value)
- * @return {TDefault} - the value attribute of the user-chosen item
+ * @returns {TDefault} - the value attribute of the user-chosen item
  */
 export async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnlyArray<Option<T>>, defaultValue: TDefault | null = null): Promise<T | TDefault> {
   const { index } = await CommandBar.showOptions(
@@ -89,6 +116,20 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
 
   // $FlowFixMe[incompatible-return]
   return { ...displayOptions[index], index, keyModifiers }
+  // Check if the first option is a TCommandBarOptionObject (has a 'text' property)
+  if (typeof options[0] === 'object') {
+    // Use newer CommandBar.showOptions() from v3.18
+    const { index, keyModifiers } = await CommandBar.showOptions(options, message)
+    // $FlowFixMe[prop-missing]
+    return { value: (options[index]).text ?? '', index, keyModifiers }
+  } else {
+    // Use older CommandBar.showOptions() before v3.18
+    const { index, keyModifiers } = await CommandBar.showOptions(
+      options.map((option) => option),
+      message)
+    // $FlowFixMe[incompatible-return]
+    return { value: options[index] ?? '', index, keyModifiers }
+  }
 }
 
 /**
@@ -226,80 +267,130 @@ export async function showMessageYesNoCancel(message: string, choicesArray: Arra
  * @param {boolean} includeFolderPath - (optional: default true) Show the folder path (or most of it), not just the last folder name, to give more context.
  * @returns {string} - returns the user's folder choice (or / for root)
  */
-export async function chooseFolder(msg: string, includeArchive?: boolean = false, includeNewFolderOption?: boolean = false, startFolder?: string): Promise<string> {
-  const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
-  const NEW_FOLDER = `➕ (Add New Folder${IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : ''})`
-  let folder: string
-  let folders = []
-  if (includeNewFolderOption) {
-    folders.push(NEW_FOLDER)
-  }
-  folders = [...folders, ...DataStore.folders.slice()] // excludes Trash
-  if (startFolder?.length && startFolder !== '/') {
-    folders = folders.filter((f) => f === NEW_FOLDER || f.startsWith(startFolder))
-  } else {
-    const archiveFolders = folders.filter((f) => f.startsWith('@Archive'))
-    const otherSpecialFolders = folders.filter((f) => f.startsWith('@') && !f.startsWith('@Archive'))
-    // Remove special folders from list
-    folders = folders.filter((f) => !f.startsWith('@'))
-    // Now add them back on at the end, with @Archive going last
-    folders = [...folders, ...otherSpecialFolders]
-    if (includeArchive) {
-      folders = [...folders, ...archiveFolders]
+export async function chooseFolder(msg: string, 
+  includeArchive?: boolean = false, 
+  includeNewFolderOption?: boolean = false, 
+  startFolder?: string = '/', 
+  includeFolderPath?: boolean = true
+): Promise<string> {
+  try {
+    const maxLengthFolderPathToShow = 50 // OK on desktop and iOS, at least for @jgclark
+    const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
+    const NEW_FOLDER = `➕ (Add New Folder${ IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : '' })`
+    const teamspaceDefs = getAllTeamspaceIDsAndTitles()
+    let folder: string
+    let folders = []
+    if (includeNewFolderOption) {
+      folders.push(NEW_FOLDER)
     }
-  }
-  let value, keyModifiers
-  if (folders.length > 0) {
-    // make a slightly fancy list with indented labels, different from plain values
-    const folderOptionList: Array<any> = []
-    for (const f of folders) {
-      if (f === NEW_FOLDER) {
-        folderOptionList.push({ label: NEW_FOLDER, value: NEW_FOLDER })
-      } else if (f !== '/') {
-        const folderParts = f.split('/')
-        const icon = folderParts[0] === '@Archive' ? `🗄️` : folderParts[0] === '@Templates' ? '📝' : '📁'
-        // Replace earlier parts of the path with indentation spaces
-        for (let i = 0; i < folderParts.length - 1; i++) {
-          folderParts[i] = '     '
-        }
-        folderParts[folderParts.length - 1] = `${icon} ${folderParts[folderParts.length - 1]}`
-        const folderLabel = folderParts.join('')
-        folderOptionList.push({ label: folderLabel, value: f })
-      } else {
-        // deal with special case for root folder
-        folderOptionList.push({ label: '📁 /', value: '/' })
-      }
-    }
-    // const re = await CommandBar.showOptions(folders, msg)
-    ;({ value, keyModifiers } = await chooseOptionWithModifiers(msg, folderOptionList))
-    if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
-      folder = NEW_FOLDER
+    folders = [...folders, ...DataStore.folders.slice()] // excludes Trash
+    if (startFolder?.length && startFolder !== '/') {
+      folders = folders.filter((f) => f === NEW_FOLDER || f.startsWith(startFolder))
     } else {
-      folder = value
-    }
-    logDebug(`helpers/userInput`, `chooseFolder folder:${folder} value:${value} keyModifiers:${keyModifiers} keyModifiers.indexOf('opt')=${keyModifiers.indexOf('opt')}`)
-  } else {
-    // no Folders so go to root
-    folder = '/'
-  }
-  // logDebug('userInput / chooseFolder', `-> ${folder}`)
-  if (folder === NEW_FOLDER) {
-    const optClicked = value?.length && keyModifiers && keyModifiers.indexOf('opt') > -1
-    const newFolderName = await CommandBar.textPrompt(
-      `Create new folder${optClicked ? ` inside folder:\n"${value || ''}".` : '...\nYou will choose where to create the folder in the next step.'}`,
-      'Folder name:',
-      '',
-    )
-    if (newFolderName && newFolderName.length) {
-      const inWhichFolder =
-        optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder? (${startFolder ?? '/'} for root)`, includeArchive, false, startFolder)
-      if (inWhichFolder) {
-        folder = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
+      const archiveFolders = folders.filter((f) => f.startsWith('@Archive'))
+      const otherSpecialFolders = folders.filter((f) => f.startsWith('@') && !f.startsWith('@Archive'))
+      // Remove special folders from list
+      folders = folders.filter((f) => !f.startsWith('@'))
+      // Now add them back on at the end, with @Archive going last
+      folders = [...folders, ...otherSpecialFolders]
+      if (includeArchive) {
+        folders = [...folders, ...archiveFolders]
       }
     }
+    let value: string = ''
+    let keyModifiers: Array<string> = []
+    if (folders.length > 0) {
+
+      const simpleFolderOptions: Array<{ label: string, value: string }> = []
+      const decoratedFolderOptions: Array<TCommandBarOptionObject> = []
+
+      // make a slightly fancy list with indented labels, different from plain values
+      for (const f of folders) {
+        // logDebug(`helpers / userInput`, `chooseFolder f:${ f }`)
+        const isTeamspaceFolder = teamspaceDefs.some((teamspaceDef) => f.includes(teamspaceDef.id))
+        if (f === NEW_FOLDER) {
+          simpleFolderOptions.push({ label: NEW_FOLDER, value: NEW_FOLDER })
+        } else if (f !== '/') {
+          let folderLabel = ''
+          const folderParts = f.split('/')
+          const icon = (isTeamspaceFolder) 
+          ? `👥`
+            : (folderParts[0]==='@Archive')
+              ? `🗄️` 
+              : (folderParts[0]==='@Templates')
+                ? '📝' 
+                : '📁'
+          
+          if (isTeamspaceFolder) {
+            const thisTeamspaceDef = teamspaceDefs.find((thisTeamspaceDef) => f.includes(thisTeamspaceDef.id)) ?? { id: '', title: '(error)' }
+            const teamspaceTitle = getTeamspaceTitleFromID(thisTeamspaceDef.id)
+            if (includeFolderPath) {
+              folderLabel = `${ icon } ${ teamspaceTitle } / ${ folderParts.slice(2).join(' / ') }`
+            } else {
+  folderLabel = `${icon} ${folderParts.slice(2).join(' / ')}`
+}
+          } else if (includeFolderPath) {
+  // Get the folder path prefix, and truncate it if it's too long
+  if (f.length >= maxLengthFolderPathToShow) {
+    const folderPathPrefix = `${f.slice(0, maxLengthFolderPathToShow - folderParts[folderParts.length - 1].length)} …${folderParts[folderParts.length - 1]} `
+    folderLabel = `${icon} ${folderPathPrefix} `
+  } else {
+    folderLabel = `${icon} ${folderParts.join(' / ')} `
   }
-  logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
-  return folder
+} else {
+  // Replace earlier parts of the path with indentation spaces
+  for (let i = 0; i < folderParts.length - 1; i++) {
+    folderParts[i] = '     '
+  }
+  folderParts[folderParts.length - 1] = `${icon} ${folderParts[folderParts.length - 1]}`
+  folderLabel = folderParts.join('')
+}
+          simpleFolderOptions.push({ label: folderLabel, value: f })
+          // TODO: finish this
+          decoratedFolderOptions.push({
+            text: folderLabel,
+            icon: icon,
+            shortDescription: '',
+            color: 'grey-500',
+          })
+        } else {
+  // deal with special case for root folder
+          simpleFolderOptions.push({ label: '📁 /', value: '/' })
+}
+      }
+      const { value, keyModifiers } = await chooseOptionWithModifiers(msg, simpleFolderOptions.map((option) => option.label))
+if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
+  folder = NEW_FOLDER
+} else {
+  folder = value
+}
+logDebug(`helpers / userInput`, `chooseFolder folder:${folder} value:${value} keyModifiers:${String(keyModifiers)} keyModifiers.indexOf('opt') = ${keyModifiers.indexOf('opt')} `)
+    } else {
+  // no Folders so go to root
+  folder = '/'
+}
+// logDebug('userInput / chooseFolder', `-> ${ folder } `)
+if (folder === NEW_FOLDER) {
+  const optClicked = value?.length && keyModifiers && keyModifiers.indexOf('opt') > -1
+  const newFolderName = await CommandBar.textPrompt(
+    `Create new folder${optClicked ? ` inside folder:\n"${value || ''}".` : '...\nYou will choose where to create the folder in the next step.'} `,
+    'Folder name:',
+    '',
+  )
+  if (newFolderName && newFolderName.length) {
+    const inWhichFolder =
+      optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder ? (${startFolder ?? '/'} for root)`, includeArchive, false, startFolder)
+    if (inWhichFolder) {
+      folder = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
+    }
+  }
+}
+logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
+return folder
+  } catch (error) {
+  logError('userInput / chooseFolder', error.message)
+  return ''
+}
 }
 
 /**
@@ -433,7 +524,7 @@ export async function datePicker(dateParams: string | Object, config?: { [string
       if (!allSettings.canBeEmpty) {
         const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
         if (!reply2.match(RE_DATE)) {
-          await showMessage(`FYI: ${reply2} wasn't a date in the preferred form YYYY-MM-DD`, `OK`, 'Warning')
+          await showMessage(`FYI: ${ reply2 } wasn't a date in the preferred form YYYY-MM-DD`, `OK`, 'Warning')
           return ''
         }
       }
@@ -561,19 +652,25 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
   return answers
 }
 
+// For speed, pre-compute the relative dates
 const relativeDates = getRelativeDates()
 
 /**
- * Create a new note with a given title, content, and in a specified folder.
+ * Create a new regular note with a given title, content, and in a specified folder.
  * If title, content, or folder is not provided, it will prompt the user for input.
- *
+ * Note: ideally would live in NPnote.js, but it's here because it uses other functions in userInput.
+ * @author @dwertheimer
+ * 
  * @param {string} [_title] - The title of the new note.
  * @param {string} [_content] - The content of the new note.
  * @param {string} [_folder] - The folder to create the new note in.
  * @returns {Promise<Note | false>} - The newly created note, or false if the operation was cancelled.
  */
-export async function createNewNote(_title?: string = '', _content?: string = '', _folder?: string = ''): Promise<Note | null> {
-  const title = _title || (await getInput('Title of new note', 'OK', 'New Note', ''))
+export async function createNewRegularNote(
+  _title?: string = '',
+  _content?: string = '',
+  _folder?: string = ''): Promise<Note | null> {
+  const title = _title || (await getInput('Title of new note', 'OK', 'New Note', '')) && 'error'
   const content = _content
   if (title) {
     const folder = _folder || (await chooseFolder('Select folder to add note in:', false, true))
@@ -591,35 +688,74 @@ export async function createNewNote(_title?: string = '', _content?: string = ''
  * Note: Forked from helpers/general.js, but needed here anyway to avoid a circular dependency
  * @param {CoreNoteFields} noteIn
  * @param {boolean} showRelativeDates? (default: false)
+ * @param {boolean} showFolderPath? (default: false)
  * @returns {string}
  */
-export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDates: boolean = true): string {
+export function displayTitleWithRelDate(
+  noteIn: CoreNoteFields,
+  showRelativeDates: boolean = true,
+  showFolderPath: boolean = false): string {
   if (noteIn.type === 'Calendar') {
     let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
     if (showRelativeDates) {
       for (const rd of relativeDates) {
         if (calNoteTitle === rd.dateStr) {
           // logDebug('displayTitleWithRelDate',`Found match with ${rd.dateStr} => ${rd.relName}`)
-          calNoteTitle = `${rd.dateStr}\t(📆 ${rd.relName})`
+          calNoteTitle = `${rd.dateStr}\t(${rd.relName})`
+          break
         }
       }
     }
     return calNoteTitle
   } else {
-    return noteIn.title ?? '(error)'
+    return (showFolderPath)
+      ? getDisplayTitleAndPathForRegularNote(noteIn)
+      : noteIn.title ?? '(error)'
   }
+}
+
+/**
+ * Get the display title and path for a regular note, with support for Teamspace notes.
+ * @param {CoreNoteFields} noteIn
+ * @returns {string}
+ */
+export function getDisplayTitleAndPathForRegularNote(noteIn: CoreNoteFields): string {
+  if (noteIn.type === 'Calendar') {
+    logError('getDisplayTitleAndPathForRegularNote', `Calendar note ${noteIn.filename} passed in`)
+    return noteIn.filename
+  }
+  if (!noteIn.title) {
+    logError('getDisplayTitleAndPathForRegularNote', `Regular note ${noteIn.filename} has no title`)
+    return noteIn.filename
+  }
+  const title = noteIn.title
+  let displayTitle = ''
+  const possTeamspaceDetails = parseTeamspaceFilename(noteIn.filename)
+  if (possTeamspaceDetails.isTeamspace) {
+    const teamspaceName = possTeamspaceDetails.teamspaceID ? `[👥 ${getTeamspaceTitleFromID(possTeamspaceDetails.teamspaceID)}] ` : ''
+    // const filenameToUse = possTeamspaceDetails.filename
+    // const path = filenameToUse !== '' ? `${filenameToUse} / ` : ''
+    let path = possTeamspaceDetails.filepath
+    path = path !== '/' ? `${path} / ` : ''
+    displayTitle = `${teamspaceName}${path}${title}`
+  } else {
+    const folder = getFolderFromFilename(noteIn.filename)
+    const path = folder === '/' ? '' : `${folder} / `
+    displayTitle = `${path}${title}`
+  }
+  return displayTitle
 }
 
 /**
  * Choose a particular note from a CommandBar list of notes
  * @author @dwertheimer extended by @jgclark to include 'relative date' indicators in displayed title
  * @param {boolean} includeProjectNotes
- * @param {boolean} includeCalendarNotes
- * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
- * @param {string} promptText - text to display in the CommandBar
- * @param {boolean} currentNoteFirst - add currently open note to the front of the list
- * @param {boolean} allowNewNoteCreation - add option for user to create new note to return instead of choosing existing note
- * @returns {TNote | null} note
+ * @param {boolean?} includeCalendarNotes
+ * @param {Array<string>?} foldersToIgnore - a list of folder names to ignore
+ * @param {string?} promptText - text to display in the CommandBar
+ * @param {boolean?} currentNoteFirst - add currently open note to the front of the list
+ * @param {boolean?} allowNewNoteCreation - add option for user to create new note to return instead of choosing existing note
+ * @returns {?TNote} note
  */
 export async function chooseNote(
   includeProjectNotes: boolean = true,
@@ -628,7 +764,7 @@ export async function chooseNote(
   promptText?: string = 'Choose a note',
   currentNoteFirst?: boolean = false,
   allowNewNoteCreation?: boolean = false,
-): Promise<TNote | null> {
+): Promise<?TNote> {
   let noteList: Array<TNote> = []
   const projectNotes = DataStore.projectNotes
   const calendarNotes = DataStore.calendarNotes
@@ -664,8 +800,165 @@ export async function chooseNote(
     opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
-  const noteToReturn = opts[index] === '[New note]' ? await createNewNote() : sortedNoteListFiltered[index]
+  const noteToReturn = (opts[index] === '[New note]')
+    ? await createNewRegularNote()
+    : sortedNoteListFiltered[index]
   return noteToReturn ?? null
+}
+
+/**
+ * Choose a particular note from a list of notes shown to the user, with a number of display options.
+ * The 'regularNotes' parameter allows both a subset of notes to be used, and to allow the generation of the list (which can take appreciable time) to happen at a less noticeable time.
+ * Note: no try-catch, so that failure can stop processing.
+ * @author @jgclark, heavily extending earlier function by @dwertheimer
+ * 
+ * @param {string?} promptText - text to display in the CommandBar
+ * @param {Array<TNote>?} regularNotes - a list of regular notes to choose from. If not provided, all regular notes will be used.
+ * @param {boolean?} includeCalendarNotes - include calendar notes in the list
+ * @param {boolean?} includeFutureCalendarNotes - include future calendar notes in the list
+ * @param {boolean?} currentNoteFirst - add currently open note to the front of the list
+ * @param {boolean?} allowNewRegularNoteCreation - add option for user to create new note to return instead of choosing existing note
+ * @returns {?TNote} note
+ */
+export async function chooseNoteV2(
+  promptText: string = 'Choose a note',
+  regularNotes: $ReadOnlyArray<TNote> = DataStore.projectNotes,
+  includeCalendarNotes?: boolean = true,
+  includeFutureCalendarNotes?: boolean = false,
+  currentNoteFirst?: boolean = false,
+  allowNewRegularNoteCreation?: boolean = true,
+): Promise<?TNote> {
+  // $FlowIgnore[incompatible-type]
+  let noteList: Array<TNote> = regularNotes
+  if (includeCalendarNotes) {
+    noteList = noteList.concat(calendarNotesSortedByChanged())
+  }
+  // $FlowIgnore[unsafe-arithmetic]
+  const sortedNoteList = noteList.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  // Form the options to give to the CommandBar.
+  // Note: We will set up the more advanced options for the `CommandBar.showOptions` call, but downgrade them if we're not running v3.18+ (b1413)
+  /**
+   * type TCommandBarOptionObject = {
+   * text: string,
+   * icon?: string,
+   * shortDescription?: string,
+   * color?: string,
+   * shortcutColor?: string,
+   * alpha?: number,
+   * darkAlpha?: number,
+   * }
+   */
+
+  // Start with titles of regular notes
+  const opts: Array<TCommandBarOptionObject> = sortedNoteList.map((note) => {
+    // Show titles with relative dates, but without path
+    const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
+    // Work out which icon to use for this note
+    if (possTeamspaceDetails.isTeamspace) {
+      // Teamspace notes are currently (v3.18) only regular or calendar notes, not @Templates, @Archive or @Trash.
+      return {
+        text: displayTitleWithRelDate(note, true, false),
+        icon: note.type === 'Calendar' ? 'calendar-star' : 'file-lines',
+        color: 'green-500',
+        shortDescription: getTeamspaceTitleFromID(possTeamspaceDetails.teamspaceID ?? ''),
+        alpha: 0.5,
+        darkAlpha: 0.5,
+      }
+    } else {
+      let folderFirstLevel = getFolderFromFilename(note.filename).split('/')[0]
+      if (note.type === 'Calendar') { folderFirstLevel = '<CALENDAR>' }
+      const folderIconDetails = iconsToUseForSpecialFolders.find((details) => details.firstLevelFolder === folderFirstLevel) ?? { icon: 'file-lines', color: 'gray-500' }
+      return {
+        // text: displayTitleWithRelDate(note, true, true),
+        text: displayTitleWithRelDate(note, true, false),
+        icon: folderIconDetails.icon,
+        color: folderIconDetails.color,
+        // shortDescription: '',
+        shortDescription: note.type === 'Notes' ? getFolderFromFilename(note.filename) ?? '' : '',
+        alpha: folderIconDetails.alpha ?? undefined,
+        darkAlpha: folderIconDetails.darkAlpha ?? undefined,
+      }
+    }
+  })
+
+  // If wanted, add future calendar notes to the list, where not already present
+  if (includeFutureCalendarNotes) {
+    const weekAgoMom = moment().subtract(7, 'days')
+    const weekAgoDate = weekAgoMom.toDate()
+    for (const rd of relativeDates) {
+      const matchingNote = sortedNoteList.find((note) => note.title === rd.dateStr)
+      if (!matchingNote) {
+        // Make a temporary partial note for this date
+        // $FlowIgnore[prop-missing]
+        const newNote: TNote = {
+          title: rd.dateStr,
+          type: 'Calendar',
+          // TODO: get this applied to the earlier sort
+          changedDate: weekAgoDate,
+        }
+        sortedNoteList.push(newNote)
+        opts.push({
+          text: `${rd.dateStr}\t(${rd.relName})`,
+          // text: `${rd.dateStr}\t(📆 ${rd.relName})\t[New note]`,
+          icon: 'calendar-plus',
+          color: 'orange-500',
+          shortDescription: 'New Note',
+          alpha: 0.5,
+          darkAlpha: 0.5,
+        })
+      } else {
+        logDebug('chooseNoteV2', `Found existing note for ${rd.dateStr} so won't add-new-one for it`)
+      }
+    }
+  }
+
+  // Now set up other options for showOptions
+  const { note } = Editor
+  if (allowNewRegularNoteCreation) {
+    opts.unshift({
+      text: '[New note]',
+      icon: 'plus',
+      color: 'green-500',
+      shortDescription: 'Add',
+      shortcutColor: 'green-500',
+      alpha: 0.6,
+      darkAlpha: 0.6,
+    })
+    // $FlowIgnore[incompatible-call] just to keep the indexes matching; won't be used
+    // $FlowIgnore[prop-missing]
+    sortedNoteList.unshift({ title: '[New note]', type: 'Notes' }) // just keep the indexes matching
+  }
+  if (currentNoteFirst && note) {
+    sortedNoteList.unshift(note)
+    opts.unshift({
+      text: `[Current note: "${displayTitleWithRelDate(Editor)}"]`,
+      icon: 'calendar-day',
+      color: 'gray-500',
+      shortDescription: '',
+      alpha: 0.6,
+      darkAlpha: 0.6,
+    })
+  }
+
+  // Now show the options to the user
+  let noteToReturn = null
+  if (NotePlan.environment.buildVersion >= 1413) {
+    // logDebug('chooseNoteV2', `Using 3.18's advanced options for CommandBar.showOptions call`)
+  // use the more advanced options to the `CommandBar.showOptions` call
+    const { index } = await CommandBar.showOptions(opts, promptText)
+    noteToReturn = (opts[index].text.includes('[New note]'))
+      ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '')
+      : sortedNoteList[index]
+  } else {
+    // FIXME: use the basic options for the `CommandBar.showOptions` call. Get this by producing a simple array from the main options array.
+    // logDebug('chooseNoteV2', `Using pre-3.18's basic options for CommandBar.showOptions call`)
+    const simpleOpts = opts.map((opt) => opt.text)
+    const { index } = await CommandBar.showOptions(simpleOpts, promptText)
+    noteToReturn = (simpleOpts[index].includes('[New note]'))
+      ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '')
+      : sortedNoteList[index]
+  }
+  return noteToReturn
 }
 
 /**

@@ -75,6 +75,7 @@ export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): 
 
 /**
  * Perform substring match, ignoring case
+ * Note: copy in paragraph.js to avoid circular dependency
  * @author @jgclark
  * @param {string} searchTerm
  * @param {string} textToSearch

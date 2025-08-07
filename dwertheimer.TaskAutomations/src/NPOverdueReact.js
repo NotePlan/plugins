@@ -8,7 +8,7 @@ import { getTodaysDateAsArrowDate, getTodaysDateHyphenated, getDateOptions } fro
 import { getWeekOptions } from '../../helpers/NPdateTime'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { convertAllLinksToHTMLLinks, stripAllMarkersFromString } from '../../helpers/stringTransforms'
-import { getOrMakeNote } from '../../helpers/note'
+import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { appendTaskToCalendarNote } from '../../jgclark.QuickCapture/src/quickCapture'
 import { chooseFolder } from '../../helpers/userInput'
 import { findOpenTodosInNote } from '../../helpers/NPnote'
@@ -647,7 +647,7 @@ export async function testOverdueReact() {
     // logDebug(pluginJson, `reviewOverdueTasksByTask: installed/verified dwertheimer.React`)
 
     const data = await getDataForReactView(true)
-    const note = await getOrMakeNote('Overdue Tasks TEST NOTE', '_TEST')
+    const note = await getOrMakeRegularNoteInFolder('Overdue Tasks TEST NOTE', '_TEST')
     await Editor.openNoteByFilename(note?.filename || '')
     if (note) {
       note.content = `# Overdue Tasks TEST NOTE

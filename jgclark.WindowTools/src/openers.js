@@ -2,15 +2,15 @@
 //---------------------------------------------------------------
 // Various open window/split functions for WindowTools plugin
 // Jonathan Clark
-// last update 2.1.2024 for v1.1.0 by @jgclark
+// last update 2025-08-03 for v1.2.2 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { allNotesSortedByChanged } from '@helpers/note'
+// import { allNotesSortedByChanged } from '@helpers/note'
 import { getNoteFromIdentifier } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { chooseNote } from '@helpers/userInput'
+import { chooseNoteV2 } from '@helpers/userInput'
 
 /**
  * Open a user-selected note in a new window.
@@ -21,13 +21,13 @@ import { chooseNote } from '@helpers/userInput'
  */
 export async function openNoteNewWindow(encodedNoteIdentifier: string = ''): Promise<void> {
   try {
-    let note: TNote | null
+    let note: ?TNote
     if (encodedNoteIdentifier !== '') {
       note = getNoteFromIdentifier(decodeURIComponent(encodedNoteIdentifier))
     }
     // Ask for the note we want to open
     if (!note) {
-      note = await chooseNote(true, true, [], 'Select note to open in new window', false)
+      note = await chooseNoteV2(`Select note to open in new window`, DataStore.projectNotes, true, true, false, true)
     }
     if (note) {
       const filename = note.filename
@@ -55,13 +55,13 @@ export async function openNoteNewWindow(encodedNoteIdentifier: string = ''): Pro
  */
 export async function openNoteNewSplit(encodedNoteIdentifier: string = ''): Promise<void> {
   try {
-    let note: TNote | null
+    let note: ?TNote
     if (encodedNoteIdentifier !== '') {
       note = getNoteFromIdentifier(decodeURIComponent(encodedNoteIdentifier))
     }
     // Ask for the note we want to open
     if (!note) {
-      note = await chooseNote(true, true, [], 'Select note to open in new split window', false)
+      note = await chooseNoteV2(`Select note to open in new split window`, DataStore.projectNotes, true, true, false, true)
     }
     if (note) {
       const filename = note.filename

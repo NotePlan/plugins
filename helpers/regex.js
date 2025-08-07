@@ -125,6 +125,11 @@ export const RE_BARE_URI_MATCH_G: RegExp = /(?:^|[\s\.,;!?:])((www\.[^\s\[\](),;
 // Synced lines
 export const RE_SYNC_MARKER: RegExp = /\^[A-Za-z0-9]{6}(?![A-Za-z0-9])/
 
+// Teamspace notes
+// Note: used to live in teamspace.js, but moved here to avoid circular dependency
+export const RE_TEAMSPACE_INDICATOR_AND_ID: RegExp = new RegExp(`^%%NotePlanCloud%%\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/`, 'i')
+export const RE_TEAMSPACE_NOTE_UUID: RegExp = new RegExp(`/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/`, 'i')
+
 // Misc
 export const PUNCT_CLASS_STR = `[\[\]!"#\$%&'\(\)\*\+,\-\.\/:;<=>\?@\\\^_\`\{\|\}~]` // using info from https://stackoverflow.com/questions/39967107/regular-expression-using-punct-function-in-java
 export const PUNCT_CLASS_STR_QUOTED = '[\\[\\]!"#\\$%&\'\\(\\)\\*\\+,\\-\\.\\/:;<=>\\?@\\\\\\^_\\`\\{\\|\\}~]' // version suitable for including in larger regexes

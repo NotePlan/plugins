@@ -128,19 +128,31 @@ export function getSubFolders(parentFolderPathArg: string): Array<string> {
  * @author @jgclark
  * @tests in jest file
  * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder -- can be empty
- * @param {boolean} excludeSpecialFolders? (default: true)
- * @param {boolean} forceExcludeRootFolder? (default: false)
+ * @param {boolean?} excludeSpecialFolders? (default: true)
+ * @param {boolean?} forceExcludeRootFolder? (default: false)
+ * @param {boolean?} excludeTrash? (default true) only used if excludeSpecialFolders is false
  * @returns {Array<string>} array of folder names
  */
-export function getFolderListMinusExclusions(exclusions: Array<string>, excludeSpecialFolders: boolean = true, forceExcludeRootFolder: boolean = false): Array<string> {
+export function getFolderListMinusExclusions(
+  exclusions: Array<string>,
+  excludeSpecialFolders: boolean = true,
+  forceExcludeRootFolder: boolean = false,
+  excludeTrash: boolean = true,
+): Array<string> {
   try {
     // Get all folders as array of strings (other than @Trash). Also remove root as a special case
     const fullFolderList = DataStore.folders
     let excludeRoot = forceExcludeRootFolder
-    // logDebug('folders / filteredFolderList', `Starting to filter the ${fullFolderList.length} DataStore.folders with exclusions [${exclusions.toString()}] and forceExcludeRootFolder ${String(forceExcludeRootFolder)}`)
+    logDebug('folders / filteredFolderList', `Starting to filter the ${fullFolderList.length} DataStore.folders with exclusions [${exclusions.toString()}] and forceExcludeRootFolder ${String(forceExcludeRootFolder)}`)
 
     // if excludeSpecialFolders, filter fullFolderList to only folders that don't start with the character '@' (special folders)
-    const reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
+    let reducedFolderList = fullFolderList
+    if (excludeSpecialFolders) {
+      reducedFolderList = fullFolderList.filter((folder) => !folder.startsWith('@'))
+    } else if (excludeTrash) {
+      reducedFolderList = reducedFolderList.filter((folder) => !folder.startsWith('@Trash'))
+    }
+    logDebug('folders / filteredFolderList', `-> after specials filtering: ${reducedFolderList.length} items: [${reducedFolderList.toString()}]`)
 
     // To aid partial matching, terminate all folder strings with a trailing /
     let reducedTerminatedWithSlash: Array<string> = []
@@ -382,36 +394,37 @@ export function getRegularNotesInFolder(
  * @param {boolean} excludeSpecialFolders?
  * @returns {Array<TNote>} wanted notes
  */
-export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
-  // Get list of wanted folders
-  const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders)
+// export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
+//   // Get list of wanted folders
+//   const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders, false, true)
 
-  // Iterate over all project notes and keep the notes in the wanted folders ...
-  const allProjectNotes = DataStore.projectNotes
-  const projectNotesToInclude = []
-  for (const pn of allProjectNotes) {
-    const thisFolder = getFolderFromFilename(pn.filename)
-    if (filteredFolders.includes(thisFolder)) {
-      projectNotesToInclude.push(pn)
-    } else {
-      // logDebug(pluginJson, `  excluded note '${pn.filename}'`)
-    }
-  }
-  return projectNotesToInclude
-}
+//   // Iterate over all project notes and keep the notes in the wanted folders ...
+//   const allProjectNotes = DataStore.projectNotes
+//   const projectNotesToInclude = []
+//   for (const pn of allProjectNotes) {
+//     const thisFolder = getFolderFromFilename(pn.filename)
+//     if (filteredFolders.includes(thisFolder)) {
+//       projectNotesToInclude.push(pn)
+//     } else {
+//       // logDebug(pluginJson, `  excluded note '${pn.filename}'`)
+//     }
+//   }
+//   return projectNotesToInclude
+// }
 
 /**
- * Return array of all regular notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
+ * Return array of all regular notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders (other than trash), and (if requested) from @Trash.
  * Note: this is a newer version of getRegularNotesInFolder() that reflects Eduard's updated naming.
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
  * @param {boolean} excludeSpecialFolders?
+ * @param {boolean?} excludeTrash? (default true)
  * @returns {Array<TNote>} wanted notes
  */
-export function getRegularNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
+export function getRegularNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean, excludeTrash: boolean = true): Array<TNote> {
   try {
     // Get list of wanted folders
-    const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders)
+    const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders, false, excludeTrash)
 
     // Iterate over all project notes and keep the notes in the wanted folders ...
     const allProjectNotes = DataStore.projectNotes

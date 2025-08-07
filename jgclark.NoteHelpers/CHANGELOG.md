@@ -6,8 +6,9 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 - ??? Look at spinning out Index... commands to separate plugin 
 - -->
 
-## [1.2.0] - 2025-06-13???
+## [1.2.0] - 2025-08-13???
 - various improvements/fixes to the **inconsistent file name** commands. Resolves issues #640, #642, #643 raised by @tastapod.
+- **jump to note heading** now includes Teamspace notes in its list of notes
 
 ## [1.1.1] - 2025-04-22
 - the **log Editor Note** commands now handle Teamspace notes correctly.
