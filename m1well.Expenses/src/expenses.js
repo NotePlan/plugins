@@ -141,7 +141,7 @@ const expensesTracking = async (): Promise<boolean> => {
  *
  * @returns {Promise<boolean>}
  */
-const expensesAggregate = async () => {
+const expensesAggregate: () => Promise<boolean> = async () => {
 	  let config = await provideConfig();
 	  config = validateConfig(config, new Date());
 
