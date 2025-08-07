@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.9.10",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "2.0.17 ",
-  "plugin.lastUpdateInfo": "2.0.17: - Fix bug where non-fm-body templates which started with -- were being treated as frontmatter",
+  "plugin.version": "2.0.20",
+  "plugin.lastUpdateInfo": "2.0.20: - Fix folder selection in new note command",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson ( codedungeon)",
   "plugin.dependencies": [],
@@ -210,12 +210,23 @@
     {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "Templating: Update Plugin Settings",
-      "description": "Preferences",
-      "jsFunction": "editSettings"
+      "description": "Templating Preferences",
+      "jsFunction": "editSettings",
+      "alias": [
+        "np:settings",
+        "templating:settings",
+        "template:settings",
+        "tsettings"
+      ]
     }
 
   ],
   "plugin.settings": [
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "np.Templating"
+    },
     {
       "type": "heading",
       "title": "np.Templating Settings"

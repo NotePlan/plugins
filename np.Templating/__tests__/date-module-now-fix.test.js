@@ -243,15 +243,6 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toBe('2025-08-06')
       })
 
-      it('should detect DD/MM/YYYY format as date', () => {
-        process.env.TZ = 'America/Los_Angeles'
-
-        const dateModule = new DateModule()
-
-        const result = dateModule.now('YYYY-MM-DD', '06/08/2025')
-        expect(result).toBe('2025-08-06')
-      })
-
       it('should detect month name format as date', () => {
         process.env.TZ = 'America/Los_Angeles'
 

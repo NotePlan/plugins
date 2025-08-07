@@ -4,6 +4,16 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.20] 2025-08-07 @dwertheimer
+- Fix folder selection in new note command (adds folder path to chooser)
+
+## [2.0.19] 2025-08-06 @dwertheimer
+- Fix calendar notes not working right after title searching changes
+- Fix edge case where a template had -- frontmatter but no tags and was taking the fast path wrongly
+
+## [2.0.18] 2025-08-06 @dwertheimer
+- add pluginID for iphone settings editing
+
 ## [2.0.17] 2025-08-06 @dwertheimer
 - Fix bug where non-fm-body templates which started with -- were being treated as frontmatter
 

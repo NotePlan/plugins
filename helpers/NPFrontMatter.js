@@ -1505,59 +1505,6 @@ function filterNotesByFolder(notes: Array<TNote>, folderString?: string, fullPat
 }
 
 /**
- * Example usage of analyzeTemplateStructure function
- * This demonstrates how to use the function with different template structures
- */
-export function demonstrateTemplateAnalysis(): void {
-  // Example a) Template with newNoteTitle
-  const templateA = `---
-title: my template
-newNoteTitle: foo
----`
-
-  // Example b) Template with frontmatter in output note
-  const templateB = `---
-title: my template
----
---
-prop: this is in the resulting note
---`
-
-  // Example c) Template with title field in resulting note
-  const templateC = `---
-title: this is the template's title
----
---
-title: this is in the resulting note's title
---`
-
-  // Example d) Template with inline title
-  const templateD = `---
-title: my template title
----
---
-some: frontmatter
---
-# an inline title`
-
-  logDebug('demonstrateTemplateAnalysis', '=== Example A: Template with newNoteTitle ===')
-  const analysisA = analyzeTemplateStructure(templateA)
-  clo(analysisA, 'Analysis A')
-
-  logDebug('demonstrateTemplateAnalysis', '=== Example B: Template with output frontmatter ===')
-  const analysisB = analyzeTemplateStructure(templateB)
-  clo(analysisB, 'Analysis B')
-
-  logDebug('demonstrateTemplateAnalysis', '=== Example C: Template with output title ===')
-  const analysisC = analyzeTemplateStructure(templateC)
-  clo(analysisC, 'Analysis C')
-
-  logDebug('demonstrateTemplateAnalysis', '=== Example D: Template with inline title ===')
-  const analysisD = analyzeTemplateStructure(templateD)
-  clo(analysisD, 'Analysis D')
-}
-
-/**
  * Robust helper function to detect inline title in template body content
  * Handles malformed frontmatter and multiple consecutive separators
  * @param {string} bodyContent - The template body content
@@ -1677,6 +1624,45 @@ export function getNoteTitleFromTemplate(templateData: string): string {
     return ''
   } catch (error) {
     logError('getNoteTitleFromTemplate', JSP(error))
+    return ''
+  }
+}
+
+/**
+ * Extract the note title from rendered content by detecting inline titles
+ * This function works with rendered content (no template tags) to find inline titles
+ * @param {string} renderedContent - The rendered content to analyze
+ * @returns {string} - The note title to use, or empty string if none found
+ */
+export function getNoteTitleFromRenderedContent(renderedContent: string): string {
+  try {
+    logDebug('getNoteTitleFromRenderedContent', `Analyzing rendered content with ${renderedContent.length} characters`)
+    
+    if (!renderedContent) {
+      logDebug('getNoteTitleFromRenderedContent', 'No rendered content provided')
+      return ''
+    }
+
+    const lines = renderedContent.split('\n')
+    logDebug('getNoteTitleFromRenderedContent', `Processing ${lines.length} lines of rendered content`)
+
+    // Look for the first heading (H1-H6) in the content
+    for (let i = 0; i < lines.length; i++) {
+      const trimmedLine = lines[i].trim()
+      if (trimmedLine === '') continue
+
+      if (trimmedLine.match(/^#{1,6}\s+/)) {
+        const titleText = trimmedLine.replace(/^#{1,6}\s+/, '').trim()
+        logDebug('getNoteTitleFromRenderedContent', `Found inline title: "${titleText}"`)
+        return titleText
+      }
+      break // Stop at first non-empty line
+    }
+
+    logDebug('getNoteTitleFromRenderedContent', 'No inline title found in rendered content')
+    return ''
+  } catch (error) {
+    logError('getNoteTitleFromRenderedContent', JSP(error))
     return ''
   }
 }

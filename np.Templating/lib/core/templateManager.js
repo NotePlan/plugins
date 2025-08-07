@@ -25,6 +25,7 @@ import { clo } from '@helpers/dev'
  */
 export async function chooseTemplate(tags?: any = '*', promptMessage: string = 'Choose Template', userOptions: any = null): Promise<any> {
   try {
+    logDebug(pluginJson, `chooseTemplate: STARTING - tags:"${tags}", promptMessage:"${promptMessage}", userOptions:${JSON.stringify(userOptions)}`)
     // We need access to templateConfig which is in the constructor context in NPTemplating
     // We'll set up a more modular approach here
     const templateConfig = await getConfig()
@@ -92,6 +93,7 @@ export async function getFilenameFromTemplate(note: string = ''): Promise<string
  */
 export async function getTemplateList(types: any = '*'): Promise<any> {
   try {
+    logDebug(`getTemplateList 0: types: ${types}`)
     const settings = await getSettings()
 
     const templateFolder = await getTemplateFolder()
@@ -101,7 +103,7 @@ export async function getTemplateList(types: any = '*'): Promise<any> {
     }
 
     const filterTypes = Array.isArray(types) ? types : types.split(',').map((type: string) => type.trim())
-
+    logDebug(`getTemplateList 1: filterTypes: ${filterTypes}`)
     const allTemplates = DataStore.projectNotes
       .filter((n) => n.filename?.startsWith(templateFolder))
       .filter((n) => !n.frontmatterTypes.includes('ignore'))
@@ -138,9 +140,10 @@ export async function getTemplateList(types: any = '*'): Promise<any> {
         }
       }
     }
+    logDebug(`getTemplateList 3: allTypes: ${allTypes.length} before filter`)
     // remove duplicates
     allTypes = allTypes.filter((v, i, a) => a.indexOf(v) === i)
-
+    logDebug(`getTemplateList 4: allTypes: ${allTypes.length} after filter`)
     // iterate filter types
     filterTypes.forEach((type) => {
       // include all types
@@ -172,7 +175,11 @@ export async function getTemplateList(types: any = '*'): Promise<any> {
           const type = attrs?.type || ''
           let types = (type.length > 0 && typeof type === 'string' ? type?.split(',') : type) || ['*']
           types.forEach((element, index) => {
-            types[index] = element.trim() // trim element whitespace
+            if (element) {
+              types[index] = element.trim() // trim element whitespace
+            } else {
+              logWarn(`getTemplateList 5: element: ${element} (typeof: ${typeof element}) label:${template.label || ''} value:${template.value || ''}`)
+            }
           })
 
           finalMatches.every((match) => {

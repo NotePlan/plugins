@@ -1341,7 +1341,7 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     const startsWithFrontmatter = protectedTemplate.startsWith('--')
     const hasBacktickWrappedEJS = /`[^`]*<%.*?%>.*?`/.test(protectedTemplate) // This is probably redundant
 
-    if (!hasEJSTags && !hasBacktickWrappedEJS && frontmatterErrors.length === 0) {
+    if (!hasEJSTags && !hasBacktickWrappedEJS && frontmatterErrors.length === 0 && !startsWithFrontmatter) {
       renderedData = protectedTemplate
     } else {
       // If the body of the template starts with "---", we need to convert it to "--"

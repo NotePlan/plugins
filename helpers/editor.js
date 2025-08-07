@@ -2,8 +2,8 @@
 
 import { logDebug } from './dev'
 import { showMessageYesNo, showMessage } from './userInput'
+import { getNoteTitleFromTemplate, getNoteTitleFromRenderedContent } from './NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
-import { getNoteTitleFromTemplate } from './NPFrontMatter'
 
 /**
  * Run Editor.save() if active Editor is dirty and needs saving
@@ -35,17 +35,27 @@ export function editorIsEmpty() {
  * @returns {boolean} whether to stop execution (true) or continue (false)
  */
 export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, frontmatterAttributes: Object): Promise<boolean> {
+  logDebug(`checkAndProcessFolderAndNewNoteTitle starting: templateNote:"${templateNote?.title || ''}", frontmatterAttributes:${JSON.stringify(frontmatterAttributes)}`)
   // Check if the template wants the note to be created in a folder and if so, move the empty note to the trash and create a new note in the folder
   const isEditorEmpty = editorIsEmpty()
   const theFolder = frontmatterAttributes?.folder?.trim() || ''
-  
-  // Use the new function to get note title from template, checking both newNoteTitle and inline title
-  const newNoteTitle = getNoteTitleFromTemplate(templateNote?.content || '') || frontmatterAttributes?.newNoteTitle?.trim() || ''
-  
+
+  // Use the rendered frontmatter attributes first, then fall back to template analysis
+  const renderedNewNoteTitle = frontmatterAttributes?.newNoteTitle?.trim()
+  logDebug(`checkAndProcessFolderAndNewNoteTitle: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
+
+  // For inline title detection, we need to use the original template data
+  const templateNoteTitle = getNoteTitleFromTemplate(templateNote?.content || '')
+  logDebug(`checkAndProcessFolderAndNewNoteTitle: templateNoteTitle from getNoteTitleFromTemplate: "${templateNoteTitle}"`)
+
+  const newNoteTitle = renderedNewNoteTitle || templateNoteTitle || ''
+
   logDebug(`checkAndProcessFolderAndNewNoteTitle starting: templateNote:"${templateNote?.title || ''}", frontmatterAttributes:${JSON.stringify(frontmatterAttributes)}`)
   if (theFolder.length > 0 || newNoteTitle.length > 0) {
     if (isEditorEmpty) {
-      logDebug(`insertNoteTemplate: template has folder:"${theFolder}", newNoteTitle:"${newNoteTitle}", so moving empty note to trash and creating a new note in the folder`)
+      logDebug(
+        `checkAndProcessFolderAndNewNoteTitle: template has folder:"${theFolder}", newNoteTitle:"${newNoteTitle}", so moving empty note to trash and creating a new note in the folder`,
+      )
       // invoke the template with the folder attribute
       const emptyNoteFilename = Editor.filename
       const templateTitle = templateNote?.title

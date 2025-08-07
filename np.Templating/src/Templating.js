@@ -66,7 +66,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall running`)
     await updateSettingData(pluginJson)
-    await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` })
+    await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` }, true)
   } catch (error) {
     logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
   }
@@ -249,19 +249,21 @@ export async function templateInvoke(templateName?: string): Promise<void> {
  */
 export async function templateNew(templateTitle: string = '', _folder?: string, newNoteTitle?: string, _args?: Object | string): Promise<void> {
   try {
-    logDebug(pluginJson, `templateNew: STARTING - templateTitle:"${templateTitle}", folder:"${_folder}", newNoteTitle:"${newNoteTitle}"`)
+    logDebug(pluginJson, `templateNew: STARTING - templateTitle:"${templateTitle}", folder:"${_folder}", newNoteTitle:"${newNoteTitle}" args:${JSON.stringify(_args)}`)
     let args = _args
     if (typeof _args === 'string') {
       args = JSON.parse(_args)
     } else if (!args) {
       args = {}
     }
-
+    logDebug(pluginJson, `templateNew: templateTitle:"${templateTitle}" (typeof: ${typeof templateTitle})`)
     let selectedTemplate // will be a filename
     if (/<current>/i.test(templateTitle)) {
       selectedTemplate = Editor.filename
-    } else if (templateTitle?.trim().length) {
+    } else if (templateTitle && templateTitle.trim().length) {
+      logDebug(pluginJson, `templateNew: about to getTemplateList`)
       const options = await NPTemplating.getTemplateList()
+      logDebug(pluginJson, `templateNew: found ${options.length} templates`)
       const chosenOpt = options.find((option) => option.label === templateTitle)
       if (chosenOpt) {
         // variable passed is a note title, but we need the filename
@@ -269,6 +271,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       }
     } else {
       // ask the user for the template
+      logDebug(pluginJson, `templateNew: about to chooseTemplate`)
       selectedTemplate = await NPTemplating.chooseTemplate()
     }
     const templateData = await NPTemplating.getTemplate(selectedTemplate)
@@ -289,7 +292,6 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     logDebug(pluginJson, `templateNew: argsKeys:${JSON.stringify(argsKeys)}\ntemplateAttributesKeys:${JSON.stringify(templateAttributesKeys)}`)
     const allArgsKeysAreInTemplateAttributes = templateAttributesKeys.length && argsKeys.length && templateAttributesKeys.every((key) => argsKeys.includes(key))
     if (allArgsKeysAreInTemplateAttributes) {
-      //FIXMME: it is going down this path but the frontmatterBody is empty
       frontmatterAttributes = typeof args === 'object' ? args : {}
       frontmatterBody = new FrontmatterModule().body(templateData)
       logDebug(pluginJson, `templateNew: after skipping renderFrontmatter:\nfrontmatterBody:"${frontmatterBody}"\nfrontmatterAttributes:${JSON.stringify(frontmatterAttributes)}`)
@@ -306,13 +308,16 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
 
-    // Use the new function to get note title from template, checking both newNoteTitle and inline title
+    // Use the rendered frontmatter attributes first, then fall back to inline title detection
+    const renderedNewNoteTitle = frontmatterAttributes.newNoteTitle
+    logDebug(pluginJson, `templateNew: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
+    logDebug(pluginJson, `templateNew: newNoteTitle parameter: "${newNoteTitle}"`)
+
+    // For inline title detection, we need to use the original template data
     const templateNoteTitle = getNoteTitleFromTemplate(templateData)
     logDebug(pluginJson, `templateNew: templateNoteTitle from getNoteTitleFromTemplate: "${templateNoteTitle}"`)
-    logDebug(pluginJson, `templateNew: newNoteTitle parameter: "${newNoteTitle}"`)
-    logDebug(pluginJson, `templateNew: frontmatterAttributes.newNoteTitle: "${frontmatterAttributes.newNoteTitle}"`)
 
-    const noteTitle = newNoteTitle || templateNoteTitle || frontmatterAttributes.newNoteTitle || (await CommandBar.textPrompt('Template', 'Enter New Note Title', ''))
+    const noteTitle = newNoteTitle || renderedNewNoteTitle || templateNoteTitle || (await CommandBar.textPrompt('Template', 'Enter New Note Title', ''))
     logDebug(pluginJson, `templateNew: final noteTitle: "${noteTitle}"`)
 
     if (typeof noteTitle === 'boolean' || noteTitle.length === 0) {
@@ -418,13 +423,19 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
           folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
         }
 
-        // Use the new function to get note title from template, checking both newNoteTitle and inline title
+        // Use the rendered frontmatter attributes first, then fall back to inline title detection
+        const renderedNewNoteTitle = frontmatterAttributes?.newNoteTitle
+        logDebug(pluginJson, `templateQuickNote: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
+
+        // For inline title detection, we need to use the original template data
         const templateNoteTitle = getNoteTitleFromTemplate(templateData)
+        logDebug(pluginJson, `templateQuickNote: templateNoteTitle from getNoteTitleFromTemplate: "${templateNoteTitle}"`)
+
         let newNoteTitle = ''
-        if (templateNoteTitle) {
+        if (renderedNewNoteTitle) {
+          newNoteTitle = renderedNewNoteTitle
+        } else if (templateNoteTitle) {
           newNoteTitle = templateNoteTitle
-        } else if (frontmatterAttributes?.newNoteTitle) {
-          newNoteTitle = frontmatterAttributes.newNoteTitle
         } else {
           newNoteTitle = (await CommandBar.textPrompt('Quick Note', 'Enter Note Title', '')) || ''
           if (typeof newNoteTitle === 'boolean' || newNoteTitle.length === 0) {
@@ -536,13 +547,19 @@ export async function templateMeetingNote(templateName: string = '', templateDat
           folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
         }
 
-        // Use the new function to get note title from template, checking both newNoteTitle and inline title
+        // Use the rendered frontmatter attributes first, then fall back to inline title detection
+        const renderedNewNoteTitle = frontmatterAttributes?.newNoteTitle
+        logDebug(pluginJson, `templateMeetingNote: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
+
+        // For inline title detection, we need to use the original template data
         const templateNoteTitle = getNoteTitleFromTemplate(templateData)
+        logDebug(pluginJson, `templateMeetingNote: templateNoteTitle from getNoteTitleFromTemplate: "${templateNoteTitle}"`)
+
         let newNoteTitle = ''
-        if (templateNoteTitle) {
+        if (renderedNewNoteTitle) {
+          newNoteTitle = renderedNewNoteTitle
+        } else if (templateNoteTitle) {
           newNoteTitle = templateNoteTitle
-        } else if (frontmatterAttributes?.newNoteTitle) {
-          newNoteTitle = frontmatterAttributes.newNoteTitle
         } else {
           const format = await getSetting('np.Templating', 'timestampFormat')
           const info = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', new DateModule().timestamp(format))
