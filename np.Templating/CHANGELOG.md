@@ -4,6 +4,9 @@
 
 See Plugin [Documentation](https://noteplan.co/templates/docs) for details on available commands and use case.
 
+## [2.0.18] 2025-08-06 @dwertheimer
+- add pluginID for iphone settings editing
+
 ## [2.0.17] 2025-08-06 @dwertheimer
 - Fix bug where non-fm-body templates which started with -- were being treated as frontmatter
 
