@@ -7,7 +7,7 @@ import { getDateStringFromCalendarFilename } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { getElementsFromTask } from './sorting'
 import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
-import { RE_EVENT_LINK, RE_MARKDOWN_LINK_PATH_CAPTURE, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH } from '@helpers/regex'
+import { RE_EVENT_LINK, RE_MARKDOWN_LINK_PATH_CAPTURE, RE_MARKDOWN_LINK_PATH_CAPTURE_G, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH, RE_SIMPLE_URI_MATCH_G } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
 import { stripLinksFromString } from '@helpers/stringTransforms'
 
@@ -28,6 +28,31 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
     logError('paragraph/caseInsensitiveSubstringMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
     return false
   }
+}
+
+/**
+ * Return a version of 'input' that removes the path of any markdown links, and any URLs, and the contents of any note links.
+ * Also trims off whitespace from the result.
+ * @author @jgclark
+ * 
+ * @param {string} input
+ * @returns {string}
+ */
+export function stripAllURIsAndNoteLinks(input: string): string {
+  let output = input
+  output = output.replace(RE_SIMPLE_URI_MATCH_G, '')
+  output = output.replace(RE_NOTELINK_G, '')
+  // Remove the path of any markdown links
+  const matches = Array.from(output.matchAll(RE_MARKDOWN_LINK_PATH_CAPTURE_G))
+  logDebug('stripAllURIsAndNoteLinks', `matches: ${String(matches)}`)
+  if (matches) {
+    for (const match of matches) {
+      // replace the whole markdown link match with just the title
+      output = output.replace(match[0], match[1])
+    }
+  }
+  output = output.trim()
+  return output
 }
 
 /**
@@ -138,6 +163,7 @@ export function isTermInEventLinkHiddenPart(term: string, input: string): boolea
 /**
  * Check to see if search term is present in 'path' part of a string potentially containing a markdown link [...](path), using case insensitive searching.
  * Now updated to _not match_ if the search term is present in the rest of the line.
+ * FIXME: errors in tests now, and termNotInURL.
  * @author @jgclark
  *
  * @tests available in jest file

@@ -107,7 +107,7 @@ export const RE_NOTELINK_CAPTURE_TITLE_G: RegExp = /\[\[([^\[]+)\]\]/g
 // URLs and Links
 export const RE_MARKDOWN_LINKS_CAPTURE_G: RegExp = /\[([^\]]+)\]\(([^\)]+)\)/g
 export const RE_MARKDOWN_LINK_PATH_CAPTURE: RegExp = /\[.+?\]\(([^\)]*?)\)/
-export const RE_MARKDOWN_LINK_PATH_CAPTURE_G: RegExp = /\[.+?\]\(([^\)]*?)\)/g
+export const RE_MARKDOWN_LINK_PATH_CAPTURE_G: RegExp = /\[(.+?)\]\([^\)]*?\)/g
 export const RE_SIMPLE_URI_MATCH: RegExp = /([\w-]+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/
 export const RE_SIMPLE_URI_MATCH_G: RegExp = /([\w-]+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/g
 // FIXME: this is not picking 'spark-mail' protocols

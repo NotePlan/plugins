@@ -6,7 +6,7 @@
 import moment from 'moment/min/moment-with-locales'
 import { clo, JSP, logDebug, logInfo, logError } from './dev'
 import { displayTitle } from './general'
-import { isTermInMarkdownPath, isTermInURL } from './paragraph'
+import { isTermInURL, stripAllURIsAndNoteLinks } from './paragraph'
 import { findLongestStringInArray } from './utils'
 
 // import { getTime } from "date-fns";
@@ -192,11 +192,16 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
         return false
       }
     }
-    const tbString = getTimeBlockString(normalizedContent)
-    if (isTermInMarkdownPath(tbString, normalizedContent) || isTermInURL(tbString, normalizedContent)) {
-      return false
-    }
-    const res2 = normalizedContent.match(RE_TIMEBLOCK_IN_LINE) ?? []
+    // // FIXME: not OK for TB in calendar event link (time portion?)
+    // v1
+    // const tbString = getTimeBlockString(normalizedContent)
+    // if (isTermInMarkdownPath(tbString, normalizedContent) ||
+    //   isTermInURL(tbString, normalizedContent) || isTermInNotelinkOrURI(tbString, normalizedContent) || isTermInEventLinkHiddenPart(tbString, normalizedContent)) {
+    //   return false
+    // }
+    // v2
+    const strippedNormalizedContent = stripAllURIsAndNoteLinks(normalizedContent)
+    const res2 = strippedNormalizedContent.match(RE_TIMEBLOCK_IN_LINE) ?? []
     return res2.length > 0
   } catch (err) {
     console.log(`helpers/isTimeBlockLine ❗️ err: ${err.message}`)
