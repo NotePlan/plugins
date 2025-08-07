@@ -21,7 +21,8 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
   try {
     // First need to escape any special characters in the search term
     const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const re = new RegExp(`${escapedSearchTerm}$`, "i") // = case insensitive match
+    const re = new RegExp(`${escapedSearchTerm}`, "i") // = case insensitive match
+    logDebug('caseInsensitiveSubstringMatch', `re: ${re} / textToSearch: ${textToSearch} / ${String(re.test(textToSearch))}`)
     return re.test(textToSearch)
   }
   catch (error) {
@@ -178,7 +179,9 @@ export function isTermInMarkdownPath(term: string, searchString: string): boolea
   const thisMDPath = MDPathMatches[1] ?? ''
   if (thisMDPath !== '') {
     const restOfLine = searchString.replace(thisMDPath, '')
+    // logDebug('isTermInMarkdownPath', `MDPathMatches: ${String(MDPathMatches)} / thisMDPath: ${thisMDPath} / restOfLine: ${restOfLine}`)
     if (caseInsensitiveSubstringMatch(term, restOfLine)) {
+      // logDebug('isTermInMarkdownPath', `Found in rest of line -> false`)
       return false
     } else {
       return caseInsensitiveSubstringMatch(term, thisMDPath)
@@ -186,7 +189,7 @@ export function isTermInMarkdownPath(term: string, searchString: string): boolea
       // const testTermInMDPath = `\[.+?\]\([^\\s]*?${term}[^\\s]*?\)`
     }
   } else {
-    // logDebug('paragraph/isTermInMarkdownPath', `No MD path -> false`)
+    // logDebug('isTermInMarkdownPath', `No MD path -> false`)
       return false
     }
   } catch (error) {
