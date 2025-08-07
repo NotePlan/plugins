@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [2.0.4] - 2025-08-07 @dwertheimer
+
+- Add logging
+
 ## [2.0.3] - 2025-08-06 @dwertheimer
 
 - Make it possible for a template to have any level of heading for the title (was previously H1 only)

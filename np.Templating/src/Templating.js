@@ -66,7 +66,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall running`)
     await updateSettingData(pluginJson)
-    await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` }, true) 
+    await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` }, true)
   } catch (error) {
     logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
   }
@@ -260,7 +260,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     let selectedTemplate // will be a filename
     if (/<current>/i.test(templateTitle)) {
       selectedTemplate = Editor.filename
-    } else if (templateTitle &&templateTitle.trim().length) {
+    } else if (templateTitle && templateTitle.trim().length) {
       logDebug(pluginJson, `templateNew: about to getTemplateList`)
       const options = await NPTemplating.getTemplateList()
       logDebug(pluginJson, `templateNew: found ${options.length} templates`)
