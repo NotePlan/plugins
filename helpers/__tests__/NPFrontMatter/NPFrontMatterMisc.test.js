@@ -95,6 +95,85 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
+    describe('isValidYamlContent()', () => {
+      test('should return false for empty content', () => {
+        const result = f.isValidYamlContent('')
+        expect(result).toBe(false)
+      })
+
+      test('should return false for whitespace only content', () => {
+        const result = f.isValidYamlContent('   \n  \t  \n')
+        expect(result).toBe(false)
+      })
+
+      test('should return true for simple key-value pairs', () => {
+        const result = f.isValidYamlContent('title: My Note')
+        expect(result).toBe(true)
+      })
+
+      test('should return true for keys with hyphens', () => {
+        const result = f.isValidYamlContent('note-tag: #CTI')
+        expect(result).toBe(true)
+      })
+
+      test('should return true for keys with spaces', () => {
+        const result = f.isValidYamlContent('my key: value')
+        expect(result).toBe(true)
+      })
+
+      test('should return true for keys with hyphens and spaces', () => {
+        const result = f.isValidYamlContent('note-tag with spaces: #CTI')
+        expect(result).toBe(true)
+      })
+
+      test('should return true for keys with blank values', () => {
+        const result = f.isValidYamlContent('title:')
+        expect(result).toBe(true)
+      })
+
+      test('should return true for keys with blank values and spaces', () => {
+        const result = f.isValidYamlContent('title: ')
+        expect(result).toBe(true)
+      })
+
+      test('should return true for list items', () => {
+        const result = f.isValidYamlContent('- item 1\n- item 2')
+        expect(result).toBe(true)
+      })
+
+      test('should return true for mixed content', () => {
+        const result = f.isValidYamlContent('title: My Note\nnote-tag: #CTI\n- item 1')
+        expect(result).toBe(true)
+      })
+
+      test('should return false for invalid content', () => {
+        const result = f.isValidYamlContent('**bold text**')
+        expect(result).toBe(false)
+      })
+
+      test('should return false for content without colons', () => {
+        const result = f.isValidYamlContent('just some text')
+        expect(result).toBe(false)
+      })
+
+      test('should return false for content with colon but no key', () => {
+        const result = f.isValidYamlContent(': value')
+        expect(result).toBe(false)
+      })
+
+      test('should return true for complex real-world examples', () => {
+        const yamlContent = `title: Meeting Note
+note-tag: #meeting
+my key: value
+empty-field:
+list-items:
+  - item 1
+  - item 2`
+        const result = f.isValidYamlContent(yamlContent)
+        expect(result).toBe(true)
+      })
+    })
+
     describe('hasTemplateTagsInFM()', () => {
       test('should return true if frontmatter contains template tags', () => {
         const fmText = '---\ntitle: <% template %>\n---'

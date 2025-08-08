@@ -1637,7 +1637,7 @@ export function getNoteTitleFromTemplate(templateData: string): string {
 export function getNoteTitleFromRenderedContent(renderedContent: string): string {
   try {
     logDebug('getNoteTitleFromRenderedContent', `Analyzing rendered content with ${renderedContent.length} characters`)
-    
+
     if (!renderedContent) {
       logDebug('getNoteTitleFromRenderedContent', 'No rendered content provided')
       return ''
@@ -1673,30 +1673,39 @@ export function getNoteTitleFromRenderedContent(renderedContent: string): string
  * @returns {boolean} - Whether the content is valid YAML-like frontmatter
  */
 export function isValidYamlContent(content: string): boolean {
-  if (!content || content.trim() === '') return false
+  if (!content || content.trim() === '') {
+    logDebug('isValidYamlContent', 'Content is empty or whitespace only')
+    return false
+  }
 
   const lines = content.split('\n')
   let hasValidYamlLine = false
+
+  logDebug('isValidYamlContent', `Analyzing ${lines.length} lines of content`)
 
   for (const line of lines) {
     const trimmedLine = line.trim()
     if (trimmedLine === '') continue // Skip empty lines
 
     // Check for valid YAML patterns:
-    // 1. key: value (with optional spaces)
-    // 2. key: (empty value)
+    // 1. key: value (with optional spaces) - allows hyphens and spaces in key names
+    // 2. key: (empty value) - allows hyphens and spaces in key names
     // 3. - item (list item)
     const yamlPatterns = [
-      /^[a-zA-Z_][a-zA-Z0-9_]*\s*:\s*/, // key: value
-      /^[a-zA-Z_][a-zA-Z0-9_]*\s*:$/, // key: (empty value)
+      /^[a-zA-Z_][a-zA-Z0-9_\-\s]*\s*:\s*/, // key: value (allows hyphens and spaces)
+      /^[a-zA-Z_][a-zA-Z0-9_\-\s]*\s*:$/, // key: (empty value, allows hyphens and spaces)
       /^\s*-\s+/, // - item (list item)
     ]
 
     const isValidLine = yamlPatterns.some((pattern) => pattern.test(trimmedLine))
     if (isValidLine) {
+      logDebug('isValidYamlContent', `Valid YAML line found: "${trimmedLine}"`)
       hasValidYamlLine = true
+    } else {
+      logDebug('isValidYamlContent', `Invalid YAML line: "${trimmedLine}"`)
     }
   }
 
+  logDebug('isValidYamlContent', `Content validation result: ${String(hasValidYamlLine)}`)
   return hasValidYamlLine
 }
