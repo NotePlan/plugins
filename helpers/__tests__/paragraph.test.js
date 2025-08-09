@@ -24,6 +24,41 @@ beforeEach(() => {
 })
 
 describe('paragraph.js', () => {
+  describe('stripAllURIsAndNoteLinks()', () => {
+    test('should return empty string for empty input', () => {
+      const result = p.stripAllURIsAndNoteLinks('')
+      expect(result).toEqual('')
+    })
+    test('should leave text alone without any URIs or note links', () => {
+      const result = p.stripAllURIsAndNoteLinks('Something about tennis')
+      expect(result).toEqual('Something about tennis')
+    })
+    test('should remove all URLs', () => {
+      const result = p.stripAllURIsAndNoteLinks('Something about http://www.tennis.org/ and https://www.wimbledon.org/')
+      expect(result).toEqual('Something about  and')
+    })
+    test('should remove all note links', () => {
+      const result = p.stripAllURIsAndNoteLinks('Something about [[link with#tag]] and [[link without that tag]]')
+      expect(result).toEqual('Something about  and')
+    })
+    test('should remove all types', () => {
+      const result = p.stripAllURIsAndNoteLinks('Something about http://www.tennis.org/ and [Wimbledon](https://www.wimbledon.org/) and [[link with#tag]] and [[link without that tag]]')
+      expect(result).toEqual('Something about  and Wimbledon and  and')
+    })
+    test('should remove all URIs and note links', () => {
+      const result = p.stripAllURIsAndNoteLinks('Something about http://www.tennis.org/ and https://www.wimbledon.org/ and [[link with#tag]] and [[link without that tag]]')
+      expect(result).toEqual('Something about  and  and  and')
+    })
+    test('should leave markdown title', () => {
+      const result = p.stripAllURIsAndNoteLinks('Something about [title](http://www.tennis.org/)')
+      expect(result).toEqual('Something about title')
+    })
+    test('should leave markdown image title', () => {
+      const result = p.stripAllURIsAndNoteLinks('Something about ![image title](http://www.tennis.org/)')
+      expect(result).toEqual('Something about !image title')
+    })
+  })
+
   describe('termNotInURL()', () => {
     test('should find search term in a URL', () => {
       const result = p.isTermInURL('tennis', 'Something about http://www.tennis.org/')
@@ -199,7 +234,6 @@ describe('paragraph.js', () => {
     test('should return false when term is outside URL', () => {
       expect(p.isTermInNotelinkOrURI('#tag', 'string has http://bob.com/page #tag')).toBe(false)
     })
-
     test('should return false when term is before URL', () => {
       expect(p.isTermInNotelinkOrURI('#tag', 'string has #tag before not in http://bob.com/URL')).toBe(false)
     })

@@ -173,9 +173,13 @@ describe(`${HELPER_NAME}`, () => {
       test('36: no: 1234:56', () => {
         expect(tb.isTimeBlockLine('1234:56')).toEqual(false)
       })
-      test('37: calendar event links should not be timeblocks', () => {
-        const cal = '![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8)'
+      test('37a: calendar event links should not be timeblocks', () => {
+        const cal = 'This is a calendar event link![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8)'
         expect(tb.isTimeBlockLine(cal)).toEqual(false)
+      })
+      test('37b: calendar event links should not be timeblocks, but OK to find in rest of the line', () => {
+        const cal = 'This is a calendar event link![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8) that comes at 12:30'
+        expect(tb.isTimeBlockLine(cal)).toEqual(true)
       })
       test('38: no, as TB in a URL', () => {
         expect(tb.isTimeBlockLine('something in https://example.com/blog/2022-01-01/12:30 and nothing else')).toEqual(false)
