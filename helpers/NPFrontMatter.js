@@ -488,13 +488,18 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         fm = `---\ntitle: ${quoteText(newTitle)}\n---`
       } else {
         logDebug('ensureFrontmatter', `- just adding empty frontmatter to this calendar note`)
-        fm = `---\n---`
+        // Insert the opening separator
+        note.insertParagraph('---', 0, 'text')
+        // Insert the closing separator
+        note.insertParagraph('---', 1, 'text')
       }
       // const newContent = `${front}${note?.content || ''}`
       // logDebug('ensureFrontmatter', `newContent = ${newContent}`)
       // note.content = '' // in reality, we can just set this to newContent, but for the mocks to work, we need to do it the long way
       logDebug('ensureFrontmatter', `front to add: ${fm}`)
-      note.insertParagraph(fm, 0, 'text')
+      if (fm) {
+        note.insertParagraph(fm, 0, 'text')
+      }
       // $FlowIgnore
       if (note.note) {
         // we must be looking at the Editor (because it has a note property)
@@ -615,20 +620,23 @@ export function formatTriggerString(triggerObj: { [TriggerTypes]: Array<{ plugin
 /**
  * Add a trigger to the frontmatter of a note (will create frontmatter if doesn't exist). Will append onto any existing list of trigger(s).
  * @author @dwertheimer
- * @param {CoreNoteFields} note
+ * @param {TEditor | TNote} note
  * @param {string} trigger 1 from the TriggerTypes
  * @param {string} pluginID - the ID of the plugin
  * @param {string} commandName - the name (NOT THE jsFunction) of the command to run
  * @returns {boolean} - true if the trigger already existed or was added succesfully
  */
-export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: string, commandName: string): boolean {
+export function addTrigger(note: TEditor | TNote, trigger: string, pluginID: string, commandName: string): boolean {
   try {
     if (!TRIGGER_LIST.includes(trigger)) {
       throw new Error(`'${trigger}' is not in the TRIGGER_LIST. Stopping.`)
     }
-    if (ensureFrontmatter(note) === false) {
-      throw new Error(`Failed to convert note '${displayTitle(note)}' to have frontmatter. Stopping.`)
-    }
+    // Only call ensureFrontmatter if the note doesn't already have frontmatter
+    // if (Object.keys(note.frontmatterAttributes).length === 0) {
+    //   if (ensureFrontmatter(note) === false) {
+    //     throw new Error(`Failed to convert note '${displayTitle(note)}' to have frontmatter. Stopping.`)
+    //   }
+    // }
     logDebug(pluginJson, `addTrigger() starting to add the ${trigger} / ${pluginID} /  ${commandName} to FM:`)
     const attributes = getFrontmatterAttributes(note)
     // clo(attributes, `addTrigger() attributes =`)
@@ -647,6 +655,7 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
     // clo(triggersObj, `addTrigger() triggersObj =`)
     const triggerFrontMatter = { triggers: formatTriggerString(triggersObj) }
     clo(triggerFrontMatter, `addTrigger() triggerFrontMatter setting frontmatter for ${displayTitle(note)}`)
+    logDebug(pluginJson, `addTrigger() before add, 1st paragraph: ${note.paragraphs[0]?.content}`)
     return updateFrontMatterVars(note, triggerFrontMatter)
   } catch (error) {
     logError('NPFrontMatter/addTrigger()', JSP(error))
@@ -955,13 +964,13 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
     const existingAttributes = { ...getFrontmatterAttributes(note) } || {}
     // Normalize newAttributes before comparison
     clo(existingAttributes, `updateFrontMatterVars: existingAttributes`)
-    const normalizedNewAttributes = {}
+    const normalizedNewAttributes: { [string]: any } = {}
     clo(Object.keys(newAttributes), `updateFrontMatterVars: Object.keys(newAttributes) = ${JSON.stringify(Object.keys(newAttributes))}`)
     Object.keys(newAttributes).forEach((key: string) => {
       const value = newAttributes[key]
       logDebug('updateFrontMatterVars newAttributes', `key: ${key}, value: ${value}`)
       // $FlowIgnore
-      normalizedNewAttributes[key] = typeof value === 'object' ? JSON.stringify(value) : quoteText(value.trim())
+      normalizedNewAttributes[key] = typeof value === 'object' ? JSON.stringify(value) : key === 'triggers' ? value.trim() : quoteText(value.trim())
     })
 
     const { keysToAdd, keysToUpdate, keysToDelete } = determineAttributeChanges(existingAttributes, normalizedNewAttributes, deleteMissingAttributes)
