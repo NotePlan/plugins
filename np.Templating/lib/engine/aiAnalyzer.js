@@ -207,6 +207,12 @@ ${originalScript || 'No original script available'}
 *****
 ## This was the template after it had been pre-processed (any EJS errors would refer to this pre-processed file):
 ${readableTemplateData}
+*****
+Javascript Error Message:
+${originalError
+  .split('\n')
+  .filter((line) => line.includes('Error'))
+  .join('\n')}
 `
 }
 

@@ -1380,6 +1380,16 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
 
     logProgress('RENDER COMPLETE', finalResult, sessionData, userOptions)
 
+    // To make errors easier to find, console log the error at the end of execution
+    const errorMentioned = finalResult
+      .split('\n')
+      .filter((line) => line.includes('Error'))
+      .join('\n')
+
+    if (errorMentioned) {
+      logDebug(pluginJson, `_renderWithConfig: Error mentioned in final result:\n*****\n\t${errorMentioned}`)
+    }
+
     return finalResult
   } catch (error) {
     clo(error, `render found error`)
