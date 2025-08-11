@@ -1,6 +1,12 @@
 /*
  * NotePlan mocks
  *
+ * NOTE: Unlike the other mocks, this is a class and not an object. So you should use `new NotePlan()` to create an instance.
+ * .e.g.
+ * beforeAll(() => {
+ *   global.NotePlan = new NotePlan()
+ * })
+ *
  * Note: nested object example data are there for reference only -- will need to be deleted or cleaned up before use (consider using a factory)
  * For functions: check whether async or not & add params & return value
  *
