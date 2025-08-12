@@ -425,6 +425,7 @@ declare class DataStore {
   /**
    * Get all folders as array of strings.
    * Note: Includes the root "/" and folders that begin with "@" such as "@Archive" and "@Templates". It excludes the trash folder though.
+   * Note: from v3.18.0 v1417, this includes Teamspace root folders.
    */
   static +folders: $ReadOnlyArray<string>;
   /**
@@ -2119,6 +2120,7 @@ declare class NotePlan {
    *   .screenWidth: {number}, available in v3.9.7
    *   .screenHeight: {number}, available in v3.9.7
    *   .teamspaceFilenamePrefix: {string}, the prefix for teamspace notes, available in v3.17.0
+   *   .osVersion: {string}, the version of the operating system, as reported by the system (e.g. "Version 15.5 (Build 24F74)"), available in v3.18.0
    */
   static +environment: Object;
   /**
