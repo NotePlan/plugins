@@ -2,17 +2,17 @@
 // ----------------------------------------------------------------------------
 // Inbox command for QuickCapture plugin
 // by Jonathan Clark
-// last update 2025-07-28 for v0.17.0 by @jgclark
+// last update 2025-08-14 for v0.17.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
-  getNoteFromParamOrUser,
   getQuickCaptureSettings,
   // type QCConfigType,
 } from './quickCaptureHelpers'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
+import {getNoteFromParamOrUser, getOrMakeCalendarNote } from '@helpers/NPnote'
 import { smartCreateSectionsAndPara } from '@helpers/paragraph'
 import {
   // chooseFolder, chooseHeading,
