@@ -267,7 +267,7 @@ export function getFolderDisplayName(folderPath: string, includeTeamspaceEmoji: 
     if (!folderPath) {
       throw new Error(`Empty folderPath given. Returning '(error)'.`)
     }
-    logDebug('folders/getFolderDisplayName', `folderPath: ${folderPath}`)
+    // logDebug('folders/getFolderDisplayName', `folderPath: ${folderPath}`)
     
     if (isTeamspaceNoteFromFilename(folderPath)) {
       const teamspaceID = getTeamspaceIDFromFilename(folderPath)

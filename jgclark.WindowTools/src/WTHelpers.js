@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for WindowTools plugin
 // Jonathan Clark
-// last update 14.3.2024 for v1.1.2 by @jgclark
+// last update 2025-08-15 for v1.3.0 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -16,6 +16,7 @@ import { displayTitle } from '@helpers/general'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 // import { addTrigger } from '@helpers/NPFrontMatter'
 import { constrainWindowSizeAndPosition } from '@helpers/NPWindows'
+import { caseInsensitiveMatch } from '@helpers/search'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 
@@ -25,6 +26,9 @@ const previousPluginID = 'jgclark.WindowSets'
 const pluginID = 'jgclark.WindowTools'
 
 //-----------------------------------------------------------------
+// Types and constants
+
+const WINDOW_SET_PREF_KEY = 'windowSets'
 
 // Plugin lookup list
 export type PluginWindowCommand = {
@@ -181,12 +185,12 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     // Note: commented out for now, as addTrigger doesn't always seem to work on the right note. Instead it's included in the above.
     // let res = await addTrigger(Editor, "onEditorWillSave", "jgclark.WindowTools", "onEditorWillSave")
     // if (!res) {
-    //   logWarn('writeWSPrefsToNote', `addTrigger failed`)
+    //   logWarn('writeWSsToNote', `addTrigger failed`)
     // }
 
     return true
   } catch (error) {
-    logError(pluginJson, `writeWSPrefsToNote: ${error.message}`)
+    logError(pluginJson, `writeWSsToNote: ${error.message}`)
     return false
   }
 }
@@ -205,7 +209,7 @@ export async function writeWSNoteToPrefs(calledFromSaveTrigger: boolean = false)
     const config = await getPluginSettings()
     logDebug(pluginJson, `writeWSNoteToPrefs() starting ${(calledFromSaveTrigger ? 'triggered by save ' : '')}for folder '${config.folderForDefinitions}' title '${config.noteTitleForDefinitions}'`)
     // Get note from config, or if triggered, then need to get it directly from Editor, to ensure we can get the latest version
-    let noteForWS: TNote
+    let noteForWS: CoreNoteFields
     if (calledFromSaveTrigger && Editor) {
       noteForWS = Editor
       logDebug(pluginJson, `got Editor`)
@@ -236,7 +240,9 @@ export async function writeWSNoteToPrefs(calledFromSaveTrigger: boolean = false)
 
     // Only keep WSs that are for this machineName
     const thisMachineName = NotePlan.environment.machineName
-    const WSsForThisMachine = WSs.filter((w) => w.machineName === thisMachineName)
+    // logDebug('writeWSNoteToPrefs', `- WSs before filtering: ${WSs.map((w) => w.name + ' (' + w.machineName + ')').join(', ')}`)
+    const WSsForThisMachine = WSs.filter((w) => caseInsensitiveMatch(w.machineName, thisMachineName))
+    // logDebug('writeWSNoteToPrefs', `- WSs after filtering: ${WSsForThisMachine.map((w) => w.name + ' (' + w.machineName + ')').join(', ')}`)
 
     // check bounds for each WS
     for (let i = 0; i < WSsForThisMachine.length; i++) {
@@ -248,7 +254,7 @@ export async function writeWSNoteToPrefs(calledFromSaveTrigger: boolean = false)
     const WSNames = WSsForThisMachine.map((w) => w.name)
 
     // Send the resulting WS definitions to the preferences store as an object
-    DataStore.setPreference('windowSets', WSsForThisMachine)
+    DataStore.setPreference(WINDOW_SET_PREF_KEY, WSsForThisMachine)
     logDebug('writeWSNoteToPrefs', `Set windowSets pref from note '${config.noteTitleForDefinitions}' (with ${String(WSsForThisMachine.length)}, named  [${String(WSNames)}])`)
     if (!calledFromSaveTrigger) {
       const res = await showMessage(`Written ${String(WSsForThisMachine.length)} Window Sets [${String(WSNames)}] for this machine '${thisMachineName}' from the definition note to the preferences`, 'OK, thanks', 'Write Window Set note to pref', false)
@@ -301,7 +307,7 @@ export async function onEditorWillSave(): Promise<void> {
 export async function readWindowSetDefinitions(forMachineName: string = ''): Promise<Array<WindowSet>> {
   try {
     // Read from local preferences
-    let windowSetsObject: any = DataStore.preference('windowSets')
+    let windowSetsObject: any = DataStore.preference(WINDOW_SET_PREF_KEY)
     const thisMachineName = NotePlan.environment.machineName
     if (!windowSetsObject || isObjectEmpty(windowSetsObject)) {
       logWarn('readWindowSetDefinitions V3', `No saved 'windowSets' pref on ${thisMachineName}, so will offer to add some example ones.`)
@@ -310,7 +316,7 @@ export async function readWindowSetDefinitions(forMachineName: string = ''): Pro
       const num = await offerToAddExampleWSs()
       if (num > 0) {
         logDebug('readWindowSetDefinitions V3', `- have added ${String(num)} example WindowSet objects`)
-        windowSetsObject = DataStore.preference('windowSets')
+        windowSetsObject = DataStore.preference(WINDOW_SET_PREF_KEY)
       } else {
         logWarn('readWindowSetDefinitions V3', `- user didn't want to add example Window Sets, so there are none to read.`)
         return []
@@ -329,7 +335,7 @@ export async function readWindowSetDefinitions(forMachineName: string = ''): Pro
     let windowSets: Array<WindowSet> = windowSetsObject
     let machineDisplayName = ''
     if (forMachineName !== '') {
-      windowSets = windowSets.filter((ws) => ws.machineName === forMachineName)
+      windowSets = windowSets.filter((ws) => caseInsensitiveMatch(ws.machineName,  forMachineName))
       machineDisplayName = `(for ${forMachineName})`
     }
     if (windowSets.length > 0) {
@@ -509,7 +515,7 @@ export async function offerToAddExampleWSs(): Promise<number> {
         // Now uses the local machine name to avoid user next seeing apparently 0 WSs :-$
         ws.machineName = thisMachineName
       }
-      DataStore.setPreference('windowSets', newWindowSets)
+      DataStore.setPreference(WINDOW_SET_PREF_KEY, newWindowSets)
       logDebug('offerToAddExampleWSs', `Saved window sets to local pref:`)
       await logWindowSets()
       const res = await writeWSsToNote(config.folderForDefinitions, config.noteTitleForDefinitions, newWindowSets)
