@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2024-12-31, for v1.1.6
+// last updated 2025-08-14, for v1.2.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -12,16 +12,15 @@ import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-// import { allNotesSortedByChanged } from '@helpers/note'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
-import { findHeading, parasToText } from '@helpers/paragraph'
+import { findHeading, parasToText,smartAppendPara, smartPrependPara } from '@helpers/paragraph'
 import {
   getParagraphBlock,
   selectedLinesIndex,
 } from '@helpers/NPParagraph'
 import {
-  chooseHeading, showMessage,
-  // chooseNoteV2,
+  chooseHeadingV2,
+  showMessage,
   chooseNoteV2
 } from '@helpers/userInput'
 
@@ -142,16 +141,24 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     }
 
     // Ask to which heading to add the selectedParas
-    let headingToFind = await chooseHeading(destNote, true, true, false)
+    let headingToFind = await chooseHeadingV2(destNote, true, true, false)
     logDebug(pluginJson, `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
-    if (/\s$/.test(headingToFind)) {
-      logWarn(pluginJson, `Heading to move to ('${headingToFind}') has trailing whitespace. Will pre-emptively remove them to try to avoid problems.`)
-      const headingPara = findHeading(destNote, headingToFind)
-      if (headingPara) {
-        headingPara.content = headingPara.content.trim()
-        destNote.updateParagraph(headingPara)
-        logDebug(pluginJson, `- now headingPara in destNote is '${headingPara.content}'`)
-        headingToFind = headingPara.content
+    if (headingToFind === '<<top of note>>') {
+      // add to top of note
+      smartPrependPara(destNote, selectedParasAsText, 'text')
+    } else if (headingToFind === '<<bottom of note>>') {
+      // add to bottom of note
+      smartAppendPara(destNote, selectedParasAsText, 'text')
+    } else {
+      if (/\s$/.test(headingToFind)) {
+        logWarn(pluginJson, `Heading to move to ('${headingToFind}') has trailing whitespace. Will pre-emptively remove them to try to avoid problems.`)
+        const headingPara = findHeading(destNote, headingToFind)
+        if (headingPara) {
+          headingPara.content = headingPara.content.trim()
+          destNote.updateParagraph(headingPara)
+          logDebug(pluginJson, `- now headingPara in destNote is '${headingPara.content}'`)
+          headingToFind = headingPara.content
+        }
       }
     }
 

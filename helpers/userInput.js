@@ -1,3 +1,4 @@
+/* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
 // Specialised user input functions
@@ -8,12 +9,16 @@ import json5 from 'json5'
 import moment from 'moment/min/moment-with-locales'
 import { getDateStringFromCalendarFilename, RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
-import { getFolderFromFilename } from './folders'
+import {
+  // getFolderListMinusExclusions,
+  getFoldersMatching, getFolderDisplayName, getFolderFromFilename
+} from './folders'
 import { getRelativeDates } from './NPdateTime'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
 import { calendarNotesSortedByChanged } from './note'
 import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
+// import { TEAMSPACE_INDICATOR } from './regex'
 import { parseTeamspaceFilename } from './teamspace'
 
 //-------------------------------- Types --------------------------------------
@@ -30,10 +35,10 @@ type TFolderIcon = {
 
 // Define icons to use in decorated CommandBar options
 const iconsToUseForSpecialFolders: Array<TFolderIcon> = [
-  { firstLevelFolder: '<CALENDAR>', icon: 'calendar-star', color: 'grey-500', alpha: 0.3, darkAlpha: 0.3 },
-  { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'grey-500' },
-  { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'grey-500' },
-  { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'grey-500' },
+  { firstLevelFolder: '<CALENDAR>', icon: 'calendar-star', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4 },
+  { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
+  { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
+  { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
 ]
 
 //--------------------------- Local functions ---------------------------------
@@ -118,21 +123,51 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
 
   // $FlowFixMe[incompatible-return]
   return { ...displayOptions[index], index, keyModifiers }
-  // Check if the first option is a TCommandBarOptionObject (has a 'text' property)
-  if (typeof options[0] === 'object') {
-    // Use newer CommandBar.showOptions() from v3.18
-    const { index, keyModifiers } = await CommandBar.showOptions(options, message)
-    // $FlowFixMe[prop-missing]
-    return { value: options[index].text ?? '', index, keyModifiers }
-  } else {
-    // Use older CommandBar.showOptions() before v3.18
-    const { index, keyModifiers } = await CommandBar.showOptions(
-      options.map((option) => option),
-      message,
-    )
-    // $FlowFixMe[incompatible-return]
-    return { value: options[index] ?? '', index, keyModifiers }
+}
+
+/**
+ * Show a list of options to the user and return which option they picked (optionally with a modifier key, optionally with ability to create a new item)
+ * V2: without the <TDefault> type parameter, using the new CommandBar.showOptions() options from v3.18
+ * @author @jgclark, @dwertheimer based on @nmn chooseOption
+ *
+ * @param {string} message - text to display to user
+ * @param {Array<TCommandBarOptionObject>} options - array of options to display
+ * @param {boolean} allowCreate - add an option to create a new item (default: false)
+ * @returns {Promise<{value: T, label: string, index: number, keyModifiers: Array<string>}>} - Promise resolving to the result
+ * see CommandBar.showOptions for more info
+ */
+export async function chooseOptionWithModifiersV2(
+  message: string,
+  options: Array<TCommandBarOptionObject>,
+  additionalCreateNewOption?: TCommandBarOptionObject
+): Promise<{ index: number, keyModifiers: Array<string>, label: string, value: string }> {
+  logDebug('userInput / chooseOptionWithModifiersV2()', `About to showOptions with ${ options.length } options & prompt: "${message}"`)
+
+  // Add the "Add new item" option at the start, if given
+  const displayOptions = options.slice()
+  if (additionalCreateNewOption) {
+    displayOptions.unshift(additionalCreateNewOption)
   }
+  logDebug('userInput / chooseOptionWithModifiersV2()', `displayOptions: ${ displayOptions.length } options`)
+
+  // Use newer CommandBar.showOptions() from v3.18
+  const { index, keyModifiers } = await CommandBar.showOptions(displayOptions, message)
+
+  // Check if the user selected "Add new item"
+  if (additionalCreateNewOption && index === 0) {
+    const result = await getInput('Enter new item:', 'OK', 'Add New Item')
+    if (result && typeof result === 'string') {
+      // Return a custom result with the new item
+      return {
+        value: result,
+        label: result,
+        index: -1, // -1 indicates a custom entry
+        keyModifiers: keyModifiers || [],
+      }
+    }
+  }
+
+  return { value: displayOptions[index].text ?? '', label: displayOptions[index].text ?? '', index, keyModifiers }
 }
 
 /**
@@ -259,136 +294,304 @@ export async function showMessageYesNoCancel(message: string, choicesArray: Arra
 
 /**
  * Let user pick from a nicely-indented list of available folders (or / for root, or optionally give a new folder name).
- * This now shows teamspaces as a special case, with a teamspace icon. TODO: show Teamspace root folder.
+ * This now shows teamspaces as a special case, with a teamspace icon.
  * Note: the API does not allow for creation of the folder, so all this does is pass back a path which you will need to handle creating.
  * @author @jgclark + @dwertheimer
  *
- * @param {string} msg - text to display to user
- * @param {boolean} includeArchive - if true, include the Archive folder in the list of folders; default is false
- * @param {boolean} includeNewFolderOption - if true, add a 'New Folder' option that will allow users to create a new folder and select it.
- * @param {string} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder) - default is root (/) -- set to "/" to force start at root.
- * @param {boolean} includeFolderPath - (optional: default true) Show the folder path (or most of it), not just the last folder name, to give more context.
+ * @param {string?} msg - text to display to user. Optional: default is 'Choose a folder'
+ * @param {boolean?} includeArchive - if true, include the Archive folder in the list of folders. Optional: default is false
+ * @param {boolean?} includeNewFolderOption - if true, add a 'New Folder' option that will allow users to create a new folder and select it. Optional: default is false
+ * @param {string?} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder) - default is root (/) -- set to "/" to force start at root.
+ * @param {boolean?} includeFolderPath - (optional: default true) Show the folder path (or most of it), not just the last folder name, to give more context.
  * @returns {string} - returns the user's folder choice (or / for root)
  */
 export async function chooseFolder(
-  msg: string,
+  msg?: string = 'Choose a folder',
   includeArchive?: boolean = false,
   includeNewFolderOption?: boolean = false,
   startFolder?: string = '/',
   includeFolderPath?: boolean = true,
 ): Promise<string> {
   try {
-    const maxLengthFolderPathToShow = 50 // OK on desktop and iOS, at least for @jgclark
     const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
-    const NEW_FOLDER = `➕ (Add New Folder${IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : ''})`
+    const NEW_FOLDER = `➕ New Folder${ IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : '' }`
     const teamspaceDefs = getAllTeamspaceIDsAndTitles()
+    const addNewFolderOption:TCommandBarOptionObject = { 
+      text: NEW_FOLDER, 
+      icon: 'folder-plus', 
+      color: 'orange-500', 
+      shortDescription: 'Add new', 
+      alpha: 0.5, 
+      darkAlpha: 0.5,
+    }
+    logDebug('userInput / createFolder', `creating with folder path, starting at "${startFolder}"`)
+
+    // Get all folders, excluding @Trash
+    // V1
+    // const allFolders = DataStore.folders.slice() // excludes Trash. slice required to avoid mutating the original $ReadOnlyArray
+    // V2
+    // Get all folders, excluding the Trash, and only includes folders that match the startFolder (if given)
+    const folderInclusions = startFolder !== '/' ? [startFolder] : []
+    const allFolders = getFoldersMatching(folderInclusions, false, []) 
+
+    // Filter and order the list of folders
+    // TODO: can be simplified, as more work is being done in getFoldersMatching() above
+    const folders = filterAndOrderFolders(allFolders, startFolder, includeArchive, includeNewFolderOption ? NEW_FOLDER : undefined)
+    // logDebug('userInput / chooseFolder', `🟡 ${ folders.length } folders ordered: ${ String(folders) }`) // ✅
+
     let folder: string
-    let folders = []
-    if (includeNewFolderOption) {
-      folders.push(NEW_FOLDER)
-    }
-    folders = [...folders, ...DataStore.folders.slice()] // excludes Trash
-    if (startFolder?.length && startFolder !== '/') {
-      folders = folders.filter((f) => f === NEW_FOLDER || f.startsWith(startFolder))
-    } else {
-      const archiveFolders = folders.filter((f) => f.startsWith('@Archive'))
-      const otherSpecialFolders = folders.filter((f) => f.startsWith('@') && !f.startsWith('@Archive'))
-      // Remove special folders from list
-      folders = folders.filter((f) => !f.startsWith('@'))
-      // Now add them back on at the end, with @Archive going last
-      folders = [...folders, ...otherSpecialFolders]
-      if (includeArchive) {
-        folders = [...folders, ...archiveFolders]
-      }
-    }
-    const value: string = ''
-    const keyModifiers: Array<string> = []
+    let value: string = ''
+    let keyModifiers: Array<string> = []
+
     if (folders.length > 0) {
-      const simpleFolderOptions: Array<{ label: string, value: string }> = []
-      const decoratedFolderOptions: Array<TCommandBarOptionObject> = []
+      // Create folder options for display
+      const [simpleFolderOptions, decoratedFolderOptions] = createFolderOptions(folders, teamspaceDefs, includeFolderPath, includeNewFolderOption ? NEW_FOLDER : '')
+      // logDebug('userInput / chooseFolder', `🟢 ${ decoratedFolderOptions.length } decoratedFolderOptions: ${ JSP(decoratedFolderOptions) } `) // ❌ but right number of options
 
-      // make a slightly fancy list with indented labels, different from plain values
-      for (const f of folders) {
-        // logDebug(`helpers / userInput`, `chooseFolder f:${ f }`)
-        const isTeamspaceFolder = teamspaceDefs.some((teamspaceDef) => f.includes(teamspaceDef.id))
-        if (f === NEW_FOLDER) {
-          simpleFolderOptions.push({ label: NEW_FOLDER, value: NEW_FOLDER })
-        } else if (f !== '/') {
-          let folderLabel = ''
-          const folderParts = f.split('/')
-          const icon = isTeamspaceFolder ? `👥` : folderParts[0] === '@Archive' ? `🗄️` : folderParts[0] === '@Templates' ? '📝' : '📁'
-
-          if (isTeamspaceFolder) {
-            const thisTeamspaceDef = teamspaceDefs.find((thisTeamspaceDef) => f.includes(thisTeamspaceDef.id)) ?? { id: '', title: '(error)' }
-            const teamspaceTitle = getTeamspaceTitleFromID(thisTeamspaceDef.id)
-            if (includeFolderPath) {
-              folderLabel = `${icon} ${teamspaceTitle} / ${folderParts.slice(2).join(' / ')}`
-            } else {
-              folderLabel = `${icon} ${folderParts.slice(2).join(' / ')}`
-            }
-          } else if (includeFolderPath) {
-            // Get the folder path prefix, and truncate it if it's too long
-            if (f.length >= maxLengthFolderPathToShow) {
-              const folderPathPrefix = `${f.slice(0, maxLengthFolderPathToShow - folderParts[folderParts.length - 1].length)} …${folderParts[folderParts.length - 1]} `
-              folderLabel = `${icon} ${folderPathPrefix} `
-            } else {
-              folderLabel = `${icon} ${folderParts.join(' / ')} `
-            }
-          } else {
-            // Replace earlier parts of the path with indentation spaces
-            for (let i = 0; i < folderParts.length - 1; i++) {
-              folderParts[i] = '     '
-            }
-            folderParts[folderParts.length - 1] = `${icon} ${folderParts[folderParts.length - 1]}`
-            folderLabel = folderParts.join('')
-          }
-          simpleFolderOptions.push({ label: folderLabel, value: f })
-          // TODO: finish this
-          decoratedFolderOptions.push({
-            text: folderLabel,
-            icon: icon,
-            shortDescription: '',
-            color: 'grey-500',
-          })
+      // Get user selection
+      if (NotePlan.environment.buildVersion >= 1413) {
+        if (includeNewFolderOption) {
+          const result = await chooseOptionWithModifiersV2(msg, decoratedFolderOptions, addNewFolderOption)
+          value = result.value
+          keyModifiers = result.keyModifiers || []
         } else {
-          // deal with special case for root folder
-          simpleFolderOptions.push({ label: '📁 /', value: '/' })
+          const result = await chooseOptionWithModifiersV2(msg, decoratedFolderOptions)
+          value = result.value
+          keyModifiers = result.keyModifiers || []
         }
+      } else {
+        const result = await chooseOptionWithModifiers(msg, simpleFolderOptions, includeNewFolderOption)
+        value = result.value
+        keyModifiers = result.keyModifiers || []
       }
-      const { value, keyModifiers } = await chooseOptionWithModifiers(msg, simpleFolderOptions, includeNewFolderOption)
-      if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
+
+      if (keyModifiers.length > 0 && keyModifiers.indexOf('opt') > -1) {
         folder = NEW_FOLDER
       } else {
         folder = value
       }
+
       logDebug(
-        `helpers / userInput`,
-        `chooseFolder folder:${folder} value:${value} keyModifiers:${String(keyModifiers)} keyModifiers.indexOf('opt') = ${keyModifiers.indexOf('opt')} `,
+        `userInput / chooseFolder`,
+        `chooseFolder folder:${ folder } value:${ value } keyModifiers:${ String(keyModifiers) } keyModifiers.indexOf('opt') = ${ keyModifiers.indexOf('opt') } `,
       )
     } else {
-      // no Folders so go to root
+      // no Folders so just choose root
       folder = '/'
     }
-    // logDebug('userInput / chooseFolder', `-> ${ folder } `)
+
+    // Handle new folder creation
     if (folder === NEW_FOLDER) {
-      const optClicked = value?.length && keyModifiers && keyModifiers.indexOf('opt') > -1
-      const newFolderName = await CommandBar.textPrompt(
-        `Create new folder${optClicked ? ` inside folder:\n"${value || ''}".` : '...\nYou will choose where to create the folder in the next step.'} `,
-        'Folder name:',
-        '',
-      )
-      if (newFolderName && newFolderName.length) {
-        const inWhichFolder =
-          optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder ? (${startFolder ?? '/'} for root)`, includeArchive, false, startFolder)
-        if (inWhichFolder) {
-          folder = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
-        }
+      const newFolderPath = await handleNewFolderCreation(value, keyModifiers, startFolder, includeArchive)
+      if (newFolderPath) {
+        folder = newFolderPath
       }
+      logInfo(`userInput / chooseFolder`, `chooseFolder -> new folder name "${folder}" -- note the creation of this needs to be handled by the caller`)
+    } else {
+      logDebug(`userInput / chooseFolder`, `chooseFolder -> "${folder}"`)
     }
-    logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
     return folder
   } catch (error) {
     logError('userInput / chooseFolder', error.message)
+    return ''
+  }
+}
+
+/**
+ * Create folder options for display
+ * @param {Array} folders - filtered folders
+ * @param {Array} teamspaceDefs - teamspace definitions
+ * @param {boolean} includeFolderPath - whether to show full path
+ * @param {string} newFolderText - text for new folder option
+ * 
+ * @returns {Array<{ label: string, value: string }> | Array<TCommandBarOptionObject>} formatted folder options
+ */
+function createFolderOptions(
+  folders: Array<string>, 
+  teamspaceDefs: Array<TTeamspace>, 
+  includeFolderPath: boolean, 
+  newFolderText: string,
+): [Array<{ label: string, value: string }>, Array<TCommandBarOptionObject>] {
+  const simpleOptions: Array<{ label: string, value: string }> = []
+  const decoratedOptions: Array<TCommandBarOptionObject> = []
+
+  for (const folder of folders) {
+    // logDebug('userInput / createFolderOptions', `- folder: ${folder}`)
+    if (folder === newFolderText) {
+      simpleOptions.push({ label: newFolderText, value: newFolderText })
+      decoratedOptions.push({
+        icon: 'folder-plus',
+        color: 'orange-500',
+        text: newFolderText,
+        shortDescription: 'Add new',
+        alpha: 0.5,
+        darkAlpha: 0.5,
+      })
+    } else if (folder !== '/') {
+      const [simpleOption, decoratedOption] = createFolderRepresentation(folder, includeFolderPath, teamspaceDefs)
+      simpleOptions.push({ label: simpleOption, value: folder })
+      decoratedOptions.push(decoratedOption)
+    } else {
+      // deal with special case for regular root folder
+      simpleOptions.push({ label: '📁 /', value: '/' })
+      decoratedOptions.push({
+        icon: 'folder',
+        color: 'gray-500',
+        text: '/',
+        shortDescription: 'Root folder',
+      })
+    }
+  }
+
+  return [simpleOptions, decoratedOptions]
+}
+
+/**
+ * Create a simple and decorated representation of a folder's name with appropriate icon and formatting
+ * @param {string} folder - folder path
+ * @param {boolean} includeFolderPath - whether to show full path
+ * @param {Array} teamspaceDefs - teamspace definitions
+ * @returns {[string, TCommandBarOptionObject]} simple and decorated version of the folder label
+ */
+function createFolderRepresentation(
+  folder: string, 
+  includeFolderPath: boolean, 
+  teamspaceDefs: Array<TTeamspace>
+): [string, TCommandBarOptionObject] {
+  // logDebug('userInput / createFolderRepresentation', `- folder: ${folder}`)
+  const INDENT_SPACES = '     ' // to use for indentation of folders that are not the root folder, when includeFolderPath is false
+  const FOLDER_PATH_MAX_LENGTH = 50 // OK on desktop and iOS, at least for @jgclark
+  const folderParts = folder.split('/')
+  const isTeamspaceFolder = teamspaceDefs.some((teamspaceDef) => folder.includes(teamspaceDef.id))
+  let simpleOption: string = ''
+  const decoratedOption: TCommandBarOptionObject = {
+    icon: 'folder',
+    color: 'gray-500',
+    text: '',
+    shortDescription: '',
+  }
+  
+  let simpleIcon = '📁'
+  if (folderParts[0] === '@Archive') {
+    simpleIcon = '🗄️'
+  } else if (folderParts[0] === '@Templates') {
+    simpleIcon = '📝'
+  }
+
+  if (isTeamspaceFolder) {
+    const thisTeamspaceDef: ?TTeamspace = teamspaceDefs.find((thisTeamspaceDef) => folder.includes(thisTeamspaceDef.id))
+    if (!thisTeamspaceDef) {
+      throw new Error(`userInput / createFolderRepresentation: teamspaceDef not found for folder: "${folder}"`)
+    }
+    const teamspaceTitle = getTeamspaceTitleFromID(thisTeamspaceDef.id)
+    const teamspaceDetails = parseTeamspaceFilename(folder)
+    // logDebug('userInput / createFolderRepresentation', `teamspaceDef: ${ JSON.stringify(thisTeamspaceDef) } from '${folder}' / filepath:${ teamspaceDetails.filepath } / includeFolderPath:${ String(includeFolderPath) }`)
+    if (teamspaceDetails.filepath === '/') {
+      simpleOption = `👥 ${ teamspaceTitle }`
+      decoratedOption.color = 'green-600'
+      decoratedOption.text = '/'
+      decoratedOption.shortDescription = teamspaceTitle
+      decoratedOption.alpha = 0.6
+      decoratedOption.darkAlpha = 0.6
+    } else {
+    if (includeFolderPath) {
+      simpleOption = `👥 ${ teamspaceTitle } / ${folderParts.slice(2).join(' / ')}`
+decoratedOption.color = 'green-600'
+decoratedOption.text = folderParts.slice(2).join(' / ')
+decoratedOption.shortDescription = teamspaceTitle
+decoratedOption.alpha = 0.6
+decoratedOption.darkAlpha = 0.6
+    } else {
+  simpleOption = `${simpleIcon} ${folderParts.slice(2).join(' / ')}`
+  decoratedOption.color = 'green-600'
+  decoratedOption.text = folderParts.slice(2).join(' / ')
+  decoratedOption.shortDescription = teamspaceTitle
+  decoratedOption.alpha = 0.6
+  decoratedOption.darkAlpha = 0.6
+}
+    }
+    // logDebug('userInput / createFolderRepresentation', `→ teamspaceDef: ${ JSON.stringify(decoratedOption) } `)
+  } else if (includeFolderPath) {
+// Get the folder path prefix, and truncate it if it's too long
+    if (folder.length >= FOLDER_PATH_MAX_LENGTH) {
+      const folderPathPrefix = `${folder.slice(0, FOLDER_PATH_MAX_LENGTH - folderParts[folderParts.length - 1].length)} …${folderParts[folderParts.length - 1]} `
+      simpleOption = `${simpleIcon} ${folderPathPrefix} `
+      decoratedOption.text = folderPathPrefix
+    } else {
+      simpleOption = `${simpleIcon} ${folderParts.join(' / ')} `
+      decoratedOption.text = folderParts.join(' / ')
+    }
+  } else {
+    // Replace earlier parts of the path with indentation spaces
+    const indentedParts = [...folderParts]
+    for (let i = 0; i < indentedParts.length - 2; i++) {
+      indentedParts[i] = INDENT_SPACES
+    }
+    simpleOption = `${indentedParts.join('')}${simpleIcon} ${indentedParts[indentedParts.length - 1]}`
+    decoratedOption.text = indentedParts.join('')
+  }
+return [simpleOption, decoratedOption]
+}
+
+/**
+ * Filter and order the list of folders based on parameters, starting at the 'startFolder' (which can be '/'), and optionally including @Archivethe newFolderText.
+ * @param {Array} folders - all available folders
+ * @param {string} startFolder - starting folder filter
+ * @param {boolean} includeArchive - whether to include archive folders
+ * @param {string?} newFolderText - (optional) text for new folder option
+ * @returns {Array} filtered and sorted folders
+ */
+function filterAndOrderFolders(folders: Array<string>, startFolder: string, includeArchive: boolean, newFolderText?: string): Array<string> {
+  if (startFolder.length && startFolder !== '/') {
+    // Filter folders to only include those that start with the startFolder, or are the newFolderText
+    return folders.filter((f) => f === newFolderText || f.startsWith(startFolder))
+  } else {
+    // If no startFolder, or it's the root folder, then we need to filter out the special folders and sort them appropriately
+    const archiveFolders = folders.filter((f) => f.startsWith('@Archive'))
+    const otherSpecialFolders = folders.filter((f) => f.startsWith('@') && !f.startsWith('@Archive'))
+    // Remove special folders from list
+    const regularFolders = folders.filter((f) => !f.startsWith('@'))
+    // Now add them back on at the end, with @Archive going last
+    const orderedFolders = [...regularFolders, ...otherSpecialFolders]
+    if (includeArchive) {
+      orderedFolders.push(...archiveFolders)
+    }
+    return orderedFolders
+  }
+}
+
+/**
+ * Handle new folder creation
+ * @param {string} value - selected value
+ * @param {Array} keyModifiers - key modifiers
+ * @param {string} startFolder - starting folder.
+ * @param {boolean} includeArchive - whether to include archive.
+ * @returns {Promise<string>} new folder path
+ */
+async function handleNewFolderCreation(value: string, keyModifiers: Array<string>, startFolder: string, includeArchive: boolean): Promise<string> {
+  try {
+    const optClicked = value?.length && keyModifiers && keyModifiers.indexOf('opt') > -1
+    let newFolderName = await CommandBar.textPrompt(
+      `Create new folder${optClicked ? ` inside folder:\n"${value || ''}".` : '...\nYou will choose where to create the folder in the next step.'} `,
+      'Folder name:',
+      '',
+    )
+
+    if (newFolderName && newFolderName.length) {
+      const inWhichFolder =
+        optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder ? (${startFolder} for root)`, includeArchive, false, startFolder)
+      if (inWhichFolder) {
+        newFolderName = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
+
+      }
+      DataStore.createFolder(newFolderName)
+      logInfo('userInput / handleNewFolderCreation', `New folder created: "${newFolderName}"`)
+      return newFolderName
+    }
+
+    throw new Error('No new folder name given.')
+  } catch (error) {
+    logError('userInput / handleNewFolderCreation', error.message)
     return ''
   }
 }
@@ -403,7 +606,7 @@ export async function chooseFolder(
  * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top or bottom of the note. Default: false.
  * @param {boolean} includeArchive - whether to include headings in the Archive section of the note (i.e. after 'Done'). Default: false.
  * @param {number} headingLevel - if adding a heading, the H1-H5 level to set (as an integer)
- * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note. Special string '<<top of note>>' implies to write to the top (after any preamble or frontmatter). Also <<bottom of note>>
+ * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note. Special string '<<top of note>>' implies to write to the top (after any preamble or frontmatter). Likewise '<<bottom of note>>'.
  */
 export async function chooseHeading(
   note: TNote,
@@ -413,18 +616,183 @@ export async function chooseHeading(
   headingLevel: number = 2,
 ): Promise<string> {
   try {
+    // Get the existing headings from the note, with markdown markers, and also add top and bottom of note options etc. if requested
     const headingStrings = getHeadingsFromNote(note, true, optionAddATopAndtBottom, optionCreateNewHeading, includeArchive)
 
     // Present heading options to user and ask for choice
     const result = await CommandBar.showOptions(headingStrings, `Select a heading from note '${note.title ?? 'Untitled'}'`)
-    // Get the underlying heading back by removing added # marks and trimming left. We don't trim right as there can be valid traillng spaces.
-    let headingToReturn = headingStrings[result.index].replace(/^#{1,5}\s*/, '')
-    headingToReturn = await processChosenHeading(note, headingLevel, headingToReturn)
+
+    // Get the underlying heading back by removing added # marks and trimming left. 
+    // Note: We don't trim right as there can be valid trailing spaces.
+    let headingToReturn = headingStrings[result.index].replace(/^#{1,5}\s*/, '').trimLeft()
+    headingToReturn = await processChosenHeading(note, headingToReturn, headingLevel)
     return headingToReturn
   } catch (error) {
     logError('userInput / chooseHeading', error.message)
     return '<error>'
   }
+}
+
+/**
+ * Ask user to select a heading from those in a given note (regular or calendar), or optionally create a new heading at top or bottom of note to use, or the top or bottom of the note.
+ * Note: Any whitespace on the end of the heading text is left in place, as otherwise this would cause issues with NP API calls that take heading parameter.
+ * V2: Can use newer CommandBar decorated options, if running on v3.18 or later.
+ * @author @jgclark
+ *
+ * @param {TNote} note - note to draw headings from
+ * @param {boolean} optionAddATopAndtBottom - whether to add 'top of note' and 'bottom of note' options. Default: true.
+ * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top or bottom of the note. Default: false.
+ * @param {boolean} includeArchive - whether to include headings in the Archive section of the note (i.e. after 'Done'). Default: false.
+ * @param {number} headingLevel - if adding a heading, the H1-H5 level to set (as an integer)
+ * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note. Special string '<<top of note>>' implies to write to the top (after any preamble or frontmatter). Likewise '<<bottom of note>>'.
+ */
+export async function chooseHeadingV2(
+  note: TNote,
+  optionAddAtTopAndBottom: boolean = true,
+  optionCreateNewHeading: boolean = false,
+  includeArchive: boolean = false,
+  headingLevel: number = 2,
+): Promise<string> {
+  try {
+    // If running on v3.17 or earlier, use the older chooseHeading() function
+    if (NotePlan.environment.buildVersion < 1413) {
+      return await chooseHeading(note, optionAddAtTopAndBottom, optionCreateNewHeading, includeArchive, headingLevel)
+    }
+
+    // Get the existing headings from the note, with markdown markers, but without any 'create new heading' options
+    const headingStrings = getHeadingsFromNote(note, true, false, false, includeArchive)
+    const headingOptions: Array<TCommandBarOptionObject> = []
+    headingStrings.forEach((heading) => {
+      const headingWithoutLeadingMarkers = heading.replace(/^#{1,5}\s*/, '')
+      const headingLevel = heading.match(/^#{1,5}/)?.[0]?.length ?? 2
+      headingOptions.push({
+        text: '    '.repeat(headingLevel - 1) + headingWithoutLeadingMarkers,
+        icon: 'h' + String(headingLevel),
+        alpha: 0.6,
+        darkAlpha: 0.6,
+      })
+    })
+
+    // Now add any wanted new heading options (borrowing logic from getHeadingsFromNote())
+    if (optionCreateNewHeading) {
+      headingOptions.unshift({
+        text: (note.type === 'Calendar') ? '(insert new heading at the start of the note)' : '(insert new heading under the title)',
+        icon: 'h' + String(headingLevel),
+        shortDescription: 'Add new',
+        color: 'orange-500',
+        alpha: 0.6,
+        darkAlpha: 0.6,
+      })
+      headingOptions.push({
+        text: '(insert new heading at the end of the note)',
+        icon: 'h' + String(headingLevel),
+        shortDescription: 'Add new',
+        color: 'orange-500',
+        alpha: 0.6,
+        darkAlpha: 0.6,
+      })
+    }
+    if (optionAddAtTopAndBottom) {
+      headingOptions.unshift({
+        text: '(top of note)',
+        icon: 'angles-up',
+        shortDescription: 'Top',
+        color: 'blue-500',
+        alpha: 0.8,
+        darkAlpha: 0.8,
+      })
+      headingOptions.push({
+        text: '(bottom of note)',
+        icon: 'angles-down',
+        shortDescription: 'Bottom',
+        color: 'blue-500',
+        alpha: 0.8,
+        darkAlpha: 0.8,
+      })
+    }
+
+    // Present heading options to user and ask for choice
+    const result = await CommandBar.showOptions(headingOptions, `Select a heading from note '${note.title ?? 'Untitled'}'`)
+
+    // Get the underlying heading back by removing added # marks and trimming left. 
+    // Note: We don't trim right as there can be valid trailing spaces.
+    let headingToReturn = headingOptions[result.index].text.replace(/^#{1,5}\s*/, '').trimLeft()
+    headingToReturn = await processChosenHeading(note, headingToReturn, headingLevel)
+    return headingToReturn
+  } catch (error) {
+    logError('userInput / chooseHeading', error.message)
+    return '<error>'
+  }
+}
+
+/**
+ * Used as part of chooseHeading (above) and Dashboard, to handle special instructions -- inserting a new heading, or inserting at top or bottom of the note.
+ * If there are no special instructions, it just returns the heading as is.
+ * @param {TNote} note
+ * @param {string} chosenHeading - The text of the new heading to add, or 5 possible special instruction strings.
+ * @param {number?} headingLevel - The level of the heading to add (1-5) where requested. If not given, will default to 2.
+ * @returns {string} headingToReturn - The heading to return, or one of the special instruction strings <<top of note>>, <<bottom of note>>.
+ */
+export async function processChosenHeading(
+  note: TNote,
+  chosenHeading: string,
+  headingLevel: number = 2,
+): Promise<string> {
+  if (chosenHeading === '') {
+    throw new Error('No heading passed to processChosenHeading(). Stopping.')
+  }
+
+  let newHeading: string | boolean
+  let headingToReturn = chosenHeading
+  logDebug('userInput / processChosenHeading', `headingLevel: ${headingLevel} chosenHeading: '${chosenHeading}'`)
+
+  if (headingToReturn.includes('insert new heading at the start of the note')) {
+    // ask for new heading, and insert right at top
+    newHeading = await getInput(`Enter heading to add at the start of the note`)
+    if (newHeading && typeof newHeading === 'string') {
+      const startPos = 0
+      // $FlowIgnore
+      note.insertHeading(newHeading, startPos, headingLevel)
+      logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (calendar note)`)
+      headingToReturn = newHeading
+    } else {
+      throw new Error(`user cancelled operation`)
+    }
+  } else if (headingToReturn.includes('insert new heading under the title')) {
+    // ask for new heading, find smart insertion position, and insert it
+    newHeading = await getInput(`Enter heading to add at the start of the note`)
+    if (newHeading && typeof newHeading === 'string') {
+      const startPos = findStartOfActivePartOfNote(note)
+      // $FlowIgnore
+      note.insertHeading(newHeading, startPos, headingLevel)
+      logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
+      headingToReturn = newHeading
+    } else {
+      throw new Error(`user cancelled operation`)
+    }
+  } else if (headingToReturn.includes('insert new heading at the end of the note')) {
+    // ask for new heading, and then append it
+    newHeading = await getInput(`Enter heading to add at the end of the note`)
+    if (newHeading && typeof newHeading === 'string') {
+      const indexEndOfActive = findEndOfActivePartOfNote(note)
+      const newLindeIndex = indexEndOfActive + 1
+      // $FlowIgnore - headingLevel is a union type, and we've already checked it's a number
+      note.insertHeading(newHeading, newLindeIndex, headingLevel || 2)
+      logDebug('userInput / processChosenHeading', `appended new heading '${newHeading}' at line ${newLindeIndex}`)
+      headingToReturn = newHeading
+    } else {
+      throw new Error(`user cancelled operation`)
+    }
+  } else if (headingToReturn.includes('(top of note)')) {
+    logDebug('userInput / processChosenHeading', `selected top of note, rather than a heading`)
+    headingToReturn = '<<top of note>>' // hopefully won't ever be used as an actual title!
+  } else if (headingToReturn.includes('(bottom of note)')) {
+    logDebug('userInput / processChosenHeading', `selected end of note, rather than a heading`)
+    headingToReturn = '<<bottom of note>>'
+  } else {
+    // Nothing else to do
+  }
+  return headingToReturn
 }
 
 /**
@@ -825,7 +1193,8 @@ export async function chooseNoteV2(
   }
   // $FlowIgnore[unsafe-arithmetic]
   const sortedNoteList = noteList.sort((first, second) => second.changedDate - first.changedDate) // most recent first
-  // Form the options to give to the CommandBar.
+
+  // Form the options to give to the CommandBar
   // Note: We will set up the more advanced options for the `CommandBar.showOptions` call, but downgrade them if we're not running v3.18+ (b1413)
   /**
    * type TCommandBarOptionObject = {
@@ -849,10 +1218,10 @@ export async function chooseNoteV2(
       return {
         text: displayTitleWithRelDate(note, true, false),
         icon: note.type === 'Calendar' ? 'calendar-star' : 'file-lines',
-        color: 'green-500',
-        shortDescription: getTeamspaceTitleFromID(possTeamspaceDetails.teamspaceID ?? ''),
-        alpha: 0.5,
-        darkAlpha: 0.5,
+        color: 'green-600',
+        shortDescription: getFolderDisplayName(getFolderFromFilename(note.filename) , false),
+        alpha: 0.6,
+        darkAlpha: 0.6,
       }
     } else {
       let folderFirstLevel = getFolderFromFilename(note.filename).split('/')[0]
@@ -861,14 +1230,12 @@ export async function chooseNoteV2(
       }
       const folderIconDetails = iconsToUseForSpecialFolders.find((details) => details.firstLevelFolder === folderFirstLevel) ?? { icon: 'file-lines', color: 'gray-500' }
       return {
-        // text: displayTitleWithRelDate(note, true, true),
         text: displayTitleWithRelDate(note, true, false),
         icon: folderIconDetails.icon,
         color: folderIconDetails.color,
-        // shortDescription: '',
-        shortDescription: note.type === 'Notes' ? getFolderFromFilename(note.filename) ?? '' : '',
-        alpha: folderIconDetails.alpha ?? undefined,
-        darkAlpha: folderIconDetails.darkAlpha ?? undefined,
+        shortDescription: note.type === 'Notes' ? getFolderDisplayName(getFolderFromFilename(note.filename) ?? '') : '',
+        alpha: folderIconDetails.alpha ?? 0.7,
+        darkAlpha: folderIconDetails.darkAlpha ?? 0.7,
       }
     }
   })
@@ -891,15 +1258,14 @@ export async function chooseNoteV2(
         sortedNoteList.push(newNote)
         opts.push({
           text: `${rd.dateStr}\t(${rd.relName})`,
-          // text: `${rd.dateStr}\t(📆 ${rd.relName})\t[New note]`,
           icon: 'calendar-plus',
           color: 'orange-500',
-          shortDescription: 'New Note',
+          shortDescription: 'Add new',
           alpha: 0.5,
           darkAlpha: 0.5,
         })
       } else {
-        logDebug('chooseNoteV2', `Found existing note for ${rd.dateStr} so won't add-new-one for it`)
+        // logDebug('chooseNoteV2', `Found existing note for ${rd.dateStr} so won't add-new-one for it`)
       }
     }
   }
@@ -910,9 +1276,9 @@ export async function chooseNoteV2(
     opts.unshift({
       text: '[New note]',
       icon: 'plus',
-      color: 'green-500',
-      shortDescription: 'Add',
-      shortcutColor: 'green-500',
+      color: 'orange-500',
+      shortDescription: 'Add new',
+      shortcutColor: 'orange-500',
       alpha: 0.6,
       darkAlpha: 0.6,
     })
@@ -935,91 +1301,16 @@ export async function chooseNoteV2(
   // Now show the options to the user
   let noteToReturn = null
   if (NotePlan.environment.buildVersion >= 1413) {
-    // logDebug('chooseNoteV2', `Using 3.18's advanced options for CommandBar.showOptions call`)
+    // logDebug('chooseNoteV2', `Using 3.18.0's advanced options for CommandBar.showOptions call`)
     // use the more advanced options to the `CommandBar.showOptions` call
     const { index } = await CommandBar.showOptions(opts, promptText)
     noteToReturn = opts[index].text.includes('[New note]') ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '') : sortedNoteList[index]
   } else {
-    // FIXME: use the basic options for the `CommandBar.showOptions` call. Get this by producing a simple array from the main options array.
-    // logDebug('chooseNoteV2', `Using pre-3.18's basic options for CommandBar.showOptions call`)
+    // use the basic options for the `CommandBar.showOptions` call. Get this by producing a simple array from the main options array.
+    // logDebug('chooseNoteV2', `Using pre-3.18.0's basic options for CommandBar.showOptions call`)
     const simpleOpts = opts.map((opt) => opt.text)
     const { index } = await CommandBar.showOptions(simpleOpts, promptText)
     noteToReturn = simpleOpts[index].includes('[New note]') ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '') : sortedNoteList[index]
   }
   return noteToReturn
-}
-
-/**
- * Used as part of chooseHeading (above) and Dashboard, to handle special instructions -- inserting a new heading, or inserting at top or bottom of the note.
- * If there are no special instructions, it just returns the heading as is.
- * @param {TNote} note
- * @param {number} headingLevel - The level of the heading to add (1-5) where requested
- * @param {string} chosenHeading - The text of the new heading to add (where requested)
- * @returns {string} headingToReturn
- */
-export async function processChosenHeading(note: TNote, headingLevel: number = 2, chosenHeading: string): Promise<string> {
-  let newHeading,
-    headingToReturn = chosenHeading
-  logDebug('userInput / processChosenHeading', `headingLevel: ${headingLevel} chosenHeading: '${chosenHeading}'`)
-  switch (headingToReturn) {
-    case `➕#️⃣ (first insert new heading at the start of the note)`:
-      // ask for new heading, and insert right at top
-      newHeading = await getInput(`Enter heading to add at the start of the note`)
-      if (newHeading && typeof newHeading === 'string') {
-        const startPos = 0
-        // $FlowIgnore
-        note.insertHeading(newHeading, startPos, headingLevel)
-        logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (calendar note)`)
-        headingToReturn = newHeading
-      } else {
-        throw new Error(`user cancelled operation`)
-      }
-      break
-
-    case '\u2795#\ufe0f\u20e3 (first insert new heading under the title)':
-      // ask for new heading, find smart insertion position, and insert it
-      newHeading = await getInput(`Enter heading to add at the start of the note`)
-      if (newHeading && typeof newHeading === 'string') {
-        const startPos = findStartOfActivePartOfNote(note)
-        // $FlowIgnore
-        note.insertHeading(newHeading, startPos, headingLevel)
-        logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
-        headingToReturn = newHeading
-      } else {
-        throw new Error(`user cancelled operation`)
-      }
-      break
-
-    case `➕#️⃣ (first insert new heading at the end of the note)`:
-      // ask for new heading, and then append it
-      newHeading = await getInput(`Enter heading to add at the end of the note`)
-      if (newHeading && typeof newHeading === 'string') {
-        const indexEndOfActive = findEndOfActivePartOfNote(note)
-        const newLindeIndex = indexEndOfActive + 1
-        // $FlowIgnore - headingLevel is a union type, and we've already checked it's a number
-        note.insertHeading(newHeading, newLindeIndex, headingLevel || 2)
-        logDebug('userInput / processChosenHeading', `appended new heading '${newHeading}' at line ${newLindeIndex}`)
-        headingToReturn = newHeading
-      } else {
-        throw new Error(`user cancelled operation`)
-      }
-      break
-
-    case '\u23eb (top of note)':
-      logDebug('userInput / processChosenHeading', `selected top of note, rather than a heading`)
-      headingToReturn = '<<top of note>>' // hopefully won't ever be used as an actual title!
-      break
-
-    case '\u23ec (bottom of note)':
-      logDebug('userInput / processChosenHeading', `selected end of note, rather than a heading`)
-      headingToReturn = '<<bottom of note>>'
-      break
-
-    default:
-      // if (headingToReturn.startsWith('➡️')) {
-      //   headingToReturn = headingToReturn.slice(1)
-      // }
-      break
-  }
-  return headingToReturn
 }

@@ -9,7 +9,7 @@ import pluginJson from '../plugin.json'
 import {
   // getNoteFromParamOrUser,
   getQuickCaptureSettings,
-  type QCConfigType,
+  // type QCConfigType,
 } from './quickCaptureHelpers'
 import {
   // getDateStringFromCalendarFilename,
@@ -35,7 +35,8 @@ import {
   smartPrependPara
 } from '@helpers/paragraph'
 import {
-  chooseHeading,
+  // chooseHeading,
+  chooseHeadingV2,
   chooseNoteV2,
   displayTitleWithRelDate,
   showMessage,
@@ -185,7 +186,7 @@ export async function addChecklistToNoteHeading(
     // If we're asking user, we use function that allows us to first add a new heading at start/end of note
     const heading = (headingArg != null && headingArg !== '')
       ? headingArg
-      : await chooseHeading(note, true, true, false)
+      : await chooseHeadingV2(note, true, true, false)
 
     // Call helper to do the main work
     coreAddChecklistToNoteHeading(note, heading, checklistText, headingLevel, config.shouldAppend)
@@ -245,7 +246,7 @@ export async function addTaskToNoteHeading(
     // If we're asking user, we use function that allows us to first add a new heading at start/end of note
     const heading = (headingArg != null && headingArg !== '')
       ? headingArg
-      : await chooseHeading(note, true, true, false)
+      : await chooseHeadingV2(note, true, true, false)
 
     // Call helper to do the main work
     coreAddTaskToNoteHeading(note, heading, taskText, headingLevel, config.shouldAppend)
@@ -309,7 +310,7 @@ export async function addTextToNoteHeading(
     // If we're asking user, we use function that allows us to first add a new heading at start/end of note
     const heading = (headingArg != null && headingArg !== '')
       ? headingArg
-      : await chooseHeading(note, true, true, false, headingLevel)
+      : await chooseHeadingV2(note, true, true, false, headingLevel)
 
     // Call helper to do the main work
     coreAddTaskToNoteHeading(note, heading, textToAdd, headingLevel, config.shouldAppend)
