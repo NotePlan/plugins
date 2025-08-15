@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 2025-02-01 for v1.2.1 by @jgclark
+// last update 2025-08-15 for v1.3.0 by @jgclark
 //---------------------------------------------------------------
 // ARCHITECTURE:
 // - 1 local preference 'windowSets' that contains JS Array<WindowSet>
@@ -44,16 +44,14 @@ import {
 } from '@helpers/NPWindows'
 import { chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
 
-//-----------------------------------------------------------------
-
-// const pluginID = 'jgclark.WindowTools'
-
 //---------------------------------------------------------------
 // WindowSet functions
 
 /**
  * Save detailed set of windows/panes as a set to the preference store for the current machine.
  * V3: writes to prefs
+ * TODO: Support saving folder views as well as note. API support added somewhere around v3.17 it seems. Done all that's needed (I think) in OWS but will need to check once API bug is fixed, and then update this as well. 
+ * Note: limitation that folder views only seem to be able to be opened in the (first) main Editor window.
  * @author @jgclark
  */
 export async function saveWindowSet(): Promise<void> {
@@ -381,11 +379,10 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
         return false
       }
       thisWS = savedWindowSets[Number(num)]
-      // const setName = thisWS.name
-      // logDebug('openWindowSet', `User requests window set '${setName}'`)
     }
 
-    clo(thisWS, 'WindowSet to open')
+    const setName = thisWS.name
+    clo(thisWS, `Chosen WindowSet '${setName}'`)
 
     // First close other windows (if requested)
     if (thisWS.closeOtherWindows) {
@@ -445,14 +442,14 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
         }
       }
     } else {
-      logDebug('openWindowSet', `There are no plugin windows to open`)
+      logDebug('openWindowSet', `There are no HTML windows to open in this Window Set`)
     }
 
     // Now open new windows/splits
     logDebug('openWindowSet', `Attempting to open ${String(thisWS.editorWindows.length)} note window(s)`)
     let mainRect: Rect // to save whatever the 'main' Editor is in this WS
     for (const ew of thisWS.editorWindows) {
-      // TODO(later): Try to support open folder as well as note. As of v3.16.3 it requires EM to add support for this in the API.
+      // TODO: Support open folder as well as note. API support added somewhere around v3.17 it seems. Done all that's needed (I think) in OWS but will need to check once API bug is fixed, and then update SWS as well.
       if (ew.filename === '') {
         logWarn('openWindowSet', `- WS '${thisWS.name}' has an empty Editor filename: ignoring. Please check the definitions in the Window Set note.`)
         continue
@@ -498,6 +495,18 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
             openCount++
             break
           }
+          case 'Folder': { // supported from ~v3.17
+            logWarn('openWindowSet', `- wanting to open Folder '${resourceFilenameToOpen}' in a Floating window, but that isn't supported. So will open in first Editor window instead.`)
+            const res = await Editor.openNoteByFilename(resourceFilenameToOpen, false, 0, 0, false, false)
+            // FIXME(Eduard): never gets here whatever I try, and no notification in NP's own log. #waiting since 15.8.25
+            if (res) {
+              openCount++
+              logDebug('openWindowSet', `- opened Folder ${resourceFilenameToOpen} in main Editor window. openCount -> ${openCount}`)
+            } else {
+              logWarn('openWindowSet', `- problem opening Folder ${resourceFilenameToOpen} in main Editor window`)
+            }
+            break
+          }
           default: { // 'Note'
             logDebug('openWindowSet', `- opening Note '${resourceFilenameToOpen}' in new floating window`)
             const res = await Editor.openNoteByFilename(resourceFilenameToOpen, (openCount > 0), 0, 0, false, false)
@@ -518,7 +527,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
             break
           }
         }
-        // logDebug('openWindowSet', `- opened '${resourceFilenameToOpen}' in float`)
+        logDebug('openWindowSet', `- opened '${resourceFilenameToOpen}' in float. openCount -> ${openCount}`)
       }
       else {
         // Open in a main or split window. (Main only for the first one.)
@@ -554,6 +563,19 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
             }
             break
           }
+          case 'Folder': { // supported from ~v3.17
+            logDebug('openWindowSet', `- opening Folder '${resourceFilenameToOpen}' in first Editor window`)
+            const res = await Editor.openNoteByFilename(resourceFilenameToOpen, false, 0, 0, false, false)
+            // FIXME(Eduard): never gets here whatever I try, and no notification in NP's own log. #waiting since 15.8.25
+            logDebug('openWindowSet', `- openNoteByFilename -> ${typeof res} ${String(res)}`)
+            if (res) {
+              logDebug('openWindowSet', `- opened Folder ${resourceFilenameToOpen} in main Editor window. openCount -> ${openCount}`)
+              openCount++
+            } else {
+              logWarn('openWindowSet', `- problem opening Folder ${resourceFilenameToOpen} in main Editor window`)
+            }
+            break
+          }
           default: { // 'Note'
             const res = await Editor.openNoteByFilename(resourceFilenameToOpen, false, 0, 0, (openCount > 0), false)
             if (res) {
@@ -565,6 +587,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
             break
           }
         }
+        logDebug('openWindowSet', `- [loop] openCount -> ${openCount}`)
       }
     }
 

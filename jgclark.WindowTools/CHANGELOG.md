@@ -1,6 +1,8 @@
 # What's changed in 🖥️  Window Tools?
 _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md)._
 
+<!-- Started: support for Folders in WS. Waiting now for @EM to address a problem found in openNoteByFilename() calls.  -->
+
 ## [1.3.0] - 2025-08-15
 - updated **open note in new split** and **open note in new window** to support Teamspace notes
 - updated **open note in new split** and **open note in new window** to use the newly-available more decorated note chooser

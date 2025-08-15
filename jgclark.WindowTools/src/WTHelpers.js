@@ -51,8 +51,9 @@ export const pluginWindowsAndCommands: Array<PluginWindowCommand> = [
 
 // Data types
 // Note: x/y/w/h are available on all window types since v3.9.1 build 1020
+// Note: noteType extended to include 'Folder' at plugin v1.3.0
 export type EditorWinDetails = {
-  noteType: string, // NP NoteType "Calendar" | "Notes"
+  noteType: string, // NP NoteType "Calendar" | "Notes" | "Folder" // TODO: change name to 'resourceType' once we've checked we can open folders
   filename: string,
   windowType: string, // "main" | "floating" | "split"
   title?: string, // optional, but persist it where used
