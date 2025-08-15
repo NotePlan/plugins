@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2025-08-14, for v1.2.0
+// last updated 2025-08-15, for v1.2.1
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -13,6 +13,7 @@ import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
+import { getFrontmatterParagraphs } from '@helpers/NPFrontMatter'
 import { findHeading, parasToText,smartAppendPara, smartPrependPara } from '@helpers/paragraph'
 import {
   getParagraphBlock,
@@ -53,31 +54,47 @@ export async function moveParaBlock(): Promise<void> {
  */
 export async function moveParas(withBlockContext: boolean = false): Promise<void> {
   try {
-    const { note, content, selection, selectedParagraphs } = Editor
+    const { note, content, selection, /*renderedSelection,*/ selectedParagraphs } = Editor
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
       logWarn(pluginJson, 'moveParas: No note open, so stopping.')
       return
     }
-    logDebug(pluginJson, 'moveParas(): Starting')
-
-    // Get config settings
-    // const origNote = note // this was clearer, but now trying directly with Editor.note in case there's a deep copy issue
-    const paragraphs = note.paragraphs
-    const origNumParas = note.paragraphs.length
-
     // Get current selection, and its range
     if (selection == null) {
       // Really a belt-and-braces check that the editor is active
       logError(pluginJson, 'moveParas: No selection found, so stopping.')
       return
     }
+
+    logDebug(pluginJson, 'moveParas(): Starting')
+
+    // TEST: shows there's a problem with these values returned from the API when there is frontmatter.
+    clo(selection, 'selection')
+    // clo(renderedSelection, 'renderedSelection')
+
+    // Try to work around this problem, if this note has frontmatter, by calculating thelength of the frontmatter
+    let selectionToUse = selection
+    const FMParas: Array<TParagraph> | false = getFrontmatterParagraphs(note, true)
+    if (FMParas && FMParas.length > 0) {
+      // sum the length of each para.content
+      const frontmatterLength = FMParas.reduce((acc, para) => acc + para.content.length, 0) + FMParas.length // +1 for each newline
+      logDebug(pluginJson, `moveParas: note has frontmatter, so adding ${frontmatterLength} chars to selection, to work around API bug.`)
+      selectionToUse = Range.create(selection.start + frontmatterLength, selection.end + frontmatterLength)
+      clo(selectionToUse, `selectionToUse (after adding frontmatter length ${frontmatterLength})`)
+    }
+
+    // Get config settings
+    // const origNote = note // this was clearer, but now trying directly with Editor.note in case there's a deep copy issue
+    const paragraphs = note.paragraphs
+    const origNumParas = note.paragraphs.length
+
     const config = await getFilerSettings()
 
-    // Get paragraph indexes for the start and end of the selection (can be the same)
-    const [firstSelLineIndex, lastSelLineIndex] = selectedLinesIndex(selection, paragraphs)
+    // Get paragraph indexes for the start and end of the selectionToUse (can be the same)
+    const [firstSelLineIndex, lastSelLineIndex] = selectedLinesIndex(selectionToUse, paragraphs)
 
-    // Get paragraphs for the selection or block
+    // Get paragraphs for the selectionToUse or block
     let firstStartIndex = 0
     let parasInBlock: Array<TParagraph>
     if (lastSelLineIndex !== firstSelLineIndex) {

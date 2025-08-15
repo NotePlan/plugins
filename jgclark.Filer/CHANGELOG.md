@@ -1,12 +1,19 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
-## [1.2.0] - 2025-08-06
+## [1.2.1] - 2025-08-15
 ### Added
 - can now access notes from Teamspaces
-- use improved note chooser (available from NP 3.18)
-<!-- ### Fixed
-- add sync was unreliable -->
+- improved display of note picker (when running NP 3.18+)
+- note picker now includes '+ new note' option for /move paragraphs (for @oldielajolla)
+- improved display of heading picker (when running NP 3.18+)
+### Fixed
+- worked around NP bug when using **/move paragraph block** on notes with frontmatter. (Thanks for report by @Bono2007.)
+<!-- - add sync was unreliable -->
+
+## [1.2.0] - 2025-01-07
+- the **/add sync'd copy to note** command will now work on multiple lines -- and there's a new setting that allows you to set a default heading to sync all lines under. (for @chrismetcalf, closes #610).  And fixed regression with it.
+- New **/quick move ...** commands for monthly and quarterly notes, not just daily and weekly notes.
 
 ## [1.1.6] - 2024-12-31
 - the **new note from clipboard** and **new note from selection** commands have moved to the NoteHelpers plugin.

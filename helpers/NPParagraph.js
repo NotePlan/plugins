@@ -441,20 +441,24 @@ export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray
   if (endParaRange.start === endParaRange.end) {
     endParaRange = Editor.paragraphRangeAtCharacterIndex(selection.end - 1)
   }
-  // clo(startParaRange, `selectedLinesIndex: startParaRange`)
-  // clo(endParaRange, `selectedLinesIndex: endParaRange`)
+  clo(startParaRange, `selectedLinesIndex: startParaRange`)
+  clo(endParaRange, `selectedLinesIndex: endParaRange`)
 
   // Get the set of selected paragraphs (which can be different from selection),
   // and work out what selectedPara number(index) this selected selectedPara is
+  let charCount = 0
   for (let i = 0; i < paragraphs.length; i++) {
     const p = paragraphs[i]
-    if (startParaRange.start === p.contentRange?.start) {
+    charCount += p.content.length + 1 // +1 for the newline
+    logDebug('selectedLinesIndex', `- para ${i}: ${p.content} (total: ${charCount}) chars`)
+    if (startParaRange.start <= p.contentRange?.start) {
       firstSelParaIndex = i
       break
     }
   }
   for (let i = paragraphs.length - 1; i >= 0; i--) {
     const p = paragraphs[i]
+    logDebug('selectedLinesIndex', `- LAST para ${i}: ${p.content}`)
     if (endParaRange.end >= (p.contentRange?.end ?? 0)) {
       lastSelParaIndex = i
       break
@@ -463,7 +467,7 @@ export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray
   if (lastSelParaIndex === 0) {
     lastSelParaIndex = firstSelParaIndex
   }
-  // logDebug('selectedLinesIndex', `\t-> paraIndexes ${firstSelParaIndex}-${lastSelParaIndex}`)
+  logDebug('selectedLinesIndex', `\t-> paraIndexes ${firstSelParaIndex}-${lastSelParaIndex}`)
   return [firstSelParaIndex, lastSelParaIndex]
 }
 
