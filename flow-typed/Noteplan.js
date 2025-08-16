@@ -1825,6 +1825,21 @@ filename: string;  /* Idea: TRegularFilename | TCalendarFilename; */
   * WARNING: The setter only works with macOS >= 14 and iOS >= 16, since below these versions, the frontmatter editor is not supported and the raw frontmatter is shown (if a user still calls this, a warning is logged).
   */
 +frontmatterAttributes: Object;
+/**
+ * Updates multiple frontmatter attributes at once in a single operation.
+ * More efficient than calling setFrontmatterAttribute multiple times as it only reads and writes the note content once.
+ * Each attribute object should have "key" and "value" properties.
+ * Note: Available from v3.18.1 (build 1419)
+ * @param {Array<{key: string, value: string}>} attributes - Array of key-value pairs to update
+ * @example
+ * note.updateFrontmatterAttributes([
+ *   { key: "title", value: "My Title" },
+ *   { key: "type", value: "project" },
+ *   { key: "status", value: "draft" }
+ * ])
+ * Available from v3.18.1 (build 1419)
+ */
+updateFrontmatterAttributes(attributes: Array<{key: string, value: string}>): void;
 
   /**
    * Renames the note. You can also define a folder path. The note will be moved to that folder and the folder will be automatically created.
