@@ -179,7 +179,7 @@ export function getFolderListMinusExclusions(
     } else if (excludeTrash) {
       reducedFolderList = reducedFolderList.filter((folder) => !folder.startsWith('@Trash'))
     }
-    logDebug('folders / getFolderListMinusExclusions', `-> after specials filtering: ${reducedFolderList.length} items: [${reducedFolderList.toString()}]`)
+    // logDebug('folders / getFolderListMinusExclusions', `-> after specials filtering: ${reducedFolderList.length} items: [${reducedFolderList.toString()}]`)
 
     // To aid partial matching, terminate all folder strings with a trailing /
     let reducedTerminatedWithSlash: Array<string> = []
