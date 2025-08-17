@@ -1,7 +1,7 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
-## [1.2.1] - 2025-08-15
+## [1.3.0] - 2025-08-15
 ### Added
 - can now access notes from Teamspaces
 - improved display of note picker (when running NP 3.18+)
