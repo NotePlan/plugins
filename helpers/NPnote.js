@@ -8,20 +8,194 @@ import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
 import * as dt from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { getFolderFromFilename, getRegularNotesInFolder } from '@helpers/folders'
+import { getFolderDisplayName, getFolderFromFilename, getRegularNotesInFolder } from '@helpers/folders'
 import { displayTitle, isValidUUID } from '@helpers/general'
-import { noteType } from '@helpers/note'
-import { getRelativeDates } from '@helpers/NPdateTime'
+import { calendarNotesSortedByChanged,noteType } from '@helpers/note'
+import { displayTitleWithRelDate, getRelativeDates } from '@helpers/NPdateTime'
 import { endOfFrontmatterLineIndex, ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
-import { chooseNoteV2, displayTitleWithRelDate } from '@helpers/userInput'
 
-//-------------------------------------------------------------------------------
+//-------------------------------- Types --------------------------------------
+
+type TFolderIcon = {
+  firstLevelFolder: string,
+  icon: string,
+  color: string,
+  alpha?: number,
+  darkAlpha?: number,
+}
+
+//------------------------------ Constants ------------------------------------
+
+// Define icons to use in decorated CommandBar options
+const iconsToUseForSpecialFolders: Array<TFolderIcon> = [
+  { firstLevelFolder: '<CALENDAR>', icon: 'calendar-star', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4 },
+  { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
+  { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
+  { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
+]
+
+// For speed, pre-compute the relative dates
+const relativeDates = getRelativeDates()
 
 const pluginJson = 'NPnote.js'
+
+//------------------------------ Functions ------------------------------------
+
+/**
+ * Choose a particular note from a list of notes shown to the user, with a number of display options.
+ * The 'regularNotes' parameter allows both a subset of notes to be used, and to allow the generation of the list (which can take appreciable time) to happen at a less noticeable time.
+ * Note: no try-catch, so that failure can stop processing.
+ * Note: This used to live in helpers/userInput.js, but was moved here to avoid a circular dependency.
+ * @author @jgclark, heavily extending earlier function by @dwertheimer
+ * 
+ * @param {string?} promptText - text to display in the CommandBar
+ * @param {Array<TNote>?} regularNotes - a list of regular notes to choose from. If not provided, all regular notes will be used.
+ * @param {boolean?} includeCalendarNotes - include calendar notes in the list
+ * @param {boolean?} includeFutureCalendarNotes - include future calendar notes in the list
+ * @param {boolean?} currentNoteFirst - add currently open note to the front of the list
+ * @param {boolean?} allowNewRegularNoteCreation - add option for user to create new note to return instead of choosing existing note
+ * @returns {?TNote} note
+ */
+export async function chooseNoteV2(
+  promptText: string = 'Choose a note',
+  regularNotes: $ReadOnlyArray<TNote> = DataStore.projectNotes,
+  includeCalendarNotes?: boolean = true,
+  includeFutureCalendarNotes?: boolean = false,
+  currentNoteFirst?: boolean = false,
+  allowNewRegularNoteCreation?: boolean = true,
+): Promise<?TNote> {
+  // $FlowIgnore[incompatible-type]
+  let noteList: Array<TNote> = regularNotes
+  if (includeCalendarNotes) {
+    noteList = noteList.concat(calendarNotesSortedByChanged())
+  }
+  // $FlowIgnore[unsafe-arithmetic]
+  const sortedNoteList = noteList.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+
+  // Form the options to give to the CommandBar
+  // Note: We will set up the more advanced options for the `CommandBar.showOptions` call, but downgrade them if we're not running v3.18+ (b1413)
+  /**
+   * type TCommandBarOptionObject = {
+   * text: string,
+   * icon?: string,
+   * shortDescription?: string,
+   * color?: string,
+   * shortcutColor?: string,
+   * alpha?: number,
+   * darkAlpha?: number,
+   * }
+   */
+
+  // Start with titles of regular notes
+  const opts: Array<TCommandBarOptionObject> = sortedNoteList.map((note) => {
+    // Show titles with relative dates, but without path
+    const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
+    // Work out which icon to use for this note
+    if (possTeamspaceDetails.isTeamspace) {
+      // Teamspace notes are currently (v3.18) only regular or calendar notes, not @Templates, @Archive or @Trash.
+      return {
+        text: displayTitleWithRelDate(note, true, false),
+        icon: note.type === 'Calendar' ? 'calendar-star' : 'file-lines',
+        color: 'green-600',
+        shortDescription: getFolderDisplayName(getFolderFromFilename(note.filename) , false),
+        alpha: 0.6,
+        darkAlpha: 0.6,
+      }
+    } else {
+      let folderFirstLevel = getFolderFromFilename(note.filename).split('/')[0]
+      if (note.type === 'Calendar') {
+        folderFirstLevel = '<CALENDAR>'
+      }
+      const folderIconDetails = iconsToUseForSpecialFolders.find((details) => details.firstLevelFolder === folderFirstLevel) ?? { icon: 'file-lines', color: 'gray-500' }
+      return {
+        text: displayTitleWithRelDate(note, true, false),
+        icon: folderIconDetails.icon,
+        color: folderIconDetails.color,
+        shortDescription: note.type === 'Notes' ? getFolderDisplayName(getFolderFromFilename(note.filename) ?? '') : '',
+        alpha: folderIconDetails.alpha ?? 0.7,
+        darkAlpha: folderIconDetails.darkAlpha ?? 0.7,
+      }
+    }
+  })
+
+  // If wanted, add future calendar notes to the list, where not already present
+  if (includeFutureCalendarNotes) {
+    const weekAgoMom = moment().subtract(7, 'days')
+    const weekAgoDate = weekAgoMom.toDate()
+    for (const rd of relativeDates) {
+      const matchingNote = sortedNoteList.find((note) => note.title === rd.dateStr)
+      if (!matchingNote) {
+        // Make a temporary partial note for this date
+        // $FlowIgnore[prop-missing]
+        const newNote: TNote = {
+          title: rd.dateStr,
+          type: 'Calendar',
+          // TODO: get this applied to the earlier sort
+          changedDate: weekAgoDate,
+        }
+        sortedNoteList.push(newNote)
+        opts.push({
+          text: `${rd.dateStr}\t(${rd.relName})`,
+          icon: 'calendar-plus',
+          color: 'orange-500',
+          shortDescription: 'Add new',
+          alpha: 0.5,
+          darkAlpha: 0.5,
+        })
+      } else {
+        // logDebug('chooseNoteV2', `Found existing note for ${rd.dateStr} so won't add-new-one for it`)
+      }
+    }
+  }
+
+  // Now set up other options for showOptions
+  const { note } = Editor
+  if (allowNewRegularNoteCreation) {
+    opts.unshift({
+      text: '[New note]',
+      icon: 'plus',
+      color: 'orange-500',
+      shortDescription: 'Add new',
+      shortcutColor: 'orange-500',
+      alpha: 0.6,
+      darkAlpha: 0.6,
+    })
+    // $FlowIgnore[incompatible-call] just to keep the indexes matching; won't be used
+    // $FlowIgnore[prop-missing]
+    sortedNoteList.unshift({ title: '[New note]', type: 'Notes' }) // just keep the indexes matching
+  }
+  if (currentNoteFirst && note) {
+    sortedNoteList.unshift(note)
+    opts.unshift({
+      text: `[Current note: "${displayTitleWithRelDate(Editor)}"]`,
+      icon: 'calendar-day',
+      color: 'gray-500',
+      shortDescription: '',
+      alpha: 0.6,
+      darkAlpha: 0.6,
+    })
+  }
+
+  // Now show the options to the user
+  let noteToReturn = null
+  if (NotePlan.environment.buildVersion >= 1413) {
+    // logDebug('chooseNoteV2', `Using 3.18.0's advanced options for CommandBar.showOptions call`)
+    // use the more advanced options to the `CommandBar.showOptions` call
+    const { index } = await CommandBar.showOptions(opts, promptText)
+    noteToReturn = opts[index].text.includes('[New note]') ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '') : sortedNoteList[index]
+  } else {
+    // use the basic options for the `CommandBar.showOptions` call. Get this by producing a simple array from the main options array.
+    // logDebug('chooseNoteV2', `Using pre-3.18.0's basic options for CommandBar.showOptions call`)
+    const simpleOpts = opts.map((opt) => opt.text)
+    const { index } = await CommandBar.showOptions(simpleOpts, promptText)
+    noteToReturn = simpleOpts[index].includes('[New note]') ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '') : sortedNoteList[index]
+  }
+  return noteToReturn
+}
 
 //-------------------------------------------------------------------------------
 
@@ -1170,7 +1344,7 @@ export async function getNoteFromParamOrUser(
     throw new Error("Couldn't get note for a reason I can't understand.")
   }
 
-  logTimer('getNoteFromParamOrUser', startTime, `-> note '${displayTitleWithRelDate(note)}'`)
+  logTimer('getNoteFromParamOrUser', startTime, `-> note '${displayTitle(note)}'`)
   return note
 }
 

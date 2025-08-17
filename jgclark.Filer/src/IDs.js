@@ -2,21 +2,18 @@
 // ----------------------------------------------------------------------------
 // Plugin to help link lines between notes with Line IDs
 // Jonathan Clark
-// last updated 2025-08-13 for v1.2.0
+// last updated 2025-08-13 for v1.3.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { addParasAsText, getFilerSettings } from './filerHelpers'
 import { logDebug, logError, logWarn } from '@helpers/dev'
-// import { saveEditorIfNecessary } from '@helpers/editor'
 import { displayTitle } from '@helpers/general'
-import {
-  // allNotesSortedByChanged,
-  allRegularNotesSortedByChanged,
-} from '@helpers/note'
+import { allRegularNotesSortedByChanged } from '@helpers/note'
+import { chooseNoteV2 } from '@helpers/NPnote'
 // import { getSelectedParaIndex } from '@helpers/NPParagraph'
 import { parasToText, smartAppendPara, smartPrependPara } from '@helpers/paragraph'
-import { chooseHeadingV2, chooseNoteV2 } from '@helpers/userInput'
+import { chooseHeadingV2 } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
@@ -66,6 +63,7 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     logDebug('addIDAndAddToOtherNote', `- Will add to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // Add text to the new location in destination note
+    // Note: handily, the blockId goes with it as part of the para.content
     if (headingToFind === '<<top of note>>') {
       // add to top of note
       smartPrependPara(destNote, selectedParasAsText, 'text')
@@ -75,10 +73,6 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     } else {
       addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection, true)
     }
-
-    // NB: handily, the blockId goes with it as part of the para.content
-    // logDebug('addIDAndAddToOtherNote', `- Inserting 1 para at index ${insertionIndex} into ${displayTitle(destNote)}`)
-    // await destNote.insertParagraph(para.content, insertionIndex, paraType)
   }
   catch (error) {
     logError('Filer/addIDAndAddToOtherNote', error.message)

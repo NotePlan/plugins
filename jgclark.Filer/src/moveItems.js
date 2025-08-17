@@ -15,6 +15,7 @@ import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { getFrontmatterParagraphs } from '@helpers/NPFrontMatter'
 import { findHeading, parasToText,smartAppendPara, smartPrependPara } from '@helpers/paragraph'
+import { chooseNoteV2 } from '@helpers/NPnote'
 import {
   getParagraphBlock,
   selectedLinesIndex,
@@ -22,7 +23,6 @@ import {
 import {
   chooseHeadingV2,
   showMessage,
-  chooseNoteV2
 } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------

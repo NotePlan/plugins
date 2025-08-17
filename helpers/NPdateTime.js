@@ -9,6 +9,7 @@ import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
 import {
   convertISODateFilenameToNPDayFilename,
+  getDateStringFromCalendarFilename,
   getWeek,
   hyphenatedDateString,
   isoWeekStartEndDates,
@@ -31,8 +32,14 @@ import {
   toISOShortDateTimeString,
 } from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
+import {
+  getFolderFromFilename
+} from './folders'
+
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from './regex'
 import { hasScheduledDate } from './utils'
+import { getTeamspaceTitleFromID } from './NPTeamspace'
+import { parseTeamspaceFilename } from './teamspace'
 
 //--------------------------------------------------------------------------------
 // Local copies of other helpers to avoid circular dependencies
@@ -1194,6 +1201,67 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
     logError('dateTime / relativeDateFromDateString', e.message)
     return ['(error)', '(error)']
   }
+}
+
+const relativeDates = getRelativeDates()
+
+/**
+ * V2 of displayTitle that optionally adds the relative date string after relevant calendar note titles, to make it easier to spot last/this/next D/W/M/Q
+ * Note: that this returns ISO title for daily notes (YYYY-MM-DD) not the one from the filename. This is different from the original displayTitle.
+ * Note: Developed from simpler version inhelpers/general.js, but needed here anyway to avoid a circular dependency
+ * @param {CoreNoteFields} noteIn
+ * @param {boolean} showRelativeDates? (default: false)
+ * @param {boolean} showFolderPath? (default: false)
+ * @returns {string}
+ */
+export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDates: boolean = true, showFolderPath: boolean = false): string {
+  if (noteIn.type === 'Calendar') {
+    let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
+    if (showRelativeDates) {
+      for (const rd of relativeDates) {
+        if (calNoteTitle === rd.dateStr) {
+          // logDebug('displayTitleWithRelDate',`Found match with ${rd.dateStr} => ${rd.relName}`)
+          calNoteTitle = `${rd.dateStr}\t(${rd.relName})`
+          break
+        }
+      }
+    }
+    return calNoteTitle
+  } else {
+    return showFolderPath ? getDisplayTitleAndPathForRegularNote(noteIn) : noteIn.title ?? '(error)'
+  }
+}
+
+/**
+ * Get the display title and path for a regular note, with support for Teamspace notes.
+ * @param {CoreNoteFields} noteIn
+ * @returns {string}
+ */
+export function getDisplayTitleAndPathForRegularNote(noteIn: CoreNoteFields): string {
+  if (noteIn.type === 'Calendar') {
+    logError('getDisplayTitleAndPathForRegularNote', `Calendar note ${noteIn.filename} passed in`)
+    return noteIn.filename
+  }
+  if (!noteIn.title) {
+    logError('getDisplayTitleAndPathForRegularNote', `Regular note ${noteIn.filename} has no title`)
+    return noteIn.filename
+  }
+  const title = noteIn.title
+  let displayTitle = ''
+  const possTeamspaceDetails = parseTeamspaceFilename(noteIn.filename)
+  if (possTeamspaceDetails.isTeamspace) {
+    const teamspaceName = possTeamspaceDetails.teamspaceID ? `[👥 ${getTeamspaceTitleFromID(possTeamspaceDetails.teamspaceID)}] ` : ''
+    // const filenameToUse = possTeamspaceDetails.filename
+    // const path = filenameToUse !== '' ? `${filenameToUse} / ` : ''
+    let path = possTeamspaceDetails.filepath
+    path = path !== '/' ? `${path} / ` : ''
+    displayTitle = `${teamspaceName}${path}${title}`
+  } else {
+    const folder = getFolderFromFilename(noteIn.filename)
+    const path = folder === '/' ? '' : `${folder} / `
+    displayTitle = `${path}${title}`
+  }
+  return displayTitle
 }
 
 /**n
