@@ -98,7 +98,7 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
 
     // Add text to the new location in destination note
     const newHeadingLevel = config.newTaskSectionHeadingLevel
-    const headingToUse = heading ? await processChosenHeading(destNote, newHeadingLevel, heading || '') : config.newTaskSectionHeading
+    const headingToUse = heading ? await processChosenHeading(destNote, heading || '', newHeadingLevel) : config.newTaskSectionHeading
 
     if (actionType === 'addTask') {
       coreAddTaskToNoteHeading(destNote, headingToUse, content, newHeadingLevel, true)

@@ -24,7 +24,7 @@ import type {
 import { getNestedValue, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { getFoldersMatching, getFolderFromFilename, projectNotesFromFilteredFolders } from '@helpers/folders'
+import { getFoldersMatching, getFolderFromFilename, getRegularNotesFromFilteredFolders } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
@@ -463,14 +463,14 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
 
     await CommandBar.onAsyncThread()
     // Get list of folders to include or ignore
-    const includedFolders = config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',').map((folder) => folder.trim()) : []
+    // const includedFolders = config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',').map((folder) => folder.trim()) : []
     const excludedFolders = config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
     logInfo('getRelevantPriorityTasks', `excludedFolders: ${String(excludedFolders)}`)
     // Reduce list to all notes that are not blank or in @ folders or excludedFolders
-    let notesToCheck = projectNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
+    let notesToCheck = getRegularNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
     logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
 
-    // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by `DataStore.projectNotes` (the call behind 'projectNotesFromFilteredFolders').
+    // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by `DataStore.projectNotes` (the call behind 'regularNotesFromFilteredFolders').
     // Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
     // Note: JGC has asked EM to not return other sorts of files
     // Note: this takes roughly 1ms per note for JGC.

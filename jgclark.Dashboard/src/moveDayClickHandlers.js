@@ -158,12 +158,12 @@ export async function scheduleAllYesterdayOpenToToday(data: MessageDataObject): 
             logDebug('scheduleAllYesterdayOpenToToday', `- Scheduling referenced para ${c}/${totalToMove} from note ${thisNote.filename} with new content "${p.content}"`)
             thisNote.updateParagraph(p)
             numberScheduled++
+            // Update cache to allow it to be re-read on refresh
+            DataStore.updateCache(thisNote, false)
           } else {
             logWarn('scheduleAllYesterdayOpenToToday', `Couldn't find ref para matching this dashboardPara to reschedule:`)
             clo(dashboardPara, 'dashboardPara')
           }
-          // Update cache to allow it to be re-read on refresh
-          DataStore.updateCache(thisNote, false)
         }
       }
       logTimer('scheduleAllYesterdayOpenToToday', thisStartTime, `scheduled ${String(numberScheduled)} open items from yesterday in project notes to today`)
