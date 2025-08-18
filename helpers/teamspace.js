@@ -13,7 +13,7 @@ import { RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME, RE_MONTHLY_NOTE_FILENA
 // Match the filename for a Teamspace note (updated for v3.17.0)
 // Note: should really be using NotePlan.environment.teamspaceFilenamePrefix as part of the regex, but this needs to be available where NotePlan.environment is not available.
 // Following moved from teamspace.js to regex.js to avoid circular dependency
-import { RE_TEAMSPACE_INDICATOR_AND_ID } from './regex'
+import { RE_TEAMSPACE_INDICATOR_AND_ID, RE_UUID } from './regex'
 
 export const TEAMSPACE_FA_ICON = 'fa-regular fa-screen-users'
 
@@ -31,7 +31,7 @@ export function isTeamspaceNoteFromFilename(filenameIn: string): boolean {
 }
 
 /**
- * Remove the Teamspace ID from a filename, if it has one.
+ * Remove the Teamspace ID from a filename, if it has one, and any leading slash.
  * Note: Deliberately not using DataStore calls.
  * @author @jgclark
  * @tests in jest file teamspace.test.js
@@ -42,9 +42,31 @@ export function isTeamspaceNoteFromFilename(filenameIn: string): boolean {
 export function getFilenameWithoutTeamspaceID(filenameIn: string): string {
   const possibleTeamspaceFilename = filenameIn.match(RE_TEAMSPACE_INDICATOR_AND_ID)
   if (possibleTeamspaceFilename) {
-    return filenameIn.replace(possibleTeamspaceFilename[0], '')
+    let filenameWithoutTeamspaceID = filenameIn.replace(possibleTeamspaceFilename[0], '')
+    if (filenameWithoutTeamspaceID.startsWith('/')) {
+      filenameWithoutTeamspaceID = filenameWithoutTeamspaceID.slice(1)
+    }
+    return filenameWithoutTeamspaceID
   } else {
     return filenameIn
+  }
+}
+
+/**
+ * Return just the Teamspace ID from a filename, if it has one.
+ * Note: Deliberately not using DataStore calls.
+ * @author @jgclark
+ * @tests in jest file teamspace.test.js
+ * 
+ * @param {string} filenameIn
+ * @returns {string} filename without Teamspace ID
+ */
+export function getTeamspaceIDFromFilename(filenameIn: string): string {
+  const possibleTeamspaceMatches = filenameIn.match(RE_TEAMSPACE_INDICATOR_AND_ID)
+  if (possibleTeamspaceMatches) {
+    return possibleTeamspaceMatches[1]
+  } else {
+    return ''
   }
 }
 
@@ -57,7 +79,8 @@ export function getFilenameWithoutTeamspaceID(filenameIn: string): string {
  * - isTeamspace: true if the note is a Teamspace note, false otherwise
  * - teamspaceID: the ID of the teamspace if the note is a Teamspace note, undefined otherwise
  * Note: this deliberately doesn't use DataStore.* calls; another simpler function could be written that does.
- * Note: 'filename' is a rather odd thing for Teamspace regular notes: they are just are a UUID, without file extension
+ * Note: 'filename' is a rather odd thing for Teamspace regular notes: they are just are a UUID, without file extension, but with possible sub-folder path just before it.
+ * Note: also works for Teamspace folder paths, returned from `DataStore.folders` call.
  * @author @jgclark
  * @tests in jest file teamspace.test.js
  * 
@@ -85,8 +108,13 @@ export function parseTeamspaceFilename(filenameIn: string): { filename: string, 
       // logDebug('parseTeamspaceFilename', `Teamspace filename: ${afterSecondSlash} / teamspaceID: ${teamspaceID} (from ${filenameIn})`)
       return { filename: afterSecondSlash, filepath: '', isTeamspace: true, teamspaceID }
     } else {
-      // The final part of the filename is just a UUID, though you can get folder names before it.
-      const filepath = afterSecondSlash.replace(lastPartOfFilename, '')
+      // The final part of the filename is just a UUID, though you can get (sub)folder names before it.
+      const noteFilenamePart = (RE_UUID.test(lastPartOfFilename))
+        ? lastPartOfFilename : ''
+      // logDebug('parseTeamspaceFilename', `noteFilenamePart: ${noteFilenamePart} / lastPartOfFilename: ${lastPartOfFilename} / afterSecondSlash: ${afterSecondSlash}`)
+      const filepath = (noteFilenamePart === lastPartOfFilename)
+        ? afterSecondSlash.replace(lastPartOfFilename, '')
+        : afterSecondSlash // deals where filenameIn is a folder path
       let filepathToUse = (filepath.endsWith('/')) ? filepath.slice(0, filepath.length - 1) : filepath
       filepathToUse = filepathToUse !== '' ? filepathToUse : '/'
       return { filename: afterSecondSlash, filepath: filepathToUse, isTeamspace: true, teamspaceID }

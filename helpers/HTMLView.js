@@ -1018,7 +1018,7 @@ export function convertHashtagsToHTML(input: string): string {
     if (matches) {
       // logDebug('convertHashtagsToHTML', `results from hashtag matches: ${String(matches)}`)
       for (const match of matches) {
-        logDebug('convertHashtagsToHTML', `- match: ${String(match)}`)
+        // logDebug('convertHashtagsToHTML', `- match: ${String(match)}`)
         if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output)) { continue }
         output = output.replace(match, `<span class="hashtag">${match}</span>`)
       }
@@ -1051,7 +1051,7 @@ export function convertMentionsToHTML(input: string): string {
     if (matches) {
       // logDebug('convertMentionsToHTML', `results from mention matches: ${String(matches)}`)
       for (const match of matches) {
-        logDebug('convertMentionsToHTML', `- match: ${String(match)}`)
+        // logDebug('convertMentionsToHTML', `- match: ${String(match)}`)
         if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output)) { continue }
         output = output.replace(match, `<span class="attag">${match}</span>`)
       }

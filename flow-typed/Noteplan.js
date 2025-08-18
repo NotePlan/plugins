@@ -425,6 +425,7 @@ declare class DataStore {
   /**
    * Get all folders as array of strings.
    * Note: Includes the root "/" and folders that begin with "@" such as "@Archive" and "@Templates". It excludes the trash folder though.
+   * Note: from v3.18.0 v1417, this includes Teamspace root folders.
    */
   static +folders: $ReadOnlyArray<string>;
   /**
@@ -1824,6 +1825,21 @@ filename: string;  /* Idea: TRegularFilename | TCalendarFilename; */
   * WARNING: The setter only works with macOS >= 14 and iOS >= 16, since below these versions, the frontmatter editor is not supported and the raw frontmatter is shown (if a user still calls this, a warning is logged).
   */
 +frontmatterAttributes: Object;
+/**
+ * Updates multiple frontmatter attributes at once in a single operation.
+ * More efficient than calling setFrontmatterAttribute multiple times as it only reads and writes the note content once.
+ * Each attribute object should have "key" and "value" properties.
+ * Note: Available from v3.18.1 (build 1419)
+ * @param {Array<{key: string, value: string}>} attributes - Array of key-value pairs to update
+ * @example
+ * note.updateFrontmatterAttributes([
+ *   { key: "title", value: "My Title" },
+ *   { key: "type", value: "project" },
+ *   { key: "status", value: "draft" }
+ * ])
+ * Available from v3.18.1 (build 1419)
+ */
+updateFrontmatterAttributes(attributes: Array<{key: string, value: string}>): void;
 
   /**
    * Renames the note. You can also define a folder path. The note will be moved to that folder and the folder will be automatically created.
@@ -2119,6 +2135,7 @@ declare class NotePlan {
    *   .screenWidth: {number}, available in v3.9.7
    *   .screenHeight: {number}, available in v3.9.7
    *   .teamspaceFilenamePrefix: {string}, the prefix for teamspace notes, available in v3.17.0
+   *   .osVersion: {string}, the version of the operating system, as reported by the system (e.g. "Version 15.5 (Build 24F74)"), available in v3.18.0
    */
   static +environment: Object;
   /**

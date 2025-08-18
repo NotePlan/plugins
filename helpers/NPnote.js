@@ -8,18 +8,194 @@ import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
 import * as dt from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { getFolderFromFilename, getRegularNotesInFolder } from '@helpers/folders'
+import { getFolderDisplayName, getFolderFromFilename, getRegularNotesInFolder } from '@helpers/folders'
 import { displayTitle, isValidUUID } from '@helpers/general'
-import { noteType } from '@helpers/note'
+import { calendarNotesSortedByChanged,noteType } from '@helpers/note'
+import { displayTitleWithRelDate, getRelativeDates } from '@helpers/NPdateTime'
 import { endOfFrontmatterLineIndex, ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
 
-//-------------------------------------------------------------------------------
+//-------------------------------- Types --------------------------------------
+
+type TFolderIcon = {
+  firstLevelFolder: string,
+  icon: string,
+  color: string,
+  alpha?: number,
+  darkAlpha?: number,
+}
+
+//------------------------------ Constants ------------------------------------
+
+// Define icons to use in decorated CommandBar options
+const iconsToUseForSpecialFolders: Array<TFolderIcon> = [
+  { firstLevelFolder: '<CALENDAR>', icon: 'calendar-star', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4 },
+  { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
+  { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
+  { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
+]
+
+// For speed, pre-compute the relative dates
+const relativeDates = getRelativeDates()
 
 const pluginJson = 'NPnote.js'
+
+//------------------------------ Functions ------------------------------------
+
+/**
+ * Choose a particular note from a list of notes shown to the user, with a number of display options.
+ * The 'regularNotes' parameter allows both a subset of notes to be used, and to allow the generation of the list (which can take appreciable time) to happen at a less noticeable time.
+ * Note: no try-catch, so that failure can stop processing.
+ * Note: This used to live in helpers/userInput.js, but was moved here to avoid a circular dependency.
+ * @author @jgclark, heavily extending earlier function by @dwertheimer
+ * 
+ * @param {string?} promptText - text to display in the CommandBar
+ * @param {Array<TNote>?} regularNotes - a list of regular notes to choose from. If not provided, all regular notes will be used.
+ * @param {boolean?} includeCalendarNotes - include calendar notes in the list
+ * @param {boolean?} includeFutureCalendarNotes - include future calendar notes in the list
+ * @param {boolean?} currentNoteFirst - add currently open note to the front of the list
+ * @param {boolean?} allowNewRegularNoteCreation - add option for user to create new note to return instead of choosing existing note
+ * @returns {?TNote} note
+ */
+export async function chooseNoteV2(
+  promptText: string = 'Choose a note',
+  regularNotes: $ReadOnlyArray<TNote> = DataStore.projectNotes,
+  includeCalendarNotes?: boolean = true,
+  includeFutureCalendarNotes?: boolean = false,
+  currentNoteFirst?: boolean = false,
+  allowNewRegularNoteCreation?: boolean = true,
+): Promise<?TNote> {
+  // $FlowIgnore[incompatible-type]
+  let noteList: Array<TNote> = regularNotes
+  if (includeCalendarNotes) {
+    noteList = noteList.concat(calendarNotesSortedByChanged())
+  }
+  // $FlowIgnore[unsafe-arithmetic]
+  const sortedNoteList = noteList.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+
+  // Form the options to give to the CommandBar
+  // Note: We will set up the more advanced options for the `CommandBar.showOptions` call, but downgrade them if we're not running v3.18+ (b1413)
+  /**
+   * type TCommandBarOptionObject = {
+   * text: string,
+   * icon?: string,
+   * shortDescription?: string,
+   * color?: string,
+   * shortcutColor?: string,
+   * alpha?: number,
+   * darkAlpha?: number,
+   * }
+   */
+
+  // Start with titles of regular notes
+  const opts: Array<TCommandBarOptionObject> = sortedNoteList.map((note) => {
+    // Show titles with relative dates, but without path
+    const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
+    // Work out which icon to use for this note
+    if (possTeamspaceDetails.isTeamspace) {
+      // Teamspace notes are currently (v3.18) only regular or calendar notes, not @Templates, @Archive or @Trash.
+      return {
+        text: displayTitleWithRelDate(note, true, false),
+        icon: note.type === 'Calendar' ? 'calendar-star' : 'file-lines',
+        color: 'green-600',
+        shortDescription: getFolderDisplayName(getFolderFromFilename(note.filename) , false),
+        alpha: 0.6,
+        darkAlpha: 0.6,
+      }
+    } else {
+      let folderFirstLevel = getFolderFromFilename(note.filename).split('/')[0]
+      if (note.type === 'Calendar') {
+        folderFirstLevel = '<CALENDAR>'
+      }
+      const folderIconDetails = iconsToUseForSpecialFolders.find((details) => details.firstLevelFolder === folderFirstLevel) ?? { icon: 'file-lines', color: 'gray-500' }
+      return {
+        text: displayTitleWithRelDate(note, true, false),
+        icon: folderIconDetails.icon,
+        color: folderIconDetails.color,
+        shortDescription: note.type === 'Notes' ? getFolderDisplayName(getFolderFromFilename(note.filename) ?? '') : '',
+        alpha: folderIconDetails.alpha ?? 0.7,
+        darkAlpha: folderIconDetails.darkAlpha ?? 0.7,
+      }
+    }
+  })
+
+  // If wanted, add future calendar notes to the list, where not already present
+  if (includeFutureCalendarNotes) {
+    const weekAgoMom = moment().subtract(7, 'days')
+    const weekAgoDate = weekAgoMom.toDate()
+    for (const rd of relativeDates) {
+      const matchingNote = sortedNoteList.find((note) => note.title === rd.dateStr)
+      if (!matchingNote) {
+        // Make a temporary partial note for this date
+        // $FlowIgnore[prop-missing]
+        const newNote: TNote = {
+          title: rd.dateStr,
+          type: 'Calendar',
+          // TODO: get this applied to the earlier sort
+          changedDate: weekAgoDate,
+        }
+        sortedNoteList.push(newNote)
+        opts.push({
+          text: `${rd.dateStr}\t(${rd.relName})`,
+          icon: 'calendar-plus',
+          color: 'orange-500',
+          shortDescription: 'Add new',
+          alpha: 0.5,
+          darkAlpha: 0.5,
+        })
+      } else {
+        // logDebug('chooseNoteV2', `Found existing note for ${rd.dateStr} so won't add-new-one for it`)
+      }
+    }
+  }
+
+  // Now set up other options for showOptions
+  const { note } = Editor
+  if (allowNewRegularNoteCreation) {
+    opts.unshift({
+      text: '[New note]',
+      icon: 'plus',
+      color: 'orange-500',
+      shortDescription: 'Add new',
+      shortcutColor: 'orange-500',
+      alpha: 0.6,
+      darkAlpha: 0.6,
+    })
+    // $FlowIgnore[incompatible-call] just to keep the indexes matching; won't be used
+    // $FlowIgnore[prop-missing]
+    sortedNoteList.unshift({ title: '[New note]', type: 'Notes' }) // just keep the indexes matching
+  }
+  if (currentNoteFirst && note) {
+    sortedNoteList.unshift(note)
+    opts.unshift({
+      text: `[Current note: "${displayTitleWithRelDate(Editor)}"]`,
+      icon: 'calendar-day',
+      color: 'gray-500',
+      shortDescription: '',
+      alpha: 0.6,
+      darkAlpha: 0.6,
+    })
+  }
+
+  // Now show the options to the user
+  let noteToReturn = null
+  if (NotePlan.environment.buildVersion >= 1413) {
+    // logDebug('chooseNoteV2', `Using 3.18.0's advanced options for CommandBar.showOptions call`)
+    // use the more advanced options to the `CommandBar.showOptions` call
+    const { index } = await CommandBar.showOptions(opts, promptText)
+    noteToReturn = opts[index].text.includes('[New note]') ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '') : sortedNoteList[index]
+  } else {
+    // use the basic options for the `CommandBar.showOptions` call. Get this by producing a simple array from the main options array.
+    // logDebug('chooseNoteV2', `Using pre-3.18.0's basic options for CommandBar.showOptions call`)
+    const simpleOpts = opts.map((opt) => opt.text)
+    const { index } = await CommandBar.showOptions(simpleOpts, promptText)
+    noteToReturn = simpleOpts[index].includes('[New note]') ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '') : sortedNoteList[index]
+  }
+  return noteToReturn
+}
 
 //-------------------------------------------------------------------------------
 
@@ -1085,6 +1261,100 @@ export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
     logWarn('NPnote.js', `getFSSafeFilenameFromNoteTitle(): No title found in note ${note.filename}. Returning empty string.`)
     return ''
   }
+}
+
+/**
+ * Returns TNote from DataStore matching 'noteTitleArg' (if given) to titles, or else ask User to select from all note titles.
+ * Now first matches against special 'relative date' (e.g. 'last month', 'next week', defined above) as well as YYYY-MM-DD (etc.) calendar dates.
+ * If a desired Calendar note doesn't already exist this now attempts to create it first.
+ * Note: Send param 'allNotesIn' if the generation of that list can be more efficiently done before now. Otherwise it will generated a sorted list of all notes.
+ * Note: There's deliberately no try/catch so that failure can stop processing.
+ * See https://discord.com/channels/763107030223290449/1243973539296579686
+ * TODO(Later): Hopefully @EM will allow future calendar notes to be created, and then some of this handling won't be needed.
+ * @param {string} purpose to show to user in dialog title 'Select note for new X'
+ * @param {string?} noteTitleArg to match against note titles. If not given, will ask user to select from all note titles (excluding the Trash).
+ * @param {Array<TNote>?} notesIn
+ * @returns {TNote} note
+ */
+export async function getNoteFromParamOrUser(
+  purpose: string,
+  noteTitleArg: string = '',
+  notesIn?: Array<TNote>,
+): Promise<TNote | null> {
+  // Note: deliberately no try/catch so that failure can stop processing
+  const startTime = new Date()
+  let note: TNote | null
+  let noteTitleArgIsCalendarNote: boolean = false
+
+  const relativeDates = getRelativeDates()
+
+  // First try getting note from arg
+  if (noteTitleArg != null && noteTitleArg !== '') {
+    // Is this a note title from arg?
+    // First check if its a special 'relative date', e.g. 'next month'
+    for (const rd of relativeDates) {
+      if (noteTitleArg === rd.relName) {
+        noteTitleArgIsCalendarNote = true
+        note = rd.note ?? null
+        logDebug('getNoteFromParamOrUser', `Found match with relative date '${rd.relName}' = filename ${note?.filename ?? '(error)'}`)
+        break
+      }
+    }
+    // If this has already found a note, return it
+    if (note) {
+      logDebug('getNoteFromParamOrUser', `- Found note from noteTitleArg '${noteTitleArg}'`)
+      return note
+    }
+
+    // Now check to see if the noteTitleArg is of the *form* of a Calendar note string
+    if (dt.isValidCalendarNoteTitleStr(noteTitleArg)) {
+      noteTitleArgIsCalendarNote = true
+      logDebug('getNoteFromParamOrUser', `- Note is of the form of a Calendar note string. Will attempt to create it.`)
+
+      // Test to see if we can get this calendar note
+      // $FlowIgnore[incompatible-type] straight away test for null return
+      note = getOrMakeCalendarNote(noteTitleArg)
+      if (!note) {
+        logWarn('getNoteFromParamOrUser', `Couldn't find or make Calendar note with title '${noteTitleArg}'. Will suggest a work around to user.`)
+        throw new Error(
+          `I can't find Calendar note '${noteTitleArg}', and unfortunately I have tried and failed to create it for you.\nPlease create it by navigating to it, and adding any content, and then re-run this command.`,
+        )
+      }
+    }
+
+    // Now try to find wanted regular note
+    // logDebug('getNoteFromParamOrUser', `- Couldn't find note with title '${noteTitleArg}'.`)
+
+    // Preferably we'll use the last parameter, but if not calculate the list of notes to check
+    const notesToCheck = getNotesToCheck(notesIn)
+
+    const matchingNotes = notesToCheck.filter((n) => n.title?.toLowerCase() === noteTitleArg.toLowerCase())
+    logDebug('getNoteFromParamOrUser', `Found ${matchingNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
+    note = matchingNotes[0]
+
+  } else {
+    // We need to ask user to select from all notes
+    // Preferably we'll use the last parameter, but if not calculate the list of notes to check
+    const notesToCheck = getNotesToCheck(notesIn)
+    const result = await chooseNoteV2(`Select note for new ${purpose}`, notesIn, true, true, false, false)
+    if (typeof result === 'boolean') {
+      note = notesToCheck[result.index]
+    }
+  }
+  // Double-check this is a valid note
+  if (!note) {
+    throw new Error("Couldn't get note for a reason I can't understand.")
+  }
+
+  logTimer('getNoteFromParamOrUser', startTime, `-> note '${displayTitle(note)}'`)
+  return note
+}
+
+function getNotesToCheck(notesIn?: Array<TNote>): Array<TNote> {
+  if (notesIn) {
+    return notesIn
+  }
+  return DataStore.projectNotes.filter((n) => !n.filename.startsWith('@Trash'))
 }
 
 /**

@@ -8,8 +8,8 @@ beforeAll(() => {
   global.CommandBar = CommandBar
   global.DataStore = DataStore
   global.Editor = Editor
-  global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging,
+  global.NotePlan = new NotePlan()
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging, or 'none' to get less
   DataStore.folders = [
     '@Templates',
     '/',
@@ -21,6 +21,13 @@ beforeAll(() => {
     'TEST/TEST LEVEL 2',
     'TEST/TEST LEVEL 2/TEST LEVEL 3',
     '@Archive/CCC Areas/Staff',
+    '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919', // Note: assumes b1417+ to make this root present
+  ]
+  DataStore.teamspaces = [
+    {
+      filename: '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919',
+      title: 'Dashboard Plugin',
+    },
   ]
 })
 
@@ -29,6 +36,32 @@ afterAll(() => {
 })
 
 describe('helpers/folders', () => {
+  /**
+   * Tests for getFolderDisplayName:
+   * Parameters:
+   * - {string} folderPath - as returned by DataStore.folders
+   */
+  describe('getFolderDisplayName tests', () => {
+    test('root folder', () => {
+      expect(f.getFolderDisplayName('/')).toEqual('/')
+    })
+    test('subfolder', () => {
+      expect(f.getFolderDisplayName('CCC Areas/Staff')).toEqual('CCC Areas/Staff')
+    })
+    test('Teamspace root folder', () => {
+      expect(f.getFolderDisplayName('%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919')).toEqual('[👥 Dashboard Plugin] /')
+    })
+    test('Teamspace root folder no emoji', () => {
+      expect(f.getFolderDisplayName('%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919', false)).toEqual('[Dashboard Plugin] /')
+    })
+    test('Teamspace subfolder', () => {
+      expect(f.getFolderDisplayName('%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard')).toEqual('[👥 Dashboard Plugin] Dashboard')
+    })
+    test('Teamspace subfolder no emoji', () => {
+      expect(f.getFolderDisplayName('%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard', false)).toEqual('[Dashboard Plugin] Dashboard')
+    })
+  })
+
   /**
    * Tests for getFoldersMatching:
    * Parameters:
@@ -39,12 +72,12 @@ describe('helpers/folders', () => {
     test('no inclusions or exclusions (excludeSpecialFolders) -> all', () => {
       const inclusions = []
       const folders = f.getFoldersMatching(inclusions)
-      expect(folders.length).toBe(8)
+      expect(folders.length).toBe(9)
     })
     test('no inclusions or exclusions -> all', () => {
       const inclusions = []
       const folders = f.getFoldersMatching(inclusions, false)
-      expect(folders.length).toBe(10)
+      expect(folders.length).toBe(11)
     })
     describe('just inclusions, no @specials', () => {
       test('/ inclusion -> 1', () => {
@@ -83,20 +116,20 @@ describe('helpers/folders', () => {
       test('exclude CCC Areas; include @specials', () => {
         const exclusions = ['CCC Areas']
         const folders = f.getFoldersMatching([], false, exclusions)
-        expect(folders.length).toBe(7)
-        expect(folders).toEqual(['/', '@Templates', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3'])
+        expect(folders.length).toBe(8)
+        expect(folders).toEqual(['/', '@Templates', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3', '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919'])
       })
       test('exclude CCC, LEVEL 2; include @specials', () => {
         const exclusions = ['CCC', 'LEVEL 2']
         const folders = f.getFoldersMatching([], false, exclusions)
-        expect(folders.length).toBe(4)
-        expect(folders).toEqual(['/', '@Templates', 'Home Areas', 'TEST'])
+        expect(folders.length).toBe(5)
+        expect(folders).toEqual(['/', '@Templates', 'Home Areas', 'TEST', '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919'])
       })
       test('exclude CCC, LEVEL 2; no @specials', () => {
         const exclusions = ['CCC', 'LEVEL 2']
         const folders = f.getFoldersMatching([], true, exclusions)
-        expect(folders.length).toBe(3)
-        expect(folders).toEqual(['/', 'Home Areas', 'TEST'])
+        expect(folders.length).toBe(4)
+        expect(folders).toEqual(['/', 'Home Areas', 'TEST', '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919'])
       })
     })
     describe('both inclusions + exclusions', () => {
@@ -148,55 +181,61 @@ describe('helpers/folders', () => {
     test('no exclusions; specials false -> should return same list', () => {
       const exclusions = []
       const folders = f.getFolderListMinusExclusions(exclusions, false, false)
-      expect(folders.length).toBe(10)
+      expect(folders.length).toBe(11)
     })
-    test('exclude none -> 10 left', () => {
+    test('exclude none (other than root) -> 10 left', () => {
       const exclusions = []
       const folders = f.getFolderListMinusExclusions(exclusions, false, true)
-      expect(folders.length).toBe(9)
+      expect(folders.length).toBe(10)
+      expect(folders).not.toContain('/')
     })
-    test('no exclusions; no specials no root -> 7 left', () => {
+    test('no exclusions; no specials no root -> 8 left', () => {
       const exclusions = []
       const folders = f.getFolderListMinusExclusions(exclusions, true, true)
-      expect(folders.length).toBe(7)
+      expect(folders.length).toBe(8)
     })
-    test('TEST exclusions -> 5 left', () => {
+    test('TEST exclusions -> 6 left', () => {
       const exclusions = ['TEST']
       const folders = f.getFolderListMinusExclusions(exclusions)
-      expect(folders.length).toBe(5)
+      expect(folders.length).toBe(6)
     })
-    test('TEST+CCC Areas exclusions -> 3 left', () => {
+    test('TEST+CCC Areas exclusions -> 4 left', () => {
       const exclusions = ['TEST', 'CCC Areas']
       const folders = f.getFolderListMinusExclusions(exclusions)
-      expect(folders.length).toBe(3)
+      expect(folders.length).toBe(4)
     })
-    test('Subfolder exclusion -> 6 left', () => {
+    test('Subfolder exclusion -> 7 left', () => {
       const exclusions = ['TEST/TEST LEVEL 2']
       const folders = f.getFolderListMinusExclusions(exclusions)
-      expect(folders.length).toBe(6)
-    })
-    test('Subfolder exclusion (test for different case) -> 6 left', () => {
-      const exclusions = ['Test/Test level 2']
-      const folders = f.getFolderListMinusExclusions(exclusions)
-      expect(folders.length).toBe(6)
-    })
-    test('Subfolder exclusion not matching -> 8 left', () => {
-      const exclusions = ['TEST/NOT IN LIST']
-      const folders = f.getFolderListMinusExclusions(exclusions)
-      expect(folders.length).toBe(8)
-    })
-    test('no exclusion, no specials, exclude root -> 7 left', () => {
-      const exclusions = []
-      const folders = f.getFolderListMinusExclusions(exclusions, true, true)
       expect(folders.length).toBe(7)
     })
-    test('no exclusion, no specials, can include root -> 8 left', () => {
+    test('Subfolder exclusion (test for different case) -> 7 left', () => {
+      const exclusions = ['Test/Test level 2']
+      const folders = f.getFolderListMinusExclusions(exclusions)
+      expect(folders.length).toBe(7)
+    })
+    test('Subfolder exclusion not matching -> 9 left', () => {
+      const exclusions = ['TEST/NOT IN LIST']
+      const folders = f.getFolderListMinusExclusions(exclusions)
+      expect(folders.length).toBe(9)
+    })
+    test('no exclusion, no specials, exclude root -> 8 left', () => {
+      const exclusions = []
+      const folders = f.getFolderListMinusExclusions(exclusions, true, true)
+      expect(folders.length).toBe(8)
+    })
+    test('no exclusion, no specials, can include root -> 9 left', () => {
       const exclusions = []
       const folders = f.getFolderListMinusExclusions(exclusions, true, false)
-      expect(folders.length).toBe(8)
+      expect(folders.length).toBe(9)
     })
   })
 
+  /**
+   * Tests for getFolderFromFilename:
+   * Parameters:
+   * - {string} fullFilename - full filename to get folder name part from
+   */
   describe('getFolderFromFilename tests', () => {
     test('root (no folder part) -> empty', () => {
       expect(f.getFolderFromFilename('test-at-root.md')).toEqual('/')
@@ -245,6 +284,15 @@ describe('helpers/folders', () => {
     test('folder name ending with extension-like pattern', () => {
       expect(f.getFolderFromFilename('folder.name/file.md')).toEqual('folder.name')
     })
+    test('filename of regular note in teamspace root folder', () => {
+      expect(f.getFolderFromFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/5a31e9ea-732f-45ba-8464-11260522e0de')).toEqual('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1')
+    })
+    test('filename of calendar note in teamspace subfolder', () => {
+      expect(f.getFolderFromFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')).toEqual('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1')
+    })
+    test('filename of note in teamspace subfolder with leading slash', () => {
+      expect(f.getFolderFromFilename('%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard Issues/9972af6a-ec7a-4fe5-87b9-9005aa0d122c')).toEqual('%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard Issues')
+    })
   })
 
   describe('getLowestLevelFolderFromFilename tests', () => {
@@ -265,11 +313,13 @@ describe('helpers/folders', () => {
     })
   })
 
-  // Note: Has to go last as it uses beforeAll
+  // Note: Has to go last as it uses beforeAll.
   describe('getFoldersMatching: bigger real world test', () => {
     beforeAll(() => {
       DataStore.folders = [
         '/',
+        '%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1',
+        '%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/Dashboard',
         'CCC Areas',
         'CCC Areas/Facilities',
         'CCC Areas/Staff',
@@ -316,22 +366,27 @@ describe('helpers/folders', () => {
         'TEST/Progress Log tests for Jord8on',
         'TEST/Repeat TESTs',
         'TEST/Review TESTs',
-        'TEST/Review TESTs/Test Completed Goal.md',
-        'TEST/Review TESTs/Test Completed Goal.md/Gather Movement',
-        'TEST/Review TESTs/Test Completed Goal.md/Magic - Conjuring',
-        'TEST/Search TESTs',
-        'TEST/Summary TESTs',
         'TEST/TEST LEVEL 2',
         'TEST/TEST LEVEL 2/TEST LEVEL 3',
         'TEST/TESTs for DW things',
         'TEST/Window TESTs /',
       ]
     })
-    test('real world test -> 6 left', () => {
-      const inclusions = ['Home', 'NotePlan']
+    test('real world test -> 13 left', () => {
+      const inclusions = ['Home', 'CCC']
+      // const exclusions = ['Readwise 📚']
+      const result = f.getFoldersMatching(inclusions, false)
+      expect(result.length).toBe(14)
+    })
+    test('real world test -> does not include root folder "/"', () => {
+      const inclusions = ['Home', 'CCC']
+      const result = f.getFoldersMatching(inclusions, false)
+      expect(result).toContain('/')
+    })
+    test('real world test -> 48 left', () => {
+      // const inclusions = ['Home', 'NotePlan']
       const exclusions = ['Readwise 📚']
-      const folders = f.getFoldersMatching(inclusions, false, exclusions)
-      expect(folders.length).toBe(7)
+      expect(f.getFoldersMatching([], false, exclusions).length).toBe(48)
     })
   })
 

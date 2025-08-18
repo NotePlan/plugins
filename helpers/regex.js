@@ -127,8 +127,11 @@ export const RE_SYNC_MARKER: RegExp = /\^[A-Za-z0-9]{6}(?![A-Za-z0-9])/
 
 // Teamspace notes
 // Note: used to live in teamspace.js, but moved here to avoid circular dependency
-export const RE_TEAMSPACE_INDICATOR_AND_ID: RegExp = new RegExp(`^%%NotePlanCloud%%\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/`, 'i')
-export const RE_TEAMSPACE_NOTE_UUID: RegExp = new RegExp(`/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/`, 'i')
+const UUID_PATTERN = '([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
+export const RE_UUID: RegExp = new RegExp(`(${UUID_PATTERN})`, 'i') // match[1] is the UUID.
+export const TEAMSPACE_INDICATOR = '%%NotePlanCloud%%'
+export const RE_TEAMSPACE_INDICATOR_AND_ID: RegExp = new RegExp(`^${TEAMSPACE_INDICATOR}\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`, 'i') // match[1] is the teamspace ID
+export const RE_TEAMSPACE_NOTE_UUID: RegExp = new RegExp(`[^%]/(${UUID_PATTERN})`, 'i') // match[1] is the teamspace UUID. It can't come directly after %%NotePlanCloud%%/ for that is the teamspace ID.
 
 // Misc
 export const PUNCT_CLASS_STR = `[\[\]!"#\$%&'\(\)\*\+,\-\.\/:;<=>\?@\\\^_\`\{\|\}~]` // using info from https://stackoverflow.com/questions/39967107/regular-expression-using-punct-function-in-java

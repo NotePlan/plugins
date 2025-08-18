@@ -1,6 +1,6 @@
 /* globals describe, expect, test */
 
-import { RE_BARE_URI_MATCH_G } from '../regex'
+import { RE_BARE_URI_MATCH_G, RE_TEAMSPACE_NOTE_UUID } from '../regex'
 
 describe('Tests for RE_BARE_URI_MATCH_G', () => {
   test('should match standard protocols', () => {
@@ -107,5 +107,28 @@ describe('Tests for RE_BARE_URI_MATCH_G', () => {
     expect(matches[0][1]).toBe('https://example.com')
     expect(matches[1][1]).toBe('www.test.org')
     expect(matches[2][1]).toBe('https://another.com')
+  })
+})
+
+describe('Tests for RE_TEAMSPACE_NOTE_UUID', () => {
+  test('should match a Teamspace note UUID', () => {
+    const text = '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/9972af6a-ec7a-4fe5-87b9-9005aa0d122c'
+    const matches = text.match(RE_TEAMSPACE_NOTE_UUID)
+    expect(matches[1]).toBe('9972af6a-ec7a-4fe5-87b9-9005aa0d122c')
+  })
+  test('should match a Teamspace note UUID in a folder', () => {
+    const text = '%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/test folder/5a31e9ea-732f-45ba-8464-11260522e0de'
+    const matches = text.match(RE_TEAMSPACE_NOTE_UUID)
+    expect(matches[1]).toBe('5a31e9ea-732f-45ba-8464-11260522e0de')
+  })
+  test('should not match a non-Teamspace note UUID', () => {
+    const text = '/TEST/teamspace testing.md'
+    const matches = text.match(RE_TEAMSPACE_NOTE_UUID)
+    expect(matches).toBeNull()
+  })
+  test('should not match a Teamspace folder path only', () => {
+    const text = '%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/test folder'
+    const matches = text.match(RE_TEAMSPACE_NOTE_UUID)
+    expect(matches).toBeNull()
   })
 })

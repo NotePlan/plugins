@@ -4,28 +4,37 @@
 // -----------------------------------------------------------------
 
 import { addParasAsText } from '../jgclark.Filer/src/filerHelpers.js'
-import { findScheduledDates, getAPIDateStrFromDisplayDateStr } from '@helpers/dateTime'
+import { findScheduledDates, getAPIDateStrFromDisplayDateStr, getDisplayDateStrFromFilenameDateStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
-import { getNoteByFilename } from '@helpers/note'
-import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
+import { allRegularNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
+import { coreAddRawContentToNoteHeading } from '@helpers/NPAddItems'
 import { getParaAndAllChildren } from '@helpers/parentsAndChildren'
-import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, convertRawContentToContent, smartAppendPara, smartCreateSectionsAndPara, smartPrependPara } from '@helpers/paragraph'
-import { findParaFromRawContentAndFilename, findParaFromStringAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
+import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, smartAppendPara, smartCreateSectionsAndPara, smartPrependPara } from '@helpers/paragraph'
+import { findParaFromRawContentAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
-import { chooseHeading, chooseNote, displayTitleWithRelDate, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { chooseHeadingV2, chooseNoteV2, displayTitleWithRelDate, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 /**
  * Move an item (given by its content and filename) and move to a note specified by the user.
  * Note: designed to be used by HTMLView plugins where proper Paragraphs aren't available.
+ * @author @jgclark
+ * 
  * @param {string} origFilename line is currently in
  * @param {string} rawContentIn content of line
  * @param {ParagraphType} type of item
- * @param {number} newHeadingLevel for new Headings
- * @returns {TNote} returns new note the line was moved to
+ * @param {number?} newHeadingLevel for new Headings (default: 2)
+ * @param {boolean?} addCalendarDate if the sending note is a calendar note, whether to add the >date to the line (default: false)
+ * @returns {TParagraph} returns new paragraph the line was moved to
  */
-export async function moveItemToRegularNote(origFilename: string, rawContentIn: string, itemType: ParagraphType, newHeadingLevel: number = 2): Promise<TNote | null> {
+export async function moveItemToRegularNote(
+  origFilename: string,
+  rawContentIn: string,
+  itemType: ParagraphType,
+  newHeadingLevel: number = 2,
+  addCalendarDate: boolean = false,
+): Promise<?TParagraph> {
   try {
     logDebug('moveItemToRegularNote', `Starting with {${rawContentIn}} in ${origFilename}, itemType: ${itemType}`)
 
@@ -37,15 +46,19 @@ export async function moveItemToRegularNote(origFilename: string, rawContentIn: 
       return null
     }
 
-    // Ask user for destination project note
+    // Ask user for destination regular note
     const typeToDisplayToUser = itemType === 'checklist' ? 'Checklist' : 'Task'
-    const destNote = await chooseNote(true, false, [], `Choose Note to Move ${typeToDisplayToUser} to`, false, true)
+    const destNote = await chooseNoteV2(`Choose Note to Move ${typeToDisplayToUser} to`, allRegularNotesSortedByChanged(), false, false, false, true)
     logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}'`)
     if (!destNote) return null
 
     // Ask to which heading to add the selectedParas
-    const headingToFind = await chooseHeading(destNote, true, true, false)
+    const headingToFind = await chooseHeadingV2(destNote, true, true, false)
     const origNote = getNoteByFilename(origFilename)
+    if (!origNote) {
+      logError('moveItemToRegularNote', `- Can't get original note for ${origFilename}`)
+      return null
+    }
     logDebug('moveItemToRegularNote', `- Moving from note '${displayTitle(origNote)}' to '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // If there's a >date in the line, ask whether to remove it
@@ -61,20 +74,35 @@ export async function moveItemToRegularNote(origFilename: string, rawContentIn: 
       }
     }
 
+    // If the sending note is a calendar note, and the user wants to add the >date to the line, then add it
+    if (addCalendarDate && origNote.type === 'Calendar') {
+      const dateStr = getDisplayDateStrFromFilenameDateStr(origFilename)
+      paraRawContentToUse += ` >${dateStr}`
+      logDebug('moveItemToRegularNote', `- Added >date to line => {${paraRawContentToUse}}`)
+    }
+
     // TODO: Add new setting + Logic to handle inserting section heading(s) more generally (ref tastapod)
     // TODO: Add new setting + logic to not add new section heading (ref #551)
 
     // Add text to the new location in destination note
     logDebug('moveItemToRegularNote', `- newHeadingLevel: ${newHeadingLevel}`)
-    if (itemType === 'open') {
-      coreAddTaskToNoteHeading(destNote, headingToFind, paraRawContentToUse, newHeadingLevel, false)
-    } else if (itemType === 'checklist') {
-      coreAddChecklistToNoteHeading(destNote, headingToFind, paraRawContentToUse, newHeadingLevel, false)
+    // V1
+    // if (itemType === 'open') {
+    //   coreAddTaskToNoteHeading(destNote, headingToFind, paraRawContentToUse, newHeadingLevel, false)
+    // } else if (itemType === 'checklist') {
+    //   coreAddChecklistToNoteHeading(destNote, headingToFind, paraRawContentToUse, newHeadingLevel, false)
+    // } else {
+    //   logError('moveItemToRegularNote', `- not (yet) designed to handle item type ${itemType}`)
+    // }
+    // V2
+    const newPara = coreAddRawContentToNoteHeading(destNote, headingToFind, paraRawContentToUse, newHeadingLevel, false)
+    if (!newPara) {
+      logWarn('moveItemToRegularNote', `- couldn't get newPara from coreAddRawContentToNoteHeading()`)
     } else {
-      logError('moveItemToRegularNote', `- not (yet) designed to handle item type ${itemType}`)
+      logDebug('moveItemToRegularNote', `- coreAddRawContentToNoteHeading() → {${newPara.rawContent}} in filename ${newPara.note?.filename ?? '?'}`)
     }
 
-    // Trying to get the note again from DataStore in case that helps find the task (it doesn't)
+    // Trying to get the destination note again from DataStore in case that helps find the task (it doesn't)
     // $FlowIgnore[incompatible-type] checked above
     const noteAfterChanges: TNote = DataStore.noteByFilename(destNote.filename, destNote.type)
     // Ask for cache refresh for this note
@@ -90,7 +118,7 @@ export async function moveItemToRegularNote(origFilename: string, rawContentIn: 
       logWarn('moveItemToRegularNote', `couldn't remove para {${rawContentIn}} from original note ${origFilename} because note or paragraph couldn't be found`)
     }
     // Return the destNote
-    return updatedDestNote
+    return newPara
 
     // Ask for cache refresh for this note
   } catch (error) {
@@ -109,6 +137,7 @@ export async function moveItemToRegularNote(origFilename: string, rawContentIn: 
  * - otherwise will add after the matching heading, adding new heading if needed.
  * Note: is called by moveClickHandlers::doMoveFromCalToCal().
  * @author @jgclark
+ * 
  * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} paraRawContentIn raw content of the para to move
@@ -116,7 +145,13 @@ export async function moveItemToRegularNote(origFilename: string, rawContentIn: 
  * @param {number?} newTaskSectionHeadingLevel heading level to use for new headings (optional, defaults to 2). If set to 0, then no new heading will be created if it doesn't already exist.
  * @returns {TNote | false} if succesful pass the new note, otherwise false
  */
-export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraRawContentIn: string, heading: string = '', newTaskSectionHeadingLevel: number = 2): TNote | false {
+export function moveItemBetweenCalendarNotes(
+  NPFromDateStr: string,
+  NPToDateStr: string,
+  paraRawContentIn: string,
+  heading: string = '',
+  newTaskSectionHeadingLevel: number = 2,
+): TNote | false {
   logDebug('moveItemBetweenCalendarNotes', `starting for ${NPFromDateStr} to ${NPToDateStr} under heading '${heading}' with newTaskSectionHeadingLevel ${String(newTaskSectionHeadingLevel)} ${typeof newTaskSectionHeadingLevel}`)
 
   try {

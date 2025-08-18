@@ -2,21 +2,24 @@
 //-----------------------------------------------------------------------------
 // Navigation functions for Note Helpers plugin for NotePlan
 // Jonathan Clark
-// Last updated 2025-08-03 for v1.2.0, @jgclark
+// Last updated 2025-08-14 for v1.2.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getSettings } from './noteHelpers'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { allRegularNotesSortedByChanged } from '@helpers/note'
+import { allNotesSortedByChanged,allRegularNotesSortedByChanged } from '@helpers/note'
 import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import {
-  chooseHeading,
+  chooseHeadingV2,
   chooseNoteV2,
   showMessage
 } from '@helpers/userInput'
-import { findURLsInNote, findURLsInText, type LinkObject } from '@helpers/urls'
+import {
+  findURLsInNote,
+  // findURLsInText, type LinkObject
+} from '@helpers/urls'
 
 //-----------------------------------------------------------------
 
@@ -33,7 +36,7 @@ export async function jumpToHeading(heading?: string): Promise<void> {
       return
     }
 
-    const headingStr = heading ?? (await chooseHeading(note, false, false, true))
+    const headingStr = heading ?? (await chooseHeadingV2(note, false, false, true))
     // find out position of this heading, ready to set insertion point
     // (or 0 if it can't be found)
     const startPos = getParaFromContent(note, headingStr)?.contentRange?.start ?? 0

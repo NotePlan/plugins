@@ -26,9 +26,9 @@ export class NotePlan {
     nextDaylightSavingTimeTransition: '2022-11-06T09:00:00.000Z',
     platform: 'macOS',
     hasSettings: true,
-    version: '3.6',
-    versionNumber: 36,
-    buildVersion: 1046, // = 3.9.2 mid-beta
+    version: '3.18.0',
+    versionNumber: 3180,
+    buildVersion: 1417, // = 3.18.0
     templateFolder: '@Templates',
   }
   // async openURL() { return null },

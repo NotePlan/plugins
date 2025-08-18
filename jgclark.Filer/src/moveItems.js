@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2024-12-31, for v1.1.6
+// last updated 2025-08-15, for v1.2.1
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -12,17 +12,17 @@ import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-// import { allNotesSortedByChanged } from '@helpers/note'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
-import { findHeading, parasToText } from '@helpers/paragraph'
+import { getFrontmatterParagraphs } from '@helpers/NPFrontMatter'
+import { findHeading, parasToText,smartAppendPara, smartPrependPara } from '@helpers/paragraph'
+import { chooseNoteV2 } from '@helpers/NPnote'
 import {
   getParagraphBlock,
   selectedLinesIndex,
 } from '@helpers/NPParagraph'
 import {
-  chooseHeading, showMessage,
-  // chooseNoteV2,
-  chooseNoteV2
+  chooseHeadingV2,
+  showMessage,
 } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -54,31 +54,47 @@ export async function moveParaBlock(): Promise<void> {
  */
 export async function moveParas(withBlockContext: boolean = false): Promise<void> {
   try {
-    const { note, content, selection, selectedParagraphs } = Editor
+    const { note, content, selection, /*renderedSelection,*/ selectedParagraphs } = Editor
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
       logWarn(pluginJson, 'moveParas: No note open, so stopping.')
       return
     }
-    logDebug(pluginJson, 'moveParas(): Starting')
-
-    // Get config settings
-    // const origNote = note // this was clearer, but now trying directly with Editor.note in case there's a deep copy issue
-    const paragraphs = note.paragraphs
-    const origNumParas = note.paragraphs.length
-
     // Get current selection, and its range
     if (selection == null) {
       // Really a belt-and-braces check that the editor is active
       logError(pluginJson, 'moveParas: No selection found, so stopping.')
       return
     }
+
+    logDebug(pluginJson, 'moveParas(): Starting')
+
+    // TEST: shows there's a problem with these values returned from the API when there is frontmatter.
+    clo(selection, 'selection')
+    // clo(renderedSelection, 'renderedSelection')
+
+    // Try to work around this problem, if this note has frontmatter, by calculating thelength of the frontmatter
+    let selectionToUse = selection
+    const FMParas: Array<TParagraph> | false = getFrontmatterParagraphs(note, true)
+    if (FMParas && FMParas.length > 0) {
+      // sum the length of each para.content
+      const frontmatterLength = FMParas.reduce((acc, para) => acc + para.content.length, 0) + FMParas.length // +1 for each newline
+      logDebug(pluginJson, `moveParas: note has frontmatter, so adding ${frontmatterLength} chars to selection, to work around API bug.`)
+      selectionToUse = Range.create(selection.start + frontmatterLength, selection.end + frontmatterLength)
+      clo(selectionToUse, `selectionToUse (after adding frontmatter length ${frontmatterLength})`)
+    }
+
+    // Get config settings
+    // const origNote = note // this was clearer, but now trying directly with Editor.note in case there's a deep copy issue
+    const paragraphs = note.paragraphs
+    const origNumParas = note.paragraphs.length
+
     const config = await getFilerSettings()
 
-    // Get paragraph indexes for the start and end of the selection (can be the same)
-    const [firstSelLineIndex, lastSelLineIndex] = selectedLinesIndex(selection, paragraphs)
+    // Get paragraph indexes for the start and end of the selectionToUse (can be the same)
+    const [firstSelLineIndex, lastSelLineIndex] = selectedLinesIndex(selectionToUse, paragraphs)
 
-    // Get paragraphs for the selection or block
+    // Get paragraphs for the selectionToUse or block
     let firstStartIndex = 0
     let parasInBlock: Array<TParagraph>
     if (lastSelLineIndex !== firstSelLineIndex) {
@@ -142,16 +158,24 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     }
 
     // Ask to which heading to add the selectedParas
-    let headingToFind = await chooseHeading(destNote, true, true, false)
+    let headingToFind = await chooseHeadingV2(destNote, true, true, false)
     logDebug(pluginJson, `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
-    if (/\s$/.test(headingToFind)) {
-      logWarn(pluginJson, `Heading to move to ('${headingToFind}') has trailing whitespace. Will pre-emptively remove them to try to avoid problems.`)
-      const headingPara = findHeading(destNote, headingToFind)
-      if (headingPara) {
-        headingPara.content = headingPara.content.trim()
-        destNote.updateParagraph(headingPara)
-        logDebug(pluginJson, `- now headingPara in destNote is '${headingPara.content}'`)
-        headingToFind = headingPara.content
+    if (headingToFind === '<<top of note>>') {
+      // add to top of note
+      smartPrependPara(destNote, selectedParasAsText, 'text')
+    } else if (headingToFind === '<<bottom of note>>') {
+      // add to bottom of note
+      smartAppendPara(destNote, selectedParasAsText, 'text')
+    } else {
+      if (/\s$/.test(headingToFind)) {
+        logWarn(pluginJson, `Heading to move to ('${headingToFind}') has trailing whitespace. Will pre-emptively remove them to try to avoid problems.`)
+        const headingPara = findHeading(destNote, headingToFind)
+        if (headingPara) {
+          headingPara.content = headingPara.content.trim()
+          destNote.updateParagraph(headingPara)
+          logDebug(pluginJson, `- now headingPara in destNote is '${headingPara.content}'`)
+          headingToFind = headingPara.content
+        }
       }
     }
 

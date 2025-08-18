@@ -10,7 +10,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 // import { allNotesSortedByChanged } from '@helpers/note'
 import { getNoteFromIdentifier } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { chooseNoteV2 } from '@helpers/userInput'
+import { chooseNoteV2 } from '@helpers/NPnote'
 
 /**
  * Open a user-selected note in a new window.

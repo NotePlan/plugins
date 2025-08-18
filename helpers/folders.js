@@ -1,25 +1,33 @@
 // @flow
 //-------------------------------------------------------------------------------
 // Folder-level Functions
+// Really should be called 'NPFolders' as it relies on DataStore.folders.
+//-------------------------------------------------------------------------------
 
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { caseInsensitiveMatch, caseInsensitiveStartsWith, caseInsensitiveSubstringMatch } from '@helpers/search'
-// import { getRegularNotesInFolder } from '@helpers/note'
+import { TEAMSPACE_INDICATOR } from '@helpers/regex'
+import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from '@helpers/NPTeamspace'
+import { getFilenameWithoutTeamspaceID,getTeamspaceIDFromFilename, isTeamspaceNoteFromFilename } from '@helpers/teamspace'
+
 
 /**
  * Return a list of folders (and any sub-folders) that contain one of the strings on the inclusions list (if given).
+ * If no inclusions are given, then use all folders.
  * Then excludes those items that are on the exclusions list.
  * The Root folder can be excluded by adding '/' to the exclusions list; this doesn't affect any sub-folders.
- * To just return the Root folder, then send just '/' as an inclusion.
+ * To just return the Root folder, then send just '/' as an inclusion. (But then why bother using this function?!)
  * Where there is a conflict exclusions will take precedence over inclusions.
  * Optionally exclude all special @... folders as well [this overrides inclusions]
  * Note: these are partial matches ("contains" not "equals").
  * Note: now clarified that this is a case-insensitive match.
+ * TEST: Teamspace root folders included from b1417
  * @author @jgclark
  * @tests in jest file
+ * 
  * @param {Array<string>} inclusions - if not empty, use these (sub)strings to match folder items
- * @param {boolean} excludeSpecialFolders? (default: true)
- * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder. Optional: if none given then will treat as an empty list.
+ * @param {boolean?} excludeSpecialFolders? (default: true)
+ * @param {Array<string>?} exclusions - if these (sub)strings match then exclude this folder. Optional: if none given then will treat as an empty list.
  * @returns {Array<string>} array of folder names
  */
 export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFolders: boolean = true, exclusions: Array<string> = []): Array<string> {
@@ -27,16 +35,27 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     // Get all folders as array of strings (other than @Trash).
     const fullFolderList = DataStore.folders.slice() // slice to make not $ReadOnly
 
+    // Note: the API call DataStore.folders does not return the teamspace root folders until it was fixed in b1417, so we need to add them manually here, from position 1.
+    if (NotePlan.environment.buildVersion <= 1416) {
+      const teamspaceDefs = getAllTeamspaceIDsAndTitles()
+      teamspaceDefs.forEach((teamspaceDef) => {
+        // Next line avoids auto-formatting errors
+        // eslint-disable-next-line 
+        fullFolderList.splice(1, 0, TEAMSPACE_INDICATOR + '/' + teamspaceDef.id + '/')
+        logDebug('folders / getFoldersMatching', `- adding root for teamspaceDef.id ${teamspaceDef.id}(${teamspaceDef.title}) to work around bug pre v3.18.0`)
+      })
+    }
+
     logDebug(
       'getFoldersMatching',
       `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions: [${inclusions.toString()}] and exclusions [${exclusions.toString()}]. ESF? ${String(
-        excludeSpecialFolders,
-      )}`,
+        excludeSpecialFolders)}`,
     )
+    // logDebug('folders / getFoldersMatching', `fullFolderList: [${fullFolderList.toString()}]`)
 
     // if requested filter fullFolderList to only folders that don't start with the character '@' (special folders)
     const reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
-    // logDebug('getFoldersMatching', `- after specials filter ->  ${reducedFolderList.length} reducedFolderList: [${reducedFolderList.toString()}]`)
+    // logDebug('folders / getFoldersMatching', `- after specials filter ->  ${reducedFolderList.length} reducedFolderList: [${reducedFolderList.toString()}]`)
 
     // If no inclusions or exclusions, make life easier and return all straight away
     if (inclusions.length === 0 && exclusions.length === 0) {
@@ -48,34 +67,40 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
 
     // To aid partial matching, terminate all folder strings with a trailing /.
     let reducedTerminatedWithSlash: Array<string> = reducedFolderList.map((f) => f.endsWith('/') ? f : `${f}/`)
-    // logDebug('getFoldersMatching', `- after termination ->  ${reducedTerminatedWithSlash.length} reducedTWS:[${reducedTerminatedWithSlash.toString()}]`)
+    // logDebug('folders / getFoldersMatching', `- after termination ->  ${reducedTerminatedWithSlash.length} reducedTWS:[${reducedTerminatedWithSlash.toString()}]`)
 
     // const rootIncluded = true // inclusions.some((f) => f === '/')
     const rootExcluded = exclusions.some((f) => f === '/')
-    // logDebug('getFoldersMatching', `- rootIncluded=${String(rootIncluded)}, rootExcluded=${String(rootExcluded)}`)
+    // logDebug('folders / getFoldersMatching', `- rootIncluded=${String(rootIncluded)}, rootExcluded=${String(rootExcluded)}`)
 
     // Deal with special case of inclusions just '/'
     if (inclusions.length === 1 && inclusions[0] === '/') {
-      // logDebug('getFoldersMatching', 'Special Case: Inclusions just /')
+      // logDebug('folders / getFoldersMatching', 'Special Case: Inclusions just /')
       return rootExcluded ? [] : ['/']
     }
 
-    // Remove root to make rest of processing easier
+    // Temporarily remove root to make rest of processing easier
     const inclusionsWithoutRoot = inclusions.filter((f) => f !== '/')
     const exclusionsWithoutRoot = exclusions.filter((f) => f !== '/')
-    // logDebug('getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)}`)
-    // logDebug('getFoldersMatching', `- exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`)
+    // logDebug('folders / getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)}`)
+    // logDebug('folders / getFoldersMatching', `- exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`)
 
     // filter reducedTerminatedWithSlash to exclude items in the exclusions list (if non-empty). Note: now case insensitive.
+    // Note: technically this fails if the exclusion is any part of '%%NotePlanCloud%%/' but that's unlikely.
     if (exclusionsWithoutRoot.length > 0) {
-      reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => !exclusionsWithoutRoot.some((f) => caseInsensitiveSubstringMatch(f, folder)))
-      // logDebug('getFoldersMatching',`- after exclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
+      reducedTerminatedWithSlash = reducedTerminatedWithSlash
+        .filter((folder) => !exclusionsWithoutRoot
+          .some((f) => caseInsensitiveSubstringMatch(f, folder)
+        ))
+      // logDebug('folders / getFoldersMatching',`- after exclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
     }
 
     // filter reducedTerminatedWithSlash to only folders that start with an item in the inclusionsTerminatedWithSlash list (if non-empty). Note: now case insensitive.
+    // Note: technically this fails if the exclusion is any part of '%%NotePlanCloud%%/' but that's unlikely.
+
     if (inclusionsWithoutRoot.length > 0) {
       reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => inclusionsWithoutRoot.some((f) => caseInsensitiveSubstringMatch(f, folder)))
-      // logDebug('getFoldersMatching',`- after inclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
+      // logDebug('folders / getFoldersMatching',`- after inclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
     }
 
     // now remove trailing slash characters
@@ -85,10 +110,10 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     if (!rootExcluded) {
       outputList.unshift('/')
     }
-    // logDebug('getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
+    logDebug('folders / getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
     return outputList
   } catch (error) {
-    logError('getFoldersMatching', error.message)
+    logError('folders / getFoldersMatching', error.message)
     return ['(error)']
   }
 }
@@ -96,6 +121,7 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
 /**
  * Return a list of subfolders of a given folder. Includes the given folder itself.
  * @tests in jest file.
+ * 
  * @author @jgclark
  * @param {string} folderpath - e.g. "some/folder". Leading or trailing '/' will be removed.
  * @returns {Array<string>} array of subfolder names
@@ -127,6 +153,7 @@ export function getSubFolders(parentFolderPathArg: string): Array<string> {
  *   - always exclude '@Trash' folder (as the API doesn't return it).
  * @author @jgclark
  * @tests in jest file
+ * 
  * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder -- can be empty
  * @param {boolean?} excludeSpecialFolders? (default: true)
  * @param {boolean?} forceExcludeRootFolder? (default: false)
@@ -143,7 +170,7 @@ export function getFolderListMinusExclusions(
     // Get all folders as array of strings (other than @Trash). Also remove root as a special case
     const fullFolderList = DataStore.folders
     let excludeRoot = forceExcludeRootFolder
-    logDebug('folders / filteredFolderList', `Starting to filter the ${fullFolderList.length} DataStore.folders with exclusions [${exclusions.toString()}] and forceExcludeRootFolder ${String(forceExcludeRootFolder)}`)
+    logDebug('folders / getFolderListMinusExclusions', `Starting to filter the ${fullFolderList.length} DataStore.folders with exclusions [${exclusions.toString()}] and forceExcludeRootFolder ${String(forceExcludeRootFolder)}`)
 
     // if excludeSpecialFolders, filter fullFolderList to only folders that don't start with the character '@' (special folders)
     let reducedFolderList = fullFolderList
@@ -152,7 +179,7 @@ export function getFolderListMinusExclusions(
     } else if (excludeTrash) {
       reducedFolderList = reducedFolderList.filter((folder) => !folder.startsWith('@Trash'))
     }
-    logDebug('folders / filteredFolderList', `-> after specials filtering: ${reducedFolderList.length} items: [${reducedFolderList.toString()}]`)
+    // logDebug('folders / getFolderListMinusExclusions', `-> after specials filtering: ${reducedFolderList.length} items: [${reducedFolderList.toString()}]`)
 
     // To aid partial matching, terminate all folder strings with a trailing /
     let reducedTerminatedWithSlash: Array<string> = []
@@ -194,10 +221,12 @@ export function getFolderListMinusExclusions(
 }
 
 /**
- * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
+ * Get the folder name from the regular note filename, without leading or trailing slash.
  * Except for items in root folder -> '/'.
+ * Note: for Teamspace notes, this returns the Teamspace indicator + teamspace ID + folder path. See getFolderDisplayName() for a more useful display name.
  * @author @jgclark
  * @tests in jest file
+ * 
  * @param {string} fullFilename - full filename to get folder name part from
  * @returns {string} folder/subfolder name
  */
@@ -223,11 +252,49 @@ export function getFolderFromFilename(fullFilename: string): string {
 }
 
 /**
+ * Get a useful folder name from the folder path, without leading or trailing slash, and with Teamspace name if applicable.
+ * Note: Not needed before Teamspaces. 
+ * @author @jgclark
+ * @tests in jest file
+ * 
+ * @param {string} folderPath - as returned by DataStore.folders. Note: not full filename.
+ * @param {boolean?} includeTeamspaceEmoji? (default true) include a Teamspace emoji in the display name
+ * @returns {string} folder name for display (including Teamspace name if applicable)
+ */
+export function getFolderDisplayName(folderPath: string, includeTeamspaceEmoji: boolean = true): string {
+  try {
+    // If folderPath is empty, warn and return '(error)'
+    if (!folderPath) {
+      throw new Error(`Empty folderPath given. Returning '(error)'.`)
+    }
+    // logDebug('folders/getFolderDisplayName', `folderPath: ${folderPath}`)
+    
+    if (isTeamspaceNoteFromFilename(folderPath)) {
+      const teamspaceID = getTeamspaceIDFromFilename(folderPath)
+      // logDebug('folders/getFolderDisplayName', `teamspaceID: ${teamspaceID}`)
+      const teamspaceName = getTeamspaceTitleFromID(teamspaceID)
+      // logDebug('folders/getFolderDisplayName', `teamspaceName: ${teamspaceName}`)
+      let folderPart = getFilenameWithoutTeamspaceID(folderPath)
+      if (folderPart === '') {
+        folderPart = '/'
+      }
+      return `[${includeTeamspaceEmoji ? '👥 ' : ''}${teamspaceName}] ${folderPart}`
+    } else {
+      return folderPath
+    }
+  } catch (error) {
+    logError('folders/getFolderDisplayName', `Error getting folder display name from '${folderPath}: ${error.message}`)
+    return '(error)'
+  }
+}
+
+/**
  * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
  * Optionally remove file extension.
  * Note: does not handle hidden files (starting with a dot, e.g. '.gitignore').
  * @author @jgclark
  * @tests in jest file
+ * 
  * @param {string} fullFilename - full filename to get folder name part from
  * @param {boolean} removeExtension? (default: false)
  * @returns {string} folder/subfolder name
@@ -250,8 +317,9 @@ export function getJustFilenameFromFullFilename(fullFilename: string, removeExte
 
 /**
  * Get the lowest-level (subfolder) part of the folder name from the full NP (project) note filename, without leading or trailing slash.
- * @tests available in jest file
  * @author @jgclark
+ * @tests available in jest file
+ * 
  * @param {string} fullFilename - full filename to get folder name part from
  * @returns {string} subfolder name
  */
@@ -434,7 +502,7 @@ export function getRegularNotesFromFilteredFolders(foldersToExclude: Array<strin
       if (filteredFolders.includes(thisFolder)) {
         projectNotesToInclude.push(pn)
       } else {
-        logDebug('note/getRegularNotesFromFilteredFolders', `- excluded note '${pn.filename}'`)
+        // logDebug('note/getRegularNotesFromFilteredFolders', `- excluded note '${pn.filename}'`)
       }
     }
     return projectNotesToInclude
