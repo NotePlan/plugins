@@ -10,11 +10,13 @@ import { displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { allRegularNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import { coreAddRawContentToNoteHeading } from '@helpers/NPAddItems'
+import { displayTitleWithRelDate } from '@helpers/NPdateTime'
+import { chooseNoteV2 } from '@helpers/NPnote'
 import { getParaAndAllChildren } from '@helpers/parentsAndChildren'
 import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, smartAppendPara, smartCreateSectionsAndPara, smartPrependPara } from '@helpers/paragraph'
 import { findParaFromRawContentAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
-import { chooseHeadingV2, chooseNoteV2, displayTitleWithRelDate, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { chooseHeadingV2, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 /**
  * Move an item (given by its content and filename) and move to a note specified by the user.

@@ -213,7 +213,6 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject): Prom
     config.separateSectionForReferencedNotes = true
     const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod(lastWeekNote.filename, 'week', config)
     const initialTotalToMove = combinedSortedParas.length + sortedRefParas.length
-
     // Remove child items from the two lists of paras
     const combinedSortedParasWithoutChildren = combinedSortedParas.filter((dp) => !dp.isAChild)
     const sortedRefParasWithoutChildren = sortedRefParas.filter((dp) => !dp.isAChild)
@@ -221,6 +220,7 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject): Prom
     if (totalToMove !== initialTotalToMove) {
       logDebug('scheduleAllLastWeekThisWeek', `- Excluding children reduced total to move from ${initialTotalToMove} to ${totalToMove}`)
     }
+
 
     // If there are lots, then double check whether to proceed.
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
@@ -249,13 +249,12 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject): Prom
           logDebug('scheduleAllLastWeekThisWeek', `- Scheduling item ${c}/${totalToMove} "${dashboardPara.content}" to this week`)
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
-          if (p) {
+          if (p && p.note) {
             p.content = replaceArrowDatesInString(p.content, `>${thisWeekDateStr}`)
-            if (p.note) {
-              p.note.updateParagraph(p)
-              // $FlowIgnore[incompatible-call] test above is still valid
-              DataStore.updateCache(p.note, false)
-            }
+            // $FlowIgnore[incompatible-use]
+            p.note.updateParagraph(p)
+            // $FlowIgnore[incompatible-call] test above is still valid
+            DataStore.updateCache(p.note, false)
             numberScheduled++
           }
         }
@@ -280,6 +279,8 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject): Prom
     }
 
     // Now do the same for items scheduled to last week from other notes
+    clo(sortedRefParasWithoutChildren, `scheduleAllLastWeekThisWeek: sortedRefParasWithoutChildren`)
+
     if (sortedRefParasWithoutChildren.length > 0) {
       reactWindowData.pluginData.refreshing = ['W']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for section ['LW']`)
@@ -292,18 +293,19 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject): Prom
           logWarn('scheduleAllLastWeekThisWeek', `Oddly I can't find the note for "${dashboardPara.content}", so can't process this item`)
         } else {
           // Convert each reduced para back to the full one to update.
+          // FIXME: fails because indents is 0 not 1
           const p = getParagraphFromStaticObject(dashboardPara)
-          if (p) {
+          if (p && p.note) {
             p.content = replaceArrowDatesInString(p.content, `>${thisWeekDateStr}`)
             logDebug('scheduleAllLastWeekThisWeek', `- Scheduling referenced para ${c}/${totalToMove} from note ${thisNote.filename} with new content "${p.content}"`)
             thisNote.updateParagraph(p)
+            // Update cache to allow it to be re-read on refresh
+            DataStore.updateCache(thisNote, false)
             numberScheduled++
           } else {
             logWarn('scheduleAllLastWeekThisWeek', `Couldn't find para matching "${dashboardPara.content}"`)
             clo(dashboardPara, `scheduleAllLastWeekThisWeek: dashboardPara`)
           }
-          // Update cache to allow it to be re-read on refresh
-          DataStore.updateCache(thisNote, false)
         }
       }
       logTimer('scheduleAllLastWeekThisWeek', thisStartTime, `scheduled ${String(numberScheduled)} open items from last week to this week`)

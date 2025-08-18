@@ -504,7 +504,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
             console.log(`before: ${JSP(sections[sectionIndex].sectionItems[itemIndex])}`)
             console.log(`updatedParagraph: ${JSP(updatedParagraph)}`)
             // Note: simpler methods don't work here; need to use copyUpdatedSectionItemData()
-            const fieldPathsToUpdate = ['itemType', 'para.content', 'para.type', 'para.priority']
+            const fieldPathsToUpdate = ['itemType', 'para.content', 'para.rawContent', 'para.type', 'para.priority']
             sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { para: updatedParagraph }, sections)
             console.log(`after: ${JSP(sections[sectionIndex].sectionItems[itemIndex])}`)
           })

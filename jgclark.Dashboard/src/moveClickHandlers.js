@@ -28,7 +28,10 @@ import {
   moveItemBetweenCalendarNotes,
   moveItemToRegularNote,
 } from '@helpers/NPMoveItems'
-import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
+import {
+  // findParaFromRawContentAndFilename,
+  findParaFromStringAndFilename
+} from '@helpers/NPParagraph'
 import { scheduleItem, scheduleItemLiteMethod } from '@helpers/NPScheduleItems'
 import { showMessage } from '@helpers/userInput'
 
@@ -44,7 +47,6 @@ import { showMessage } from '@helpers/userInput'
  */
 export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-    // TEST: change from content to rawContent
     const { filename, rawContent, controlStr } = validateAndFlattenMessageObject(data)
     const config = await getDashboardSettings()
     const dateOrInterval = String(controlStr)
@@ -84,7 +86,6 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
     logDebug('doMoveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
 
     // Do the actual move 
-    // TEST: ensure content is actually rawContent
     const res = await moveItemBetweenCalendarNotes(startDateStr,
       newDateStr, rawContent,
       config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
@@ -111,32 +112,41 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
  */
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-    const { filename, content, itemType, item } = validateAndFlattenMessageObject(data)
+    const config = await getDashboardSettings()
+    const { filename, rawContent, itemType, item } = validateAndFlattenMessageObject(data)
     if (!(item?.ID)) {
       logError('doMoveToNote', `- no ID for item: ${JSP(item)}`)
       return handlerResult(false)
     }
-    logDebug('doMoveToNote', `starting for ID ${item.ID} (${filename} / ${content} / ${itemType})`)
-    const newNote: TNote | null = await moveItemToRegularNote(filename, content, itemType)
+    logDebug('doMoveToNote', `starting for ID ${item.ID} / ${filename} / {${rawContent}} / ${itemType}`)
+    const newPara: ?TParagraph = await moveItemToRegularNote(filename, rawContent, itemType, config.newTaskSectionHeadingLevel, true)
 
+    if (!newPara) {
+      logError('doMoveToNote', `- no new para made for ID ${item.ID}`)
+      return handlerResult(false)
+    }
+    const newNote = newPara.note
     if (!newNote) {
       logError('doMoveToNote', `- no new note for ID ${item.ID}`)
       return handlerResult(false)
     }
 
-    const newParagraph: TParagraph | boolean = findParaFromStringAndFilename(newNote.filename, content)
-    if (typeof newParagraph === 'boolean') {
-      logError('doMoveToNote', `- no new paragraph for ID ${item.ID}`)
-    } else {
-      // If success, then update the display
-      if (newNote) {
+    // Now find the new paragraph in the destination note to update the display
+    // const newParagraph: TParagraph | boolean = findParaFromRawContentAndFilename(newNote.filename, rawContent)
+    // if (typeof newParagraph === 'boolean') {
+    //   logError('doMoveToNote', `- can't find new paragraph in note '${newNote.filename}' based on rawContent {${rawContent}}`)
+    // } else {
+    //   // If success, then update the display
+    //   if (newNote) {
         logDebug('doMoveToNote', `Success: moved to -> '${displayTitle(newNote)}'`)
         // Update the display for this line (as it will probably still be relevant in its section)
         logDebug('doMoveToNote', `- Sending update line request for ID ${item.ID}`)
-        return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([newParagraph])[0] })
-      }
-    }
-    return handlerResult(false)
+    const newDashboardPara = makeDashboardParas([newPara])[0]
+    logDebug('doMoveToNote', `- newDashboardPara: ${JSP(newDashboardPara)}`)
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: newDashboardPara })
+    //   }
+    // }
+    // return handlerResult(false)
   } catch (error) {
     logError('doMoveToNote', JSP(error))
     return { success: false }
@@ -153,6 +163,7 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
 export async function doRescheduleItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
   const config: TDashboardSettings = await getDashboardSettings()
+  // Following logging to get to the bottom of the issue with non-numeric settings
   logDebug('doRescheduleItem', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}`)
   logDebug('doRescheduleItem', `- config.rescheduleNotMove = ${String(config.rescheduleNotMove)}`)
   logDebug('doRescheduleItem', `- config.useLiteScheduleMethod = ${String(config.useLiteScheduleMethod)}`)

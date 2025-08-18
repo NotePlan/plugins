@@ -20,9 +20,10 @@ import { getPeriodOfNPDateStr } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-import { getNoteByFilename } from '@helpers/note'
+import { allNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
+import { chooseNoteV2 } from '@helpers/NPnote'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
-import { chooseNote, chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
+import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
 
@@ -422,7 +423,7 @@ export async function logPerspectiveFiltering(filenameArg?: string): Promise<voi
       // filename = filenameArg
     } else {
       // Ask user
-      note = await chooseNote(false, true, [], 'Choose calendar note to test', true, false)
+      note = await chooseNoteV2('Choose note to test', allNotesSortedByChanged(), true, false, true)
     }
     if (!note) {
       throw new Error(`User cancelled, or otherwise couldn't get note for filename '${filename}'. Stopping.`)

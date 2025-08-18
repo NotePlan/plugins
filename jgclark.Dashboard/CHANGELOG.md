@@ -9,7 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 - TODO: enlarged default window size on iPads
 -->
-## [2.3.0.b7] 2025-08-???
+
+## [2.3.0.b7] 2025-08-18
+- When using the top bar '+' button to add a new task anywhere, improved display of list of notes and headings when adding a new task (when running NP 3.18+). Also improved support for adding new tasks to Teamspace notes.
+- Fix to the move "All →  X" buttons ignoring indented tasks, or leaving duplicate tasks. (Hopefully ... do report if you still see this happening.)
 - Fix calendar links sometimes being rendered oddly (reported by @Clay)
 - Fix display of particular @mentions
 
@@ -17,6 +20,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - The Overdue section now shows the number of overdue beyond the 'lookback N days' setting limit, if that's applied (requested by @tastapod)
 - Fix to the 'All →  ...' move operations failing randomly
 - Fix to display of hashtags and mentions with included hyphens or underscores (reported by @chrismetcalf)
+- When using "Move to Note" task action, if the note starts in a Calendar note, and is moved to a Regular note, then that >date is added.
 
 ## [2.3.0.b5] 2025-07-11
 - fix to edit icon colour in Project items
