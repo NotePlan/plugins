@@ -33,6 +33,7 @@ import {
 import globals, { asyncFunctions as globalAsyncFunctions } from '../globals'
 import { convertToDoubleDashesIfNecessary } from '../engine/templateRenderer'
 import { log, logError, logDebug, logWarn, clo } from '@helpers/dev'
+import { showMessage } from '@helpers/userInput'
 
 /**
  * Logs the progress of template rendering at each step.
@@ -46,7 +47,18 @@ import { log, logError, logDebug, logWarn, clo } from '@helpers/dev'
 export function logProgress(stepDescription: string, templateData: string, sessionData?: Object, userOptions?: Object): void {
   const verbose = Boolean(sessionData && sessionData.verboseLog)
   logDebug(`🔄 TEMPLATE PROCESSOR: ${stepDescription}${verbose ? ' (verboseLog)' : ''}`)
-  if (!templateData) {
+
+  // Ensure templateData is a string and handle edge cases
+  let safeTemplateData = templateData
+  if (templateData === null || templateData === undefined) {
+    logDebug(`🔄 TEMPLATE PROCESSOR PROBLEM FYI: logProgress called with null/undefined templateData`)
+    safeTemplateData = ''
+  } else if (typeof templateData !== 'string') {
+    logDebug(`🔄 TEMPLATE PROCESSOR PROBLEM FYI: logProgress called with non-string templateData: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    safeTemplateData = String(templateData)
+  }
+
+  if (!safeTemplateData) {
     logDebug(`🔄 TEMPLATE PROCESSOR PROBLEM FYI: logProgress called with empty templateData`)
     return
   }
@@ -58,7 +70,11 @@ export function logProgress(stepDescription: string, templateData: string, sessi
   const isKeyStep = isStart || isCompletion || isError
   const msg = isCompletion ? 'COMPLETE ' : isStart ? 'START ' : isError ? 'ERROR ' : ''
   if (verbose || isKeyStep) {
-    logDebug(`📄 ${msg}Template Text (${templateData.length} chars): ${templateData.substring(0, 200)}${templateData.length > 200 ? '...' : ''}`)
+    logDebug(
+      `📄 ${msg}Template Text (${safeTemplateData.length} chars): ${safeTemplateData ? safeTemplateData.substring(0, 200) : ''}${
+        safeTemplateData ? (safeTemplateData.length > 200 ? '...' : '') : ''
+      }`,
+    )
   }
 
   if (sessionData && (verbose || isKeyStep)) {
@@ -715,6 +731,12 @@ export function removeEJSDocumentationNotes(templateResult: string = ''): string
  * @returns {string} Formatted error context with line numbers
  */
 export function getErrorContextString(templateData: string, matchStr: string, originalLineNumber: number): string {
+  // Ensure templateData is a string
+  if (typeof templateData !== 'string') {
+    logDebug(pluginJson, `getErrorContextString: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    return `**Error context error: templateData is not a string (${typeof templateData})**`
+  }
+  
   const lines = templateData.split('\n')
 
   // Ensure the line number is valid
@@ -760,6 +782,12 @@ export function getErrorContextString(templateData: string, matchStr: string, or
  * @returns {Promise<{newTemplateData: string, newSettingData: Object}>} Processed template data, updated session data
  */
 export async function preProcessTags(templateData: string, sessionData?: {} = {}): Promise<{ newTemplateData: string, newSettingData: Object }> {
+  // Ensure templateData is a string
+  if (typeof templateData !== 'string') {
+    logDebug(pluginJson, `preProcessTags: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    templateData = String(templateData)
+  }
+  
   // Initialize the processing context
   const context = {
     templateData: templateData || '',
@@ -770,7 +798,7 @@ export async function preProcessTags(templateData: string, sessionData?: {} = {}
   // Handle null/undefined gracefully
   if (context.templateData === null || context.templateData === undefined) {
     return {
-      newTemplateData: context.templateData,
+      newTemplateData: '',
       newSettingData: context.sessionData,
     }
   }
@@ -860,6 +888,12 @@ export async function preProcessTags(templateData: string, sessionData?: {} = {}
  * @returns {Promise<{frontmatterBody: string, frontmatterAttributes: Object}>} Processed frontmatter body and attributes
  */
 export async function processFrontmatterTags(_templateData: string = '', userData: any = {}): Promise<any> {
+  // Ensure _templateData is a string
+  if (typeof _templateData !== 'string') {
+    logDebug(pluginJson, `processFrontmatterTags: _templateData is not a string: ${typeof _templateData} - ${String(_templateData).substring(0, 100)}`)
+    _templateData = String(_templateData)
+  }
+  
   // Log the initial state
   logProgress('FRONTMATTER PROCESSING START', _templateData, userData)
 
@@ -891,11 +925,18 @@ export async function processFrontmatterTags(_templateData: string = '', userDat
   }
   logProgress('Frontmatter Step 3 complete: Attribute processing complete', frontmatterBody, { frontmatterAttributes: { ...userData, ...frontmatterAttributes } })
 
-  const result = { frontmatterBody, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
-  logProgress(`FRONTMATTER PROCESSING COMPLETE; keys: [${Object.keys(result.frontmatterAttributes).toString()}]`, frontmatterBody, result.frontmatterAttributes)
+  // Ensure frontmatterBody is a string
+  let safeFrontmatterBody = frontmatterBody
+  if (typeof frontmatterBody !== 'string') {
+    logDebug(pluginJson, `processFrontmatterTags: frontmatterBody is not a string: ${typeof frontmatterBody} - ${String(frontmatterBody).substring(0, 100)}`)
+    safeFrontmatterBody = String(frontmatterBody)
+  }
+  
+  const result = { frontmatterBody: safeFrontmatterBody, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
+  logProgress(`FRONTMATTER PROCESSING COMPLETE; keys: [${Object.keys(result.frontmatterAttributes).toString()}]`, safeFrontmatterBody, result.frontmatterAttributes)
 
   // Add detailed logging for debugging
-  logDebug(pluginJson, `processFrontmatterTags: Returning frontmatterBody with ${frontmatterBody.length} chars: "${frontmatterBody.substring(0, 200)}..."`)
+  logDebug(pluginJson, `processFrontmatterTags: Returning frontmatterBody with ${safeFrontmatterBody.length} chars: "${safeFrontmatterBody.substring(0, 200)}..."`)
   logDebug(pluginJson, `processFrontmatterTags: Returning frontmatterAttributes: ${JSON.stringify(result.frontmatterAttributes)}`)
 
   return result
@@ -909,6 +950,12 @@ export async function processFrontmatterTags(_templateData: string = '', userDat
  * @returns {Promise<string>} A promise that resolves to the processed template with imports resolved
  */
 export async function importTemplates(templateData: string = '', sessionData: Object = {}): Promise<string> {
+  // Ensure templateData is a string
+  if (typeof templateData !== 'string') {
+    logDebug(pluginJson, `importTemplates: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    templateData = String(templateData)
+  }
+
   let newTemplateData = templateData
   const tags = (await getTags(templateData)) || []
   for (const tag of tags) {
@@ -939,6 +986,13 @@ export async function importTemplates(templateData: string = '', sessionData: Ob
         noteNamePath = evaluateTemplateStrings(noteNamePath, sessionData)
 
         const content = await getTemplate(noteNamePath)
+        // Ensure content is a string
+        if (typeof content !== 'string') {
+          logDebug(pluginJson, `importTemplates: getTemplate returned non-string content: ${typeof content} - ${String(content).substring(0, 100)}`)
+          newTemplateData = newTemplateData.replace(tag, `**Error importing "${noteNamePath}": Invalid content type**`)
+          continue
+        }
+
         const body = new FrontmatterModule().body(content)
         if (body.length > 0) {
           newTemplateData = newTemplateData.replace(`\`${tag}\``, body) // adjust fenced formats
@@ -950,6 +1004,12 @@ export async function importTemplates(templateData: string = '', sessionData: Ob
     }
   }
 
+  // Ensure we always return a string
+  if (typeof newTemplateData !== 'string') {
+    logDebug(pluginJson, `importTemplates: newTemplateData is not a string: ${typeof newTemplateData} - ${String(newTemplateData).substring(0, 100)}`)
+    return String(newTemplateData)
+  }
+
   return newTemplateData
 }
 
@@ -959,6 +1019,12 @@ export async function importTemplates(templateData: string = '', sessionData: Ob
  * @returns {string|null} Error message if validation fails, null if valid
  */
 export function validateTemplateTags(templateData: string): string | null {
+  // Ensure templateData is a string
+  if (typeof templateData !== 'string') {
+    logDebug(pluginJson, `validateTemplateTags: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    return `**Template validation error: templateData is not a string (${typeof templateData})**`
+  }
+  
   const lines = templateData.split('\n')
   let openTags = 0
   let closeTags = 0
@@ -1049,6 +1115,12 @@ function normalizeTemplateData(templateData: string): string {
     return ''
   }
 
+  // Ensure templateData is a string
+  if (typeof templateData !== 'string') {
+    logDebug(pluginJson, `normalizeTemplateData: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    templateData = String(templateData)
+  }
+
   let normalizedData = templateData
 
   // Handle smart quotes from iOS and other platforms
@@ -1063,6 +1135,81 @@ function normalizeTemplateData(templateData: string): string {
   normalizedData = normalizedData.replace(/<%@/gi, '<%- prompt')
 
   return normalizedData
+}
+
+/**
+ * Checks if a template appears to be a meeting note template by looking for meeting-specific variables.
+ * @param {string} templateData - The template content to analyze
+ * @returns {boolean} True if the template contains meeting note variables
+ */
+function isMeetingNoteTemplate(templateData: string): boolean {
+  const meetingNoteVariables = [
+    'eventTitle',
+    'eventNotes',
+    'eventLink',
+    'calendarItemLink',
+    'eventAttendees',
+    'eventAttendeeNames',
+    'eventLocation',
+    'eventCalendar',
+    'eventDateValue',
+    'eventEndDateValue',
+  ]
+
+  // Check if any meeting note variables are referenced in the template
+  return meetingNoteVariables.some((varName) => {
+    // Match the variable name as a standalone variable or as a function call
+    const pattern = new RegExp(`<%[-=~]?\\s*${varName}(?:\\s*\\([^)]*\\))?\\s*[-~]?%>`, 'g')
+    return pattern.test(templateData)
+  })
+}
+
+/**
+ * Validates that meeting note templates have the required event data.
+ * @param {string} templateData - The template content to validate
+ * @param {Object} sessionData - The session data containing available variables
+ * @returns {string|null} Error message if validation fails, null if validation passes
+ */
+function validateMeetingNoteTemplate(templateData: string, sessionData: Object): string | null {
+  // Only check if this appears to be a meeting note template
+  if (!isMeetingNoteTemplate(templateData)) {
+    return null
+  }
+
+  const meetingNoteVariables = [
+    'eventTitle',
+    'eventNotes',
+    'eventLink',
+    'calendarItemLink',
+    'eventAttendees',
+    'eventAttendeeNames',
+    'eventLocation',
+    'eventCalendar',
+    'eventDateValue',
+    'eventEndDateValue',
+  ]
+
+  const sessionDataKeys = Object.keys(sessionData)
+  const missingVariables = meetingNoteVariables.filter((varName) => {
+    // Check if the variable is referenced in the template (as standalone or function call)
+    const pattern = new RegExp(`<%[-=~]?\\s*${varName}(?:\\s*\\([^)]*\\))?\\s*[-~]?%>`, 'g')
+    const isReferenced = pattern.test(templateData)
+
+    // If referenced but not available in session data, it's missing
+    return isReferenced && !sessionDataKeys.includes(varName)
+  })
+
+  if (missingVariables.length > 0) {
+    const missingVarsList = missingVariables.join(', ')
+    const availableVarsList = sessionDataKeys.length > 0 ? sessionDataKeys.join(', ') : 'none'
+    logDebug(pluginJson, `validateMeetingNoteTemplate failed: missingVariables=[${missingVarsList}] availableVars=[${availableVarsList}]`)
+    clo(sessionData.methods, 'validateMeetingNoteTemplate: sessionData.methods')
+    clo(sessionData.data, 'validateMeetingNoteTemplate: sessionData.data')
+
+    return `**Template validation failed**: The template you ran is designed to run on calendar events, but was run outside of that context. The following variables are referenced in the template but not available: **${missingVarsList}**\nThis typically happens when running meeting note templates without proper event data. **Please ensure you have selected an event or provided the necessary data.**`
+  }
+
+  return null
 }
 
 /**
@@ -1134,6 +1281,12 @@ async function processFrontmatter(
   userOptions: Object,
   templatingEngine: TemplatingEngine,
 ): Promise<{ templateData: string, sessionData: Object }> {
+  // Ensure templateData is a string
+  if (typeof templateData !== 'string') {
+    logDebug(pluginJson, `processFrontmatter: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    templateData = String(templateData)
+  }
+  
   const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
   if (!isFrontmatterTemplate) {
     return { templateData, sessionData }
@@ -1170,7 +1323,14 @@ async function processFrontmatter(
     newSessionData = mergedSessionData
   }
 
-  return { templateData: frontmatterBody, sessionData: newSessionData }
+  // Ensure frontmatterBody is a string
+  let safeFrontmatterBody = frontmatterBody
+  if (typeof frontmatterBody !== 'string') {
+    logDebug(pluginJson, `processFrontmatter: frontmatterBody is not a string: ${typeof frontmatterBody} - ${String(frontmatterBody).substring(0, 100)}`)
+    safeFrontmatterBody = String(frontmatterBody)
+  }
+  
+  return { templateData: safeFrontmatterBody, sessionData: newSessionData }
 }
 
 /**
@@ -1181,10 +1341,22 @@ async function processFrontmatter(
  * @returns {Promise<{templateData: string, sessionData: Object}|false>} Updated template and session data, or false if canceled
  */
 async function processTemplatePrompts(templateData: string, sessionData: Object): Promise<{ templateData: string, sessionData: Object } | false> {
+  // Ensure templateData is a string
+  if (typeof templateData !== 'string') {
+    logDebug(pluginJson, `processTemplatePrompts: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    templateData = String(templateData)
+  }
+  
   const promptData = await processPrompts(templateData, sessionData)
 
   if (promptData === false) {
     return false
+  }
+
+  // Ensure sessionTemplateData is a string
+  if (typeof promptData.sessionTemplateData !== 'string') {
+    logDebug(pluginJson, `processTemplatePrompts: promptData.sessionTemplateData is not a string: ${typeof promptData.sessionTemplateData} - ${String(promptData.sessionTemplateData).substring(0, 100)}`)
+    promptData.sessionTemplateData = String(promptData.sessionTemplateData)
   }
 
   return {
@@ -1261,6 +1433,17 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     let sessionData = { ...loadGlobalHelpers({ ...userData }), ...templateConfig }
     logProgress('Render Step 3 complete: Global helpers loaded', templateData, sessionData, userOptions)
 
+    // Step 3.5: Validate that meeting note templates have required event data
+    const allVars = { ...sessionData.data, ...sessionData.methods, ...userData.methods, ...userData.data }
+    const meetingNoteValidationError = validateMeetingNoteTemplate(templateData, allVars)
+    if (meetingNoteValidationError) {
+      logProgress('MEETING NOTE VALIDATION FAILED', meetingNoteValidationError, sessionData, userOptions)
+      clo(allVars, 'validateMeetingNoteTemplate: allVars')
+      await showMessage(meetingNoteValidationError, 'OK', 'Template Error')
+      throw new Error(`STOPPING RENDER: Render Step 3.5 stopped execution with error: ${meetingNoteValidationError}`)
+    }
+    logProgress('Render Step 3.5 complete: Meeting note template validation', templateData, sessionData, userOptions)
+
     // Create a single TemplatingEngine instance with the templateConfig
     const templatingEngine = new TemplatingEngine(templateConfig, inputTemplateData)
 
@@ -1299,10 +1482,23 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
 
     // Step 5: Import any referenced templates
     templateData = await importTemplates(templateData, sessionData)
+    // Ensure templateData is a string before logging
+    if (typeof templateData !== 'string') {
+      logDebug(pluginJson, `_renderWithConfig: templateData is not a string after importTemplates: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+      templateData = String(templateData)
+    }
     logProgress('Render Step 5 complete: Template imports', templateData, sessionData, userOptions)
 
     // Step 6: Convert JavaScript blocks to template tags
     templateData = convertTemplateJSBlocksToControlTags(templateData)
+    // Ensure templateData is a string before logging
+    if (typeof templateData !== 'string') {
+      logDebug(
+        pluginJson,
+        `_renderWithConfig: templateData is not a string after convertTemplateJSBlocksToControlTags: ${typeof templateData} - ${String(templateData).substring(0, 100)}`,
+      )
+      templateData = String(templateData)
+    }
     logProgress('Render Step 6 complete: JavaScript blocks conversion', templateData, sessionData, userOptions)
 
     // Step 7: Pre-process the template to handle includes, variables, etc.
@@ -1394,7 +1590,11 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
   } catch (error) {
     clo(error, `render found error`)
     logProgress('RENDER ERROR', '', {}, userOptions)
-    return templateErrorMessage('render', error)
+    if (error.message.includes('STOPPING RENDER')) {
+      throw error // stop execution
+    } else {
+      return templateErrorMessage('render', error)
+    }
   }
 }
 

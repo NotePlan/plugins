@@ -149,10 +149,11 @@ export function getNoteLinkForDisplay(filename: string, dateStyle: string): stri
  * - a title with a path (e.g. "myFolder/myNote")
  * - an ISO date (YYYY-MM-DD or YYYYMMDD) of a calendar note
  * @author @dwertheimer
- * @param {string} name - The note identifier, can be:
+ * @param {string|Date} name - The note identifier, can be:
  *   - An empty string, in which case the current note in the Editorwill be returned
  *   - A filename with extension (e.g., "myNote.md" or "20240101.md")
  *   - A title without extension (e.g., "My Note" or "January 1, 2024")
+ *   - A date (to get calendar date)
  *   - A path and title (e.g., "folder/My Note")
  *   - An ISO date string (e.g., "2024-01-01") which will be converted to "20240101" for lookup
  * @param {boolean} [onlyLookInRegularNotes=false] - If true, will use projectNoteByFilename instead of noteByFilename (which will look at Calendar notes as well). This is useful if you have project notes that have titles that look like calendar notes (e.g. "2024-01-01"). If you leave this false, blank, or null, the type will be inferred from the name/filename.
@@ -175,7 +176,9 @@ export function getNoteLinkForDisplay(filename: string, dateStyle: string): stri
  * const note = await getNote('Snippets/Import Item', false, '@Templates');
  */
 export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | null, filePathStartsWith?: string): Promise<?TNote> {
+  if (typeof name !== 'string') throw `getNote was passed a ${typeof name} "${JSP(name)}". Cannot continue.`
   if (!name) {
+    logDebug(`getNote: no name provided. Will open Editor by default.`)
     return Editor.note
   }
   // formerly noteOpener
@@ -187,7 +190,7 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
   //   noteName = convertedName
   // }
 
-  const hasExtension = noteName.endsWith('.md') || noteName.endsWith('.txt')
+  const hasExtension = noteName ? noteName.endsWith('.md') || noteName.endsWith('.txt') : false
   const hasFolder = noteName.includes('/')
   const isCalendarNote = isValidCalendarNoteFilename(noteName) || isValidCalendarNoteTitleStr(noteName)
   logDebug(
@@ -710,7 +713,7 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
  * Filter a list of paras against a list of folders to ignore (and the @... special folders) and return the filtered list.
  * Obviously requires going via the notes array and not the paras array
  * @author @jgclark building on @dwertheimer's work
- * 
+ *
  * @param {Array<TNote>} notes - array of notes to review
  * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
  * @param {boolean} includeCalendar? - whether to include Calendar notes (default: true)

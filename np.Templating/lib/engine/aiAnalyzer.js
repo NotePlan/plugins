@@ -28,6 +28,31 @@ export async function analyzeErrorWithAI(
   previousPhaseErrors: Array<{ phase: string, error: string, context: string }>,
 ): Promise<string> {
   try {
+    // Check if AI error analysis is disabled via frontmatter
+    if (renderData.frontmatter && renderData.frontmatter.disableAIErrorAnalysis) {
+      logDebug(pluginJson, `AI error analysis disabled via frontmatter setting: disableAIErrorAnalysis`)
+
+      // Return basic error message without AI analysis
+      let basicErrorMessage = '==**Templating Error Found**: Basic Error Information==\n\n'
+      basicErrorMessage += `### Error Description:\n- ${originalError}\n\n`
+      basicErrorMessage += `### What to do to fix the error(s):\n- Review the error message above and check your template syntax\n- Ensure all variables are defined before use\n- Check for proper opening and closing of template tags\n\n`
+      basicErrorMessage += `**Note:** AI error analysis has been disabled for this template via frontmatter setting.\n`
+      basicErrorMessage += `For detailed AI-powered error analysis, remove the \`disableAIErrorAnalysis: true\` setting from your template's frontmatter.\n\n`
+
+      // Include problematic lines if we have them
+      const problematicLines = extractProblematicLines(originalError, templateData, originalScript)
+      if (problematicLines && problematicLines.trim() && problematicLines !== 'No original script available') {
+        basicErrorMessage += `**Problematic Lines from Original Script:**\n\`\`\`\n${problematicLines}\n\`\`\`\n\n`
+      }
+
+      basicErrorMessage += '---\n'
+      basicErrorMessage += '**Error Details (for debugging):**\n'
+      basicErrorMessage += `Original Error: ${originalError}\n`
+      basicErrorMessage += `Template Data: ${templateData ? templateData.substring(0, 200) : ''}${templateData ? (templateData.length > 200 ? '...' : '') : ''}\n`
+
+      return basicErrorMessage
+    }
+
     const startTime = new Date()
 
     // Prepare context information, filtering out polluted error variables

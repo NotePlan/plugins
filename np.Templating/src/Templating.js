@@ -6,7 +6,7 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { log, clo, logDebug, logError, JSP } from '@helpers/dev'
+import { log, clo, logDebug, logError, JSP, timer, logWarn } from '@helpers/dev'
 import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
@@ -30,7 +30,7 @@ import { initConfiguration, updateSettingData, pluginUpdated } from '@helpers/NP
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 import { hasFrontMatter, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { checkAndProcessFolderAndNewNoteTitle } from '@helpers/editor'
-import { getNoteTitleFromTemplate, analyzeTemplateStructure } from '@helpers/NPFrontMatter'
+import { getNoteTitleFromTemplate, getNoteTitleFromRenderedContent, analyzeTemplateStructure } from '@helpers/NPFrontMatter'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
@@ -313,8 +313,24 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     logDebug(pluginJson, `templateNew: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
     logDebug(pluginJson, `templateNew: newNoteTitle parameter: "${newNoteTitle}"`)
 
-    // For inline title detection, we need to use the original template data
-    const templateNoteTitle = getNoteTitleFromTemplate(templateData)
+    // Render the template first to get the final content for title extraction
+    const data = {
+      data: {
+        ...frontmatterAttributes,
+        ...{
+          noteTitle: newNoteTitle || renderedNewNoteTitle || '',
+        },
+      },
+    }
+
+    const templateResult = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
+
+    // For inline title detection, we need to use the RENDERED template content
+    const renderedTemplateNoteTitle = getNoteTitleFromRenderedContent(templateResult)
+    logDebug(pluginJson, `templateNew: renderedTemplateNoteTitle from getNoteTitleFromRenderedContent: "${renderedTemplateNoteTitle}"`)
+
+    // Fall back to template analysis if no rendered title found
+    const templateNoteTitle = renderedTemplateNoteTitle || getNoteTitleFromTemplate(templateData)
     logDebug(pluginJson, `templateNew: templateNoteTitle from getNoteTitleFromTemplate: "${templateNoteTitle}"`)
 
     const noteTitle = newNoteTitle || renderedNewNoteTitle || templateNoteTitle || (await CommandBar.textPrompt('Template', 'Enter New Note Title', ''))
@@ -329,19 +345,9 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     }
 
     const filename = DataStore.newNote(noteTitle, folder) || ''
+    logDebug(pluginJson, `templateNew: calling DataStore.newNote with noteTitle: "${noteTitle}" and folder: "${folder}" -> filename: "${filename}"`)
 
     if (filename) {
-      const data = {
-        data: {
-          ...frontmatterAttributes,
-          ...{
-            noteTitle,
-          },
-        },
-      }
-
-      const templateResult = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
-
       await Editor.openNoteByFilename(filename)
 
       const renderedTemplateHasFM = hasFrontMatter(templateResult)
@@ -352,7 +358,8 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
         // Always add title to frontmatter if we have a newNoteTitle from template frontmatter
         // Only skip adding title if the template has an inline title but NO newNoteTitle
         // OR if newNoteTitle and inline title are the same (no need to duplicate)
-        const analysis = analyzeTemplateStructure(templateData)
+        // Use the rendered content for analysis since we already have it
+        const analysis = analyzeTemplateStructure(templateResult)
         const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
         const hasNewNoteTitle = analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle
         const titlesAreSame = hasInlineTitle && hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle === analysis.inlineTitleText
@@ -363,7 +370,8 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       } else {
         // Check if the template already contains an inline title to avoid duplication
         // Also check if we have newNoteTitle that should create frontmatter
-        const analysis = analyzeTemplateStructure(templateData)
+        // Use the rendered content for analysis since we already have it
+        const analysis = analyzeTemplateStructure(templateResult)
         const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
         const hasNewNoteTitle = analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle
         const titlesAreSame = hasInlineTitle && hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle === analysis.inlineTitleText
@@ -427,8 +435,25 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
         const renderedNewNoteTitle = frontmatterAttributes?.newNoteTitle
         logDebug(pluginJson, `templateQuickNote: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
 
-        // For inline title detection, we need to use the original template data
-        const templateNoteTitle = getNoteTitleFromTemplate(templateData)
+        // Render the template first to get the final content for title extraction
+        const data = {
+          data: {
+            ...frontmatterAttributes,
+            ...{
+              noteTitle: renderedNewNoteTitle || '',
+            },
+          },
+        }
+
+        // $FlowIgnore
+        let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
+
+        // For inline title detection, we need to use the RENDERED template content
+        const renderedTemplateNoteTitle = getNoteTitleFromRenderedContent(finalRenderedData)
+        logDebug(pluginJson, `templateQuickNote: renderedTemplateNoteTitle from getNoteTitleFromRenderedContent: "${renderedTemplateNoteTitle}"`)
+
+        // Fall back to template analysis if no rendered title found
+        const templateNoteTitle = renderedTemplateNoteTitle || getNoteTitleFromTemplate(templateData)
         logDebug(pluginJson, `templateQuickNote: templateNoteTitle from getNoteTitleFromTemplate: "${templateNoteTitle}"`)
 
         let newNoteTitle = ''
@@ -445,18 +470,6 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
 
         const filename = DataStore.newNote(newNoteTitle, folder) || ''
         if (filename) {
-          const data = {
-            data: {
-              ...frontmatterAttributes,
-              ...{
-                noteTitle: newNoteTitle,
-              },
-            },
-          }
-
-          // $FlowIgnore
-          let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
-
           await Editor.openNoteByFilename(filename)
 
           const renderedTemplateHasFM = hasFrontMatter(finalRenderedData)
@@ -466,7 +479,8 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
             // Always add title to frontmatter if we have a newNoteTitle from template frontmatter
             // Only skip adding title if the template has an inline title but NO newNoteTitle
             // OR if newNoteTitle and inline title are the same (no need to duplicate)
-            const analysis = analyzeTemplateStructure(templateData)
+            // Use the rendered content for analysis since we already have it
+            const analysis = analyzeTemplateStructure(finalRenderedData)
             const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
             const hasNewNoteTitle = analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle
             const titlesAreSame = hasInlineTitle && hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle === analysis.inlineTitleText
@@ -477,7 +491,8 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
           } else {
             // Check if the template already contains an inline title to avoid duplication
             // Also check if we have newNoteTitle that should create frontmatter
-            const analysis = analyzeTemplateStructure(templateData)
+            // Use the rendered content for analysis since we already have it
+            const analysis = analyzeTemplateStructure(finalRenderedData)
             const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
             const hasNewNoteTitle = analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle
             const titlesAreSame = hasInlineTitle && hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle === analysis.inlineTitleText
@@ -551,8 +566,24 @@ export async function templateMeetingNote(templateName: string = '', templateDat
         const renderedNewNoteTitle = frontmatterAttributes?.newNoteTitle
         logDebug(pluginJson, `templateMeetingNote: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
 
-        // For inline title detection, we need to use the original template data
-        const templateNoteTitle = getNoteTitleFromTemplate(templateData)
+        // Render the template first to get the final content for title extraction
+        const data = {
+          data: {
+            ...frontmatterAttributes,
+            ...{
+              noteTitle: renderedNewNoteTitle || '',
+            },
+          },
+        }
+
+        let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
+
+        // For inline title detection, we need to use the RENDERED template content
+        const renderedTemplateNoteTitle = getNoteTitleFromRenderedContent(finalRenderedData)
+        logDebug(pluginJson, `templateMeetingNote: renderedTemplateNoteTitle from getNoteTitleFromRenderedContent: "${renderedTemplateNoteTitle}"`)
+
+        // Fall back to template analysis if no rendered title found
+        const templateNoteTitle = renderedTemplateNoteTitle || getNoteTitleFromTemplate(templateData)
         logDebug(pluginJson, `templateMeetingNote: templateNoteTitle from getNoteTitleFromTemplate: "${templateNoteTitle}"`)
 
         let newNoteTitle = ''
@@ -580,17 +611,6 @@ export async function templateMeetingNote(templateName: string = '', templateDat
 
         const filename = DataStore.newNote(newNoteTitle, folder) || ''
         if (filename) {
-          const data = {
-            data: {
-              ...frontmatterAttributes,
-              ...{
-                noteTitle: newNoteTitle,
-              },
-            },
-          }
-
-          let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
-
           await Editor.openNoteByFilename(filename)
 
           const lines = finalRenderedData.split('\n')
@@ -608,7 +628,8 @@ export async function templateMeetingNote(templateName: string = '', templateDat
             )
           } else {
             // Check if the template already contains an inline title to avoid duplication
-            const analysis = analyzeTemplateStructure(templateData)
+            // Use the rendered content for analysis since we already have it
+            const analysis = analyzeTemplateStructure(finalRenderedData)
             const hasInlineTitle = analysis.hasInlineTitle && analysis.inlineTitleText
 
             if (hasInlineTitle) {
@@ -694,18 +715,35 @@ export async function templateQuote(): Promise<string> {
 
 /**
  * Run a template by name/title (generally via x-callback-url)
- * @param {Array<string>} args - the first argument is the template name (required), the optional second param is whether to display the template in the editor. By default no (false/runs silently), after that, any additional arguments are key=value pairs passed to the template
+ * @param {Array<string>} args (see below)
+ *  - {string} args[0] - the template name (required, unless args[2] is an object and contains templateCode)
+ *  - {string} args[1] - the openInEditor flag (optional)
+ *  - {string} args[2] - the templaterunner arguments (optional) - key=value pairs passed to the template, separated by semicolons
  * @example
  * @returns {Promise<void>}
  *
  */
 export async function templateRunner(...args: Array<string>) {
   try {
+    const argsType = typeof args === 'object' && Array.isArray(args) ? 'array' : typeof args === 'object' ? 'object' : 'string'
+    clo(args, `templateRunner starting with args (${argsType}), length: ${args.length}`)
+    const startTime = new Date()
     if (args.length > 0) {
+      logDebug(pluginJson, `templateRunner calling templateFileByTitle with args: args[0]: ${args[0]} args[1]: ${args[1]} args[2]: ${args[2]}`)
+      if (!args[0]) logWarn(`templateRunner: No template name was provided to the templateRunner. Value was: ${args[0]}. Check your x-callback-url or calling function.`)
+      if (!args[1] || !['false', 'true'].includes(args[1]))
+        logWarn(
+          `templateRunner: No openInEditor flag was provided to the templateRunner. Will default to false. Value was: ${args[1]}. Check your x-callback-url or calling function.`,
+        )
+      if (typeof args[2] !== 'object' && !args[2])
+        logWarn(
+          `templateRunner: No templaterunner variables were provided to the templateRunner. Value was: ${args[2]}. This may be ok if your template does not need variables, but is obviously a problem if it does. Check your x-callback-url or calling function.`,
+        )
       templateFileByTitle(args[0], args[1] === 'true' || args[1] === true, args.length > 2 ? args[2] : '')
     } else {
       await CommandBar.prompt(`No arguments (with template name) were given to the templateRunner."`, helpInfo('Presets'))
     }
+    logDebug(`Total templateRunner time: ${timer(startTime)}`)
   } catch (error) {
     logError(pluginJson, error)
   }

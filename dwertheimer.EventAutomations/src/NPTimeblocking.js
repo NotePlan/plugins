@@ -540,7 +540,7 @@ async function insertAndFinalizeTimeBlocks(
 ): Promise<void> {
   // Insert time block text entries into the note
   await insertItemsIntoNote(Editor, timeBlockTextList, config.timeBlockHeading, config.foldTimeBlockHeading, config)
-  logDebug(pluginJson, `Inserted ${timeBlockTextList.length} timeblock items into note`)
+  logDebug(pluginJson, `insertAndFinalizeTimeBlocks: Inserted ${timeBlockTextList.length} timeblock items into note`)
 
   // Log autotimeblocking summary
   logDebug(pluginJson, `\n\nAUTOTIMEBLOCKING SUMMARY:\n\n`)
@@ -555,6 +555,7 @@ async function insertAndFinalizeTimeBlocks(
 
   // Check and add trigger for checked items if configured to do so
   if (shouldRunCheckedItemChecksOriginal(config)) {
+    logDebug(pluginJson, `insertAndFinalizeTimeBlocks: calling addTrigger for checked items`)
     addTrigger(Editor, 'onEditorWillSave', pluginJson['plugin.id'], 'onEditorWillSave')
   }
 }
@@ -645,9 +646,10 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
   // Step 5: Insert and finalize time blocks
   await insertAndFinalizeTimeBlocks(timeBlockTextList, config, pluginJson, sortedTodos)
   // Check and add trigger for checked items if configured to do so
-  if (shouldRunCheckedItemChecksOriginal(config)) {
-    addTrigger(Editor, 'onEditorWillSave', pluginJson['plugin.id'], 'onEditorWillSave')
-  }
+  // if (shouldRunCheckedItemChecksOriginal(config)) {
+  //   logDebug(pluginJson, `createTimeBlocksForTodaysTasks: calling addTrigger for checked items`)
+  //   addTrigger(Editor, 'onEditorWillSave', pluginJson['plugin.id'], 'onEditorWillSave')
+  // }
 
   // Step 6: Handle no todos or results scenario and return results
   return handleNoTodosOrResults(config.passBackResults || false, timeBlockTextList)

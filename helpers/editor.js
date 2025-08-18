@@ -45,22 +45,26 @@ export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, 
   logDebug(`checkAndProcessFolderAndNewNoteTitle: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
 
   // For inline title detection, we need to use the original template data
+  // But we'll only use this for determining if we should create a new note
+  // The actual title extraction will happen in templateNew after rendering
   const templateNoteTitle = getNoteTitleFromTemplate(templateNote?.content || '')
   logDebug(`checkAndProcessFolderAndNewNoteTitle: templateNoteTitle from getNoteTitleFromTemplate: "${templateNoteTitle}"`)
 
-  const newNoteTitle = renderedNewNoteTitle || templateNoteTitle || ''
+  // We need to determine if there's a title, but we won't pass the unrendered title to templateNew
+  const hasTitle = renderedNewNoteTitle || templateNoteTitle
 
   logDebug(`checkAndProcessFolderAndNewNoteTitle starting: templateNote:"${templateNote?.title || ''}", frontmatterAttributes:${JSON.stringify(frontmatterAttributes)}`)
-  if (theFolder.length > 0 || newNoteTitle.length > 0) {
+  if (theFolder.length > 0 || hasTitle) {
     if (isEditorEmpty) {
       logDebug(
-        `checkAndProcessFolderAndNewNoteTitle: template has folder:"${theFolder}", newNoteTitle:"${newNoteTitle}", so moving empty note to trash and creating a new note in the folder`,
+        `checkAndProcessFolderAndNewNoteTitle: template has folder:"${theFolder}", hasTitle:${hasTitle}, so moving empty note to trash and creating a new note in the folder`,
       )
       // invoke the template with the folder attribute
       const emptyNoteFilename = Editor.filename
       const templateTitle = templateNote?.title
       const folderToUse = theFolder.length > 0 ? theFolder : getFolderFromFilename(Editor.filename)
-      const argsArray = [templateTitle, folderToUse === '/' ? '' : folderToUse, newNoteTitle, frontmatterAttributes]
+      // Don't pass the unrendered title - let templateNew extract it from rendered content
+      const argsArray = [templateTitle, folderToUse === '/' ? '' : folderToUse, '', frontmatterAttributes]
       await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
       // move the empty note to the trash
       await DataStore.moveNote(emptyNoteFilename, '@Trash')

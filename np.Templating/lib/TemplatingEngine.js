@@ -14,6 +14,7 @@ import UtilityModule from './support/modules/UtilityModule'
 import SystemModule from './support/modules/SystemModule'
 import FrontmatterModule from './support/modules/FrontmatterModule'
 import TasksModule from './support/modules/TasksModule'
+import helpersModule from './support/modules/helpers'
 
 import pluginJson from '../plugin.json'
 import { clo, log, logDebug, logError, timer } from '@helpers/dev'
@@ -115,7 +116,7 @@ export default class TemplatingEngine {
    * @returns {Promise<boolean>} True if the template contains frontmatter, false otherwise
    */
   async isFrontmatter(templateData: string): Promise<boolean> {
-    return templateData.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateData.substring(1)) : false
+    return templateData.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateData) : false
   }
 
   /**
@@ -357,6 +358,7 @@ export default class TemplatingEngine {
       note: new NoteModule(this.templateConfig),
       tasks: new TasksModule(this.templateConfig),
       frontmatter: new FrontmatterModule(this.templateConfig),
+      helpers: helpersModule,
       user: {
         first: this.templateConfig?.userFirstName || '',
         last: this.templateConfig?.userLastName || '',

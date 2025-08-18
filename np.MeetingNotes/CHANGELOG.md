@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [2.0.5] - 2025-08-11 @dwertheimer
+
+- Just bumping version to make sure title setting and meeting note validation are happening in MN
+
 ## [2.0.4] - 2025-08-07 @dwertheimer
 
 - Add logging

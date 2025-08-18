@@ -130,13 +130,18 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
         // If we want to use note tags, and the note has a 'note-tag' field in its FM, then work out if the note-tag matches this particular tag/mention.
         let hasMatchingNoteTag = false
+
         if (noteHasFrontMatter(n)) {
+          const temp = n.title === 'this is in the root'
           const noteTagAttribute = getFrontmatterAttribute(n, 'note-tag')
           const noteTagList = noteTagAttribute ? stringListOrArrayToArray(noteTagAttribute, ',') : []
           if (noteTagList.length > 0) {
             hasMatchingNoteTag = noteTagList && noteTagList.some((tag) => caseInsensitiveMatch(tag, thisTag))
 
             logInfo('getTaggedSectionData', `-> noteTag(s) '${String(noteTagList)}' is ${hasMatchingNoteTag ? 'a' : 'NOT a'} match for ${thisTag}`)
+          }
+          if (temp) {
+            clo(n, `QQQ getTaggedSectionData: n DELETEME noteTagAttribute=${noteTagAttribute} noteTagList=${noteTagList} hasMatchingNoteTag=${hasMatchingNoteTag}`)
           }
         }
         // Add the paras that contain the tag/mention, unless this is a noteTag, in which case add all paras if FM field 'note-tag' matches. (Later we filter down to open non-scheduled items).
