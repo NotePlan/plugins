@@ -1,7 +1,8 @@
 {
   "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.4.0",
+  "noteplan.minAppVersion": "3.18.1",
+  "noteplan.minAppVersion-NOTE": "Includes folder view picker",
   "plugin.id": "np.CallbackURLs",
   "plugin.name": "🔗 Link Creator",
   "plugin.version": "1.8.0",

@@ -286,6 +286,25 @@ export async function lineLink(): Promise<string> {
   return ''
 }
 
+/**
+ * Create a callback URL for opening a view
+ * @returns {string} the URL or empty string if user canceled
+ */
+export async function openView(): Promise<string> {
+  const name = await getInput('Enter the name of the view', 'OK', 'Saved Folder View', '')
+  if (name === false || !name) return ''
+
+  const folder = await chooseFolder('Choose a folder (optional but recommended)', false, false, '', true)
+  if (!folder) return ''
+
+  let params = `?name=${encodeURIComponent(String(name))}`
+  if (folder) {
+    params += `&folder=${encodeURIComponent(folder)}`
+  }
+
+  return `noteplan://x-callback-url/openView${params}`
+}
+
 // Plugin command entry point for creating a heading link
 export async function headingLink() {
   await xCallbackWizard(`headingLink`)
@@ -298,7 +317,7 @@ export async function headingLink() {
  */
 export async function xCallbackWizard(_commandType: ?string = '', passBackResults?: boolean = false): Promise<string | void> {
   try {
-    let url = '',
+    let url: string | false = '',
       canceled = false
     let commandType
     if (_commandType) {
@@ -309,6 +328,7 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         { label: 'OPEN a note or folder', value: 'openNote' },
         { label: 'NEW NOTE with title and text', value: 'addNote' },
         { label: 'ADD text to a note', value: 'addText' },
+        { label: 'OPEN a Named Folder View', value: 'openView' },
         { label: 'FILTER Notes by Preset', value: 'filter' },
         { label: 'SEARCH for text in notes', value: 'search' },
         { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
@@ -360,6 +380,7 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         } else {
           return
         }
+        break
       case 'runTemplate':
         url = await getXcallbackForTemplate()
         break
@@ -374,13 +395,20 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
           return
         }
         break
+      case 'openView':
+        url = await openView()
+        if (!url) {
+          showMessage(`No view name or folder selected. Please try again.`, 'OK', 'No View Selected')
+          return
+        }
+        break
       default:
         showMessage(`${commandType}: This type is not yet available in this plugin`, 'OK', 'Sorry!')
         break
     }
     if (url === false) canceled = true // user hit cancel on one of the input prompts
 
-    if (!canceled && typeof url === 'string') {
+    if (!canceled && typeof url === 'string' && url) {
       if (passBackResults) return url
       if (commandType === 'headingLink') {
         return url // copied to clipboard already

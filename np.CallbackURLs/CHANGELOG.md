@@ -4,6 +4,12 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.9.0] - 2025-08-18 @dwertheimer
+
+- Fix template runner wizard bug
+- Add link to run template to frontmatter of template note
+- Add open a named folder view to wizard
+
 ## [1.8.0] - 2025-06-09 @dwertheimer
 
 - Added templating specific commands to wizard to reduce confusion

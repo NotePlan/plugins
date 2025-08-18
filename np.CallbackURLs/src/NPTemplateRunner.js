@@ -4,7 +4,7 @@ import pluginJson from '../plugin.json'
 import { chooseOption, showMessage, showMessageYesNo, getInputTrimmed, chooseNote } from '../../helpers/userInput'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import NPTemplating from 'NPTemplating'
-import { getAttributes } from '@helpers/NPFrontMatter'
+import { getAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 
 // getNoteTitled, location, writeUnderHeading, replaceNoteContents
@@ -117,7 +117,7 @@ async function createNewTemplate(): Promise<string> {
 async function getSelfRunningTemplate(): Promise<string> {
   let filename, templateTitle
   if (Editor?.filename?.includes('@Templates')) {
-    const useThis = await showMessageYesNo(`Use the currently open template?\n(${Editor?.title || ''})`, ['yes', 'no'], 'Use Open Template')
+    const useThis = await showMessageYesNo(`Create a run link for the currently open template?\n(title: "${Editor?.title || ''}")`, ['yes', 'no'], 'Use This Template?')
     if (useThis === 'yes') {
       filename = Editor.filename
       templateTitle = Editor.note?.title
@@ -131,7 +131,8 @@ async function getSelfRunningTemplate(): Promise<string> {
       const selectedTemplate = await NPTemplating.chooseTemplate()
       if (selectedTemplate) {
         const template = await DataStore.noteByFilename(selectedTemplate, 'Notes')
-        templateTitle = template?.title || null
+        templateTitle = template?.title || ''
+        filename = template?.filename || ''
       }
     }
   }
@@ -164,9 +165,20 @@ export async function getXcallbackForTemplate(): Promise<string | false> {
         args = args.concat(String(result))
       }
       const url = createRunPluginCallbackUrl(`np.Templating`, `templateRunner`, args)
-      const note = DataStore.projectNoteByTitle(templateTitle)
-      if (note?.length) note[0].content = note[0].content?.replace('exampleURL: __XXX__', `exampleURL: ${url}`)
-      //FIXME: I am here. this works, but the URL gets pasted above metadata
+      const notes = DataStore.projectNoteByTitle(templateTitle)
+      const note = notes?.length ? notes[0] : null
+      if (note) {
+        note.content = note.content?.replace('exampleURL: __XXX__', `exampleURL: ${url}`)
+        const addLinkToFM = await showMessageYesNo(
+          `Add the link to run the template to the frontmatter of the template? (the link will be copied to the clipboard regardless)`,
+          ['yes', 'no'],
+          'Add Link to Run Template',
+        )
+        if (addLinkToFM === 'yes') {
+          // create a key:value array of the properties of the note.frontmatterAttributes object
+          updateFrontMatterVars(note, { 'Run This Template': url })
+        }
+      }
       return url
     } else {
       await showMessage(`Template could not be located`)
