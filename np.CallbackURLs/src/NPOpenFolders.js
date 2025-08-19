@@ -22,41 +22,53 @@ function getValidatedFolderData(): Object | null {
 
 /**
  * Create folder options with view counts and descriptions
- * @param {Array<string>} foldersWithViews - List of folders that have named views
+ * @param {Array<string>} allFolders - List of all folders
  * @param {Object} folderData - The folder view data
  * @returns {Array<Object>} Array of folder option objects
  */
-function createFolderOptions(foldersWithViews: Array<string>, folderData: Object): Array<Object> {
+function createFolderOptions(allFolders: $ReadOnlyArray<string>, folderData: Object): Array<Object> {
   const teamspaceDefs = getAllTeamspaceIDsAndTitles()
 
-  return foldersWithViews.map((folderPath) => {
-    // Get the count of named views for this folder
+  return allFolders.map((folderPath) => {
+    // Check if this folder has named views
     const namedViews = getNamedViewsForFolder(folderData, folderPath)
-    const viewCount = namedViews.length
+    const hasNamedViews = namedViews && namedViews.length > 0
 
-    // Create folder representation using the helper function
-    const [simpleOption, dobj] = createFolderRepresentation(folderPath, true, teamspaceDefs)
-    const decoratedOption: { ...TCommandBarOptionObject, views?: Object } = { ...dobj, views: [] }
+    if (hasNamedViews) {
+      // For folders with named views, create decorated options
+      const viewCount = namedViews.length
+      const [simpleOption, dobj] = createFolderRepresentation(folderPath, true, teamspaceDefs)
+      const decoratedOption: { ...TCommandBarOptionObject, views?: Object } = { ...dobj, views: [] }
 
-    // Create label with folder name and view count
-    const label = `${simpleOption} (${viewCount} view${viewCount !== 1 ? 's' : ''})`
+      // Create label with folder name and view count
+      const label = `${simpleOption} (${viewCount} view${viewCount !== 1 ? 's' : ''})`
 
-    // Set short description based on view count
-    decoratedOption.views = namedViews
-    if (viewCount === 1) {
-      // For single view, show the view name
-      decoratedOption.shortDescription = namedViews[0].name
+      // Set short description based on view count
+      decoratedOption.views = namedViews
+      if (viewCount === 1) {
+        // For single view, show the view name
+        decoratedOption.shortDescription = `View: ${namedViews[0].name}`
+      } else {
+        // For multiple views, show first view + count of others
+        const firstViewName = namedViews[0].name
+        const othersCount = viewCount - 1
+        decoratedOption.shortDescription = `Views: ${firstViewName} + ${othersCount} other${othersCount !== 1 ? 's' : ''}`
+      }
+
+      return {
+        label: label,
+        value: folderPath,
+        ...decoratedOption,
+      }
     } else {
-      // For multiple views, show first view + count of others
-      const firstViewName = namedViews[0].name
-      const othersCount = viewCount - 1
-      decoratedOption.shortDescription = `${firstViewName} + ${othersCount} other${othersCount !== 1 ? 's' : ''}`
-    }
-
-    return {
-      label: label,
-      value: folderPath,
-      ...decoratedOption,
+      // For folders without named views, create standard folder options
+      const [simpleOption, dobj] = createFolderRepresentation(folderPath, true, teamspaceDefs)
+      return {
+        label: simpleOption,
+        value: folderPath,
+        ...dobj,
+        views: [], // Empty views array for consistency
+      }
     }
   })
 }
@@ -69,7 +81,7 @@ function createFolderOptions(foldersWithViews: Array<string>, folderData: Object
 async function selectFolder(folderOptions: Array<Object>): Promise<Object | null> {
   clo(folderOptions, `selectFolder: folderOptions`)
 
-  const selection = await chooseOptionWithModifiersV2('Choose a folder with named views', folderOptions)
+  const selection = await chooseOptionWithModifiersV2('Choose a folder', folderOptions)
   if (!selection) return null
 
   const selectedFolderObj = folderOptions[selection.index]
@@ -83,16 +95,19 @@ async function selectFolder(folderOptions: Array<Object>): Promise<Object | null
  * @param {Array<Object>} views - Array of named views for the folder
  * @returns {Array<Object>} Array of view option objects
  */
-function createViewOptions(views: Array<Object>): Array<Object> {
-  const viewOptions = views
-    ? views.map((view: Object) => ({
-        label: `${view.name}`,
-        value: view.name,
-        shortDescription: `(${view.layout})`,
-      }))
-    : []
+function createViewOptions(views: Array<Object>): Array<TCommandBarOptionObject> {
+  let viewOptions: Array<TCommandBarOptionObject> = []
 
-  // Add option to open folder view default
+  // If there are named views, add them as options
+  if (views && views.length > 0) {
+    viewOptions = views.map((view: Object) => ({
+      label: `${view.name}`,
+      value: view.name,
+      shortDescription: `(${view.layout})`,
+    }))
+  }
+
+  // Always add option to open folder view default
   viewOptions.unshift({ label: '< Open the folder view default >', value: '_folder_', shortDescription: 'Default folder view' })
 
   clo(viewOptions, `createViewOptions: viewOptions`)
@@ -108,7 +123,12 @@ function createViewOptions(views: Array<Object>): Array<Object> {
 async function selectView(viewOptions: Array<Object>, selectedFolder: string): Promise<string> {
   if (viewOptions.length === 0) return ''
 
-  return await chooseOption(`Choose a named view from '${selectedFolder}'`, viewOptions, '')
+  // If there's only the default option (no named views), just return it
+  if (viewOptions.length === 1) {
+    return viewOptions[0].value
+  }
+
+  return await chooseOption(`Choose a view for '${selectedFolder}'`, viewOptions, '')
 }
 
 /**
@@ -147,15 +167,15 @@ export async function openFolderView(): Promise<string> {
   const folderData = getValidatedFolderData()
   if (!folderData) return ''
 
-  // Step 2: Get folders that have named views
-  const foldersWithViews = getFoldersWithNamedViews(folderData)
-  if (foldersWithViews.length === 0) {
-    await showMessage('No folders with named views found. Please create some named views first.')
+  // Step 2: Get ALL folders from DataStore
+  const allFolders = DataStore.folders
+  if (!allFolders || allFolders.length === 0) {
+    await showMessage('No folders found. Please ensure you have folders in your NotePlan setup.')
     return ''
   }
 
-  // Step 3: Create folder options and let user choose
-  const folderOptions = createFolderOptions(foldersWithViews, folderData)
+  // Step 3: Create folder options for all folders and let user choose
+  const folderOptions = createFolderOptions(allFolders, folderData)
   const selectedFolderObj = await selectFolder(folderOptions)
   if (!selectedFolderObj) return ''
 
