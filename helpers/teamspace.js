@@ -43,6 +43,7 @@ export function getFilenameWithoutTeamspaceID(filenameIn: string): string {
   const possibleTeamspaceFilename = filenameIn.match(RE_TEAMSPACE_INDICATOR_AND_ID)
   if (possibleTeamspaceFilename) {
     let filenameWithoutTeamspaceID = filenameIn.replace(possibleTeamspaceFilename[0], '')
+    // If it starts with a slash, remove it
     if (filenameWithoutTeamspaceID.startsWith('/')) {
       filenameWithoutTeamspaceID = filenameWithoutTeamspaceID.slice(1)
     }

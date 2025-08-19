@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 2024-09-05 for v0.22.0, by @jgclark
+// Last updated 2025-08-19 for v0.22.2, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@ import { showMessage } from '@helpers/userInput'
 // const configKey = 'events'
 
 /**
- * Get config settings using Config V2 system. (Have now removed support for Config V1.)
+ * Get config settings
  * @author @jgclark
  * @return {EventsConfig} object with configuration
  */
@@ -25,9 +25,9 @@ export async function getEventsSettings(): Promise<any> {
   logDebug(pluginJson, `Start of getEventsSettings()`)
   try {
     // Get settings using ConfigV2
-    let v2Config: EventsConfig = await DataStore.loadJSON("../jgclark.EventHelpers/settings.json")
+    let config: EventsConfig = await DataStore.loadJSON("../jgclark.EventHelpers/settings.json")
 
-    if (v2Config == null || Object.keys(v2Config).length === 0) {
+    if (config == null || Object.keys(config).length === 0) {
       await showMessage(`Cannot find settings for the 'EventHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane. For now I will use default settings.`)
       // Be kind and return a default set of config
       const defaultConfig: EventsConfig = {
@@ -52,14 +52,15 @@ export async function getEventsSettings(): Promise<any> {
         uncompleteTasks: true,
         removeProcessedTagName: true,
         includeCompletedTasks: true,
-        meetingTemplateTitle: ""
+        meetingTemplateTitle: "",
+        addComputedFinalDate: false
       }
-      v2Config = defaultConfig
+      config = defaultConfig
     }
-    v2Config.locale = getLocale(v2Config)
-    v2Config.timeOptions = getTimeOptions(v2Config)
-    // clo(v2Config, `${configKey} settings from V2:`)
-    return v2Config
+    config.locale = getLocale(config)
+    config.timeOptions = getTimeOptions(config)
+    // clo(config, `${configKey} settings from V2:`)
+    return config
   }
   catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)

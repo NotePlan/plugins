@@ -515,9 +515,13 @@ function getFilenameWithoutTeamspaceID(filenameIn: string): string {
  */
 export function getDateStringFromCalendarFilename(filenameIn: string, returnISODate: boolean = false): string {
   try {
-    // logDebug('gDSFCF', `for ${filenameIn} ...`)
-    const filenameWithoutTeamspaceID = getFilenameWithoutTeamspaceID(filenameIn)
-    // logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
+    logDebug('gDSFCF', `for ${filenameIn} ...`)
+    let filenameWithoutTeamspaceID = getFilenameWithoutTeamspaceID(filenameIn)
+    // If it starts with a slash, remove it
+    if (filenameWithoutTeamspaceID.startsWith('/')) {
+      filenameWithoutTeamspaceID = filenameWithoutTeamspaceID.slice(1)
+    }
+    logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
 
     // Check for daily notes
     if (filenameWithoutTeamspaceID.match(RE_DAILY_NOTE_FILENAME)) {
