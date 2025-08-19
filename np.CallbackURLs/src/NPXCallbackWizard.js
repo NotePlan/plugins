@@ -12,20 +12,9 @@ import { log, logError, logDebug, JSP, clo, timer } from '../../helpers/dev'
 import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl } from '../../helpers/general'
 import pluginJson from '../plugin.json'
 import { getXcallbackForTemplate } from './NPTemplateRunner'
+import { openFolderView } from './NPOpenFolders'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
-import {
-  chooseOption,
-  showMessage,
-  showMessageYesNo,
-  chooseFolder,
-  chooseNote,
-  getInput,
-  getInputTrimmed,
-  createFolderRepresentation,
-  chooseOptionWithModifiersV2,
-} from '@helpers/userInput'
-import { getFolderViewData, organizeFolderViews, getFoldersWithNamedViews, getNamedViewsForFolder } from '@helpers/folders'
-import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
+import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput, getInputTrimmed } from '@helpers/userInput'
 import { getSelectedParagraph } from '@helpers/NPParagraph'
 
 // import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
@@ -299,117 +288,6 @@ export async function lineLink(): Promise<string> {
   return ''
 }
 
-/**
- * Create a callback URL for opening a view
- * @returns {string} the URL or empty string if user canceled
- */
-export async function openView(): Promise<string> {
-  // Get the folder view data using our new helper function
-  const folderData = getFolderViewData()
-  if (!folderData) {
-    await showMessage('No folder view data available. Please ensure you have folder views configured.')
-    throw new Error('No folder view data available. Please ensure you have folder views configured.')
-  }
-
-  clo(folderData, `openView folderData (${typeof folderData})`)
-
-  // Get folders that have named views
-  const foldersWithViews = getFoldersWithNamedViews(folderData)
-  if (foldersWithViews.length === 0) {
-    await showMessage('No folders with named views found. Please create some named views first.')
-    return ''
-  }
-
-  // Step 1: Let user choose a folder
-  const teamspaceDefs = getAllTeamspaceIDsAndTitles()
-  const folderOptions = foldersWithViews.map((folderPath) => {
-    // Get the count of named views for this folder
-    const namedViews = getNamedViewsForFolder(folderData, folderPath)
-    const viewCount = namedViews.length
-
-    // Create folder representation using the helper function
-    // Parameters: folder, includeFolderPath, teamspaceDefs
-    const [simpleOption, dobj] = createFolderRepresentation(folderPath, true, teamspaceDefs)
-    const decoratedOption: { ...TCommandBarOptionObject, views?: Object } = { ...dobj, views: [] }
-    // Create label with folder name and view count
-    const label = `${simpleOption} (${viewCount} view${viewCount !== 1 ? 's' : ''})`
-
-    // Set short description based on view count
-    decoratedOption.views = namedViews
-    if (viewCount === 1) {
-      // For single view, show the view name
-      decoratedOption.shortDescription = namedViews[0].name
-    } else {
-      // For multiple views, show first view + count of others
-      const firstViewName = namedViews[0].name
-      const othersCount = viewCount - 1
-      decoratedOption.shortDescription = `${firstViewName} + ${othersCount} other${othersCount !== 1 ? 's' : ''}`
-    }
-
-    return {
-      label: label,
-      value: folderPath,
-      ...decoratedOption,
-    }
-  })
-
-  // const selectedFolder = await chooseOption('Choose a folder with named views:', folderOptions, '')
-  clo(folderOptions, `folderOptions`)
-  const selection = await chooseOptionWithModifiersV2('Choose a folder with named views', folderOptions)
-  if (!selection) return ''
-  const selectedFolderObj = folderOptions[selection.index]
-  clo(selection, `openView selection`)
-  const { value: selectedFolder, views } = selectedFolderObj
-
-  // Step 2: Get named views for the selected folder
-  // const namedViews = getNamedViewsForFolder(folderData, selectedFolder)
-  // if (namedViews.length === 0) {
-  //   await showMessage(`No named views found for folder '${selectedFolder}'`)
-  //   return ''
-  // }
-
-  // Step 3: Let user choose a named view
-  let selectedViewName = ''
-
-  clo(views, `views`)
-
-  const viewOptions = views
-    ? views.map((view: Object) => ({
-        label: `${view.name}`,
-        value: view.name,
-        shortDescription: `(${view.layout})`,
-      }))
-    : []
-
-  viewOptions.unshift({ label: '< Open the folder view default >', value: '_folder_' })
-  clo(viewOptions, `viewOptions`)
-  selectedViewName = viewOptions.length ? await chooseOption(`Choose a named view from '${selectedFolder}'`, viewOptions, '') : ''
-
-  if (!selectedViewName) return ''
-
-  // Build the callback URL
-  let params = `?`
-  if (selectedViewName && selectedViewName !== '_folder_') {
-    params += `name=${encodeURIComponent(selectedViewName)}&`
-  }
-  if (selectedFolder && selectedFolder !== '/') {
-    params += `folder=${encodeURIComponent(selectedFolder)}`
-  }
-
-  // TODO: I asked @eduardme if he would make it possible to open the folder view default by supplying just the folder name, but he said no.
-  // In the meantime, we have to do this workaround:
-  let url = ''
-  if (selectedViewName === '_folder_') {
-    url = `noteplan://x-callback-url/openNote?filename=${encodeURIComponent(selectedFolder)}`
-  } else {
-    url = `noteplan://x-callback-url/openView${params}`
-  }
-
-  clo(url, `Generated openView URL`)
-
-  return url
-}
-
 // Plugin command entry point for creating a heading link
 export async function headingLink() {
   await xCallbackWizard(`headingLink`)
@@ -433,7 +311,7 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         { label: 'OPEN a note or folder', value: 'openNote' },
         { label: 'NEW NOTE with title and text', value: 'addNote' },
         { label: 'ADD text to a note', value: 'addText' },
-        { label: 'OPEN a Named Folder View', value: 'openView' },
+        { label: 'OPEN FOLDER View', value: 'openFolderView' },
         { label: 'FILTER Notes by Preset', value: 'filter' },
         { label: 'SEARCH for text in notes', value: 'search' },
         { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
@@ -500,11 +378,10 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
           return
         }
         break
-      case 'openView':
-        url = await openView()
+      case 'openFolderView':
+        url = await openFolderView()
         if (!url) {
           showMessage(`No view name or folder selected. Please try again.`, 'OK', 'No View Selected')
-          return
         }
         break
       default:
