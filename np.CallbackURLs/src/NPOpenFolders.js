@@ -95,20 +95,20 @@ async function selectFolder(folderOptions: Array<Object>): Promise<Object | null
  * @param {Array<Object>} views - Array of named views for the folder
  * @returns {Array<Object>} Array of view option objects
  */
-function createViewOptions(views: Array<Object>): Array<TCommandBarOptionObject> {
-  let viewOptions: Array<TCommandBarOptionObject> = []
+function createViewOptions(views: Array<Object>): Array<Object> {
+  let viewOptions: Array<Object> = []
 
   // If there are named views, add them as options
   if (views && views.length > 0) {
     viewOptions = views.map((view: Object) => ({
-      label: `${view.name}`,
+      text: `${view.name}`,
       value: view.name,
       shortDescription: `(${view.layout})`,
     }))
   }
 
   // Always add option to open folder view default
-  viewOptions.unshift({ label: '< Open the folder view default >', value: '_folder_', shortDescription: 'Default folder view' })
+  viewOptions.unshift({ text: '< Open the folder view default >', value: '_folder_', shortDescription: 'Default folder view' })
 
   clo(viewOptions, `createViewOptions: viewOptions`)
   return viewOptions
@@ -127,8 +127,13 @@ async function selectView(viewOptions: Array<Object>, selectedFolder: string): P
   if (viewOptions.length === 1) {
     return viewOptions[0].value
   }
-
-  return await chooseOption(`Choose a view for '${selectedFolder}'`, viewOptions, '')
+  clo(viewOptions, `selectView viewOptions`)
+  const responseObj = await chooseOptionWithModifiersV2(`Choose a view for '${selectedFolder}'`, viewOptions)
+  if (responseObj) {
+    clo(responseObj, `selectView responseObj`)
+    return responseObj.value
+  }
+  return ''
 }
 
 /**

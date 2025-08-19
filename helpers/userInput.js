@@ -133,14 +133,21 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
  * @param {Array<TCommandBarOptionObject>} options - array of options to display
  * @param {boolean} allowCreate - add an option to create a new item (default: false)
  * @returns {Promise<{value: T, label: string, index: number, keyModifiers: Array<string>}>} - Promise resolving to the result
- * see CommandBar.showOptions for more info
+ * Sends back the object that was chosen, plus an index of the chosen option and keyModifiers array
  */
 export async function chooseOptionWithModifiersV2(
   message: string,
-  options: Array<TCommandBarOptionObject>,
+  options: Array<{ ...TCommandBarOptionObject, label?: string }>,
   additionalCreateNewOption?: TCommandBarOptionObject,
-): Promise<{ index: number, keyModifiers: Array<string>, label: string, value: string }> {
+): Promise<{ index: number, keyModifiers: Array<string>, label?: string, ...TCommandBarOptionObject, text?: string, value?: string }> {
   logDebug('userInput / chooseOptionWithModifiersV2()', `About to showOptions with ${options.length} options & prompt: "${message}"`)
+
+  // label field is used elsewhere, but @eduardme made showOptions use text instead, so we map it back to label
+  if (Array.isArray(options) && options.length > 0 && options[0].label && !options[0].text) {
+    options.forEach((option, i) => {
+      options[i] = { ...option, text: option.label ?? option.text } // $FlowFixMe[incompatible-type]
+    })
+  }
 
   // Add the "Add new item" option at the start, if given
   const displayOptions = options.slice()
@@ -150,7 +157,9 @@ export async function chooseOptionWithModifiersV2(
   logDebug('userInput / chooseOptionWithModifiersV2()', `displayOptions: ${displayOptions.length} options`)
 
   // Use newer CommandBar.showOptions() from v3.18
-  const { index, keyModifiers } = await CommandBar.showOptions(displayOptions, message)
+  const result = await CommandBar.showOptions(displayOptions, message)
+  const { index, keyModifiers } = result
+  clo(result, `chooseOptionWithModifiersV2 chosen result (${typeof result})`)
 
   // Check if the user selected "Add new item"
   if (additionalCreateNewOption && index === 0) {
@@ -160,13 +169,14 @@ export async function chooseOptionWithModifiersV2(
       return {
         value: result,
         label: result,
+        text: result,
         index: -1, // -1 indicates a custom entry
         keyModifiers: keyModifiers || [],
       }
     }
   }
 
-  return { value: displayOptions[index].text ?? '', label: displayOptions[index].text ?? '', index, keyModifiers }
+  return { ...displayOptions[index], index, keyModifiers }
 }
 
 /**
