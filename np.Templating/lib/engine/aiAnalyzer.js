@@ -29,15 +29,30 @@ export async function analyzeErrorWithAI(
 ): Promise<string> {
   try {
     // Check if AI error analysis is disabled via frontmatter
-    if (renderData.frontmatter && renderData.frontmatter.disableAIErrorAnalysis) {
-      logDebug(pluginJson, `AI error analysis disabled via frontmatter setting: disableAIErrorAnalysis`)
+    const frontmatter = renderData.frontmatter || {}
+    const isAIDisabled = 
+      frontmatter.disableAI === true ||
+      frontmatter.noAI === true ||
+      frontmatter.skipAI === true ||
+      frontmatter.disableAIErrorAnalysis === true ||
+      frontmatter.disableAIErrorAnalysis === 'true'
+    
+    if (isAIDisabled) {
+      const disabledReason = 
+        frontmatter.disableAI === true ? 'disableAI: true' :
+        frontmatter.noAI === true ? 'noAI: true' :
+        frontmatter.skipAI === true ? 'skipAI: true' :
+        frontmatter.disableAIErrorAnalysis === true ? 'disableAIErrorAnalysis: true' :
+        frontmatter.disableAIErrorAnalysis === 'true' ? 'disableAIErrorAnalysis: "true"' : 'unknown'
+      
+      logDebug(pluginJson, `AI error analysis disabled via frontmatter setting: ${disabledReason}`)
 
       // Return basic error message without AI analysis
       let basicErrorMessage = '==**Templating Error Found**: Basic Error Information==\n\n'
       basicErrorMessage += `### Error Description:\n- ${originalError}\n\n`
       basicErrorMessage += `### What to do to fix the error(s):\n- Review the error message above and check your template syntax\n- Ensure all variables are defined before use\n- Check for proper opening and closing of template tags\n\n`
-      basicErrorMessage += `**Note:** AI error analysis has been disabled for this template via frontmatter setting.\n`
-      basicErrorMessage += `For detailed AI-powered error analysis, remove the \`disableAIErrorAnalysis: true\` setting from your template's frontmatter.\n\n`
+      basicErrorMessage += `**Note:** AI error analysis has been disabled for this template via frontmatter setting: \`${disabledReason}\`\n`
+      basicErrorMessage += `For detailed AI-powered error analysis, remove this setting from your template's frontmatter.\n\n`
 
       // Include problematic lines if we have them
       const problematicLines = extractProblematicLines(originalError, templateData, originalScript)

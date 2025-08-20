@@ -13,7 +13,7 @@ import { logError, logDebug, JSP, clo, overrideSettingsWithStringArgs, timer, lo
 import { getISOWeekAndYear, getISOWeekString, isValidCalendarNoteTitleStr } from '@helpers/dateTime'
 import { getNPWeekData } from '@helpers/NPdateTime'
 import { getNote } from '@helpers/note'
-import { chooseNote, chooseNoteV2 } from '@helpers/userInput'
+import { chooseNote } from '@helpers/userInput'
 import { getNoteTitleFromTemplate } from '@helpers/NPFrontMatter'
 
 import NPTemplating from '../lib/NPTemplating'
@@ -269,7 +269,7 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
         const createMissingHeading = true
         if (/<choose>/i.test(noteTitle) || /<select>/i.test(noteTitle)) {
           logDebug(pluginJson, `templateRunnerExecute Inside choose code`)
-          const chosenNote = await chooseNoteV2()
+          const chosenNote = await chooseNote()
           noteTitle = chosenNote?.title || ''
           if (!noteTitle?.length) {
             await showMessage("Selected note has no title and can't be used")

@@ -736,7 +736,7 @@ export function getErrorContextString(templateData: string, matchStr: string, or
     logDebug(pluginJson, `getErrorContextString: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
     return `**Error context error: templateData is not a string (${typeof templateData})**`
   }
-  
+
   const lines = templateData.split('\n')
 
   // Ensure the line number is valid
@@ -781,13 +781,14 @@ export function getErrorContextString(templateData: string, matchStr: string, or
  * @param {Object} [sessionData={}] - Data available during processing
  * @returns {Promise<{newTemplateData: string, newSettingData: Object}>} Processed template data, updated session data
  */
-export async function preProcessTags(templateData: string, sessionData?: {} = {}): Promise<{ newTemplateData: string, newSettingData: Object }> {
+export async function preProcessTags(_templateData: string, sessionData?: {} = {}): Promise<{ newTemplateData: string, newSettingData: Object }> {
   // Ensure templateData is a string
-  if (typeof templateData !== 'string') {
-    logDebug(pluginJson, `preProcessTags: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
-    templateData = String(templateData)
+  let templateData = _templateData
+  if (typeof _templateData !== 'string') {
+    logDebug(pluginJson, `preProcessTags: templateData is not a string: ${typeof _templateData} - ${String(_templateData).substring(0, 100)}`)
+    templateData = typeof _templateData === 'undefined' || _templateData === null ? '' : String(_templateData)
   }
-  
+
   // Initialize the processing context
   const context = {
     templateData: templateData || '',
@@ -893,7 +894,7 @@ export async function processFrontmatterTags(_templateData: string = '', userDat
     logDebug(pluginJson, `processFrontmatterTags: _templateData is not a string: ${typeof _templateData} - ${String(_templateData).substring(0, 100)}`)
     _templateData = String(_templateData)
   }
-  
+
   // Log the initial state
   logProgress('FRONTMATTER PROCESSING START', _templateData, userData)
 
@@ -931,7 +932,7 @@ export async function processFrontmatterTags(_templateData: string = '', userDat
     logDebug(pluginJson, `processFrontmatterTags: frontmatterBody is not a string: ${typeof frontmatterBody} - ${String(frontmatterBody).substring(0, 100)}`)
     safeFrontmatterBody = String(frontmatterBody)
   }
-  
+
   const result = { frontmatterBody: safeFrontmatterBody, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
   logProgress(`FRONTMATTER PROCESSING COMPLETE; keys: [${Object.keys(result.frontmatterAttributes).toString()}]`, safeFrontmatterBody, result.frontmatterAttributes)
 
@@ -1024,7 +1025,7 @@ export function validateTemplateTags(templateData: string): string | null {
     logDebug(pluginJson, `validateTemplateTags: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
     return `**Template validation error: templateData is not a string (${typeof templateData})**`
   }
-  
+
   const lines = templateData.split('\n')
   let openTags = 0
   let closeTags = 0
@@ -1286,7 +1287,7 @@ async function processFrontmatter(
     logDebug(pluginJson, `processFrontmatter: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
     templateData = String(templateData)
   }
-  
+
   const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
   if (!isFrontmatterTemplate) {
     return { templateData, sessionData }
@@ -1329,7 +1330,7 @@ async function processFrontmatter(
     logDebug(pluginJson, `processFrontmatter: frontmatterBody is not a string: ${typeof frontmatterBody} - ${String(frontmatterBody).substring(0, 100)}`)
     safeFrontmatterBody = String(frontmatterBody)
   }
-  
+
   return { templateData: safeFrontmatterBody, sessionData: newSessionData }
 }
 
@@ -1346,7 +1347,7 @@ async function processTemplatePrompts(templateData: string, sessionData: Object)
     logDebug(pluginJson, `processTemplatePrompts: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
     templateData = String(templateData)
   }
-  
+
   const promptData = await processPrompts(templateData, sessionData)
 
   if (promptData === false) {
@@ -1355,7 +1356,13 @@ async function processTemplatePrompts(templateData: string, sessionData: Object)
 
   // Ensure sessionTemplateData is a string
   if (typeof promptData.sessionTemplateData !== 'string') {
-    logDebug(pluginJson, `processTemplatePrompts: promptData.sessionTemplateData is not a string: ${typeof promptData.sessionTemplateData} - ${String(promptData.sessionTemplateData).substring(0, 100)}`)
+    logDebug(
+      pluginJson,
+      `processTemplatePrompts: promptData.sessionTemplateData is not a string: ${typeof promptData.sessionTemplateData} - ${String(promptData.sessionTemplateData).substring(
+        0,
+        100,
+      )}`,
+    )
     promptData.sessionTemplateData = String(promptData.sessionTemplateData)
   }
 

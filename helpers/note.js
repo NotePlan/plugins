@@ -176,7 +176,6 @@ export function getNoteLinkForDisplay(filename: string, dateStyle: string): stri
  * const note = await getNote('Snippets/Import Item', false, '@Templates');
  */
 export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | null, filePathStartsWith?: string): Promise<?TNote> {
-  if (typeof name !== 'string') throw `getNote was passed a ${typeof name} "${JSP(name)}". Cannot continue.`
   if (!name) {
     logDebug(`getNote: no name provided. Will open Editor by default.`)
     return Editor.note

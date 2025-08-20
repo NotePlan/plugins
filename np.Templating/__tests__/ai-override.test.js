@@ -62,13 +62,7 @@ describe('AI Error Analysis Override', () => {
         otherData: 'some value',
       }
 
-      const result = await analyzeErrorWithAI(
-        originalError,
-        templateData,
-        renderData,
-        originalScript,
-        previousPhaseErrors
-      )
+      const result = await analyzeErrorWithAI(originalError, templateData, renderData, originalScript, previousPhaseErrors)
 
       // Verify NotePlan.AI was not called
       expect(global.NotePlan.ai).not.toHaveBeenCalled()
@@ -93,13 +87,7 @@ describe('AI Error Analysis Override', () => {
         },
       }
 
-      const result = await analyzeErrorWithAI(
-        originalError,
-        templateData,
-        renderData,
-        originalScript,
-        previousPhaseErrors
-      )
+      const result = await analyzeErrorWithAI(originalError, templateData, renderData, originalScript, previousPhaseErrors)
 
       // Should include problematic lines section
       expect(result).toContain('**Problematic Lines from Original Script:**')
@@ -119,13 +107,7 @@ describe('AI Error Analysis Override', () => {
         },
       }
 
-      const result = await analyzeErrorWithAI(
-        originalError,
-        templateData,
-        renderData,
-        originalScript,
-        previousPhaseErrors
-      )
+      const result = await analyzeErrorWithAI(originalError, templateData, renderData, originalScript, previousPhaseErrors)
 
       // Should include error details section
       expect(result).toContain('**Error Details (for debugging):**')
@@ -150,21 +132,10 @@ describe('AI Error Analysis Override', () => {
         otherData: 'some value',
       }
 
-      const result = await analyzeErrorWithAI(
-        originalError,
-        templateData,
-        renderData,
-        originalScript,
-        previousPhaseErrors
-      )
+      const result = await analyzeErrorWithAI(originalError, templateData, renderData, originalScript, previousPhaseErrors)
 
       // Verify NotePlan.AI was called
-      expect(global.NotePlan.ai).toHaveBeenCalledWith(
-        expect.stringContaining('You are now an expert in EJS Templates'),
-        [],
-        false,
-        'gpt-4'
-      )
+      expect(global.NotePlan.ai).toHaveBeenCalledWith(expect.stringContaining('You are now an expert in EJS Templates'), [], false, 'gpt-4')
 
       // Verify the result contains AI analysis
       expect(result).toContain('==**Templating Error Found**: AI Analysis and Recommendations==')
@@ -184,13 +155,7 @@ describe('AI Error Analysis Override', () => {
         otherData: 'some value',
       }
 
-      const result = await analyzeErrorWithAI(
-        originalError,
-        templateData,
-        renderData,
-        originalScript,
-        previousPhaseErrors
-      )
+      const result = await analyzeErrorWithAI(originalError, templateData, renderData, originalScript, previousPhaseErrors)
 
       // Verify NotePlan.AI was called
       expect(global.NotePlan.ai).toHaveBeenCalled()
@@ -205,32 +170,52 @@ describe('AI Error Analysis Override', () => {
       const originalScript = '<% const test = undefinedVariable %>'
       const previousPhaseErrors = []
 
-      // Test with different field names that should NOT disable AI
+      // Test with different field names and their expected behaviors
       const testCases = [
-        { frontmatter: { disableAI: true } },
-        { frontmatter: { noAI: true } },
-        { frontmatter: { skipAI: true } },
-        { frontmatter: { disableAIErrorAnalysis: false } },
-        { frontmatter: { disableAIErrorAnalysis: 'true' } }, // string instead of boolean
+        {
+          frontmatter: { disableAI: true },
+          shouldCallAI: false,
+          description: 'disableAI: true should disable AI analysis',
+        },
+        {
+          frontmatter: { noAI: true },
+          shouldCallAI: false,
+          description: 'noAI: true should disable AI analysis',
+        },
+        {
+          frontmatter: { skipAI: true },
+          shouldCallAI: false,
+          description: 'skipAI: true should disable AI analysis',
+        },
+        {
+          frontmatter: { disableAIErrorAnalysis: false },
+          shouldCallAI: true,
+          description: 'disableAIErrorAnalysis: false should allow AI analysis',
+        },
+        {
+          frontmatter: { disableAIErrorAnalysis: 'true' },
+          shouldCallAI: false,
+          description: 'disableAIErrorAnalysis: "true" (string) should disable AI analysis',
+        },
       ]
 
       for (const testCase of testCases) {
         // Mock NotePlan.AI to return a response
         global.NotePlan.ai = jest.fn().mockResolvedValue('AI Analysis Result')
 
-        const result = await analyzeErrorWithAI(
-          originalError,
-          templateData,
-          testCase,
-          originalScript,
-          previousPhaseErrors
-        )
+        const result = await analyzeErrorWithAI(originalError, templateData, testCase, originalScript, previousPhaseErrors)
 
-        // Verify NotePlan.AI was called (AI analysis should proceed)
-        expect(global.NotePlan.ai).toHaveBeenCalled()
-
-        // Verify the result contains AI analysis
-        expect(result).toContain('==**Templating Error Found**: AI Analysis and Recommendations==')
+        if (testCase.shouldCallAI) {
+          // Verify NotePlan.AI was called when it should be
+          expect(global.NotePlan.ai).toHaveBeenCalled()
+          // Verify the result contains AI analysis
+          expect(result).toContain('==**Templating Error Found**: AI Analysis and Recommendations==')
+        } else {
+          // Verify NotePlan.AI was NOT called when it should be disabled
+          expect(global.NotePlan.ai).not.toHaveBeenCalled()
+          // Verify the result does NOT contain AI analysis
+          expect(result).not.toContain('==**Templating Error Found**: AI Analysis and Recommendations==')
+        }
 
         // Reset mock for next iteration
         jest.clearAllMocks()
