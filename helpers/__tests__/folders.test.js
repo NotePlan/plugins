@@ -540,3 +540,95 @@ describe('helpers/folders', () => {
     })
   })
 })
+
+describe('Folder View Helper Functions', () => {
+  const mockFolderYaml = {
+    views: [
+      '{"dataLevel":"tasks","folderPath":"@Searches","group_by":"note path","group_sort":"ASC","layout":"cards","name":"Search Cards","sort":{"direction":"ASC","field":"line number"}}',
+      '{"dataLevel":"tasks","folderPath":"@Searches","group_by":"note path","group_sort":"ASC","isSelected":true,"layout":"list","name":"Search List","sort":{"direction":"ASC","field":"line number"}}',
+      '{"dataLevel":"notes","fields":["date"],"folderPath":"@Saved Searches","group_by":"note path","group_sort":"ASC","isSelected":true,"layout":"list","name":"View","sort":{"direction":"ASC","field":"line number"}}',
+      '{"dataLevel":"notes","fields":["dateEdited"],"fixedGroups":{},"folderPath":"CTI","group_by":"folder","group_sort":"ASC","isSelected":true,"layout":"cards","name":"View"}',
+      '{"dataLevel":"notes","fields":["dateEdited"],"folderPath":"Work","group_by":"folder","group_sort":"ASC","isSelected":true,"layout":"list","name":"Work View"}',
+      '{"dataLevel":"notes","fields":["dateEdited"],"folderPath":"Daily","group_by":"folder","group_sort":"ASC","isSelected":true,"layout":"list","name":"Daily View"}'
+    ]
+  }
+
+  describe('organizeFolderViews', () => {
+    it('should organize folder views correctly', () => {
+      const result = f.organizeFolderViews(mockFolderYaml)
+      
+      expect(result).toHaveProperty('@Searches')
+      expect(result).toHaveProperty('Work')
+      expect(result).toHaveProperty('Daily')
+      
+      // Should not include folders with only default "View" names
+      expect(result).not.toHaveProperty('@Saved Searches')
+      expect(result).not.toHaveProperty('CTI')
+      
+      // Check that named views are properly parsed
+      expect(result['@Searches']).toHaveLength(2)
+      expect(result['@Searches'][0].name).toBe('Search Cards')
+      expect(result['@Searches'][1].name).toBe('Search List')
+      
+      expect(result['Work']).toHaveLength(1)
+      expect(result['Work'][0].name).toBe('Work View')
+    })
+  })
+
+  describe('getFoldersWithNamedViews', () => {
+    it('should return list of folders with named views', () => {
+      const result = f.getFoldersWithNamedViews(mockFolderYaml)
+      
+      expect(result).toContain('@Searches')
+      expect(result).toContain('Work')
+      expect(result).toContain('Daily')
+      expect(result).not.toContain('@Saved Searches')
+      expect(result).not.toContain('CTI')
+    })
+  })
+
+  describe('getNamedViewsForFolder', () => {
+    it('should return named views for a specific folder', () => {
+      const result = f.getNamedViewsForFolder(mockFolderYaml, '@Searches')
+      
+      expect(result).toHaveLength(2)
+      expect(result[0].name).toBe('Search Cards')
+      expect(result[0].layout).toBe('cards')
+      expect(result[1].name).toBe('Search List')
+      expect(result[1].layout).toBe('list')
+    })
+
+    it('should return empty array for folder with no named views', () => {
+      const result = f.getNamedViewsForFolder(mockFolderYaml, 'CTI')
+      expect(result).toHaveLength(0)
+    })
+  })
+
+  describe('getNamedView', () => {
+    it('should return specific named view', () => {
+      const result = f.getNamedView(mockFolderYaml, '@Searches', 'Search Cards')
+      
+      expect(result).toBeTruthy()
+      expect(result.name).toBe('Search Cards')
+      expect(result.layout).toBe('cards')
+      expect(result.dataLevel).toBe('tasks')
+    })
+
+    it('should return null for non-existent view', () => {
+      const result = f.getNamedView(mockFolderYaml, '@Searches', 'Non Existent')
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('getNamedViewsByDataLevel', () => {
+    it('should organize views by data level', () => {
+      const result = f.getNamedViewsByDataLevel(mockFolderYaml)
+      
+      expect(result).toHaveProperty('tasks')
+      expect(result).toHaveProperty('notes')
+      
+      expect(result.tasks).toHaveLength(2) // Search Cards and Search List
+      expect(result.notes).toHaveLength(2) // Work View and Daily View
+    })
+  })
+})

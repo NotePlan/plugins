@@ -7,14 +7,16 @@ TODO: new search?text=noteplan or search?filter=Upcoming
 TODO: add back button to return to previous step (@qualitativeeasing)
 TODO: maybe create choosers based on arguments text
 */
-
-import { log, logError, logDebug, JSP } from '../../helpers/dev'
+import yaml from 'yaml'
+import { log, logError, logDebug, JSP, clo, timer } from '../../helpers/dev'
 import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl } from '../../helpers/general'
 import pluginJson from '../plugin.json'
 import { getXcallbackForTemplate } from './NPTemplateRunner'
+import { openFolderView } from './NPOpenFolders'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
 import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput, getInputTrimmed } from '@helpers/userInput'
 import { getSelectedParagraph } from '@helpers/NPParagraph'
+
 // import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 
 // https://help.noteplan.co/article/49-x-callback-url-scheme#addnote
@@ -298,7 +300,7 @@ export async function headingLink() {
  */
 export async function xCallbackWizard(_commandType: ?string = '', passBackResults?: boolean = false): Promise<string | void> {
   try {
-    let url = '',
+    let url: string | false = '',
       canceled = false
     let commandType
     if (_commandType) {
@@ -309,6 +311,7 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         { label: 'OPEN a note or folder', value: 'openNote' },
         { label: 'NEW NOTE with title and text', value: 'addNote' },
         { label: 'ADD text to a note', value: 'addText' },
+        { label: 'OPEN FOLDER View', value: 'openFolderView' },
         { label: 'FILTER Notes by Preset', value: 'filter' },
         { label: 'SEARCH for text in notes', value: 'search' },
         { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
@@ -360,6 +363,7 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         } else {
           return
         }
+        break
       case 'runTemplate':
         url = await getXcallbackForTemplate()
         break
@@ -374,13 +378,19 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
           return
         }
         break
+      case 'openFolderView':
+        url = await openFolderView()
+        if (!url) {
+          showMessage(`No view name or folder selected. Please try again.`, 'OK', 'No View Selected')
+        }
+        break
       default:
         showMessage(`${commandType}: This type is not yet available in this plugin`, 'OK', 'Sorry!')
         break
     }
     if (url === false) canceled = true // user hit cancel on one of the input prompts
 
-    if (!canceled && typeof url === 'string') {
+    if (!canceled && typeof url === 'string' && url) {
       if (passBackResults) return url
       if (commandType === 'headingLink') {
         return url // copied to clipboard already

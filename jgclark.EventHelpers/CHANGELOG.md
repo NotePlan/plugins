@@ -2,6 +2,12 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.22.2] - 2025-08-19 @jgclark
+- add 'add computed final date' setting for '/process date offsets' command. (Previously it always added a final computed date to the relevant section heading. Now this can be turned off.)
+
+## [0.22.1] - 2025-01-03
+- improve setting defaults and documentation.
+
 ## [0.22.0] - 2024-09-06 @jgclark
 - can now use `events()` and `matchingEvents()` calls from Templates running on Weekly notes and other non-daily Calendar notes (for @gdrn).
 - refactored documentation.

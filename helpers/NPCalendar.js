@@ -20,7 +20,6 @@ import {
   getDateFromYYYYMMDDString,
   getISODateStringFromYYYYMMDD,
   type HourMinObj,
-  // printDateRange,
   RE_ISO_DATE,
   RE_BARE_WEEKLY_DATE,
   todaysDateISOString,
@@ -59,7 +58,8 @@ export type EventsConfig = {
   removeDoneDates: boolean,
   uncompleteTasks: boolean,
   removeProcessedTagName: boolean,
-  meetingTemplateTitle: string
+  meetingTemplateTitle: string,
+  addComputedFinalDate: boolean
 }
 
 // ----------------------------------------------------------------------
@@ -126,8 +126,8 @@ export async function checkOrGetCalendar(calendarName: string, forceUserToChoose
 }
 
 /**
- * Go through current Editor note, identify time blocks to turn into events,
- * and then add them as events.
+ * Go through current Editor note, identify time blocks to turn into events, and then add them as events.
+ * 
  * @param {EventsConfig} config - the configuration for the timeblocks and event creation
  * @param {TNote|TEditor} note - the note to scan for time blocks
  * @param {boolean} showLoadingProgress -- show progress counter while adding events (default: false)
@@ -223,8 +223,12 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
             // Strip out time + date (if present) from the timeblock line,
             // as we don't want those to go into the calendar event itself (=restOfTask).
             // But also keep a version with date (if present) as we don't want to lose that from the task itself.
+            // Note: now also remove the NP DataStore.preference("timeblockTextMustContainString") if specified.
+            const mustContainString = String(DataStore.preference('timeblockTextMustContainString') ?? '')
+            logDebug('NPCalendar / writeTimeBlocksToCalendar', `- Removing mustContainString '${mustContainString}' from time block string`)
+
             const restOfTaskWithoutTimeBlock = thisPara.content
-              .replace(origTimeBlockString, '')
+              .replace(`${mustContainString} ${origTimeBlockString}`, '')
               .replace(/\s{2,}/g, ' ')
               .trimEnd() // take off timeblock
             const restOfTaskWithoutDateTime = removeDateTagsAndToday(restOfTaskWithoutTimeBlock)

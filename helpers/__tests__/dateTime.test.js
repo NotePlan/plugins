@@ -98,8 +98,8 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
-    * findOverdueDatesInString()
-    */
+   * findOverdueDatesInString()
+   */
   describe('findOverdueDatesInString()' /* function */, () => {
     test('should find no date in line with no overdue', () => {
       const result = dt.findOverdueDatesInString('>2922-01-01')
@@ -189,8 +189,8 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
- * isDailyDateStr()
- */
+   * isDailyDateStr()
+   */
   describe('isDailyDateStr()', () => {
     test('false for empty string', () => {
       const result = dt.isDailyDateStr('')
@@ -219,8 +219,8 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
- * isYearlyDateStr()
- */
+   * isYearlyDateStr()
+   */
   describe('isYearlyDateStr()', () => {
     test('should find a bare Year', () => {
       const result = dt.isYearlyDateStr('2022')
@@ -1050,10 +1050,12 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = dt.getDateStringFromCalendarFilename('2022-.md')
       expect(result).toEqual('(invalid date)')
     })
+    // FIXME: "/2025042"
     test('should return valid date for teamspace daily calendar filename', () => {
       const result = dt.getDateStringFromCalendarFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
       expect(result).toEqual('20250422')
     })
+    // FIXME: "/2025-W0"
     test('should return valid date for teamspace weekly calendar filename', () => {
       const result = dt.getDateStringFromCalendarFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-W01.txt')
       expect(result).toEqual('2025-W01')

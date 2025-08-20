@@ -2,9 +2,9 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets and Shifts
 // @jgclark
-// Last updated 13.2.2024 for v0.21.2+, by @jgclark
+// Last updated 2025-08-19 for v0.22.2, by @jgclark
 // ----------------------------------------------------------------------------
-// TODO:
+// Potential TODO:
 // * [Allow other date styles in /process date offsets](https://github.com/NotePlan/plugins/issues/221) from Feb 2021 -- but much harder than it looks.
 // * Also allow other date styles in /shift? -- as above
 
@@ -15,19 +15,14 @@ import {
   calcOffsetDateStr,
   RE_BARE_DATE_CAPTURE,
   RE_BARE_DATE,
-  // RE_BARE_WEEKLY_DATE,
-  // RE_BARE_WEEKLY_DATE_CAPTURE,
   RE_DATE_INTERVAL,
   RE_DONE_DATE_OPT_TIME,
   RE_ISO_DATE,
   RE_NP_WEEK_SPEC,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
-  splitIntervalToParts,
-  // toISODateString,
-  // toLocaleDateString,
+  // splitIntervalToParts,
 } from '@helpers/dateTime'
-// import { getNPWeekData } from '@helpers/NPdateTime'
 import { clo, log, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
@@ -81,7 +76,7 @@ export async function shiftDates(): Promise<void> {
       await showMessage(`Sorry, that was not a valid date interval.`)
       return
     }
-    const intervalParts = splitIntervalToParts(interval)
+    // const intervalParts = splitIntervalToParts(interval)
 
     // Main loop
     let updatedCount = 0
@@ -196,10 +191,9 @@ export async function shiftDates(): Promise<void> {
  * - {-Nw} subtract N weeks
  * - {^Nb} add on N business days relative to the last calculated offset date.
  * Offset units can be 'b'usiness day, 'w'eek, 'm'onth, 'q'uarter or 'y'ear.
- * If the {^Nx} type is used, then it will attempt to add the final calculated
- * offset date after the 'pivot date'.
- * Offsets apply within a contiguous section; a section is considered ended when
- * a line has a lower indent or heading level, or is a blank line or separator line.
+ * If the {^Nx} type is used, then it will attempt to add the final calculated offset date after the 'pivot date'.
+ * Offsets apply within a contiguous section; a section is considered ended when a line has a lower indent or heading level, or is a blank line or separator line.
+ * If the 'addComputedFinalDate' setting is true, then the final date will be added to the end of the section heading, if present.
  *
  * @author @jgclark
  */
@@ -229,8 +223,7 @@ export async function processDateOffsets(): Promise<void> {
     let numFoundTimeblocks = 0
     const endOfActive = findEndOfActivePartOfNote(note)
 
-    // Look through this open note to find data offsets
-    // which can look like timeblocks
+    // Look through this open note to find date offsets
     const dateOffsetParas = paragraphs.filter((p) => p.content.match(RE_DATE_INTERVAL) && p.lineIndex < endOfActive)
     if (dateOffsetParas.length > 0) {
       logDebug(pluginJson, `Found ${dateOffsetParas.length} date offsets in '${noteTitle}'`)
@@ -261,8 +254,8 @@ export async function processDateOffsets(): Promise<void> {
           if (currentTargetDate !== '') {
             logDebug('processDateOffsets', `- Cleared CTD`)
 
-            // If we had a current target date, and want to add addFinalDate, do so
-            if (lastCalcDate !== '' && currentTargetDateLine > 0) {
+            // If we had a current target date, and want to add the computed final date, do so
+            if (config.addComputedFinalDate &&lastCalcDate !== '' && currentTargetDateLine > 0) {
               paragraphs[currentTargetDateLine].content = `${paragraphs[currentTargetDateLine].content} to ${lastCalcDate}`
               note.updateParagraph(paragraphs[currentTargetDateLine])
             }
@@ -328,10 +321,11 @@ export async function processDateOffsets(): Promise<void> {
               lastCalcDate = calcDate
               // Continue, and replace offset with the new calcDate
               // Remove the offset text (e.g. {-3d}) by finding first '{' and '}' characters in the line
-              const labelStart = content.indexOf('{')
-              const labelEnd = content.indexOf('}')
-              // Create new version with inserted date
-              content = `${content.slice(0, labelStart)} >${calcDate} ${content.slice(labelEnd + 1)}` // also trim off trailing whitespace
+              // const labelStart = content.indexOf('{')
+              // const labelEnd = content.indexOf('}')
+              // content = `${content.slice(0, labelStart)} >${calcDate} ${content.slice(labelEnd + 1)}`
+              content = content.replace(`{${dateOffsetString}}`, ` >${calcDate} `)
+              // now trim off any trailing whitespace
               paragraphs[n].content = content.trimEnd()
               note.updateParagraph(paragraphs[n])
               logDebug('processDateOffsets', `    -> '${content.trimEnd()}'`)
@@ -341,7 +335,7 @@ export async function processDateOffsets(): Promise<void> {
           }
         }
         n += 1
-      } // loop over lines
+      }
 
       // If we've noticed any time blocks, offer to run timeblocks creation command
       if (numFoundTimeblocks > 0) {

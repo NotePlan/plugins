@@ -9,9 +9,7 @@ import json5 from 'json5'
 import moment from 'moment/min/moment-with-locales'
 import { getDateStringFromCalendarFilename, RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
-import {
-  getFoldersMatching, getFolderDisplayName, getFolderFromFilename
-} from './folders'
+import { getFoldersMatching, getFolderDisplayName, getFolderFromFilename } from './folders'
 import { getRelativeDates } from './NPdateTime'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
 import { calendarNotesSortedByChanged } from './note'
@@ -135,24 +133,33 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
  * @param {Array<TCommandBarOptionObject>} options - array of options to display
  * @param {boolean} allowCreate - add an option to create a new item (default: false)
  * @returns {Promise<{value: T, label: string, index: number, keyModifiers: Array<string>}>} - Promise resolving to the result
- * see CommandBar.showOptions for more info
+ * Sends back the object that was chosen, plus an index of the chosen option and keyModifiers array
  */
 export async function chooseOptionWithModifiersV2(
   message: string,
-  options: Array<TCommandBarOptionObject>,
-  additionalCreateNewOption?: TCommandBarOptionObject
-): Promise<{ index: number, keyModifiers: Array<string>, label: string, value: string }> {
-  logDebug('userInput / chooseOptionWithModifiersV2()', `About to showOptions with ${ options.length } options & prompt: "${message}"`)
+  options: Array<{ ...TCommandBarOptionObject, label?: string }>,
+  additionalCreateNewOption?: TCommandBarOptionObject,
+): Promise<{ index: number, keyModifiers: Array<string>, label?: string, ...TCommandBarOptionObject, text?: string, value?: string }> {
+  logDebug('userInput / chooseOptionWithModifiersV2()', `About to showOptions with ${options.length} options & prompt: "${message}"`)
+
+  // label field is used elsewhere, but @eduardme made showOptions use text instead, so we map it back to label
+  if (Array.isArray(options) && options.length > 0 && options[0].label && !options[0].text) {
+    options.forEach((option, i) => {
+      options[i] = { ...option, text: option.label ?? option.text } // $FlowFixMe[incompatible-type]
+    })
+  }
 
   // Add the "Add new item" option at the start, if given
   const displayOptions = options.slice()
   if (additionalCreateNewOption) {
     displayOptions.unshift(additionalCreateNewOption)
   }
-  logDebug('userInput / chooseOptionWithModifiersV2()', `displayOptions: ${ displayOptions.length } options`)
+  logDebug('userInput / chooseOptionWithModifiersV2()', `displayOptions: ${displayOptions.length} options`)
 
   // Use newer CommandBar.showOptions() from v3.18
-  const { index, keyModifiers } = await CommandBar.showOptions(displayOptions, message)
+  const result = await CommandBar.showOptions(displayOptions, message)
+  const { index, keyModifiers } = result
+  clo(result, `chooseOptionWithModifiersV2 chosen result (${typeof result})`)
 
   // Check if the user selected "Add new item"
   if (additionalCreateNewOption && index === 0) {
@@ -162,13 +169,14 @@ export async function chooseOptionWithModifiersV2(
       return {
         value: result,
         label: result,
+        text: result,
         index: -1, // -1 indicates a custom entry
         keyModifiers: keyModifiers || [],
       }
     }
   }
 
-  return { value: displayOptions[index].text ?? '', label: displayOptions[index].text ?? '', index, keyModifiers }
+  return { ...displayOptions[index], index, keyModifiers }
 }
 
 /**
@@ -315,14 +323,14 @@ export async function chooseFolder(
 ): Promise<string> {
   try {
     const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
-    const NEW_FOLDER = `➕ New Folder${ IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : '' }`
+    const NEW_FOLDER = `➕ New Folder${IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : ''}`
     const teamspaceDefs = getAllTeamspaceIDsAndTitles()
-    const addNewFolderOption:TCommandBarOptionObject = { 
-      text: NEW_FOLDER, 
-      icon: 'folder-plus', 
-      color: 'orange-500', 
-      shortDescription: 'Add new', 
-      alpha: 0.5, 
+    const addNewFolderOption: TCommandBarOptionObject = {
+      text: NEW_FOLDER,
+      icon: 'folder-plus',
+      color: 'orange-500',
+      shortDescription: 'Add new',
+      alpha: 0.5,
       darkAlpha: 0.5,
     }
     logDebug('userInput / createFolder', `creating with folder path, starting at "${startFolder}"`)
@@ -333,7 +341,7 @@ export async function chooseFolder(
     // V2
     // Get all folders, excluding the Trash, and only includes folders that match the startFolder (if given)
     const folderInclusions = startFolder !== '/' ? [startFolder] : []
-    const allFolders = getFoldersMatching(folderInclusions, false, []) 
+    const allFolders = getFoldersMatching(folderInclusions, false, [])
 
     // Filter and order the list of folders
     // TODO: can be simplified, as more work is being done in getFoldersMatching() above
@@ -374,7 +382,7 @@ export async function chooseFolder(
 
       logDebug(
         `userInput / chooseFolder`,
-        `chooseFolder folder:${ folder } value:${ value } keyModifiers:${ String(keyModifiers) } keyModifiers.indexOf('opt') = ${ keyModifiers.indexOf('opt') } `,
+        `chooseFolder folder:${folder} value:${value} keyModifiers:${String(keyModifiers)} keyModifiers.indexOf('opt') = ${keyModifiers.indexOf('opt')} `,
       )
     } else {
       // no Folders so just choose root
@@ -404,13 +412,13 @@ export async function chooseFolder(
  * @param {Array} teamspaceDefs - teamspace definitions
  * @param {boolean} includeFolderPath - whether to show full path
  * @param {string} newFolderText - text for new folder option
- * 
+ *
  * @returns {Array<{ label: string, value: string }> | Array<TCommandBarOptionObject>} formatted folder options
  */
 function createFolderOptions(
-  folders: Array<string>, 
-  teamspaceDefs: Array<TTeamspace>, 
-  includeFolderPath: boolean, 
+  folders: Array<string>,
+  teamspaceDefs: Array<TTeamspace>,
+  includeFolderPath: boolean,
   newFolderText: string,
 ): [Array<{ label: string, value: string }>, Array<TCommandBarOptionObject>] {
   const simpleOptions: Array<{ label: string, value: string }> = []
@@ -454,11 +462,7 @@ function createFolderOptions(
  * @param {Array} teamspaceDefs - teamspace definitions
  * @returns {[string, TCommandBarOptionObject]} simple and decorated version of the folder label
  */
-function createFolderRepresentation(
-  folder: string, 
-  includeFolderPath: boolean, 
-  teamspaceDefs: Array<TTeamspace>
-): [string, TCommandBarOptionObject] {
+export function createFolderRepresentation(folder: string, includeFolderPath: boolean, teamspaceDefs: Array<TTeamspace>): [string, TCommandBarOptionObject] {
   // logDebug('userInput / createFolderRepresentation', `- folder: ${folder}`)
   const INDENT_SPACES = '     ' // to use for indentation of folders that are not the root folder, when includeFolderPath is false
   const FOLDER_PATH_MAX_LENGTH = 50 // OK on desktop and iOS, at least for @jgclark
@@ -471,7 +475,7 @@ function createFolderRepresentation(
     text: '',
     shortDescription: '',
   }
-  
+
   let simpleIcon = '📁'
   if (folderParts[0] === '@Archive') {
     simpleIcon = '🗄️'
@@ -488,32 +492,32 @@ function createFolderRepresentation(
     const teamspaceDetails = parseTeamspaceFilename(folder)
     // logDebug('userInput / createFolderRepresentation', `teamspaceDef: ${ JSON.stringify(thisTeamspaceDef) } from '${folder}' / filepath:${ teamspaceDetails.filepath } / includeFolderPath:${ String(includeFolderPath) }`)
     if (teamspaceDetails.filepath === '/') {
-      simpleOption = `👥 ${ teamspaceTitle }`
+      simpleOption = `👥 ${teamspaceTitle}`
       decoratedOption.color = 'green-600'
       decoratedOption.text = '/'
       decoratedOption.shortDescription = teamspaceTitle
       decoratedOption.alpha = 0.6
       decoratedOption.darkAlpha = 0.6
     } else {
-    if (includeFolderPath) {
-      simpleOption = `👥 ${ teamspaceTitle } / ${folderParts.slice(2).join(' / ')}`
-decoratedOption.color = 'green-600'
-decoratedOption.text = folderParts.slice(2).join(' / ')
-decoratedOption.shortDescription = teamspaceTitle
-decoratedOption.alpha = 0.6
-decoratedOption.darkAlpha = 0.6
-    } else {
-  simpleOption = `${simpleIcon} ${folderParts.slice(2).join(' / ')}`
-  decoratedOption.color = 'green-600'
-  decoratedOption.text = folderParts.slice(2).join(' / ')
-  decoratedOption.shortDescription = teamspaceTitle
-  decoratedOption.alpha = 0.6
-  decoratedOption.darkAlpha = 0.6
-}
+      if (includeFolderPath) {
+        simpleOption = `👥 ${teamspaceTitle} / ${folderParts.slice(2).join(' / ')}`
+        decoratedOption.color = 'green-600'
+        decoratedOption.text = folderParts.slice(2).join(' / ')
+        decoratedOption.shortDescription = teamspaceTitle
+        decoratedOption.alpha = 0.6
+        decoratedOption.darkAlpha = 0.6
+      } else {
+        simpleOption = `${simpleIcon} ${folderParts.slice(2).join(' / ')}`
+        decoratedOption.color = 'green-600'
+        decoratedOption.text = folderParts.slice(2).join(' / ')
+        decoratedOption.shortDescription = teamspaceTitle
+        decoratedOption.alpha = 0.6
+        decoratedOption.darkAlpha = 0.6
+      }
     }
     // logDebug('userInput / createFolderRepresentation', `→ teamspaceDef: ${ JSON.stringify(decoratedOption) } `)
   } else if (includeFolderPath) {
-// Get the folder path prefix, and truncate it if it's too long
+    // Get the folder path prefix, and truncate it if it's too long
     if (folder.length >= FOLDER_PATH_MAX_LENGTH) {
       const folderPathPrefix = `${folder.slice(0, FOLDER_PATH_MAX_LENGTH - folderParts[folderParts.length - 1].length)} …${folderParts[folderParts.length - 1]} `
       simpleOption = `${simpleIcon} ${folderPathPrefix} `
@@ -531,7 +535,7 @@ decoratedOption.darkAlpha = 0.6
     simpleOption = `${indentedParts.join('')}${simpleIcon} ${indentedParts[indentedParts.length - 1]}`
     decoratedOption.text = indentedParts.join('')
   }
-return [simpleOption, decoratedOption]
+  return [simpleOption, decoratedOption]
 }
 
 /**
@@ -583,7 +587,6 @@ async function handleNewFolderCreation(value: string, keyModifiers: Array<string
         optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder ? (${startFolder} for root)`, includeArchive, false, startFolder)
       if (inWhichFolder) {
         newFolderName = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
-
       }
       DataStore.createFolder(newFolderName)
       logInfo('userInput / handleNewFolderCreation', `New folder created: "${newFolderName}"`)
@@ -623,7 +626,7 @@ export async function chooseHeading(
     // Present heading options to user and ask for choice
     const result = await CommandBar.showOptions(headingStrings, `Select a heading from note '${note.title ?? 'Untitled'}'`)
 
-    // Get the underlying heading back by removing added # marks and trimming left. 
+    // Get the underlying heading back by removing added # marks and trimming left.
     // Note: We don't trim right as there can be valid trailing spaces.
     let headingToReturn = headingStrings[result.index].replace(/^#{1,5}\s*/, '').trimLeft()
     headingToReturn = await processChosenHeading(note, headingToReturn, headingLevel)
@@ -677,7 +680,7 @@ export async function chooseHeadingV2(
     // Now add any wanted new heading options (borrowing logic from getHeadingsFromNote())
     if (optionCreateNewHeading) {
       headingOptions.unshift({
-        text: (note.type === 'Calendar') ? '(insert new heading at the start of the note)' : '(insert new heading under the title)',
+        text: note.type === 'Calendar' ? '(insert new heading at the start of the note)' : '(insert new heading under the title)',
         icon: 'h' + String(headingLevel),
         shortDescription: 'Add new',
         color: 'orange-500',
@@ -715,7 +718,7 @@ export async function chooseHeadingV2(
     // Present heading options to user and ask for choice
     const result = await CommandBar.showOptions(headingOptions, `Select a heading from note '${note.title ?? 'Untitled'}'`)
 
-    // Get the underlying heading back by removing added # marks and trimming left. 
+    // Get the underlying heading back by removing added # marks and trimming left.
     // Note: We don't trim right as there can be valid trailing spaces.
     let headingToReturn = headingOptions[result.index].text.replace(/^#{1,5}\s*/, '').trimLeft()
     headingToReturn = await processChosenHeading(note, headingToReturn, headingLevel)
@@ -734,11 +737,7 @@ export async function chooseHeadingV2(
  * @param {number?} headingLevel - The level of the heading to add (1-5) where requested. If not given, will default to 2.
  * @returns {string} headingToReturn - The heading to return, or one of the special instruction strings <<top of note>>, <<bottom of note>>.
  */
-export async function processChosenHeading(
-  note: TNote,
-  chosenHeading: string,
-  headingLevel: number = 2,
-): Promise<string> {
+export async function processChosenHeading(note: TNote, chosenHeading: string, headingLevel: number = 2): Promise<string> {
   if (chosenHeading === '') {
     throw new Error('No heading passed to processChosenHeading(). Stopping.')
   }
