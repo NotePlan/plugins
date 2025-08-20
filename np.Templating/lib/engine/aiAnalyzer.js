@@ -30,21 +30,27 @@ export async function analyzeErrorWithAI(
   try {
     // Check if AI error analysis is disabled via frontmatter
     const frontmatter = renderData.frontmatter || {}
-    const isAIDisabled = 
+    const isAIDisabled =
       frontmatter.disableAI === true ||
       frontmatter.noAI === true ||
       frontmatter.skipAI === true ||
       frontmatter.disableAIErrorAnalysis === true ||
       frontmatter.disableAIErrorAnalysis === 'true'
-    
+
     if (isAIDisabled) {
-      const disabledReason = 
-        frontmatter.disableAI === true ? 'disableAI: true' :
-        frontmatter.noAI === true ? 'noAI: true' :
-        frontmatter.skipAI === true ? 'skipAI: true' :
-        frontmatter.disableAIErrorAnalysis === true ? 'disableAIErrorAnalysis: true' :
-        frontmatter.disableAIErrorAnalysis === 'true' ? 'disableAIErrorAnalysis: "true"' : 'unknown'
-      
+      const disabledReason =
+        frontmatter.disableAI === true
+          ? 'disableAI: true'
+          : frontmatter.noAI === true
+          ? 'noAI: true'
+          : frontmatter.skipAI === true
+          ? 'skipAI: true'
+          : frontmatter.disableAIErrorAnalysis === true
+          ? 'disableAIErrorAnalysis: true'
+          : frontmatter.disableAIErrorAnalysis === 'true'
+          ? 'disableAIErrorAnalysis: "true"'
+          : 'unknown'
+
       logDebug(pluginJson, `AI error analysis disabled via frontmatter setting: ${disabledReason}`)
 
       // Return basic error message without AI analysis
@@ -64,6 +70,7 @@ export async function analyzeErrorWithAI(
       basicErrorMessage += '**Error Details (for debugging):**\n'
       basicErrorMessage += `Original Error: ${originalError}\n`
       basicErrorMessage += `Template Data: ${templateData ? templateData.substring(0, 200) : ''}${templateData ? (templateData.length > 200 ? '...' : '') : ''}\n`
+      basicErrorMessage += `For more help, visit: [Templating Help/Support](https://noteplan.co/templates/docs/getting-started/help-creating-templates)\n`
 
       return basicErrorMessage
     }
@@ -273,7 +280,7 @@ function formatAIAnalysisResult(aiAnalysis: string, originalError: string, templ
   if (problematicLines && problematicLines.trim() && problematicLines !== 'No original script available') {
     formattedResult += `\n\n**Problematic Lines from Original Script:**\n\`\`\`\n${problematicLines}\n\`\`\`\n`
   }
-
+  formattedResult += `\n\nFor more help, visit: [Templating Help/Support](https://noteplan.co/templates/docs/getting-started/help-creating-templates)`
   formattedResult += '\n---\n'
   return formattedResult
 }

@@ -96,6 +96,15 @@ export async function templateInit(): Promise<void> {
   }
 }
 
+export async function templatingHelp(): Promise<void> {
+  try {
+    await NotePlan.openURL('https://noteplan.co/templates/docs/getting-started/help-creating-templates')
+    await showMessage(`Templating Help/Support page should be open in your default web browser`, 'OK', 'Help/Support')
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
 export async function templateInsert(templateName: string = ''): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {

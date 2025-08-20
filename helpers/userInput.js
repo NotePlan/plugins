@@ -158,7 +158,7 @@ export async function chooseOptionWithModifiersV2(
 
   // Use newer CommandBar.showOptions() from v3.18
   const result = await CommandBar.showOptions(displayOptions, message)
-  const { index, keyModifiers } = result
+  const { index, keyModifiers, value } = result
   clo(result, `chooseOptionWithModifiersV2 chosen result (${typeof result})`)
 
   // Check if the user selected "Add new item"
@@ -176,7 +176,7 @@ export async function chooseOptionWithModifiersV2(
     }
   }
 
-  return { ...displayOptions[index], index, keyModifiers }
+  return { ...displayOptions[index], index, keyModifiers, value }
 }
 
 /**
@@ -359,15 +359,10 @@ export async function chooseFolder(
 
       // Get user selection
       if (NotePlan.environment.buildVersion >= 1413) {
-        if (includeNewFolderOption) {
-          const result = await chooseOptionWithModifiersV2(msg, decoratedFolderOptions, addNewFolderOption)
-          value = result.value
-          keyModifiers = result.keyModifiers || []
-        } else {
-          const result = await chooseOptionWithModifiersV2(msg, decoratedFolderOptions)
-          value = result.value
-          keyModifiers = result.keyModifiers || []
-        }
+        const result = await chooseOptionWithModifiersV2(msg, decoratedFolderOptions, addNewFolderOption)
+        clo(result, 'chooseFolder chooseOptionWithModifiersV2 result')
+        value = result?.value || ''
+        keyModifiers = result.keyModifiers || []
       } else {
         const result = await chooseOptionWithModifiers(msg, simpleFolderOptions, includeNewFolderOption)
         value = result.value

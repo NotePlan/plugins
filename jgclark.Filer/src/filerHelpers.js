@@ -5,7 +5,7 @@
 // last updated 9.6.2024, for v1.1.0+
 // ----------------------------------------------------------------------------
 
-import pluginJson from "../plugin.json"
+import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError } from '@helpers/dev'
 // import { getSetting } from '@helpers/NPConfiguration'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
@@ -73,7 +73,7 @@ export function addParasAsText(
   selectedParasAsText: string,
   headingToFind: string,
   whereToAddInSection: string,
-  allowNotePreambleBeforeHeading: boolean
+  allowNotePreambleBeforeHeading: boolean,
 ): void {
   const destinationNoteParas = destinationNote.paragraphs
   let insertionIndex: number
@@ -81,22 +81,19 @@ export function addParasAsText(
     // i.e. the first line in project or calendar note
     insertionIndex = findStartOfActivePartOfNote(destinationNote, allowNotePreambleBeforeHeading)
     logDebug(pluginJson, `-> top of note, line ${insertionIndex}`)
+    clo(selectedParasAsText, 'addParasAsText selectedParasAsText')
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
-
   } else if (headingToFind === '<<bottom of note>>' || headingToFind === '') {
     // blank return from chooseHeading has special meaning of 'end of note'
     insertionIndex = destinationNoteParas.length + 1 || 0
     logDebug(pluginJson, `-> bottom of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
-
   } else if (whereToAddInSection === 'start') {
     logDebug(pluginJson, `-> Inserting at start of section '${headingToFind}'`)
     destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, false, false)
-
   } else if (whereToAddInSection === 'end') {
     logDebug(pluginJson, `-> Inserting at end of section '${headingToFind}'`)
     destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, true, false)
-
   } else {
     // Shouldn't get here
     logError(pluginJson, `Can't find heading '${headingToFind}'. Stopping.`)

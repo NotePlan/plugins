@@ -208,6 +208,15 @@
       "arguments": []
     },
     {
+      "name": "Templating Help/Support",
+      "description": "Get help with templates and templating commands",
+      "jsFunction": "templatingHelp",
+      "alias": [
+        "tp:help", "help", "np:help"
+      ],
+      "arguments": []
+    },
+    {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "Templating: Update Plugin Settings",
       "description": "Templating Preferences",
