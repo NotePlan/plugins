@@ -43,7 +43,7 @@ describe(`${PLUGIN_NAME} - ${section('Web API Tests')}`, () => {
     global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter)
     global.NotePlan = new NotePlan()
     global.DataStore = DataStore
-    DataStore.settings['_logLevel'] = 'DEBUG'
+    DataStore.settings['_logLevel'] = 'none'
     global.Editor = Editor
 
     // Set up global fetch to use node-fetch
