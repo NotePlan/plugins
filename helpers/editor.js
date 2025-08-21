@@ -1,7 +1,7 @@
 // @flow
 
 import { logDebug } from './dev'
-import { showMessageYesNo, showMessage } from './userInput'
+import { showMessageYesNo, showMessage, chooseFolder } from './userInput'
 import { getNoteTitleFromTemplate, getNoteTitleFromRenderedContent } from './NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
 
@@ -38,7 +38,7 @@ export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, 
   logDebug(`checkAndProcessFolderAndNewNoteTitle starting: templateNote:"${templateNote?.title || ''}", frontmatterAttributes:${JSON.stringify(frontmatterAttributes)}`)
   // Check if the template wants the note to be created in a folder and if so, move the empty note to the trash and create a new note in the folder
   const isEditorEmpty = editorIsEmpty()
-  const theFolder = frontmatterAttributes?.folder?.trim() || ''
+  let theFolder = frontmatterAttributes?.folder?.trim() || ''
 
   // Use the rendered frontmatter attributes first, then fall back to template analysis
   const renderedNewNoteTitle = frontmatterAttributes?.newNoteTitle?.trim()
@@ -71,18 +71,29 @@ export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, 
       return true
     } else if (theFolder.length > 0) {
       if (!Editor.filename.startsWith(theFolder)) {
+        const isChooseFolder = /<select>|<choose>/i.test(theFolder)
         const res = await showMessageYesNo(
-          `The template has a folder property (folder: ${theFolder}). Should we move the current note to the folder "${theFolder}"?`,
+          `The template has a folder property (folder: ${theFolder}). Should we move the current note to the folder ${
+            isChooseFolder ? 'the folder you select' : `"${theFolder}"`
+          }?`,
           ['Yes', 'No'],
           'Move this Note?',
         )
+        logDebug(`checkAndProcessFolderAndNewNoteTitle: res:${res} isChooseFolder:${String(isChooseFolder)}`)
         if (res === 'Yes') {
+          if (isChooseFolder) {
+            const folder = await chooseFolder()
+            if (folder) {
+              theFolder = folder
+            }
+          }
           const newFilename = DataStore.moveNote(Editor.filename, theFolder)
           if (newFilename) {
             // This message is actually necessary to kill time while the move happens because the move is not async
             // And we can't actually open the note until after 1s-ish
             await showMessage(`Note moved to folder "${theFolder}"`)
             await Editor.openNoteByFilename(newFilename)
+            logDebug(`checkAndProcessFolderAndNewNoteTitle: note moved to folder "${theFolder}"`)
           }
         }
       }
