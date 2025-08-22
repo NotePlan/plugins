@@ -10,7 +10,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging. Or 'none' to get none.
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging. Or 'none' to get none.
 })
 
 beforeEach(() => {
@@ -42,7 +42,9 @@ describe('paragraph.js', () => {
       expect(result).toEqual('Something about  and')
     })
     test('should remove all types', () => {
-      const result = p.stripAllURIsAndNoteLinks('Something about http://www.tennis.org/ and [Wimbledon](https://www.wimbledon.org/) and [[link with#tag]] and [[link without that tag]]')
+      const result = p.stripAllURIsAndNoteLinks(
+        'Something about http://www.tennis.org/ and [Wimbledon](https://www.wimbledon.org/) and [[link with#tag]] and [[link without that tag]]',
+      )
       expect(result).toEqual('Something about  and Wimbledon and  and')
     })
     test('should remove all URIs and note links', () => {
@@ -195,7 +197,10 @@ describe('paragraph.js', () => {
       expect(result).toEqual(false)
     })
     test('should return false when term is not in any part of input string', () => {
-      const result = p.isTermInEventLinkHiddenPart('Home', 'This is a work event: ![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work event with @Bob:::#1BADF8)')
+      const result = p.isTermInEventLinkHiddenPart(
+        'Home',
+        'This is a work event: ![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work event with @Bob:::#1BADF8)',
+      )
       expect(result).toEqual(false)
     })
     test('should return false when term is within datetime part of an event link', () => {

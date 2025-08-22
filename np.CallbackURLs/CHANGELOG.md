@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.9.1] - 2025-08-19 @dwertheimer
+
+- Fix bug in wizard when using showOptions()
+
 ## [1.9.0] - 2025-08-18 @dwertheimer
 
 - Fix template runner wizard bug

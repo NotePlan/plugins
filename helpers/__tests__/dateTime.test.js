@@ -14,7 +14,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = new NotePlan()
-  DataStore.settings['_logLevel'] = 'DEBUG' // change this to DEBUG to get more logging, or 'none' for quiet
+  DataStore.settings['_logLevel'] = 'none' // change this to DEBUG to get more logging, or 'none' for quiet
 })
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateTime')}`
@@ -98,8 +98,8 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
-    * findOverdueDatesInString()
-    */
+   * findOverdueDatesInString()
+   */
   describe('findOverdueDatesInString()' /* function */, () => {
     test('should find no date in line with no overdue', () => {
       const result = dt.findOverdueDatesInString('>2922-01-01')
@@ -189,8 +189,8 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
- * isDailyDateStr()
- */
+   * isDailyDateStr()
+   */
   describe('isDailyDateStr()', () => {
     test('false for empty string', () => {
       const result = dt.isDailyDateStr('')
@@ -219,8 +219,8 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
- * isYearlyDateStr()
- */
+   * isYearlyDateStr()
+   */
   describe('isYearlyDateStr()', () => {
     test('should find a bare Year', () => {
       const result = dt.isYearlyDateStr('2022')
