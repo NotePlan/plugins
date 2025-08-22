@@ -1643,6 +1643,8 @@ export async function renderTemplateByName(templateName: string = '', userData: 
 
 /**
  * Finds cursor placement markers in the rendered template data.
+ * Note: as of 2025-08-21, this is not implemented/used
+ * TODO: Remove this function and do something better -- see notes
  * Currently focused on finding $NP_CURSOR markers.
  * @param {string} templateData - The rendered template data to scan
  * @returns {{cursors: Array<{start: number}>}} Information about cursor positions
@@ -1670,6 +1672,8 @@ export function findCursors(templateData: string): mixed {
 
 /**
  * Executes JavaScript code blocks within a template.
+ * Note: as of 2025-08-21, this is not used anywhere
+ * TODO: Remove this function
  * This function can process both standard EJS template code and code blocks marked with ```templatejs.
  * @async
  * @param {string} [templateData=''] - The template data containing code blocks
