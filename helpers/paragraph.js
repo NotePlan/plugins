@@ -7,7 +7,7 @@ import { getDateStringFromCalendarFilename } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { getElementsFromTask } from './sorting'
 import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
-import { RE_EVENT_LINK, RE_MARKDOWN_LINK_PATH_CAPTURE, RE_MARKDOWN_LINK_PATH_CAPTURE_G, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH, RE_SIMPLE_URI_MATCH_G } from '@helpers/regex'
+import { RE_DONE_MENTION, RE_EVENT_LINK, RE_MARKDOWN_LINK_PATH_CAPTURE, RE_MARKDOWN_LINK_PATH_CAPTURE_G, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH, RE_SIMPLE_URI_MATCH_G } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
 import { stripLinksFromString } from '@helpers/stringTransforms'
 
@@ -22,7 +22,7 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
     // First need to escape any special characters in the search term
     const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = new RegExp(`${escapedSearchTerm}`, "i") // = case insensitive match
-    logDebug('caseInsensitiveSubstringMatch', `re: ${re} / textToSearch: ${textToSearch} / ${String(re.test(textToSearch))}`)
+    logDebug('caseInsensitiveSubstringMatch', `re: ${String(re)} / textToSearch: ${textToSearch} / ${String(re.test(textToSearch))}`)
     return re.test(textToSearch)
   }
   catch (error) {
@@ -45,7 +45,7 @@ export function stripAllURIsAndNoteLinks(input: string): string {
   output = output.replace(RE_NOTELINK_G, '')
   // Remove the path of any markdown links
   const matches = Array.from(output.matchAll(RE_MARKDOWN_LINK_PATH_CAPTURE_G))
-  logDebug('stripAllURIsAndNoteLinks', `matches: ${String(matches)}`)
+  // logDebug('stripAllURIsAndNoteLinks', `matches: ${String(matches)}`)
   if (matches) {
     for (const match of matches) {
       // replace the whole markdown link match with just the title
@@ -54,6 +54,19 @@ export function stripAllURIsAndNoteLinks(input: string): string {
   }
   output = output.trim()
   return output
+}
+
+/**
+ * Remove (first) @done(YYYY-MM-DD HH:MM[AM|PM]) mention from a string
+ * @author @jgclark
+ * 
+ * @tests available in jest file
+ * @param {string} input
+ * @returns {string}
+ */
+export function stripDoneDateTimeMentions(input: string): string {
+  logDebug('stripDoneMentions', `input: ${input} / ${String(RE_DONE_MENTION)}`)
+  return input.replace(RE_DONE_MENTION, '')
 }
 
 /**

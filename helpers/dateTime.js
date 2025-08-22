@@ -8,8 +8,9 @@ import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
 import { formatISO9075, eachDayOfInterval, eachWeekendOfInterval, format, add } from 'date-fns'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
-import { RE_TEAMSPACE_INDICATOR_AND_ID } from './regex'
-// import { parseTeamspaceFilename } from './teamspace'
+// Note: TEAMSPACE_INDICATOR defined locally to avoid circular dependency with regex.js
+const TEAMSPACE_INDICATOR = '%%NotePlanCloud%%'
+const RE_TEAMSPACE_INDICATOR_AND_ID = new RegExp(`^${TEAMSPACE_INDICATOR}\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`, 'i')
 
 //-----------------------------------------------------------
 // CONSTANTS
@@ -515,13 +516,13 @@ function getFilenameWithoutTeamspaceID(filenameIn: string): string {
  */
 export function getDateStringFromCalendarFilename(filenameIn: string, returnISODate: boolean = false): string {
   try {
-    logDebug('gDSFCF', `for ${filenameIn} ...`)
+    // logDebug('gDSFCF', `for ${filenameIn} ...`)
     let filenameWithoutTeamspaceID = getFilenameWithoutTeamspaceID(filenameIn)
     // If it starts with a slash, remove it
     if (filenameWithoutTeamspaceID.startsWith('/')) {
       filenameWithoutTeamspaceID = filenameWithoutTeamspaceID.slice(1)
     }
-    logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
+    // logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
 
     // Check for daily notes
     if (filenameWithoutTeamspaceID.match(RE_DAILY_NOTE_FILENAME)) {

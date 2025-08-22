@@ -224,7 +224,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
             // as we don't want those to go into the calendar event itself (=restOfTask).
             // But also keep a version with date (if present) as we don't want to lose that from the task itself.
             // Note: now also remove the NP DataStore.preference("timeblockTextMustContainString") if specified.
-            const mustContainString = String(DataStore.preference('timeblockTextMustContainString') ?? '')
+            const mustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
             logDebug('NPCalendar / writeTimeBlocksToCalendar', `- Removing mustContainString '${mustContainString}' from time block string`)
 
             const restOfTaskWithoutTimeBlock = thisPara.content
