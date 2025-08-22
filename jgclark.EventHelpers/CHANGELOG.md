@@ -2,6 +2,15 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.23.0] - 2025-08-22 @jgclark
+### New
+- new command **/insert week's events as list**, which inserts this week's calendar events in the current note
+- new equivalent `insertWeeksEvents` and `listWeeksEvents` functions for use in automation (templating or x-callbacks)
+### Changed
+- changed setting 'Processed tag name' to 'Processed indicator string' to clarify that you can use any string, not just hashtags. And added a note that if this string contains an emoji then it sometimes triggers a bug in NotePlan where you get some repeated characters at the end of the line.
+### Fixed
+- regression on "/time blocks to calendar"
+
 ## [0.22.2] - 2025-08-19 @jgclark
 - add 'add computed final date' setting for '/process date offsets' command. (Previously it always added a final computed date to the relevant section heading. Now this can be turned off.)
 

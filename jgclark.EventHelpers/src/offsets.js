@@ -2,9 +2,9 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets and Shifts
 // @jgclark
-// Last updated 2025-08-19 for v0.22.2, by @jgclark
+// Last updated 2025-08-22 for v0.23.0, by @jgclark
 // ----------------------------------------------------------------------------
-// Potential TODO:
+// Note: Potential TODOs
 // * [Allow other date styles in /process date offsets](https://github.com/NotePlan/plugins/issues/221) from Feb 2021 -- but much harder than it looks.
 // * Also allow other date styles in /shift? -- as above
 
@@ -21,7 +21,6 @@ import {
   RE_NP_WEEK_SPEC,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
-  // splitIntervalToParts,
 } from '@helpers/dateTime'
 import { clo, log, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
@@ -160,7 +159,7 @@ export async function shiftDates(): Promise<void> {
           logDebug(pluginJson, `-> ${updatedContent}`)
         }
         // else {
-        // TODO: This would be the place to assess another date format, but it's much harder than it looks.
+        // Note: This would be the place to assess another date format, but it's much harder than it looks.
         // Method probably to define new settings "regex" and "format".
         // Just using moment doesn't work fully unless you take out all other numbers in the rest of the line first.
         // NP.parseDate() uses chrono library, and probably useful, but needs testing to see how it actually works with ambiguous dates (documentation doesn't say)
@@ -270,7 +269,7 @@ export async function processDateOffsets(): Promise<void> {
         // (check it's not got various characters before it, to defeat common usage in middle of things like URLs)
         // TODO: make a different type of CTD for in-line vs in-heading dates
 
-        // TODO: Somewhere around would be the place to assess another date format, but it's much harder than it looks. (See more detail in shiftDates() above.)
+        // Note: Somewhere around would be the place to assess another date format, but it's much harder than it looks. (See more detail in shiftDates() above.)
 
         if (content.match(RE_BARE_DATE) && !content.match(RE_DONE_DATE_OPT_TIME)) {
           const dateISOStrings = content.match(RE_BARE_DATE_CAPTURE) ?? ['']
@@ -300,13 +299,13 @@ export async function processDateOffsets(): Promise<void> {
               )
 
               // now ask for the date to use instead
-              currentTargetDate = await datePicker(`{ question: 'Please enter a base date to use to offset against for "${content}"' }`, {})
-              if (currentTargetDate === '' || currentTargetDate === false) {
+              const res: string | false = await datePicker(`{ question: 'Please enter a base date to use to offset against for "${content}"' }`, {})
+              if (res === '' || res === false) {
                 logError(processDateOffsets, `- Still no valid CTD, so stopping.`)
                 return
-              } else {
-                logDebug('processDateOffsets', `- User supplied CTD ${currentTargetDate}`)
               }
+              currentTargetDate = res
+              logDebug('processDateOffsets', `- User supplied CTD ${currentTargetDate}`)
             }
 
             logDebug('processDateOffsets', `  cTD=${currentTargetDate}; lCD=${lastCalcDate}`)

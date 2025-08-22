@@ -1,10 +1,11 @@
 # 🕓 Event Helpers plugin
 This plugin provides commands to help you do useful things with Events and Calendars that can't (yet) be done by NotePlan itself:
 
-- **insert day's events as list**: insert a list of this day's calendar events into the current note -- including doing so automatically in **day/week note templates**
-- **insert matching events**: insert a  list of this day's calendar events that match certain patterns into the current note
-- **time blocks to calendar**: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to them to full Calendar events in your current default calendar, as set by iCal. (See also [Display of Time Blocks](#display-of-time-blocks) below.)
-- **process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.)
+- **insert day's events as list**: insert a list of this day's calendar events into the current note. Can be used automatically in a Daily note Template. Alias: **ide**.
+- **insert week's events as list**: insert a list of all the day's calendar events for this week into the current note. Can be used automatically in a Weekly note Template. Alias: **ide**.
+- **insert matching events**: insert a  list of this day's calendar events that match certain patterns into the current note. Alias: **ime**.
+- **time blocks to calendar**: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to them to full Calendar events in your current default calendar, as set by iCal. (See also [Display of Time Blocks](#display-of-time-blocks) below.) Aliases: **tbtc** or **tbcal**.
+- **process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.) Alias: **offset**.
 - **shift dates**: takes dates _in the selected lines_ and shifts them forwards or backwards by a given date interval. It works on both `>YYYY-MM-DD` and `>YYYY-Wnn` style dates.  (User George Crump (@george65) has created a [video showing how this command works](https://storone.zoom.us/rec/play/tzI6AreYeKvoyHRw11HX93IGVf2OI-U7WgKXYn2rmGJvbFHXZp8PSr6ajmOrtWymOU5jFIItScSJnL9U.tboBQEXjdw1uRTqu).)
 
 Most of these commands require configuration, described in the sections below. On macOS, click the gear button on the 'Event Helpers' line in the Plugin Preferences panel to access the settings. Or on on iOS/iPadOS devices, use the **Events: update plugin settings** command instead.
@@ -51,7 +52,7 @@ Settings:
 - **Confirm Event Creation?**: optional boolean tag to indicate whether to ask user to confirm each event to be created
 - **Remove time blocks when processed?**: in `time blocks...` whether to remove time block after making an event from it
 - **Add event link?**: whether to add a nicely-formatted event link when creating an event from a time block. (This can return rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed (details [below](#theme-customisation)).)
-- **Processed tag name**: if this is set, then this tag will get added on the end of the line with the time block, to show that it has been processed. Otherwise, next time this command is run, it will create another event. This can be used with or without addEventID.
+- **Processed indicator string**: if this is set, then this string will get added on the end of the line with the time block, to show that it has been processed. Otherwise, next time this command is run, it will create another event. This can be used with or without 'Add event link'.
 - **Locale**: optional Locale to use for times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.
 - **Time options**: Optional Time format settings.
 
@@ -77,7 +78,7 @@ The following **Parameters** are available:
 | `includeAllDayEvents` | boolean | include/exclude all day events | `includeAllDayEvents: false` |
 | `calendarSet` | string | limit which calendars are included | `calendarSet:"list,of,calendar,names"` |
 | `calendarNameMappings` | string | customize the name of the calendars |`calendarNameMappings:"Jonathan (iCloud);Me, Us (iCloud);Us"` |
-| `daysToCover` | number | include more than the current day | `daysToCover: 3` includes today + 2 days |
+| `daysToCover` | number | include more than the current day | `daysToCover: 3` includes today + the 2 following days |
 | `format` | string | customize the format | `'format:"..."'` |
 | `allday_format` | string | customize format for all day events | `'allday_format:"..."` |
 
@@ -85,6 +86,18 @@ The following **Parameters** are available:
 You can include other text (including line breaks indicated by `\n`) within the placeholder. For example in `*|\nwith ATTENDEENAMES|*`, if the ATTENDEENAMES is not empty, then it will output the attendees list on a newline and after the text 'with '.
 
 NB: the `Sort order` setting above also controls how the output of this list is sorted.
+
+### Using Event Lists from Callbacks
+As well as following x-callback calls are available:
+
+| equivalent command | callback | parameters | result |
+| ---- | ------ | ---- | --- |
+| Insert day's events | noteplan://x-callback-url/runPlugin?pluginID=jgclark.EventHelpers&command=insertDaysEvents | JSON string (as above for Templates) | inserted to current note |
+| Insert matching events | noteplan://x-callback-url/runPlugin?pluginID=jgclark.EventHelpers&command=insertMatchingDaysEvents | JSON string (as above for Templates) | inserted to current note |
+| Insert week's events | noteplan://x-callback-url/runPlugin?pluginID=jgclark.EventHelpers&command=insertWeeksEvents | JSON string (as above for Templates) | inserted to current note |
+| List day's events as list | noteplan://x-callback-url/runPlugin?pluginID=jgclark.EventHelpers&command=listDaysEvents | JSON string (as above for Templates) | returns list of events as a markdown string |
+| List matching day's events as list | noteplan://x-callback-url/runPlugin?pluginID=jgclark.EventHelpers&command=listMatchingDaysEvents | JSON string (as above for Templates) | returns list of events as a markdown string |
+| List week's events as list | noteplan://x-callback-url/runPlugin?pluginID=jgclark.EventHelpers&command=listWeeksEvents | JSON string (as above for Templates) | returns list of events as a markdown string |
 
 ## /shift dates
 This command takes plain or scheduled day or week dates (i.e. `YYYY-MM-DD`, `>YYYY-MM-DD`, `YYYY-Wnn` or ``>YYYY-Wnn`) in the selected lines and shifts them forwards or backwards by a given date interval. This allows you to copy a set of tasks to use again, and have the dates moved forward by a month or year etc.

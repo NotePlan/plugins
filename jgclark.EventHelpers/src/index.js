@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Event Helpers
 // Jonathan Clark
-// last updated 29.9.2023, for v0.20.4
+// last updated 2025-08-22, for v0.23.0
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -14,7 +14,7 @@ import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 export { timeBlocksToCalendar } from './timeblocks'
-export { listDaysEvents, insertDaysEvents, listMatchingDaysEvents, insertMatchingDaysEvents } from './eventsToNotes'
+export { listDaysEvents, insertDaysEvents, listWeeksEvents, insertWeeksEvents, listMatchingDaysEvents, insertMatchingDaysEvents } from './eventsToNotes'
 export { processDateOffsets, shiftDates } from './offsets'
 
 export function init(): void {

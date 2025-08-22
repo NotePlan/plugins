@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 2024-09-06 for v0.22.0, by @jgclark
+// Last updated 2025-08-22 for v0.23.0, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well, @akrabat
 // ----------------------------------------------------------------------------
 
@@ -11,18 +11,19 @@ import { getEventsForDay, type EventsConfig } from '@helpers/NPCalendar'
 import {
   calcOffsetDateStr,
   getCalendarNoteTimeframe,
-  // getDateStringFromCalendarFilename,
   getDateFromYYYYMMDDString,
   getDateStrForStartofPeriodFromCalendarFilename,
-  // getISODateStringFromYYYYMMDD,
+  isDailyNote,
+  isWeeklyNote,
   toLocaleDateString,
   toLocaleTime,
-  // convertISODateFilenameToNPDayFilename,
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { getTagParamsFromString } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { showMessage } from '@helpers/userInput'
+
+// ----------------------------------------------------------------------------
 
 /**
  * Return markdown list of the current open Calendar note's events (and potentially the days after it)
@@ -33,11 +34,11 @@ import { showMessage } from '@helpers/userInput'
  */
 export async function listDaysEvents(paramStringIn: string = ''): Promise<string> {
   try {
-    if (Editor.note == null || Editor.filename == null || Editor.type !== 'Calendar') {
-      await showMessage(`Please run again with a calendar note open.`, 'OK', 'List Events')
+    if (!Editor || Editor.note == null || Editor.filename == null || Editor.type !== 'Calendar' || (!isDailyNote(Editor.note) && !isWeeklyNote(Editor.note))) {
+      await showMessage(`Please run again with a daily or weekly calendar note open.`, 'OK', 'List Events')
       return ''
     }
-    const openNote = Editor.note
+    const openNote: TNote = Editor.note
     // handle getting no parameters passed at all
     let paramString = ''
     if (paramStringIn == null) {
@@ -50,7 +51,6 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
     const noteTimeFrame = getCalendarNoteTimeframe(openNote)
     if (!noteTimeFrame) throw new Error(`No noteTimeFrame found for note ${openNote.filename}. Stopping.`)
     const startDayDateString = getDateStrForStartofPeriodFromCalendarFilename(Editor.filename)
-    logDebug(pluginJson, `listDaysEvents: starting for noteTimeFrame=${noteTimeFrame} / date ${startDayDateString} with paramString='${paramString}'`)
 
     // Get a couple of other suppplied parameters, or use defaults
     // Work out format for output line (from params, or if blank, a default)
@@ -68,7 +68,6 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
       : config.formatAllDayEventsDisplay
     const includeAllDayEvents: boolean = await getTagParamsFromString(paramString, 'includeAllDayEvents', true)
     const includeHeadings: boolean = await getTagParamsFromString(paramString, 'includeHeadings', true)
-    const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', 1)
     const calendarSetStr: string = String(await getTagParamsFromString(paramString, 'calendarSet', config.calendarSet))
     const calendarSet: Array<string> = calendarSetStr !== '' ? calendarSetStr.split(',') : [] // also deal with empty case
     const calendarNameMappingsStr: string = String(await getTagParamsFromString(paramString, 'calendarNameMappings', config.calendarNameMappings))
@@ -76,14 +75,15 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
     // If the format contains 'CAL' then we care about calendar names in output
     const withCalendarName = format.includes('CAL')
 
+    // Work out how many days to cover: use passed parameter, or default to 1, or 7 if weekly note
+    const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', isWeeklyNote(openNote) ? 7 : 1)
+
+    logDebug(pluginJson, `listDaysEvents: starting for noteTimeFrame=${noteTimeFrame} / daysToCover=${daysToCover} / from '${startDayDateString}' with paramString='${paramString}'`)
+
     const outputArray: Array<string> = []
 
     // For each day to cover
     for (let i = 0; i < daysToCover; i++) {
-      // Set dateStr to the day in question (YYYYMMDD)
-
-      // const isoStartDayDateStr = getISODateStringFromYYYYMMDD(startDayDateString)
-      // const dateStr = convertISODateFilenameToNPDayFilename(calcOffsetDateStr(isoStartDayDateStr, `+${i}d`))
       const dateStr = calcOffsetDateStr(startDayDateString, `+${i}d`)
       logDebug('listDaysEvents', `${i}: startDayDateString=${startDayDateString}, dateStr=${dateStr}`)
 
@@ -118,7 +118,7 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
 
         // Replace any mentions of the keywords in the e.title string
         const replacements = getReplacements(e, config)
-        const thisEventStr = smartStringReplace(e.isAllDay ? alldayformat : format, replacements)
+        const thisEventStr = replaceFormatPlaceholderStringWithActualValues(e.isAllDay ? alldayformat : format, replacements)
 
         mapForSorting.push({
           cal: withCalendarName ? calendarNameWithMapping(e.calendar, calendarNameMappings) : '',
@@ -136,6 +136,7 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
 
       outputArray.push(mapForSorting.map((element) => element.text).join('\n'))
     }
+// ----------------------------------------------------------------------------
 
     const output = outputArray.join('\n') // If this array is empty -> empty string
     logDebug('listDaysEvents', output)
@@ -148,7 +149,7 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
 
 // ----------------------------------------------------------------------------
 /**
- * Insert list of today's events at cursor position.
+ * Insert list of a day's events at cursor position.
  * NB: When this is called by UI as a /command, it doesn't have any params passed with it.
  *
  * @author @jgclark
@@ -157,8 +158,8 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
 export async function insertDaysEvents(paramString: ?string): Promise<void> {
   try {
     logDebug(pluginJson, 'insertDaysEvents: Starting')
-    if (Editor.note == null || Editor.type !== 'Calendar') {
-      await showMessage(`Please run again with a calendar note open.`, 'OK', 'Insert Events')
+    if (!Editor || Editor.note == null || Editor.type !== 'Calendar' || !isDailyNote(Editor.note)) {
+      await showMessage(`Please run again with a daily calendar note open.`, 'OK', 'Insert Events')
       return
     }
 
@@ -270,7 +271,7 @@ export async function listMatchingDaysEvents(
             logDebug('listMatchingDaysEvents', `- Found match to event '${e.title}' from '${textToMatchArr[j]}`)
             // Replace any mentions of the keywords in the e.title string
             const replacements = getReplacements(e, config)
-            const thisEventStr = smartStringReplace(thisFormat, replacements)
+            const thisEventStr = replaceFormatPlaceholderStringWithActualValues(thisFormat, replacements)
 
             mapForSorting.push({
               cal: withCalendarName ? calendarNameWithMapping(e.calendar, calendarNameMappings) : '',
@@ -310,6 +311,55 @@ export async function listMatchingDaysEvents(
   } catch (error) {
     logError('insertMatchingDaysEvents', error.message)
     return ''
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+/**
+ * Return markdown list of the current open Calendar note's events (and potentially the days after it)
+ * NB: When this is called by UI as a /command, it doesn't have any params passed with it.
+ * @author @jgclark
+ *
+ * @param {string} paramString - checked for options
+ * @returns {string} Markdown-formatted list of today's events
+ */
+export async function listWeeksEvents(paramString: string = ''): Promise<string> {
+  try {
+    logDebug(pluginJson, 'insertWeeksEvents: Starting')
+    if (!Editor || Editor.note == null || Editor.type !== 'Calendar' || !isWeeklyNote(Editor.note)) {
+      await showMessage(`Please run again with a weekly calendar note open.`, 'OK', 'Insert Events')
+      return ''
+    }
+    logDebug(pluginJson, 'listWeeksEvents: starting')
+    return await listDaysEvents(paramString)
+  } catch (error) {
+    logError('listWeeksEvents', error.message)
+    return ''
+  }
+}
+
+/**
+ * Insert list of a week's events at cursor position.
+ * NB: When this is called by UI as a /command, it doesn't have any params passed with it.
+ *
+ * @author @jgclark
+ * @param {?string} paramString - passed through to next function
+ */
+export async function insertWeeksEvents(paramString: ?string): Promise<void> {
+  try {
+    logDebug(pluginJson, 'insertWeeksEvents: Starting')
+    if (!Editor || Editor.note == null || Editor.type !== 'Calendar' || !isWeeklyNote(Editor.note)) {
+      await showMessage(`Please run again with a weekly calendar note open.`, 'OK', 'Insert Events')
+      return
+    }
+
+    // Get list of events happening on the week of the open note
+    let output: string = await listWeeksEvents(paramString || '')
+    output += output.length === 0 ? '\nnone\n' : '\n'
+    Editor.insertTextAtCursor(output)
+  } catch (error) {
+    logError('insertWeeksEvents', error.message)
   }
 }
 
@@ -394,9 +444,9 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
  * @param {string} format format string, to look for more complex strings (e.g. *|with ATTENDEES|*)
  * @return {{string, string}}
  */
-export function smartStringReplace(format: string, replacements: Map<string, string>): string {
+export function replaceFormatPlaceholderStringWithActualValues(format: string, replacements: Map<string, string>): string {
   try {
-    // logDebug(pluginJson, `smartStringReplace starting for format <${format}>`)
+    // logDebug(pluginJson, `replaceFormatPlaceholderStringWithActualValues starting for format <${format}>`)
     let output = format
 
     // For each possible placeholder, process it if it present in format AND the value for this event is not empty
@@ -424,7 +474,7 @@ export function smartStringReplace(format: string, replacements: Map<string, str
     }
     return output
   } catch (error) {
-    logError('smartStringReplace', error.message)
+    logError('replaceFormatPlaceholderStringWithActualValues', error.message)
     return ''
   }
 }
@@ -435,7 +485,7 @@ export function smartStringReplace(format: string, replacements: Map<string, str
  * @private
  * @author @m1well
  */
-export const calendarNameWithMapping = (name: string, mappings: Array<string>): string => {
+const calendarNameWithMapping = (name: string, mappings: Array<string>): string => {
   let mapped = name
   mappings.forEach((mapping) => {
     const splitted = mapping.split(';')

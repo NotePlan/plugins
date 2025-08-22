@@ -64,7 +64,7 @@ describe('eventsToNotes.js tests', () => {
     })
   })
 
-  describe('smartStringReplace()', () => {
+  describe('replaceFormatPlaceholderStringWithActualValues()', () => {
     // This function's tests use Partial<...> to use a subset of large objects without causing errors
     const config: Partial<EventsConfig> = {
       calendarNameMappings: [],
@@ -108,28 +108,28 @@ describe('eventsToNotes.js tests', () => {
     const replacements2 = e.getReplacements(event2, config)
 
     test('event 1 format 1 easy', () => {
-      const result = e.smartStringReplace(format1, replacements1)
+      const result = e.replaceFormatPlaceholderStringWithActualValues(format1, replacements1)
       expect(result).toEqual('- (Jonathan) title of event1 https://example.com/easy\n> a few notes\n✓ Jonathan Clark, ? James Bond, x Martha, ? bob@example.com')
     })
     test('event 1 format 2 more complex', () => {
-      const result = e.smartStringReplace(format2, replacements1)
+      const result = e.replaceFormatPlaceholderStringWithActualValues(format2, replacements1)
       const expected = '### (Jonathan, 20:00:00-22:00:00) title of event1 https://example.com/easy with Jonathan Clark, Martha Clark, bob@example.com\n> a few notes\n---\n'
       expect(result).toEqual(expected)
     })
     test('event 2 format 1 easy', () => {
-      const result = e.smartStringReplace(format1, replacements2)
+      const result = e.replaceFormatPlaceholderStringWithActualValues(format1, replacements2)
       const expected =
         '- (Us) title of event2 with <brackets> & more https://example.com/bothersomeURL/example\n> a few notes with TITLE and URL\n✓ Jonathan Clark, ? James Bond, x Martha, ? bob@example.com'
       expect(result).toEqual(expected)
     })
     test('event 2 format 2 more complex', () => {
-      const result = e.smartStringReplace(format2, replacements2)
+      const result = e.replaceFormatPlaceholderStringWithActualValues(format2, replacements2)
       const expected =
         '### (Us, 20:00:00-22:00:00) title of event2 with <brackets> & more https://example.com/bothersomeURL/example with Jonathan Clark, Martha Clark, bob@example.com\n> a few notes with TITLE and URL\n---\n'
       expect(result).toEqual(expected)
     })
     test('event 2 format 3 for @EasyTarget with newlines and asterisks', () => {
-      const result = e.smartStringReplace(format3, replacements2)
+      const result = e.replaceFormatPlaceholderStringWithActualValues(format3, replacements2)
       const expected = '### [20:00:00] title of event2 with <brackets> & more\n- \n \n*****\n'
       // console.log(result)
       // console.log(result.length)
@@ -137,7 +137,7 @@ describe('eventsToNotes.js tests', () => {
       expect(result).toEqual(expected)
     })
     test('event 2 format 4 for @EasyTarget with multiple new lines', () => {
-      const result = e.smartStringReplace(format4, replacements2)
+      const result = e.replaceFormatPlaceholderStringWithActualValues(format4, replacements2)
       const expected = '### [20:00:00] title of event2 with <brackets> & more\n- \n\n\n\n\n'
       // console.log(result)
       // console.log(result.length)
@@ -145,7 +145,7 @@ describe('eventsToNotes.js tests', () => {
       expect(result).toEqual(expected)
     })
     test('event 1 format 5 date test', () => {
-      const result = e.smartStringReplace(format5, replacements1)
+      const result = e.replaceFormatPlaceholderStringWithActualValues(format5, replacements1)
       expect(result).toEqual('- 2021-01-23')
     })
   })
