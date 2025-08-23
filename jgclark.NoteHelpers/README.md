@@ -15,7 +15,7 @@ This plugin (now a Core Plugin bundled with NotePlan 3.16.1 onwards) provides co
 - **jump to heading** (alias **jh**): jumps the cursor to the selected heading in the current note. See below for how to use this from a x-callback-url
 - **jump to note's heading** (alias **jn**): jump to a different note, and then to the selected heading
 - **jump to done** (alias **jd**): simply jumps the cursor to the `## Done` section of the current note (if it exists)
-- **list inconsistent note filenames**: lists the names of notes whose filenames are inconsistent with their titles
+- **list inconsistent note filenames**: lists the names of notes whose filenames are inconsistent with their titles. (Note: because of NP's architecture, this doesn't apply to notes in Teamspaces.)
 - **list published notes**: generates a list in the new 'Publlished Notes' note of all notes that have been published to the internet through NotePlan. The note is created in the root folder; after this it can be moved to a different folder if desired.
 - **log Editor Note**: logs the main details about the currently open note to the plugin console.
 - **log Editor Note (detailed)** command that does the same as **log Editor Note** but also logs line type and rawContents.
@@ -27,9 +27,9 @@ This plugin (now a Core Plugin bundled with NotePlan 3.16.1 onwards) provides co
 - **open note new window** (alias **onw**): open a user-selected note in a new window (and places the cursor at what it judges to be the start of the main content)
 - **open note new split** (alias **ons**): open a user-selected note in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
 - **open url from a note**: asks for a note, and then presents a list of URLs found in that note. The selected one is then opened in your default browser. (There's a setting to ignore URLs in closed tasks.)
-- **rename note filename**: renames the currently open note to one you specify. Note: this changes the underlying _filename_ not the visible _title_. This has proved very helpful for people renaming notes who have imported them from other systems, including Obsidian.
-- **rename filename to title**: renames the current filename to the title of the note
-- **rename inconsistent note filenames**: renames the files of notes whose filenames are inconsistent with their titles. When run it offers to rename all in one go, or to go one by one so you can choose which ones to rename.
+- **rename note filename**: renames the currently open note to one you specify. Note: this changes the underlying _filename_ not the visible _title_. This has proved very helpful for people renaming notes who have imported them from other systems, including Obsidian. Note: because of NotePlan's architecture, this cannot work on Calendar notes, or those in Teamspaces.
+- **rename filename to title**: renames the current filename to the title of the note. Note: because of NotePlan's architecture, this cannot work on Calendar notes, or those in Teamspaces.
+- **rename inconsistent note filenames**: renames the files of notes whose filenames are inconsistent with their titles. When run it offers to rename all in one go, or to go one by one so you can choose which ones to rename. Note: because of NotePlan's architecture, this cannot work on Calendar notes, or those in Teamspaces.
 - **reset title to match filename**: resets the current note title to match its filename.
 - **reset caches**: this simply runs the command of that name in the NotePlan Help menu.
 - **Show This Month** (alias **/stm**)

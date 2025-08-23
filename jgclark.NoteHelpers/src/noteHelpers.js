@@ -10,13 +10,14 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
 import { displayTitle } from '@helpers/general'
 import { convertNoteToFrontmatter, printNote } from '@helpers/NPnote' // Note: not the one in 'NPTemplating'
 import { addTrigger, noteHasFrontMatter, updateFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
+import { parseTeamspaceFilename } from '@helpers/teamspace'
 import {
   chooseFolder,
-  // chooseHeading,
   chooseOption,
   getInput,
   showMessage,
 } from '@helpers/userInput'
+
 //-----------------------------------------------------------------
 // Settings
 
@@ -112,7 +113,8 @@ export async function moveNote(): Promise<void> {
 
 //-----------------------------------------------------------------
 /**
- * Delete a note -- by moving to the special @Trash folder
+ * Delete a note -- by moving to the special @Trash folder.
+ * Note: this cannot work on Teamspace notes (at least as of v3.18.1), because the API doesn't support this.
  * @author @jgclark
  */
 export async function trashNote(): Promise<void> {
@@ -120,14 +122,17 @@ export async function trashNote(): Promise<void> {
     const { title, filename } = Editor
     if (title == null || filename == null) {
       // No note open, so don't do anything.
-      logError('trashNote()', 'No note open. Stopping.')
-      return
+      throw new Error('No note open. Stopping.')
+    }
+    const possibleTeamspaceDetails = parseTeamspaceFilename(filename)
+    if (possibleTeamspaceDetails.isTeamspace) {
+      throw new Error('Sorry, I cannot currently move Teamspace notes to the Trash. You will need to do this manually.')
     }
 
     const newFilename = DataStore.moveNote(filename, '@Trash')
 
     if (!newFilename) {
-      logError('trashNote()', `Error trying to move note to @Trash`)
+      throw new Error(`Error trying to move note to @Trash`)
     }
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -186,17 +191,13 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
     let funcName = ''
 
     if (triggerStringArg !== '') {
-      // if (!TRIGGER_LIST.includes(triggerName)) {
       if (!triggerRelatedStrings.includes(triggerStringArg)) {
         logInfo('addTriggerToNote', `Trigger '${triggerStringArg}' not found in the list of triggers I can identify, but will still add it.`)
       }
 
       // Add to note
       // Note: using Editor, not Editor.note, in case this is used in a Template
-      // V1 Note: this can make duplicate frontmatter, as it calls ensureFrontmatter()
-      // await convertNoteToFrontmatter(Editor, `triggers: ${triggerStringArg}`)
-
-      // V2 trying to be smarter. Note: setFrontMatterVars also calls ensureFrontmatter() :-(
+      // Note: setFrontMatterVars also calls ensureFrontmatter() :-(
       const hasFMalready = noteHasFrontMatter(Editor)
       if (hasFMalready) {
         logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" already has frontmatter`)
@@ -288,40 +289,29 @@ export function convertLocalLinksToPluginLinks(): void {
 }
 
 /**
- * Rename the currently open note's file on disk
- * NB: Only available from v3.6.1 build 826+
+ * Rename the currently open note's file on disk.
+ * NB: Only available from v3.6.1 build 826+, and for non-Teamspace regular notes.
  * @author @jgclark
  */
 export async function renameNoteFile(): Promise<void> {
   try {
     const { note } = Editor
-    // Check for version less than v3.6.1 (828)
-    const bvNumber = NotePlan.environment.buildVersion
-    if (bvNumber < 826) {
-      logError('renameNoteFile()', 'Will only work on NotePlan v3.6.1 or greater. Stopping.')
-      return
-    }
     if (note == null || note.paragraphs.length < 1) {
       // No note open, so don't do anything.
-      logError('renameNoteFile()', 'No note open, or no content. Stopping.')
-      return
+      throw new Error('No note open, or no content, so nothing to rename.')
     }
+    // Don't continue if note is a Calendar note
     if (Editor.type === 'Calendar') {
-      // Won't work on calendar notes
-      logError('renameNoteFile()', 'This will not work on Calendar notes. Stopping.')
-      return
+      throw new Error('Sorry, you cannot rename Calendar notes.')
     }
-    const currentFullPath = note.filename
-    // let currentFilename = ''
-    // let currentFolder = ''
-    // if (currentFullPath.lastIndexOf('/') > -1) {
-    //   currentFolder = res.substr(0, res.lastIndexOf('/'))
-    //   currentFilename = res.substr(res.lastIndexOf('/') + 1)
-    // } else {
-    //   currentFolder = '/'
-    //   currentFilename = res
-    // }
+    // Don't continue if note is a Teamspace note
+    const teamspaceDetailsFromFilename = parseTeamspaceFilename(note.filename)
+    if (teamspaceDetailsFromFilename.isTeamspace) {
+      throw new Error('Sorry, you cannot rename Teamspace notes.')
+    }
 
+    const currentFullPath = note.filename
+    // TODO: could use chooseFolderV2() here first
     const requestedPath = await getInput(`Please enter new filename for file (including folder and file extension)`, 'OK', 'Rename file', currentFullPath)
     if (typeof requestedPath === 'string') {
       // let newFolder = ''

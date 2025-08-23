@@ -641,7 +641,7 @@ declare class DataStore {
   /**
    * Move a regular note using the given filename (with extension) to another folder. Use "/" for the root folder.
    * Note: Can also move *folders* by specifying its filename (without trailing slash).
-   * Note: You can also use this to delete notes or folders by moveNote(filepath, '@Trash')
+   * Note: You can also use this to delete notes or folders by moveNote(filepath, '@Trash'). @jgclark adds that @EM confirmed on 2025-08-05 that this doesn't work for Teamspace notes (at least as of v3.18.1).
    * Note: from v3.9.3 you can also use 'type' set to 'Calendar' to move a calendar note.
    * Returns the final filename; if the there is a duplicate, it will add a number.
    * @param {string} filename of the new note
