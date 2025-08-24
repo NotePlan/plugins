@@ -42,7 +42,8 @@ declare var Editor: TEditor
  */
 declare interface TEditor extends CoreNoteFields {
   /**
-   * Get the note object of the opened note in the editor
+   * Get the note object of the opened note in the editor.
+   * WARNING: from @jgclark: since about v3.16.3, Editor operates differently from Note when a note has frontmatter: for the Editor does NOT include frontmatter lines, and they are NOT selectable.
    */
   +note: ?TNote;
   /**
@@ -58,15 +59,16 @@ declare interface TEditor extends CoreNoteFields {
   +selectedLinesText: $ReadOnlyArray<string>;
   /**
    * Get an array of selected paragraphs. The cursor doesn't have to select the
-   * full paragraph, NotePlan returns all complete paragraphs the cursor
-   * "touches". NOTE: note all of the paragraph object data is complete, e.g.
-   * "headingLevel", "heading" and other properties may not be set properly.
+   * full paragraph, NotePlan returns all complete paragraphs the cursor "touches". 
+   * Note: not all of the paragraph object data is complete, e.g. "headingLevel", "heading" and other properties may not be set properly.
    * Use the result and a map to get all the correct data, e.g.:
    * const selectedParagraphs = Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex])
+   * WARNING: remember this will not include the frontmatter lines in the 'lineIndex' count (since ~v3.16.3)
    */
   +selectedParagraphs: $ReadOnlyArray<TParagraph>;
   /**
-   * Get the raw selection range (hidden Markdown is considered).
+   * Get the raw selection range (hidden Markdown is considered). 
+   * Note: frontmatter is not included in the character counts, since ~v3.16.3
    */
 +selection: ?TRange;
   /**
@@ -189,22 +191,23 @@ openNoteByDate(date: Date, newWindow ?: boolean, highlightStart ?: number, highl
    */
   openWeeklyNote(year: number, weeknumber: number, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
-   * Selects the full text in the editor.
+   * Selects the full text in the Editor.
    * Note: Available from v3.2
+   * Note: From ~v3.16.3, this does not include the frontmatter lines.
    */
   selectAll(): void;
   /**
    * (Raw) select text in the editor (like select 10 characters = length from position 2 = start)
-   * Raw means here that the position is calculated with the Markdown revealed,
-   * including Markdown links and folded text.
+   * Raw means here that the position is calculated with the Markdown revealed, including Markdown links and folded text.
+   * Note: From ~v3.16.3, this does not include the frontmatter lines.
    * @param {number} start - Character start position
    * @param {number} length - Character length
    */
   select(start: number, length: number): void;
   /**
    * (Rendered) select text in the editor (like select 10 characters = length from position 2 = start)
-   * Rendered means here that the position is calculated with the Markdown hidden,
-   * including Markdown links and folded text.
+   * Rendered means here that the position is calculated with the Markdown hidden, including Markdown links and folded text.
+   * Note: From ~v3.16.3, this does not include the frontmatter lines.
    * @param {number} start - Character start position
    * @param {number} length - Character length
    */
@@ -224,12 +227,14 @@ openNoteByDate(date: Date, newWindow ?: boolean, highlightStart ?: number, highl
   /**
    * Scrolls to and highlights the given paragraph.
    * If the paragraph is folded, it will be unfolded.
+   * Note: From ~v3.16.3, this does not include the frontmatter lines.
    * @param {TParagraph} paragraph to highlight
    */
   highlight(paragraph: TParagraph): void;
   /**
    * Scrolls to and highlights the given character range.
    * If the range exists in a folded heading, it will be unfolded.
+   * Note: From ~v3.16.3, this does not include the frontmatter lines.
    * @param {Range} range
    */
   highlightByRange(range: TRange): void;
@@ -237,6 +242,7 @@ openNoteByDate(date: Date, newWindow ?: boolean, highlightStart ?: number, highl
    * Scrolls to and highlights the given range defined by the character index and the character length it should cover.
    * If the paragraph is folded, it will be unfolded.
    * Note: Available from v3.0.23
+   * Note: From ~v3.16.3, this does not include the frontmatter lines.
    * @param {number} index
    * @param {number} length
    */
@@ -1345,6 +1351,7 @@ declare interface Paragraph {
   /**
    * Get the line index of the paragraph.
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
+   * WARNING: this can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   +lineIndex: number;
   /**
@@ -1776,11 +1783,13 @@ filename: string;  /* Idea: TRegularFilename | TCalendarFilename; */
    * Get or set the raw text of the note (without hiding or rendering any Markdown).
    * If you set the content, NotePlan will write it immediately to file.
    * If you get the content, it will be read directly from the file.
+   * WARNING: From ~v3.16.3, Editor.content and Editor.note.content can be different, with Editor.content does not include the frontmatter lines.
    */
   content: string | void;
   /**
-   * Get or set the array of paragraphs contained in this note, such as tasks,
-   * bullets, etc. If you set the paragraphs, the content of the note will be updated.
+   * Get or set the array of paragraphs contained in this note, such as tasks, bullets, etc. 
+   * If you set the paragraphs, the content of the note will be updated.
+   * WARNING: From ~v3.16.3, Editor.paragraphs and Editor.note.paragraphs can be different, with Editor.paragraphs not including the frontmatter lines.
    */
   paragraphs: Array<TParagraph>;
   /**
@@ -1872,42 +1881,50 @@ updateFrontmatterAttributes(attributes: Array<{key: string, value: string}>): vo
   paragraphRangeAtCharacterIndex(characterPosition: number): TRange;
 
   /**
-   * Inserts a plain paragraph at the given line index
+   * Inserts a plain paragraph at the given line index.
+   * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertParagraph(name: string, lineIndex: number, type: ParagraphType): void;
 
   /**
    * Inserts a todo at the given line index
+   * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertTodo(name: string, lineIndex: number): void;
 
   /**
    * Inserts a completed todo at the given line index
+   * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertCompletedTodo(name: string, lineIndex: number): void;
 
   /**
    * Inserts a cancelled todo at the given line index
+   * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertCancelledTodo(name: string, lineIndex: number): void;
 
   /**
    * Inserts a scheduled todo at the given line index
+   * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertScheduledTodo(name: string, lineIndex: number, date: Date): void;
 
   /**
    * Inserts a quote at the given line index
+   * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertQuote(name: string, lineIndex: number): void;
 
   /**
    * Inserts a list (bullet) item at the given line index
+   * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertList(name: string, lineIndex: number): void;
 
   /**
    * Inserts a heading at the given line index
+   * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertHeading(name: string, lineIndex: number, level: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): void;
 
@@ -1953,7 +1970,8 @@ updateFrontmatterAttributes(attributes: Array<{key: string, value: string}>): vo
   /**
    * Appends a todo below the given heading index (at the end of existing text)
    * @param {string} content - Text of the todo
-   * @param {number} headingLineIndex - Line index of the heading (get the line index from a paragraph object)
+   * @param {number} headingLineIndex - Line index of the heading (get the line index from a paragraph object). WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
+
    */
   appendTodoBelowHeadingLineIndex(content: string, headingLineIndex: number): void;
 
@@ -1961,7 +1979,8 @@ updateFrontmatterAttributes(attributes: Array<{key: string, value: string}>): vo
    * Appends a paragraph below the given heading index (at the end of existing text)
    * @param {string} content - Text of the paragraph
    * @param {paragraphType} paragraphType
-   * @param {number} headingLineIndex - Line index of the heading (get the line index from a paragraph object)
+   * @param {number} headingLineIndex - Line index of the heading (get the line index from a paragraph object). WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
+
    */
   appendParagraphBelowHeadingLineIndex(content: string, paragraphType: ParagraphType, headingLineIndex: number): void;
 
@@ -1996,7 +2015,8 @@ updateFrontmatterAttributes(attributes: Array<{key: string, value: string}>): vo
   insertParagraphBeforeParagraph(content: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void;
 
   /**
-   * Removes a paragraph at a given line index
+   * Removes a paragraph at a given line index.
+   * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    * @param {number} lineIndex - Line index of the paragraph
    */
   removeParagraphAtIndex(lineIndex: number): void;
