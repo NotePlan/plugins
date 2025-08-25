@@ -3,15 +3,16 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 2024-12-31, for v1.2.0
+// Last updated 2025-08-25, for v1.3.1
 // -----------------------------------------------------------------------------
 
-// allow changes in plugin.json to trigger recompilation
-import pluginJson from '../plugin.json'
+import pluginJson from '../plugin.json' // allow changes in plugin.json to trigger recompilation
 import { JSP, logDebug, logInfo, logError, logWarn, timer } from "@helpers/dev"
 import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
+export { archiveNote } from './archive'
+export { addIDAndAddToOtherNote } from './IDs'
 export {
   moveParas,
   moveParaBlock,
@@ -28,20 +29,15 @@ export {
   moveNoteLinks,
   moveRecentNoteLinks,
 } from './noteLinks'
-export { addIDAndAddToOtherNote } from './IDs'
-export { archiveNoteUsingFolder } from './archive'
-// export { newNoteFromClipboard, newNoteFromSelection } from './newNote' Note: moved to NoteHelpers plugin.
 
 const pluginID = "jgclark.Filer"
 
 export function init(): void {
   try {
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
-    // DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
-    //   pluginUpdated(pluginJson, r),
-    // )
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError(pluginID, JSP(error))
   }
 }
 
