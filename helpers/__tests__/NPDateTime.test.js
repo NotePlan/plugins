@@ -155,51 +155,51 @@ describe(`${FILENAME}`, () => {
   })
 
   /**
-   * relativeDateFromDateString()
+   * getShortOffsetDateFromDateString()
    */
-  describe('relativeDateFromDateString', () => {
+  describe('getShortOffsetDateFromDateString', () => {
     const toDateStr = moment([2023, 8, 6, 0, 0, 0]).format('YYYY-MM-DD') // = 2023-09-06
     describe('invalid inputs should fail', () => {
       test('fail on 2023-09-0 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023-09-0', toDateStr)).toEqual(['(error)', '(error)'])
+        expect(f.getShortOffsetDateFromDateString('2023-09-0', toDateStr)).toEqual(['(error)', '(error)'])
       })
       test('fail on 2023-09-06 to 20230910', () => {
-        expect(f.relativeDateFromDateString('2023-09-06', '20230910')).toEqual(['-4d', '-4 days'])
+        expect(f.getShortOffsetDateFromDateString('2023-09-06', '20230910')).toEqual(['-4d', '-4 days'])
       })
     })
     describe('valid inputs should work', () => {
       test('2023-09-06 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023-09-06', toDateStr)).toEqual(['0d', 'today'])
+        expect(f.getShortOffsetDateFromDateString('2023-09-06', toDateStr)).toEqual(['0d', 'today'])
       })
       test('2023-09-05 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023-09-05', toDateStr)).toEqual(['-1d', 'yesterday'])
+        expect(f.getShortOffsetDateFromDateString('2023-09-05', toDateStr)).toEqual(['-1d', 'yesterday'])
       })
       test('2023-09-07 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023-09-07', toDateStr)).toEqual(['1d', 'tomorrow'])
+        expect(f.getShortOffsetDateFromDateString('2023-09-07', toDateStr)).toEqual(['1d', 'tomorrow'])
       })
       test('2023-W36 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023-W36', toDateStr)).toEqual(['0w', 'this week'])
+        expect(f.getShortOffsetDateFromDateString('2023-W36', toDateStr)).toEqual(['0w', 'this week'])
       })
       test('2023-W34 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023-W34', toDateStr)).toEqual(['-2w', '-2 weeks'])
+        expect(f.getShortOffsetDateFromDateString('2023-W34', toDateStr)).toEqual(['-2w', '-2 weeks'])
       })
       test('2023-W38 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023-W38', toDateStr)).toEqual(['2w', '2 weeks'])
+        expect(f.getShortOffsetDateFromDateString('2023-W38', toDateStr)).toEqual(['2w', '2 weeks'])
       })
       test('2023-09 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023-09', toDateStr)).toEqual(['0m', 'this month'])
+        expect(f.getShortOffsetDateFromDateString('2023-09', toDateStr)).toEqual(['0m', 'this month'])
       })
       test('2023-Q3 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023-Q3', toDateStr)).toEqual(['0q', 'this quarter'])
+        expect(f.getShortOffsetDateFromDateString('2023-Q3', toDateStr)).toEqual(['0q', 'this quarter'])
       })
       test('2023-Q1 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023-Q1', toDateStr)).toEqual(['-2q', '-2 quarters'])
+        expect(f.getShortOffsetDateFromDateString('2023-Q1', toDateStr)).toEqual(['-2q', '-2 quarters'])
       })
       test('2023-Q4 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023-Q4', toDateStr)).toEqual(['1q', 'next quarter'])
+        expect(f.getShortOffsetDateFromDateString('2023-Q4', toDateStr)).toEqual(['1q', 'next quarter'])
       })
       test('2023 to 2023-09-06', () => {
-        expect(f.relativeDateFromDateString('2023', toDateStr)).toEqual(['0y', 'this year'])
+        expect(f.getShortOffsetDateFromDateString('2023', toDateStr)).toEqual(['0y', 'this year'])
       })
     })
   })

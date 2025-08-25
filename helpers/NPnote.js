@@ -11,7 +11,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from 
 import { getFolderDisplayName, getFolderFromFilename, getRegularNotesInFolder } from '@helpers/folders'
 import { displayTitle, isValidUUID } from '@helpers/general'
 import { calendarNotesSortedByChanged,noteType } from '@helpers/note'
-import { displayTitleWithRelDate, getRelativeDates } from '@helpers/NPdateTime'
+import { displayTitleWithRelDate, getDateStrFromRelativeDateString, getRelativeDates } from '@helpers/NPdateTime'
 import { endOfFrontmatterLineIndex, ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
@@ -1265,7 +1265,7 @@ export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
  * Returns TNote from DataStore matching 'noteTitleArg' (if given) to titles, or else ask User to select from all note titles.
  * Now first matches against special 'relative date' (e.g. 'last month', 'next week', defined above) as well as YYYY-MM-DD (etc.) calendar dates.
  * If a desired Calendar note doesn't already exist this now attempts to create it first.
- * Note: Send param 'allNotesIn' if the generation of that list can be more efficiently done before now. Otherwise it will generated a sorted list of all notes.
+ * Note: Send param 'notesIn' if the generation of that list can be more efficiently done before now. Otherwise it will generated a sorted list of all notes.
  * Note: There's deliberately no try/catch so that failure can stop processing.
  * See https://discord.com/channels/763107030223290449/1243973539296579686
  * TODO(Later): Hopefully @EM will allow future calendar notes to be created, and then some of this handling won't be needed.
@@ -1283,25 +1283,20 @@ export async function getNoteFromParamOrUser(
   const startTime = new Date()
   let note: TNote | null
   let noteTitleArgIsCalendarNote: boolean = false
-
-  const relativeDates = getRelativeDates()
+  logDebug('getNoteFromParamOrUser', `starting with purpose '${purpose}' / noteTitleArg '${noteTitleArg}' / with ${notesIn?.length ?? 0} notesIn`)
 
   // First try getting note from arg
   if (noteTitleArg != null && noteTitleArg !== '') {
     // Is this a note title from arg?
     // First check if its a special 'relative date', e.g. 'next month'
-    for (const rd of relativeDates) {
-      if (noteTitleArg === rd.relName) {
-        noteTitleArgIsCalendarNote = true
-        note = rd.note ?? null
-        logDebug('getNoteFromParamOrUser', `Found match with relative date '${rd.relName}' = filename ${note?.filename ?? '(error)'}`)
-        break
+    const possDateStr = getDateStrFromRelativeDateString(noteTitleArg)
+    if (possDateStr) {
+      noteTitleArgIsCalendarNote = true
+      note = getOrMakeCalendarNote(possDateStr)
+      if (note) {
+        logDebug('getNoteFromParamOrUser', `Found match with relative date '${noteTitleArg}' = filename ${note?.filename ?? '(error)'}`)
+        return note
       }
-    }
-    // If this has already found a note, return it
-    if (note) {
-      logDebug('getNoteFromParamOrUser', `- Found note from noteTitleArg '${noteTitleArg}'`)
-      return note
     }
 
     // Now check to see if the noteTitleArg is of the *form* of a Calendar note string
@@ -1312,7 +1307,10 @@ export async function getNoteFromParamOrUser(
       // Test to see if we can get this calendar note
       // $FlowIgnore[incompatible-type] straight away test for null return
       note = getOrMakeCalendarNote(noteTitleArg)
-      if (!note) {
+      if (note) {
+        logDebug('getNoteFromParamOrUser', `- Found Calendar note '${displayTitle(note)}'`)
+        return note
+      } else {
         logWarn('getNoteFromParamOrUser', `Couldn't find or make Calendar note with title '${noteTitleArg}'. Will suggest a work around to user.`)
         throw new Error(
           `I can't find Calendar note '${noteTitleArg}', and unfortunately I have tried and failed to create it for you.\nPlease create it by navigating to it, and adding any content, and then re-run this command.`,
@@ -1320,34 +1318,41 @@ export async function getNoteFromParamOrUser(
       }
     }
 
-    // Now try to find wanted regular note
-    // logDebug('getNoteFromParamOrUser', `- Couldn't find note with title '${noteTitleArg}'.`)
-
-    // Preferably we'll use the last parameter, but if not calculate the list of notes to check
+    // Now try to find wanted regular note, either from the last param or from DataStore (except from @Trash)
+    logDebug('getNoteFromParamOrUser', `- Now will look for '${noteTitleArg}' in regular notes ...`)
     const notesToCheck = getNotesToCheck(notesIn)
-
     const matchingNotes = notesToCheck.filter((n) => n.title?.toLowerCase() === noteTitleArg.toLowerCase())
-    logDebug('getNoteFromParamOrUser', `Found ${matchingNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
-    note = matchingNotes[0]
-
+    if (matchingNotes.length > 0) {
+      logDebug('getNoteFromParamOrUser', `Found ${matchingNotes.length} matching note(s) with title '${noteTitleArg}'. Will use first match.`)
+      note = matchingNotes[0]
+    } else {
+      logDebug('getNoteFromParamOrUser', `Found no matching notes with title '${noteTitleArg}'.`)
+    }
   } else {
     // We need to ask user to select from all notes
     // Preferably we'll use the last parameter, but if not calculate the list of notes to check
-    const notesToCheck = getNotesToCheck(notesIn)
+    // const notesToCheck = getNotesToCheck(notesIn)
     const result = await chooseNoteV2(`Select note for new ${purpose}`, notesIn, true, true, false, false)
-    if (typeof result === 'boolean') {
-      note = notesToCheck[result.index]
+    if (typeof result !== 'boolean') {
+      note = result
+      logDebug('getNoteFromParamOrUser', `- found note '${displayTitle(note)}'`)
     }
   }
-  // Double-check this is a valid note
+  // Double-check we have a valid note
   if (!note) {
-    throw new Error("Couldn't get note for a reason I can't understand.")
+    // logError('getNoteFromParamOrUser', `Couldn't get note for a reason I can't understand.`)
+    throw new Error("getNoteFromParamOrUser(): Couldn't get note for a reason I can't understand.")
   }
 
   logTimer('getNoteFromParamOrUser', startTime, `-> note '${displayTitle(note)}'`)
   return note
 }
 
+/**
+ * Get the list of regular notes, either from the param or from DataStore (except from @Trash).
+ * @param {Array<TNote>?} notesIn
+ * @returns {Array<TNote>}
+ */
 function getNotesToCheck(notesIn?: Array<TNote>): Array<TNote> {
   if (notesIn) {
     return notesIn
@@ -1410,28 +1415,37 @@ export async function getOrMakeRegularNoteInFolder(noteTitle: string, noteFolder
 }
 
 /**
- * Get or create the relevant calendar note
+ * Get or create the relevant calendar note, using any date string format (e.g. '20250726', '2025-07-26', or '2025-W30') or relative date string (e.g. 'next week').
  * TODO: make teamspace-aware
  * @author @jgclark
  *
- * @param {string} calendarDateStr - date string to look for (e.g. '20250726' or '2025-W30')
+ * @param {string} dateStrIn
  * @returns {TNote} - note object
  */
-export function getOrMakeCalendarNote(calendarDateStr: string): ?TNote {
+export function getOrMakeCalendarNote(dateStrIn: string): ?TNote {
   try {
-    logDebug('NPnote/getOrMakeCalendarNote', `starting with calendarDateStr '${calendarDateStr}'`)
-    let dateStrToUse = calendarDateStr
-    // First convert from ISO to calendar filename format if needed
-    if (dt.isDailyDateStr(calendarDateStr)) {
-      dateStrToUse = dt.convertISOToYYYYMMDD(calendarDateStr)
+    logDebug('NPnote/getOrMakeCalendarNote', `starting with dateStrIn '${dateStrIn}'`)
+    let dateStrToUse = dateStrIn
+
+    // Convert from relative date string if needed
+    const possDateStr = getDateStrFromRelativeDateString(dateStrToUse)
+    if (possDateStr !== '') {
+      dateStrToUse = possDateStr
+      logDebug('getNoteFromParamOrUser', `Found match with relative date '${dateStrIn}' =>  ${possDateStr}`)
     }
+
+    // Convert from ISO to calendar filename format if needed
+    if (dt.isDailyDateStr(dateStrToUse)) {
+      dateStrToUse = dt.convertISOToYYYYMMDD(dateStrToUse)
+    }
+
     if (!dt.isValidCalendarNoteFilenameWithoutExtension(dateStrToUse)) {
       throw new Error(`Invalid calendar date string: ${dateStrToUse}`)
     }
 
     const calendarNote: ?TNote = DataStore.calendarNoteByDateString(dateStrToUse)
     if (!calendarNote) {
-      throw new Error(`Cannot find or make calendar note for ${calendarDateStr}, for reasons I don't understand.`)
+      throw new Error(`Cannot find or make calendar note for ${dateStrIn}, for reasons I don't understand.`)
     }
 
     // If the note has no content -- which it will if the note hasn't been created before now -- set it to empty string
