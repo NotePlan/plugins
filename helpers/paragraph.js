@@ -842,3 +842,61 @@ export function convertRawContentToContent(rawContentIn: string): string {
     return '<error>' // for completeness
   }
 }
+
+/**
+ * Function to write paragraphs either to top of note, bottom of note, or after a heading.
+ * Note: there is no API function to insert multiple paragraphs in one go, so we have to insert a raw text string version of the paragraphs that includes multiple lines.
+ * Note: now can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports.
+ * @author @jgclark
+ *
+ * @param {TNote} destinationNote
+ * @param {Array<TParagraph>} paragraphs
+ * @param {string} headingToFind if empty, means 'end of note'. Can also be the special string '<<top of note>>' or '<<bottom of note>>'
+ * @param {string} whereToAddInSection to add after a heading: 'start' or 'end'
+ * @param {boolean} allowNotePreambleBeforeHeading?
+ */
+export function addParagraphsToNote(
+  destinationNote: TNote,
+  paragraphs: Array<TParagraph>,
+  headingToFind: string,
+  whereToAddInSection: string,
+  allowNotePreambleBeforeHeading: boolean
+): void {
+  try {
+    if (paragraphs.length === 0) {
+      throw new Error('No paragraphs to add!')
+    }
+    // Turn the paragraphs into a (multi-line) text string
+    const selectedParasAsText = parasToText(paragraphs)
+
+    const destinationNoteParas = destinationNote.paragraphs
+    let insertionIndex: number
+    // Now add the text to the destination note
+    if (headingToFind === destinationNote.title || headingToFind === '<<top of note>>') {
+      // i.e. the first line in project or calendar note
+      insertionIndex = findStartOfActivePartOfNote(destinationNote, allowNotePreambleBeforeHeading)
+      logDebug('paragraph/addParagraphsToNote', `-> top of note, line ${insertionIndex}`)
+      destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
+
+    } else if (headingToFind === '<<bottom of note>>' || headingToFind === '') {
+      // blank return from chooseHeading has special meaning of 'end of note'
+      insertionIndex = destinationNoteParas.length + 1 || 0
+      logDebug('paragraph/addParagraphsToNote', `-> bottom of note, line ${insertionIndex}`)
+      destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
+
+    } else if (whereToAddInSection === 'start') {
+      logDebug('paragraph/addParagraphsToNote', `-> Inserting at start of section '${headingToFind}'`)
+      destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, false, false)
+
+    } else if (whereToAddInSection === 'end') {
+      logDebug('paragraph/addParagraphsToNote', `-> Inserting at end of section '${headingToFind}'`)
+      destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, true, false)
+
+    } else {
+      // Shouldn't get here
+      throw new Error(`Can't find heading '${headingToFind}'. Stopping.`)
+    }
+  } catch (err) {
+    logError('paragraph/addParagraphsToNote', err.message)
+  }
+}
