@@ -121,20 +121,20 @@ describe('StandardPromptHandler', () => {
   describe('Cancelled prompts', () => {
     test('Should handle basic text prompt cancellation', async () => {
       const template = '<%- prompt("testVar", "This prompt will be cancelled") %>'
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result = await processPrompts(template, {})
       expect(result).toBe(false)
     })
 
     test('Should handle prompt with default value cancellation', async () => {
       const template = '<%- prompt("testVar", "This prompt will be cancelled", "default") %>'
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result = await processPrompts(template, {})
       expect(result).toBe(false)
     })
 
     // skipping this test because in practice, hittins escape stops the plugin in NP so it will never return
     test.skip('Should handle prompt with options cancellation', async () => {
       const template = '<%- prompt("testVar", "This prompt will be cancelled", ["option1", "option2"]) %>'
-      const result = await processPrompts(template, {}, '<%', '%>', getTags)
+      const result = await processPrompts(template, {})
       expect(result).toBe(false)
     })
   })
@@ -290,19 +290,19 @@ describe('StandardPromptHandler', () => {
 
   test('Should handle basic text prompt', async () => {
     const template = '<%- prompt("testVar", "Enter a value:") %>'
-    const result = await processPrompts(template, {}, '<%', '%>', getTags)
+    const result = await processPrompts(template, {})
     expect(result).toBe(false)
   })
 
   test('Should handle prompt with default value', async () => {
     const template = '<%- prompt("testVar", "Enter a value:", "default") %>'
-    const result = await processPrompts(template, {}, '<%', '%>', getTags)
+    const result = await processPrompts(template, {})
     expect(result).toBe(false)
   })
 
   test('Should handle prompt with options', async () => {
     const template = '<%- prompt("testVar", "Choose an option:", ["option1", "option2"]) %>'
-    const result = await processPrompts(template, {}, '<%', '%>', getTags)
+    const result = await processPrompts(template, {})
     expect(result).not.toBe(false)
     if (result !== false) {
       expect(result.sessionData.testVar).toBe('Test Response')
@@ -313,7 +313,7 @@ describe('StandardPromptHandler', () => {
 
   test('Should gracefully handle user cancelling the prompt', async () => {
     const template = '<%- prompt("cancelledVar", "This prompt will be cancelled") %>'
-    const result = await processPrompts(template, {}, '<%', '%>', getTags)
+    const result = await processPrompts(template, {})
     expect(result).toBe(false)
   })
 
@@ -345,6 +345,66 @@ describe('StandardPromptHandler', () => {
     if (result !== false) {
       expect(result.sessionData.complex).toBe('Test Response')
       expect(result.sessionTemplateData).toBe('<%- complex %>')
+    }
+  })
+
+  test('Should not treat CommandBar.prompt calls as templating prompts', async () => {
+    // This test verifies that JavaScript code containing CommandBar.prompt is not
+    // incorrectly processed as a templating prompt
+    const templateData = `
+      <%- prompt('testVar', 'This is a real templating prompt') %>
+      \`\`\`templatejs
+      const result = await CommandBar.prompt('Test Title', 'Test Message')
+      const anotherResult = await someFunction.prompt('Another test')
+      \`\`\`
+    `
+    const userData = {}
+
+    const result = await processPrompts(templateData, userData)
+
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      // Should only process the actual templating prompt
+      expect(result.sessionData.testVar).toBe('Test Response')
+      expect(result.sessionTemplateData).toContain('<%- testVar %>')
+
+      // Should preserve the CommandBar.prompt calls in the template (not process them)
+      expect(result.sessionTemplateData).toContain('CommandBar.prompt')
+      expect(result.sessionTemplateData).toContain('someFunction.prompt')
+
+      // Should only have called CommandBar.textPrompt once (for the real prompt)
+      expect(global.CommandBar.textPrompt).toHaveBeenCalledTimes(1)
+    }
+  })
+
+  test('Should not treat prompt calls in object notation as templating prompts', async () => {
+    // This test verifies that prompt calls in object notation are not processed
+    const templateData = `
+      <%- prompt('testVar', 'This is a real templating prompt') %>
+      \`\`\`templatejs
+      const options = {
+        prompt: 'This should not be processed',
+        other: 'value'
+      }
+      const result = await CommandBar.prompt('Title', 'Message')
+      \`\`\`
+    `
+    const userData = {}
+
+    const result = await processPrompts(templateData, userData)
+
+    expect(result).not.toBe(false)
+    if (result !== false) {
+      // Should only process the actual templating prompt
+      expect(result.sessionData.testVar).toBe('Test Response')
+      expect(result.sessionTemplateData).toContain('<%- testVar %>')
+
+      // Should preserve the object property and CommandBar.prompt in the template (not process them)
+      expect(result.sessionTemplateData).toContain('prompt:')
+      expect(result.sessionTemplateData).toContain('CommandBar.prompt')
+
+      // Should only have called CommandBar.textPrompt once (for the real prompt)
+      expect(global.CommandBar.textPrompt).toHaveBeenCalledTimes(1)
     }
   })
 })

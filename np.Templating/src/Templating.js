@@ -738,9 +738,9 @@ export async function templateRunner(...args: Array<string>) {
     clo(args, `templateRunner starting with args (${argsType}), length: ${args.length}`)
     const startTime = new Date()
     if (args.length > 0) {
-      logDebug(pluginJson, `templateRunner calling templateFileByTitle with args: args[0]: ${args[0]} args[1]: ${args[1]} args[2]: ${args[2]}`)
-      if (!args[0]) logWarn(`templateRunner: No template name was provided to the templateRunner. Value was: ${args[0]}. Check your x-callback-url or calling function.`)
-      if (!args[1] || !['false', 'true'].includes(args[1]))
+      logDebug(pluginJson, `templateRunner calling templateFileByTitle with args: args[0]: ${args[0]} args[1]: ${args[1]} args[2]: ${JSON.stringify(args[2])}`)
+      if (!args[0]) logWarn(`templateRunner: No template name was provided to the templateRunner. Value was:"${args[0]}". Check your x-callback-url or calling function.`)
+      if (args[1] === undefined || args[1] === null || !['false', 'true', false, true].includes(args[1]))
         logWarn(
           `templateRunner: No openInEditor flag was provided to the templateRunner. Will default to false. Value was: ${args[1]}. Check your x-callback-url or calling function.`,
         )

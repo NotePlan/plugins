@@ -374,7 +374,7 @@ export default class StandardPromptHandler {
     // Extract the variable name from the first parameter if it exists
     // This handles the case where prompt("varName", "message") is used
     let firstParamVarName = null
-    const promptParamMatch = tag.match(/prompt\(\s*['"]([^'"]+)['"]\s*,/)
+    const promptParamMatch = tag.match(/(?:^|\s)prompt\(\s*['"]([^'"]+)['"]\s*,/)
     if (promptParamMatch && promptParamMatch[1]) {
       firstParamVarName = promptParamMatch[1]
       logDebug(pluginJson, `StandardPromptHandler.process: Detected variable name in first parameter: ${firstParamVarName}`)

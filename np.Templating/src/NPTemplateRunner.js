@@ -29,23 +29,187 @@ import { getNoteByFilename } from '../../helpers/note'
 import { findHeading } from '../../helpers/NPParagraph'
 
 /**
- * Write out the contents to either Today's Calendar note or the Note which was opened
- * @author @dwertheimer
- * @param {TNote} note - the note to work on
- * @param {string} renderedTemplate - the rendered template string (post-render)
+ * Handle empty template case
+ * @param {string} renderedTemplate - rendered template content
+ * @returns {boolean} true if template is empty
+ */
+export function isTemplateEmpty(renderedTemplate: string): boolean {
+  return renderedTemplate.trim().length === 0
+}
+
+/**
+ * Replace entire note contents
+ * @param {CoreNoteFields} note - the note to modify
+ * @param {string} renderedTemplate - rendered template content
+ * @returns {Promise<void>}
+ */
+export async function replaceNoteContents(note: CoreNoteFields, renderedTemplate: string): Promise<void> {
+  logDebug(pluginJson, `NPTemplateRunner::writeNoteContents replacing note contents (options.replaceNoteContents === true)`)
+  const startIndex = findStartOfActivePartOfNote(note)
+  logDebug(pluginJson, `NPTemplateRunner::writeNoteContents deleting everything after line #${startIndex}`)
+  const parasToKeep = note.paragraphs.filter((p) => p.lineIndex < startIndex)
+  const strToKeep = parasToKeep.map((p) => p.rawContent).join('\n')
+  logDebug(pluginJson, `NPTemplateRunner::adding in renderedTemplate (${renderedTemplate.split('\n').length} lines)`)
+  note.content = `${strToKeep}\n${renderedTemplate}`
+}
+
+/**
+ * Handle heading selection for interactive templates
+ * @param {CoreNoteFields} note - the note to modify
+ * @param {string} writeUnderHeading - the heading to write under
+ * @returns {Promise<string>} the selected heading
+ */
+export async function handleHeadingSelection(note: CoreNoteFields, writeUnderHeading: string): Promise<string> {
+  if (/<choose>/i.test(writeUnderHeading) || /<select>/i.test(writeUnderHeading)) {
+    // $FlowIgnore -- note does not exist on CoreNoteFields (only on Editor)
+    return await chooseHeading(note, true)
+  }
+  return writeUnderHeading
+}
+
+/**
+ * Replace heading and all content under it
+ * @param {CoreNoteFields} note - the note to modify
+ * @param {string} writeUnderHeading - the heading to replace
+ * @param {string} renderedTemplate - rendered template content
+ * @param {Object} headingParagraph - the heading paragraph object
+ * @returns {Promise<void>}
+ */
+export async function replaceHeadingAndContents(note: CoreNoteFields, writeUnderHeading: string, renderedTemplate: string, headingParagraph: any): Promise<void> {
+  logDebug(pluginJson, `NPTemplateRunner::writeNoteContents replacing heading and contents (replaceHeadingAndContents === true)`)
+  // Find the heading paragraph and replace it and all content below until next heading of same or higher level
+  const headingIndex = headingParagraph ? headingParagraph.lineIndex : -1
+  if (headingIndex >= 0) {
+    const headingMatch = writeUnderHeading.match(/^#+/)
+    const headingLevel = headingMatch ? headingMatch[0].length : 2
+    let endIndex = note.paragraphs.length
+
+    // Find the next heading of same or higher level
+    for (let i = headingIndex + 1; i < note.paragraphs.length; i++) {
+      const para = note.paragraphs[i]
+      if (para.type === 'title') {
+        const paraMatch = para.content.match(/^#+/)
+        if (paraMatch && paraMatch[0].length <= headingLevel) {
+          endIndex = i
+          break
+        }
+      }
+    }
+
+    // Replace the heading and content by deleting old content and inserting new
+    const newContent = `${'#'.repeat(headingLevel)} ${writeUnderHeading}\n${renderedTemplate}`
+    // Delete paragraphs from heading to end of section
+    for (let i = endIndex - 1; i >= headingIndex; i--) {
+      if (note.paragraphs[i]) {
+        note.removeParagraph(note.paragraphs[i])
+      }
+    }
+    // Insert new content at heading position
+    note.insertParagraph(newContent, headingIndex, 'text')
+  }
+}
+
+/**
+ * Creates a block of text with the heading and content
+ * @param {CoreNoteFields} note - the note to modify
+ * @param {string} writeUnderHeading - the heading to add
+ * @param {string} renderedTemplate - rendered template content
+ * @param {Object} options - write options
+ * @returns {Promise<void>}
+ */
+export function composeHeadingWithContent(note: CoreNoteFields, writeUnderHeading: string, renderedTemplate: string, options: any): string {
+  const { headingLevel = 2 } = options
+  const output = `${'#'.repeat(headingLevel || 2)} ${writeUnderHeading}\n${renderedTemplate}`
+  return output
+}
+
+/**
+ * Handle prepending/appending heading with content
+ * @param {CoreNoteFields} note - the note to modify
+ * @param {string} writeUnderHeading - the heading to add
+ * @param {string} renderedTemplate - rendered template content
+ * @param {Object} options - write options
+ * @returns {Promise<void>}
+ */
+export async function prependOrAppendHeadingWithContent(note: CoreNoteFields, writeUnderHeading: string, renderedTemplate: string, location: string, options: any): Promise<void> {
+  const output = composeHeadingWithContent(note, writeUnderHeading, renderedTemplate, options)
+  logDebug(
+    `writeNoteContents writeUnderHeading="${writeUnderHeading}" Did not exist. ${
+      location === 'prepend' ? 'Prepending' : 'Appending'
+    } title with content to note. This is a workaround for a race condition in NP. output: "${output}"`,
+  )
+  if (location === 'prepend') {
+    note.prependParagraph(output, 'text')
+  } else {
+    note.appendParagraph(output, 'text')
+  }
+}
+
+/**
+ * Handle writing content under existing heading
+ * @param {CoreNoteFields} note - the note to modify
+ * @param {string} writeUnderHeading - the heading to write under
+ * @param {string} renderedTemplate - rendered template content
+ * @param {string} location - write location
+ * @param {Object} options - write options
+ * @returns {Promise<void>}
+ */
+export async function writeUnderExistingHeading(note: CoreNoteFields, writeUnderHeading: string, renderedTemplate: string, location: string, options: any): Promise<void> {
+  note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, location === 'append', true)
+  if (options.shouldOpenInEditor) {
+    await Editor.openNoteByFilename(note.filename)
+    selectFirstNonTitleLineInEditor()
+  }
+}
+
+/**
+ * Handle writing content without heading
+ * @param {CoreNoteFields} note - the note to modify
+ * @param {string} renderedTemplate - rendered template content
+ * @param {string} location - write location
+ * @param {boolean} isEditor - whether we're in the editor
+ * @returns {Promise<void>}
+ */
+export async function writeWithoutHeading(note: CoreNoteFields, renderedTemplate: string, location: string, isEditor: boolean): Promise<void> {
+  const startIndex = findStartOfActivePartOfNote(note)
+  if (location === 'append') {
+    logDebug(pluginJson, `writeNoteContents appending "${renderedTemplate}"`)
+    note.appendParagraph(renderedTemplate, 'text')
+  } else if (location === 'cursor' && isEditor) {
+    // we are in the Editor
+    const selection = Editor.selectedParagraphs
+    const indents = selection?.length > 0 ? selection[0].indents : 0
+    logDebug(pluginJson, `writeNoteContents inserting "${renderedTemplate}" at cursor with indents ${indents}`)
+    clo(selection, `writeNoteContents selection`)
+    Editor.insertParagraphAtCursor(renderedTemplate, 'text', indents)
+  } else {
+    logDebug(pluginJson, `writeNoteContents prepending "${renderedTemplate}" at index ${startIndex}`)
+    note.insertParagraph(renderedTemplate, startIndex, 'text')
+  }
+}
+
+/**
+ * Write rendered template content to a note
+ * @param {CoreNoteFields} _note - the note to write to
+ * @param {string} renderedTemplate - rendered template content
  * @param {string} headingName - the heading to write under
- * @param {string} location - 'append','replace' else prepend
- * @param {*} options
- *    shouldOpenInEditor - if true, will open the note in the editor, otherwise will write silently to the note
- *    createMissingHeading - if true, will create heading when it does not exist in note
- *    replaceNoteContents - if yes (true doesn't work not sure why), will replace all the content in the note (other than the title)
+ * @param {string} location - where to write the content
+ * @param {Object} options - write options
+ * @returns {Promise<void>}
  */
 export async function writeNoteContents(
   _note: CoreNoteFields,
   renderedTemplate: string,
   headingName: string,
   location: string,
-  options?: any = { shouldOpenInEditor: false, createMissingHeading: false, replaceNoteContents: false, headingLevel: 2, addHeadingLocation: 'append', headingLevel: 2 },
+  options?: any = {
+    shouldOpenInEditor: false,
+    createMissingHeading: false,
+    replaceNoteContents: false,
+    replaceHeadingAndContents: false,
+    headingLevel: 2,
+    addHeadingLocation: 'append',
+  },
 ): Promise<void> {
   let note: CoreNoteFields | null | void = _note
   // $FlowIgnore
@@ -57,80 +221,389 @@ export async function writeNoteContents(
     } options:${JSP(options)} renderedTemplate:\n---\n${renderedTemplate}\n---`,
   )
   let writeUnderHeading = headingName
-  const { headingLevel = 2, addHeadingLocation = 'append' } = options
+  const { headingLevel = 2, addHeadingLocation = 'append', replaceHeadingAndContents = false } = options
 
   if (note) {
     logDebug(
       pluginJson,
       `writeNoteContents title:"${note.title || ''}" writeUnderHeading:${writeUnderHeading} location:${location} options:${JSP(options)} renderedTemplate:"${renderedTemplate}"`,
     )
-    if (renderedTemplate.trim().length === 0) {
+
+    // Handle empty template case
+    if (isTemplateEmpty(renderedTemplate)) {
       logDebug(pluginJson, `NPTemplateRunner::writeNoteContents renderedTemplate is empty, skipping`)
       return
     }
+
+    // Handle replace note contents case
     if (options.replaceNoteContents) {
-      logDebug(pluginJson, `NPTemplateRunner::writeNoteContents replacing note contents (options.replaceNoteContents === true)`)
-      const startIndex = findStartOfActivePartOfNote(note)
-      logDebug(pluginJson, `NPTemplateRunner::writeNoteContents deleting everything after line #${startIndex}`)
-      const parasToKeep = note.paragraphs.filter((p) => p.lineIndex < startIndex)
-      const parasToRemove = note.paragraphs.filter((p) => p.lineIndex >= startIndex)
-      const strToKeep = parasToKeep.map((p) => p.rawContent).join('\n')
-      logDebug(pluginJson, `NPTemplateRunner::adding in renderedTemplate (${renderedTemplate.split('\n').length} lines)`)
-      note.content = `${strToKeep}\n${renderedTemplate}`
-      // note.insertParagraph(renderedTemplate, startIndex, 'text') // Note: not dealing with headings due to race conditions after delete
-      // options.createMissingHeading = true
+      await replaceNoteContents(note, renderedTemplate)
       return
-    } else {
-      if (/<choose>/i.test(writeUnderHeading) || /<select>/i.test(writeUnderHeading)) {
-        // $FlowIgnore -- note does not exist on CoreNoteFields (only on Editor)
-        writeUnderHeading = await chooseHeading(note, true)
-      }
-      if (writeUnderHeading) {
-        const headingParagraph = findHeading(note, writeUnderHeading)
-        if (headingParagraph || options.createMissingHeading) {
-          if (location === 'replace') {
-            await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate)
-          } else {
-            const { addHeadingLocation, headingLevel } = options
-            // default in NP is to append, so if we are not appending, we need to prepend the title with content
-            if (!headingParagraph && addHeadingLocation !== 'append') {
-              logDebug(
-                `writeNoteContents writeUnderHeading="${writeUnderHeading}" Did not exist. Prepending (b/c TR location is prepend) title with content. This is a workaround for a race condition in NP. headingLevel:${headingLevel} addHeadingLocation:${addHeadingLocation}`,
-              )
-              note.prependParagraph(`${'#'.repeat(headingLevel || 2)} ${writeUnderHeading}\n${renderedTemplate}`, 'text')
-              return
-            }
-            if (note) {
-              note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, location === 'append', true)
-              if (options.shouldOpenInEditor) {
-                await Editor.openNoteByFilename(note.filename)
-                selectFirstNonTitleLineInEditor()
-              }
-            }
-          }
-        } else {
-          await CommandBar.prompt(`"${writeUnderHeading}" heading does not exist in note.`, '')
+    }
+
+    // Handle heading selection for interactive templates
+    writeUnderHeading = await handleHeadingSelection(note, writeUnderHeading)
+    const { createMissingHeading = true, addHeadingLocation = 'append', replaceHeadingAndContents = false } = options
+
+    if (writeUnderHeading) {
+      const replaceHeadingAlso = location === 'replace' && replaceHeadingAndContents && (replaceHeadingAndContents === true || /true/i.test(replaceHeadingAndContents))
+      const headingParagraph = findHeading(note, writeUnderHeading, true)
+      if (headingParagraph) {
+        // paragraph with heading exists
+        await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate, false, options.headingLevel || 2)
+        if (replaceHeadingAlso) {
+          headingParagraph?.note?.removeParagraph(headingParagraph)
         }
       } else {
-        const startIndex = findStartOfActivePartOfNote(note)
-        if (location === 'append') {
-          logDebug(pluginJson, `writeNoteContents appending "${renderedTemplate}"`)
-          note.appendParagraph(renderedTemplate, 'text')
-        } else if (location === 'cursor' && isEditor) {
-          // we are in the Editor
-          const selection = Editor.selectedParagraphs
-          const indents = selection?.length > 0 ? selection[0].indents : 0
-          logDebug(pluginJson, `writeNoteContents inserting "${renderedTemplate}" at cursor with indents ${indents}`)
-          clo(selection, `writeNoteContents selection`)
-          Editor.insertParagraphAtCursor(renderedTemplate, 'text', indents)
+        // paragraph with heading does not exist, so we need to create the whole block
+        const createMissingHeadingAlso = createMissingHeading && (createMissingHeading === true || /true/i.test(createMissingHeading))
+        if (createMissingHeadingAlso) {
+          await prependOrAppendHeadingWithContent(note, writeUnderHeading, renderedTemplate, addHeadingLocation, options)
         } else {
-          logDebug(pluginJson, `writeNoteContents prepending "${renderedTemplate}" at index ${startIndex}`)
-          note.insertParagraph(renderedTemplate, startIndex, 'text')
+          logDebug(
+            pluginJson,
+            `NPTemplateRunner::writeNoteContents -- heading "${writeUnderHeading}" does not exist in note and createMissingHeading is false so skipping; content was: "${renderedTemplate}"`,
+          )
         }
       }
+    } else {
+      // Handle writing without heading
+      await writeWithoutHeading(note, renderedTemplate, location, isEditor)
     }
   } else {
     logDebug(pluginJson, `NPTemplateRunner::writeNoteContents -- there was no note to write to`)
+  }
+}
+
+/**
+ * Process and validate arguments passed to templateRunnerExecute
+ * @param {string} selectedTemplate - the name of the template to run
+ * @param {string | Object | null} args - the arguments to pass to the template
+ * @returns {Object} processed arguments object and validation info
+ */
+export function processTemplateArguments(selectedTemplate: string, args: string | Object | null): { argObj: Object, isRunFromCode: boolean, passedTemplateBody: string | null } {
+  const isRunFromCode: boolean = Boolean(selectedTemplate.length === 0 && args && typeof args === 'object' && (args.getNoteTitled || args.templateBody))
+  const passedTemplateBody: string | null = isRunFromCode && args && typeof args === 'object' && args.templateBody ? String(args.templateBody) : null
+
+  const argObj =
+    args && typeof args === 'object'
+      ? args
+      : args && typeof args === 'string' && args.includes('__isJSON__')
+      ? JSON.parse(args.replace('__isJSON__', ''))
+      : overrideSettingsWithStringArgs({}, args || '')
+
+  return { argObj, isRunFromCode, passedTemplateBody }
+}
+
+/**
+ * Get template data and validate template exists
+ * @param {string} selectedTemplate - the name of the template to run
+ * @param {boolean} isRunFromCode - whether running from code
+ * @returns {Object} template data and validation info
+ */
+export async function getTemplateData(selectedTemplate: string, isRunFromCode: boolean): Promise<{ templateData: string, trTemplateNote: any, failed: boolean }> {
+  let failed = false
+  const trTemplateNote = selectedTemplate ? await getNoteFromIdentifier(selectedTemplate) : null
+  let templateData = ''
+
+  if (selectedTemplate && !trTemplateNote) {
+    failed = true
+  } else {
+    templateData = selectedTemplate ? trTemplateNote?.content || '' : ''
+  }
+
+  return { templateData, trTemplateNote, failed }
+}
+
+/**
+ * Process frontmatter and render template variables
+ * @param {string} templateData - the template content
+ * @param {Object} argObj - processed arguments
+ * @param {boolean} isRunFromCode - whether running from code
+ * @param {string | null} passedTemplateBody - template body if passed from code
+ * @param {Object} trTemplateNote - the template note object
+ * @returns {Object} processed frontmatter data
+ */
+export async function processFrontmatter(
+  templateData: string,
+  argObj: Object,
+  isRunFromCode: boolean,
+  passedTemplateBody: string | null,
+  trTemplateNote: any,
+): Promise<{ frontmatterBody: string, frontmatterAttributes: Object, data: Object }> {
+  const { frontmatterBody, frontmatterAttributes } = isRunFromCode
+    ? { frontmatterBody: passedTemplateBody || '', frontmatterAttributes: argObj }
+    : await NPTemplating.renderFrontmatter(templateData, argObj)
+
+  // Add back any variables that fm() library erroneously changed
+  if (trTemplateNote) {
+    Object.keys(trTemplateNote.frontmatterAttributes).forEach((key) => {
+      if (typeof frontmatterAttributes[key] !== typeof trTemplateNote.frontmatterAttributes[key]) {
+        logDebug(
+          `TemplateRunnerEx fm() library changed key ${key} from ${typeof trTemplateNote.frontmatterAttributes[key]} to ${typeof frontmatterAttributes[
+            key
+          ]} Restoring original value: ${trTemplateNote.frontmatterAttributes[key]}`,
+        )
+        frontmatterAttributes[key] = trTemplateNote.frontmatterAttributes[key]
+      }
+    })
+  }
+
+  const data = {
+    ...frontmatterAttributes,
+    ...argObj,
+    frontmatter: { ...(trTemplateNote ? trTemplateNote.frontmatterAttributes : {}), ...frontmatterAttributes, ...argObj },
+  }
+
+  return { frontmatterBody, frontmatterAttributes, data }
+}
+
+/**
+ * Handle new note creation if newNoteTitle is specified
+ * @param {string} selectedTemplate - the name of the template to run
+ * @param {Object} data - processed template data
+ * @param {Object} argObj - processed arguments
+ * @returns {boolean} true if new note was created and function should return
+ */
+export async function handleNewNoteCreation(selectedTemplate: string, data: Object, argObj: Object): Promise<boolean> {
+  const templateNoteTitleToUse = data['newNoteTitle'] || null
+  if (templateNoteTitleToUse) {
+    // if form or template has a newNoteTitle field then we need to call templateNew
+    const argsArray = [selectedTemplate, data['folder'] || null, templateNoteTitleToUse, argObj]
+    await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
+    return true
+  }
+  return false
+}
+
+/**
+ * Render the template body with processed data
+ * @param {string} frontmatterBody - the template body content
+ * @param {Object} data - processed template data
+ * @returns {string} rendered template
+ */
+export async function renderTemplate(frontmatterBody: string, data: Object): Promise<string> {
+  const renderedTemplate = await NPTemplating.render(frontmatterBody, data)
+  const isError = /Template Rendering Error/.test(renderedTemplate)
+
+  if (isError) {
+    await showMessage('Template Render Error Encountered. Stopping. Please fix the template and try again.')
+    throw 'templateRunnerExecute Encountered Render Error; Stopping'
+  }
+
+  return renderedTemplate
+}
+
+/**
+ * Extract and process note title and editor preferences from frontmatter
+ * @param {Object} frontmatterAttributes - processed frontmatter attributes
+ * @param {boolean} openInEditor - whether to open in editor
+ * @returns {Object} note title and editor preferences
+ */
+export function extractNotePreferences(frontmatterAttributes: Object, openInEditor: boolean): { noteTitle: string, shouldOpenInEditor: boolean } {
+  const { openNoteTitle, writeNoteTitle, getNoteTitled } = frontmatterAttributes
+  let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || '' || (getNoteTitled && getNoteTitled.trim())
+  let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
+
+  return { noteTitle, shouldOpenInEditor }
+}
+
+/**
+ * Handle note selection if noteTitle contains choose/select placeholders
+ * @param {string} noteTitle - the note title to process
+ * @returns {string} selected note title
+ */
+export async function handleNoteSelection(noteTitle: string): Promise<string> {
+  if (/<choose>/i.test(noteTitle) || /<select>/i.test(noteTitle)) {
+    logDebug(pluginJson, `templateRunnerExecute Inside choose code`)
+    const chosenNote = await chooseNote()
+    const selectedTitle = chosenNote?.title || ''
+    if (!selectedTitle?.length) {
+      await showMessage("Selected note has no title and can't be used")
+      throw new Error("Selected note has no title and can't be used")
+    }
+    logDebug(pluginJson, `templateRunnerExecute: noteTitle: ${selectedTitle}`)
+    return selectedTitle
+  }
+  return noteTitle
+}
+
+/**
+ * Create template write options from frontmatter attributes
+ * @param {Object} frontmatterAttributes - frontmatter attributes
+ * @param {boolean} shouldOpenInEditor - whether to open in editor
+ * @returns {Object} template write options
+ */
+export function createTemplateWriteOptions(frontmatterAttributes: Object, shouldOpenInEditor: boolean): Object {
+  const { location, writeUnderHeading, replaceNoteContents, headingLevel, addHeadingLocation, replaceHeadingAndContents } = frontmatterAttributes
+  return {
+    shouldOpenInEditor: shouldOpenInEditor || false,
+    createMissingHeading: true,
+    replaceNoteContents: Boolean(replaceNoteContents),
+    headingLevel,
+    addHeadingLocation,
+    location,
+    writeUnderHeading,
+    replaceHeadingAndContents,
+  }
+}
+
+/**
+ * Determine note type from note title
+ * @param {string} noteTitle - the note title
+ * @returns {Object} note type info
+ */
+export function determineNoteType(noteTitle: string): { isTodayNote: boolean, isThisWeek: boolean, isNextWeek: boolean } {
+  const isTodayNote = /<today>/i.test(noteTitle)
+  const isThisWeek = /<thisweek>/i.test(noteTitle)
+  const isNextWeek = /<nextweek>/i.test(noteTitle)
+
+  return { isTodayNote, isThisWeek, isNextWeek }
+}
+
+/**
+ * Handle writing to today's note
+ * @param {string} renderedTemplate - rendered template content
+ * @param {Object} writeOptions - write options containing all necessary parameters
+ * @returns {Promise<void>}
+ */
+export async function handleTodayNote(renderedTemplate: string, writeOptions: Object): Promise<void> {
+  const { shouldOpenInEditor, writeUnderHeading, location, ...options } = writeOptions
+
+  if (shouldOpenInEditor) {
+    if (Editor?.note?.title !== hyphenatedDate(new Date())) {
+      logDebug(pluginJson, `templateRunnerExecute About to openNoteByDate; Editor was opened to: ${Editor?.note?.title || ''}, and we want ${hyphenatedDate(new Date())}`)
+      await Editor.openNoteByDate(new Date())
+      logDebug(pluginJson, `templateRunnerExecute Editor.note.filename is:${String(Editor.note?.filename || '')}`)
+    }
+    if (Editor.note) {
+      await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, options)
+    }
+  } else {
+    logDebug(pluginJson, `templateRunnerExecute About to open calendarNoteByDate`)
+    const note = DataStore.calendarNoteByDate(new Date())
+    logDebug(pluginJson, `templateRunnerExecute got note:${note?.title || ''}`)
+    if (note) {
+      logDebug(pluginJson, `templateRunnerExecute note found. filename=${note.filename} calling writeNoteContents`)
+      await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, options)
+    } else {
+      logError(pluginJson, `templateRunnerExecute note NOT found.`)
+      clo(note, `templateRunnerExecute note variable is`)
+    }
+  }
+}
+
+/**
+ * Handle writing to weekly notes
+ * @param {boolean} isThisWeek - whether this is current week
+ * @param {boolean} isNextWeek - whether this is next week
+ * @param {string} renderedTemplate - rendered template content
+ * @param {Object} writeOptions - write options containing all necessary parameters
+ * @returns {Promise<void>}
+ */
+export async function handleWeeklyNote(isThisWeek: boolean, isNextWeek: boolean, renderedTemplate: string, writeOptions: Object): Promise<void> {
+  const { shouldOpenInEditor, writeUnderHeading, location, ...options } = writeOptions
+
+  logDebug(pluginJson, `templateRunnerExecute isThisWeek || isNextWeek`)
+  const dateInfo = getNPWeekData(moment().toDate(), isThisWeek ? 0 : 1, 'week')
+  if (dateInfo) {
+    if (shouldOpenInEditor) {
+      await Editor.openWeeklyNote(dateInfo.weekYear, dateInfo.weekNumber)
+      if (Editor?.note) {
+        await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, options)
+      }
+    } else {
+      const note = DataStore.calendarNoteByDateString(dateInfo.weekString)
+      if (note) {
+        await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, options)
+      }
+    }
+  } else {
+    logError(pluginJson, `templateRunnerExecute: Could not get proper week info for weekly note`)
+  }
+}
+
+/**
+ * Handle writing to current note
+ * @param {string} renderedTemplate - rendered template content
+ * @param {Object} writeOptions - write options containing all necessary parameters
+ * @returns {Promise<void>}
+ */
+export async function handleCurrentNote(renderedTemplate: string, writeOptions: Object): Promise<void> {
+  const { writeUnderHeading, location, ...options } = writeOptions
+
+  logDebug(pluginJson, `templateRunnerExecute is <current>`)
+  if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
+    if (Editor.note) {
+      await writeNoteContents(Editor, renderedTemplate, writeUnderHeading, location, options)
+    }
+  } else {
+    await CommandBar.prompt('You must have either Project Note or Calendar Note open when using "<current>".', '')
+  }
+}
+
+/**
+ * Handle writing to regular notes by title
+ * @param {string} noteTitle - the note title
+ * @param {string} selectedTemplate - the selected template
+ * @param {Object} argObj - processed arguments
+ * @param {string} renderedTemplate - rendered template content
+ * @param {Object} writeOptions - write options containing all necessary parameters
+ * @returns {Promise<void>}
+ */
+export async function handleRegularNote(noteTitle: string, selectedTemplate: string, argObj: Object, renderedTemplate: string, writeOptions: Object): Promise<void> {
+  const { shouldOpenInEditor, writeUnderHeading, location, ...options } = writeOptions
+
+  logDebug(pluginJson, `templateRunnerExecute looking for a regular note named: "${noteTitle}"`)
+  const parts = noteTitle.split('/') || []
+  const title = parts[parts.length - 1] || ''
+  const folder = parts.slice(0, -1).join('/') || argObj.folder || ''
+
+  let theTargetNote = null
+  const isCalendarNoteTitle = isValidCalendarNoteTitleStr(selectedTemplate)
+
+  if (isCalendarNoteTitle) {
+    theTargetNote = await getOrMakeCalendarNote(selectedTemplate)
+  } else {
+    theTargetNote = selectedTemplate ? await getOrMakeRegularNoteInFolder(title, folder) : null
+  }
+
+  let notes: $ReadOnlyArray<TNote> | null | void
+  if (theTargetNote) {
+    notes = [theTargetNote]
+  } else {
+    notes = await DataStore.projectNoteByTitle(title)
+  }
+
+  if (shouldOpenInEditor) {
+    const edNote = await Editor.openNoteByTitle(title)
+    if (edNote) {
+      notes = [edNote]
+    }
+  }
+
+  const length = notes ? notes.length : 0
+  if (!notes || length == 0 || (notes && notes.length > 1)) {
+    let msg = length > 1 ? `There are too many notes matching "${noteTitle}". You should remove duplicate titled notes.` : `Unable to locate note matching "${noteTitle}"`
+    if (length > 1) {
+      clo(notes, `templateRunnerExecute notes found for "${noteTitle}"`)
+      msg = `${length} notes found matching "${noteTitle}"\n\nThe title must be unique to ensure correct note is updated.`
+    }
+
+    await showMessage(`${msg}`, 'OK', `TemplateRunner Problem`)
+    return
+  } else {
+    const note = notes[0] || null
+    if (!note) {
+      await CommandBar.prompt(`Unable to locate note matching "${noteTitle}"`, 'Could not find note')
+      return
+    } else {
+      logDebug(pluginJson, `templateRunnerExecute: About to call writeNoteContents in note: "${note?.title || ''}"`)
+      await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, {
+        ...options,
+        ...{ shouldOpenInEditor, createMissingHeading: true },
+      })
+    }
   }
 }
 
@@ -156,31 +629,17 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
     const start = new Date()
     logDebug(
       pluginJson,
-      `templateRunnerExecute Starting Self-Running Template Execution: selectedTemplate:"${selectedTemplate}" openInEditor:${String(openInEditor)} args (${typeof args}): "${
-        typeof args === 'object' ? JSP(args) : args || ''
-      }"`,
+      `templateRunnerExecute Starting STARTING Self-Running Template Execution: selectedTemplate:"${selectedTemplate}" openInEditor:${String(
+        openInEditor,
+      )} args (${typeof args}): "${typeof args === 'object' ? JSP(args) : args || ''}"`,
     )
+
     // STEP 1: Process Arguments Passed through Callback or Code
-    const isRunFromCode = selectedTemplate.length === 0 && args && typeof args === 'object' && (args.getNoteTitled || args.templateBody)
-    const passedTemplateBody = isRunFromCode && args && typeof args === 'object' && args.templateBody
+    const { argObj, isRunFromCode, passedTemplateBody } = processTemplateArguments(selectedTemplate, args)
+
     if (selectedTemplate.length !== 0 || isRunFromCode || passedTemplateBody) {
-      // args could be an object if templateRunner was run from code (e.g. another templateRunner)
-
-      logDebug(
-        `templateRunnerExecute selectedTemplate:${selectedTemplate} openInEditor:${String(openInEditor)} args (${typeof args}): "${
-          typeof args === 'object' ? JSP(args) : args?.toString() || ''
-        }" isRunFromCode:${String(isRunFromCode)} passedTemplateBody:${String(passedTemplateBody)}`,
-      )
-
-      const argObj =
-        args && typeof args === 'object'
-          ? args
-          : args && typeof args === 'string' && args.includes('__isJSON__')
-          ? JSON.parse(args)
-          : overrideSettingsWithStringArgs({}, args || '')
       clo(argObj, `templateRunnerExecute argObj`)
 
-      // args && args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
       if (!isRunFromCode && (!selectedTemplate || selectedTemplate.length === 0)) {
         await CommandBar.prompt('You must supply a template title as the first argument', helpInfo('Self-Running Templates'))
       }
@@ -188,264 +647,67 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
       logTimer('templateRunnerExecute', start, `TR Total Running Time -  after Step 1`)
 
       // STEP 2: Get the TemplateRunner Template with our Instructions to Execute
-
-      let failed = false
-
-      const trTemplateNote = selectedTemplate ? await getNoteFromIdentifier(selectedTemplate) : null
-
-      let templateData = ''
-
-      if (selectedTemplate && !trTemplateNote) {
-        failed = true
-      } else {
-        templateData = selectedTemplate ? trTemplateNote?.content || '' : ''
-      }
-
+      const { templateData, trTemplateNote, failed } = await getTemplateData(selectedTemplate, isRunFromCode)
       const isFrontmatter = isRunFromCode ? true : failed ? false : new FrontmatterModule().isFrontmatterTemplate(templateData)
       logDebug(pluginJson, `templateRunnerExecute: "${trTemplateNote?.title || ''}": isFrontmatter:${String(isFrontmatter)}`)
-
       logDebug(pluginJson, `TR Total Running Time -  after Step 2.0: ${timer(start)}`)
 
       if (!failed && isFrontmatter) {
-        // STEP 2.1 Render Frontmatter Variables
-
-        const { frontmatterBody, frontmatterAttributes } = isRunFromCode
-          ? { frontmatterBody: passedTemplateBody || '', frontmatterAttributes: argObj }
-          : await NPTemplating.renderFrontmatter(templateData, argObj)
-        logDebug(pluginJson, `TR Total Running Time -  after Step 2.1: ${timer(start)}`)
-
-        // STEP 2.2 Add back any variables that fm() library erroneously changed
-        if (trTemplateNote) {
-          Object.keys(trTemplateNote.frontmatterAttributes).forEach((key) => {
-            if (typeof frontmatterAttributes[key] !== typeof trTemplateNote.frontmatterAttributes[key]) {
-              logDebug(
-                `TemplateRunnerEx fm() library changed key ${key} from ${typeof trTemplateNote.frontmatterAttributes[key]} to ${typeof frontmatterAttributes[
-                  key
-                ]} Restoring original value: ${trTemplateNote.frontmatterAttributes[key]}`,
-              )
-              frontmatterAttributes[key] = trTemplateNote.frontmatterAttributes[key]
-            }
-          })
-        }
+        // STEP 2.1 & 2.2: Process Frontmatter Variables
+        const { frontmatterBody, frontmatterAttributes, data } = await processFrontmatter(templateData, argObj, isRunFromCode, passedTemplateBody, trTemplateNote)
         logDebug(pluginJson, `TR Total Running Time -  after Step 2.2: ${timer(start)}`)
 
-        let data = {
-          ...frontmatterAttributes,
-          ...argObj,
-          frontmatter: { ...(trTemplateNote ? trTemplateNote.frontmatterAttributes : {}), ...frontmatterAttributes, ...argObj },
-        }
-
         // STEP 3: Create a new note if needed
-
-        // Check for newNoteTitle in the data or template
-        // For template runner, we only want to create new notes when there's an explicit newNoteTitle
-        // Don't use inline titles for template runner - they should only be used for templateNew
-        const templateNoteTitleToUse = data['newNoteTitle'] || null
-        if (templateNoteTitleToUse) {
-          // if form or template has a newNoteTitle field then we need to call templateNew
-          const argsArray = [selectedTemplate, data['folder'] || null, templateNoteTitleToUse, argObj]
-          await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
-          return
-        }
+        const newNoteCreated = await handleNewNoteCreation(selectedTemplate, data, argObj)
+        if (newNoteCreated) return
         logDebug(pluginJson, `TR Total Running Time -  after Step 3: ${timer(start)}`)
 
         // STEP 4: Render the Template Body (with any passed arguments)
-
-        let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
-        const isError = /Template Rendering Error/.test(renderedTemplate)
+        const renderedTemplate = await renderTemplate(frontmatterBody, data)
         logDebug(pluginJson, `templateRunnerExecute Template Render Complete renderedTemplate= "${renderedTemplate}"`)
-        if (isError) {
-          await showMessage('Template Render Error Encountered. Stopping. Please fix the template and try again.')
-          throw 'templateRunnerExecute Encountered Render Error; Stopping'
-        }
 
-        // Whether it's run silently or opened in Editor is sent in the URL
+        // Extract note preferences
+        const { noteTitle, shouldOpenInEditor } = extractNotePreferences(frontmatterAttributes, openInEditor)
 
-        const { openNoteTitle, writeNoteTitle, location, writeUnderHeading, replaceNoteContents, getNoteTitled, headingLevel, addHeadingLocation } = frontmatterAttributes
-        clo(frontmatterAttributes, `templateRunnerExecute after destructure - replaceNoteContents:${replaceNoteContents} the rest:`)
-        let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || '' || (getNoteTitled && getNoteTitled.trim())
-        let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
-
-        const createMissingHeading = true
-        if (/<choose>/i.test(noteTitle) || /<select>/i.test(noteTitle)) {
-          logDebug(pluginJson, `templateRunnerExecute Inside choose code`)
-          const chosenNote = await chooseNote()
-          noteTitle = chosenNote?.title || ''
-          if (!noteTitle?.length) {
-            await showMessage("Selected note has no title and can't be used")
-            return
-          }
-          logDebug(pluginJson, `templateRunnerExecute: noteTitle: ${noteTitle}`)
+        // Handle note selection if needed
+        let finalNoteTitle
+        try {
+          finalNoteTitle = await handleNoteSelection(noteTitle)
+        } catch (error) {
+          return // Error already handled in handleNoteSelection
         }
 
         logDebug(pluginJson, `TR Total Running Time -  after Step 4.0: ${timer(start)}`)
 
         // STEP 4.5: Figure out what note we are writing to
-
-        const isTodayNote = /<today>/i.test(noteTitle)
-        const isThisWeek = /<thisweek>/i.test(noteTitle)
-        const isNextWeek = /<nextweek>/i.test(noteTitle)
-
-        // STEP 4.6: Write to the target Note
+        const { isTodayNote, isThisWeek, isNextWeek } = determineNoteType(finalNoteTitle)
+        const writeOptions = createTemplateWriteOptions(frontmatterAttributes, shouldOpenInEditor)
 
         logDebug(pluginJson, `templateRunnerExecute isTodayNote:${String(isTodayNote)} isThisWeek:${String(isThisWeek)} isNextWeek:${String(isNextWeek)}`)
-        let note
-        let options = {
-          shouldOpenInEditor: shouldOpenInEditor || false,
-          createMissingHeading: Boolean(createMissingHeading),
-          replaceNoteContents: Boolean(replaceNoteContents),
-          headingLevel,
-          addHeadingLocation,
-        } // these Boolean casts seem like they shouldn't be necessary, but shorthand wasn't working for undefined values
-        clo(options, `templateRunnerExecute options`)
+        clo(writeOptions, `templateRunnerExecute writeOptions`)
+
+        // STEP 4.6: Write to the target Note
         if (isTodayNote) {
-          if (shouldOpenInEditor) {
-            if (Editor?.note?.title !== hyphenatedDate(new Date())) {
-              logDebug(pluginJson, `templateRunnerExecute About to openNoteByDate; Editor was opened to: ${Editor?.note?.title || ''}, and we want ${hyphenatedDate(new Date())}`)
-              note = await Editor.openNoteByDate(new Date())
-              logDebug(pluginJson, `templateRunnerExecute Editor.note.filename is:${String(Editor.note?.filename || '')}`)
-            }
-            if (Editor.note) {
-              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, options)
-            }
-          } else {
-            logDebug(pluginJson, `templateRunnerExecute About to open calendarNoteByDate`)
-            note = DataStore.calendarNoteByDate(new Date())
-            logDebug(pluginJson, `templateRunnerExecute got note:${note?.title || ''}`)
-            if (note) {
-              logDebug(pluginJson, `templateRunnerExecute note found. filename=${note.filename} calling writeNoteContents`)
-              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, options)
-            } else {
-              logError(pluginJson, `templateRunnerExecute note NOT found.`)
-              clo(note, `templateRunnerExecute note variable is`)
-            }
-          }
+          await handleTodayNote(renderedTemplate, writeOptions)
         } else if (isThisWeek || isNextWeek) {
-          logDebug(pluginJson, `templateRunnerExecute isThisWeek || isNextWeek`)
-          const dateInfo = getNPWeekData(moment().toDate(), isThisWeek ? 0 : 1, 'week')
-          if (dateInfo) {
-            if (shouldOpenInEditor) {
-              await Editor.openWeeklyNote(dateInfo.weekYear, dateInfo.weekNumber)
-              if (Editor?.note) {
-                await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, options)
-              }
-            } else {
-              note = DataStore.calendarNoteByDateString(dateInfo.weekString)
-              if (note) {
-                await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, options)
-              }
-            }
-          } else {
-            logError(pluginJson, `templateRunnerExecute: Could not get proper week info for ${noteTitle}`)
-          }
-        } else if (noteTitle === '<current>') {
-          logDebug(pluginJson, `templateRunnerExecute is <current>`)
-          if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
-            if (Editor.note) {
-              await writeNoteContents(Editor, renderedTemplate, writeUnderHeading, location, options)
-            }
-          } else {
-            await CommandBar.prompt('You must have either Project Note or Calendar Note open when using "<current>".', '')
-          }
-          // using current note, no further processing required
+          await handleWeeklyNote(isThisWeek, isNextWeek, renderedTemplate, writeOptions)
+        } else if (finalNoteTitle === '<current>') {
+          await handleCurrentNote(renderedTemplate, writeOptions)
+          return // using current note, no further processing required
+        } else if (finalNoteTitle?.length) {
+          await handleRegularNote(finalNoteTitle, selectedTemplate, argObj, renderedTemplate, writeOptions)
+        } else if (passedTemplateBody && (isRunFromCode || selectedTemplate)) {
+          // If we have a passedTemplateBody and we're running from code or have a selected template,
+          // we can still process the template even without a getNoteTitled setting
+          // This allows for cases where the template is meant to be processed without writing to a specific note
+          logDebug(pluginJson, `templateRunnerExecute: No note title specified but template body provided. Processing template without writing to note.`)
+          // The template has been rendered, so we can consider it processed
+          // If the user wants to write it somewhere, they should specify a note title or use templateNew
+          logDebug(pluginJson, `TR Total Running Time -  after Step 6 (Returning): ${timer(start)}`)
           return
         } else {
-          if (noteTitle?.length) {
-            logDebug(pluginJson, `templateRunnerExecute looking for a regular note named: "${noteTitle}"`)
-            const parts = noteTitle.split('/') || []
-            const title = parts[parts.length - 1] || ''
-            const folder = parts.slice(0, -1).join('/') || argObj.folder || ''
-
-            let theTargetNote = null
-            const isCalendarNoteTitle = isValidCalendarNoteTitleStr(selectedTemplate)
-
-            // STEP 5: Open the Target Note (if there is one)
-
-            if (isCalendarNoteTitle) {
-              theTargetNote = await getOrMakeCalendarNote(selectedTemplate)
-            } else {
-              theTargetNote = selectedTemplate ? await getOrMakeRegularNoteInFolder(title, folder) : null
-            }
-
-            let notes: $ReadOnlyArray<TNote> | null | void
-            if (theTargetNote) {
-              notes = [theTargetNote]
-            } else {
-              notes = await DataStore.projectNoteByTitle(title)
-            }
-
-            // If all else has failed, explicitly create the note
-            // This should not be necessary if the newly added getOrMake commands are working properly
-            // So for now commenting this out
-            // if (!notes || notes.length === 0) {
-            //   logDebug(pluginJson, `templateRunnerExecute no notes found for "${title}" Will try to create it`)
-            //   const filenm = await DataStore.newNote(title, folder)
-            //   logDebug(pluginJson, `templateRunnerExecute created note filename: "${filenm || '<did not create>'}" title: "${title}" folder: "${folder}"`)
-            //   if (!filenm) {
-            //     await CommandBar.prompt(`Unable to create note "${noteTitle}"`, 'Could not create note')
-            //     return
-            //   } else {
-            //     logDebug(pluginJson, `templateRunnerExecute created note filename: "${filenm}" title: "${title}" folder: "${folder}"`)
-            //     notes = [await getNoteByFilename(filenm)]
-            //   }
-            // } else {
-            //   logDebug(pluginJson, `templateRunnerExecute found ${notes.length} notes for "${title}"`)
-            // }
-
-            logDebug(pluginJson, `TR Total Running Time -  after Step 5: ${timer(start)}`)
-
-            // STEP 6: Open note in Editor if user requested it (now that we know the note was created)
-
-            if (shouldOpenInEditor) {
-              const edNote = await Editor.openNoteByTitle(title)
-              if (edNote) {
-                notes = [edNote]
-              }
-            }
-
-            // notes = notes && notes.length ? notes : await DataStore.projectNoteByTitle(noteTitle)
-            // if (notes && notes.length > 1) {
-            //   logDebug(pluginJson, `templateRunnerExecute found ${notes.length} notes for "${title}"; filtering to notes starting with "${folder}"`)
-            //   notes = notes.filter((n) => n?.filename?.startsWith(folder))
-            // }
-
-            const length = notes ? notes.length : 0
-            if (!notes || length == 0 || (notes && notes.length > 1)) {
-              let msg = length > 1 ? `There are too many notes matching "${noteTitle}". You should remove duplicate titled notes.` : `Unable to locate note matching "${noteTitle}"`
-              if (length > 1) {
-                clo(notes, `templateRunnerExecute notes found for "${noteTitle}"`)
-                msg = `${length} notes found matching "${noteTitle}"\n\nThe title must be unique to ensure correct note is updated.`
-              }
-
-              await CommandBar.prompt(`${msg}`, `TemplateRunner Problem`)
-              return
-            } else {
-              note = notes[0] || null
-              if (!note) {
-                await CommandBar.prompt(`Unable to locate note matching "${noteTitle}"`, 'Could not find note')
-                return
-              } else {
-                const output = isError ? '==Template Rendering Error==' : renderedTemplate
-                logDebug(pluginJson, `templateRunnerExecute: About to call writeNoteContents in note: "${note?.title || ''}"`)
-                await writeNoteContents(note, output, writeUnderHeading, location, {
-                  ...options,
-                  ...{ shouldOpenInEditor, createMissingHeading },
-                })
-              }
-            }
-          } else if (passedTemplateBody && (isRunFromCode || selectedTemplate)) {
-            // If we have a passedTemplateBody and we're running from code or have a selected template,
-            // we can still process the template even without a getNoteTitled setting
-            // This allows for cases where the template is meant to be processed without writing to a specific note
-            logDebug(pluginJson, `templateRunnerExecute: No note title specified but template body provided. Processing template without writing to note.`)
-            // The template has been rendered, so we can consider it processed
-            // If the user wants to write it somewhere, they should specify a note title or use templateNew
-            logDebug(pluginJson, `TR Total Running Time -  after Step 6 (Returning): ${timer(start)}`)
-            return
-          } else {
-            await CommandBar.prompt(`Frontmatter field: "getNoteTitled" must be set in order to open the desired note.`, "Couldn't find getNoteTitled")
-            return
-          }
+          await CommandBar.prompt(`Frontmatter field: "getNoteTitled" must be set in order to open the desired note.`, "Couldn't find getNoteTitled")
+          return
         }
       } else {
         await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Self-Running Templates'))

@@ -448,9 +448,9 @@ export async function processPrompts(templateData: string, initialSessionData: a
     const tagsArray = Array.isArray(tags) ? tags : tags && typeof tags.then === 'function' ? await tags : []
 
     for (const tag of tagsArray) {
-      if (!/prompt/i.test(tag)) continue
+      if (!isPromptTag(tag)) continue
       try {
-        logDebug(pluginJson, `processPrompts Processing tag: ${tag}`)
+        logDebug(pluginJson, `processPrompts Processing tag: ${tag.substring(0, 100)}${tag.length > 100 ? '...' : ''}`)
         const promptResponseText = await processPromptTag(tag, sessionData)
         if (promptResponseText === false) {
           logDebug(pluginJson, 'Prompt was cancelled, returning false')
@@ -501,6 +501,11 @@ export function getRegisteredPromptNames(): Array<string> {
  * @returns {boolean} True if the tag is a prompt tag, false otherwise
  */
 export function isPromptTag(tag: string): boolean {
+  // Simple check: if there's a dot before prompt, it's not a templating prompt
+  if (tag.includes('.')) {
+    return false
+  }
+
   // Build regex pattern from registered prompt names
   const promptNames = getRegisteredPromptNames()
   // Escape special regex characters in prompt names

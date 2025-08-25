@@ -257,9 +257,9 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
         theNote = filteredNotes.length > 0 ? filteredNotes[0] : null
 
         logDebug(
-          `  Found ${potentialNotes.length} notes by title "${noteName}"; ${filteredNotes.length} matched path "${pathWithoutTitle}" and filePathStartsWith "${
+          ` >> getNote Found ${potentialNotes.length} notes by title "${noteName}"; ${filteredNotes.length} matched path "${pathWithoutTitle}" and filePathStartsWith "${
             filePathStartsWith || ''
-          }" (${theNote?.filename || ''}); others were: [${potentialNotes.map((n) => n.filename).join(', ')}]`,
+          }" (${theNote?.filename || ''}); ${potentialNotes.length > 1 ? `others were: [${potentialNotes.map((n) => n.filename).join(', ')}]` : ''}`,
         )
       }
     }

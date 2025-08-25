@@ -19,6 +19,8 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 - Add `headingLevel` and `addHeadingLocation` to templateRunner to allow for control over where the heading is added and what level it is
 - add `tp:help` command to open templating help page in browser
 - Fix bug where folder <choose> in a meeting note button press was not prompting if you had content in the note
+- Add `replaceHeadingAndContents` to templateRunner to allow for replacing the heading and all content under it
+- Fix bug where CommandBar.prompt was being caught by the prompt handler regex and showing a listOptions with the code
 
 ## [2.0.20] 2025-08-07 @dwertheimer
 - Fix folder selection in new note command (adds folder path to chooser)
