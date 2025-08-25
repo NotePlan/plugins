@@ -1,7 +1,8 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
-## [0.17.0.b1] - 2025-08-25
+## [1.0.0] - 2025-08-25
+(Somewhat arbitrarily promoting this to be v1 after more than 4 years!)
 ### New
 - support for adding text to Teamspace notes
 - the commands where you can select a calendar note to use from the command bar, now 
@@ -17,7 +18,8 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - fix commands that deal with the edge case where a note has frontmatter but the `# Title` is not in it
 - fix edge case with '/qpc' command
 - appending text in commands other than the "/quick add ... to inbox" ones
-- when writing new Journal headings, it was ignoring the 'heading level' setting (thanks, @Stacey).
+- when writing new Journal headings, it was ignoring the 'heading level' setting (thanks, @Stacey)
+- fix to some x-callback calls (thanks, @dutchnesss)
 
 ## [0.16.1] - 2025-02-15
 ### Changed

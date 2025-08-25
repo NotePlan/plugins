@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 2025-08-25 for v0.17.0 by @jgclark
+// last update 2025-08-25 for v1.0.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,8 +10,8 @@ import { getQuickCaptureSettings} from './quickCaptureHelpers'
 import {
   getDisplayDateStrFromFilenameDateStr,
   getTodaysDateUnhyphenated,
-  RE_ISO_DATE,
-  convertISODateFilenameToNPDayFilename,
+  // RE_ISO_DATE,
+  // convertISODateFilenameToNPDayFilename,
 } from '@helpers/dateTime'
 import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
@@ -21,7 +21,10 @@ import {
   projectNotesSortedByChanged, weeklyNotesSortedByChanged
 } from '@helpers/note'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
-import { displayTitleWithRelDate, getDateStrFromRelativeDateString } from '@helpers/NPdateTime'
+import {
+  displayTitleWithRelDate,
+  // getDateStrFromRelativeDateString
+} from '@helpers/NPdateTime'
 import { chooseNoteV2, getNoteFromParamOrUser, getOrMakeCalendarNote } from '@helpers/NPnote'
 import {
   findEndOfActivePartOfNote,
@@ -49,7 +52,7 @@ export async function prependTaskToNote(
 ): Promise<void> {
   try {
     logDebug(pluginJson, `starting /qpt with arg0 '${noteTitleArg != null ? noteTitleArg : '<undefined>'}' arg1 '${textArg != null ? textArg : '<undefined>'}'`)
-    let note: TNote
+    let note: ?TNote
 
     if (noteTitleArg != null && noteTitleArg !== '') {
       // Check this is a valid note first
@@ -66,6 +69,9 @@ export async function prependTaskToNote(
       // const re = await CommandBar.showOptions(notes.map((n) => displayTitleWithRelDate(n)).filter(Boolean), 'Select note to prepend')
       // note = notes[re.index]
       note = await chooseNoteV2(`Select note to prepend task to`, regularNotes, true, true, false, false)
+    }
+    if (note == null) {
+      throw new Error(`Couldn't get a valid note, Stopping.`)
     }
 
     // Get text to use from arg0 or user
@@ -95,7 +101,7 @@ export async function appendTaskToNote(
 ): Promise<void> {
   logDebug(pluginJson, `starting /qat with arg0 '${noteTitleArg != null ? noteTitleArg : '<undefined>'}' arg1 '${textArg != null ? textArg : '<undefined>'}'`)
   try {
-    let note: TNote
+    let note: ?TNote
 
     if (noteTitleArg != null && noteTitleArg !== '') {
       // Check this is a valid note first
@@ -112,7 +118,9 @@ export async function appendTaskToNote(
       // const re = await CommandBar.showOptions(regularNotes.map((n) => displayTitleWithRelDate(n)).filter(Boolean), 'Select note to append')
       // note = notes[re.index]
       note = await chooseNoteV2(`Select note to append task to`, regularNotes, true, true, false, false)
-
+    }
+    if (note == null) {
+      throw new Error(`Couldn't get a valid note, Stopping.`)
     }
 
     // Get text to use from arg0 or user
@@ -199,6 +207,9 @@ export async function addChecklistToNoteHeading(
     // }
     // V2:
     const note = await getNoteFromParamOrUser('Select note for new checklist', noteTitleArg, regularNotes)
+    if (note == null) {
+      throw new Error(`Couldn't get a valid note, Stopping.`)
+    }
     logDebug('addTaskToNoteHeading(qath)', `Will use note '${displayTitle(note)}' for new checklist`)
 
     // Get heading details from arg1 or user
@@ -356,9 +367,6 @@ export async function prependTaskToCalendarNote(
 ): Promise<void> {
   logDebug(pluginJson, `starting /qpc`)
   try {
-    // const config = await getQuickCaptureSettings()
-    let note: ?TNote
-
     // Get text to use from arg1 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
@@ -366,6 +374,7 @@ export async function prependTaskToCalendarNote(
 
     // Get note details from arg0 or user
     // V1:
+    // let note: ?TNote
     // if (dateArg != null && dateArg !== '') {
     //   // change YYYY-MM-DD to YYYYMMDD, if needed
     //   const dateArgToMatch = dateArg.match(RE_ISO_DATE)
@@ -376,8 +385,7 @@ export async function prependTaskToCalendarNote(
     //   note = await chooseNoteV2(`Select note for new task`, [], true, true, false, false)
     // }
     // V2:
-    note = await getOrMakeCalendarNote(dateArg)
-
+    const note = await getOrMakeCalendarNote(dateArg)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
@@ -405,9 +413,6 @@ export async function appendTaskToCalendarNote(
 ): Promise<void> {
   logDebug(pluginJson, `starting /qac`)
   try {
-    // const config = await getQuickCaptureSettings()
-    let note: ?TNote
-
     // Get text to use from arg1 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
@@ -415,6 +420,7 @@ export async function appendTaskToCalendarNote(
 
     // Get note details from arg0 or user
     // V1:
+    // let note: ?TNote
     // if (dateArg != null && dateArg !== '') {
     //   // change YYYY-MM-DD to YYYYMMDD, if needed
     //   const dateArgToMatch = dateArg.match(RE_ISO_DATE)
@@ -425,7 +431,7 @@ export async function appendTaskToCalendarNote(
     //   note = await chooseNoteV2(`Select note for new task`, [], true, true, false, false)
     // }
     // V2:
-    note = await getOrMakeCalendarNote(dateArg)
+    const note = await getOrMakeCalendarNote(dateArg)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
@@ -453,7 +459,6 @@ export async function appendTaskToWeeklyNote(
 ): Promise<void> {
   logDebug(pluginJson, `starting /qaw`)
   try {
-    // const config = await getQuickCaptureSettings()
     let note: ?TNote
     let weekStr = ''
 
