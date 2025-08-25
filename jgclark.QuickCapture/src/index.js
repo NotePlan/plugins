@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 2025-07-25 for v0.16.2, @jgclark
+// Last updated 2025-08-08 for v0.17.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -29,6 +29,7 @@ export {
   appendTaskToNote,
   prependTaskToNote
 } from './quickCapture'
+
 const pluginID = 'jgclark.QuickCapture'
 
 /**
@@ -73,23 +74,6 @@ export async function updateSettings() {
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
-}
-
-/**
- * To test bug with .() API call reported in https://github.com/NotePlan/plugins/issues/429
- * note.addParagraphBelowHeadingTitle(
- * Assumes a note titled 'Quick Capture qalh TEST'
- */
-export async function temp429BugTest(): Promise<void> {
-  // $FlowIgnore[incompatible-use]
-  const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
-  note.addParagraphBelowHeadingTitle(
-    "test_text_addeed_below_heading by tempAddParaTest()",
-    'text',
-    'Head C',
-    true,
-    false,
-  )
 }
 
 /**
