@@ -7,7 +7,15 @@ import { getDateStringFromCalendarFilename } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { getElementsFromTask } from './sorting'
 import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
-import { RE_DONE_MENTION, RE_EVENT_LINK, RE_MARKDOWN_LINK_PATH_CAPTURE, RE_MARKDOWN_LINK_PATH_CAPTURE_G, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH, RE_SIMPLE_URI_MATCH_G } from '@helpers/regex'
+import {
+  RE_DONE_MENTION,
+  RE_EVENT_LINK,
+  RE_MARKDOWN_LINK_PATH_CAPTURE,
+  RE_MARKDOWN_LINK_PATH_CAPTURE_G,
+  RE_NOTELINK_G,
+  RE_SIMPLE_URI_MATCH,
+  RE_SIMPLE_URI_MATCH_G,
+} from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
 import { stripLinksFromString } from '@helpers/stringTransforms'
 
@@ -21,11 +29,10 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
   try {
     // First need to escape any special characters in the search term
     const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const re = new RegExp(`${escapedSearchTerm}`, "i") // = case insensitive match
-    logDebug('caseInsensitiveSubstringMatch', `re: ${String(re)} / textToSearch: ${textToSearch} / ${String(re.test(textToSearch))}`)
+    const re = new RegExp(`${escapedSearchTerm}`, 'i') // = case insensitive match
+    logDebug('caseInsensitiveSubstringMatch', `re: ${re.toString()} / textToSearch: ${textToSearch} / ${String(re.test(textToSearch))}`)
     return re.test(textToSearch)
-  }
-  catch (error) {
+  } catch (error) {
     logError('paragraph/caseInsensitiveSubstringMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
     return false
   }
@@ -35,7 +42,7 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
  * Return a version of 'input' that removes the path of any markdown links, and any URLs, and the contents of any note links.
  * Also trims off whitespace from the result.
  * @author @jgclark
- * 
+ *
  * @param {string} input
  * @returns {string}
  */
@@ -59,7 +66,7 @@ export function stripAllURIsAndNoteLinks(input: string): string {
 /**
  * Remove (first) @done(YYYY-MM-DD HH:MM[AM|PM]) mention from a string
  * @author @jgclark
- * 
+ *
  * @tests available in jest file
  * @param {string} input
  * @returns {string}
@@ -90,7 +97,7 @@ export function isTermInURL(term: string, searchString: string): boolean {
 
 /**
  * Is 'term' (typically a #tag) found in a string potentially containing a URL [[...]] or a URL in a string which may contain 0 or more notelinks and URLs?
- * 
+ *
  * @tests available in jest file
  * @param {string} term - term to check for
  * @param {string} input - string to search in
@@ -187,22 +194,22 @@ export function isTermInEventLinkHiddenPart(term: string, input: string): boolea
  */
 export function isTermInMarkdownPath(term: string, searchString: string): boolean {
   try {
-  // create version of searchString that doesn't include the URL and test that first
-  const MDPathMatches = searchString.match(RE_MARKDOWN_LINK_PATH_CAPTURE) ?? []
-  const thisMDPath = MDPathMatches[1] ?? ''
-  if (thisMDPath !== '') {
-    const restOfLine = searchString.replace(thisMDPath, '')
-    // logDebug('isTermInMarkdownPath', `MDPathMatches: ${String(MDPathMatches)} / thisMDPath: ${thisMDPath} / restOfLine: ${restOfLine}`)
-    if (caseInsensitiveSubstringMatch(term, restOfLine)) {
-      // logDebug('isTermInMarkdownPath', `Found in rest of line -> false`)
-      return false
+    // create version of searchString that doesn't include the URL and test that first
+    const MDPathMatches = searchString.match(RE_MARKDOWN_LINK_PATH_CAPTURE) ?? []
+    const thisMDPath = MDPathMatches[1] ?? ''
+    if (thisMDPath !== '') {
+      const restOfLine = searchString.replace(thisMDPath, '')
+      // logDebug('isTermInMarkdownPath', `MDPathMatches: ${String(MDPathMatches)} / thisMDPath: ${thisMDPath} / restOfLine: ${restOfLine}`)
+      if (caseInsensitiveSubstringMatch(term, restOfLine)) {
+        // logDebug('isTermInMarkdownPath', `Found in rest of line -> false`)
+        return false
+      } else {
+        return caseInsensitiveSubstringMatch(term, thisMDPath)
+        // earlier: create tailored Regex to test for presence of the term
+        // const testTermInMDPath = `\[.+?\]\([^\\s]*?${term}[^\\s]*?\)`
+      }
     } else {
-      return caseInsensitiveSubstringMatch(term, thisMDPath)
-      // earlier: create tailored Regex to test for presence of the term
-      // const testTermInMDPath = `\[.+?\]\([^\\s]*?${term}[^\\s]*?\)`
-    }
-  } else {
-    // logDebug('isTermInMarkdownPath', `No MD path -> false`)
+      // logDebug('isTermInMarkdownPath', `No MD path -> false`)
       return false
     }
   } catch (error) {
@@ -341,7 +348,7 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
  * Note: does work on a single line too
  * @author @jgclark
  * @test in jgclark.QuickCapture/index.js
- * 
+ *
  * @param {TNote} note - the note to append to
  * @param {Array<string>} paraTextArr - an array of text to append
  * @param {Array<ParagraphType>} paragraphTypeArr - a matching array of the type of the paragraphs to append
@@ -383,10 +390,10 @@ export function smartPrependParas(note: TNote, paraTextArr: Array<string>, paraT
 /**
  * Add a new paragraph and preceding heading(s) to a note. If the headings already exist, then don't add them again, but insert the paragraph after the existing headings.
  * @test in jgclark.QuickCapture/index.js
- * 
+ *
  * @param {TNote} destNote
- * @param {string} paraText 
- * @param {ParagraphType} paragraphType 
+ * @param {string} paraText
+ * @param {ParagraphType} paragraphType
  * @param {Array<string>} headingArray - the headings from H1 (or H2) downwards
  * @param {number} firstHeadingLevel - the level of the first heading given (1, 2, 3, etc.)
  * @param {boolean} shouldAppend - whether to append the paragraph after the headings or not.
@@ -397,7 +404,7 @@ export function smartCreateSectionsAndPara(
   paragraphType: ParagraphType,
   headingArray: Array<string>,
   firstHeadingLevel: number,
-  shouldAppend: boolean = false
+  shouldAppend: boolean = false,
 ): void {
   try {
     // Work out which of the given headings already exist.
@@ -426,7 +433,10 @@ export function smartCreateSectionsAndPara(
         if (existingHeadingParas[i] !== '') {
           const thisHeadingPara = existingHeadingParas[i]
           latestInsertionLineIndex = thisHeadingPara.lineIndex + 1
-          logDebug('paragraph/smartCreateSectionsAndPara', `noting existing heading "${thisHeadingPara.content}" at line ${String(latestInsertionLineIndex - 1)} level ${String(thisHeadingPara.headingLevel)}`)
+          logDebug(
+            'paragraph/smartCreateSectionsAndPara',
+            `noting existing heading "${thisHeadingPara.content}" at line ${String(latestInsertionLineIndex - 1)} level ${String(thisHeadingPara.headingLevel)}`,
+          )
         } else {
           // Heading doesn't exist, so add it
           let insertionIndex = 0
@@ -458,7 +468,7 @@ export function smartCreateSectionsAndPara(
  * Note: does work on a single line too.
  * @author @jgclark
  * @test in jgclark.QuickCapture/index.js
- * 
+ *
  * @param {TNote} note - the note to prepend to
  * @param {number} insertionIndex - the line to insert the text at
  * @param {Array<string>} paraTextArr - an array of text to prepend
