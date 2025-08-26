@@ -10,6 +10,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNote
 
 ## [2.0.4] - 2025-08-07 @dwertheimer
 
+- Fix edge case where note had frontmatter but empty body and the template was overwriting the frontmatter
 - Add logging
 
 ## [2.0.3] - 2025-08-06 @dwertheimer

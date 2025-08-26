@@ -35,6 +35,9 @@ export function editorIsEmpty() {
  * @returns {boolean} whether to stop execution (true) or continue (false)
  */
 export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, frontmatterAttributes: Object): Promise<boolean> {
+  logDebug(
+    `checkAndProcessFolderAndNewNoteTitle Checks for and deals with using the insert button on an empty template when the template has a folder or new note title and the file should be renamed or moved`,
+  )
   logDebug(`checkAndProcessFolderAndNewNoteTitle starting: templateNote:"${templateNote?.title || ''}", frontmatterAttributes:${JSON.stringify(frontmatterAttributes)}`)
   // Check if the template wants the note to be created in a folder and if so, move the empty note to the trash and create a new note in the folder
   const isEditorEmpty = editorIsEmpty()
@@ -42,7 +45,9 @@ export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, 
 
   // Use the rendered frontmatter attributes first, then fall back to template analysis
   const renderedNewNoteTitle = frontmatterAttributes?.newNoteTitle?.trim()
-  logDebug(`checkAndProcessFolderAndNewNoteTitle: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
+  logDebug(
+    `isEditorEmpty:${String(isEditorEmpty)} theFolder:"${theFolder}" checkAndProcessFolderAndNewNoteTitle: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`,
+  )
 
   // For inline title detection, we need to use the original template data
   // But we'll only use this for determining if we should create a new note
@@ -99,5 +104,6 @@ export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, 
       }
     }
   }
+  logDebug(`checkAndProcessFolderAndNewNoteTitle: no folder or new note title, so continuing on with standard template rendering`)
   return false
 }

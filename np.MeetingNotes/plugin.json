@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.MeetingNotes",
   "plugin.name": "✍️ Meeting Notes",
-  "plugin.version": "2.0.5-notreleased",
+  "plugin.version": "2.0.5.b1",
   "plugin.description": "Create Meeting Notes from events using templates.",
   "plugin.author": "NotePlan",
   "plugin.dependencies": [],
