@@ -1,14 +1,10 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
-<!-- 
-- ??? Shift /new note etc. from Filers plugin
-- ??? Look at spinning out Index... commands to separate plugin 
-- -->
-
-## [1.2.0] - 2025-08-13???
+## [1.2.0] - 2025-08-23
+- improved display of lists of notes and headings in **jump to heading** and **jump to note's heading**, and include Teamspace notes
 - various improvements/fixes to the **inconsistent file name** commands. Resolves issues #640, #642, #643 raised by @tastapod.
-- **jump to note heading** now includes Teamspace notes in its list of notes
+- added notes to indicate where commands can't work on Teamspace notes, because of the different way they're architected.
 
 ## [1.1.1] - 2025-04-22
 - the **log Editor Note** commands now handle Teamspace notes correctly.

@@ -61,6 +61,21 @@ describe('paragraph.js', () => {
     })
   })
 
+  describe('stripDoneDateTimeMentions()', () => {
+    test('should remove @done(YYYY-MM-DD HH:MM) mention', () => {
+      const result = p.stripDoneDateTimeMentions('Something about @done(2025-01-01 12:30)')
+      expect(result).toEqual('Something about ')
+    })
+    test('should remove @done(YYYY-MM-DD HH:MMAM) mention', () => {
+      const result = p.stripDoneDateTimeMentions('Something about @done(2025-01-01 12:30AM)')
+      expect(result).toEqual('Something about ')
+    })
+    test.skip('should remove @done(YYYY-MM-DD) mention', () => {
+      const result = p.stripDoneDateTimeMentions('Something about @done(2025-01-01)')
+      expect(result).toEqual('Something about @done(2025-01-01)')
+    })
+  })
+
   describe('termNotInURL()', () => {
     test('should find search term in a URL', () => {
       const result = p.isTermInURL('tennis', 'Something about http://www.tennis.org/')

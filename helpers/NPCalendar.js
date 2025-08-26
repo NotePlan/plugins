@@ -224,17 +224,16 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
             // as we don't want those to go into the calendar event itself (=restOfTask).
             // But also keep a version with date (if present) as we don't want to lose that from the task itself.
             // Note: now also remove the NP DataStore.preference("timeblockTextMustContainString") if specified.
-            const mustContainString = String(DataStore.preference('timeblockTextMustContainString') ?? '')
+            const mustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
             logDebug('NPCalendar / writeTimeBlocksToCalendar', `- Removing mustContainString '${mustContainString}' from time block string`)
-
             const restOfTaskWithoutTimeBlock = thisPara.content
               .replace(`${mustContainString} ${origTimeBlockString}`, '')
               .replace(/\s{2,}/g, ' ')
-              .trimEnd() // take off timeblock
+              .trimEnd()
             const restOfTaskWithoutDateTime = removeDateTagsAndToday(restOfTaskWithoutTimeBlock)
               .replace(timeBlockString, '')
               .replace(/\s{2,}/g, ' ')
-            logDebug('NPCalendar / writeTimeBlocksToCalendar', `- Will process time block '${timeBlockString}' for '${restOfTaskWithoutDateTime}'`)
+            logDebug('NPCalendar / writeTimeBlocksToCalendar', `- Will process time block '${timeBlockString}' with restOfTaskWithoutDateTime:'${restOfTaskWithoutDateTime}' / restOfTaskWithoutTimeBlock:'${restOfTaskWithoutTimeBlock}'`)
 
             // Do we want to add this particular event?
             if (config.confirmEventCreation && keepAsking) {
@@ -266,12 +265,12 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
               }
               // Add event ID (if wanted)
               if (config.addEventID) {
-                const createdEvent = await Calendar.eventByID(eventID) ?? null
+                const createdEvent = await Calendar.eventByID(eventID)
                 thisParaContent += ` ${createdEvent?.calendarItemLink ?? ''}`
               }
-              thisPara.content = thisParaContent
               logDebug('NPCalendar / writeTimeBlocksToCalendar', `- setting thisPara.content -> '${thisParaContent}'`)
-              // FIXME(@EduardMe): there's something odd going on here. Often 3 characters are left or repeated at the end of the line as a result of this
+              // FIXME(@EduardMe): there's something odd going on here. Often 1 or 3 characters are left or repeated at the end of the line as a result of this. Perhaps to do with emojis?
+              thisPara.content = thisParaContent
               if (showLoadingProgress && !config.confirmEventCreation) {
                 CommandBar.showLoading(true, `Inserting Calendar Events\n(${i + 1}/${timeblockParas.length})`, (i + 1) / timeblockParas.length)
                 await CommandBar.onMainThread()

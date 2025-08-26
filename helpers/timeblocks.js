@@ -6,7 +6,7 @@
 import moment from 'moment/min/moment-with-locales'
 import { clo, JSP, logDebug, logInfo, logError } from './dev'
 import { displayTitle } from './general'
-import { isTermInURL, stripAllURIsAndNoteLinks } from './paragraph'
+import { isTermInURL, stripAllURIsAndNoteLinks, stripDoneDateTimeMentions } from './paragraph'
 import { findLongestStringInArray } from './utils'
 
 // import { getTime } from "date-fns";
@@ -156,7 +156,7 @@ export const RE_TIMEBLOCK_IN_LINE = `${RE_START_OF_LINE}${RE_TIMEBLOCK}`
 /**
  * Decide whether this line contains an active time block.
  * WARNING: can only be used from HTMLWindow if the second parameter is given (which can be the empty string), as otherwise it calls DataStore.preference("timeblockTextMustContainString").
- * Also now defeats on timeblock in middle of a [...](filename) or URL.
+ * Also now defeats on timeblock in middle of a [...](filename) or URL or in @done(...) mention.
  * @tests available for jest
  * @author @dwertheimer
  *
@@ -200,7 +200,7 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
     //   return false
     // }
     // v2
-    const strippedNormalizedContent = stripAllURIsAndNoteLinks(normalizedContent)
+    const strippedNormalizedContent = stripDoneDateTimeMentions(stripAllURIsAndNoteLinks(normalizedContent))
     const res2 = strippedNormalizedContent.match(RE_TIMEBLOCK_IN_LINE) ?? []
     return res2.length > 0
   } catch (err) {

@@ -8,24 +8,44 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
-  "plugin.version": "0.22.2",
-  "plugin.lastUpdateInfo": "0.22.2: add 'add computed final date' setting to '/process date offsets' command.\n0.22.1: improve setting defaults and documentation.\n0.22.0: can now use events() template calls in Weekly notes.\n0.21.3: bug fix adding time blocks to calendar.\n0.21.2: /shiftDates now covers more cases.\n0.21.1: add 'Yes to all' to option to create time blocks. Extend '/shift dates' to work on week dates.\n0.21.0: improvements to '/shift dates' and '/process date offsets'.",
+  "plugin.version": "0.23.0",
+  "plugin.lastUpdateInfo": "0.23.0: new command '/insert week's events as list'. Fix regression.\n0.22.2: add 'add computed final date' setting to '/process date offsets' command.\n0.22.1: improve setting defaults and documentation.\n0.22.0: can now use events() template calls in Weekly notes.\n0.21.3: bug fix adding time blocks to calendar.\n0.21.2: /shiftDates now covers more cases.\n0.21.1: add 'Yes to all' to option to create time blocks. Extend '/shift dates' to work on week dates.\n0.21.0: improvements to '/shift dates' and '/process date offsets'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "time blocks to calendar",
+      "alias": [
+        "tbtc",
+        "tbcal"
+      ],
       "description": "promote time blocks to be full calendar events",
       "jsFunction": "timeBlocksToCalendar"
     },
     {
       "name": "insert day's events as list",
+      "alias": [
+        "events",
+        "ide"
+      ],
       "description": "insert list of this day's calendar events at cursor",
       "jsFunction": "insertDaysEvents"
     },
     {
+      "name": "insert week's events as list",
+      "alias": [
+        "events",
+        "iwe"
+      ],
+      "description": "insert list of this week's calendar events at cursor",
+      "jsFunction": "insertWeeksEvents"
+    },
+    {
       "name": "insert matching events",
+      "alias": [
+        "ime"
+      ],
       "description": "inserts this day's calendar events matching certain patterns at cursor",
       "jsFunction": "insertMatchingDaysEvents"
     },
@@ -39,9 +59,6 @@
     },
     {
       "name": "shift dates",
-      "alias": [
-        "offset"
-      ],
       "description": "takes dates in the selection and shifts them forwards or backwards by a given date interval",
       "jsFunction": "shiftDates"
     },
@@ -60,13 +77,28 @@
       "name": "listDaysEvents",
       "description": "function to list events for the current open Calendar note (for use in Templating)",
       "hidden": true,
-      "jsFunction": "listDaysEvents"
+      "jsFunction": "listDaysEvents",
+      "parameters": [
+        "paras as JSON string"
+      ]
     },
     {
       "name": "listMatchingDaysEvents",
       "description": "function to list events for the current open Calendar note that match string defined in the settings (for use in Templating)",
       "hidden": true,
-      "jsFunction": "listMatchingDaysEvents"
+      "jsFunction": "listMatchingDaysEvents",
+      "parameters": [
+        "paras as JSON string"
+      ]
+    },
+    {
+      "name": "listWeeksEvents",
+      "description": "function to list events for the current open Calendar note (for use in Templating or Callbacks)",
+      "hidden": true,
+      "jsFunction": "listWeeksEvents",
+      "parameters": [
+        "paras as JSON string"
+      ]
     },
     {
       "name": "Events: update plugin settings",
@@ -276,15 +308,15 @@
       "title": "Add event link?",
       "description": "Whether to add an event link in place of the time block, when creating an event from it",
       "type": "bool",
-      "default": false,
+      "default": true,
       "required": true
     },
     {
       "key": "processedTagName",
-      "title": "Processed tag name",
-      "description": "(Optional) Tag to add on a line after making its time block an event",
+      "title": "Processed indicator string",
+      "description": "(Optional) String to add on a line after making its time block an event, for example '#event_created'. Note: if this contains an emoji then it sometimes triggers a bug in NotePlan where you get some repeated characters at the end of the line.",
       "type": "string",
-      "default": "#event_created",
+      "default": "",
       "required": false
     },
     {

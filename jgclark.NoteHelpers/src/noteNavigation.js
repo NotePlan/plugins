@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Navigation functions for Note Helpers plugin for NotePlan
 // Jonathan Clark
-// Last updated 2025-08-14 for v1.2.0, @jgclark
+// Last updated 2025-08-23 for v1.2.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,10 +10,10 @@ import { getSettings } from './noteHelpers'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged,allRegularNotesSortedByChanged } from '@helpers/note'
+import {chooseNoteV2} from '@helpers/NPnote'
 import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import {
   chooseHeadingV2,
-  chooseNoteV2,
   showMessage
 } from '@helpers/userInput'
 import {

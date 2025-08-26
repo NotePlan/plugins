@@ -23,7 +23,7 @@ export async function newNote(): Promise<void> {
     // Get title for this note
     const title = await getInputTrimmed('Title of new note', 'OK', 'New Note from Clipboard', '')
     if (typeof title === 'string') {
-      const currentFolder = await chooseFolder('Select folder to add note in:', false, true)  // don't include @Archive as an option, but do allow creation of a new folder
+      const currentFolder = await chooseFolder('Select folder to add note in:', false, true, '/', true)  // don't include @Archive as an option, but do allow creation of a new folder
       const content = `# ${title}\n`
       if (title) {
         // Create new note in the specific folder

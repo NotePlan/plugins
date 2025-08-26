@@ -58,6 +58,13 @@ describe(`${HELPER_NAME}`, () => {
       test('25b: yes: do something 12:30, with following punctuation', () => {
         expect(tb.isTimeBlockLine('do something 12:30, with following punctuation')).toEqual(true)
       })
+      test('37b: calendar event links should not be timeblocks, but OK to find in rest of the line', () => {
+        const cal = 'This is a calendar event link![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8) that comes at 12:30'
+        expect(tb.isTimeBlockLine(cal)).toEqual(true)
+      })
+      test('39: yes, as TB not in a URL', () => {
+        expect(tb.isTimeBlockLine('something in https://example.com/blog/2022-01-01/ends, 12:30')).toEqual(true)
+      })
     })
 
     describe('isTimeBlockLine NON-MATCHES', () => {
@@ -177,19 +184,15 @@ describe(`${HELPER_NAME}`, () => {
         const cal = 'This is a calendar event link![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8)'
         expect(tb.isTimeBlockLine(cal)).toEqual(false)
       })
-      test('37b: calendar event links should not be timeblocks, but OK to find in rest of the line', () => {
-        const cal = 'This is a calendar event link![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8) that comes at 12:30'
-        expect(tb.isTimeBlockLine(cal)).toEqual(true)
-      })
       test('38: no, as TB in a URL', () => {
         expect(tb.isTimeBlockLine('something in https://example.com/blog/2022-01-01/12:30 and nothing else')).toEqual(false)
-      })
-      test('39: yes, as TB not in a URL', () => {
-        expect(tb.isTimeBlockLine('something in https://example.com/blog/2022-01-01/ends, 12:30')).toEqual(true)
       })
       // One of the ISO standard ways, but not supported by NP parsing, so don't support it fully
       test('40: no: 2021-12-02T12:34', () => {
         expect(tb.isTimeBlockLine('2021-12-02T12:34')).toEqual(false)
+      })
+      test('41: will not match time in @done(...) mention', () => {
+        expect(tb.isTimeBlockLine('meeting with @done(2025-01-01 12:30)')).toEqual(false)
       })
     })
 

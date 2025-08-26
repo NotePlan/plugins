@@ -17,6 +17,8 @@
 // Note: some have 'g' (global) or 'i' (case insensitive) flags set
 //---------------------------------------------------------------------
 
+import { RE_DATE_TIME } from '@helpers/dateTime'
+
 // Times, Dates
 export const RE_SCHEDULED_DATES_G: RegExp = />(today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?))/g // from Eduard, but tweaked to ignore ones that start with @ rather than >
 export const RE_FIRST_SCHEDULED_DATE_CAPTURE: RegExp =
@@ -134,6 +136,7 @@ export const RE_TEAMSPACE_INDICATOR_AND_ID: RegExp = new RegExp(`^${TEAMSPACE_IN
 export const RE_TEAMSPACE_NOTE_UUID: RegExp = new RegExp(`[^%]/(${UUID_PATTERN})`, 'i') // match[1] is the teamspace UUID. It can't come directly after %%NotePlanCloud%%/ for that is the teamspace ID.
 
 // Misc
+export const RE_DONE_MENTION: RegExp = new RegExp(`@done\\(${RE_DATE_TIME}\\)`, 'i')
 export const PUNCT_CLASS_STR = `[\[\]!"#\$%&'\(\)\*\+,\-\.\/:;<=>\?@\\\^_\`\{\|\}~]` // using info from https://stackoverflow.com/questions/39967107/regular-expression-using-punct-function-in-java
 export const PUNCT_CLASS_STR_QUOTED = '[\\[\\]!"#\\$%&\'\\(\\)\\*\\+,\\-\\.\\/:;<=>\\?@\\\\\\^_\\`\\{\\|\\}~]' // version suitable for including in larger regexes
 
