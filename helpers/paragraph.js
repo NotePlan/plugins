@@ -30,9 +30,7 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
     // First need to escape any special characters in the search term
     const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = new RegExp(`${escapedSearchTerm}`, 'i') // = case insensitive match
-    logDebug('caseInsensitiveSubstringMatch', `re: ${re} / textToSearch: ${textToSearch} / ${String(re.test(textToSearch))}`)
-    const re = new RegExp(`${escapedSearchTerm}`, 'i') // = case insensitive match
-    logDebug('caseInsensitiveSubstringMatch', `re: ${String(re)} / textToSearch: ${textToSearch} / ${String(re.test(textToSearch))}`)
+    logDebug('caseInsensitiveSubstringMatch', `re: ${re.toString()} / textToSearch: ${textToSearch} / ${String(re.test(textToSearch))}`)
     return re.test(textToSearch)
   } catch (error) {
     logError('paragraph/caseInsensitiveSubstringMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
@@ -517,8 +515,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
     let paras = note.paragraphs
     // First check there's actually anything at all! If note, add a first empty paragraph
     if (paras.length === 0) {
-      // $FlowFixMe[prop-missing]
-      logInfo(`paragraph/findStartOfActivePartOfNote`, `Note${note.note ? ' (Editor)' : ''} was empty; adding a blank line to make writing to the note work`)
+      logInfo(`paragraph/findStartOfActivePartOfNote`, `Note was empty; adding a blank line to make writing to the note work`)
       note.appendParagraph('', 'empty')
       return 0
     }
