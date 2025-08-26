@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.9.10",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "2.1.0-notreleased",
+  "plugin.version": "2.1.0-b1",
   "plugin.lastUpdateInfo": "2.1.0: - Fix YAML validation to allow hyphens and spaces in frontmatter key names",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson ( codedungeon)",

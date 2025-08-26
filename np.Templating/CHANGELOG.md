@@ -6,21 +6,29 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
-## [2.1.0] 2025-08-07 @dwertheimer
-- Fix YAML validation to allow hyphens and spaces in frontmatter key names (e.g., `note-tag: #CTI`, `my key: value`)
-- Improve debugging output for frontmatter validation to show exactly why content is considered valid or invalid
-- Add some JS error logging at end of console messages to make error finding easier
-- Add validation to ensure meeting note templates are run on calendar events and stop if not
-- Fix edge case where new template note was getting template tags in the filename (thx @clayrussell)
-- Add validation for meeting note templates to prevent execution without proper event data
-- Add helpers module to provide access to commonly used helper functions in templates w/o adding unnecessary dependencies to the plugin
+## [2.1.0] 2025-08-?? @dwertheimer
+
+## New Features
+- Add helpers module to provide access to commonly used helper functions in templates. See [Helpers](https://noteplan.co/templates/docs/built-in-modules/templating-modules-helpers) for details
+- Add `tp:help` command to open templating help page in browser
 - Add ability to skip AI error analysis by adding `disableAIErrorAnalysis: true` to the frontmatter of the template
+
+### TemplateRunner Improvements [Docs](https://noteplan.co/templates/docs/templating-templateRunner)
 - Update templateRunner to allow for passing an object as args (e.g. `templateRunnerExecute('templateName', true, { getNoteTitled: 'myNoteTitle' })`)
 - Add `headingLevel` and `addHeadingLocation` to templateRunner to allow for control over where the heading is added and what level it is
-- add `tp:help` command to open templating help page in browser
-- Fix bug where folder <choose> in a meeting note button press was not prompting if you had content in the note
 - Add `replaceHeadingAndContents` to templateRunner to allow for replacing the heading and all content under it
+
+## Bug Fixes/Stability Improvements
+- Fix YAML validation to allow hyphens and spaces in frontmatter key names (e.g., `note-tag: #CTI`, `my key: value`)
+- Fix edge case where new template note was getting template tags in the filename (thx @clayrussell)
+- Fix bug where folder <choose> in a meeting note button press was not prompting if you had content in the note
 - Fix bug where CommandBar.prompt was being caught by the prompt handler regex and showing a listOptions with the code
+- Add validation to ensure meeting note templates are run on calendar events and stop if not
+- Add validation for meeting note templates to prevent execution without proper event data
+
+## Other
+- Improve debugging output for frontmatter validation to show exactly why content is considered valid or invalid
+- Add some JS error logging at end of console messages to make error finding easier
 
 ## [2.0.20] 2025-08-07 @dwertheimer
 - Fix folder selection in new note command (adds folder path to chooser)
