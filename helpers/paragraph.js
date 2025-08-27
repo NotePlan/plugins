@@ -521,13 +521,14 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
     }
 
     const endOfFMIndex: number = endOfFrontmatterLineIndex(note) || 0
+    logDebug(`paragraph/findStartOfActivePartOfNote`, `endOfFMIndex: ${String(endOfFMIndex)}`)
     if (endOfFMIndex === 0) {
       // No frontmatter found
       if (paras[0].type === 'title' && paras[0].headingLevel === 1) {
-        // logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter, but H1 title found -> next line`)
+        logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter, but H1 title found -> next line`)
         startOfActive = 1
       } else {
-        // logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter or H1 title found -> first line`)
+        logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter or H1 title found -> first line`)
         startOfActive = 0
       }
     } else {
@@ -540,18 +541,24 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
     }
     // If there is no line after title or FM, add a blank line to use (NB: length = line index + 1)
     if (paras.length === startOfActive) {
-      logDebug('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
+      logDebug(
+        'paragraph/findStartOfActivePartOfNote',
+        `Added a blank line after title/frontmatter of '${displayTitle(note)}' because paras.length=${paras.length} === startOfActive=${startOfActive}`,
+      )
       note.appendParagraph('', 'empty')
       paras = note.paragraphs
-      startOfActive = paras.length
+      startOfActive = paras.length - 1
     }
 
-    // logDebug('paragraph/findStartOfActivePartOfNote', `- startOfActive so far = ${String(startOfActive)}. allowPreamble: ${allowPreamble ? 'true' : 'false'}`)
+    logDebug(
+      'paragraph/findStartOfActivePartOfNote',
+      `- startOfActive so far = ${String(startOfActive)}. allowPreamble: ${allowPreamble ? 'true' : 'false'} paras.length=${paras.length}`,
+    )
     // Additionally, skip past any front-matter-like section in a project note,
     // if either there's a #hashtag starting the next line,
     // or 'allowPreamble' is true.
     // If there is, run on to next heading or blank line (if found) otherwise, just the next line. Finding a separator or any YouTutype of task or checklist also stops the search.
-    if (allowPreamble || (paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/))) {
+    if (allowPreamble || (paras[startOfActive] && paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/))) {
       // logDebug('paragraph/findStartOfActivePartOfNote', `- We want to allow preamble, or found a metadata line.`)
       // startOfActive += 1
       for (let i = startOfActive; i < paras.length; i++) {
