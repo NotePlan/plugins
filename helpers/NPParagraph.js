@@ -516,7 +516,7 @@ export async function findHeadingInNotes(
   heading: string,
   matchMode: string = 'contains',
   excludedFolders: Array<string> = [],
-  includeCalendar: boolean = true
+  includeCalendar: boolean = true,
 ): Promise<Array<TParagraph>> {
   // For speed, let's first multi-core search the notes to find the notes that contain this string
   const noteTypes = includeCalendar ? ['notes', 'calendar'] : ['notes']
@@ -526,18 +526,16 @@ export async function findHeadingInNotes(
   let filteredParas: Array<TParagraph> = []
   switch (matchMode) {
     case 'Exact': {
-      filteredParas = initialParasList
-        .filter((p) => p.type === 'title' && caseInsensitiveMatch(heading, p.content))
+      filteredParas = initialParasList.filter((p) => p.type === 'title' && caseInsensitiveMatch(heading, p.content))
       break
     }
     case 'Starts with': {
-      filteredParas = initialParasList
-        .filter((p) => p.type === 'title' && caseInsensitiveStartsWith(heading, p.content, false))
+      filteredParas = initialParasList.filter((p) => p.type === 'title' && caseInsensitiveStartsWith(heading, p.content, false))
       break
     }
-    default: { // 'Contains'
-      filteredParas = initialParasList
-        .filter((p) => p.type === 'title' && caseInsensitiveSubstringMatch(heading, p.content))
+    default: {
+      // 'Contains'
+      filteredParas = initialParasList.filter((p) => p.type === 'title' && caseInsensitiveSubstringMatch(heading, p.content))
       break
     }
   }
@@ -686,19 +684,17 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
 
 /**
  * Try to determine the paragraph that the cursor is in (in the Editor)
+ * If mutliple lines are selected, it will return the first paragraph in the selection
  * There are some NotePlan bugs that make this not work perfectly
  * @author @dwertheimer
  * @returns {TParagraph} the paragraph that the cursor is in or null if not found
  */
 export async function getSelectedParagraph(): Promise<TParagraph | null> {
-  // const thisParagraph = Editor.selectedParagraphs // recommended by @eduard but currently not reliable (Editor.selectedParagraphs is empty on a new line)
-  let thisParagraph
-  if (typeof Editor.selection?.start === 'number') {
-    thisParagraph = getParagraphContainingPosition(Editor, Editor.selection.start)
-  }
-  if (!thisParagraph || !Editor.selection?.start) {
+  const paragraphs = Editor.selectedParagraphs // recommended by @eduard because selection is not reliable
+  const thisParagraph = paragraphs.length ? paragraphs[0] : null
+  if (!thisParagraph) {
     logWarn(`NPParagraph`, `getSelectedParagraph: no paragraph found for cursor position Editor.selection?.start=${String(Editor.selection?.start)}`)
-    await showMessage(`No paragraph found selection.start: ${String(Editor.selection?.start)} Editor.selectedParagraphs.length = ${Editor.selectedParagraphs?.length}`)
+    await showMessage(`No selected paragraph found for cursor position.`)
   }
   return thisParagraph || null
 }
