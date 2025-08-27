@@ -10,7 +10,8 @@ import { createSectionItemObject, filterParasByValidFolders, filterParasByIgnore
 import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
+import { getNoteFromFilename } from '@helpers/NPnote'
+import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { removeDuplicates } from '@helpers/utils'
 import { sortListBy } from '@helpers/sorting'
 
@@ -87,6 +88,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       // TODO: Send Yesterday items to getRelevantOverdueTasks() somehow
       const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, [])
       overdueParas = filteredOverdueParas
+      // ??? FIXME: p.note is absent here for Teamspace items.
       preLimitCount = preLimitOverdueCount
       logDebug('getOverdueSectionData', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
     }
@@ -96,6 +98,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     if (overdueParas.length > 0) {
       // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
       // Note: this takes ~600ms for 1,000 items
+      clo(overdueParas, 'getOverdueSectionData / overdueParas:')
       dashboardParas = makeDashboardParas(overdueParas)
       logDebug('getOverdueSectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
 
@@ -122,11 +125,16 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       logInfo('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} of ${totalOverdue} items will be passed to React`)
 
       // Create section items from the limited set of overdue tasks
-      overdueTaskParasLimited.forEach((p) => {
+      for (const p of overdueTaskParasLimited) {
         const thisID = `${sectionNumStr}-${itemCount}`
-        items.push(createSectionItemObject(thisID, p))
-        itemCount++
-      })
+        // For now, just log a warning and skip it.
+        if (p == null || Object.keys(p).length === 0) {
+          logWarn('getOverdueSectionData', `- p is null for ${thisID}. Ignoring it.`)
+        } else {
+          items.push(createSectionItemObject(thisID, p))
+          itemCount++
+        }
+      }
     }
     logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
@@ -205,9 +213,11 @@ export async function getRelevantOverdueTasks(
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
     logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
 
+    // FIXME(@EduardMe): shows that p.note is empty here for regular notes, and noteType is 'teamspaceNote'. 
+
     // Filter out items in non-valid folders
-    // $FlowIgnore[incompatible-call] read only array
     let filteredOverdueParas = filterParasByValidFolders(overdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after filtering by valid folders, ${filteredOverdueParas.length} overdue items`)
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     filteredOverdueParas = filterParasByIgnoreTerms(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')

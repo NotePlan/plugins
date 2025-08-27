@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2025-07-04 for v2.3.0.b4, @jgclark
+// last updated 2025-08-21 for v2.3.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -251,7 +251,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(
       }
     }
 
-    return matchingNoteFilenamesFromCache
+    return [matchingNoteFilenamesFromCache, countComparison]
   } catch (err) {
     logError('getFilenamesOfNotesWithTagOrMentions', JSP(err))
     return [[], 'error']
