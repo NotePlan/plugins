@@ -183,7 +183,7 @@ export async function writeWithoutHeading(note: CoreNoteFields, renderedTemplate
     clo(selection, `writeNoteContents selection`)
     Editor.insertParagraphAtCursor(renderedTemplate, 'text', indents)
   } else {
-    logDebug(pluginJson, `writeNoteContents prepending "${renderedTemplate}" at index ${startIndex}`)
+    logDebug(pluginJson, `writeNoteContents prepending "${renderedTemplate}" at start of noteindex ${startIndex}`)
     note.insertParagraph(renderedTemplate, startIndex, 'text')
   }
 }
