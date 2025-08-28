@@ -738,8 +738,16 @@ export async function templateRunner(...args: Array<string>) {
     clo(args, `templateRunner starting with args (${argsType}), length: ${args.length}`)
     const startTime = new Date()
     if (args.length > 0) {
-      logDebug(pluginJson, `templateRunner calling templateFileByTitle with args: args[0]: ${args[0]} args[1]: ${args[1]} args[2]: ${JSON.stringify(args[2])}`)
-      if (!args[0]) logWarn(`templateRunner: No template name was provided to the templateRunner. Value was:"${args[0]}". Check your x-callback-url or calling function.`)
+      logDebug(
+        pluginJson,
+        `\n+++++++\ntemplateRunner calling templateFileByTitle with args:\n\targs[0] (templateName): ${args[0]}\n\targs[1] (openInEditor): ${
+          args[1]
+        }\n\targs[2] (passed variables): ${JSON.stringify(args[2], null, 2)}\n+++++++`,
+      )
+      if (!args[0])
+        logWarn(
+          `templateRunner: No template name was provided to the templateRunner. Value was:"${args[0]}". This could be ok if you are calling from code, but check your x-callback-url or calling function to ensure you are passing the template name.`,
+        )
       if (args[1] === undefined || args[1] === null || !['false', 'true', false, true].includes(args[1]))
         logWarn(
           `templateRunner: No openInEditor flag was provided to the templateRunner. Will default to false. Value was: ${args[1]}. Check your x-callback-url or calling function.`,
@@ -748,7 +756,7 @@ export async function templateRunner(...args: Array<string>) {
         logWarn(
           `templateRunner: No templaterunner variables were provided to the templateRunner. Value was: ${args[2]}. This may be ok if your template does not need variables, but is obviously a problem if it does. Check your x-callback-url or calling function.`,
         )
-      templateFileByTitle(args[0], args[1] === 'true' || args[1] === true, args.length > 2 ? args[2] : '')
+      await templateFileByTitle(args[0], args[1] === 'true' || args[1] === true, args.length > 2 ? args[2] : '')
     } else {
       await CommandBar.prompt(`No arguments (with template name) were given to the templateRunner."`, helpInfo('Presets'))
     }

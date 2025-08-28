@@ -204,7 +204,7 @@ export async function writeNoteContents(
   location: string,
   options?: any = {
     shouldOpenInEditor: false,
-    createMissingHeading: false,
+    createMissingHeading: true,
     replaceNoteContents: false,
     replaceHeadingAndContents: false,
     headingLevel: 2,
@@ -243,26 +243,38 @@ export async function writeNoteContents(
 
     // Handle heading selection for interactive templates
     writeUnderHeading = await handleHeadingSelection(note, writeUnderHeading)
-    const { createMissingHeading = true, addHeadingLocation = 'append', replaceHeadingAndContents = false } = options
+    const { addHeadingLocation = 'append', replaceHeadingAndContents = false } = options
 
     if (writeUnderHeading) {
       const replaceHeadingAlso = location === 'replace' && replaceHeadingAndContents && (replaceHeadingAndContents === true || /true/i.test(replaceHeadingAndContents))
       const headingParagraph = findHeading(note, writeUnderHeading, true)
       if (headingParagraph) {
         // paragraph with heading exists
-        await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate, false, options.headingLevel || 2)
-        if (replaceHeadingAlso) {
-          headingParagraph?.note?.removeParagraph(headingParagraph)
+        if (location === 'replace') {
+          await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate, false, options.headingLevel || 2)
+          if (replaceHeadingAlso) {
+            headingParagraph?.note?.removeParagraph(headingParagraph)
+          }
+        } else if (!location || location === 'prepend' || location === 'append') {
+          note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, location === 'append' || !location, false)
         }
       } else {
         // paragraph with heading does not exist, so we need to create the whole block
-        const createMissingHeadingAlso = createMissingHeading && (createMissingHeading === true || /true/i.test(createMissingHeading))
-        if (createMissingHeadingAlso) {
+
+        // Handle both boolean and string representations of createMissingHeading
+        let shouldCreateHeading = false
+        if (options.createMissingHeading === true) {
+          shouldCreateHeading = true
+        } else if (typeof options.createMissingHeading === 'string') {
+          shouldCreateHeading = /true/i.test(options.createMissingHeading)
+        }
+
+        if (shouldCreateHeading) {
           await prependOrAppendHeadingWithContent(note, writeUnderHeading, renderedTemplate, addHeadingLocation, options)
         } else {
           logDebug(
             pluginJson,
-            `NPTemplateRunner::writeNoteContents -- heading "${writeUnderHeading}" does not exist in note and createMissingHeading is false so skipping; content was: "${renderedTemplate}"`,
+            `writeNoteContents -- heading "${writeUnderHeading}" does not exist in note and createMissingHeading is false so skipping; content was: "${renderedTemplate}"`,
           )
         }
       }
@@ -272,6 +284,12 @@ export async function writeNoteContents(
     }
   } else {
     logDebug(pluginJson, `NPTemplateRunner::writeNoteContents -- there was no note to write to`)
+  }
+}
+
+async function prependOrAppendContentUnderExistingHeading(note: CoreNoteFields, headingString: string, renderedTemplate: string, location: string): Promise<void> {
+  if (headingString) {
+    note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', headingString, location === 'append', false)
   }
 }
 
@@ -363,15 +381,36 @@ export async function processFrontmatter(
  * @param {string} selectedTemplate - the name of the template to run
  * @param {Object} data - processed template data
  * @param {Object} argObj - processed arguments
+ * @param {string} content - content to write to new note
  * @returns {boolean} true if new note was created and function should return
  */
-export async function handleNewNoteCreation(selectedTemplate: string, data: Object, argObj: Object): Promise<boolean> {
-  const templateNoteTitleToUse = data['newNoteTitle'] || null
-  if (templateNoteTitleToUse) {
-    // if form or template has a newNoteTitle field then we need to call templateNew
-    const argsArray = [selectedTemplate, data['folder'] || null, templateNoteTitleToUse, argObj]
-    await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
-    return true
+export async function handleNewNoteCreation(selectedTemplate: string, data: Object, argObj: Object, content: string = ''): Promise<boolean | string> {
+  const newNoteTitle = data['newNoteTitle'] || null
+  if (newNoteTitle) {
+    if (selectedTemplate) {
+      // if form or template has a newNoteTitle field then we need to call templateNew
+      const argsArray = [selectedTemplate, data['folder'] || null, newNoteTitle, argObj]
+      logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation calling templateNew with args:${JSP(argsArray)} and template:${selectedTemplate}`)
+      await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
+      return true
+    } else {
+      // this could have been TR calling itself programmatically with newNoteTitle but no template
+      logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation calling DataStore.newNote with newNoteTitle:${newNoteTitle} and folder:${data['folder'] || null}`)
+      const filename = DataStore.newNote(newNoteTitle, data['folder'] || null)
+      if (filename) {
+        logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation created note with title:"${newNoteTitle}"  in folder:"${data['folder'] || null}" filename:"${filename}"`)
+        const note = await DataStore.projectNoteByFilename(filename)
+        note && DataStore.updateCache(note, true) // try to update the note cache so functions called after this will see the new note
+        if (note && content) {
+          logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation adding content to new note:${filename}`)
+          note.appendParagraph(content, 'text')
+          // trying anything to force the cache to recognize this note by title soon after creation
+          note && DataStore.updateCache(note, true) // try to update the note cache so functions called after this will see the new note
+        }
+        return filename
+      }
+      return false
+    }
   }
   return false
 }
@@ -435,10 +474,10 @@ export async function handleNoteSelection(noteTitle: string): Promise<string> {
  * @returns {Object} template write options
  */
 export function createTemplateWriteOptions(frontmatterAttributes: Object, shouldOpenInEditor: boolean): Object {
-  const { location, writeUnderHeading, replaceNoteContents, headingLevel, addHeadingLocation, replaceHeadingAndContents } = frontmatterAttributes
+  const { location, writeUnderHeading, replaceNoteContents, headingLevel, addHeadingLocation, replaceHeadingAndContents, createMissingHeading } = frontmatterAttributes
   return {
     shouldOpenInEditor: shouldOpenInEditor || false,
-    createMissingHeading: true,
+    createMissingHeading: createMissingHeading !== undefined ? createMissingHeading : true,
     replaceNoteContents: Boolean(replaceNoteContents),
     headingLevel,
     addHeadingLocation,
@@ -601,7 +640,7 @@ export async function handleRegularNote(noteTitle: string, selectedTemplate: str
       logDebug(pluginJson, `templateRunnerExecute: About to call writeNoteContents in note: "${note?.title || ''}"`)
       await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, {
         ...options,
-        ...{ shouldOpenInEditor, createMissingHeading: true },
+        ...{ shouldOpenInEditor },
       })
     }
   }
@@ -658,7 +697,7 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
         logDebug(pluginJson, `TR Total Running Time -  after Step 2.2: ${timer(start)}`)
 
         // STEP 3: Create a new note if needed
-        const newNoteCreated = await handleNewNoteCreation(selectedTemplate, data, argObj)
+        const newNoteCreated = await handleNewNoteCreation(selectedTemplate, data, argObj, passedTemplateBody || '')
         if (newNoteCreated) return
         logDebug(pluginJson, `TR Total Running Time -  after Step 3: ${timer(start)}`)
 
@@ -681,6 +720,7 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
 
         // STEP 4.5: Figure out what note we are writing to
         const { isTodayNote, isThisWeek, isNextWeek } = determineNoteType(finalNoteTitle)
+
         const writeOptions = createTemplateWriteOptions(frontmatterAttributes, shouldOpenInEditor)
 
         logDebug(pluginJson, `templateRunnerExecute isTodayNote:${String(isTodayNote)} isThisWeek:${String(isThisWeek)} isNextWeek:${String(isNextWeek)}`)
