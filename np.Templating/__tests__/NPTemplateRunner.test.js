@@ -433,7 +433,7 @@ describe('NPTemplateRunner', () => {
         replaceNoteContents: true,
         headingLevel: 3,
         addHeadingLocation: 'prepend',
-        replaceHeadingAndContents: false,
+        replaceHeading: false,
       }
 
       const result = NPTemplateRunner.createTemplateWriteOptions(frontmatterAttributes, true)
@@ -445,7 +445,7 @@ describe('NPTemplateRunner', () => {
       expect(result.addHeadingLocation).toBe('prepend')
       expect(result.location).toBe('append')
       expect(result.writeUnderHeading).toBe('Test Heading')
-      expect(result.replaceHeadingAndContents).toBe(false)
+      expect(result.replaceHeading).toBe(false)
     })
 
     test('should handle missing attributes with defaults', () => {
@@ -666,14 +666,14 @@ describe('NPTemplateRunner', () => {
       expect(mockNote.content).toContain('New content')
     })
 
-    test('should handle replaceHeadingAndContents option', async () => {
+    test('should handle replaceHeading option', async () => {
       require('@helpers/NPParagraph').findHeading.mockReturnValue({
         lineIndex: 0,
         type: 'title',
         content: '## Test Heading',
       })
 
-      await NPTemplateRunner.writeNoteContents(mockNote, 'New heading content', '## Test Heading', 'append', { replaceHeadingAndContents: true })
+      await NPTemplateRunner.writeNoteContents(mockNote, 'New heading content', '## Test Heading', 'append', { replaceHeading: true })
 
       expect(mockNote.removeParagraph).toHaveBeenCalled()
       expect(mockNote.insertParagraph).toHaveBeenCalled()
@@ -743,7 +743,7 @@ describe('NPTemplateRunner', () => {
       })
     })
 
-    describe('replaceHeadingAndContents', () => {
+    describe('replaceHeading', () => {
       test('should replace heading and contents correctly', async () => {
         const mockNoteWithHeadings = {
           ...mockNote,
@@ -758,7 +758,7 @@ describe('NPTemplateRunner', () => {
 
         const headingParagraph = { lineIndex: 1, type: 'title', content: '## Test Heading' }
 
-        await NPTemplateRunner.replaceHeadingAndContents(mockNoteWithHeadings, '## Test Heading', 'New content', headingParagraph)
+        await NPTemplateRunner.replaceHeading(mockNoteWithHeadings, '## Test Heading', 'New content', headingParagraph)
 
         expect(mockNoteWithHeadings.removeParagraph).toHaveBeenCalled()
         expect(mockNoteWithHeadings.insertParagraph).toHaveBeenCalledWith('## Test Heading\nNew content', 1, 'text')
@@ -776,7 +776,7 @@ describe('NPTemplateRunner', () => {
 
         const headingParagraph = { lineIndex: 1, type: 'title', content: '### Test Heading' }
 
-        await NPTemplateRunner.replaceHeadingAndContents(mockNoteWithHeadings, '### Test Heading', 'New content', headingParagraph)
+        await NPTemplateRunner.replaceHeading(mockNoteWithHeadings, '### Test Heading', 'New content', headingParagraph)
 
         expect(mockNoteWithHeadings.insertParagraph).toHaveBeenCalledWith('### Test Heading\nNew content', 1, 'text')
       })

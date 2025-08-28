@@ -16,7 +16,8 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 ### TemplateRunner Improvements [Docs](https://noteplan.co/templates/docs/templating-templateRunner)
 - Update templateRunner to allow for passing an object as args (e.g. `templateRunnerExecute('templateName', true, { getNoteTitled: 'myNoteTitle' })`)
 - Add `headingLevel` and `addHeadingLocation` to templateRunner to allow for control over where the heading is added and what level it is
-- Add `replaceHeadingAndContents` to templateRunner to allow for replacing the heading and all content under it
+- Add `replaceHeading` to templateRunner to allow for replacing the heading and all content under it
+- Add `createMissingHeading` (default true) to templateRunner to allow for overriding and disabling the creation of missing headings (text will be lost if you do this)
 
 ## Bug Fixes/Stability Improvements
 - Fix YAML validation to allow hyphens and spaces in frontmatter key names (e.g., `note-tag: #CTI`, `my key: value`)
@@ -29,6 +30,7 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 ## Other
 - Improve debugging output for frontmatter validation to show exactly why content is considered valid or invalid
 - Add some JS error logging at end of console messages to make error finding easier
+- Change log level of some log messages to info (variable passing)
 
 ## [2.0.20] 2025-08-07 @dwertheimer
 - Fix folder selection in new note command (adds folder path to chooser)

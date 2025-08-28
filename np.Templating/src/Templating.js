@@ -6,7 +6,7 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { log, clo, logDebug, logError, JSP, timer, logWarn } from '@helpers/dev'
+import { log, clo, logDebug, logError, JSP, timer, logWarn, logInfo } from '@helpers/dev'
 import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
@@ -738,22 +738,22 @@ export async function templateRunner(...args: Array<string>) {
     clo(args, `templateRunner starting with args (${argsType}), length: ${args.length}`)
     const startTime = new Date()
     if (args.length > 0) {
-      logDebug(
+      logInfo(
         pluginJson,
         `\n+++++++\ntemplateRunner calling templateFileByTitle with args:\n\targs[0] (templateName): ${args[0]}\n\targs[1] (openInEditor): ${
           args[1]
         }\n\targs[2] (passed variables): ${JSON.stringify(args[2], null, 2)}\n+++++++`,
       )
       if (!args[0])
-        logWarn(
+        logInfo(
           `templateRunner: No template name was provided to the templateRunner. Value was:"${args[0]}". This could be ok if you are calling from code, but check your x-callback-url or calling function to ensure you are passing the template name.`,
         )
       if (args[1] === undefined || args[1] === null || !['false', 'true', false, true].includes(args[1]))
-        logWarn(
+        logInfo(
           `templateRunner: No openInEditor flag was provided to the templateRunner. Will default to false. Value was: ${args[1]}. Check your x-callback-url or calling function.`,
         )
       if (typeof args[2] !== 'object' && !args[2])
-        logWarn(
+        logInfo(
           `templateRunner: No templaterunner variables were provided to the templateRunner. Value was: ${args[2]}. This may be ok if your template does not need variables, but is obviously a problem if it does. Check your x-callback-url or calling function.`,
         )
       await templateFileByTitle(args[0], args[1] === 'true' || args[1] === true, args.length > 2 ? args[2] : '')

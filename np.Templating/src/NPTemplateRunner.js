@@ -43,14 +43,18 @@ export function isTemplateEmpty(renderedTemplate: string): boolean {
  * @param {string} renderedTemplate - rendered template content
  * @returns {Promise<void>}
  */
-export async function replaceNoteContents(note: CoreNoteFields, renderedTemplate: string): Promise<void> {
-  logDebug(pluginJson, `NPTemplateRunner::writeNoteContents replacing note contents (options.replaceNoteContents === true)`)
-  const startIndex = findStartOfActivePartOfNote(note)
-  logDebug(pluginJson, `NPTemplateRunner::writeNoteContents deleting everything after line #${startIndex}`)
-  const parasToKeep = note.paragraphs.filter((p) => p.lineIndex < startIndex)
-  const strToKeep = parasToKeep.map((p) => p.rawContent).join('\n')
-  logDebug(pluginJson, `NPTemplateRunner::adding in renderedTemplate (${renderedTemplate.split('\n').length} lines)`)
-  note.content = `${strToKeep}\n${renderedTemplate}`
+export async function replaceNoteContents(note: CoreNoteFields, renderedTemplate: string, replaceHeading: boolean = false): Promise<void> {
+  logDebug(pluginJson, `NPTemplateRunner::replaceNoteContents replacing note contents (options.replaceNoteContents === true) ${replaceHeading ? 'and replacing title also' : ''}`)
+  if (replaceHeading) {
+    note.content = renderedTemplate
+  } else {
+    const startIndex = findStartOfActivePartOfNote(note)
+    logDebug(pluginJson, `NPTemplateRunner::writeNoteContents deleting everything after line #${startIndex}`)
+    const parasToKeep = note.paragraphs.filter((p) => p.lineIndex < startIndex)
+    const strToKeep = parasToKeep.map((p) => p.rawContent).join('\n')
+    logDebug(pluginJson, `NPTemplateRunner::adding in renderedTemplate (${renderedTemplate.split('\n').length} lines)`)
+    note.content = `${strToKeep}\n${renderedTemplate}`
+  }
 }
 
 /**
@@ -75,8 +79,8 @@ export async function handleHeadingSelection(note: CoreNoteFields, writeUnderHea
  * @param {Object} headingParagraph - the heading paragraph object
  * @returns {Promise<void>}
  */
-export async function replaceHeadingAndContents(note: CoreNoteFields, writeUnderHeading: string, renderedTemplate: string, headingParagraph: any): Promise<void> {
-  logDebug(pluginJson, `NPTemplateRunner::writeNoteContents replacing heading and contents (replaceHeadingAndContents === true)`)
+export async function replaceHeading(note: CoreNoteFields, writeUnderHeading: string, renderedTemplate: string, headingParagraph: any): Promise<void> {
+  logDebug(pluginJson, `NPTemplateRunner::writeNoteContents replacing heading and contents (replaceHeading === true)`)
   // Find the heading paragraph and replace it and all content below until next heading of same or higher level
   const headingIndex = headingParagraph ? headingParagraph.lineIndex : -1
   if (headingIndex >= 0) {
@@ -134,7 +138,7 @@ export function composeHeadingWithContent(note: CoreNoteFields, writeUnderHeadin
 export async function prependOrAppendHeadingWithContent(note: CoreNoteFields, writeUnderHeading: string, renderedTemplate: string, location: string, options: any): Promise<void> {
   const output = composeHeadingWithContent(note, writeUnderHeading, renderedTemplate, options)
   logDebug(
-    `writeNoteContents writeUnderHeading="${writeUnderHeading}" Did not exist. ${
+    `prependOrAppendHeadingWithContent writeUnderHeading="${writeUnderHeading}" Did not exist. ${
       location === 'prepend' ? 'Prepending' : 'Appending'
     } title with content to note. This is a workaround for a race condition in NP. output: "${output}"`,
   )
@@ -146,6 +150,7 @@ export async function prependOrAppendHeadingWithContent(note: CoreNoteFields, wr
 }
 
 /**
+ * DBW NOTE: This function may not be used anywhere
  * Handle writing content under existing heading
  * @param {CoreNoteFields} note - the note to modify
  * @param {string} writeUnderHeading - the heading to write under
@@ -206,7 +211,7 @@ export async function writeNoteContents(
     shouldOpenInEditor: false,
     createMissingHeading: true,
     replaceNoteContents: false,
-    replaceHeadingAndContents: false,
+    replaceHeading: false,
     headingLevel: 2,
     addHeadingLocation: 'append',
   },
@@ -221,7 +226,7 @@ export async function writeNoteContents(
     } options:${JSP(options)} renderedTemplate:\n---\n${renderedTemplate}\n---`,
   )
   let writeUnderHeading = headingName
-  const { headingLevel = 2, addHeadingLocation = 'append', replaceHeadingAndContents = false } = options
+  const { headingLevel = 2, addHeadingLocation = 'append', replaceHeading = false } = options
 
   if (note) {
     logDebug(
@@ -237,23 +242,38 @@ export async function writeNoteContents(
 
     // Handle replace note contents case
     if (options.replaceNoteContents) {
-      await replaceNoteContents(note, renderedTemplate)
+      await replaceNoteContents(note, renderedTemplate, options.replaceHeading)
       return
     }
 
     // Handle heading selection for interactive templates
     writeUnderHeading = await handleHeadingSelection(note, writeUnderHeading)
-    const { addHeadingLocation = 'append', replaceHeadingAndContents = false } = options
+    const { addHeadingLocation = 'append', replaceHeading = false } = options
 
     if (writeUnderHeading) {
-      const replaceHeadingAlso = location === 'replace' && replaceHeadingAndContents && (replaceHeadingAndContents === true || /true/i.test(replaceHeadingAndContents))
+      const replaceHeadingAlso = location === 'replace' && replaceHeading && (replaceHeading === true || /true/i.test(replaceHeading))
       const headingParagraph = findHeading(note, writeUnderHeading, true)
       if (headingParagraph) {
         // paragraph with heading exists
         if (location === 'replace') {
           await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate, false, options.headingLevel || 2)
           if (replaceHeadingAlso) {
-            headingParagraph?.note?.removeParagraph(headingParagraph)
+            logDebug(pluginJson, `writeNoteContents replacing heading and contents -- removing heading paragraph: ${writeUnderHeading}`)
+            const note = headingParagraph.note
+            if (note) {
+              note.removeParagraph(headingParagraph)
+              DataStore.updateCache(note, true)
+              const headingExists = findHeading(note, writeUnderHeading, true)
+              if (headingExists) {
+                logError(pluginJson, `writeNoteContents replaceHeading: heading paragraph still exists according to findHeading: ${writeUnderHeading}`)
+                logError(
+                  pluginJson,
+                  `writeNoteContents replaceHeading: note.content.includes(headingParagraph.content): ${String(note.content?.includes(`# ${headingParagraph.content}`))}`,
+                )
+              } else {
+                logDebug(pluginJson, `writeNoteContents replaceHeading: heading paragraph seems to have been removed: ${writeUnderHeading}`)
+              }
+            }
           }
         } else if (!location || location === 'prepend' || location === 'append') {
           note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, location === 'append' || !location, false)
@@ -439,7 +459,7 @@ export async function renderTemplate(frontmatterBody: string, data: Object): Pro
  * @param {boolean} openInEditor - whether to open in editor
  * @returns {Object} note title and editor preferences
  */
-export function extractNotePreferences(frontmatterAttributes: Object, openInEditor: boolean): { noteTitle: string, shouldOpenInEditor: boolean } {
+export function extractTitleAndShouldOpenSettings(frontmatterAttributes: Object, openInEditor: boolean): { noteTitle: string, shouldOpenInEditor: boolean } {
   const { openNoteTitle, writeNoteTitle, getNoteTitled } = frontmatterAttributes
   let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || '' || (getNoteTitled && getNoteTitled.trim())
   let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
@@ -474,7 +494,9 @@ export async function handleNoteSelection(noteTitle: string): Promise<string> {
  * @returns {Object} template write options
  */
 export function createTemplateWriteOptions(frontmatterAttributes: Object, shouldOpenInEditor: boolean): Object {
-  const { location, writeUnderHeading, replaceNoteContents, headingLevel, addHeadingLocation, replaceHeadingAndContents, createMissingHeading } = frontmatterAttributes
+  clo(frontmatterAttributes, `createTemplateWriteOptions frontmatterAttributes before destructuring`)
+  const { location, writeUnderHeading, replaceNoteContents, headingLevel, addHeadingLocation, replaceHeading, createMissingHeading } = frontmatterAttributes
+  logDebug(`createTemplateWriteOptions frontmatterAttributes after destructuring replaceHeading=${replaceHeading} (typeof replaceHeading=${typeof replaceHeading}  )`)
   return {
     shouldOpenInEditor: shouldOpenInEditor || false,
     createMissingHeading: createMissingHeading !== undefined ? createMissingHeading : true,
@@ -483,7 +505,7 @@ export function createTemplateWriteOptions(frontmatterAttributes: Object, should
     addHeadingLocation,
     location,
     writeUnderHeading,
-    replaceHeadingAndContents,
+    replaceHeading,
   }
 }
 
@@ -706,7 +728,7 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
         logDebug(pluginJson, `templateRunnerExecute Template Render Complete renderedTemplate= "${renderedTemplate}"`)
 
         // Extract note preferences
-        const { noteTitle, shouldOpenInEditor } = extractNotePreferences(frontmatterAttributes, openInEditor)
+        const { noteTitle, shouldOpenInEditor } = extractTitleAndShouldOpenSettings(frontmatterAttributes, openInEditor)
 
         // Handle note selection if needed
         let finalNoteTitle
@@ -721,6 +743,8 @@ export async function templateRunnerExecute(selectedTemplate?: string = '', open
         // STEP 4.5: Figure out what note we are writing to
         const { isTodayNote, isThisWeek, isNextWeek } = determineNoteType(finalNoteTitle)
 
+        clo(data, `templateRunnerExecute before createTemplateWriteOptions, data=`)
+        clo(frontmatterAttributes, `templateRunnerExecute before createTemplateWriteOptions, frontmatterAttributes=`)
         const writeOptions = createTemplateWriteOptions(frontmatterAttributes, shouldOpenInEditor)
 
         logDebug(pluginJson, `templateRunnerExecute isTodayNote:${String(isTodayNote)} isThisWeek:${String(isThisWeek)} isNextWeek:${String(isNextWeek)}`)
