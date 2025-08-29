@@ -10,6 +10,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
+## [2.3.0.b9] 2025-08-???
+- Added tagCache age to section info (if 'comparison' is turned on)
+- Add another check to regenerate or update tagMentionCache after 24 and 1 hour respectively
+- Make 'Show folder name in note link?' setting indented under 'Show note link for tasks?'
+
 ## [2.3.0.b8] 2025-08-27
 - Add temporary workaround for error in DataStore.listOverdueParagraphs() for regular Teamspace notes
 - Fix edge case that means Tag sections can fail to be shown

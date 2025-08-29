@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2025-06-05 for v2.3.0
+// Last updated 2025-08-30 for v2.3.0
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -359,7 +359,6 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
     // ---------------------------------------------------------------
 
     // Rebuild the tag mention cache. (Ideally this would be triggered by NotePlan once a day, but for now we will do it here.)
-    // if (config.FFlag_UseTagCache && (logSettings._logLevel !== 'DEV' || NotePlan.environment.machineName !== 'mm5.local')) {
     if (isTagMentionCacheGenerationScheduled()) {
       logInfo('reactWindowInitialisedSoStartGeneratingData', `- now generating tag mention cache`)
       await generateTagMentionCache()
