@@ -12,7 +12,7 @@ import { getFolderDisplayName, getFolderFromFilename, getRegularNotesInFolder } 
 import { displayTitle, isValidUUID } from '@helpers/general'
 import { calendarNotesSortedByChanged,noteType } from '@helpers/note'
 import { displayTitleWithRelDate, getDateStrFromRelativeDateString, getRelativeDates } from '@helpers/NPdateTime'
-import { endOfFrontmatterLineIndex, ensureFrontmatter } from '@helpers/NPFrontMatter'
+import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
@@ -224,10 +224,11 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     }
 
     if (note.type === 'Notes') {
+      const startOfActive = findStartOfActivePartOfNote(note)
       const endOfActive = findEndOfActivePartOfNote(note)
       console.log(
         `- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''
-        }\n- paragraphs: ${note.paragraphs.length} (endOfActive: ${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''
+        }\n- paragraphs: ${note.paragraphs.length} (Active part: ${String(startOfActive)}-${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''
         }`,
       )
     } else {
@@ -238,6 +239,9 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
         }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
       )
     }
+    // Get frontmatter details
+    const FMAttribs = getFrontmatterAttributes(note)
+    console.log(`- has ${Object.keys(FMAttribs).length} frontmatter keys: ${Object.keys(FMAttribs).join('\n    ')}`)
 
     if (note.paragraphs.length > 0) {
       const open = note.paragraphs.filter((p) => isOpen(p)).length
@@ -247,7 +251,10 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
       console.log(`- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`)
       if (alsoShowParagraphs) {
         console.log(`Paragraphs`)
-        note.paragraphs.map((p) => console.log(`  ${p.lineIndex}: ${p.type} ${p.rawContent}`))
+        note.paragraphs.map((p) => {
+          const referencedParas = DataStore.referencedBlocks(p)
+          console.log(`  ${p.lineIndex}: ${p.type} ${p.rawContent}${ (referencedParas.length >= 1) ? ` 🆔 has ${referencedParas.length} sync copies` : ''}`)
+        })
       }
     }
 
@@ -327,7 +334,7 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
     let foundNote: TNote | null = null
     // eslint-disable-next-line no-unused-vars
     const { filename, filepath, isTeamspace, teamspaceID } = parseTeamspaceFilename(filenameIn)
-    // logInfo('NPnote/getNoteFromFilename', `- filenameIn: ${filenameIn} / filename: ${filename} / isTeamspace: ${String(isTeamspace)} /  teamspaceID: ${String(teamspaceID)}`)
+    // logDebug('NPnote/getNoteFromFilename', `- filenameIn: ${filenameIn} / filename: ${filename} / isTeamspace: ${String(isTeamspace)} /  teamspaceID: ${String(teamspaceID)}`)
     if (isTeamspace) {
       if (!teamspaceID) {
         throw new Error(`Note ${filenameIn} is a teamspace note but cannot get valid ID for it.`)
@@ -337,7 +344,7 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
       foundNote = DataStore.noteByFilename(filenameIn, 'Notes', teamspaceID)
         ?? DataStore.noteByFilename(filenameIn, 'Calendar', teamspaceID)
         ?? null
-      logInfo('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
+      logDebug('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
     } else {
       // Check for private notes
       foundNote = DataStore.projectNoteByFilename(filenameIn) ?? null
@@ -350,7 +357,7 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
         }
       }
       if (foundNote) {
-        logInfo('NPnote/getNoteFromFilename', `Found note '${displayTitle(foundNote)}' from ${filenameIn}`)
+        // logDebug('NPnote/getNoteFromFilename', `Found note '${displayTitle(foundNote)}' from ${filenameIn}`)
       } else {
         logInfo('NPnote/getNoteFromFilename', `No note found for ${filenameIn}`)
       }

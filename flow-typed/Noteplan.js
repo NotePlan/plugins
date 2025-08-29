@@ -683,6 +683,7 @@ declare class DataStore {
 
   /**
    * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array).
+   * Note: @jgclark comments that this use does *not* appear to return the original paragraph in the array. (At least from 2023 to mid 2025.)
    * Or use without an argument to return all paragraphs with blockIDs.
    * You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done").
    * Note: Available from v3.5.2

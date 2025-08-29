@@ -15,6 +15,11 @@ See below for more details.
 
 Compared with the built-in functionality, it also allows you to easily change the text of a repeated task, which otherwise means visiting all the future notes with repeats.
 
+### Special handling on sync'd tasks (from v0.9.1)
+To avoid issues, any sync marker (the blue asterisk) are _not_ carried forward from the completed task to the new version of the task. (But, as expected, both sync'd versions of the original task will show as complete.)  
+
+Additionally if a task is sync'd from a regular/project note to a calendar note, the new version of the repeat will always be created in the regular/project note, _even if it is completed in the calendar note_.
+
 ## Configuration
 For this feature to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
 

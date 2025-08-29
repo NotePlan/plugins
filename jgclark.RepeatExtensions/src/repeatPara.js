@@ -1,4 +1,9 @@
 // @flow
+//-----------------------------------------------------------------------
+// Repeat Extensions plugin for NotePlan
+// Jonathan Clark
+// last updated 2025-08-29, for v0.9.1
+//-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import {
@@ -13,6 +18,7 @@ import {
   convertISODateFilenameToNPDayFilename,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logInfo, logWarn, logError } from "@helpers/dev"
+import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 
 /**
  * Generate a repeat task for a single paragraph that contains a completed task with extended @repeat(interval) tag.
@@ -37,6 +43,7 @@ export async function generateRepeatForPara(
   config: RepeatConfig
 ): Promise<TParagraph | null> {
   try {
+    logDebug('generateRepeatForPara', `Starting for "${origPara.content}" in ${noteToUse.filename}. noteIsOpenInEditor: ${String(noteIsOpenInEditor)}`)
     const line = origPara.content ?? ''
     let lineWithoutDoneTime = ''
     let completedDate = ''
@@ -45,6 +52,12 @@ export async function generateRepeatForPara(
     if (!RE_DONE_DATE_TIME.test(line)) {
       return null
     }
+
+    // For #672, if the completed task is in a regular/project note, and the sync copy is in a Calendar note, then the new repeated task should appear in the regular note.
+    const syncCopyParas: Array<TParagraph> = DataStore.referencedBlocks(origPara)
+    const origParaIsSynced = syncCopyParas.length>=1 // this doesn't report itself
+    const syncCopiesInRegularNotes = (origParaIsSynced) ? syncCopyParas.filter((p) => p?.note?.type === 'Notes') : []
+    logDebug('generateRepeatForPara', `- found ${syncCopiesInRegularNotes.length} syncCopiesInRegularNotes`)
 
     // Get completed date and time
     const reReturnArray = line.match(RE_DONE_DATE_TIME_CAPTURES) ?? []
@@ -66,11 +79,30 @@ export async function generateRepeatForPara(
       logWarn(`generateRepeatForPara`, `newRepeatDateStr ${newRepeatDateStr} is same as completedDate ${completedDate}`)
     }
 
-    // Remove any >date and @done()
-    let newRepeatContent = lineWithoutDoneTime.replace(RE_ANY_DUE_DATE_TYPE, '').replace(/@done\(.*\)/, '').trim()
-
-    // Add the new repeat based on note type
-    if (noteToUse.type === 'Notes') {
+    // Remove any >date and @done() on the new task
+    let newRepeatContent = lineWithoutDoneTime
+      .replace(RE_ANY_DUE_DATE_TYPE, '')
+      .replace(/@done\(.*\)/, '')
+      .replace(/^\* /, '')
+    // Also now remove any sync marker, and trim
+    newRepeatContent = textWithoutSyncedCopyTag(newRepeatContent).trim()
+    logDebug('generateRepeatForPara', `- newRepeatContent: "${newRepeatContent}"`)
+    
+    // Add the new repeat
+    if (syncCopiesInRegularNotes.length > 0) {
+      // If the origPara is synced to a regular note, then write to the (first) of those regular note(s)
+      const syncSourceNote: ?TNote = syncCopiesInRegularNotes[0]?.note
+      if (syncSourceNote == null) {
+        throw new Error(`generateRepeatForPara: Cannot get syncSourceNote for origPara: "${origPara.content}" in ${noteToUse.filename}`)
+      }
+      logDebug('generateRepeatForPara', `- adding repeat to regular note where origPara is synced (${syncSourceNote.filename})`)
+      newRepeatContent += ` >${newRepeatDateStr}`
+      await syncSourceNote.insertParagraphBeforeParagraph(newRepeatContent, syncCopiesInRegularNotes[0], 'open')
+      newPara = noteToUse.paragraphs[newParaLineIndex]
+     }
+    else if (noteToUse.type === 'Notes') {
+      // First handle regular/project note. Or now, if the origPara is synced to a regular/project note
+      logDebug('generateRepeatForPara', `- adding repeat to regular note ${noteToUse.filename}`)
       newRepeatContent += ` >${newRepeatDateStr}`
       if (noteIsOpenInEditor) {
         await Editor.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
@@ -80,20 +112,23 @@ export async function generateRepeatForPara(
         newPara = noteToUse.paragraphs[newParaLineIndex]
       }
     } else {
-      // Handle calendar note case
+      // Else add the new repeat to the calendar note
       if (newRepeatDateStr.match(RE_ISO_DATE)) {
         newRepeatDateStr = convertISODateFilenameToNPDayFilename(newRepeatDateStr)
       }
       const futureNote = await DataStore.calendarNoteByDateString(newRepeatDateStr)
       if (futureNote != null) {
+        logDebug('generateRepeatForPara', `- adding repeat to FUTURE calendar note for ${newRepeatDateStr}`)
         await futureNote.appendTodo(newRepeatContent)
         newPara = futureNote.paragraphs[futureNote.paragraphs.length - 1]
       } else {
         newRepeatContent += ` >${newRepeatDateStr}`
         if (noteIsOpenInEditor) {
+          logDebug('generateRepeatForPara', `- adding repeat to Editor calendar note for ${newRepeatDateStr}`)
           await Editor.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
           newPara = Editor.paragraphs[newParaLineIndex]
         } else {
+          logDebug('generateRepeatForPara', `- adding repeat to calendar note for ${newRepeatDateStr} (not open in Editor)`)
           await noteToUse.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
           newPara = noteToUse.paragraphs[newParaLineIndex]
         }
@@ -106,7 +141,7 @@ export async function generateRepeatForPara(
       noteToUse.updateParagraph(newPara)
     }
 
-    // Handle the completed item
+    // Delete the completed item (if wanted)
     Editor.skipNextRepeatDeletionCheck = true
     if (config.deleteCompletedRepeat) {
       if (noteIsOpenInEditor) {
