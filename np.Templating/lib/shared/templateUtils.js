@@ -25,3 +25,18 @@ export const getTags = async (templateData: string = '', startTag: string = '<%'
   const items = templateData.match(TAGS_PATTERN)
   return items || []
 }
+
+/**
+ * Converts EJS closing tags from %> to -%> only for specific opening tag patterns (e.g. <% and <%#)
+ * So putting a code tag <% or <%# in a template will not result in extra newlines
+ * @param {string} templateData - The template data to process
+ * @returns {string} The template with converted closing tags
+ */
+export const convertEJSClosingTags = (templateData: string): string => {
+  if (DataStore?.settings?.autoSlurpingCodeTags === false || !templateData) return templateData
+
+  // Only convert %> to -%> when the opening tag is <% (with space) or <%# (comment with space)
+  // This regex looks for <% or <%# followed by a space, then finds its matching %>
+  // But don't convert if the tag already ends with -%>
+  return templateData.replace(/(<%(?:#)?\s[^%]*?)(?<!-)%>/g, '$1-%>')
+}

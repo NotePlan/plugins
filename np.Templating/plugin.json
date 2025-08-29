@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.9.10",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "2.1.0-b6",
-  "plugin.lastUpdateInfo": "2.1.0-b6: - change replaceHeading[And|With]Contents to replaceHeading",
+  "plugin.version": "2.1.0-b7",
+  "plugin.lastUpdateInfo": "2.1.0-b7: - add autoSlurpingCodeTags setting to allow for turning off the automatic closing of code/comment tags with -%>",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson ( codedungeon)",
   "plugin.dependencies": [],
@@ -344,6 +344,17 @@
       "type": "json",
       "default": "",
       "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "key": "autoSlurpingCodeTags",
+      "title": "Automatically close code/comment tags with -%>",
+      "description": "Sometimes people forget to add the newline-slurping closing tag to template lines containing code (<%) or comments (<%#). This results in extra newlines in the output. If this setting is checked, the Templating Engine will automatically add newline slurping tags even when you forget. If you don’t want this behavior, uncheck it.",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
       "type": "separator"

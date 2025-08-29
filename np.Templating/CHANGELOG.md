@@ -20,6 +20,8 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 - Add `createMissingHeading` (default true) to templateRunner to allow for overriding and disabling the creation of missing headings (text will be lost if you do this)
 
 ## Bug Fixes/Stability Improvements
+- Automatically close code/comment tags with -%> so that people don't get extra newlines in the output if they forget to add the closing tag with the newline slurping (-%>)
+- Add `autoSlurpingCodeTags` setting to allow for turning off the automatic closing of code/comment tags with -%>
 - Fix YAML validation to allow hyphens and spaces in frontmatter key names (e.g., `note-tag: #CTI`, `my key: value`)
 - Fix edge case where new template note was getting template tags in the filename (thx @clayrussell)
 - Fix bug where folder <choose> in a meeting note button press was not prompting if you had content in the note
