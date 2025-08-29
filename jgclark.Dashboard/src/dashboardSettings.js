@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2025-04-15 for v2.2.1, @jgclark
+// Last updated 2025-08-30 for v2.3.0, @jgclark
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -261,10 +261,12 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'switch',
     default: true,
     description: 'Whether to show the note link for an open task or checklist',
+    controlsOtherKeys: ['showFolderName'],
   },
   {
     label: 'Show folder name in note link?',
     key: 'showFolderName', // was 'includeFolderName' before v2.2.0
+    dependsOnKey: 'showTaskContext',
     type: 'switch',
     default: true,
     description: 'Whether to include the folder name when showing a note link',
