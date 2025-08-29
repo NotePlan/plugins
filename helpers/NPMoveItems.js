@@ -3,7 +3,6 @@
 // Helpers for moving paragraphs around.
 // -----------------------------------------------------------------
 
-import { addParasAsText } from '../jgclark.Filer/src/filerHelpers.js'
 import { findScheduledDates, getAPIDateStrFromDisplayDateStr, getDisplayDateStrFromFilenameDateStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
@@ -13,7 +12,7 @@ import { coreAddRawContentToNoteHeading } from '@helpers/NPAddItems'
 import { displayTitleWithRelDate } from '@helpers/NPdateTime'
 import { chooseNoteV2 } from '@helpers/NPnote'
 import { getParaAndAllChildren } from '@helpers/parentsAndChildren'
-import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, smartAppendPara, smartCreateSectionsAndPara, smartPrependPara } from '@helpers/paragraph'
+import { addParagraphsToNote, findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, smartAppendPara, smartCreateSectionsAndPara, smartPrependPara } from '@helpers/paragraph'
 import { findParaFromRawContentAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
 import { chooseHeadingV2, showMessage, showMessageYesNo } from '@helpers/userInput'
@@ -328,17 +327,13 @@ export function moveGivenParaAndBlock(para: TParagraph, destFilename: string, de
     const parasInBlock = getParaAndAllChildren(para)
     logDebug('blocks/moveGivenParaAndBlock', `moveParas: move block of ${parasInBlock.length} paras`)
 
-    // Note: There's still no API function to add multiple
-    // paragraphs in one go, but we can insert a raw text string.
-    const selectedParasAsText = parasToText(parasInBlock)
-
     // Add text to the new location in destination note
     const destNote = DataStore.noteByFilename(destFilename, destNoteType)
     if (!destNote) {
       throw new Error(`Destination note can't be found from filename '${destFilename}'`)
     }
     logDebug('blocks/moveGivenParaAndBlock', `- Moving to note '${displayTitle(destNote)}' under heading: '${destHeading}'`)
-    addParasAsText(destNote, selectedParasAsText, destHeading, 'start', true)
+    addParagraphsToNote(destNote, parasInBlock, destHeading, 'start', true)
 
     // delete from existing location
     logDebug('blocks/moveGivenParaAndBlock', `- Removing ${parasInBlock.length} paras from original note`)

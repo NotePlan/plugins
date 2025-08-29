@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-07-04 for v2.3.0.b4, @jgclark
+// Last updated 2025-08-21 for v2.3.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -18,7 +18,7 @@ import {
 } from './tagMentionCache'
 import { filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
-import { clo, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { getFrontmatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { getNoteByFilename } from '@helpers/note'
@@ -38,7 +38,8 @@ import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
-export async function getTaggedSectionData(config: TDashboardSettings, useDemoData: boolean = false, sectionDetail: TSectionDetails, index: number): Promise<TSection> {
+export async function getTaggedSectionData(config: TDashboardSettings, useDemoData: boolean = false, sectionDetail: TSectionDetails, index: number): Promise<?TSection> {
+  try {
   const thisStartTime = new Date()
   const sectionNumStr = `12-${index}`
   const thisSectionCode = 'TAG'
@@ -77,28 +78,27 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
       // Get notes with matching hashtag or mention (as can't get list of paras directly)
       // Use Cache if wanted (and available), otherwise the API.
-
       let notesWithTag: Array<TNote> = []
       const cacheIsAvailable = isTagMentionCacheAvailableforItem(thisTag)
       if (config.FFlag_UseTagCache && cacheIsAvailable) {
         // Use Cache
-        logInfo(
-          'getTaggedSectionData',
-          `- using cache for 
-        ${thisTag}`,
-        )
+        logInfo('getTaggedSectionData', `- using cache for ${thisTag}`)
         let filenamesWithTagFromCache: Array<string> = []
         ;[filenamesWithTagFromCache, comparisonDetails] = await getFilenamesOfNotesWithTagOrMentions([thisTag], true, turnOnAPIComparison)
 
         // This is taking about 2ms per note for JGC
-        filenamesWithTagFromCache.forEach((filename) => {
-          const note = getNoteByFilename(filename)
-          if (note) {
-            notesWithTag.push(note)
-          } else {
-            logError('getTaggedSectionData', `- failed to get note by filename ${filename}`)
-          }
-        })
+        if (!filenamesWithTagFromCache || filenamesWithTagFromCache.length === 0) {
+          logWarn('getTaggedSectionData', `- no valid filenamesWithTagFromCache result for ${thisTag}`)
+        } else {
+          filenamesWithTagFromCache.forEach((filename) => {
+            const note = getNoteByFilename(filename)
+            if (note) {
+              notesWithTag.push(note)
+            } else {
+              logError('getTaggedSectionData', `- failed to get note by filename ${filename}`)
+            }
+          })
+        }
         logTimer('getTaggedSectionData', thisStartTime, `- from CACHE found ${notesWithTag.length} notes with ${thisTag}`)
         // $FlowIgnore[unsafe-arithmetic]
         // cacheLookupTime = new Date() - cachedOperationStartTime
@@ -255,5 +255,8 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
     actionButtons: [],
   }
   logTimer('getTaggedSectionData', thisStartTime, `to find ${itemCount} ${thisTag} items`, 1000)
-  return section
+    return section
+  } catch (err) {
+    logError('getTaggedSectionData', err.message)
+  }
 }

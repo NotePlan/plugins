@@ -198,9 +198,9 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
   )
   logDebug(
     'note/getNote',
-    `  Will try to open: "${name} (${noteName})" using ${onlyLookInRegularNotes ? 'projectNoteByFilename' : 'noteByFilename'} ${hasExtension ? '' : ' (no extension)'} ${
-      hasFolder ? '' : ' (no folder)'
-    } ${isCalendarNote ? ' (calendar note)' : ''}`,
+    `  Will try to open: "${name}${noteName !== name ? `(${noteName})` : ''}" using ${onlyLookInRegularNotes ? 'projectNoteByFilename' : 'noteByFilename'} ${
+      hasExtension ? '' : ' (no extension)'
+    } ${hasFolder ? '' : ' (no folder)'} ${isCalendarNote ? ' (calendar note)' : ''}`,
   )
   if (!noteName) {
     logError('note/getNote', `  Empty name`)
@@ -238,6 +238,7 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
       const titleWithoutPath = pathParts.pop() || ''
       const pathWithoutTitle = pathParts.join('/') || ''
       const potentialNotes = DataStore.projectNoteByTitle(titleWithoutPath)
+      logDebug('note/getNote', `  Found ${potentialNotes.length} notes by title "${noteName}"`)
       if (potentialNotes && potentialNotes.length > 0) {
         // Apply both path filters differently depending on the use case
         let filteredNotes = potentialNotes

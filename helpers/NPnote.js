@@ -553,23 +553,10 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
 /**
  * note.backlinks is an array of Paragraphs, but its subItems can be nested. The nesting can be multiple levels deep.
  * This function returns an array of TParagraphs, one for each backlink, undoing the nesting.
+ * FIXME: or TEST: is this working for teamspace notes? Initial testing on 20.8.25 by @jgclark implies not.
  */
 // $FlowFixMe[incompatible-return]
 export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
-  // Iterate over all backlinks, recursing where necessary to visit all subItems, returning a flat list of lineIndex
-  // function flattenSubItems(subItems: Array<TBacklinkFields>): Array<TBacklinkFields> {
-  //   const items: Array<TBacklinkFields> = []
-  //   subItems.forEach((item) => {
-  //     if (item.subItems) {
-  //       items.push(item)
-  //       // logDebug('note/getFlatListOfBacklinks', `+ ${item.lineIndex}: ${item.content} [has ${items.length} saved indexes`)
-  //       // Recursively process any subItems of the current item
-  //       items.push(...flattenSubItems(item.subItems))
-  //     }
-  //   })
-  //   return items
-  // }
-
   try {
     const noteBacklinks = note.backlinks
     if (noteBacklinks.length === 0) {
@@ -577,36 +564,13 @@ export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
     }
     logDebug('NPnote/getFlatListOfBacklinks', `Starting for ${String(noteBacklinks.length)} backlinks in ${String(note.filename)} ...`)
     const flatBacklinkParas: Array<TParagraph> = []
+
+    // Iterate over all backlinks, recursing where necessary to visit all subItems, returning a flat list of lineIndex
     for (const noteBacklink of noteBacklinks) {
-      // const startTime = new Date() // only for timing inside this loop
-
-      // v1: which has the issue of getting all paras, which has gone very slow.
-      // Get the note that this backlink points to
-      // const thisBacklinkNote = DataStore.noteByFilename(noteBacklink.filename, noteBacklink.noteType)
-      // clo(noteBacklink.subItems, `noteBackLink in ${thisBacklinkNote?.filename ?? '(error)'}`)
-      // const thisBacklinkNoteParas = thisBacklinkNote?.paragraphs
-      // if (!thisBacklinkNoteParas) {
-      //   logError('NPnote/getFlatListOfBacklinks', `Error getting paragraphs for ${noteBacklink.filename}`)
-      // }
-      // let thisNoteItems: Array<TBacklinkFields> = []
-      // // thisNoteLineIndexes.push(noteBacklink.lineIndex) // noteBacklink.lineIndex
-
-      // if (noteBacklink.subItems && noteBacklink.subItems.length > 0) {
-      //   logDebug('NPnote/getFlatListOfBacklinks', `- has ${noteBacklink.subItems.length} top-levelsubItems`)
-      //   thisNoteItems = flattenSubItems(noteBacklink.subItems)
-      // }
-      // logDebug('NPnote/getFlatListOfBacklinks', `  => ${thisNoteItems.length} items`)
-
-      // // Now find paragraphs from those lineIndexes
-      // for (const item of thisNoteItems) {
-      //   logDebug('NPnote/getFlatListOfBacklinks', `+ ${item.lineIndex}`)
-      //   // $FlowIgnore[incompatible-use]
-      //   flatBacklinkParas.push(thisBacklinkNoteParas[item.lineIndex])
-      // }
-      // logTimer('NPnote/getFlatListOfBacklinks', startTime, `- after processing backlinks for ${thisBacklinkNote?.filename ?? '(error)'} with ${String(thisBacklinkNoteParas?.length)} paras, now have ${String(flatBacklinkParas.length)} flat backlinks`, 100)
-
       // v2: which just works on data returned within subItems (which are actual para refs it turns out)
       for (const subItem of noteBacklink.subItems) {
+        // Note: the following log only returns empty object strings
+        // logDebug('NPnote/getFlatListOfBacklinks', `- subItem: ${JSON.stringify(subItem, null, 2)}`)
         if (subItem.type !== 'title') {
           flatBacklinkParas.push(subItem)
         }
@@ -622,6 +586,7 @@ export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
 
 /**
  * Get the paragraphs in 'note' which are scheduled for date of the 'calendar' note.
+ * TEST: Is this working for Teamspace notes? Initial testing on 20.8.25 by @jgclark implies not.
  * @author @dwertheimer extended by @jgclark
  * @param {CoreNoteFields} calendar note to look for links to (the note or Editor)
  * @param {CoreNoteFields} includeHeadings? (default to true for backwards compatibility)
@@ -630,7 +595,7 @@ export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
 export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean = true): Array<TParagraph> {
   try {
     const thisDateStr = calNote.title || '' // will be  2022-10-10 or 2022-10 or 2022-Q3 etc depending on the note type
-    const wantedParas = []
+    const wantedParas: Array<TParagraph> = []
 
     // Use .backlinks, which is described as "Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The headings of the linked paragraphs are also listed here, although they don't have to contain a link."
     // Note: @jgclark reckons that the subItem.headingLevel data returned by this might be wrong.
@@ -639,13 +604,20 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
 
     backlinkParas.forEach((para) => {
       // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
-      if (includeHeadings) {
-        // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
-      } else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
-        // logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today`)
-        wantedParas.push(para)
+      if (!para) {
+        if (includeHeadings) {
+          // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
+        } else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
+          logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today from ${para.note?.filename ?? '<no note>'}`)
+          if (!para.note) {
+            logWarn(`getReferencedParagraphs`, `  - this backlink para.note is null. Para:\n${JSON.stringify(para, null, 2)}`)
+          }
+          wantedParas.push(para)
+        } else {
+          // logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
+        }
       } else {
-        // logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
+        logWarn('getReferencedParagraphs', `  - referenced para is null.`)
       }
     })
 
@@ -1476,5 +1448,54 @@ export function getNoteTypeByFilename(filename: string): ?NoteType {
   } else {
     logWarn('note/getNoteTypeByFilename', `-> couldn't find a note in either Notes or Calendar`)
     return null
+  }
+}
+
+/**
+ * Archive a note using its current folder, replicating the folder structure if needed.
+ * If 'archiveRootFolder' is supplied, archive under that folder, otherwise default to the built-in @Archive folder.
+ * @author @jgclark
+ * 
+ * @param {TNote} noteIn
+ * @param {string?} archiveRootFolder optional; if not given, then use the built-in @Archive folder
+ * @returns {string | void} newFilename, if success
+ */
+export function archiveNoteUsingFolder(note: TNote, archiveRootFolder?: string): string | void {
+  try {
+    if (!note) {
+      throw new Error('No note passed, so stopping.')
+    }
+    if (note.type === 'Calendar') {
+      // Can't archive a Calendar note
+      logWarn(pluginJson, 'archiveNoteUsingFolder(): Cannot archive a Calendar note, so stopping.')
+      return
+    }
+    logDebug('archiveNoteUsingFolder', `Will archive Note '${displayTitle(note)} created at ${String(note.createdDate)}`)
+
+    // Get note's current folder
+    const currentFilename = note.filename
+    const currentFolder = getFolderFromFilename(currentFilename)
+    logDebug('archiveNoteUsingFolder', `- currentFolder: ${currentFolder}`)
+
+    // Work out requested archived filename
+    const archiveFolderToMoveTo = archiveRootFolder ? `${archiveRootFolder}/${currentFolder}` : `@Archive/${currentFolder}`
+    logDebug('archiveNoteUsingFolder', `- archiveFolderToMoveTo: ${archiveFolderToMoveTo}`)
+
+    // Check if this folder structure is already set up under @Archive
+
+    // Move note to this new location.
+    // (Handily, NP does the work of creating any necessary missing folders. No need to use DataStore.moveFolder here.)
+    // Good news: creation date now doesn't change here
+    const newFilename = DataStore.moveNote(currentFilename, archiveFolderToMoveTo)
+    if (newFilename) {
+      logDebug('archiveNoteUsingFolder', `- Note -> ${newFilename}`)
+      return newFilename
+    } else {
+      throw new Error(`archiveNoteUsingFolder(): Failed when moving '${displayTitle(note)}' to folder ${archiveFolderToMoveTo}`)
+    }
+  }
+  catch (error) {
+    logError(pluginJson, error.message)
+    return
   }
 }

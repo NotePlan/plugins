@@ -8,7 +8,6 @@
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
-import { archiveNoteUsingFolder } from '../../jgclark.Filer/src/archive'
 import { Project, generateProjectOutputLine } from './projectClass'
 import {
   finishReview,
@@ -24,6 +23,7 @@ import {
 } from './allProjectsListHelpers'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { archiveNoteUsingFolder } from '@helpers/NPnote'
 import { showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -121,7 +121,7 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
           logInfo('project/completeProject', `- after addParagraphBelowHeadingTitle() ${yearlyNote.paragraphs.length} lines`)
         }
 
-        // ... and finally ask whether to move it to the @Archive
+        // ... and finally move it to the @Archive (if requested)
         if (willArchive) {
           const newFilename = (config.archiveUsingFolderStructure)
             ? archiveNoteUsingFolder(note, config.archiveFolder)
@@ -218,7 +218,7 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
           )
         }
 
-        // ... and finally ask whether to move it to the @Archive
+        // ... and finally move it to the @Archive (if requested)
         if (willArchive) {
           const newFilename = (config.archiveUsingFolderStructure)
             ? archiveNoteUsingFolder(note, config.archiveFolder)

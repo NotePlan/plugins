@@ -2,17 +2,16 @@
 // ----------------------------------------------------------------------------
 // Plugin to help link lines between notes with Line IDs
 // Jonathan Clark
-// last updated 2025-08-13 for v1.3.0
+// last updated 2025-08-25 for v1.3.1
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { addParasAsText, getFilerSettings } from './filerHelpers'
+import { getFilerSettings } from './filerHelpers'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { chooseNoteV2 } from '@helpers/NPnote'
-// import { getSelectedParaIndex } from '@helpers/NPParagraph'
-import { parasToText, smartAppendPara, smartPrependPara } from '@helpers/paragraph'
+import { addParagraphsToNote, parasToText, smartAppendPara, smartPrependPara } from '@helpers/paragraph'
 import { chooseHeadingV2 } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -48,9 +47,6 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
       return
     }
 
-    // turn into text, for reasons given in moveParas()
-    const selectedParasAsText = parasToText([para]) // i.e. turn single para into a single-iterm array
-
     // Decide where to copy the line to
     const destNote = await chooseNoteV2('Select note to sync the line to', allRegularNotesSortedByChanged(), true, true, false, true)
     if (!destNote) {
@@ -66,12 +62,12 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     // Note: handily, the blockId goes with it as part of the para.content
     if (headingToFind === '<<top of note>>') {
       // add to top of note
-      smartPrependPara(destNote, selectedParasAsText, 'text')
+      smartPrependPara(destNote, parasToText([para]), 'text')
     } else if (headingToFind === '<<bottom of note>>') {
       // add to bottom of note
-      smartAppendPara(destNote, selectedParasAsText, 'text')
+      smartAppendPara(destNote, parasToText([para]), 'text')
     } else {
-      addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection, true)
+      addParagraphsToNote(destNote, [para], headingToFind, config.whereToAddInSection, true)
     }
   }
   catch (error) {

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-07-11 for v2.3.0.b, @jgclark
+// Last updated 2025-08-27 for v2.3.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -31,12 +31,12 @@ import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
 import { isNoteFromAllowedFolder, pastCalendarNotes } from '@helpers/note'
 import { saveSettings } from '@helpers/NPConfiguration'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
-import { getReferencedParagraphs } from '@helpers/NPnote'
+import { getNoteFromFilename, getReferencedParagraphs } from '@helpers/NPnote'
 import { isAChildPara } from '@helpers/parentsAndChildren'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
-import { getAllTeamspaceIDsAndTitles, getNoteFromFilename, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
+import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
 import { getStartTimeObjFromParaContent, getTimeBlockString, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
 import { isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
@@ -208,8 +208,12 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
 export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagraphForDashboard> {
   try {
     const timer = new Date()
+
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p: TParagraph) => {
-      const note = p.note
+      // WARNING: p.note appears to be null for Teamspace regular note paras. But .filename and .content are OK.
+      // TODO(later): remove this workaround.
+      const note = p.note ?? getNoteFromFilename(p.filename ?? '') ?? null
+
       if (note) {
         // Note: seems to be a quick operation (1ms), but leaving a timer for now to indicate if >10ms
         const anyChildren = p.children() ?? []
@@ -238,7 +242,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         const outputPara: TParagraphForDashboard = {
           // $FlowIgnore[incompatible-type]
           filename: p.filename,
-          noteType: note.type,
+          // TODO(later): remove this workaround to fix regular teamspace paras.
+          noteType: p.noteType === 'teamspaceNote' ? 'Notes' : note.type,
           title: note.type === 'Notes' ? displayTitle(note) : note.title /* will be ISO-8601 date */,
           type: p.type,
           prefix: p.rawContent.replace(p.content, ''),
@@ -255,11 +260,11 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           isTeamspace: note.isTeamspaceNote,
         }
         // if (p.content.includes('TEST')) {
-        // clo(outputPara, `FYI 👉 makeDashboardParas - outputPara:`)
+        //   clo(outputPara, `FYI 👉 makeDashboardParas - outputPara:`)
         // }
         return outputPara
       } else {
-        logWarn('makeDashboardParas', `No note found for para {${p.content}} - probably an API teamspace bug`)
+        logWarn('makeDashboardParas', `No note found for para {${p.content}} - probably an API teamspace bug?`)
         // $FlowFixMe[incompatible-call]
         return []
       }
@@ -400,6 +405,9 @@ export function getOpenItemParasForTimePeriod(
         ? getReferencedParagraphs(note, false).filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
         : getReferencedParagraphs(note, false).filter((p) => isOpen(p))
       logTimer('getOpenItemPFCTP', startTime, `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`)
+      if (refOpenParas.length === 0) {
+        continue
+      }
       if (dashboardSettings.ignoreChecklistItems) {
         refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist'))
         // logDebug('getOpenItemPFCTP', `- after filtering out referenced checklists: ${refOpenParas.length} para(s)`)
@@ -412,6 +420,8 @@ export function getOpenItemParasForTimePeriod(
       const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
       // FIXME(EduardMe): I think this is where the .type is failing.
       // $FlowIgnore[incompatible-call] - p.note almost guaranteed to exist
+      logDebug('getOpenItemPFCTP: refOpenParas', refOpenParas.map((p) => p.note?.filename ?? '<no note>'))
+
       refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
       logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
 
@@ -797,16 +807,18 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
  */
 export function createSectionItemObject(id: string, p: TParagraph | TParagraphForDashboard, theType?: TItemType): TSectionItem {
   try {
-    if (!p || !p.filename || !p.type) {
-      throw new Error('p is null or missing filename or type')
+    if (!p) {
+      throw new Error(`In ID ${id}, para is null`)
+    } else if (!p.filename || !p.type) {
+      throw new Error(`In ID ${id}, para is missing filename or type`)
     }
     const itemObj = { ID: id, itemType: theType ?? p.type, para: p, teamspaceTitle: '' }
     const thisNote = getNoteFromFilename(p.filename)
     if (thisNote) {
-      const teamspaceTitle = getTeamspaceTitleFromNote(thisNote)
-      if (teamspaceTitle !== '') {
-        itemObj.teamspaceTitle = teamspaceTitle
-        // logDebug('createSectionItemObject', `- added teamspaceTitle ${teamspaceTitle}`)
+      const possTeamspaceTitle = getTeamspaceTitleFromNote(thisNote)
+      if (possTeamspaceTitle !== '') {
+        itemObj.teamspaceTitle = possTeamspaceTitle
+        logDebug('createSectionItemObject', `- added teamspaceTitle ${possTeamspaceTitle}`)
       }
     } else {
       logWarn('createSectionItemObject', `- cannot get note from para {${p.content}} -- probably a Teamspace API problem`)
@@ -817,7 +829,7 @@ export function createSectionItemObject(id: string, p: TParagraph | TParagraphFo
     logError('createSectionItemObject', `${error.message} from {${p?.content}}`)
     // $FlowIgnore[incompatible-return]
     // $FlowIgnore[incompatible-exact] - we are not using all the types in TParagraphForDashboard
-    return { ID: id, itemType: theType ?? p.type ?? 'unknown', para: p }
+    return { ID: id, itemType: theType ?? p.type ?? 'error', para: p }
   }
 }
 

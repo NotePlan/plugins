@@ -2,70 +2,45 @@
 // ----------------------------------------------------------------------------
 // Smarter archiving commands, part of Filer plugin
 // Jonathan Clark
-// last updated 2024-10-07 for v1.1.0+
+// last updated 2025-08-25 for v1.3.1
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { getFolderFromFilename } from '@helpers/folders'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
+import { archiveNoteUsingFolder } from '@helpers/NPnote'
 
 //-----------------------------------------------------------------------------
 
 /**
  * Archive a note using its current folder, replicating the folder structure if needed. If no TNote object is passed in, then archive the note in the open Editor.
- * Added 'archiveRootFolder', which if supplied, archives under that folder, otherwise defaults to the special @Archive folder.
- * TODO: As this is used by Filer and Reviews plugins, this should be moved to helpers/NPnote.js
- * @param {TNote?} noteIn (optional)
+ * If 'archiveRootFolder' is supplied, archive under that folder, otherwise default to the built-in @Archive folder.
+ * @param {TNote?} noteIn optional; if not given, then use the open Editor's note)
+ * @param {string?} archiveRootFolder optional; if not given, then use the built-in @Archive folder)
  * @returns {string | void} newFilename, if success
- * @returns {string?} archiveRootFolder (optional)
  */
-export function archiveNoteUsingFolder(noteIn?: TNote, archiveRootFolder?: string): string | void {
+export function archiveNote(noteIn?: TNote, archiveRootFolder?: string): string | void {
   try {
     let note: TNote | null
     if (noteIn && (typeof noteIn === "object")) {
       // A note was passed in, so use it
       note = noteIn
-      logDebug('archiveNoteUsingFolder', `Note passed in: ${note.filename}`)
+      logDebug('archiveNote', `Note passed in: ${note.filename}`)
     } else {
-      logDebug(pluginJson, `archiveNoteUsingFolder(): starting for note open in Editor`)
+      logDebug(pluginJson, `archiveNote(): starting for note open in Editor`)
       note = Editor.note ?? null
     }
 
-    if (!note) {
-      // No note open, so don't do anything.
-      logWarn(pluginJson, 'archiveNoteUsingFolder(): No note passed or open in the Editor, so stopping.')
-      return
-    } else if (note.type === 'Calendar') {
-      // Can't archive a Calendar note
-      logWarn(pluginJson, 'archiveNoteUsingFolder(): Cannot archive a Calendar note, so stopping.')
-      return
-    }
-    logDebug('archiveNoteUsingFolder', `- will archive Note '${displayTitle(note)} created at ${String(note.createdDate)}`)
-
-    // Get note's current folder
-    const currentFilename = note.filename
-    const currentFolder = getFolderFromFilename(currentFilename)
-    logDebug('archiveNoteUsingFolder', `- currentFolder: ${currentFolder}`)
-    // Work out requested archived filename
-    const archiveFolderToMoveTo = archiveRootFolder ? `${archiveRootFolder}/${currentFolder}` : `@Archive/${currentFolder}`
-    logDebug('archiveNoteUsingFolder', `- archiveFolderToMoveTo: ${archiveFolderToMoveTo}`)
-
-    // Check if this folder structure is already set up under @Archive
-
-    // Move note to this new location.
-    // (Handily, NP does the work of creating any necessary missing folders. No need to use DataStore.moveFolder here.)
-    // Good news: creation date now doesn't change here
-    const newFilename = DataStore.moveNote(currentFilename, archiveFolderToMoveTo)
+    const newFilename = archiveNoteUsingFolder(note, archiveRootFolder)
     if (newFilename) {
-      logDebug('archiveNoteUsingFolder', `- Note -> ${newFilename}`)
+      logDebug('archiveNote', `- Note -> ${newFilename}`)
       return newFilename
     } else {
-      throw new Error(`archiveNoteUsingFolder(): Failed when moving '${displayTitle(note)}' to folder ${archiveFolderToMoveTo}`)
+      throw new Error(`archiveNote(): Failed when archiving '${displayTitle(note)}' to ${archiveRootFolder ?? '@Archive'}`)
     }
   }
   catch (error) {
-    logError(pluginJson, error.message)
+    logError(pluginJson, `archiveNote(): ${error.message}`)
     return
   }
 }

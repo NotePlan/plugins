@@ -315,7 +315,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
     return output
   } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, error.message)
-    return '(makeParaContent... error)'
+    return ''
   }
 }
 

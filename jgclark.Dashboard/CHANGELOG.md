@@ -10,6 +10,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
+## [2.3.0.b8] 2025-08-27
+- Add temporary workaround for error in DataStore.listOverdueParagraphs() for regular Teamspace notes
+- Fix edge case that means Tag sections can fail to be shown
+
 ## [2.3.0.b7] 2025-08-18
 - When using the top bar '+' button to add a new task anywhere, improved display of list of notes and headings when adding a new task (when running NP 3.18+). Also improved support for adding new tasks to Teamspace notes.
 - Fix to the move "All →  X" buttons ignoring indented tasks, or leaving duplicate tasks. (Hopefully ... do report if you still see this happening.)

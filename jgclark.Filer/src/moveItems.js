@@ -3,27 +3,20 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2025-08-15, for v1.2.1
+// last updated 2025-08-25, for v1.3.1
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { addParasAsText, getFilerSettings } from './filerHelpers'
+import { getFilerSettings } from './filerHelpers'
 import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
-import { getFrontmatterParagraphs } from '@helpers/NPFrontMatter'
-import { findHeading, parasToText,smartAppendPara, smartPrependPara } from '@helpers/paragraph'
+import { addParagraphsToNote, findHeading, parasToText, smartAppendPara, smartPrependPara } from '@helpers/paragraph'
 import { chooseNoteV2 } from '@helpers/NPnote'
-import {
-  getParagraphBlock,
-  selectedLinesIndex,
-} from '@helpers/NPParagraph'
-import {
-  chooseHeadingV2,
-  showMessage,
-} from '@helpers/userInput'
+import { getParagraphBlock, selectedLinesIndex } from '@helpers/NPParagraph'
+import { chooseHeadingV2, showMessage, } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
@@ -54,7 +47,7 @@ export async function moveParaBlock(): Promise<void> {
  */
 export async function moveParas(withBlockContext: boolean = false): Promise<void> {
   try {
-    const { note, content, selection, /*renderedSelection,*/ selectedParagraphs } = Editor
+    const { note, content, selection, selectedParagraphs } = Editor
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
       logWarn(pluginJson, 'moveParas: No note open, so stopping.')
@@ -66,33 +59,30 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
       logError(pluginJson, 'moveParas: No selection found, so stopping.')
       return
     }
+    const config = await getFilerSettings()
+    // const origNumParas = note.paragraphs.length
+    const origNumParas = Editor.paragraphs.length // TEST: see if this simpler version works
 
     logDebug(pluginJson, 'moveParas(): Starting')
 
-    // TEST: shows there's a problem with these values returned from the API when there is frontmatter.
-    clo(selection, 'selection')
-    // clo(renderedSelection, 'renderedSelection')
+    // v1: use Editor.selection. However, we found an issue with this and frontmatter.
+    // Try to work around this problem, if this note has frontmatter, by calculating the length of the frontmatter
+    // let selectionToUse = Editor.selection
+    // const FMParas: Array<TParagraph> | false = getFrontmatterParagraphs(note, true)
+    // if (FMParas && FMParas.length > 0) {
+    //   // sum the length of each para.content
+    //   const frontmatterLength = FMParas.reduce((acc, para) => acc + para.content.length, 0) + FMParas.length // +1 for each newline
+    //   logDebug(pluginJson, `moveParas: note has frontmatter, so adding ${frontmatterLength} chars to selection, to work around API bug.`)
+    //   selectionToUse = Range.create(selection.start + frontmatterLength, selection.end + frontmatterLength)
+    //   clo(selectionToUse, `selectionToUse (after adding frontmatter length ${frontmatterLength})`)
+    // }
+    // // Get paragraph indexes for the start and end of the selectionToUse (can be the same)
+    // const paragraphs = note.paragraphs
+    // const [firstSelLineIndex, lastSelLineIndex] = selectedLinesIndex(selectionToUse, paragraphs)
 
-    // Try to work around this problem, if this note has frontmatter, by calculating thelength of the frontmatter
-    let selectionToUse = selection
-    const FMParas: Array<TParagraph> | false = getFrontmatterParagraphs(note, true)
-    if (FMParas && FMParas.length > 0) {
-      // sum the length of each para.content
-      const frontmatterLength = FMParas.reduce((acc, para) => acc + para.content.length, 0) + FMParas.length // +1 for each newline
-      logDebug(pluginJson, `moveParas: note has frontmatter, so adding ${frontmatterLength} chars to selection, to work around API bug.`)
-      selectionToUse = Range.create(selection.start + frontmatterLength, selection.end + frontmatterLength)
-      clo(selectionToUse, `selectionToUse (after adding frontmatter length ${frontmatterLength})`)
-    }
-
-    // Get config settings
-    // const origNote = note // this was clearer, but now trying directly with Editor.note in case there's a deep copy issue
-    const paragraphs = note.paragraphs
-    const origNumParas = note.paragraphs.length
-
-    const config = await getFilerSettings()
-
-    // Get paragraph indexes for the start and end of the selectionToUse (can be the same)
-    const [firstSelLineIndex, lastSelLineIndex] = selectedLinesIndex(selectionToUse, paragraphs)
+    // v2: use Editor.selectedParagraphs instead
+    const firstSelLineIndex = selectedParagraphs[0].lineIndex
+    const lastSelLineIndex = selectedParagraphs[selectedParagraphs.length - 1].lineIndex
 
     // Get paragraphs for the selectionToUse or block
     let firstStartIndex = 0
@@ -137,7 +127,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     // Note: When written, there was no API function to deal with multiple
     // selectedParagraphs, but we can insert a raw text string.
     // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports)
-    const selectedParasAsText = parasToText(parasInBlock)
+
     const selectedNumLines = parasInBlock.length
 
     // Decide where to move to
@@ -162,10 +152,10 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     logDebug(pluginJson, `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
     if (headingToFind === '<<top of note>>') {
       // add to top of note
-      smartPrependPara(destNote, selectedParasAsText, 'text')
+      smartPrependPara(destNote, parasToText(parasInBlock), 'text')
     } else if (headingToFind === '<<bottom of note>>') {
       // add to bottom of note
-      smartAppendPara(destNote, selectedParasAsText, 'text')
+      smartAppendPara(destNote, parasToText(parasInBlock), 'text')
     } else {
       if (/\s$/.test(headingToFind)) {
         logWarn(pluginJson, `Heading to move to ('${headingToFind}') has trailing whitespace. Will pre-emptively remove them to try to avoid problems.`)
@@ -180,10 +170,10 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     }
 
     // Add text to the new location in destination note
-    // TODO: there are newer helpers that might be relevant here: NPMoveItems:: moveItemToRegularNote() + moveItemBetweenCalendarNotes()
     const beforeNumParasInDestNote = destNote.paragraphs.length
-    addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
-    // Now check that the paras have been added -- it was sometimes failing probably with whitespace issues.
+    addParagraphsToNote(destNote, parasInBlock, headingToFind, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+
+    // Now check that the right number of paras have been added
     const afterNumParasInDestNote = destNote.paragraphs.length
     logDebug(pluginJson, `Added ${selectedNumLines} lines to ${destNote.title ?? 'error'}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
     if (beforeNumParasInDestNote === afterNumParasInDestNote) {
@@ -290,17 +280,13 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
       // logDebug(pluginJson, `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
       Editor.highlightByRange(parasCharIndexRange)
     }
-
-    // At the time of writing, there's no API function to work on multiple selectedParagraphs,
-    // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
-    // to a raw text version which we can include
-    const selectedParasAsText = parasToText(parasInBlock)
     const selectedNumLines = parasInBlock.length
 
     // Append text to the new location in destination note
     const beforeNumParasInDestNote = destNote.paragraphs.length
-    addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
-    // Now check that the paras have been added -- it was sometimes failing probably with whitespace issues.
+    addParagraphsToNote(destNote, parasInBlock, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+
+    // Now check that the right number of paras have been added
     const afterNumParasInDestNote = destNote.paragraphs.length
     logDebug(pluginJson, `Added ${selectedNumLines} lines to ${destNote.title ?? 'error'}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
     if (beforeNumParasInDestNote === afterNumParasInDestNote) {
@@ -411,17 +397,13 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
         Editor.highlightByRange(parasCharIndexRange)
       }
     }
-
-    // At the time of writing, there's no API function to work on multiple selectedParagraphs,
-    // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
-    // to a raw text version which we can include
-    const selectedParasAsText = parasToText(parasInBlock)
     const selectedNumLines = parasInBlock.length
 
     // Append text to the new location in destination note
     const beforeNumParasInDestNote = destNote.paragraphs.length
-    addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
-    // Now check that the paras have been added -- it was sometimes failing probably with whitespace issues.
+    addParagraphsToNote(destNote, parasInBlock, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+
+    // Now check that the right number of paras have been added
     const afterNumParasInDestNote = destNote.paragraphs.length
     logDebug(pluginJson, `Added ${selectedNumLines} lines to ${destNote.title ?? 'error'}: before ${beforeNumParasInDestNote} paras / after ${afterNumParasInDestNote} paras`)
     if (beforeNumParasInDestNote === afterNumParasInDestNote) {
