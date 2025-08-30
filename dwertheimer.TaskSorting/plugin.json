@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.TaskSorting",
   "plugin.name": "🥷 Task Sorting & Tools",
-  "plugin.version": "1.2.1",
-  "plugin.lastUpdateInfo": "1.2.1: Added noteOverride parameter to sortTasksUnderHeading command.",
+  "plugin.version": "1.2.2",
+  "plugin.lastUpdateInfo": "1.2.2: Remove NotePlan popup nag on repeat deletion check",
   "plugin.description": "Commands for sorting tasks in a note",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles-EDIT_ME": [

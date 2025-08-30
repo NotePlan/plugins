@@ -362,7 +362,7 @@ async function getUserSort(sortChoices: Array<any> = SORT_ORDERS) {
 function deleteExistingTasks(note: CoreNoteFields, tasks: ParagraphsGroupedByType) {
   const tasksToDelete = []
   for (const typ of TASK_TYPES) {
-    if (tasks[typ].length) logDebug(`\tQueuing ${tasks[typ].length} ${typ} tasks for deletion from note`)
+    if (tasks[typ].length) logDebug(`\tQueuing ${tasks[typ].length} ${typ} tasks for temporary deletion from note (so they can be re-inserted in the correct order)`)
     // if (shouldBackupTasks) {
     //   await saveBackup(tasks[typ])
     // }
@@ -396,7 +396,16 @@ function deleteExistingTasks(note: CoreNoteFields, tasks: ParagraphsGroupedByTyp
     const tasksToDeleteByIndex = sortListBy(tasksToDelete, ['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
     logDebug(`\tsortTasks/deleteExistingTasks`, `After Sort Lines in Note:${note.paragraphs.length} | Lines to delete:${tasksToDelete.length}`)
     // clo(tasksToDelete, `\tsortTasks/deleteExistingTasks=`)
-    note.removeParagraphs(tasksToDeleteByIndex)
+    // We are going to delete them one at a time, and so that the page does not get confused, we will delete them bottom to top
+    const tasksToDeleteByIndexReverse = sortListBy(tasksToDelete, ['-lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
+    tasksToDeleteByIndexReverse.forEach((t) => {
+      // $FlowIgnore
+      if (note.note) {
+        // we are in the editor
+        Editor.skipNextRepeatDeletionCheck = true
+      }
+      note.removeParagraph(t)
+    })
     logDebug(
       `\tsortTasks/deleteExistingTasks`,
       `After Remove Paragraphs, Lines in note:${note.paragraphs.length} ${

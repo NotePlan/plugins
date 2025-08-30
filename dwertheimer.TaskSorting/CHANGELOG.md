@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md) for details on available commands and use case.
 
+## [1.2.2] - 2025-08-29 (@dwertheimer)
+
+- Remove NotePlan popup nag on repeat deletion check using Editor.skipNextRepeatDeletionCheck
+
 ## [1.2.1] - 2025-08-29 (@dwertheimer)
 
 - Added noteOverride parameter to sortTasksUnderHeading command for @jgclark
