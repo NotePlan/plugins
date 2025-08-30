@@ -12,7 +12,7 @@ This plugin provides commands to help tidy up your notes:
 - **/List doubled notes**:  creates/updates a note that lists calendar notes that potentially have doubled content (i.e. internal duplication). Note: this is unlikely to happen, but it happened to me a lot for reasons I don't understand. This command helped me go through the notes and manually delete the duplicated content.
 - **/List stubs**: creates a note that lists all your notes that have wikilinks that lead nowhere.
 - **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See section below.
-- **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character.
+- **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character. Note: this command cannot remove Teamspace notes (as of NotePlan v3.18.1), so it won't try.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
 - **/Remove section from recent notes** (alias "rsrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
  - **/Remove section from all notes** (alias "rsan"). Remove a given section (heading + its content block) from _all notes_. Use wisely, as this is dangerous! (original function by @dwertheimer)
