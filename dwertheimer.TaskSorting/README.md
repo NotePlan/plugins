@@ -79,6 +79,8 @@ For example, this command will sort all the tasks under the heading "Open Tasks"
 noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sort%20tasks%20under%20heading%20%28choose%29&arg0=Open%20Tasks&arg1=%5B%22-priority%22%2C%22content%22%5D
 ```
 
+> **NOTE**: If you are calling this command from a plugin or a template and want to sort tasks under a heading in a specific note (or the Editor) you have been working on, you **should** pass the note as a third parameter to ensure that taskSorting is working on the same Object you have been working on, e.g. ("myHeading",["-priority","content"], Editor). For clarity, Task Sorting plugin works on **Editor.note**, but if you are using Editor (and not Note) you should pass Editor in as the noteOverride parameter, else the delayed write from Editor will overwrite any task sorting you do.
+
 ## Task Sorting Notes
 
 - At this time, the plugin will ignore headings that are attached to the tasks (e.g. tasks indented under root-level #headings). I need to understand/think more about this use case and how to deal with it in sorting.

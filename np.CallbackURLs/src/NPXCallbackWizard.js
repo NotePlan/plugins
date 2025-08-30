@@ -413,7 +413,7 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         //  static invokePluginCommandByName(command: string, pluginID: string, arguments ?: $ReadOnlyArray < mixed >): Promise < any >;
         // { pluginID, command, args, url: createRunPluginCallbackUrl(pluginID, command, args) }
 
-        url = `<% await DataStore.invokePluginCommandByName("${runplugin.command}","${runplugin.pluginID}",${JSON.stringify(runplugin.args)})  %>`
+        url = `<% await DataStore.invokePluginCommandByName("${runplugin.command}","${runplugin.pluginID}",${JSON.stringify(runplugin.args)})  -%>`
       }
       // Editor.insertTextAtCursor(url)
       Clipboard.string = url
