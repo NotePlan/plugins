@@ -671,14 +671,15 @@ export async function sortTasks(
  * @param {string} _heading - the heading to sort (probably comes in from xcallback)
  * @param {string} _sortOrder - the sort order (probably comes in from xcallback)
  */
-export async function sortTasksUnderHeading(_heading: string, _sortOrder: string | Array<string>): Promise<void> {
+export async function sortTasksUnderHeading(_heading: string, _sortOrder: string | Array<string>, _noteOverride: TNote | Editor | null = null): Promise<void> {
   try {
-    if (!Editor.note) {
-      logError(pluginJson, `sortTasksUnderHeading: There is no Editor.note. Bailing`)
+    const noteToUse = _noteOverride || Editor.note
+    if (!noteToUse) {
+      logError(pluginJson, `sortTasksUnderHeading: There is no noteToUse. Bailing`)
       await showMessage('No note is open')
       return
     }
-    const heading = _heading || (await chooseHeading(Editor?.note, false, false, false))
+    const heading = _heading || (await chooseHeading(noteToUse, false, false, false))
     let sortOrder: Array<string> = []
     if (typeof _sortOrder === 'object') {
       // if sortOrder is an array, then it's already in the correct format
@@ -689,8 +690,8 @@ export async function sortTasksUnderHeading(_heading: string, _sortOrder: string
     }
     logDebug(pluginJson, `sortTasksUnderHeading: starting for heading="${heading}" sortOrder="${String(sortOrder)}"`)
 
-    if (heading && Editor.note) {
-      const block = getBlockUnderHeading(Editor.note, heading)
+    if (heading && noteToUse) {
+      const block = getBlockUnderHeading(noteToUse, heading)
       clo(block, `sortTasksUnderHeading block`)
       if (block?.length) {
         // clo(sortOrder, `sortTasksUnderHeading sortOrder`)
@@ -700,15 +701,15 @@ export async function sortTasksUnderHeading(_heading: string, _sortOrder: string
           // const printHeadings = (await wantHeadings()) || false
           // const printSubHeadings = (await wantSubHeadings()) || false
           // const sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
-          if (Editor.note) deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
-          // if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', heading)
-          if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, false, '', heading)
+          if (noteToUse) deleteExistingTasks(noteToUse, sortedTasks) // need to do this before adding new lines to preserve line numbers
+          // if (noteToUse) await writeOutTasks(noteToUse, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', heading)
+          if (noteToUse) await writeOutTasks(noteToUse, sortedTasks, false, false, '', heading)
         }
       } else {
         await showMessage(`No tasks found under heading "${heading}"`)
       }
     } else {
-      logError(pluginJson, `sortTasksUnderHeading: There is no Editor.note. Bailing`)
+      logError(pluginJson, `sortTasksUnderHeading: There is no noteToUse. Bailing`)
       await showMessage('No note is open')
     }
   } catch (error) {
