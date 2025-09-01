@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2025-05-14 for v1.2.3+, @jgclark
+// Last updated 2025-09-01 for v1.2.4, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -18,15 +18,12 @@ import {
   updateDashboardIfOpen,
 } from './reviewHelpers.js'
 import { Project } from './projectClass.js'
-import {
-  clo, JSP, logDebug, logError, logInfo, logTimer, logWarn,
-} from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
-import {
-  displayTitle
-} from '@helpers/general'
-import { findNotesMatchingHashtagOrMentionFromList } from '@helpers/NPnote'
+import { displayTitle } from '@helpers/general'
+import { findNotesMatchingHashtagOrMentionFromList, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
+import { smartPrependPara } from '@helpers/paragraph'
 
 //-----------------------------------------------------------------------------
 
@@ -100,18 +97,7 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
   // It selects notes whose filenames start with any of the paths in the filteredFolderListWithoutSubdirs array.
   // And it excludes notes whose filenames include any of the paths specified in the config.foldersToIgnore array.
   // (Note ignored folders can be inside an included folder.)
-  // V1:
-  // let filteredProjectNotes = DataStore.projectNotes.filter(
-  //   (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some((s) => f.filename.includes(`${s}/`.replace('//', '/')))
-  // )
-  // // Above ignores root notes, so if we have '/' folder, now need to add them
-  // if (filteredFolderListWithoutSubdirs.includes('/')) {
-  //   const rootNotes = DataStore.projectNotes.filter((f) => !f.filename.includes('/'))
-  //   filteredProjectNotes = filteredProjectNotes.concat(rootNotes)
-  //   // logDebug('getAllMatchingProjects', `Added root folder notes: ${rootNotes.map((n) => n.title).join(' / ')}`)
-  // }
-
-  // V2: (more efficientthanks to Cursor AI)
+  // V2: (more efficient thanks to Cursor AI)
   const folderSet = new Set(filteredFolderListWithoutSubdirs)
   const ignoreSet = new Set(config.foldersToIgnore.map(s => `${s}/`.replace('//', '/')))
 
@@ -123,17 +109,15 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
 
   logTimer(`getAllMatchingProjects`, startTime, `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`)
 
-  if (runInForeground) {
-    CommandBar.showLoading(true, `Generating Project Review list`)
-  }
-  // TEST: work out what to do about this: currently commented this out as it gives warnings because Editor is accessed.
-  await CommandBar.onAsyncThread()
-
   // Iterate over the folders, looking for notes that match the projectTypeTags
   const projectInstances = []
   for (const folder of filteredFolderList) {
     // Either we have defined tag(s) to filter and group by, or just use []
     const tags = config.projectTypeTags != null && config.projectTypeTags.length > 0 ? config.projectTypeTags : []
+
+    if (runInForeground) {
+      CommandBar.showLoading(true, `Generating Project Review list for notes in folder ${folder}`)
+    }
 
     // Get notes that include projectTag in this folder, ignoring subfolders
     for (const tag of tags) {
@@ -143,18 +127,23 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
       if (projectNotesArr.length > 0) {
         // Get Project class representation of each note.
         // Save those which are ready for review in projectsReadyToReview array
+        if (!runInForeground) {
+          await CommandBar.onAsyncThread()
+        }
         for (const n of projectNotesArr) {
           const np = new Project(n, tag, true, config.nextActionTags)
           projectInstances.push(np)
         }
+        if (!runInForeground) {
+          await CommandBar.onMainThread()
+        }
       }
     }
   }
-  await CommandBar.onMainThread()
   if (runInForeground) {
     CommandBar.showLoading(false)
   }
-  logTimer('getAllMatchingProjects', startTime, `- found ${projectInstances.length} available project notes`)
+  logTimer('getAllMatchingProjects', startTime, `- found ${projectInstances.length} available matching project notes`)
   return projectInstances
 }
 
@@ -171,9 +160,16 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
 export async function generateAllProjectsList(configIn: any, runInForeground: boolean = false): Promise<Array<Project>> {
   try {
     logDebug('generateAllProjectsList', `starting`)
-    // const startTime = new moment().toDate()
+    const startTime = new moment().toDate()
     // Get all project notes as Project instances
     const projectInstances = await getAllMatchingProjects(configIn, runInForeground)
+
+    // Log the start this full generation to a special log note. TODO: remove this later.
+    if (configIn._logLevel === 'DEBUG') {
+      const logNote: TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
+      const newLogLine = `${new Date().toLocaleString()}: Reviews (generateAllProjectsList) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
+      smartPrependPara(logNote, newLogLine, 'list')
+    }
 
     await writeAllProjectsList(projectInstances)
     return projectInstances
@@ -334,6 +330,7 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
 
     // Need to extend projectInstances with a proxy for the 'projectTag' field, so that we can sort by it according to the order it was given in config.projectTypeTags
     projectInstances.forEach((pi) => {
+      // $FlowIgnore[prop-missing] deliberate temporary extension to Project class
       pi.projectTagOrder = config.projectTypeTags.indexOf(pi.projectTag)
     })
 
@@ -456,9 +453,10 @@ export async function getNextNoteToReview(): Promise<?TNote> {
 
     if (!allProjectsSorted || allProjectsSorted.length === 0) {
       // Depending where this is called from, this may be quite possible or more of an error. With Perspective, review this.
-      logInfo('getNextNoteToReview', `No active projects found, so stopping.`)
+      logInfo(pluginJson, 'getNextNoteToReview(): No active projects found, so stopping.')
       return null
     }
+    logDebug(pluginJson, `Starting projects/getNextNoteToReview() with ${allProjectsSorted.length} projects in total`)
 
     // Now read from the top until we find an item with 'nextReviewDays' <= 0, and not complete
     for (let i = 0; i < allProjectsSorted.length; i++) {
@@ -482,7 +480,7 @@ export async function getNextNoteToReview(): Promise<?TNote> {
     logInfo('getNextNoteToReview', `No notes ready or overdue for review 🎉`)
     return null
   } catch (error) {
-    logError(pluginJson, `getNextNoteToReview: ${error.message}`)
+    logError(pluginJson, `reviews/getNextNoteToReview: ${error.message}`)
     return null
   }
 }

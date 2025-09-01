@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate Project section data
-// Last updated 2025-05-16 for v2.3.0
+// Last updated 2025-09-01 for v2.3.0
 //-----------------------------------------------------------------------------
 
 import { getNextProjectsToReview } from '../../jgclark.Reviews/src/allProjectsListHelpers'
@@ -13,6 +13,8 @@ import type { TDashboardSettings, TSection, TSectionItem } from './types'
 import { logDebug, logTimer, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { pluginIsInstalled } from '@helpers/NPConfiguration'
+import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
+import { smartPrependPara } from '@helpers/paragraph'
 
 /**
  * Make a Section for all projects ready for review, using data written by the Projects + Reviews plugin: getNextProjectsToReview().
@@ -67,17 +69,8 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
       return null
     }
     // Get all projects to review (and apply maxProjectsToShow limit later)
-    // nextProjectsToReview = await getNextProjectsToReview(maxProjectsToShow)
+    // Note: Perspective filtering is done in P+R (since it was added in v1.1)
     nextProjectsToReview = await getNextProjectsToReview()
-
-    // add basic filtering by folder for the current Perspective
-    // const filteredProjects = nextProjectsToReview.filter((p) => {
-    //   const folder = getFolderFromFilename(p.filename)
-    //   return allowedFolders.includes(folder)
-    // })
-    // For P+R v1.1 and later, Perspectives can be used, so this filtering is not needed.
-    // if (filteredProjects) {
-    //   filteredProjects.map((p) => {
     if (nextProjectsToReview) {
       nextProjectsToReview.map((p) => {
         const thisID = `${sectionNumStr}-${itemCount}`
@@ -130,5 +123,13 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
   }
   // console.log(JSON.stringify(section))
   logTimer('getProjectSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
+
+  // Log the start of the generation to a special log note, if we're running. TODO: remove this later.
+  if (config?.FFlag_ShowSectionTimings) {
+    const logNote: TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
+    const newLogLine = `${new Date().toLocaleString()}: Dashboard -> ${nextProjectsToReview.length} Project(s) ready to review, in ${timer(thisStartTime)}`
+    smartPrependPara(logNote, newLogLine, 'list')
+  }
+
   return section
 }

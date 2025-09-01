@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2025-04-28 for v1.2.3, @jgclark
+// Last updated 2025-09-01 for v1.2.4, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -44,7 +44,6 @@ import {
   getTodaysDateHyphenated,
   RE_DATE, RE_DATE_INTERVAL, todaysDateISOString
 } from '@helpers/dateTime'
-import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import { saveEditorIfNecessary } from '@helpers/editor'
 import {
@@ -54,13 +53,15 @@ import {
   makePluginCommandButton,
   showHTMLV2
 } from '@helpers/HTMLView'
-import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { numberOfOpenItemsInNote } from '@helpers/note'
-import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
+import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import {
   isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId,
 } from '@helpers/NPWindows'
+import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
+import { smartPrependPara } from '@helpers/paragraph'
+import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 // Constants
@@ -202,7 +203,6 @@ const receivingPluginID = "jgclark.Reviews"; // the plugin ID of the plugin whic
 `
 /**
  * Script to add some keyboard shortcuts to control the dashboard. (Meta=Cmd here.)
- * TODO: change to use built-in accesskey HTML system instead.
  */
 const shortcutsScript = `
 <!-- shortcuts script -->
@@ -312,7 +312,7 @@ export async function displayProjectLists(argsIn?: string | null = null, scrollP
  * Internal version of above that doesn't open window if not already open.
  * @param {number?} scrollPos 
  */
-export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<void> {
+export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<any> {
   try {
     const config = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -324,6 +324,7 @@ export async function generateProjectListsAndRenderIfOpen(scrollPos: number = 0)
 
     // Call the relevant rendering function, but only continue if relevant window is open
     await renderProjectLists(config, false, scrollPos)
+    return {} // just to avoid NP silently failing when called by invokePluginCommandByName
   } catch (error) {
     logError('displayProjectLists', JSP(error))
   }
@@ -356,6 +357,32 @@ export async function renderProjectLists(
     }
   } catch (error) {
     clo(configIn, '❗️ERROR❗️  configIn at start of renderProjectLists:')
+  }
+}
+
+/**
+ * Render the project list, according to the chosen output style. Note: this does *not* re-calculate the project list.
+ * @author @jgclark
+ */
+export async function renderProjectListsIfOpen(
+): Promise<any> {
+  try {
+    logDebug(pluginJson, `--------------------------------------------------------------`)
+    logDebug('renderProjectListsIfOpen', `Starting`)
+    const config = await getReviewSettings()
+
+    // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
+    if (config.outputStyle.match(/markdown/i)) {
+      // eslint-disable-next-line no-floating-promise/no-floating-promise -- no need to wait here
+      renderProjectListsMarkdown(config, false)
+    }
+    if (config.outputStyle.match(/rich/i)) {
+      await renderProjectListsHTML(config, false)
+    }
+    // return {} just to avoid possibility of NP silently failing when called by invokePluginCommandByName
+    return {}
+  } catch (error) {
+    logError('renderProjectListsIfOpen', error.message)
   }
 }
 
@@ -975,6 +1002,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
       updateMetadataInNote(note, [reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
       deleteMetadataMentionInNote(note, [config.nextReviewMentionStr])
+      // $FlowIgnore[prop-missing]
       DataStore.updateCache(note, true)
     }
     logDebug('finishReviewCoreLogic', `- after metadata updates`)
