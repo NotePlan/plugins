@@ -13,7 +13,10 @@ import { getFolderFromFilename } from '@helpers/folders'
  * @dwertheimer sometimes found that calling Editor.save() on a note which didn't need saving would crash the plugin
  */
 export async function saveEditorIfNecessary() {
-  if (!Editor?.note) throw 'There is no active Editor.note'
+  if (!Editor?.note) {
+    logDebug('saveEditorIfNecessary', 'We are not in the Editor; Nothing to do.')
+    return
+  }
   if (Editor.note?.content !== Editor.content) await Editor.save() // ensure recent/unsaved changes get saved first
 }
 
@@ -22,7 +25,7 @@ export async function saveEditorIfNecessary() {
  * @usage const isEmpty = editorIsEmpty()
  * @returns {boolean} true if Editor is empty or contains only "#" variations
  */
-export function editorIsEmpty() {
+export function editorIsEmpty(): boolean {
   if (!Editor?.content) return true
 
   const content = Editor.content.trim()

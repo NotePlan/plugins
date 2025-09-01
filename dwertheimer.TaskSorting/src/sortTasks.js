@@ -7,6 +7,7 @@ import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagrap
 import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType } from '@helpers/sorting'
 import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { saveEditorIfNecessary } from '@helpers/editor'
 
 const TOP_LEVEL_HEADINGS = {
   open: 'Open Tasks',
@@ -80,27 +81,70 @@ const SORT_ORDERS = [
  * @param {string} heading The text that goes above the tasks. Should have a \n at the end.
  * @param {string} separator The line that goes beneath the tasks. Should have a \n at the end.
  */
-export function openTasksToTop(heading: string = '## Tasks:\n', separator: string = '---\n') {
-  if (Editor.note == null) {
-    return // if no note, stop. Should resolve 2 flow errors below, but doesn't :-(
+export async function openTasksToTop(
+  _heading: string = '## Open Tasks:',
+  _separator: string = '---',
+  includeChecklists: boolean = false,
+  includeContextAndChildContext: boolean = false,
+  noteOverride: TNote | null = null,
+) {
+  await saveEditorIfNecessary()
+  const heading = _heading ? `${_heading}\n` : ''
+  const separator = _separator ? `${_separator}\n` : ''
+  logDebug(`openTasksToTop(): Bringing open tasks to top with params: heading="${heading}", separator="${separator}", includeChecklists="${String(includeChecklists)}"`)
+  const noteToUse = noteOverride || Editor.note
+  if (!noteToUse) {
+    logError(pluginJson, `sortTasks openTasksToTop: There is no noteToUse. Bailing`)
+    return
   }
-  logDebug(`openTasksToTop(): Bringing open tasks to top`)
-  //FIXME: need to make this work now that nmn.sweep is gone
-  // MAYBE ADD A QUESTION IN THE FLOW FOR WHICH TASKS TO MOVE
+  const tasksByType = getTasksByType(noteToUse.paragraphs)
+  const activeParagraphs = { open: [...tasksByType['open'], ...(includeChecklists ? tasksByType['checklist'] : [])] }
+  const numParas = activeParagraphs.open.length
+  clo(activeParagraphs, `openTasksToTop activeParagraphs:${numParas}  ${includeChecklists ? ' including checklists' : ''}`)
 
-  const sweptTasks = { msg: '', status: '', taskArray: [], tasks: 0 }
-  // if (Editor.type === 'Calendar') {
-  //   if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, false, true, false, 'move')
-  // } else {
-  //   if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, true, true, false, 'move')
-  // }
-  if (sweptTasks) logDebug(`openTasksToTop(): ${sweptTasks?.taskArray?.length || 0} open tasks:`)
-  // logDebug(JSON.stringify(sweptTasks))
-  if (sweptTasks.taskArray?.length) {
-    if (sweptTasks.taskArray[0].content === Editor.title) {
-      sweptTasks.taskArray.shift()
-    }
-    Editor.prependParagraph(heading.concat((sweptTasks.taskArray ?? []).map((m) => m.rawContent).join('\n')).concat(`\n${separator}`), 'text')
+  if (activeParagraphs.open.length) {
+    const sortedParas = sortListBy(activeParagraphs.open, ['lineIndex'])
+    await deleteExistingTasksFromSortable(noteToUse, sortedParas)
+    logDebug(`tasksToTop temp deleted ${numParas} paragraphs; will now insert them at the top`)
+
+    // Build rawContent based on includeContextAndChildContext setting
+    const rawContent = []
+    activeParagraphs.open.forEach((taskPara) => {
+      if (includeContextAndChildContext) {
+        // Move full context: heading + task + all children
+        if (taskPara.heading && taskPara.heading !== '@<none>:') {
+          rawContent.push(`### ${taskPara.heading.replace(':', '')}`)
+        }
+        rawContent.push(taskPara.raw)
+
+        // Add all children content (not just tasks)
+        if (taskPara.children && taskPara.children.length) {
+          taskPara.children.forEach((child) => {
+            rawContent.push(child.raw)
+          })
+        }
+      } else {
+        // Default: move all open tasks (parents + children) but no headings or non-task content
+        rawContent.push(taskPara.raw)
+
+        // Add child tasks (but not other content like notes, quotes)
+        if (taskPara.children && taskPara.children.length) {
+          taskPara.children.forEach((child) => {
+            // Only include child tasks that match the same criteria as parent tasks
+            const isOpenTask = child.type === 'open' || child.type === 'scheduled'
+            const isChecklistTask = child.type === 'checklist' && includeChecklists
+
+            if (isOpenTask || isChecklistTask) {
+              rawContent.push(child.raw)
+            }
+            // Note: Excluding 'done', 'cancelled', and checklist types (unless includeChecklists is true)
+          })
+        }
+      }
+    })
+
+    clo(rawContent, `tasksToTop: rawContent for insertion`)
+    noteToUse.prependParagraph(heading.concat(rawContent.join('\n')).concat(`\n${separator}`), 'text')
   }
 }
 
@@ -111,6 +155,7 @@ export function openTasksToTop(heading: string = '## Tasks:\n', separator: strin
  */
 export async function sortTasksViaTemplate(paramStr: string = ''): Promise<void> {
   logDebug(`tasksortTasksViaTemplateToTop(): calling sortTasks`)
+  await saveEditorIfNecessary()
   const withUserInput: boolean = await getTagParamsFromString(paramStr, 'withUserInput', true)
   const sortFields: string[] = await getTagParamsFromString(paramStr, 'sortFields', SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields)
   const withHeadings: boolean = await getTagParamsFromString(paramStr, 'withHeadings', false)
@@ -133,6 +178,7 @@ export async function tasksToTop() {
 
 export async function sortTasksByPerson() {
   try {
+    await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
     await sortTasks(false, ['mentions', '-priority', 'content'], includeHeading, includeSubHeading)
   } catch (error) {
@@ -142,6 +188,7 @@ export async function sortTasksByPerson() {
 
 export async function sortTasksByDue() {
   try {
+    await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
     await sortTasks(false, ['due', '-priority', 'content'], includeHeading, includeSubHeading)
   } catch (error) {
@@ -151,6 +198,7 @@ export async function sortTasksByDue() {
 
 export async function sortTasksByTag() {
   try {
+    await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
     await sortTasks(false, ['hashtags', '-priority', 'content'], includeHeading, includeSubHeading)
   } catch (error) {
@@ -160,6 +208,7 @@ export async function sortTasksByTag() {
 
 export async function sortTasksDefault() {
   try {
+    await saveEditorIfNecessary()
     const { defaultSort1, defaultSort2, defaultSort3, includeHeading, includeSubHeading } = DataStore.settings
     logDebug(
       `sortTasksDefault(): defaultSort1=${defaultSort1}, defaultSort2=${defaultSort2}, defaultSort3=${defaultSort3}, includeHeading=${includeHeading}, includeSubHeading=${includeSubHeading}\nCalling sortTasks now`,
@@ -172,6 +221,7 @@ export async function sortTasksDefault() {
 
 export async function sortTasksTagMention() {
   try {
+    await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
     await sortTasks(false, ['hashtags', 'mentions'], includeHeading, includeSubHeading)
   } catch (error) {
@@ -610,6 +660,7 @@ export async function sortTasks(
   withHeadings: boolean | null = null,
   subHeadingCategory: boolean | null = null,
 ) {
+  await saveEditorIfNecessary()
   const { eliminateSpinsters, sortInHeadings, includeSubHeading } = DataStore.settings
 
   const byHeading = withUserInput ? await sortInsideHeadings() : sortInHeadings
@@ -682,6 +733,7 @@ export async function sortTasks(
  */
 export async function sortTasksUnderHeading(_heading: string, _sortOrder: string | Array<string>, _noteOverride: TNote | Editor | null = null): Promise<void> {
   try {
+    await saveEditorIfNecessary()
     const noteToUse = _noteOverride || Editor.note
     if (!noteToUse) {
       logError(pluginJson, `sortTasksUnderHeading: There is no noteToUse. Bailing`)
