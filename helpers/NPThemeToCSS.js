@@ -2,7 +2,6 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
-// Last updated 2025-02-23 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -108,6 +107,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       rootSel.push(`--fg-sidebar-color: #242E32`)
       rootSel.push(`--bg-sidebar-color: #ECECEC`) // moving from #F6F6F6 to #DADADA in 3 steps
       rootSel.push(`--divider-color: #CDCFD0`)
+      rootSel.push(`--block-id-color: #79A0B5`)
     } else {
       rootSel.push(`--fg-sidebar-color: #EBEBEB`)
       rootSel.push(`--bg-sidebar-color: #383838`)
