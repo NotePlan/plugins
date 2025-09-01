@@ -612,19 +612,18 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
     backlinkParas.forEach((para) => {
       // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
       if (!para) {
-        if (includeHeadings) {
-          // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
-        } else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
-          logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today from ${para.note?.filename ?? '<no note>'}`)
-          if (!para.note) {
-            logWarn(`getReferencedParagraphs`, `  - this backlink para.note is null. Para:\n${JSON.stringify(para, null, 2)}`)
-          }
-          wantedParas.push(para)
-        } else {
-          // logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
+        logWarn('getReferencedParagraphs', `  - referenced para is null. Found in one of ${backlinkParas.length} backlink paras for note '${displayTitle(calNote)}' at ${calNote.filename}.`)
+      } 
+      if (includeHeadings) {
+        // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
+      } else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
+        logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today from ${para.note?.filename ?? '<no note>'}`)
+        if (!para.note) {
+          logWarn(`getReferencedParagraphs`, `  - this backlink para.note is null. Para:\n${JSON.stringify(para, null, 2)}`)
         }
+        wantedParas.push(para)
       } else {
-        logWarn('getReferencedParagraphs', `  - referenced para is null.`)
+      // logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
       }
     })
 
