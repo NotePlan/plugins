@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helpers for QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 2025-07-28 for v0.17.0 by @jgclark
+// last update 2025-08-19 for v0.17.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,27 +10,43 @@ import { clo, logInfo, logDebug, logError, logTimer, logWarn } from '@helpers/de
 import { showMessage } from '@helpers/userInput'
 
 //----------------------------------------------------------------------------
-// helpers
+// constants and types
 
 export type QCConfigType = {
-  inboxLocation: string,
-  inboxTitle: string,
-  inboxHeading: string,
+  inboxLocation?: string,
+  inboxTitle?: string,
+  inboxHeading?: string,
   textToAppendToTasks: string,
   textToAppendToJots: string,
   addInboxPosition: string,
   headingLevel: number,
-  journalHeading: string,
+  journalHeading?: string,
   shouldAppend: boolean, // special case set in getQuickCaptureSettings()
   _logLevel: string,
 }
 
+const defaultConfig = {
+  inboxLocation: 'Inbox',
+  inboxHeading: '📥 Inbox',
+  inboxTitle: 'Inbox',
+  textToAppendToTasks: '',
+  textToAppendToJots: '',
+  addInboxPosition: 'append',
+  headingLevel: 2,
+  journalHeading: '',
+  shouldAppend: false,
+  _logLevel: 'info',
+}
+
+//----------------------------------------------------------------------------
+// functions
+
 /**
  * Get QuickCapture settings
- * @param {boolean} useDefaultsIfNecessary?
+ * @param {boolean} useDefaultsIfNecessary? defaults to true
  * @author @jgclark
  */
-export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = true): Promise<any> {
+export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = true): Promise<QCConfigType> {
   try {
     // Get settings
     let config: QCConfigType = await DataStore.loadJSON('../jgclark.QuickCapture/settings.json')
@@ -39,30 +55,24 @@ export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = 
       if (useDefaultsIfNecessary) {
         logInfo('QuickCapture', 'No QuickCapture settings found, but will use defaults instead.')
         await showMessage(`Cannot find settings for the 'QuickCapture' plugin. I will use defaults instead, but to avoid this, please install it in the Plugin Preferences.`)
-        config = {
-          inboxLocation: 'Inbox',
-          inboxTitle: 'Inbox',
-          textToAppendToTasks: '',
-          textToAppendToJots: '',
-          addInboxPosition: 'append',
-          headingLevel: 2,
-          journalHeading: '',
-          shouldAppend: false,
-          _logLevel: 'info',
-        }
+        config = defaultConfig
+        
       } else {
         logWarn('QuickCapture', 'No QuickCapture settings found')
         await showMessage(`Cannot find settings for the 'QuickCapture' plugin. Please make sure you have installed it in the Plugin Preferences.`)
+        // $FlowIgnore[incompatible-return]
         return
       }
     } else {
       // Additionally set 'shouldAppend' from earlier setting 'addInboxPosition'
       config.shouldAppend = config.addInboxPosition === 'append'
       // clo(config, `QuickCapture Settings:`)
-      return config
     }
+    return config
   } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
-    await showMessage(err.message)
+    logError(pluginJson, `${err.name}: ${err.message}. Will return default config to allow processing to continue.`)
+    await showMessage(`Error finding settings for the 'QuickCapture' plugin. Please check your installation and settings in the Plugin Preferences.`)
+    // $FlowIgnore[incompatible-return]
+    return null
   }
 }

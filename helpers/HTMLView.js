@@ -1003,6 +1003,7 @@ export function simplifyInlineImagesForHTML(input: string): string {
 /**
  * Display hashtags with .hashtag style. Now includes multi-part hashtags (e.g. #one/two/three)
  * Ignores hashtag-like strings in URLs, markdown links, and event links.
+ * Now also ignores CSS style definitions (e.g.`style="color: #1BADF8"`)
  * Note: need to make only one capture group, and use 'g'lobal flag.
  * @param {string} input
  * @returns {string}
@@ -1019,7 +1020,8 @@ export function convertHashtagsToHTML(input: string): string {
       // logDebug('convertHashtagsToHTML', `results from hashtag matches: ${String(matches)}`)
       for (const match of matches) {
         // logDebug('convertHashtagsToHTML', `- match: ${String(match)}`)
-        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output)) { continue }
+        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output) || isTermAColorStyleDefinition(match, output)
+        ) { continue }
         output = output.replace(match, `<span class="hashtag">${match}</span>`)
       }
     }
@@ -1029,6 +1031,12 @@ export function convertHashtagsToHTML(input: string): string {
     logError(pluginJson, `convertHashtagsToHTML: ${error.message}`)
     return input
   }
+}
+
+
+function isTermAColorStyleDefinition(term: string, input: string): boolean {
+  const RE_CSS_STYLE_DEFINITION = new RegExp(`style="color:\\s*${term}"`, "i")
+  return RE_CSS_STYLE_DEFINITION.test(input)
 }
 
 /**

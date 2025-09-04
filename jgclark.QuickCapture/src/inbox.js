@@ -2,22 +2,19 @@
 // ----------------------------------------------------------------------------
 // Inbox command for QuickCapture plugin
 // by Jonathan Clark
-// last update 2025-08-14 for v0.17.0 by @jgclark
+// last update 2025-08-25 for v1.0.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  getQuickCaptureSettings,
-  // type QCConfigType,
-} from './quickCaptureHelpers'
+import { getQuickCaptureSettings } from './quickCaptureHelpers'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import {getNoteFromParamOrUser, getOrMakeCalendarNote } from '@helpers/NPnote'
 import { smartCreateSectionsAndPara } from '@helpers/paragraph'
-import {
-  // chooseFolder, chooseHeading,
-  showMessage
-} from '@helpers/userInput'
+import {  showMessage} from '@helpers/userInput'
+
+// ---------------------------------------------------------------------------
+// Exported functions
 
 /** /int
  * This adds a task to a special 'inbox' note. Possible configuration:
@@ -25,8 +22,8 @@ import {
  * - append or prepend to the inbox note (default: append)
  * Can be used from x-callback with two passed arguments.
  * @author @jgclark
- * @param {string?) taskContentArg
- * @param {string?) inboxTitleArg
+ * @param {string?} taskContentArg
+ * @param {string?} inboxTitleArg
  * @param {string?} inboxHeadingArg (if not given, will use setting 'inboxHeading')
  */
 export async function addTaskToInbox(
@@ -65,6 +62,9 @@ export async function addJotToInbox(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Private function
+
 /**
  * This adds a task to a special 'inbox' note. Possible configuration:
  * - add to the current Daily or Weekly note, or to a fixed note (through setting 'inboxLocation') or to arg2 (if given)
@@ -86,7 +86,7 @@ async function addItemToInbox(
     // If this is a task, then type is 'open', otherwise treat as 'text'
     const paraType = itemType === 'task' ? 'open' : 'text' 
     const config = await getQuickCaptureSettings()
-    logDebug(pluginJson, `addItemToInbox(): starting for ${itemType} (= paraType ${paraType}) with ${config.inboxLocation}`)
+    logDebug(pluginJson, `addItemToInbox(): starting for ${itemType} (= paraType ${paraType}) with ${String(config.inboxLocation ?? 'undefined') ?? 'undefined'}`)
     const textToAppend = (config.textToAppendToTasks && itemType === 'task')
       ? ` ${config.textToAppendToTasks}`
       : (config.textToAppendToJots && itemType === 'jot')
@@ -98,7 +98,7 @@ async function addItemToInbox(
         ? config.inboxHeading :
         ''
 
-    // TEST: Use of these args
+    // Use of these args
     let inboxTitleToUse = ''
     if (inboxTitleArg !== '') {
       inboxTitleToUse = inboxTitleArg

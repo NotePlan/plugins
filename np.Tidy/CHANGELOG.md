@@ -1,8 +1,12 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.14.9] - 2025-08-30 @jgclark
+- rebuild to use updated code from Repeat Extensions plugin in **/Generate @repeats in recent notes** command
+- update **/Remove blank notes** to gracefully handle Teamspace notes, which can't be removed (at this time).
+
 ## [0.14.8] - 2025-06-24 @jgclark
-- updated **Remove section from all notes** command to show how many sections it will remove, and also to use the 'Type of match for section headings' (`Exact`, `Starts with`, or `Contains`) and 'Folders to exclude' settings
+- updated **/Remove section from all notes** command to show how many sections it will remove, and also to use the 'Type of match for section headings' (`Exact`, `Starts with`, or `Contains`) and 'Folders to exclude' settings
 - code refactoring
 
 ## [0.14.7] - 2025-02-18 @jgclark
@@ -23,7 +27,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README
 - Stop lots of popups appearing when running **/Generate @repeats in recent notes** command.
 
 ## [0.14.2] - 2024-09-25 @jgclark
-- **/file root notes** command can now create a new folder as one of the possible options (for @dwertheimer)
+- **/File root notes** command can now create a new folder as one of the possible options (for @dwertheimer)
 
 ## [0.14.1] - 2024-06-14 @jgclark
 - Re-build following updates to Repeat Extensions, which this uses.

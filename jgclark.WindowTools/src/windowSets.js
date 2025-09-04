@@ -32,7 +32,7 @@ import { logPreference, unsetPreference } from '@helpers/NPdev'
 import { displayTitle } from '@helpers/general'
 import {
   getCalendarFilenameFromDateString,
-  relativeDateFromDateString
+  getShortOffsetDateFromDateString
 } from '@helpers/NPdateTime'
 import {
   applyRectToHTMLWindow,
@@ -173,7 +173,7 @@ export async function saveWindowSet(): Promise<void> {
         const thisDateStr = getDateStringFromCalendarFilename(ew.filename, true)
 
         // eslint-disable-next-line prefer-const
-        let [relativeDateCode, relativeDatePeriod] = relativeDateFromDateString(thisDateStr)
+        let [relativeDateCode, relativeDatePeriod] = getShortOffsetDateFromDateString(thisDateStr)
         relativeDateCode = `{${relativeDateCode}}`
         const res = await showMessageYesNoCancel(`Open window '${thisDateStr}' is a calendar note. Do you want to make it a relative date "${relativeDatePeriod}"?`)
         if (res === 'Yes') {

@@ -215,6 +215,10 @@ describe('paragraph.js', () => {
       const result = p.isTermInEventLinkHiddenPart('#1BADF8', '![📅](2022-05-06 07:15:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Work-out @ Home:::#1BADF8)')
       expect(result).toEqual(true)
     })
+    test('should find color-code (like a hashtag) within colour part of event link test 2', () => {
+      const result = p.isTermInEventLinkHiddenPart('#1BADF8', `![📅](2025-08-28 10:00:::F11EDC8D-95A8-4753-B767-714108536904:::NA:::decide 31/8 sermon point \'"Meals with the Risen Jesus"' %28Luke 24.13-35%29 at:::#1BADF8)`)
+      expect(result).toEqual(true)
+    })
     test('should find "BC45" within UUID part of event link', () => {
       const result = p.isTermInEventLinkHiddenPart('BC45', '![📅](2022-05-06 07:15:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Work-out @ Home:::#1BADF8)')
       expect(result).toEqual(true)

@@ -19,6 +19,7 @@ import {
   isWeeklyDateStr,
   isYearlyDateStr,
   isValidCalendarNoteTitleStr,
+  MOMENT_FORMAT_NP_ISO,
   MOMENT_FORMAT_NP_DAY,
   MOMENT_FORMAT_NP_MONTH,
   MOMENT_FORMAT_NP_QUARTER,
@@ -32,10 +33,8 @@ import {
   toISOShortDateTimeString,
 } from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
-import {
-  getFolderFromFilename
-} from './folders'
-
+import {getFolderFromFilename} from './folders'
+// import { displayTitle } from './general'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from './regex'
 import { hasScheduledDate } from './utils'
 import { getTeamspaceTitleFromID } from './NPTeamspace'
@@ -1007,32 +1006,34 @@ export function localeRelativeDateFromNumber(diffIn: number, useShortStyle: bool
  * - note: TNote - the note object for the relative date (if available)
  * Note: tests to see if NP API calls are available, and if not returns an empty array
  * @author @jgclark
+ * @param {boolean?} useISODailyDates? - if true, use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
  * @returns {Array<{relName:string, dateStr:string, note:?TNote}>} relative date name, relative date string, TNote for that relative date
  */
-export function getRelativeDates(): Array<{ relName: string, dateStr: string, note: ?TNote }> {
+export function getRelativeDates(useISODailyDates: boolean = false): Array<{ relName: string, dateStr: string, note: ?TNote }> {
   try {
     const relativeDates = []
     const todayMom = moment()
 
     if (typeof DataStore !== 'object' || !DataStore) {
       // logDebug('NPdateTime::getRelativeDates', `NP DataStore functions are not available, so returning an empty set.`)
+      // $FlowIgnore[prop-missing]
       return [{}]
     }
 
     // Calculate relative dates. Remember to clone todayMom first as moments aren't immutable!
     // Days
-    let thisDateStr = moment(todayMom).format(MOMENT_FORMAT_NP_DAY)
+    let thisDateStr = moment(todayMom).format(useISODailyDates ? MOMENT_FORMAT_NP_ISO : MOMENT_FORMAT_NP_DAY)
     relativeDates.push({ relName: 'today', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format(useISODailyDates ? MOMENT_FORMAT_NP_ISO : MOMENT_FORMAT_NP_DAY)
     relativeDates.push({ relName: 'yesterday', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format(useISODailyDates ? MOMENT_FORMAT_NP_ISO : MOMENT_FORMAT_NP_DAY)
     relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     for (let i = 6; i > 1; i--) {
-      thisDateStr = moment(todayMom).subtract(i, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+      thisDateStr = moment(todayMom).subtract(i, 'days').startOf('day').format(useISODailyDates ? MOMENT_FORMAT_NP_ISO : MOMENT_FORMAT_NP_DAY)
       relativeDates.push({ relName: `${i} days ago`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     }
     for (let i = 2; i < 7; i++) {
-      thisDateStr = moment(todayMom).add(i, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+      thisDateStr = moment(todayMom).add(i, 'days').startOf('day').format(useISODailyDates ? MOMENT_FORMAT_NP_ISO : MOMENT_FORMAT_NP_DAY)
       relativeDates.push({ relName: `in ${i} days`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     }
 
@@ -1117,15 +1118,15 @@ export function getRelativeDates(): Array<{ relName: string, dateStr: string, no
  * FIXME: doesn't do the expected thing for weeks yet (the usual problem of NP weeks being different from ISO/moment weeks)
  * @author @jgclark
  * @param {string} dateStrA - date to calculate relative for (in NP display form)
- * @param {string?} relDateIn - day to calculate relative to (in YYYY-MM-DD)
+ * @param {string?} dateStrBIn - day to calculate relative to (in YYYY-MM-DD) -- if not given, defaults to today
  * @returns {[string, string]} - [relative date code (e.g. "0d" = today, "-3w", "2m", "-4y" etc.), relative date string (e.g. "last month")]
  */
-export function relativeDateFromDateString(dateStrA: string, relDateIn: string = ''): [string, string] {
+export function getShortOffsetDateFromDateString(dateStrA: string, dateStrBIn: string = ''): [string, string] {
   try {
     if (!isValidCalendarNoteTitleStr(dateStrA)) {
       throw new Error(`${dateStrA} doesn't seem to be a valid NP date`)
     }
-    const dateStrB = relDateIn === '' ? todaysDateISOString : relDateIn
+    const dateStrB = dateStrBIn === '' ? todaysDateISOString : dateStrBIn
     if (!isDailyDateStr(dateStrB)) {
       throw new Error(`${dateStrB} doesn't seem to be a valid YYYY-MM-DD date`)
     }
@@ -1134,10 +1135,10 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
     let periodStr = '?'
     let diff = NaN
     const momB = dateStrB !== '' ? moment(dateStrB) : moment()
-    logDebug('NPdateTime / relativeDateFromDateString', `Starting for ${dateStrA} relative to ${dateStrB}`)
+    logDebug('NPdateTime / getShortOffsetDateFromDateString', `Starting for ${dateStrA} relative to ${dateStrB}`)
     // Need to tailor it to date type of dateStr
     if (isDailyDateStr(dateStrA)) {
-      logDebug('NPdateTime / relativeDateFromDateString', `dailyNote`)
+      logDebug('NPdateTime / getShortOffsetDateFromDateString', `dailyNote`)
       const momA = moment(dateStrA)
       // diff = momB.startOf('day').diff(dateStrA, 'days')
       diff = momA.diff(momB.startOf('day'), 'days')
@@ -1153,16 +1154,16 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
       // change to use moment not NP weeks, but as the output are relative weeks it doesn't matter
       const momA = moment(dateStrA, 'YYYY-[W]WW')
       const dateStrBToUse = dateStrB ?? todaysDateISOString
-      logDebug('dateTime / relativeDateFromDateString', dateStrBToUse)
+      logDebug('dateTime / getShortOffsetDateFromDateString', dateStrBToUse)
       const BNPWeekData = getNPWeekData(dateStrBToUse)
       // clo(BNPWeekData, 'BNPWeekData')
       const momB = moment(BNPWeekData?.weekString, 'YYYY-[W]WW')
       diff = momA.diff(momB, 'weeks')
-      logDebug('dateTime / relativeDateFromDateString', `weeklyNote with momA ${momA} and momB ${momB}`)
+      logDebug('dateTime / getShortOffsetDateFromDateString', `weeklyNote with momA ${momA} and momB ${momB}`)
       codeStr = `${diff}w`
       periodStr = `${diff} weeks`
     } else if (isMonthlyDateStr(dateStrA)) {
-      logDebug('dateTime / relativeDateFromDateString', `monthlyNote`)
+      logDebug('dateTime / getShortOffsetDateFromDateString', `monthlyNote`)
       const momA = moment(dateStrA, 'YYYY-MM')
       // diff = momB.startOf('month').diff(dateStrA, 'months')
       diff = momA.diff(momB.startOf('month'), 'months')
@@ -1170,14 +1171,14 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
       periodStr = `${diff} months`
     } else if (isQuarterlyDateStr(dateStrA)) {
       const momA = moment(dateStrA, 'YYYY-[Q]Q')
-      logDebug('dateTime / relativeDateFromDateString', `quarterlyNote`)
+      logDebug('dateTime / getShortOffsetDateFromDateString', `quarterlyNote`)
       // diff = Math.floor(momB.startOf('quarter').diff(dateStrA, 'months')/3.0) // moment can't diff quarters
       diff = Math.floor(momA.diff(momB.startOf('quarter'), 'months') / 3.0) // moment can't diff quarters
       codeStr = `${diff}q`
       periodStr = `${diff} quarters`
     } else if (isYearlyDateStr(dateStrA)) {
       const momA = moment(dateStrA, 'YYYY')
-      logDebug('dateTime / relativeDateFromDateString', `yearlyNote`)
+      logDebug('dateTime / getShortOffsetDateFromDateString', `yearlyNote`)
       // diff = momB.startOf('year').diff(dateStrA, 'years')
       diff = momA.diff(momB.startOf('year'), 'years')
       codeStr = `${diff}y`
@@ -1195,15 +1196,33 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
       periodStr = `last ${periodStr.slice(3, -1)}`
     }
 
-    logDebug('dateTime / relativeDateFromDateString', `--> ${codeStr} (${periodStr})`)
+    logDebug('dateTime / getShortOffsetDateFromDateString', `--> ${codeStr} (${periodStr})`)
     return [codeStr, periodStr]
   } catch (e) {
-    logError('dateTime / relativeDateFromDateString', e.message)
+    logError('dateTime / getShortOffsetDateFromDateString', e.message)
     return ['(error)', '(error)']
   }
 }
 
-const relativeDates = getRelativeDates()
+// Pre-compute relative dates for use in various functions below.
+// Note: use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
+const relativeDatesISO = getRelativeDates(true)
+const relativeDatesNP = getRelativeDates(false)
+
+/**
+ * Get the date string (YYYY-MM-DD etc.) from a relative date string (e.g. 'today', 'tomorrow', 'yesterday', 'this week', 'next week', 'last week', 'this month', 'next month', 'last month', 'this year', 'next year', 'last year').
+ * If there's no match, returns an empty string.
+ * @param {string} relDateStr
+ * @returns {string}
+ */
+export function getDateStrFromRelativeDateString(relDateStr: string): string {
+  for (const rd of relativeDatesISO) {
+    if (relDateStr === rd.relName) {
+      return rd.dateStr
+    }
+  }
+  return ''
+}
 
 /**
  * V2 of displayTitle that optionally adds the relative date string after relevant calendar note titles, to make it easier to spot last/this/next D/W/M/Q
@@ -1218,7 +1237,7 @@ export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDate
   if (noteIn.type === 'Calendar') {
     let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
     if (showRelativeDates) {
-      for (const rd of relativeDates) {
+      for (const rd of relativeDatesNP) {
         if (calNoteTitle === rd.dateStr) {
           // logDebug('displayTitleWithRelDate',`Found match with ${rd.dateStr} => ${rd.relName}`)
           calNoteTitle = `${rd.dateStr}\t(${rd.relName})`

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-03-11 for v0.14.5, @jgclark
+// Last updated 2025-08-30 for v0.14.9, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -19,8 +19,8 @@ import { allNotesSortedByChanged, pastCalendarNotes, removeSection } from '@help
 import { removeFrontMatterField, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { getNotesChangedInInterval, getNotesChangedInIntervalFromList, getTodaysReferences } from '@helpers/NPnote'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
+import { isTeamspaceNoteFromFilename } from '@helpers/teamspace'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
-// import { getFolderFromFilename } from '@helpers/folders'
 
 //-----------------------------------------------------------------------------
 
@@ -514,6 +514,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
 /**
  * Remove blank notes
  * Note: blank means 2 bytes or fewer (which therefore includes ones with only "# ")
+ * Note: API doesn't allow deletion of Teamspace notes, as of v3.18.1, so don't try.
  * @author @jgclark
  * @param {boolean} runSilently?
  */
@@ -534,12 +535,19 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
       .filter((n) => n.filename.match(/(.txt|.md)$/))
       // $FlowFixMe[incompatible-type]
       .filter((n) => n.content !== 'undefined' && n.content.length !== 'undefined' && n.content.length <= 2)
-    const numToRemove = blankNotes.length
-    logDebug('removeBlankNotes', `Found ${String(numToRemove)} blank notes in ${timer(start)}`)
+    
+    const nonTeamspaceNotes = blankNotes.filter((n) => !isTeamspaceNoteFromFilename(n.filename))
+    const teamspaceNotes = blankNotes.filter((n) => isTeamspaceNoteFromFilename(n.filename))
+    
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 
-    if (numToRemove === 0) {
+    // Now count the notes found
+    const numNonTeamspaceNotes = nonTeamspaceNotes.length
+    const numTeamspaceNotes = teamspaceNotes.length
+    logDebug('removeBlankNotes', `Found ${String(numTeamspaceNotes+numNonTeamspaceNotes)} blank notes in ${timer(start)}.`)
+
+    if ((numNonTeamspaceNotes + numTeamspaceNotes) === 0) {
       if (!runSilently) {
         logDebug('removeBlankNotes', `No blank notes found`)
         await showMessage(`No blanks notes found.`, 'OK, great!', 'Remove Blank Notes')
@@ -549,12 +557,31 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
       return
     }
 
-    // Log their details
-    console.log(`Found ${String(numToRemove)} blank notes. Here are their filenames:`)
-    for (const thisNote of blankNotes) {
-      console.log(`- ${thisNote.filename} (${String(thisNote.content?.length)} bytes)`)
+    // Log the details of all the Teamspace notes found
+    if (numTeamspaceNotes > 0) {
+      logInfo('removeBlankNotes',`- Found ${String(numTeamspaceNotes)} blank Teamspace notes. NOTE: These cannot be removed. Here are their filenames:`)
+      for (const thisNote of teamspaceNotes) {
+        console.log(`- ${thisNote.filename} (${String(thisNote.content?.length)} bytes)`)
+      }
     }
 
+    // If there are no non-Teamspace notes, then log and stop
+    if (numNonTeamspaceNotes === 0) {
+      logInfo('removeBlankNotes', `No blank non-Teamspace notes found`)
+      if (!runSilently) {
+        await showMessage(`No blank non-Teamspace notes found to remove. (I can't remove any blank Teamspace notes.)`, 'OK, great!', 'Remove Blank Notes', false)
+      }
+      return
+    }
+
+    // Log the details of all the non-Teamspace notes found, and then proceed to remove them
+    logInfo('removeBlankNotes', `- Found ${String(numNonTeamspaceNotes)} blank non-Teamspace notes. Here are their filenames:`)
+    for (const thisNote of nonTeamspaceNotes) {
+      console.log(`- ${thisNote.filename} (${String(thisNote.content?.length)} bytes)`)
+    }
+    const numToRemove = numNonTeamspaceNotes
+
+    // Check user wants to proceed
     if (!runSilently) {
       const res = await showMessageYesNo(
         `Shall I move ${String(numToRemove)} blank notes to the NotePlan Trash? (The details are in the Plugin Console.)`,
@@ -569,39 +596,49 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     if (NotePlan.environment.buildVersion > 1053) {
       logDebug('removeBlankNotes', `Will move all blank notes to the NotePlan Trash`)
     } else {
-      logDebug('removeBlankNotes', `Will move all blank project notes to the NotePlan Trash`)
+      logDebug('removeBlankNotes', `Will move all blank regular notes to the NotePlan Trash`)
     }
 
-    // If we get this far, then remove the notes
-    // let numRemoved = 0
-    for (const thisNote of blankNotes) {
+    // If we get this far, then remove the non-Teamspace notes
+    let numRemoved = 0
+    for (const thisNote of nonTeamspaceNotes) {
       const filenameForTrash = `@Trash`
       // Deal with a calendar note
       if (thisNote.type === 'Calendar') {
         // Note: before v3.9.3 we can't move Calendar notes, so don't try
         if (NotePlan.environment.buildVersion > 1053) {
-          logDebug('removeBlankNotes', `running DataStore.moveNote("${thisNote.filename}", "${filenameForTrash}", 'calendar')`)
+          // logDebug('removeBlankNotes', `running DataStore.moveNote("${thisNote.filename}", "${filenameForTrash}", 'calendar')`)
           const res = DataStore.moveNote(thisNote.filename, filenameForTrash, 'Calendar')
           if (res) {
             logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)
-            // numRemoved++
+            numRemoved++
           } else {
-            logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}' for some unknown reason.`)
+            logWarn('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}' for some unknown reason.`)
           }
         } else {
           logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}'; because before v3.9.3, you can't move Calendar notes.`)
         }
         continue // next item in loop
       }
-      // Deal with a project note ...
+      // Deal differently with a regular note ...
       const res = DataStore.moveNote(thisNote.filename, filenameForTrash)
-      logDebug('removeBlankNotes', `running DataStore.moveNote("${thisNote.filename}", "${filenameForTrash}")`)
+      // logDebug('removeBlankNotes', `running DataStore.moveNote("${thisNote.filename}", "${filenameForTrash}")`)
       if (res) {
         logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)
-        // numRemoved++
+        numRemoved++
       } else {
-        logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}' for some unknown reason.`)
+        logWarn('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}' for some unknown reason.`)
       }
+    }
+
+    // Show a completion message
+    if (!runSilently) {
+      await showMessage(`${String(numRemoved)} blank notes moved to the NotePlan Trash`, 'OK', 'Remove Blank Notes', false)
+    } else {
+      logInfo('removeBlankNotes', `${String(numRemoved)} blank notes moved to the NotePlan Trash`)
+    }
+    if (numToRemove !== numRemoved) {
+      logWarn('removeBlankNotes', `Note: number removed (${String(numRemoved)}) !== number to remove (${String(numToRemove)}).`)
     }
   } catch (err) {
     logError('removeBlankNotes', JSP(err))

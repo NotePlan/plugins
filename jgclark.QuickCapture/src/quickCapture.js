@@ -2,21 +2,16 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 2025-07-28 for v0.17.0 by @jgclark
+// last update 2025-08-25 for v1.0.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { getQuickCaptureSettings} from './quickCaptureHelpers'
 import {
-  // getNoteFromParamOrUser,
-  getQuickCaptureSettings,
-  // type QCConfigType,
-} from './quickCaptureHelpers'
-import {
-  // getDateStringFromCalendarFilename,
   getDisplayDateStrFromFilenameDateStr,
   getTodaysDateUnhyphenated,
-  RE_ISO_DATE,
-  convertISODateFilenameToNPDayFilename,
+  // RE_ISO_DATE,
+  // convertISODateFilenameToNPDayFilename,
 } from '@helpers/dateTime'
 import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
@@ -27,6 +22,11 @@ import {
 } from '@helpers/note'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import {
+  displayTitleWithRelDate,
+  // getDateStrFromRelativeDateString
+} from '@helpers/NPdateTime'
+import { chooseNoteV2, getNoteFromParamOrUser, getOrMakeCalendarNote } from '@helpers/NPnote'
+import {
   findEndOfActivePartOfNote,
   findHeadingStartsWith,
   findStartOfActivePartOfNote,
@@ -34,13 +34,7 @@ import {
   smartCreateSectionsAndPara,
   smartPrependPara
 } from '@helpers/paragraph'
-import {
-  // chooseHeading,
-  chooseHeadingV2,
-  chooseNoteV2,
-  displayTitleWithRelDate,
-  showMessage,
-} from '@helpers/userInput'
+import {chooseHeadingV2,showMessage,} from '@helpers/userInput'
 
 //----------------------------------------------------------------------------
 // callable functions
@@ -57,9 +51,8 @@ export async function prependTaskToNote(
   textArg?: string = ''
 ): Promise<void> {
   try {
-    logDebug(pluginJson, `starting /qpt`)
-    // const config: QCConfigType = await getQuickCaptureSettings()
-    let note: TNote
+    logDebug(pluginJson, `starting /qpt with arg0 '${noteTitleArg != null ? noteTitleArg : '<undefined>'}' arg1 '${textArg != null ? textArg : '<undefined>'}'`)
+    let note: ?TNote
 
     if (noteTitleArg != null && noteTitleArg !== '') {
       // Check this is a valid note first
@@ -71,10 +64,14 @@ export async function prependTaskToNote(
         return
       }
     } else {
-      const notes = projectNotesSortedByChanged()
-
-      const re = await CommandBar.showOptions(notes.map((n) => displayTitleWithRelDate(n)).filter(Boolean), 'Select note to prepend')
-      note = notes[re.index]
+      const regularNotes = projectNotesSortedByChanged()
+      // Ask user to pick a note
+      // const re = await CommandBar.showOptions(notes.map((n) => displayTitleWithRelDate(n)).filter(Boolean), 'Select note to prepend')
+      // note = notes[re.index]
+      note = await chooseNoteV2(`Select note to prepend task to`, regularNotes, true, true, false, false)
+    }
+    if (note == null) {
+      throw new Error(`Couldn't get a valid note, Stopping.`)
     }
 
     // Get text to use from arg0 or user
@@ -102,10 +99,9 @@ export async function appendTaskToNote(
   noteTitleArg?: string = '',
   textArg?: string = ''
 ): Promise<void> {
-  logDebug(pluginJson, `starting /qat`)
+  logDebug(pluginJson, `starting /qat with arg0 '${noteTitleArg != null ? noteTitleArg : '<undefined>'}' arg1 '${textArg != null ? textArg : '<undefined>'}'`)
   try {
-    // const config: QCConfigType = await getQuickCaptureSettings()
-    let note: TNote
+    let note: ?TNote
 
     if (noteTitleArg != null && noteTitleArg !== '') {
       // Check this is a valid note first
@@ -117,10 +113,14 @@ export async function appendTaskToNote(
         return
       }
     } else {
-      const notes = projectNotesSortedByChanged()
+      const regularNotes = projectNotesSortedByChanged()
 
-      const re = await CommandBar.showOptions(notes.map((n) => displayTitleWithRelDate(n)).filter(Boolean), 'Select note to append')
-      note = notes[re.index]
+      // const re = await CommandBar.showOptions(regularNotes.map((n) => displayTitleWithRelDate(n)).filter(Boolean), 'Select note to append')
+      // note = notes[re.index]
+      note = await chooseNoteV2(`Select note to append task to`, regularNotes, true, true, false, false)
+    }
+    if (note == null) {
+      throw new Error(`Couldn't get a valid note, Stopping.`)
     }
 
     // Get text to use from arg0 or user
@@ -165,22 +165,52 @@ export async function addChecklistToNoteHeading(
     // Get text details from arg2 or user
     let checklistText = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput(`Type the checklist`, `Add checklist '%@'`)
+      : await CommandBar.showInput(`Type the checklist to add${noteTitleArg ? ` to ${noteTitleArg}` : ''}`, `Add checklist '%@'`)
     checklistText = `${checklistText}`.trimEnd()
 
     // Get heading level details from arg3 (or default to the config setting)
     const headingLevel = (headingLevelArg != null && headingLevelArg !== '' && !isNaN(headingLevelArg))
       ? Number(headingLevelArg)
       : config.headingLevel
-    logDebug('addChecklistToNoteHeading(qach)', `headingLevel: ${String(headingLevel)}`)
+    // logDebug('addChecklistToNoteHeading(qach)', `headingLevel: ${String(headingLevel)}`)
 
     // Get note details from arg0 or user
     const regularNotes = await regularNotesProm // here's where we resolve the promise and have the sorted list
-    const note = await chooseNoteV2(`Select note for new checklist`, regularNotes, true, true, false, false)
+    // V1:
+    // let note: TNote
+    // if (noteTitleArg != null && noteTitleArg !== '') {
+    //   const possDateStr = getDateStrFromRelativeDateString(noteTitleArg)
+    //   logDebug('addChecklistToNoteHeading(qach)', `- possDateStr '${possDateStr}' (from relative date string '${noteTitleArg}')`)
+    //   if (possDateStr !== '') {
+    //     const matchingDateNotes = DataStore.calendarNoteByDateString(possDateStr)
+    //     if (matchingDateNotes != null && matchingDateNotes.length > 0) {
+    //       note = matchingDateNotes[0]
+    //       logDebug('addChecklistToNoteHeading(qach)', `Will use matching calendar note '${possDateStr}' (from relative date string '${noteTitleArg}')`)
+    //     } else {
+    //       throw new Error(`Couldn't find note '${noteTitleArg}' from x-callback args. Stopping.`)
+    //     }
+    //   }
+    //   const matchingTitleNotes = DataStore.projectNoteByTitle(noteTitleArg, true, false)
+    //   if (matchingTitleNotes != null && matchingTitleNotes.length > 0) {
+    //     note = matchingTitleNotes[0]
+    //     logDebug('addChecklistToNoteHeading(qach)', `Will use first matching note with title '${noteTitleArg}' -> filename '${note.filename}'`)
+    //   } else {
+    //     throw new Error(`Couldn't find note '${noteTitleArg}' from x-callback args. Stopping.`)
+    //   }
+    // } else {
+    //   const regularNotes = await regularNotesProm // here's where we resolve the promise and have the sorted list
+    //   // Ask user to pick a note
+    //   note = await chooseNoteV2(`Select note for new checklist`, regularNotes, true, true, false, false)
+    // }
+    // if (note == null) {
+    //   throw new Error(`Couldn't get a valid note, Stopping.`)
+    // }
+    // V2:
+    const note = await getNoteFromParamOrUser('Select note for new checklist', noteTitleArg, regularNotes)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
-    logDebug('addTaskToNoteHeading(qath)', `-> '${displayTitle(note)}'`)
+    logDebug('addTaskToNoteHeading(qath)', `Will use note '${displayTitle(note)}' for new checklist`)
 
     // Get heading details from arg1 or user
     // If we're asking user, we use function that allows us to first add a new heading at start/end of note
@@ -225,18 +255,20 @@ export async function addTaskToNoteHeading(
     // Get text details from arg2 or user
     let taskText = (textArg != null && textArg !== '')
       ? textArg
-      : await CommandBar.showInput(`Type the task`, `Add task '%@'`)
+      : await CommandBar.showInput(`Type the task to add${noteTitleArg ? ` to ${noteTitleArg}` : ''}`, `Add task '%@'`)
     taskText = `${taskText}`.trimEnd()
 
     // Get heading level details from arg3 (or default to the config setting)
     const headingLevel = (headingLevelArg != null && headingLevelArg !== '' && !isNaN(headingLevelArg))
       ? Number(headingLevelArg)
       : config.headingLevel
-    logDebug('addTextToNoteHeading(qath)', `headingLevel: ${String(headingLevel)}`)
 
     // Get note details from arg0 or user
     const regularNotes = await regularNotesProm // here's where we resolve the promise and have the sorted list
-    const note = await chooseNoteV2(`Select note for new task`, regularNotes, true, true, false, false)
+    // V1:
+    // const note = await chooseNoteV2(`Select note for new task`, regularNotes, true, true, false, false)
+    // V2:
+    const note = await getNoteFromParamOrUser('Select note for new task', noteTitleArg, regularNotes)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
@@ -261,8 +293,6 @@ export async function addTaskToNoteHeading(
  * Extended in v0.9 to allow use from x-callback with three passed arguments.
  * Extended in v0.10 to allow use from x-callback with some empty arguments: now asks users to supply missing arguments.
  * Note: duplicate headings not properly handled, due to NP architecture.
- * - FIXME(@EduardMe): adding a line after an earlier non-heading line with same text as the heading line? Raised as bug https://github.com/NotePlan/plugins/issues/429.
- * - When fixed check using index.js::temp429BugTest()
  *
  * @author @jgclark
  * @param {string?} noteTitleArg note title to use (can be YYYY-MM-DD or YYYYMMDD)
@@ -300,7 +330,10 @@ export async function addTextToNoteHeading(
 
     // Get note details from arg0 or user
     const regularNotes = await regularNotesProm // here's where we resolve the promise and have the sorted list
-    const note = await chooseNoteV2(`Select note for new text`, regularNotes, true, true, false, false)
+    // V1:
+    // const note = await chooseNoteV2(`Select note for new text`, regularNotes, true, true, false, false)
+    // V2:
+    const note = await getNoteFromParamOrUser('Select note for new text', noteTitleArg, regularNotes)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
@@ -334,25 +367,25 @@ export async function prependTaskToCalendarNote(
 ): Promise<void> {
   logDebug(pluginJson, `starting /qpc`)
   try {
-    const config = await getQuickCaptureSettings()
-    let note: ?TNote
-
     // Get text to use from arg1 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
       : await CommandBar.showInput(`Type the task`, `Prepend task '%@'`)
 
     // Get note details from arg0 or user
-    if (dateArg != null && dateArg !== '') {
-      // change YYYY-MM-DD to YYYYMMDD, if needed
-      const dateArgToMatch = dateArg.match(RE_ISO_DATE)
-        ? convertISODateFilenameToNPDayFilename(dateArg)
-        : dateArg // for regular note titles, and weekly notes
-      note = DataStore.calendarNoteByDateString(dateArgToMatch)
-    } else {
-      note = await chooseNoteV2(`Select note for new task`, [], true, true, false, false)
-    }
-
+    // V1:
+    // let note: ?TNote
+    // if (dateArg != null && dateArg !== '') {
+    //   // change YYYY-MM-DD to YYYYMMDD, if needed
+    //   const dateArgToMatch = dateArg.match(RE_ISO_DATE)
+    //     ? convertISODateFilenameToNPDayFilename(dateArg)
+    //     : dateArg // for regular note titles, and weekly notes
+    //   note = DataStore.calendarNoteByDateString(dateArgToMatch)
+    // } else {
+    //   note = await chooseNoteV2(`Select note for new task`, [], true, true, false, false)
+    // }
+    // V2:
+    const note = await getOrMakeCalendarNote(dateArg)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
@@ -380,24 +413,25 @@ export async function appendTaskToCalendarNote(
 ): Promise<void> {
   logDebug(pluginJson, `starting /qac`)
   try {
-    const config = await getQuickCaptureSettings()
-    let note: ?TNote
-
     // Get text to use from arg1 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
       : await CommandBar.showInput(`Type the task`, `Append task '%@'`)
 
     // Get note details from arg0 or user
-    if (dateArg != null && dateArg !== '') {
-      // change YYYY-MM-DD to YYYYMMDD, if needed
-      const dateArgToMatch = dateArg.match(RE_ISO_DATE)
-        ? convertISODateFilenameToNPDayFilename(dateArg)
-        : dateArg // for regular note titles, and weekly notes
-      note = DataStore.calendarNoteByDateString(dateArgToMatch)
-    } else {
-      note = await chooseNoteV2(`Select note for new task`, [], true, true, false, false)
-    }
+    // V1:
+    // let note: ?TNote
+    // if (dateArg != null && dateArg !== '') {
+    //   // change YYYY-MM-DD to YYYYMMDD, if needed
+    //   const dateArgToMatch = dateArg.match(RE_ISO_DATE)
+    //     ? convertISODateFilenameToNPDayFilename(dateArg)
+    //     : dateArg // for regular note titles, and weekly notes
+    //   note = DataStore.calendarNoteByDateString(dateArgToMatch)
+    // } else {
+    //   note = await chooseNoteV2(`Select note for new task`, [], true, true, false, false)
+    // }
+    // V2:
+    const note = await getOrMakeCalendarNote(dateArg)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
@@ -425,7 +459,6 @@ export async function appendTaskToWeeklyNote(
 ): Promise<void> {
   logDebug(pluginJson, `starting /qaw`)
   try {
-    const config = await getQuickCaptureSettings()
     let note: ?TNote
     let weekStr = ''
 
@@ -485,7 +518,6 @@ export async function appendTextToDailyJournal(textArg?: string = ''): Promise<v
     if (note != null) {
       const matchedHeading = findHeadingStartsWith(note, journalHeading)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
-      // note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
       const headingToUse = matchedHeading ? matchedHeading : journalHeading
       logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} with matchedHeading '${matchedHeading}' to heading '${headingToUse}' at level ${config.headingLevel}`)
       smartCreateSectionsAndPara(note, text, 'text', [headingToUse], config.headingLevel, config.shouldAppend)
@@ -510,16 +542,17 @@ export async function appendTextToWeeklyJournal(textArg?: string = ''): Promise<
     if (note != null) {
       const todaysDateStr = getTodaysDateUnhyphenated()
       const config = await getQuickCaptureSettings()
+      const journalHeading = config.journalHeading || ''
 
       // Get input either from passed argument or ask user
       const text = (textArg != null && textArg !== '')
         ? textArg
         : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${todaysDateStr}`)
 
-      const matchedHeading = findHeadingStartsWith(note, config.journalHeading)
+      const matchedHeading = findHeadingStartsWith(note, journalHeading)
       logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
-      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
+      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : journalHeading, true, true)
     } else {
       throw new Error(`Cannot find current weekly note`)
     }
@@ -541,16 +574,17 @@ export async function appendTextToMonthlyJournal(textArg?: string = ''): Promise
     if (note != null) {
       const dateStr = getDisplayDateStrFromFilenameDateStr(note.filename) ?? ''
       const config = await getQuickCaptureSettings()
+      const journalHeading = config.journalHeading || ''
 
       // Get input either from passed argument or ask user
       const text = (textArg != null && textArg !== '')
         ? textArg
         : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${dateStr}`)
 
-      const matchedHeading = findHeadingStartsWith(note, config.journalHeading)
+      const matchedHeading = findHeadingStartsWith(note, journalHeading)
       logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
-      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
+      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : journalHeading, true, true)
     } else {
       throw new Error(`Cannot find current monthly note`)
     }
@@ -572,16 +606,16 @@ export async function appendTextToYearlyJournal(textArg?: string = ''): Promise<
     if (note != null) {
       const dateStr = getDisplayDateStrFromFilenameDateStr(note.filename) ?? ''
       const config = await getQuickCaptureSettings()
-
+      const journalHeading = config.journalHeading || ''
       // Get input either from passed argument or ask user
       const text = (textArg != null && textArg !== '')
         ? textArg
         : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${dateStr}`)
 
-      const matchedHeading = findHeadingStartsWith(note, config.journalHeading)
+      const matchedHeading = findHeadingStartsWith(note, journalHeading)
       logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
-      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
+      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : journalHeading, true, true)
     } else {
       throw new Error(`Cannot find current yearly note`)
     }

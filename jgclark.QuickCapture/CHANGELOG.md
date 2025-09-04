@@ -1,25 +1,30 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
-## [0.17.0] - 2025-08-???
+## [1.0.0] - 2025-08-25
+(Somewhat arbitrarily promoting this to be v1 after more than 4 years!)
 ### New
-- commands where you can select a calendar note to use from the command bar, now 
+- support for adding text to Teamspace notes
+- the commands where you can select a calendar note to use from the command bar, now 
   - show and allow you to pick future calendar notes, even that haven't already been created.
   - annotate more calendar dates with their relative date (e.g. "in 3 days time")
 - new setting 'Inbox Heading'. If the Inbox location is set to 'Daily' or 'Weekly' note, this is the Heading that inbox items are added under. If not set, then it will append or prepend to the note (as set below).
-- support for adding text to Teamspace notes
+
+### Changed
+- improved display of list of headings (when running NP 3.18+)
+- improved text of some placeholders
 
 ### Fixed
 - fix commands that deal with the edge case where a note has frontmatter but the `# Title` is not in it
 - fix edge case with '/qpc' command
-- text of some placeholders
 - appending text in commands other than the "/quick add ... to inbox" ones
-- when writing new Journal headings, it was ignoring the 'heading level' setting (thanks, @Stacey).
+- when writing new Journal headings, it was ignoring the 'heading level' setting (thanks, @Stacey)
+- fix to some x-callback calls (thanks, @dutchnesss)
 
 ## [0.16.1] - 2025-02-15
 ### Changed
-- better handle what happens when a callback runs /qath, /qalh or /qach and asks for a future calendar note that hasn't yet been created. (But note: API doesn't allow calendar notes to be created.)
-- better display of relative dates in commmand bar.
+- improved handle what happens when a callback runs /qath, /qalh or /qach and asks for a future calendar note that hasn't yet been created. (But note: API doesn't allow calendar notes to be created.)
+- improved display of relative dates in commmand bar.
 
 ## [0.16.0] - 2024-02-13
 ### Added

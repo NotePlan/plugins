@@ -5,7 +5,6 @@
 //-------------------------------------------------------------------------------
 
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
-import { isTeamspaceNoteFromFilename, parseTeamspaceFilename } from '@helpers/teamspace'
 
 //-----------------------------------------------------------
 // FUNCTIONS
@@ -51,25 +50,4 @@ export function getTeamspaceTitleFromID(id: string): string {
 
 export function getTeamspaceTitleFromNote(note: TNote): string {
   return note.teamspaceTitle ?? ''
-}
-
-/**
- * A Teamspace-aware way of getting a note from its filename.
- * @param {string} filename 
- * @returns {TNote | null}
- */
-export function getNoteFromFilename(filename: string): TNote | null {
-  // logDebug('NPTeamspace::getNoteFromFilename', `Starting with filename ${filename}`)
-  const possRegularNote = DataStore.noteByFilename(filename, 'Notes')
-  let possCalendarNote: ?TNote
-  if (isTeamspaceNoteFromFilename(filename)) {
-    const teamspaceObject = parseTeamspaceFilename(filename)
-    const dateString = filename.split('/')[2].split('.')[0]
-    possCalendarNote = DataStore.calendarNoteByDateString(dateString, teamspaceObject.teamspaceID)
-  } else {
-    const dateString = filename.split('.')[0]
-    possCalendarNote = DataStore.calendarNoteByDateString(dateString)
-  }
-  const thisNote = possRegularNote ?? possCalendarNote ?? null
-  return thisNote
 }

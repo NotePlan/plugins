@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2025-07-04 for v2.3.0.b4, @jgclark
+// last updated 2025-08-29 for v2.3.0.b9, @jgclark
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -70,6 +70,38 @@ export function isTagMentionCacheAvailableforItem(item: string): boolean {
 
 export function isTagMentionCacheGenerationScheduled(): boolean {
   return DataStore.preference(regenerateTagMentionCachePref) === true
+}
+
+/**
+ * Schedule a regeneration of the tag mention cache if it's too old (>24 hours). Note: assumes that the cache is available.
+ * @param {string} generatedAtStr The date and time the cache was generated.
+ */
+export function scheduleTagMentionCacheGenerationIfTooOld(generatedAtStr: string): void {
+  const nowMom = moment()
+  const generatedAtMom = moment(generatedAtStr)
+  const diffHours = nowMom.diff(generatedAtMom, 'hours', true)
+  if (diffHours >= 24) {
+    logInfo('scheduleTagMentionCacheGenerationIfTooOld', `Tag mention cache is too old (${diffHours}hours), so scheduling a regeneration.`)
+    scheduleTagMentionCacheGeneration()
+  } else {
+    logInfo('scheduleTagMentionCacheGenerationIfTooOld', `Tag mention cache is not too old (${diffHours}hours).`)
+  }
+}
+
+/**
+ * Update the tag mention cache if it's too old (>1 hour). Note: assumes that the cache is available.
+ * @param {string} updatedAtStr The date and time the cache was last updated.
+ */
+export async function updateTagMentionCacheGenerationIfTooOld(updatedAtStr: string): Promise<void> {
+  const nowMom = moment()
+  const updatedAtMom = moment(updatedAtStr)
+  const diffHours = nowMom.diff(updatedAtMom, 'hours', true)
+  if (diffHours >= 2) {
+    logInfo('updateTagMentionCacheGenerationIfTooOld', `Tag mention cache last update is too old (${diffHours}hours), so will now update it ...`)
+    await updateTagMentionCache()
+  } else {
+    logInfo('updateTagMentionCacheGenerationIfTooOld', `Tag mention cache last update is not too old (${diffHours}hours).`)
+  }
 }
 
 export function scheduleTagMentionCacheGeneration(): void {
@@ -206,6 +238,9 @@ export async function getFilenamesOfNotesWithTagOrMentions(
     const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
     let countComparison = ''
 
+    // Update the cache if too old
+    await updateTagMentionCacheGenerationIfTooOld(parsedCache.lastUpdated)
+    
     // Get matching Calendar notes using Cache
     let matchingNoteFilenamesFromCache = calNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename)
 
@@ -251,7 +286,20 @@ export async function getFilenamesOfNotesWithTagOrMentions(
       }
     }
 
-    return matchingNoteFilenamesFromCache
+    // Now add details about age of the cache
+    const momNow = moment()
+    const momGeneratedAt = moment(parsedCache.generatedAt)
+    const momGeneratedAgeMins = momNow.diff(momGeneratedAt, 'minutes', true)
+    const momLastUpdated = moment(parsedCache.lastUpdated)
+    const momLastUpdatedAgeMins = momNow.diff(momLastUpdated, 'minutes', true)
+    const cacheGenerationAge = Math.round(momGeneratedAgeMins * 10) / 10
+    const cacheUpdatedAge = Math.round(momLastUpdatedAgeMins * 10) / 10
+    countComparison += ` Cache age: ${cacheGenerationAge}, updated ${cacheUpdatedAge}min ago`
+
+    // Update the cache if too old
+    scheduleTagMentionCacheGenerationIfTooOld(parsedCache.generatedAt)
+    
+    return [matchingNoteFilenamesFromCache, countComparison]
   } catch (err) {
     logError('getFilenamesOfNotesWithTagOrMentions', JSP(err))
     return [[], 'error']

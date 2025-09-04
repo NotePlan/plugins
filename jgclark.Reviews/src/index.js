@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2025-07-11 for v1.2.1+, @jgclark
+// Last updated 2025-09-01 for v1.2.4, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -24,6 +24,7 @@ export {
   displayProjectLists,
   redisplayProjectListHTML,
   renderProjectLists,
+  renderProjectListsIfOpen,
   setNewReviewInterval,
   skipReview,
   startReviews,
@@ -74,8 +75,8 @@ export async function testSettingsUpdated(): Promise<void> {
 }
 
 export async function onSettingsUpdated(): Promise<void> {
-  // Update the full - review - list in case there's a change in a relevant setting
-  logDebug(pluginID, 'Have updated settings, so will recalc the review list and display...')
+  // Re-generate the allProjects list in case there's a change in a relevant setting
+  logDebug(pluginJson, 'Have updated Review settings, so will recalc the review list and display...')
   const config: ReviewConfig = await getReviewSettings()
 
   // await makeFullReviewList(config, true)

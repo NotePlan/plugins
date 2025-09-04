@@ -24,9 +24,10 @@ import {
   WEEK_NOTE_LINK,
 } from '@helpers/dateTime'
 import { displayTitle } from '@helpers/general'
-import { getFirstDateInPeriod, getNPWeekData, getMonthData, getQuarterData, getYearData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import { filterOutParasInExcludeFolders, getNoteType } from '@helpers/note'
+import { getNoteType } from '@helpers/note'
+import { getFirstDateInPeriod, getNPWeekData, getMonthData, getQuarterData, getYearData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
+// import { getNoteFromFilename } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { caseInsensitiveMatch, caseInsensitiveSubstringMatch, caseInsensitiveStartsWith, getLineMainContentPos } from '@helpers/search'

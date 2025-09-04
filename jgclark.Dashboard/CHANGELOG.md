@@ -10,6 +10,20 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
+## [2.3.0.b9] 2025-09-01
+- Added tagCache age to section info (if 'Comparison' FFlag is turned on)
+- Add another check to regenerate or update tagMentionCache after 24 and 1 hour respectively
+- Make 'Show folder name in note link?' setting indented under 'Show note link for tasks?'
+- I have stopped some of the unnecessary generation of Project List. Let me know how it goes, @dwertheimer. (Will require rebuilding jgclark.Reviews plugin as well (to v1.2.4).)
+- Also added some logging to track down when Project list generation is happening when it shouldn't be. If 'Show Section Timings' Flag is on, then it will also write a log to note "@Meta/Project Generation Log".
+- Fix color of blockID marker in light mode themes
+- Further fix to display of calendar events in tasks
+- Tweak some TaskDialog button labels
+
+## [2.3.0.b8] 2025-08-27
+- Add temporary workaround for error in DataStore.listOverdueParagraphs() for regular Teamspace notes
+- Fix edge case that means Tag sections can fail to be shown
+
 ## [2.3.0.b7] 2025-08-18
 - When using the top bar '+' button to add a new task anywhere, improved display of list of notes and headings when adding a new task (when running NP 3.18+). Also improved support for adding new tasks to Teamspace notes.
 - Fix to the move "All →  X" buttons ignoring indented tasks, or leaving duplicate tasks. (Hopefully ... do report if you still see this happening.)

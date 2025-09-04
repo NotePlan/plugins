@@ -6,7 +6,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-// import { generateProjectListsAndRenderIfOpen } from '../../jgclark.Reviews/src/reviews.js'
+// import { generateProjectListsAndRenderIfOpen, renderProjectListsIfOpen } from '../../jgclark.Reviews/src/reviews.js' // produces circular dependency
 import { getDashboardSettings, getOpenItemParasForTimePeriod, setPluginData } from './dashboardHelpers.js'
 import { dashboardSettingsDefaults } from './react/support/settingsHelpers'
 import { getTagSectionDetails, showSectionSettingItems } from './react/components/Section/sectionHelpers'
@@ -17,14 +17,14 @@ import { updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentio
 import type { TDashboardSettings, TDashboardPluginSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getPeriodOfNPDateStr } from '@helpers/dateTime'
-import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import { chooseNoteV2 } from '@helpers/NPnote'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
+import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
-
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
 
 /* -----------------------------------------------------------------------------
@@ -469,6 +469,7 @@ export async function logPerspectiveFiltering(filenameArg?: string): Promise<voi
  */
 export async function switchToPerspective(name: string, allDefs: Array<TPerspectiveDef>): Promise<Array<TPerspectiveDef> | false> {
   try {
+    const startTime = new Date()
     // Check if perspective exists
     logDebug('switchToPerspective', `Starting looking for name ${name} in ...`)
     // logPerspectives(allDefs)
@@ -507,10 +508,20 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
     // )
 
     // Send message to Reviews (if that window is open) to re-generate the Projects list and render it
-    // TEST: Now not await-ing this, because it can take a long time and we don't want to block the main thread. FIXME: still taking a long time, and appears to be blocking the main thread.
-    logDebug('switchToPerspective', `Sending message to Reviews to regenerate the Projects List and render it`)
-    const _promise = DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])
+    // TEST: Now not await-ing this, because it can take a long time and we don't want to block the main thread.
+    // FIXME: Even so, is still taking a long time, and appears to be blocking the main thread.
+    // logTimer('switchToPerspective', startTime, `Sending message to Reviews to regenerate the Projects List and render it.`)
+    // const _promise = DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])
     // const _promise = generateProjectListsAndRenderIfOpen()
+    // logTimer('switchToPerspective', startTime, `Sending message to Reviews to regenerate the Projects List and render it.`)
+
+    // v3: Work out whether Project list window is open, and if so, re-render it
+    if (isHTMLWindowOpen('jgclark.Reviews.rich-review-list')) {
+      // TEST: still not convinced that this is firing and forgetting. At least we're not doing anything if the Project List window is not open.
+      logTimer('switchToPerspective', startTime, `Sending message to Reviews to render project list as it is open.`)
+      const _promise = DataStore.invokePluginCommandByName('renderProjectListsIfOpen', 'jgclark.Reviews', [])
+      logTimer('switchToPerspective', startTime, `Sent message to Reviews`) // Note: never seems to get here
+    }
 
     return newPerspectiveSettings
   } catch (error) {

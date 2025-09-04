@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // Main functions for Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-01-27, for v0.9.0
+// last updated 2025-08-30, for v0.9.2
 //-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -120,15 +120,15 @@ export async function generateRepeats(
         logInfo('generateRepeats', `Will sort tasks according to user defaults from Task Sorting plugin`)
         // For each changed section, sort the tasks under that heading.
         // FIXME: this is running but not making any changes either.
-        // for (const heading of headingList) {
-        //   logInfo('generateRepeats', `Sorting tasks under heading ${heading} ...`)
-        //   await DataStore.invokePluginCommandByName('Sort tasks under heading (choose)', 'dwertheimer.TaskSorting', [heading, sortFields])
-        // }
+        for (const heading of headingList) {
+          logInfo('generateRepeats', `Sorting tasks under heading ${heading} ...`)
+          await DataStore.invokePluginCommandByName('Sort tasks under heading (choose)', 'dwertheimer.TaskSorting', [heading, sortFields])
+        }
 
         // For now, try sorting the whole note.
         // FIXME: this is running but not making any changes either.
-        logInfo('generateRepeats', `Sorting tasks on the page ...`)
-        await DataStore.invokePluginCommandByName('Sort tasks on the page', 'dwertheimer.TaskSorting', [false, sortFields, false, false])
+        // logInfo('generateRepeats', `Sorting tasks on the page ...`)
+        // await DataStore.invokePluginCommandByName('Sort tasks on the page', 'dwertheimer.TaskSorting', [false, sortFields, false, false])
 
       } else {
         logDebug('generateRepeats', `Task sorter plugin is installed, but we are not working in the Editor, so can't run it`)

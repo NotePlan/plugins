@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-07-06 for v2.3.0.b4
+// Last updated 2025-09-01 for v2.3.0 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -123,6 +123,13 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       icons: [{ className: `fa-regular ${itemType === 'checklist' ? 'fa-square-check' : 'fa-circle-check'}`, position: 'left' }],
     },
     {
+      label: 'then',
+      controlStr: 'commpletethen',
+      description: 'Mark the item as completed on the date it was scheduled for',
+      handlingFunction: 'completeTaskThen',
+      icons: [{ className: `fa-regular ${itemType === 'checklist' ? 'fa-square-check' : 'fa-circle-check'}`, position: 'left' }],
+    },
+    {
       label: '',
       controlStr: 'canceltask',
       description: 'Cancel item',
@@ -141,14 +148,14 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       controlStr: 'priup',
       description: 'Increase priority of item',
       handlingFunction: 'cyclePriorityStateUp',
-      icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }],
+      icons: [{ className: 'fa-regular fa-arrow-up', position: 'right' }],
     },
     {
       label: 'Priority',
       controlStr: 'pridown',
       description: 'Decrease priority of item',
       handlingFunction: 'cyclePriorityStateDown',
-      icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }],
+      icons: [{ className: 'fa-regular fa-arrow-down', position: 'right' }],
     },
     {
       label: 'Change to',
@@ -156,13 +163,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       description: 'Toggle item type between task and checklist',
       handlingFunction: 'toggleType',
       icons: [{ className: itemType === 'checklist' ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }],
-    },
-    {
-      label: 'Complete',
-      controlStr: 'commpletethen',
-      description: 'Mark the item as completed on the date it was scheduled for',
-      handlingFunction: 'completeTaskThen',
-      icons: [{ className: 'fa-regular fa-arrow-left', position: 'left' }],
     },
     {
       label: 'Unsched',

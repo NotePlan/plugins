@@ -1,7 +1,8 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { chooseOption, showMessage, showMessageYesNo, getInputTrimmed, chooseNote } from '../../helpers/userInput'
+import { chooseOption, showMessage, showMessageYesNo, getInputTrimmed } from '../../helpers/userInput'
+import { chooseNoteV2 } from '../../helpers/NPnote'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import NPTemplating from 'NPTemplating'
 import { getAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
@@ -15,7 +16,6 @@ const baseMetadata = {
   replaceNoteContents: null,
   location: null,
   NOTE: 'Any variables in template tags in the body of the note can be passed in as arguments in arg2 of the URL (separated by semicolons, which is encoded as %3B). So var1=foo;var2=bar would be passed in as arg2=var1%3Dfoo%3Bvar2%3Dbar',
-  exampleURL: '__XXX__',
 }
 
 /**
@@ -67,11 +67,11 @@ async function createNewTemplate(): Promise<string> {
         value: '<current>',
       },
     ]
-    let getNoteTitled = await chooseOption(`What note do you want the template to act on?`, opts)
+    let getNoteTitled: string | null = await chooseOption(`What note do you want the template to act on?`, opts)
     if (getNoteTitled === 'chooseNow') {
-      const selectedNote = await chooseNote()
+      const selectedNote = await chooseNoteV2()
       if (selectedNote) {
-        getNoteTitled = selectedNote.title
+        getNoteTitled = selectedNote.title || ''
       }
     }
     const metadata = baseMetadata
@@ -168,7 +168,6 @@ export async function getXcallbackForTemplate(): Promise<string | false> {
       const notes = DataStore.projectNoteByTitle(templateTitle)
       const note = notes?.length ? notes[0] : null
       if (note) {
-        note.content = note.content?.replace('exampleURL: __XXX__', `exampleURL: ${url}`)
         const addLinkToFM = await showMessageYesNo(
           `Add the link to run the template to the frontmatter of the template? (the link will be copied to the clipboard regardless)`,
           ['yes', 'no'],

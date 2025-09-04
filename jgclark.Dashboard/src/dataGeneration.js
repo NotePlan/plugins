@@ -79,7 +79,7 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean,
 ): Promise<Array<TSection>> {
   try {
-    logDebug('getSomeSectionsData', `🔹Starting with ${sectionCodesToGet.toString()} ...`)
+    logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
     const config: TDashboardSettings = await getDashboardSettings()
 
     const sections: Array<TSection> = []
@@ -94,6 +94,7 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
     // moderately quick to generate
     if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) {
+      logInfo('getSomeSectionsData', `🔹 Getting Project section data as part of ${sectionCodesToGet.toString()}`)
       const projectSection = await getProjectSectionData(config, useDemoData)
       if (projectSection) sections.push(projectSection)
     }

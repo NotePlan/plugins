@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-07-17 for v2.3.0.b6, @jgclark
+// Last updated 2025-08-26 for v2.3.0.b8, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -158,7 +158,7 @@ export type TSection = {
   showColoredBackground?: boolean, // whether to show a colored background for the section
 }
 
-export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'timeblock' | 'noSearchResults' | 'info' | 'preLimitOverdues'
+export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'timeblock' | 'noSearchResults' | 'info' | 'preLimitOverdues' | 'error'
 // Note: If you add a new item type, make sure to update the ItemRow.jsx and StatusIcon.jsx components to display it properly
 
 // an item within a section, with optional TParagraphForDashboard

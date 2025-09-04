@@ -21,8 +21,6 @@ Where a command offers calendar notes as a destination, the most-used dates (`ye
 
 These can be used by Shortcuts on iOS or macOS or by other third-party apps to integrate NotePlan into your working practices: see [Using from x-callback calls](#using-from-x-callback-calls) below.
 
-Note: there's a bug in NotePlan's API that means '/quick add task under heading' and '/quick add line under heading' don't work properly if there's an identical line to the heading you select earlier in the same file, even if it's not a markdown heading.
-
 ## Tips for macOS users
 - Add Keyboard Shortcuts to get to these commands even more quickly, by using macOS System Settings > Keyboard > Shortcuts.
 - My suggestions about [Using Text Expansion with NotePlan](https://noteplan.co/n/0D40215F-ACA3-4B89-8976-C6B32B1BA167) are relevant here.
@@ -41,7 +39,7 @@ The settings are:
 - Heading for your Journal entries: Optional heading to add your journal entries under with /quick add to journal ... commands
 
 ## Using from x-callback calls
-From v0.9 it's possible to call each of these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
+It's possible to call each of these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=<encoded command name>&arg0=<encoded string>&arg1=<encoded string>&arg2=<encoded string>
 ```

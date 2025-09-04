@@ -8,9 +8,9 @@
 import json5 from 'json5'
 import moment from 'moment/min/moment-with-locales'
 import { getDateStringFromCalendarFilename, RE_DATE, RE_DATE_INTERVAL } from './dateTime'
+import { displayTitleWithRelDate, getRelativeDates } from './NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
 import { getFoldersMatching, getFolderDisplayName, getFolderFromFilename } from './folders'
-import { getRelativeDates } from './NPdateTime'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
 import { calendarNotesSortedByChanged } from './note'
 import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
@@ -1078,7 +1078,7 @@ export async function chooseNote(
     isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
     return !isInIgnoredFolder
   })
-  const sortedNoteListFiltered = noteListFiltered.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  const sortedNoteListFiltered = noteListFiltered.sort((first, second) => second.changedDate.getTime() - first.changedDate.getTime()) // most recent first
   const opts = sortedNoteListFiltered.map((note) => {
     return displayTitleWithRelDate(note)
   })

@@ -7,7 +7,7 @@
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { addParasAsText, getFilerSettings, type FilerConfig } from './filerHelpers'
+import { getFilerSettings, type FilerConfig } from './filerHelpers'
 import {
   clo, logDebug, logError, logInfo, logWarn,
   overrideSettingsWithEncodedTypedArgs,
@@ -15,6 +15,7 @@ import {
 import { displayTitle } from '@helpers/general'
 import { getAllNotesOfType, getNotesChangedInInterval } from '@helpers/NPnote'
 import { getParagraphBlock } from '@helpers/NPParagraph'
+import { addParagraphsToNote } from '@helpers/paragraph'
 import { NP_RE_note_title_link, RE_NOTE_TITLE_CAPTURE } from '@helpers/regex'
 import { showMessage } from '@helpers/userInput'
 
@@ -151,9 +152,10 @@ async function fileRecentNoteLinks(config: FilerConfig, runInteractively: boolea
  * File note links from a calendar 'note' to project note(s).
  * See various settings passed in the 'config' parameter object.
  * @author @jgclark
+ * 
  * @param {CoreNoteFields} note
  * @param {FilerConfig} config settings object
- * @param {boolean} runInteractively?
+ * @param {boolean} runInteractively? (optional; default=false)
  * @returns {number} number of paragraphs filed
  */
 async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInteractively: boolean = false): Promise<number> {
@@ -256,23 +258,16 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
 
       // Add text to the new location in destination note
       // Note: can't use addParagraphBelowHeadingTitle() here because you can't specify H2-H5, but only H1 of type 'title'.
-      const selectedParasAsText = thisParaLineOrBlock.map(p => p.rawContent).join('\n')
       if (noteLinkHeading) {
         // add after specified heading
-        addParasAsText(noteToAddTo, selectedParasAsText, noteLinkHeading, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
-        logDebug(pluginJson, `- Added parasAsText after '${noteLinkHeading}`)
+        logDebug(pluginJson, `- Adding ${thisParaLineOrBlock.length} paras after '${noteLinkHeading}'`)
+        addParagraphsToNote(noteToAddTo, thisParaLineOrBlock, noteLinkHeading, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
       } else {
 
-        // Note: can't use this API as it doesn't recognise front matter  (as of 3.8.1): noteToAddTo.prependParagraph(thisParaWithoutNotelink, thisPara.type)
-
-        // work out what indicator to send to addParasAsText(), based on setting 'whereToAddInNote' (start or end)
+        // Note: can't use Note.prependParagraph() API as it doesn't recognise front matter  (as of 3.8.1)
+        // work out what indicator to send to addParagraphsToNote(), based on setting 'whereToAddInNote' (start or end)
         const positionInNoteIndicator = (config.whereToAddInNote === 'start') ? '<<top of note>>' : '<<bottom of note>>'
-        addParasAsText(noteToAddTo, selectedParasAsText, positionInNoteIndicator, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
-
-        // // add after title or frontmatter
-        // const insertionIndex = findStartOfActivePartOfNote(noteToAddTo)
-        // noteToAddTo.insertParagraph(selectedParasAsText, insertionIndex, 'text')
-        // logDebug(pluginJson, `- Added parasAsText after frontmatter/title line ${String(insertionIndex)}`)
+        addParagraphsToNote(noteToAddTo, thisParaLineOrBlock, positionInNoteIndicator, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
       }
 
       // if we're doing 'move' not 'copy' then delete from existing location

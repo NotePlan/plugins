@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2025-05-04 for v2.2.2 by @jgclark
+// Last updated 2025-09-01 for v2.3.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -186,7 +186,8 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
     }
 
     // Simplify NP event links of the form
-    // `![📅](2023-01-13 18:00:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Contact X about Y:::#63DA38)` to HTML with icon
+    // `![📅](2023-01-13 18:00:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Contact X about Y:::#63DA38)`
+    // to HTML with icon.
     output = simplifyNPEventLinksForHTML(output)
 
     // Simplify embedded images of the form ![image](...) by replacing with an icon.
@@ -315,7 +316,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
     return output
   } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, error.message)
-    return '(makeParaContent... error)'
+    return ''
   }
 }
 
