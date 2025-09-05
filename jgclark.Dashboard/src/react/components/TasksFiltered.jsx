@@ -13,24 +13,29 @@ import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
 
 type Props = {
   item: TSectionItem,
+  onToggleShowAll?: () => void,
 }
 
 /**
  * Component for displaying a filter indicator.
  */
-const TasksFiltered = ({ item }: Props): Node => {
+const TasksFiltered = ({ item, onToggleShowAll }: Props): Node => {
   const { dashboardSettings, dispatchDashboardSettings } = useAppContext()
 
   function handleLineClick(_e: MouseEvent) {
-    // logDebug('TasksFiltered/handleLineClick', `Trying to update filterPriorityItems setting`)
-    // setDashboardSettings((prevSettings) => ({ ...prevSettings, ['filterPriorityItems']: false }))
-    const newPayload = {
-      ...dashboardSettings,
-      ['filterPriorityItems']: false,
+    if (onToggleShowAll) {
+      // Use local toggle function if provided
+      logDebug('TasksFiltered', `handleLineClick calling local onToggleShowAll`)
+      onToggleShowAll()
+    } else {
+      // Fall back to global setting update
+      logDebug('TasksFiltered', `handleLineClick Calling UPDATE_DASHBOARD_SETTINGS`)
+      const newPayload = {
+        ...dashboardSettings,
+        ['filterPriorityItems']: false,
+      }
+      dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: newPayload, reason: `Turning off filterPriorityItems` })
     }
-    logDebug('TasksFiltered', `handleLineClick Calling UPDATE_DASHBOARD_SETTINGS`)
-    dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: newPayload, reason: `Turning off filterPriorityItems` })
-    //TODO: REFACTOR:Maybe update isModified & sendActionToPlugin to save the settings and remove from the useDashboardSettings hook
   }
 
   return (

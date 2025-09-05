@@ -21,6 +21,7 @@ type UseSectionSortAndFilter = {
   numFilteredOut: number,
   limitApplied: boolean,
   maxPrioritySeenInThisSection: number,
+  toggleShowAllTasks: () => void,
 }
 
 const useSectionSortAndFilter = (
@@ -49,6 +50,9 @@ const useSectionSortAndFilter = (
 
   // Store the calculated max priority to return immediately
   const [calculatedMaxPriority, setCalculatedMaxPriority] = useState<number>(-1)
+
+  // Local state to track whether to show all tasks (ignore priority filtering)
+  const [showAllTasks, setShowAllTasks] = useState<boolean>(false)
 
   //----------------------------------------------------------------------
   // Constants
@@ -115,7 +119,8 @@ const useSectionSortAndFilter = (
 
       // TODO: but how do we downgrade this after it has been raised?
       // Hopefully by re-setting at start of refresh calls
-      const filteredItems = filterByPriority ? typeWantedItems.filter((f) => (f.para?.priority ?? 0) >= currentMaxPriorityFromAllVisibleSections) : typeWantedItems.slice()
+      const filteredItems =
+        filterByPriority && !showAllTasks ? typeWantedItems.filter((f) => (f.para?.priority ?? 0) >= currentMaxPriorityFromAllVisibleSections) : typeWantedItems.slice()
       const priorityFilteringHappening = memoizedItems.length > filteredItems.length
       logInfo(
         'useSectionSortAndFilter',
@@ -148,9 +153,11 @@ const useSectionSortAndFilter = (
           ID: `${section.ID}-Filter`,
           itemType: 'filterIndicator',
           para: {
-            content: `There ${numFilteredOut >= 2 ? 'are' : 'is'} also ${String(numFilteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${
-              numFilteredOut >= 2 ? 'items' : 'item'
-            } currently hidden`,
+            content: showAllTasks
+              ? `Showing all ${typeWantedItems.length} items (click to filter by priority)`
+              : `There ${numFilteredOut >= 2 ? 'are' : 'is'} also ${String(numFilteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${
+                  numFilteredOut >= 2 ? 'items' : 'item'
+                } currently hidden (click to show all)`,
             filename: '',
             type: 'text',
             noteType: 'Notes',
@@ -167,10 +174,15 @@ const useSectionSortAndFilter = (
       setFilteredOut(numFilteredOut)
       setLimitApplied(limitApplied)
     }
-  }, [section, memoizedItems, memoizedDashboardSettings, currentMaxPriorityFromAllVisibleSections])
+  }, [section, memoizedItems, memoizedDashboardSettings, currentMaxPriorityFromAllVisibleSections, showAllTasks])
+
+  // Function to toggle showing all tasks
+  const toggleShowAllTasks = () => {
+    setShowAllTasks(!showAllTasks)
+  }
 
   logInfo('useSectionSortAndFilter', `Section ${section.sectionCode} returning maxPrioritySeenInThisSection: ${calculatedMaxPriority}`)
-  return { filteredItems, itemsToShow, numFilteredOut, limitApplied, maxPrioritySeenInThisSection: calculatedMaxPriority }
+  return { filteredItems, itemsToShow, numFilteredOut, limitApplied, maxPrioritySeenInThisSection: calculatedMaxPriority, toggleShowAllTasks }
 }
 
 //----------------------------------------------------------------------

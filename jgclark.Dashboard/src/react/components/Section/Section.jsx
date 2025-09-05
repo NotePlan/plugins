@@ -175,6 +175,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     numFilteredOut: _numFilteredOut,
     limitApplied,
     maxPrioritySeenInThisSection,
+    toggleShowAllTasks,
   } = useSectionSortAndFilter(section, items, dashboardSettings, currentMaxPriorityFromAllVisibleSections)
 
   // Debug: log the values from useSectionSortAndFilter
@@ -434,7 +435,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           )}
         </div>
       </div>
-      <ItemGrid thisSection={section} items={itemsToShow} />
+      <ItemGrid thisSection={section} items={itemsToShow} onToggleShowAll={toggleShowAllTasks} />
     </section>
   )
 }
