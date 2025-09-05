@@ -27,12 +27,11 @@ const useSectionSortAndFilter = (
   section: TSection,
   items: Array<TSectionItem>,
   dashboardSettings: any,
-  currentMaxPriorityFromAllVisibleSections: number
+  currentMaxPriorityFromAllVisibleSections: number,
 ): UseSectionSortAndFilter => {
-
-//----------------------------------------------------------------------
-// Context
-//----------------------------------------------------------------------
+  //----------------------------------------------------------------------
+  // Context
+  //----------------------------------------------------------------------
 
   // Memoize the items array to prevent unnecessary re-renders
   const memoizedItems = useMemo(() => items, [items])
@@ -48,24 +47,31 @@ const useSectionSortAndFilter = (
   const [numFilteredOut, setFilteredOut] = useState<number>(0)
   const [limitApplied, setLimitApplied] = useState<boolean>(false)
 
+  // Store the calculated max priority to return immediately
+  const [calculatedMaxPriority, setCalculatedMaxPriority] = useState<number>(-1)
+
   //----------------------------------------------------------------------
   // Constants
   // ---------------------------------------------------------------------
 
   const limitToApply = memoizedDashboardSettings.maxItemsToShowInSection ?? 20
   const filterByPriority = memoizedDashboardSettings.filterPriorityItems ?? false
-  let maxPrioritySeenInThisSection = -1 // -1 means no priority has been seen yet
 
   //----------------------------------------------------------------------
   // Effects
   //----------------------------------------------------------------------
 
   useEffect(() => {
+    logInfo(
+      'useSectionSortAndFilter',
+      `Section ${section.sectionCode}${section.sectionCode === 'TAG' ? ` (${section.name})` : ''} useEffect running with ${memoizedItems.length} items`,
+    )
     if (memoizedItems.length === 0) {
       setFilteredItems([])
       setItemsToShow([])
       setFilteredOut(0)
       setLimitApplied(false)
+      setCalculatedMaxPriority(-1)
       return
     }
 
@@ -103,15 +109,20 @@ const useSectionSortAndFilter = (
       }
 
       // Find highest priority seen (globally), and then filter out lower-priority items (if wanted)
-      maxPrioritySeenInThisSection = getMaxPriorityInItems(typeWantedItems)
+      const newCalculatedMaxPriority = getMaxPriorityInItems(typeWantedItems)
+      logInfo('useSectionSortAndFilter', `Section ${section.sectionCode} calculated max priority: ${newCalculatedMaxPriority}`)
+      setCalculatedMaxPriority(newCalculatedMaxPriority)
 
       // TODO: but how do we downgrade this after it has been raised?
       // Hopefully by re-setting at start of refresh calls
-      const filteredItems = filterByPriority
-        ? typeWantedItems.filter((f) => (f.para?.priority ?? 0) >= currentMaxPriorityFromAllVisibleSections)
-        : typeWantedItems.slice()
+      const filteredItems = filterByPriority ? typeWantedItems.filter((f) => (f.para?.priority ?? 0) >= currentMaxPriorityFromAllVisibleSections) : typeWantedItems.slice()
       const priorityFilteringHappening = memoizedItems.length > filteredItems.length
-      logInfo('useSectionSortAndFilter', `${section.sectionCode}: ${memoizedItems.length} items; currentMaxPriorityFromAllVisibleSections = ${String(currentMaxPriorityFromAllVisibleSections)}; maxPrioritySeenInThisSection = ${String(maxPrioritySeenInThisSection)}; leaves ${String(filteredItems.length)} filteredItems`)
+      logInfo(
+        'useSectionSortAndFilter',
+        `${section.sectionCode} ${section.name}: ${memoizedItems.length} items; currentMaxPriorityFromAllVisibleSections = ${String(
+          currentMaxPriorityFromAllVisibleSections,
+        )}; maxPrioritySeenInThisSection = ${String(newCalculatedMaxPriority)}; leaves ${String(filteredItems.length)} filteredItems`,
+      )
       // clo(filteredItems, 'useSectionSortAndFilter filteredItems:')
 
       filteredItems.sort(itemSort)
@@ -156,9 +167,10 @@ const useSectionSortAndFilter = (
       setFilteredOut(numFilteredOut)
       setLimitApplied(limitApplied)
     }
-  }, [section, memoizedItems, memoizedDashboardSettings])
+  }, [section, memoizedItems, memoizedDashboardSettings, currentMaxPriorityFromAllVisibleSections])
 
-  return { filteredItems, itemsToShow, numFilteredOut, limitApplied, maxPrioritySeenInThisSection }
+  logInfo('useSectionSortAndFilter', `Section ${section.sectionCode} returning maxPrioritySeenInThisSection: ${calculatedMaxPriority}`)
+  return { filteredItems, itemsToShow, numFilteredOut, limitApplied, maxPrioritySeenInThisSection: calculatedMaxPriority }
 }
 
 //----------------------------------------------------------------------
