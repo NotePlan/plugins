@@ -33,6 +33,7 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 - Improve debugging output for frontmatter validation to show exactly why content is considered valid or invalid
 - Add some JS error logging at end of console messages to make error finding easier
 - Change log level of some log messages to info (variable passing)
+- remove evaluation of code in standard prompt handler
 
 ## [2.0.20] 2025-08-07 @dwertheimer
 - Fix folder selection in new note command (adds folder path to chooser)
