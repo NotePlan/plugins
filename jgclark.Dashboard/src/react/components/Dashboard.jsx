@@ -109,7 +109,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const deduplicatedSections = useMemo(() => {
     if (sections.length >= 1 && dashboardSettings.hideDuplicates) {
       // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
-      // But TB and PROJ sections need to be ignored here, as they have different item types
+      // TB and PROJ sections need to be ignored here, as they have different item types
       const dedupedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dontDedupeSectionCodes, dashboardSettings)
       totalSectionItems = countTotalVisibleSectionItems(dedupedSections, dashboardSettings)
 

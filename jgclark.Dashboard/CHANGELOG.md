@@ -10,6 +10,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
+## [2.3.0.b10] 2025-09-04???
+- ??? working on global max priority shown
+
 ## [2.3.0.b9] 2025-09-01
 - Added tagCache age to section info (if 'Comparison' FFlag is turned on)
 - Add another check to regenerate or update tagMentionCache after 24 and 1 hour respectively

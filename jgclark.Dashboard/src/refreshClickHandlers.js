@@ -34,7 +34,7 @@ export async function refreshAllSections(): Promise<void> {
   const startTime = new Date()
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   // show refreshing message until done
-  await setPluginData({ refreshing: true }, 'Starting Refreshing all sections')
+  await setPluginData({ refreshing: true, currentMaxPriorityFromAllVisibleSections: 0 }, 'Starting Refreshing all sections')
 
   // refresh all sections' data
   const newSections = await getAllSectionsData(reactWindowData.demoMode, false, false)
@@ -130,10 +130,9 @@ export async function incrementallyRefreshSomeSections(
     return handlerResult(true)
   }
   catch (error) {
-    await setPluginData({ refreshing: false }, `Error in incrementallyRefreshSomeSections; closing modal spinner`)
+    await setPluginData({ refreshing: false }, `Error in incrementallyRefreshSomeSections; will try to close modal spinner`)
     logError('incrementallyRefreshSomeSections', error)
     await sendBannerMessage(WEBVIEW_WINDOW_ID, `Error in incrementallyRefreshSomeSections: ${error.message}`)
-    logDebug('incrementallyRefreshSomeSections', `Will also hide modal spinner`)
     return handlerResult(false)
   }
 }
@@ -156,31 +155,34 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const pluginData: TPluginData = reactWindowData.pluginData
   // show refreshing message until done
-  if (!pluginData.refreshing === true) await setPluginData({ refreshing: sectionCodes }, `Starting refresh for sections ${sectionCodes.toString()}`)
+  if (!pluginData.refreshing === true) await setPluginData({ refreshing: sectionCodes, currentMaxPriorityFromAllVisibleSections: 0 }, `Starting refresh for sections ${sectionCodes.toString()}`)
   let existingSections = pluginData.sections
 
-  // Now remove some sections that are no longer wanted:
-  // - referenced sections if separateSectionForReferencedNotes is off
-  // - TODO: sections that no longer match the sectionCodes. (Though this is clearly done somewhere else that works, so leaving alone for now)
+  // Now remove any referenced sections if separateSectionForReferencedNotes is now off
   if (!pluginData.dashboardSettings.separateSectionForReferencedNotes) {
     logDebug('refreshSomeSections', `Removing any referenced sections from inherited set of sections. Started with ${existingSections.length} sections [${getDisplayListOfSectionCodes(existingSections)}]`)
     existingSections = existingSections.filter((section) => !section.isReferenced)
     logDebug('refreshSomeSections', `removal -> ${existingSections.length} sections [${getDisplayListOfSectionCodes(existingSections)}]`)
   }
 
-  // force the section refresh for the wanted sections
+  // Now remove any sections that no longer match the sectionCodes to display.
+  // Note: this is clearly done somewhere else! (so won't do here as well)
+
+  // Force the wanted sections to refresh
   const newSections = await getSomeSectionsData(sectionCodes, pluginData.demoMode, calledByTrigger)
   // logTimer('refreshSomeSections', startTime, `- after getSomeSectionsData(): [${getDisplayListOfSectionCodes(newSections)}]`)
   const mergedSections = mergeSections(existingSections, newSections)
   // logTimer('refreshSomeSections', startTime, `- after mergeSections(): [${getDisplayListOfSectionCodes(mergedSections)}]`)
 
   const updates: TAnyObject = { sections: mergedSections }
-  // and update the total done counts
-  // TODO: turning off for now, as was being called too often? Need to figure this out.
+
+  // Update the total done counts. 
+  // Note: this is being done somewhere else, so turning off here 
   // updates.totalDoneCounts = getTotalDoneCountsFromSections(mergedSections)
 
   if (!pluginData.refreshing === true) updates.refreshing = false
   await setPluginData(updates, `Finished refreshSomeSections for [${String(sectionCodes)}] (${timer(startTime)})`)
+
   // count sectionItems in all sections
   const totalSectionItems = mergedSections.reduce((acc, section) => acc + section.sectionItems.length, 0)
   // logDebug('refreshSomeSections', `Total section items: ${totalSectionItems} from [${sectionCodes.toString()}]`)

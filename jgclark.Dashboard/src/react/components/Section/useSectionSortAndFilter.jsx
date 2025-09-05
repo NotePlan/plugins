@@ -6,7 +6,7 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2025-07-22 for v2.3.0.b
+// Last updated 2025-09-05 for v2.3.0.b10
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -20,17 +20,45 @@ type UseSectionSortAndFilter = {
   itemsToShow: Array<TSectionItem>,
   numFilteredOut: number,
   limitApplied: boolean,
+  maxPrioritySeenInThisSection: number,
 }
 
-const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, dashboardSettings: any): UseSectionSortAndFilter => {
+const useSectionSortAndFilter = (
+  section: TSection,
+  items: Array<TSectionItem>,
+  dashboardSettings: any,
+  currentMaxPriorityFromAllVisibleSections: number
+): UseSectionSortAndFilter => {
+
+//----------------------------------------------------------------------
+// Context
+//----------------------------------------------------------------------
+
   // Memoize the items array to prevent unnecessary re-renders
   const memoizedItems = useMemo(() => items, [items])
   const memoizedDashboardSettings = useMemo(() => dashboardSettings, [dashboardSettings])
+  // const memoizedCurrentMaxPriorityFromAllVisibleSections = useMemo(() => currentMaxPriorityFromAllVisibleSections, [currentMaxPriorityFromAllVisibleSections])
+
+  //----------------------------------------------------------------------
+  // State
+  //----------------------------------------------------------------------
 
   const [filteredItems, setFilteredItems] = useState<Array<TSectionItem>>([])
   const [itemsToShow, setItemsToShow] = useState<Array<TSectionItem>>([])
   const [numFilteredOut, setFilteredOut] = useState<number>(0)
   const [limitApplied, setLimitApplied] = useState<boolean>(false)
+
+  //----------------------------------------------------------------------
+  // Constants
+  // ---------------------------------------------------------------------
+
+  const limitToApply = memoizedDashboardSettings.maxItemsToShowInSection ?? 20
+  const filterByPriority = memoizedDashboardSettings.filterPriorityItems ?? false
+  let maxPrioritySeenInThisSection = -1 // -1 means no priority has been seen yet
+
+  //----------------------------------------------------------------------
+  // Effects
+  //----------------------------------------------------------------------
 
   useEffect(() => {
     if (memoizedItems.length === 0) {
@@ -74,20 +102,16 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
         totalCountToUse = totalCountToUse - (memoizedItems.length - typeWantedItems.length)
       }
 
-      // Find highest priority seen
-      let maxPrioritySeen = -1
-      for (const i of typeWantedItems) {
-        if (i.para?.priority && i.para.priority > maxPrioritySeen) {
-          maxPrioritySeen = i.para.priority
-        }
-      }
-      // and then filter out lower-priority items (if wanted)
-      const filterByPriority = memoizedDashboardSettings.filterPriorityItems ?? false
+      // Find highest priority seen (globally), and then filter out lower-priority items (if wanted)
+      maxPrioritySeenInThisSection = getMaxPriorityInItems(typeWantedItems)
+
+      // TODO: but how do we downgrade this after it has been raised?
+      // Hopefully by re-setting at start of refresh calls
       const filteredItems = filterByPriority
-        ? typeWantedItems.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen)
+        ? typeWantedItems.filter((f) => (f.para?.priority ?? 0) >= currentMaxPriorityFromAllVisibleSections)
         : typeWantedItems.slice()
       const priorityFilteringHappening = memoizedItems.length > filteredItems.length
-      // logDebug('useSectionSortAndFilter', `${section.sectionCode}: ${memoizedItems.length} items; maxPri = ${String(maxPrioritySeen)}; leaves ${String(filteredItems.length)} filteredItems`)
+      logInfo('useSectionSortAndFilter', `${section.sectionCode}: ${memoizedItems.length} items; currentMaxPriorityFromAllVisibleSections = ${String(currentMaxPriorityFromAllVisibleSections)}; maxPrioritySeenInThisSection = ${String(maxPrioritySeenInThisSection)}; leaves ${String(filteredItems.length)} filteredItems`)
       // clo(filteredItems, 'useSectionSortAndFilter filteredItems:')
 
       filteredItems.sort(itemSort)
@@ -97,7 +121,6 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
       // logDebug('useSectionSortAndFilter', `after reordering children: ${String(orderedFilteredItems.map(fi => fi.ID).join(','))}`)
 
       // If more than limitToApply items, then just keep the first 'maxItemsToShowInSection' items, otherwise keep all
-      const limitToApply = memoizedDashboardSettings.maxItemsToShowInSection ?? 20
       const itemsToShow = limitToApply > 0 ? orderedFilteredItems.slice(0, limitToApply) : orderedFilteredItems.slice()
       // TEST: not picking up for PRIORITY
       // Requirement thinking, with example numbers:
@@ -135,7 +158,22 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
     }
   }, [section, memoizedItems, memoizedDashboardSettings])
 
-  return { filteredItems, itemsToShow, numFilteredOut, limitApplied }
+  return { filteredItems, itemsToShow, numFilteredOut, limitApplied, maxPrioritySeenInThisSection }
+}
+
+//----------------------------------------------------------------------
+// Supporting Functions
+//----------------------------------------------------------------------
+
+function getMaxPriorityInItems(items: Array<TSectionItem>): number {
+  let maxPrioritySeenInThisSection = -1
+  for (const i of items) {
+    if (i.para?.priority && i.para.priority > maxPrioritySeenInThisSection) {
+      maxPrioritySeenInThisSection = i.para.priority
+      logInfo('useSectionSortAndFilter', `- raised max priority to ${String(maxPrioritySeenInThisSection)}`)
+    }
+  }
+  return maxPrioritySeenInThisSection
 }
 
 // sort items by itemType, priority, startTime, endTime

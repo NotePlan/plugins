@@ -532,6 +532,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     },
     totalDoneCount: 0,
     firstRun: true,
+    currentMaxPriorityFromAllVisibleSections: 0,
   }
   logDebug('getPluginData', `After forming initial pluginData, firstRun = false`)
 

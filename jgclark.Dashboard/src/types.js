@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-08-26 for v2.3.0.b8, @jgclark
+// Last updated 2025-09-04 for v2.3.0.b10, @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -187,7 +187,7 @@ export type TParagraphForDashboard = {
   rawContent: string,
   indents: number, // indent level (i.e. children will be 1+)
   lineIndex: number, // needed for child ordering processing
-  priority: number,
+  priority: number, // -1, 1 to 4
   blockId?: string,
   startTime?: string, // this is still definitely used to style time blocks
   endTime?: string,
@@ -392,7 +392,8 @@ export type TPluginData = {
   },
   demoMode: boolean /* use fake content for demo/test purposes */,
   totalDoneCount?: number,
-  startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands*/,
+  startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands */,
+  currentMaxPriorityFromAllVisibleSections: number, /* the highest priority seen in the current section (to help display filtering) */
 }
 
 /**

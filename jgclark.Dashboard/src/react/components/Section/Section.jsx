@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2025-05-23 for v2.3.0.b3
+// Last updated 2025-09-05 for v2.3.0.b10
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -49,6 +49,9 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // ---------------------------------------------------------------------
   const { sectionFilename, totalCount } = section
   const isReferencedSection = section.isReferenced ?? false
+
+  // FIXME: always 0
+  const currentMaxPriorityFromAllVisibleSections = pluginData.currentMaxPriorityFromAllVisibleSections
 
   //----------------------------------------------------------------------
   // Effects
@@ -153,11 +156,26 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
 
   // Note: this is where the display filtering/sorting/limiting happens.
-  const { itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
+  const { filteredItems, itemsToShow, numFilteredOut, limitApplied, maxPrioritySeenInThisSection } =
+    useSectionSortAndFilter(section, items, dashboardSettings, currentMaxPriorityFromAllVisibleSections)
 
+  if (maxPrioritySeenInThisSection > currentMaxPriorityFromAllVisibleSections) {
+    // TODO: not yet being called, because of issues above
+    const newCurrentMaxPriorityFromAllVisibleSections = maxPrioritySeenInThisSection
+    logInfo('Section', `Section ${section.sectionCode} set currentMaxPriorityFromAllVisibleSections to ${maxPrioritySeenInThisSection}`)
+    // TEST: 
+    setReactSettings((prevSettings) => ({
+      ...prevSettings,
+      pluginData: {
+        ...prevSettings.pluginData,
+        currentMaxPriorityFromAllVisibleSections: newCurrentMaxPriorityFromAllVisibleSections,
+      },
+    }))
+  }
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
+
   // handle a click to start interactive processing
   const handleInteractiveProcessingClick = useCallback(
     (e: MouseEvent): void => {
@@ -181,6 +199,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     onButtonClick(button)
   }
 
+  // handle a clicking on the section title -> open the note in Editor if it has an associated filename
   const handleSectionClick = (e: MouseEvent): void => {
     if (!sectionFilename) return
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
@@ -189,7 +208,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   }
 
   //----------------------------------------------------------------------
-  // Render
+  // Calculate values to use for rendering
   //----------------------------------------------------------------------
 
   // $FlowIgnore[invalid-computed-prop]
@@ -299,12 +318,15 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     </div>) : null
 
   // Decide whether to show interactiveProcessing button
+  // Note: don't show IP button if there are no items to show, or if the first item is a single item type that we don't want to count (e.g. 'Nothing left on this list')
   // TODO(later): enable again for PROJ
   const showIPButton =
     dashboardSettings.enableInteractiveProcessing &&
-    numItemsToShow > 1 &&
-    !treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType) &&
-    interactiveProcessingPossibleSectionTypes.includes(section.sectionCode)
+    interactiveProcessingPossibleSectionTypes.includes(section.sectionCode) &&
+    (numItemsToShow > 1) &&
+    // TODO: use this next line instead if we want to pass all items to interactive processing, not just the [possibly filtered] numItemsToShow
+    // (numItemsToShow > 1 || (numItemsToShow === 1 && numFilteredOut > 0)) &&
+    !treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)
 
   // TB section can show up blank, without this extra check
   if (itemsToShow.length === 0) {
@@ -365,6 +387,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
               <i className="fa-regular fa-angles-right"></i>
               <span className="interactiveProcessingNumber" style={{ fontWeight: 500, paddingLeft: '3px' }}>
                 {numItemsToShow}
+                {/* Note: use this instead of above if we want to pass all items to interactive processing, not just the [possibly filtered] numItemsToShow */}
+                {/* {numItemsToShow + numFilteredOut} */}
               </span>
             </button>
             // </>
