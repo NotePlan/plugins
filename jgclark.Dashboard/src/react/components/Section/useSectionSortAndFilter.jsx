@@ -119,8 +119,19 @@ const useSectionSortAndFilter = (
 
       // TODO: but how do we downgrade this after it has been raised?
       // Hopefully by re-setting at start of refresh calls
-      const filteredItems =
-        filterByPriority && !showAllTasks ? typeWantedItems.filter((f) => (f.para?.priority ?? 0) >= currentMaxPriorityFromAllVisibleSections) : typeWantedItems.slice()
+      const filteredItems = (() => {
+        if (!filterByPriority || showAllTasks) {
+          return typeWantedItems.slice()
+        }
+
+        // If priority filtering is enabled but there are no priority items, show nothing
+        if (currentMaxPriorityFromAllVisibleSections === -1) {
+          return []
+        }
+
+        // Filter items that have priority >= currentMaxPriorityFromAllVisibleSections
+        return typeWantedItems.filter((f) => (f.para?.priority ?? 0) >= currentMaxPriorityFromAllVisibleSections)
+      })()
       const priorityFilteringHappening = memoizedItems.length > filteredItems.length
       logInfo(
         'useSectionSortAndFilter',
@@ -198,6 +209,26 @@ function getMaxPriorityInItems(items: Array<TSectionItem>): number {
     }
   }
   return maxPrioritySeenInThisSection
+}
+
+/**
+ * Calculate the maximum priority across all visible sections
+ * @param {Array<TSection>} sections - All sections to check
+ * @returns {number} The maximum priority found across all sections, or -1 if no items have priority
+ */
+export function calculateMaxPriorityAcrossAllSections(sections: Array<TSection>): number {
+  let globalMaxPriority = -1
+
+  sections.forEach((section) => {
+    if (section.sectionItems && section.sectionItems.length > 0) {
+      const sectionMaxPriority = getMaxPriorityInItems(section.sectionItems)
+      if (sectionMaxPriority > globalMaxPriority) {
+        globalMaxPriority = sectionMaxPriority
+      }
+    }
+  })
+
+  return globalMaxPriority
 }
 
 // sort items by itemType, priority, startTime, endTime
