@@ -3,7 +3,7 @@
 This plugin provides commands to help tidy up your notes:
 
 - **/File root-level notes** (alias "frnl"): For each root-level note, asks which folder you'd like it moved to, including the option of creating a new folder. (There's a setting for ones to permanently ignore.)
-- **/Generate @repeats in recent notes** (alias "grrn"): Generates any needed new @repeat() lines in all recently-changed notes. This is only useful for people using the extended @repeat() syntax of the separate [Repeat Extensions plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.RepeatExtensions/README.md).  This means you don't have to add the special trigger on every relevant note: instead you can include this command in your Daily Note template, or run it manually every day or two.
+- **/Generate @repeats in recent notes** (alias "grrn"): Generates any needed new @repeat() lines in all recently-changed notes. This is only useful for people using the extended @repeat() syntax of the separate [Repeat Extensions plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.RepeatExtensions/README.md).  This means you don't have to add the special trigger on every relevant note: instead you can include this command in your Daily Note template, or run it manually every day or two. Please see [extra details below](#details-on-generate-repeats-in-recent-notes).
 - **/List conflicted notes** (alias "conflicts"): creates/updates a note that lists all your notes on your current device with file-level conflicts, along with summary details about them. It gives options to delete one or other of the conflicted versions, or to open them side-by-side for easier comparison.
     ![](conflicted-notes-v0.13.0.png)
     (See more details below.)
@@ -29,6 +29,11 @@ There's also the **/Tidy Up** (alias "tua"), which runs as many of the other com
 (If these commands are useful to you, you'll probably find the [Note Helpers plugin](https://noteplan.co/plugins/jgclark.NoteHelpers) helpful too. It's rather arbitrary which commands live in which plugin.)
 
 [<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
+
+### Details on /Generate @repeats in recent notes
+This command works around a limitation of my separate  [Repeat Extensions plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.RepeatExtensions/README.md), because the NotePlan API doesn't fire a change trigger when a task is completed from a search result list or from the Reference area.
+
+This command catches any such completed repeats that haven't had the next repeat generated from them. It will work on all notes changed over the number of days you set the 'recently changed' setting to be.
 
 ### Details on /List conflicted notes
 Important notes:

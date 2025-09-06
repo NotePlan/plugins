@@ -252,6 +252,21 @@
   "plugin.settings": [
     {
       "type": "heading",
+      "title": "Recently changed notes"
+    },
+    {
+      "title": "How many days count as recent?",
+      "key": "numDays",
+      "type": "number",
+      "description": "The number of days to look back for 'recently changed' notes in many of the commands in this plugin. If this is 0 or empty, then all notes will be checked.",
+      "default": 7,
+      "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
       "title": "'/File root-level notes' command settings"
     },
     {
@@ -323,18 +338,6 @@
     },
     {
       "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "'/Remove ... from recent ...' command settings"
-    },
-    {
-      "title": "How many days count as recent?",
-      "key": "numDays",
-      "type": "number",
-      "description": "The number of days to look back for 'recently changed' notes. If this is 0 or empty, then all notes will be checked.",
-      "default": 7,
-      "required": false
     },
     {
       "key": "removeFoldersToExclude",
