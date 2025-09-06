@@ -1,5 +1,5 @@
 {
-  "noteplan.minAppVersion": "3.0.23",
+  "noteplan.minAppVersion": "3.15.0",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.RepeatExtensions",
   "plugin.name": "🔁 @repeat Extensions",
@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/",
-  "plugin.version": "0.9.2",
-  "plugin.lastUpdateInfo": "v0.9.2: TODO: Add task sorting option.\nv0.9.1: improvements to handling repeats on tasks with sync markers (the blue asterisks). See documentation for more details.\nv0.9.0: new setting 'Don't look for repeats in Done or Archive note sections?'.\nv0.8.2: suppressed warning on delete of completed repeat line (requires NP v3.15 beta).\nv0.8.1: fixed bug and improved logging.\nv0.8.0: new setting 'Delete completed item?'.\nv0.7.1: Support for new Tidy plugin command.\nv0.7.0: Smarter calculation on missing dueDate. Fix to monthly repeats in monthly notes.",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "v1.0.0: Add ability to sort section after a repeat has been generated in it.\nv0.9.1: improvements to handling repeats on tasks with sync markers (the blue asterisks). See documentation for more details.\nv0.9.0: new setting 'Don't look for repeats in Done or Archive note sections?'.\nv0.8.2: suppressed warning on delete of completed repeat line (requires NP v3.15 beta).\nv0.8.1: fixed bug and improved logging.\nv0.8.0: new setting 'Delete completed item?'.\nv0.7.1: Support for new Tidy plugin command.\nv0.7.0: Smarter calculation on missing dueDate. Fix to monthly repeats in monthly notes.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -41,12 +41,8 @@
   ],
   "plugin.settings": [
     {
-      "key": "deleteCompletedRepeat",
-      "title": "Delete completed item?",
-      "description": "If set, it will delete rather than keep the completed repeated item.",
-      "type": "bool",
-      "default": false,
-      "required": true
+      "type": "heading",
+      "title": "Settings for Repeat Extensions"
     },
     {
       "key": "dontLookForRepeatsInDoneOrArchive",
@@ -57,12 +53,28 @@
       "required": true
     },
     {
-      "key": "runTaskSorter",
-      "title": "Run Task Sorter after changes?",
-      "description": "If set, it will run the '/Tasks Sort by User Default' command (from 'Task Sorting & Tools' plugin) after generating repeats.",
+      "key": "deleteCompletedRepeat",
+      "title": "Delete completed item?",
+      "description": "If set, it will delete rather than keep the completed repeated item.",
       "type": "bool",
       "default": false,
       "required": true
+    },
+    {
+      "key": "runTaskSorter",
+      "title": "Run Task Sorter after changes?",
+      "description": "If set, it will sort the lines in the section after a repeat has been generated in it. The ordering is controlled by the next setting.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "taskSortingOrder",
+      "title": "Order for Task Sorting",
+      "description": "Comma-separated list of fields to sort by, after generating repeats. This is only used if the 'Run Task Sorter after changes?' setting is set.\nThe choices are any combination of 'content', 'due' (date), 'priority', 'mentions', 'hashtags'. Each field can be preceded by a minus sign to sort in reverse order. This is most useful for '-priority' which will sort from highest to lowest.",
+      "type": "string",
+      "default": "due, -priority, content",
+      "required": false
     },
     {
       "type": "heading",

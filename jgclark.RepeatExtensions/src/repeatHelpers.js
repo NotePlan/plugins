@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Repeat Extensions plugin.
 // Jonathan Clark
-// last updated 2025-01-27, for v0.9.0
+// last updated 2025-09-06, for v1.0.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -38,6 +38,7 @@ export type RepeatConfig = {
   dontLookForRepeatsInDoneOrArchive: boolean,
   // allowRepeatsInCancelledParas: boolean,
   runTaskSorter: boolean,
+  taskSortingOrder: string,
   _logLevel: string,
 }
 
