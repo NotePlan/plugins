@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.14.10] - 2025-09-03 @jgclark
+- fix regression in '/Generate @repeats from recent notes' command.
+
 ## [0.14.9] - 2025-08-30 @jgclark
 - rebuild to use updated code from Repeat Extensions plugin in **/Generate @repeats in recent notes** command
 - update **/Remove blank notes** to gracefully handle Teamspace notes, which can't be removed (at this time).

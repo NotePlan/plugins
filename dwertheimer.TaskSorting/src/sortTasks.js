@@ -753,12 +753,12 @@ export async function sortTasksUnderHeading(_heading: string, _sortOrder: string
 
     if (heading && noteToUse) {
       const block = getBlockUnderHeading(noteToUse, heading)
-      clo(block, `sortTasksUnderHeading block`)
+      // clo(block, `sortTasksUnderHeading block`)
       if (block?.length) {
         // clo(sortOrder, `sortTasksUnderHeading sortOrder`)
         if (sortOrder) {
           const sortedTasks = sortParagraphsByType(block, sortOrder)
-          clo(sortedTasks, `sortTasksUnderHeading sortedTasks`)
+          // clo(sortedTasks, `sortTasksUnderHeading sortedTasks`)
           // const printHeadings = (await wantHeadings()) || false
           // const printSubHeadings = (await wantSubHeadings()) || false
           // const sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]

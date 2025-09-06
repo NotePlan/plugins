@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-08-29, for v0.9.1
+// last updated 2025-09-06, for v1.0.0
 //-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -43,7 +43,7 @@ export async function generateRepeatForPara(
   config: RepeatConfig
 ): Promise<TParagraph | null> {
   try {
-    logDebug('generateRepeatForPara', `Starting for "${origPara.content}" in ${noteToUse.filename}. noteIsOpenInEditor: ${String(noteIsOpenInEditor)}`)
+    // logDebug('generateRepeatForPara', `Starting for "${origPara.content}" in ${noteToUse.filename}. noteIsOpenInEditor: ${String(noteIsOpenInEditor)}`)
     const line = origPara.content ?? ''
     let lineWithoutDoneTime = ''
     let completedDate = ''
@@ -142,6 +142,7 @@ export async function generateRepeatForPara(
     }
 
     // Delete the completed item (if wanted)
+    // Note: next line uses API introduced in NP 3.15 build 1284/1230
     Editor.skipNextRepeatDeletionCheck = true
     if (config.deleteCompletedRepeat) {
       if (noteIsOpenInEditor) {
