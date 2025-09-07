@@ -12,6 +12,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import moment from 'moment/min/moment-with-locales'
 import type { TSection, TSectionItem } from '../../../types.js'
+import { treatSingleItemTypesAsZeroItems } from '../../../constants.js'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev'
 import { getStartTimeStrFromParaContent, getEndTimeStrFromParaContent } from '@helpers/timeblocks'
 
@@ -112,8 +113,13 @@ const useSectionSortAndFilter = (
         totalCountToUse = totalCountToUse - (memoizedItems.length - typeWantedItems.length)
       }
 
+      // Separate special message types from regular task items
+      const specialMessageItems = typeWantedItems.filter((item) => treatSingleItemTypesAsZeroItems.includes(item.itemType))
+      const regularTaskItems = typeWantedItems.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType))
+
       // Find highest priority seen (globally), and then filter out lower-priority items (if wanted)
-      const newCalculatedMaxPriority = getMaxPriorityInItems(typeWantedItems)
+      // Only calculate max priority from regular task items, not special message types
+      const newCalculatedMaxPriority = getMaxPriorityInItems(regularTaskItems)
       logDebug('useSectionSortAndFilter', `Section ${section.sectionCode} calculated max priority: ${newCalculatedMaxPriority}`)
       setCalculatedMaxPriority(newCalculatedMaxPriority)
 
@@ -124,13 +130,15 @@ const useSectionSortAndFilter = (
           return typeWantedItems.slice()
         }
 
-        // If priority filtering is enabled but there are no priority items, show nothing
+        // If priority filtering is enabled but there are no priority items, show only special message items
         if (currentMaxPriorityFromAllVisibleSections === -1) {
-          return []
+          return specialMessageItems
         }
 
-        // Filter items that have priority >= currentMaxPriorityFromAllVisibleSections
-        return typeWantedItems.filter((f) => (f.para?.priority ?? 0) >= currentMaxPriorityFromAllVisibleSections)
+        // Filter regular task items that have priority >= currentMaxPriorityFromAllVisibleSections
+        // Always include special message items
+        const filteredRegularItems = regularTaskItems.filter((f) => (f.para?.priority ?? 0) >= currentMaxPriorityFromAllVisibleSections)
+        return ([]: Array<TSectionItem>).concat(specialMessageItems, filteredRegularItems)
       })()
       const priorityFilteringHappening = memoizedItems.length > filteredItems.length
       logDebug(
@@ -203,6 +211,10 @@ const useSectionSortAndFilter = (
 function getMaxPriorityInItems(items: Array<TSectionItem>): number {
   let maxPrioritySeenInThisSection = -1
   for (const i of items) {
+    // Skip special message types when calculating max priority
+    if (treatSingleItemTypesAsZeroItems.includes(i.itemType)) {
+      continue
+    }
     if (i.para?.priority && i.para.priority > maxPrioritySeenInThisSection) {
       maxPrioritySeenInThisSection = i.para.priority
       logDebug('useSectionSortAndFilter', `- raised max priority to ${String(maxPrioritySeenInThisSection)}`)
