@@ -2,16 +2,15 @@
 //-----------------------------------------------------------------------
 // Main functions for Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-08-30, for v0.9.2
+// last updated 2025-09-06, for v1.0.0
 //-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import {
-  getRepeatSettings,
-  RE_EXTENDED_REPEAT,
-  type RepeatConfig,
-} from './repeatHelpers'
+import { sortTasksUnderHeading } from '../../dwertheimer.TaskSorting/src/sortTasks.js'
+import {  getRepeatSettings, RE_EXTENDED_REPEAT } from './repeatHelpers'
+import type { RepeatConfig} from './repeatHelpers'
 import { generateRepeatForPara } from './repeatPara'
+import { stringListOrArrayToArray } from "@helpers/dataManipulation"
 import { clo, JSP, logDebug, logInfo, logWarn, logError } from "@helpers/dev"
 import { logAllEnvironmentSettings } from "@helpers/NPdev"
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
@@ -85,6 +84,7 @@ export async function generateRepeats(
       const content = origPara.content
       // Test if this is a special extended repeat
       if (content.match(RE_EXTENDED_REPEAT)) {
+        // $FlowIgnore[prop-missing]
         const newPara = await generateRepeatForPara(origPara, noteToUse, noteIsOpenInEditor, config)
 
         if (newPara) {
@@ -109,30 +109,32 @@ export async function generateRepeats(
     logInfo('generateRepeats', `${String(repeatCount)} new repeats were generated`)
 
     // Run task sorter if its installed, and we want it, and we are working in the Editor
-    if (config.runTaskSorter && DataStore.isPluginInstalledByID('dwertheimer.TaskSorting')) {
-      if (noteIsOpenInEditor) {
-        // Attempt to update the cache, so that the task sorter can find the new repeats. Note: it doesn't seem to make a difference.
-        // Note: using noteToUse instead of Editor.note generates an Objective-C error.
-        // $FlowIgnore[incompatible-call] checked Editor.note is not null
-        const res = DataStore.updateCache(Editor.note, false)
-        const sortFields = ["due", "-priority", "content"]
+    if (config.runTaskSorter) {
+      if (DataStore.isPluginInstalledByID('dwertheimer.TaskSorting')) {
+        if (noteIsOpenInEditor) {
+          // Attempt to update the cache, so that the task sorter can find the new repeats. Note: it doesn't seem to make a difference.
+          // Note: using noteToUse instead of Editor.note generates an Objective-C error.
+          // $FlowIgnore[incompatible-call] checked Editor.note is not null
+          const res = DataStore.updateCache(Editor.note, false)
+          const sortFields = config.taskSortingOrder
+            ? stringListOrArrayToArray(config.taskSortingOrder, ',')
+            : ["due", "-priority", "content"]
 
-        logInfo('generateRepeats', `Will sort tasks according to user defaults from Task Sorting plugin`)
-        // For each changed section, sort the tasks under that heading.
-        // FIXME: this is running but not making any changes either.
-        for (const heading of headingList) {
-          logInfo('generateRepeats', `Sorting tasks under heading ${heading} ...`)
-          await DataStore.invokePluginCommandByName('Sort tasks under heading (choose)', 'dwertheimer.TaskSorting', [heading, sortFields])
-        }
+          logInfo('generateRepeats', `Will sort tasks according to user defaults from Task Sorting plugin`)
+          // For each changed section, sort the tasks under that heading.
+          for (const heading of headingList) {
+            logInfo('generateRepeats', `Sorting tasks under heading ${heading} ...`)
+            // await DataStore.invokePluginCommandByName('Sort tasks under heading (choose)', 'dwertheimer.TaskSorting', [heading, sortFields, noteToUse])
+            await sortTasksUnderHeading(heading, sortFields, noteToUse)
+          }
 
-        // For now, try sorting the whole note.
-        // FIXME: this is running but not making any changes either.
-        // logInfo('generateRepeats', `Sorting tasks on the page ...`)
-        // await DataStore.invokePluginCommandByName('Sort tasks on the page', 'dwertheimer.TaskSorting', [false, sortFields, false, false])
-
+      
       } else {
         logDebug('generateRepeats', `Task sorter plugin is installed, but we are not working in the Editor, so can't run it`)
       }
+      } else {
+        logError('generateRepeats', `Task Sorting plugin is not installed, so can't run it`)
+        }
     }
     return repeatCount
   } catch (error) {

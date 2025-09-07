@@ -13,6 +13,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.3.0.b10] 2025-09-???
 ### Changed
 - When the "filter out lower-priority items" is on, this now calculated across all sections, not just each one independently. The label that says there are hidden items now includes "(click to show all)" text to make it clearer how to turn off the filter for that section.
+### Fixed
+- the done count not including items from project notes
 
 ## [2.3.0.b9] 2025-09-01
 ### Changes

@@ -1,7 +1,12 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
-<!-- - FIXME: new setting "Run Task Sorter after changes?", which use the 'Task Sorting & Tools' Plugin command to sort tasks after generating repeats, using the user's default sort order (set in that plugin's settings). -->
+## [1.0.0] - 2025-09-06
+New feature: can now sort the section after a repeat has been generated in it. There are 2 new settings:
+1.  "Run Task Sorter after changes?". If set, it will sort the lines in the section after a repeat has been generated in it. The ordering is controlled by the next setting.
+2. "Order for Task Sorting". This is a comma-separated list of fields to sort the section by, after generating repeats. The choices are any combination of 'content', 'due' (date), 'priority', 'mentions', 'hashtags'. Each field can be preceded by a minus sign to sort in reverse order. This is most useful for '-priority' which will sort from highest to lowest.
+Note: This requires @dwertheimer's 'Task Sorting & Tools' Plugin to be installed.
+
 ## [0.9.1] - 2025-08-29
 ### Changed
 - to avoid issues, any sync marker (the blue asterisk) on the completed task is not included on the new version of the task. (Thanks, @LauraH + @i_mush. Addresses [#672](https://github.com/NotePlan/plugins/issues/672).)

@@ -8,7 +8,7 @@
 
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getDisplayListOfSectionCodes, getNotePlanSettings, handlerResult, mergeSections, setPluginData } from './dashboardHelpers'
+import { getDashboardSettings, getDisplayListOfSectionCodes, getNotePlanSettings, handlerResult, mergeSections, setPluginData } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData } from './types'
@@ -57,7 +57,8 @@ export async function refreshAllSections(): Promise<void> {
     //   totalDoneCounts: totalDoneCounts,
     // }
     // V2 method
-    const totalDoneCount = updateDoneCountsFromChangedNotes(`end of refreshAllSections()`)
+    const config: any = await getDashboardSettings()
+    const totalDoneCount = await updateDoneCountsFromChangedNotes(`end of refreshAllSections()`, config.FFlag_ShowSectionTimings === true)
     const changedData = {
       totalDoneCount: totalDoneCount,
     }
@@ -113,7 +114,8 @@ export async function incrementallyRefreshSomeSections(
     const NPSettings = await getNotePlanSettings()
     if (NPSettings.doneDatesAvailable) {
       const startTime = new Date()
-      const totalDoneCount = updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSomeSections (for [${sectionCodes.join(',')}])`)
+      const config: any = await getDashboardSettings()
+      const totalDoneCount = await updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSomeSections (for [${sectionCodes.join(',')}])`, config.FFlag_ShowSectionTimings === true)
       const changedData = {
         totalDoneCount: totalDoneCount,
       }

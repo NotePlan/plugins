@@ -370,12 +370,12 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     let creg = 0
     logDebug('generateTagMentionCache', `- Processing ${allRegularNotes.length} regular notes ...`)
     for (const note of allRegularNotes) {
-      if (note.filename.includes('CCC Projects')) logInfo('generateTagMentionCache', `- Processing ${note.filename}`)
+      // logInfo('generateTagMentionCache', `- Processing ${note.filename}`)
       // Then get wanted/all tags and mentions, and add them
       let foundItems: Array<string> = []
       if (TAG_CACHE_FOR_ALL_TAGS) {
         foundItems = getWantedTagOrMentionListFromNote(note, [], EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
-        if (note.filename.includes('CCC Projects')) logDebug('generateTagMentionCache', `  - ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
+        // logDebug('generateTagMentionCache', `  - ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
       } else {
         foundItems = getWantedTagOrMentionListFromNote(note, wantedItems, EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
       }

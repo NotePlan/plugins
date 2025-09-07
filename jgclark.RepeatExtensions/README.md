@@ -11,48 +11,9 @@ Here are some examples:
 | every 2 weeks | `* put out recycling @repeat(2w)` | `* put out recycling @repeat(2w) >2021-07-15` <br /> `* [x] put out recycling @repeat(2w) @done(2021-07-01)` |
 | 2 months after last done | `* top up washer fluid @repeat(+2m)` | `* top up washer fluid @repeat(+2m) >2023-09-04` <br /> `* [x] top up washer fluid @repeat(+2m) @done(2023-07-04)` |
 
-See below for more details.
-
 Compared with the built-in functionality, it also allows you to easily change the text of a repeated task, which otherwise means visiting all the future notes with repeats.
 
-### Special handling on sync'd tasks (from v0.9.1)
-To avoid issues, any sync marker (the blue asterisk) are _not_ carried forward from the completed task to the new version of the task. (But, as expected, both sync'd versions of the original task will show as complete.)  
-
-Additionally if a task is sync'd from a regular/project note to a calendar note, the new version of the repeat will always be created in the regular/project note, _even if it is completed in the calendar note_.
-
-## Configuration
-For this feature to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
-
-Note: because NotePlan never appends the completion date to completed **checklists**, this plugin cannot be used to generate repeats from checklists.
-
-There are some settings in the Plugin Settings pane for this plugin:
-- 'Delete completed item?', which deletes the completed repeated item (on either done or cancelled tasks).
-- Don't look for repeats in Done or Archive note sections? If set, it will not look for repeats in the ## Done or ## Archive sections of notes.
-<!-- - Run Task Sorter after changes? If set, it will run the '/Tasks Sort by User Default' command (from 'Task Sorting & Tools' plugin) after generating repeats, using the user's default sort order (set in that plugin's settings). -->
-<!-- - Allow repeats in cancelled paragraphs? If set, it will allow repeats in cancelled tasks. Note: this only works in notes with the repeat trigger (see below). -->
-
-## Running it Automatically
-From NotePlan v3.7.2, this plugin can **automatically generate** the new repeated task after you complete an existing one. Here's an example (from v0.5) where it will repeat 6 weeks after completion:
-
-<img src="repeat-auto-mode.gif" width="500px">
-
-This requires adding the following [trigger line](https://help.noteplan.co/article/173-plugin-note-triggers) to the frontmatter at the start of _every note_ you wish to automate in this way:
-``` yaml
----
-title: <<the note's title on this line, instead of a markdown H1 title>>
-triggers: onEditorWillSave => jgclark.RepeatExtensions.onEditorWillSave
----
-```
-Tip: This is most easily done by using the **/add trigger to note** command from my [Note Helpers plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
-
-Alternatively, the separate [Tidy Up plugin](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) has a **/Generate @repeats in recent notes** command, which runs over all recently-changed notes, generating any new @repeats that are required. It does _not_ require triggers to be in place.
-
-## Running it Manually
-On the _currently open note_, open the command bar and type the **/generate repeats** command.
-- When run on a _Project note_, it creates the new repeated task straight before the completed task.
-- When run on a _Calendar note_, it creates the new repeated task on the date of the new repeat. This uses the same calendar note type: so a repeat in a weekly note will go to the appropriate weekly note, etc.
-
-## Specifiying the Intervals
+### Specifiying the Intervals
 The time intervals have two parts: number and then a character. The **character** is one of:
 - `b` or `B`: business days (ignore weekends, but doesn't ignore public holidays, as they're different for each country)
 - `d` or `D`: days
@@ -71,6 +32,45 @@ From v0.6 you can specify scheduled dates to all the other calendar note types s
 - yearly (e.g. `>2023`)
 
 The resulting repeat lines will also be specified using that same note type, and will write to the appropriate new calendar note (unless it came from a project note, in which case it will stay in the same project note).
+
+### Special handling on sync'd tasks (from v0.9.1)
+To avoid issues, any sync marker (the blue asterisk) are _not_ carried forward from the completed task to the new version of the task. (But, as expected, both sync'd versions of the original task will show as complete.)  
+
+Additionally if a task is sync'd from a regular/project note to a calendar note, the new version of the repeat will always be created in the regular/project note, _even if it is completed in the calendar note_.
+
+## Configuration
+For this feature to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
+
+Note: because NotePlan never appends the completion date to completed **checklists**, this plugin cannot be used to generate repeats from checklists.
+
+There are some settings in the Plugin Settings pane for this plugin:
+- 'Delete completed item?', which deletes the completed repeated item (on either done or cancelled tasks).
+- Don't look for repeats in Done or Archive note sections? If set, it will not look for repeats in the ## Done or ## Archive sections of notes.
+- Run Task Sorter after changes? If set, it will sort the lines in the section after a repeat has been generated in it. The ordering is controlled by the next setting.
+- Order for Task Sorting: Comma-separated list of fields to sort by, after generating repeats. This is only used if the 'Run Task Sorter after changes?' setting is set.
+    The choices are any combination of 'content', 'due' (date), 'priority', 'mentions', 'hashtags'. Each field can be preceded by a minus sign to sort in reverse order. This is most useful for '-priority' which will sort from highest to lowest.
+<!-- - Allow repeats in cancelled paragraphs? If set, it will allow repeats in cancelled tasks. Note: this only works in notes with the repeat trigger (see below). -->
+
+## Running it Manually
+On the _currently open note_, open the command bar and type the **/generate repeats** command.
+- When run on a _Project note_, it creates the new repeated task straight before the completed task.
+- When run on a _Calendar note_, it creates the new repeated task on the date of the new repeat. This uses the same calendar note type: so a repeat in a weekly note will go to the appropriate weekly note, etc.
+
+## Running it Automatically
+The plugin can **automatically generate** the new repeated task after you complete an existing one. Here's an example (from v0.5) where it will repeat 6 weeks after completion:
+
+<img src="repeat-auto-mode.gif" width="500px">
+
+This requires adding the following [trigger line](https://help.noteplan.co/article/173-plugin-note-triggers) to the frontmatter at the start of _every note_ you wish to automate in this way:
+``` yaml
+---
+title: <<the note's title on this line, instead of a markdown H1 title>>
+triggers: onEditorWillSave => jgclark.RepeatExtensions.onEditorWillSave
+---
+```
+Tip: This is most easily done by using the **/add trigger to note** command from my [Note Helpers plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
+
+Note: because the NotePlan API doesn't fire this trigger when a task is completed from a search result list or from the Reference area. (Please ask the app developer to remove this limitation.) To work around this, I've also created a command in my separate [Tidy Up plugin](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) called **/Generate @repeats in recent notes**. This runs over all recently-changed notes, generating any new @repeats that haven't yet been created. It does _not_ require triggers to be in place.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

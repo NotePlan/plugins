@@ -61,7 +61,7 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
     CommandBar.showLoading(true, `Finding completed @repeats`)
     await CommandBar.onAsyncThread()
 
-    // Find past calendar notes changed in the last numDays (or all if numDays === 0)
+    // Find past notes changed in the last numDays (or all if numDays === 0)
     // v2 method:
     const recentNotes = config.numDays > 0 ? getNotesChangedInInterval(config.numDays, ['Notes', 'Calendar']) : getAllNotesOfType(['Notes', 'Calendar'])
 

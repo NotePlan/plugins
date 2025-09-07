@@ -778,17 +778,17 @@ export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar
     if (noteTypesToInclude.length === 0) {
       throw new Error(`No note types given. Returning empty array.`)
     }
-    let allNotesToCheck: Array<TNote> = []
-    if (noteTypesToInclude === ['Calendar', 'Notes'] || noteTypesToInclude === ['Notes', 'Calendar']) {
-      allNotesToCheck = DataStore.calendarNotes.slice().concat(DataStore.projectNotes)
+    let notesToReturn: Array<TNote> = []
+    if (noteTypesToInclude.includes('Calendar') && noteTypesToInclude.includes('Notes')) {
+      notesToReturn = DataStore.calendarNotes.slice().concat(DataStore.projectNotes.slice())
     }
     else if (noteTypesToInclude.includes('Calendar')) {
-      allNotesToCheck = DataStore.calendarNotes.slice()
+      notesToReturn = DataStore.calendarNotes.slice()
     }
     else if (noteTypesToInclude.includes('Notes')) {
-      allNotesToCheck = DataStore.projectNotes.slice()
+      notesToReturn = DataStore.projectNotes.slice()
     }
-    return allNotesToCheck
+    return notesToReturn
   } catch (err) {
     logError('getAllNotesOfType', `${err.name}: ${err.message}`)
     return [] // for completeness
@@ -807,10 +807,10 @@ export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar
 export function getNotesChangedInInterval(numDays: number, noteTypesToInclude: Array<string> = ['Calendar', 'Notes']): Array<TNote> {
   try {
     const startTime = new Date()
-    // Note: This operations takes >700ms for JGC
+    // Note: This operation takes >1100ms for JGC
     // I have asked @EM to make suggestions for optimising this.
     const allNotesToCheck: Array<TNote> = getAllNotesOfType(noteTypesToInclude)
-    logTimer('getNotesChangedInInterval', startTime, `to get list of ${allNotesToCheck.length} notes to check`)
+    logTimer('getNotesChangedInInterval', startTime, `to get list of ${allNotesToCheck.length} ${String(noteTypesToInclude)} notes to check`)
 
     let matchingNotes: Array<TNote> = []
     const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
@@ -818,7 +818,6 @@ export function getNotesChangedInInterval(numDays: number, noteTypesToInclude: A
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
     matchingNotes = allNotesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
-    // Note: This operations takes 3ms for JGC
     logTimer('getNotesChangedInInterval', startTime,
       `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}:`,
     )
