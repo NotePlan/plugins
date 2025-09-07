@@ -208,7 +208,7 @@ export async function chooseNoteV2(
 // eslint-disable-next-line require-await
 export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): Promise<void> {
   try {
-    const note = (noteIn == null) ? Editor : noteIn
+    const note = (noteIn == null) ? Editor.note : noteIn
     if (!note) {
       logWarn('note/printNote()', `No valid note found. Stopping.`)
       return
@@ -226,19 +226,18 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     if (note.type === 'Notes') {
       const startOfActive = findStartOfActivePartOfNote(note)
       const endOfActive = findEndOfActivePartOfNote(note)
-      console.log(
-        `- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''
-        }\n- paragraphs: ${note.paragraphs.length} (Active part: ${String(startOfActive)}-${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''
-        }`,
-      )
+      console.log(`- # paragraphs: ${note.paragraphs.length} (Active part: ${String(startOfActive)} -${String(endOfActive)})`)
     } else {
       // Calendar note
       console.log(dt.getDateStringFromCalendarFilename(note.filename))
-      console.log(
-        `- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${note.paragraphs.length
-        }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
-      )
+      console.log(`- # paragraphs: ${note.paragraphs.length
+        }`)
     }
+    console.log(`- created: ${String(note.createdDate) ?? '(not set!)'}`)
+    console.log(`- changed: ${String(note.changedDate) ?? '(not set!'}`)
+    console.log(`- hashtags: ${note.hashtags?.join(', ') ?? '-'}`)
+    console.log(`- mentions: ${note.mentions?.join(', ') ?? '-'}`)
+
     // Get frontmatter details
     const FMAttribs = getFrontmatterAttributes(note)
     console.log(`- has ${Object.keys(FMAttribs).length} frontmatter keys: ${Object.keys(FMAttribs).join('\n    ')}`)
@@ -272,7 +271,7 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     }
 
     if (note.isTeamspaceNote) {
-      try { // without catch, so just continue
+      try {
         const p0 = note.paragraphs[0]
         console.log(`\nExtra Teamspace tests using p[0] {${p0.content}}:`)
         console.log(`- p0.note.type: ${String(p0.note?.type)}`)
@@ -892,6 +891,7 @@ export function findNotesMatchingHashtagOrMention(
   wantedParaTypes: Array<string> = [],
   folder: ?string,
   includeSubfolders?: boolean = true,
+  includeFr
 ): Array<TNote> {
   try {
     // Check for special conditions first
