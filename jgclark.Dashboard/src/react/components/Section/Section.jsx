@@ -54,7 +54,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   const currentMaxPriorityFromAllVisibleSections = pluginData.currentMaxPriorityFromAllVisibleSections
 
   // Debug: log the values we're getting
-  logInfo('Section', `Section ${section.sectionCode} render: currentMaxPriorityFromAllVisibleSections=${currentMaxPriorityFromAllVisibleSections}`)
+  logDebug('Section', `Section ${section.sectionCode} render: currentMaxPriorityFromAllVisibleSections=${currentMaxPriorityFromAllVisibleSections}`)
 
   //----------------------------------------------------------------------
   // Effects
@@ -67,7 +67,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     // This effect will run whenever currentMaxPriorityFromAllVisibleSections changes
     // The dependency on pluginData will trigger a re-render when updatePluginData is called
     // of this component, which will cause useSectionSortAndFilter to recalculate
-    logInfo('Section', `Section ${section.sectionCode} detected pluginData change, currentMaxPriorityFromAllVisibleSections=${currentMaxPriorityFromAllVisibleSections}`)
+    logDebug('Section', `Section ${section.sectionCode} detected pluginData change, currentMaxPriorityFromAllVisibleSections=${currentMaxPriorityFromAllVisibleSections}`)
   }, [pluginData, section.sectionCode])
   useEffect(() => {
     if (!section) {
@@ -179,7 +179,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   } = useSectionSortAndFilter(section, items, dashboardSettings, currentMaxPriorityFromAllVisibleSections)
 
   // Debug: log the values from useSectionSortAndFilter
-  logInfo('Section', `Section ${section.sectionCode} after useSectionSortAndFilter: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}`)
+  logDebug('Section', `Section ${section.sectionCode} after useSectionSortAndFilter: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}`)
 
   // Update global max priority when this section finds a higher priority
   useEffect(() => {
@@ -190,7 +190,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       } useEffect running: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}, currentMaxPriorityFromAllVisibleSections=${currentMaxPriorityFromAllVisibleSections}`,
     )
     if (maxPrioritySeenInThisSection > currentMaxPriorityFromAllVisibleSections) {
-      logInfo('Section', `Section ${section.sectionCode} found higher priority: ${maxPrioritySeenInThisSection} > ${currentMaxPriorityFromAllVisibleSections}, updating pluginData`)
+      logDebug('Section', `Section ${section.sectionCode} found higher priority: ${maxPrioritySeenInThisSection} > ${currentMaxPriorityFromAllVisibleSections}, updating pluginData`)
       updatePluginData(
         { ...pluginData, currentMaxPriorityFromAllVisibleSections: maxPrioritySeenInThisSection },
         `Section ${section.sectionCode} found higher priority: ${maxPrioritySeenInThisSection}`,

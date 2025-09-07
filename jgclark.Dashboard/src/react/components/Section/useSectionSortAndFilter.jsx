@@ -66,7 +66,7 @@ const useSectionSortAndFilter = (
   //----------------------------------------------------------------------
 
   useEffect(() => {
-    logInfo(
+    logDebug(
       'useSectionSortAndFilter',
       `Section ${section.sectionCode}${section.sectionCode === 'TAG' ? ` (${section.name})` : ''} useEffect running with ${memoizedItems.length} items`,
     )
@@ -114,7 +114,7 @@ const useSectionSortAndFilter = (
 
       // Find highest priority seen (globally), and then filter out lower-priority items (if wanted)
       const newCalculatedMaxPriority = getMaxPriorityInItems(typeWantedItems)
-      logInfo('useSectionSortAndFilter', `Section ${section.sectionCode} calculated max priority: ${newCalculatedMaxPriority}`)
+      logDebug('useSectionSortAndFilter', `Section ${section.sectionCode} calculated max priority: ${newCalculatedMaxPriority}`)
       setCalculatedMaxPriority(newCalculatedMaxPriority)
 
       // TODO: but how do we downgrade this after it has been raised?
@@ -133,7 +133,7 @@ const useSectionSortAndFilter = (
         return typeWantedItems.filter((f) => (f.para?.priority ?? 0) >= currentMaxPriorityFromAllVisibleSections)
       })()
       const priorityFilteringHappening = memoizedItems.length > filteredItems.length
-      logInfo(
+      logDebug(
         'useSectionSortAndFilter',
         `${section.sectionCode} ${section.name}: ${memoizedItems.length} items; currentMaxPriorityFromAllVisibleSections = ${String(
           currentMaxPriorityFromAllVisibleSections,
@@ -192,7 +192,7 @@ const useSectionSortAndFilter = (
     setShowAllTasks(!showAllTasks)
   }
 
-  logInfo('useSectionSortAndFilter', `Section ${section.sectionCode} returning maxPrioritySeenInThisSection: ${calculatedMaxPriority}`)
+  logDebug('useSectionSortAndFilter', `Section ${section.sectionCode} returning maxPrioritySeenInThisSection: ${calculatedMaxPriority}`)
   return { filteredItems, itemsToShow, numFilteredOut, limitApplied, maxPrioritySeenInThisSection: calculatedMaxPriority, toggleShowAllTasks }
 }
 
@@ -205,7 +205,7 @@ function getMaxPriorityInItems(items: Array<TSectionItem>): number {
   for (const i of items) {
     if (i.para?.priority && i.para.priority > maxPrioritySeenInThisSection) {
       maxPrioritySeenInThisSection = i.para.priority
-      logInfo('useSectionSortAndFilter', `- raised max priority to ${String(maxPrioritySeenInThisSection)}`)
+      logDebug('useSectionSortAndFilter', `- raised max priority to ${String(maxPrioritySeenInThisSection)}`)
     }
   }
   return maxPrioritySeenInThisSection
