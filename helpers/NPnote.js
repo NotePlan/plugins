@@ -12,7 +12,7 @@ import { getFolderDisplayName, getFolderFromFilename, getRegularNotesInFolder } 
 import { displayTitle, isValidUUID } from '@helpers/general'
 import { calendarNotesSortedByChanged,noteType } from '@helpers/note'
 import { displayTitleWithRelDate, getDateStrFromRelativeDateString, getRelativeDates } from '@helpers/NPdateTime'
-import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes } from '@helpers/NPFrontMatter'
+import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes, getFrontmatterAttribute } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
@@ -219,6 +219,7 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     if (note.isTeamspaceNote) {
       // $FlowIgnore[incompatible-type]
       console.log(`- 🧑‍🤝‍🧑 teamspace: ${note.teamspaceTitle} (id ${note.teamspaceID})\n- filename ${note.filename}`)
+      console.log(`- resolvedFilename: ${note.resolvedFilename}`)
     } else {
       console.log(`- Private note\n- filename ${note.filename}`)
     }
@@ -878,8 +879,9 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
  * @param {boolean} excludeSpecialFolders? - whether to ignore regular notes in special folders, i.e. those starting with '@', including @Templates, @Archive and @Trash (optional, defaults to true)
  * @param {Array<string>} itemsToExclude - optional list of tags/mentions that if found in the note, excludes the note
  * @param {Array<string>?} wantedParaTypes - optional list of paragraph types to include (default is all)
- * @param {string?} folder - optional folder to limit to
+ * @param {string?} folder - optional folder to limit to. If empty, will search all folders.
  * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to true)
+ * @param {boolean?} includeInFrontmatterValues? - whether to include instances in frontmatter values (optional, defaults to true)
  * @return {Array<TNote>}
  */
 export function findNotesMatchingHashtagOrMention(
@@ -891,7 +893,7 @@ export function findNotesMatchingHashtagOrMention(
   wantedParaTypes: Array<string> = [],
   folder: ?string,
   includeSubfolders?: boolean = true,
-  includeFr
+  includeInFrontmatterValues?: boolean = false,
 ): Array<TNote> {
   try {
     // Check for special conditions first
@@ -958,13 +960,13 @@ export function findNotesMatchingHashtagOrMention(
       return []
     }
     logDebug('NPnote/findNotesMatchingHashtagOrMention', `In folder '${folder ?? '<all>'}' found ${notesWithItem.length} notes matching '${item}'`)
-    logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(notesWithItem.map((n) => n.title))}`)
+    // logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(notesWithItem.map((n) => n.title))}`)
 
     // Restrict to certain para types, if wanted
     if (wantedParaTypes.length > 0) {
-      notesWithItem = notesWithItem.filter((n) => filterTagsOrMentionsInNoteByWantedParaTypes(n, [item], wantedParaTypes).length > 0)
+      notesWithItem = notesWithItem.filter((n) => filterTagsOrMentionsInNoteByWantedParaTypes(n, [item], wantedParaTypes, includeInFrontmatterValues).length > 0)
       logDebug('NPnote/findNotesMatchingHashtagOrMention', `After filtering to only include notes with wanted para types [${String(wantedParaTypes)}] -> ${String(notesWithItem.length)} notes`)
-      logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(notesWithItem.map((n) => n.title))}`)
+      // logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(notesWithItem.map((n) => n.title))}`)
     }
 
     // If we have 'itemsToExclude' then further filter out notes with these items
@@ -991,24 +993,32 @@ export function findNotesMatchingHashtagOrMention(
  * @param {TNote} note
  * @param {Array<string>} items - The list of tags or mentions to filter
  * @param {Array<string>} wantedParaTypes - The paragraph types to allow
+ * @param {boolean?} includeInFrontmatterValues? - whether to allow instances in frontmatter values (optional, defaults to false)
  * @returns {Array<string>} Filtered tagsOrMentions that match the criteria
  */
 function filterTagsOrMentionsInNoteByWantedParaTypes(
   note: TNote,
   tagsOrMentions: Array<string>,
   wantedParaTypes: Array<string>,
+  includeInFrontmatterValues: boolean = false,
 ): Array<string> {
   try {
     // Filter items based on paragraph types and note tags
     const filteredItems = tagsOrMentions.filter(item => {
       const paragraphsWithItem = note.paragraphs.filter(p => caseInsensitiveSubstringMatch(item, p.content))
       // logDebug('NPnote/filterTagsOMINBWPT', `Found ${paragraphsWithItem.length} paragraphs with item ${item} in ${note.filename}:`)
+      if (includeInFrontmatterValues) {
+        const noteTagAttribute = getFrontmatterAttribute(note, 'note-tag') ?? ''
+        if (tagsOrMentions.some(tm => noteTagAttribute.includes(tm))) {
+          logDebug('NPNote/filterTagsOMINBWPT', `Found matching noteTag(s) in '${noteTagAttribute}' in ${note.filename}`)
+          return true
+        }
+      }
       const hasValidParagraphType = paragraphsWithItem.some(p => wantedParaTypes.includes(p.type))
-
       return hasValidParagraphType
     })
 
-    // logDebug('NPnote/filterTagsOMINBWPT', `Found ${filteredItems.length} of ${tagsOrMentions.length} wanted tags/mentions in ${note.filename}: [${String(filteredItems)}]`)
+    logDebug('NPnote/filterTagsOMINBWPT', `Found ${filteredItems.length} of ${tagsOrMentions.length} wanted tags/mentions in ${note.filename}: [${String(filteredItems)}]`)
 
     return filteredItems
   } catch (error) {

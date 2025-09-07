@@ -67,7 +67,7 @@ export async function refreshAllSections(): Promise<void> {
 
   // Finally, if relevant, rebuild the tag mention cache.
   if (isTagMentionCacheGenerationScheduled()) {
-    logInfo('refreshAllSections', `- now generating tag mention cache`)
+    logInfo('refreshAllSections', `- now generating scheduled tag mention cache`)
     await generateTagMentionCache()
   }
 }
@@ -77,7 +77,7 @@ export async function refreshAllSections(): Promise<void> {
  * This is used on first launch to improve the UX and speed of first render.
  * Each section is returned to React as it's generated.
  * Today loads first and then this function is automatically called from a useEffect in Dashboard.jsx to load the rest.
- * TODO: DBW thinks this generates way more updates than necessary
+ * TODO: DBW thinks this generates way more updates than necessary. Or is it that it is being called more often than necessary?
  * 
  * @param {MessageDataObject} data
  * @param {boolean} calledByTrigger? (default: false)
@@ -125,7 +125,7 @@ export async function incrementallyRefreshSomeSections(
 
     // Finally, if relevant, rebuild the tag mention cache.
     if (isTagMentionCacheGenerationScheduled()) {
-      logInfo('incrementallyRefreshSomeSections', `- now generating tag mention cache`)
+      logInfo('incrementallyRefreshSomeSections', `- now generating scheduled tag mention cache`)
       const _promise = generateTagMentionCache() // no await, as we don't want to block the UI
     }
 
