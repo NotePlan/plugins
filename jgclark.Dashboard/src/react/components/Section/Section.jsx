@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2025-05-23 for v2.3.0.b3
+// Last updated 2025-09-05 for v2.3.0.b10
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -36,13 +36,13 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, reactSettings, setReactSettings, pluginData, sendActionToPlugin } = useAppContext()
+  const { dashboardSettings, reactSettings, setReactSettings, pluginData, sendActionToPlugin, updatePluginData } = useAppContext()
   // logDebug('Section', `🔸 Section: ${section.sectionCode} (${String(section.sectionItems?.length ?? 0)} items in '${section.name}')`)
 
   //----------------------------------------------------------------------
   // State
   //----------------------------------------------------------------------
-  const [items, setItems] = useState < Array < TSectionItem >> ([])
+  const [items, setItems] = useState<Array<TSectionItem>>([])
 
   //----------------------------------------------------------------------
   // Constants
@@ -50,9 +50,25 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   const { sectionFilename, totalCount } = section
   const isReferencedSection = section.isReferenced ?? false
 
+  // Get the current max priority from all visible sections (updated dynamically as sections process)
+  const currentMaxPriorityFromAllVisibleSections = pluginData.currentMaxPriorityFromAllVisibleSections
+
+  // Debug: log the values we're getting
+  logInfo('Section', `Section ${section.sectionCode} render: currentMaxPriorityFromAllVisibleSections=${currentMaxPriorityFromAllVisibleSections}`)
+
   //----------------------------------------------------------------------
   // Effects
   //----------------------------------------------------------------------
+
+  // Watch for changes to currentMaxPriorityFromAllVisibleSections and force re-render
+  // This ensures that when one section updates the global max priority, all other sections
+  // will re-render and re-filter their items based on the new priority threshold
+  useEffect(() => {
+    // This effect will run whenever currentMaxPriorityFromAllVisibleSections changes
+    // The dependency on pluginData will trigger a re-render when updatePluginData is called
+    // of this component, which will cause useSectionSortAndFilter to recalculate
+    logInfo('Section', `Section ${section.sectionCode} detected pluginData change, currentMaxPriorityFromAllVisibleSections=${currentMaxPriorityFromAllVisibleSections}`)
+  }, [pluginData, section.sectionCode])
   useEffect(() => {
     if (!section) {
       logError('Section', `No Section passed in.`)
@@ -153,11 +169,39 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
 
   // Note: this is where the display filtering/sorting/limiting happens.
-  const { itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
+  const {
+    filteredItems: _filteredItems,
+    itemsToShow,
+    numFilteredOut: _numFilteredOut,
+    limitApplied,
+    maxPrioritySeenInThisSection,
+    toggleShowAllTasks,
+  } = useSectionSortAndFilter(section, items, dashboardSettings, currentMaxPriorityFromAllVisibleSections)
 
+  // Debug: log the values from useSectionSortAndFilter
+  logInfo('Section', `Section ${section.sectionCode} after useSectionSortAndFilter: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}`)
+
+  // Update global max priority when this section finds a higher priority
+  useEffect(() => {
+    logDebug(
+      'Section',
+      `Section ${section.sectionCode}${
+        section.sectionCode === 'TAG' ? ` (${section.name})` : ''
+      } useEffect running: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}, currentMaxPriorityFromAllVisibleSections=${currentMaxPriorityFromAllVisibleSections}`,
+    )
+    if (maxPrioritySeenInThisSection > currentMaxPriorityFromAllVisibleSections) {
+      logInfo('Section', `Section ${section.sectionCode} found higher priority: ${maxPrioritySeenInThisSection} > ${currentMaxPriorityFromAllVisibleSections}, updating pluginData`)
+      updatePluginData(
+        { ...pluginData, currentMaxPriorityFromAllVisibleSections: maxPrioritySeenInThisSection },
+        `Section ${section.sectionCode} found higher priority: ${maxPrioritySeenInThisSection}`,
+      )
+      logInfo('Section', `Section ${section.sectionCode} set currentMaxPriorityFromAllVisibleSections to ${maxPrioritySeenInThisSection}`)
+    }
+  }, [maxPrioritySeenInThisSection, currentMaxPriorityFromAllVisibleSections, section.sectionCode])
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
+
   // handle a click to start interactive processing
   const handleInteractiveProcessingClick = useCallback(
     (e: MouseEvent): void => {
@@ -181,6 +225,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     onButtonClick(button)
   }
 
+  // handle a clicking on the section title -> open the note in Editor if it has an associated filename
   const handleSectionClick = (e: MouseEvent): void => {
     if (!sectionFilename) return
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
@@ -189,7 +234,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   }
 
   //----------------------------------------------------------------------
-  // Render
+  // Calculate values to use for rendering
   //----------------------------------------------------------------------
 
   // $FlowIgnore[invalid-computed-prop]
@@ -236,22 +281,29 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
    *          limited: {L} of {T} projects ready to review
    */
   // Replace {countWithLimit} with the number of items, and pluralise it if neccesary
-  descriptionToUse = descriptionToUse.replace('{countWithLimit}', limitApplied
-    ? `first ${items.length} of ${totalCount ?? '?'}`
-    : `${totalCount ?? '?'}`)
+  descriptionToUse = descriptionToUse.replace('{countWithLimit}', limitApplied ? `first ${items.length} of ${totalCount ?? '?'}` : `${totalCount ?? '?'}`)
 
   // Replace {count} with the number of items, and pluralise it if neccesary
-  descriptionToUse = descriptionToUse.replace('{count}', `${totalCount ?? '?'} ${getTaskOrItemDisplayString(totalCount ?? 0, dashboardSettings.ignoreChecklistItems ? 'task' : 'item')}`)
+  descriptionToUse = descriptionToUse.replace(
+    '{count}',
+    `${totalCount ?? '?'} ${getTaskOrItemDisplayString(totalCount ?? 0, dashboardSettings.ignoreChecklistItems ? 'task' : 'item')}`,
+  )
 
   // Replace {closedOrOpenTaskCount} with the number of completed or open tasks, depending on the 'showProgressInSections' setting
   if (descriptionToUse.includes('{closedOrOpenTaskCount}')) {
     let closedOrOpenTaskCountString = ''
     switch (dashboardSettings.showProgressInSections) {
       case 'number closed':
-        closedOrOpenTaskCountString = `closed ${section.doneCounts?.completedTasks ?? '0'} ${getTaskOrItemDisplayString(section.doneCounts?.completedTasks ?? 0, dashboardSettings.ignoreChecklistItems ? 'task' : 'item')}`
+        closedOrOpenTaskCountString = `closed ${section.doneCounts?.completedTasks ?? '0'} ${getTaskOrItemDisplayString(
+          section.doneCounts?.completedTasks ?? 0,
+          dashboardSettings.ignoreChecklistItems ? 'task' : 'item',
+        )}`
         break
       case 'number open':
-        closedOrOpenTaskCountString = `${totalCount ? String(totalCount) : '?'} open ${getTaskOrItemDisplayString(totalCount ?? 0, dashboardSettings.ignoreChecklistItems ? 'task' : 'item')}`
+        closedOrOpenTaskCountString = `${totalCount ? String(totalCount) : '?'} open ${getTaskOrItemDisplayString(
+          totalCount ?? 0,
+          dashboardSettings.ignoreChecklistItems ? 'task' : 'item',
+        )}`
         break
       default:
         closedOrOpenTaskCountString = String(totalCount ?? 0)
@@ -268,9 +320,13 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Prep a task-completion circle to the description for calendar non-referenced sections (where showProgressInSections !== 'none')
   let completionCircle = null
   if (numItemsToShow > 0 && ['DT', 'DY', 'W', 'LW', 'M', 'Q', 'Y'].includes(section.sectionCode) && section.doneCounts && dashboardSettings.showProgressInSections !== 'none') {
-    const percentComplete = section.doneCounts.completedTasks / (section.doneCounts.completedTasks + items.length) * 100.0
-    completionCircle =
-      <span className="sectionCompletionCircle" title={`${section.doneCounts.completedTasks} of ${section.doneCounts.completedTasks + items.length} tasks completed`} style={{ justifySelf: 'end' }}>
+    const percentComplete = (section.doneCounts.completedTasks / (section.doneCounts.completedTasks + items.length)) * 100.0
+    completionCircle = (
+      <span
+        className="sectionCompletionCircle"
+        title={`${section.doneCounts.completedTasks} of ${section.doneCounts.completedTasks + items.length} tasks completed`}
+        style={{ justifySelf: 'end' }}
+      >
         <CircularProgressBar
           // $FlowFixMe[incompatible-type]
           size="0.9rem" // TODO: this only works as "Nrem" despite number being expected
@@ -286,25 +342,31 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           spinnerMode={false}
         />{' '}
       </span>
+    )
   }
 
   // If we have no data items to show (other than a congrats message), don't show description
   // const descriptionDiv = numItemsToShow > 0 ? <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div> : null
-  const descriptionDiv = numItemsToShow > 0 ?
-    (<div className="sectionInfoSecondLine">
-      {completionCircle}
-      {/* <span id='section${section.ID}Count'>{descriptionToUse}</span> */}
-      <span className="sectionDescription">{descriptionToUse}</span>
-      {/* <span id='section${section.ID}TotalCount'>{totalCountString}</span> */}
-    </div>) : null
+  const descriptionDiv =
+    numItemsToShow > 0 ? (
+      <div className="sectionInfoSecondLine">
+        {completionCircle}
+        {/* <span id='section${section.ID}Count'>{descriptionToUse}</span> */}
+        <span className="sectionDescription">{descriptionToUse}</span>
+        {/* <span id='section${section.ID}TotalCount'>{totalCountString}</span> */}
+      </div>
+    ) : null
 
   // Decide whether to show interactiveProcessing button
+  // Note: don't show IP button if there are no items to show, or if the first item is a single item type that we don't want to count (e.g. 'Nothing left on this list')
   // TODO(later): enable again for PROJ
   const showIPButton =
     dashboardSettings.enableInteractiveProcessing &&
+    interactiveProcessingPossibleSectionTypes.includes(section.sectionCode) &&
     numItemsToShow > 1 &&
-    !treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType) &&
-    interactiveProcessingPossibleSectionTypes.includes(section.sectionCode)
+    // TODO: use this next line instead if we want to pass all items to interactive processing, not just the [possibly filtered] numItemsToShow
+    // (numItemsToShow > 1 || (numItemsToShow === 1 && numFilteredOut > 0)) &&
+    !treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)
 
   // TB section can show up blank, without this extra check
   if (itemsToShow.length === 0) {
@@ -365,13 +427,15 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
               <i className="fa-regular fa-angles-right"></i>
               <span className="interactiveProcessingNumber" style={{ fontWeight: 500, paddingLeft: '3px' }}>
                 {numItemsToShow}
+                {/* Note: use this instead of above if we want to pass all items to interactive processing, not just the [possibly filtered] numItemsToShow */}
+                {/* {numItemsToShow + numFilteredOut} */}
               </span>
             </button>
             // </>
           )}
         </div>
       </div>
-      <ItemGrid thisSection={section} items={itemsToShow} />
+      <ItemGrid thisSection={section} items={itemsToShow} onToggleShowAll={toggleShowAllTasks} />
     </section>
   )
 }

@@ -10,18 +10,24 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
-## [2.3.0.b10] 2025-09-03???
-- Fix: the done count not including items from project notes
+## [2.3.0.b10] 2025-09-???
+### Changed
+- When the "filter out lower-priority items" is on, this now calculated across all sections, not just each one independently. The label that says there are hidden items now includes "(click to show all)" text to make it clearer how to turn off the filter for that section.
+### Fixed
+- the done count not including items from project notes
 
 ## [2.3.0.b9] 2025-09-01
-- Added tagCache age to section info (if 'Comparison' FFlag is turned on)
+### Changes
 - Add another check to regenerate or update tagMentionCache after 24 and 1 hour respectively
 - Make 'Show folder name in note link?' setting indented under 'Show note link for tasks?'
 - I have stopped some of the unnecessary generation of Project List. Let me know how it goes, @dwertheimer. (Will require rebuilding jgclark.Reviews plugin as well (to v1.2.4).)
-- Also added some logging to track down when Project list generation is happening when it shouldn't be. If 'Show Section Timings' Flag is on, then it will also write a log to note "@Meta/Project Generation Log".
+- Tweak some TaskDialog button labels
+### Fixed
 - Fix color of blockID marker in light mode themes
 - Further fix to display of calendar events in tasks
-- Tweak some TaskDialog button labels
+### Dev
+- Also added some logging to track down when Project list generation is happening when it shouldn't be. If 'Show Section Timings' Flag is on, then it will also write a log to note "@Meta/Project Generation Log".
+- Added tagCache age to section info (if 'Comparison' FFlag is turned on)
 
 ## [2.3.0.b8] 2025-08-27
 - Add temporary workaround for error in DataStore.listOverdueParagraphs() for regular Teamspace notes
