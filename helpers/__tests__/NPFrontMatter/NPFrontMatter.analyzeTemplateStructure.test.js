@@ -1,7 +1,14 @@
 // @flow
 /* global describe, test, expect */
 
-import { analyzeTemplateStructure, getNoteTitleFromTemplate } from '../../NPFrontMatter'
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
+import { analyzeTemplateStructure, getNoteTitleFromTemplate, getNoteTitleFromRenderedContent } from '../../NPFrontMatter'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 describe('analyzeTemplateStructure', () => {
   describe('newNoteTitle detection', () => {
@@ -689,6 +696,98 @@ Some content here`
 
       expect(result.hasInlineTitle).toBe(false)
       expect(result.inlineTitleText).toBe('')
+    })
+  })
+
+  describe('template vs rendered content handling', () => {
+    test('should detect inline title from template content with EJS tags (current behavior)', () => {
+      const templateWithEJS = `---
+title: simple
+type: meeting-note, empty-note
+folder: zDELETME
+---
+# simple note <%- prompt("foo") %>`
+
+      const result = analyzeTemplateStructure(templateWithEJS)
+
+      // Current behavior: detects the title including EJS tags
+      // This is actually the correct behavior for analyzeTemplateStructure
+      expect(result.hasInlineTitle).toBe(true)
+      expect(result.inlineTitleText).toBe('simple note <%- prompt("foo") %>')
+      expect(result.bodyContent).toContain('<%- prompt("foo") %>')
+    })
+
+    test('should detect inline title from rendered content without EJS tags', () => {
+      const renderedContent = `---
+title: simple
+type: meeting-note, empty-note
+folder: zDELETME
+---
+# simple note bar`
+
+      const result = analyzeTemplateStructure(renderedContent)
+
+      // Should detect the rendered title
+      expect(result.hasInlineTitle).toBe(true)
+      expect(result.inlineTitleText).toBe('simple note bar')
+      expect(result.bodyContent).not.toContain('<%')
+      expect(result.bodyContent).not.toContain('%>')
+    })
+
+    test('should handle mixed template and rendered content gracefully', () => {
+      const mixedContent = `---
+title: template title
+---
+# This is a title with <%- someVariable %> and <%- anotherVariable %>`
+
+      const result = analyzeTemplateStructure(mixedContent)
+
+      // Should detect the title but preserve the EJS tags
+      expect(result.hasInlineTitle).toBe(true)
+      expect(result.inlineTitleText).toBe('This is a title with <%- someVariable %> and <%- anotherVariable %>')
+      expect(result.bodyContent).toContain('<%- someVariable %>')
+      expect(result.bodyContent).toContain('<%- anotherVariable %>')
+    })
+  })
+
+  describe('getNoteTitleFromRenderedContent', () => {
+    test('should extract title from rendered content without EJS tags', () => {
+      const renderedContent = `# This is a rendered title
+Some content here`
+
+      const result = getNoteTitleFromRenderedContent(renderedContent)
+
+      expect(result).toBe('This is a rendered title')
+    })
+
+    test('should extract title from rendered content with frontmatter', () => {
+      const renderedContent = `---
+title: template title
+---
+# This is the actual rendered title
+Some content here`
+
+      const result = getNoteTitleFromRenderedContent(renderedContent)
+
+      expect(result).toBe('This is the actual rendered title')
+    })
+
+    test('should return empty string when no title found', () => {
+      const renderedContent = `Some content without title
+More content here`
+
+      const result = getNoteTitleFromRenderedContent(renderedContent)
+
+      expect(result).toBe('')
+    })
+
+    test('should handle H2 and H3 titles', () => {
+      const renderedContent = `## This is an H2 title
+Some content here`
+
+      const result = getNoteTitleFromRenderedContent(renderedContent)
+
+      expect(result).toBe('This is an H2 title')
     })
   })
 })

@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { CustomConsole } from '@jest/console' // see note below
-import { simpleFormatter, DataStore, NotePlan /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
+import { simpleFormatter, DataStore, NotePlan, Editor, CommandBar /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
 import path from 'path'
 import colors from 'chalk'
@@ -56,6 +56,8 @@ beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
   global.NotePlan = new NotePlan()
   global.DataStore = DataStore
+  global.Editor = Editor
+  global.CommandBar = CommandBar
   DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
@@ -64,6 +66,8 @@ describe(`${PLUGIN_NAME}`, () => {
   beforeEach(() => {
     templateInstance = new TemplatingEngine(DEFAULT_TEMPLATE_CONFIG, '')
     global.DataStore = DataStore
+    global.Editor = Editor
+    global.CommandBar = CommandBar
     DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
   })
 

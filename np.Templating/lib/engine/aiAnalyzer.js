@@ -28,6 +28,53 @@ export async function analyzeErrorWithAI(
   previousPhaseErrors: Array<{ phase: string, error: string, context: string }>,
 ): Promise<string> {
   try {
+    // Check if AI error analysis is disabled via frontmatter
+    const frontmatter = renderData.frontmatter || {}
+    const isAIDisabled =
+      frontmatter.disableAI === true ||
+      frontmatter.noAI === true ||
+      frontmatter.skipAI === true ||
+      frontmatter.disableAIErrorAnalysis === true ||
+      frontmatter.disableAIErrorAnalysis === 'true'
+
+    if (isAIDisabled) {
+      const disabledReason =
+        frontmatter.disableAI === true
+          ? 'disableAI: true'
+          : frontmatter.noAI === true
+          ? 'noAI: true'
+          : frontmatter.skipAI === true
+          ? 'skipAI: true'
+          : frontmatter.disableAIErrorAnalysis === true
+          ? 'disableAIErrorAnalysis: true'
+          : frontmatter.disableAIErrorAnalysis === 'true'
+          ? 'disableAIErrorAnalysis: "true"'
+          : 'unknown'
+
+      logDebug(pluginJson, `AI error analysis disabled via frontmatter setting: ${disabledReason}`)
+
+      // Return basic error message without AI analysis
+      let basicErrorMessage = '==**Templating Error Found**: Basic Error Information==\n\n'
+      basicErrorMessage += `### Error Description:\n- ${originalError}\n\n`
+      basicErrorMessage += `### What to do to fix the error(s):\n- Review the error message above and check your template syntax\n- Ensure all variables are defined before use\n- Check for proper opening and closing of template tags\n\n`
+      basicErrorMessage += `**Note:** AI error analysis has been disabled for this template via frontmatter setting: \`${disabledReason}\`\n`
+      basicErrorMessage += `For detailed AI-powered error analysis, remove this setting from your template's frontmatter.\n\n`
+
+      // Include problematic lines if we have them
+      const problematicLines = extractProblematicLines(originalError, templateData, originalScript)
+      if (problematicLines && problematicLines.trim() && problematicLines !== 'No original script available') {
+        basicErrorMessage += `**Problematic Lines from Original Script:**\n\`\`\`\n${problematicLines}\n\`\`\`\n\n`
+      }
+
+      basicErrorMessage += '---\n'
+      basicErrorMessage += '**Error Details (for debugging):**\n'
+      basicErrorMessage += `Original Error: ${originalError}\n`
+      basicErrorMessage += `Template Data: ${templateData ? templateData.substring(0, 200) : ''}${templateData ? (templateData.length > 200 ? '...' : '') : ''}\n`
+      basicErrorMessage += `For more help, visit: [Templating Help/Support](https://noteplan.co/templates/docs/getting-started/help-creating-templates)\n`
+
+      return basicErrorMessage
+    }
+
     const startTime = new Date()
 
     // Prepare context information, filtering out polluted error variables
@@ -233,7 +280,7 @@ function formatAIAnalysisResult(aiAnalysis: string, originalError: string, templ
   if (problematicLines && problematicLines.trim() && problematicLines !== 'No original script available') {
     formattedResult += `\n\n**Problematic Lines from Original Script:**\n\`\`\`\n${problematicLines}\n\`\`\`\n`
   }
-
+  formattedResult += `\n\nFor more help, visit: [Templating Help/Support](https://noteplan.co/templates/docs/getting-started/help-creating-templates)`
   formattedResult += '\n---\n'
   return formattedResult
 }

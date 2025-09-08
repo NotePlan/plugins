@@ -1,4 +1,11 @@
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { mergeMultiLineStatements } from '../lib/utils'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 // for Flow errors with Jest
 /* global describe, beforeEach, afterEach, test, expect, jest */

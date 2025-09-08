@@ -1,5 +1,12 @@
 /* global describe, expect, test */
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import * as w from '../src/support/weather-utils'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 // Jest docs for matchers: https://jestjs.io/docs/using-matchers
 

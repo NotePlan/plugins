@@ -672,5 +672,6 @@ function formatFrontMatterError(error: any): string {
   if (error.reason === 'missed comma between flow collection entries') {
     return `**Frontmatter Template Parsing Error**\n\nWhen using template tags in frontmatter attributes, the entire block must be wrapped in quotes\n${error.mark}`
   }
-  return error
+  // Ensure we always return a string
+  return String(error)
 }

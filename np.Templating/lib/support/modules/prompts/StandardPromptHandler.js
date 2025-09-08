@@ -77,34 +77,6 @@ export default class StandardPromptHandler {
           // Other types - convert to string
           params.options = String(resolvedValue)
         }
-      } else if (params.options.includes('(') && params.options.includes(')')) {
-        // This looks like a function call - try to execute it
-        logDebug(`StandardPromptHandler.parseParameters: Detected function call: "${params.options}"`)
-        try {
-          // Create a safe evaluation context with session data
-          const evalContext: any = { ...sessionData }
-
-          // Add common functions that might be called
-          if (sessionData && sessionData.frontmatter && typeof sessionData.frontmatter.getValuesForKey === 'function') {
-            evalContext.getValuesForKey = sessionData.frontmatter.getValuesForKey.bind(sessionData.frontmatter)
-          }
-
-          // Try to evaluate the function call
-          const result = eval(params.options)
-          logDebug(`StandardPromptHandler.parseParameters: Function call result: ${JSON.stringify(result)}`)
-
-          if (Array.isArray(result)) {
-            params.options = result
-          } else if (typeof result === 'string' && result.startsWith('[') && result.endsWith(']')) {
-            // JSON string array
-            params.options = JSON.parse(result)
-          } else {
-            params.options = result
-          }
-        } catch (evalError) {
-          logError(pluginJson, `Error evaluating function call "${params.options}": ${evalError.message}`)
-          // Fall back to treating it as a regular string
-        }
       } else if (arrayMatch) {
         // If we found an array syntax but it wasn't picked up as options,
         // manually extract the array content
@@ -374,7 +346,7 @@ export default class StandardPromptHandler {
     // Extract the variable name from the first parameter if it exists
     // This handles the case where prompt("varName", "message") is used
     let firstParamVarName = null
-    const promptParamMatch = tag.match(/prompt\(\s*['"]([^'"]+)['"]\s*,/)
+    const promptParamMatch = tag.match(/(?:^|\s)prompt\(\s*['"]([^'"]+)['"]\s*,/)
     if (promptParamMatch && promptParamMatch[1]) {
       firstParamVarName = promptParamMatch[1]
       logDebug(pluginJson, `StandardPromptHandler.process: Detected variable name in first parameter: ${firstParamVarName}`)

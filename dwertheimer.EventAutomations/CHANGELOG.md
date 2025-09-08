@@ -4,6 +4,14 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.21.2] 2025-08-08 @dwertheimer
+- Fix with changes in trigger logic
+- Minor change to heading logic
+- Don't quote triggers in frontmatter
+- Fixed bug where adding trigger adds extra lines to top of note (using Editor.frontmatterAttributes setter)
+- Fixed bug in helpers/NPnote.js getReferencedParagraphs where it was not including tasks with headings
+- Fixed bug where timeblockTextMustContainString was being doubled up in the TB line, keeping the checkboxes from working properly
+
 ## [1.21.0] 2024-05-26 @dwertheimer
 
 - added MANUAL_ORDERING mode (for @Thor)

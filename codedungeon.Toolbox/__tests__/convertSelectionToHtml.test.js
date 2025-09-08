@@ -5,7 +5,14 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import CodedungeonToolbox from '../src/support/CodedungeonToolbox'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 let toolbox
 beforeEach(() => {

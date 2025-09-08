@@ -90,7 +90,8 @@ export async function gatherAndPrepareTodos(config: AutoTimeBlockingConfig, comp
  */
 export function getConfig(): AutoTimeBlockingConfig {
   const config = DataStore.settings || {}
-  if (Object.keys(config).length) {
+  const numKeys = Object.keys(config).length
+  if (numKeys && !(numKeys === 1 && config._logLevel)) {
     try {
       // $FlowIgnore
       // In real NotePlan, config.timeblockTextMustContainString won't be set, but in testing it will be, so this covers both test and prod

@@ -48,9 +48,9 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
   logDebug(pluginJson, 'calling renderFrontmatter() to pre-render template')
   const { frontmatterBody: templateBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateContent])
   if (Editor.type !== 'Calendar') {
-  // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
-  logDebug(pluginJson, `insertNoteTemplate: about to checkAndProcessFolderAndNewNoteTitle`)
-  if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
+    // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
+    logDebug(pluginJson, `insertNoteTemplate: about to checkAndProcessFolderAndNewNoteTitle`)
+    if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
   }
   logDebug(pluginJson, `render() template with frontmatterAttributes: [${Object.keys(frontmatterAttributes).join(', ')}]`)
 
@@ -67,10 +67,18 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
       }
     }
   } else {
-    logDebug(pluginJson, 'apply rendered template to the current editor')
-    // Editor.content = result
+    logDebug(pluginJson, `MeetingNotes: got rendered content back; applying to the current editor: shouldReplaceContent:${String(shouldReplaceContent)}`)
     if (shouldReplaceContent) {
+      // the note may have had frontmatter from folder view creation, so we need to merge the frontmatter
+      const frontmatterAttributes = { ...Editor.frontmatterAttributes }
+      const editorHasFrontmatter = Object.keys(frontmatterAttributes).length > 0
+
       Editor.content = result
+      if (editorHasFrontmatter) {
+        Object.keys(frontmatterAttributes).forEach((key) => {
+          Editor.setFrontmatterAttribute(key, frontmatterAttributes[key])
+        })
+      }
     } else {
       Editor.insertTextAtCursor(result)
     }

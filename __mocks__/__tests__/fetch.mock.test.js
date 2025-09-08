@@ -1,7 +1,14 @@
 /* global jest, describe, test, expect, beforeAll */
 import { CustomConsole } from '@jest/console' // see note below
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { FetchMock } from '../Fetch.mock'
 import { simpleFormatter } from '@mocks/index'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 const PLUGIN_NAME = `Fetch.mock`
 const FILENAME = ``

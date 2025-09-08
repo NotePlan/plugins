@@ -228,8 +228,8 @@ export default class BasePromptHandler {
     // Escape special characters in prompt names and join with |
     const promptTypePattern = promptTypes.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
     // Create pattern that matches prompt names followed by parentheses, with optional whitespace,
-    // also handling the await keyword separately
-    return new RegExp(`await\\s+|\\b(?:${promptTypePattern}|ask)\\s*\\(|[()]|<%[-=]?|-%>|%>`, 'gi')
+    // also handling the await keyword separately. Simple approach: no dot before prompt functions
+    return new RegExp(`await\\s+|(?:${promptTypePattern}|ask)\\s*\\(|[()]|<%[-=]?|-%>|%>`, 'gi')
   }
 
   /**

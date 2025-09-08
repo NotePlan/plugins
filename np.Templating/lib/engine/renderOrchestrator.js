@@ -15,6 +15,7 @@ import { renderTemplateWithEJS, postProcessResult, replaceDoubleDashes, appendPr
 import { cleanErrorMessage, extractErrorContext, buildBasicErrorMessage, appendPreviousPhaseErrorsToError } from './errorProcessor'
 import { analyzeErrorWithAI, handleAIAnalysisResult } from './aiAnalyzer'
 import { integratePlugins } from './pluginIntegrator'
+import { showMessage } from '@helpers/userInput'
 
 /**
  * Orchestrates the complete template rendering process using modular components.
@@ -102,6 +103,29 @@ async function handleRenderError(
   // Step 3: Build basic error message
   logDebug(`🔧 RENDER ENGINE ERROR HANDLING STEP 3: Building basic error message`)
   const basicErrorMessage = buildBasicErrorMessage(cleanedErrorMessage, lineInfo, contextLines, originalScript)
+
+  // Check if AI error analysis is disabled via frontmatter
+  if (renderData.frontmatter && renderData.frontmatter.disableAIErrorAnalysis) {
+    logDebug(`🔧 RENDER ENGINE ERROR HANDLING: AI analysis disabled via frontmatter`)
+
+    // Log the basic error details for debugging
+    logError(pluginJson, `Template rendering error (AI analysis disabled): ${rawErrorMessage}`)
+    logDebug(
+      pluginJson,
+      `Template data: ${processedTemplateData ? processedTemplateData.substring(0, 500) : ''}${processedTemplateData ? (processedTemplateData.length > 500 ? '...' : '') : ''}\n`,
+    )
+    logDebug(pluginJson, `Original script: ${originalScript ? originalScript.substring(0, 500) : ''}${originalScript ? (originalScript.length > 500 ? '...' : '') : ''}\n`)
+    const basicError = rawErrorMessage
+      .split('\n')
+      .filter((line) => line.includes('Error'))
+      .join('\n')
+    showMessage(`"${basicError}"\n\nMore info in the console.`, 'OK', 'Templating Error')
+
+    // Return basic error message with previous phase errors
+    let result = basicErrorMessage
+    result = appendPreviousPhaseErrorsToError(result, previousPhaseErrors)
+    return result.replace(/\n\n/g, '\n')
+  }
 
   // Step 4: Try AI analysis
   logDebug(`🔧 RENDER ENGINE ERROR HANDLING STEP 4: Attempting AI analysis`)

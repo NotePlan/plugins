@@ -5,7 +5,14 @@
 // Tests the eliminateDuplicateParagraphs function
 //-----------------------------------------------------------------------------
 
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { eliminateDuplicateParagraphs, textWithoutSyncedCopyTag } from '../syncedCopies'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 describe('syncedCopies', () => {
   beforeEach(() => {
@@ -65,11 +72,7 @@ describe('syncedCopies', () => {
     })
 
     test('should eliminate duplicates with same content and blockId (default behavior)', () => {
-      const paras = [
-        createMockParagraph('Task 1', 'note1.md', 'block1'),
-        createMockParagraph('Task 1', 'note2.md', 'block1'),
-        createMockParagraph('Task 2', 'note3.md', 'block2'),
-      ]
+      const paras = [createMockParagraph('Task 1', 'note1.md', 'block1'), createMockParagraph('Task 1', 'note2.md', 'block1'), createMockParagraph('Task 2', 'note3.md', 'block2')]
       // $FlowIgnore[prop-missing]
       // $FlowIgnore[incompatible-call]
       const result = eliminateDuplicateParagraphs(paras)
@@ -80,10 +83,7 @@ describe('syncedCopies', () => {
     })
 
     test('should keep first occurrence by default', () => {
-      const paras = [
-        createMockParagraph('Task 1', 'note2.md', 'block1'),
-        createMockParagraph('Task 1', 'note1.md', 'block1'),
-      ]
+      const paras = [createMockParagraph('Task 1', 'note2.md', 'block1'), createMockParagraph('Task 1', 'note1.md', 'block1')]
       // $FlowIgnore[prop-missing]
       // $FlowIgnore[incompatible-call]
       const result = eliminateDuplicateParagraphs(paras)
@@ -94,10 +94,7 @@ describe('syncedCopies', () => {
     test('should keep most recent when keepWhich is most-recent', () => {
       const oldDate = new Date('2023-01-01')
       const newDate = new Date('2023-01-02')
-      const paras = [
-        createMockParagraph('Task 1', 'note1.md', 'block1', 'Notes', oldDate),
-        createMockParagraph('Task 1', 'note2.md', 'block1', 'Notes', newDate),
-      ]
+      const paras = [createMockParagraph('Task 1', 'note1.md', 'block1', 'Notes', oldDate), createMockParagraph('Task 1', 'note2.md', 'block1', 'Notes', newDate)]
       // $FlowIgnore[prop-missing]
       // $FlowIgnore[incompatible-call]
       const result = eliminateDuplicateParagraphs(paras, 'most-recent')
@@ -106,10 +103,7 @@ describe('syncedCopies', () => {
     })
 
     test('should keep regular notes over calendar notes when keepWhich is regular-notes', () => {
-      const paras = [
-        createMockParagraph('Task 1', 'calendar.md', 'abcdef', 'Calendar'),
-        createMockParagraph('Task 1', 'project.md', 'abcdef', 'Notes'),
-      ]
+      const paras = [createMockParagraph('Task 1', 'calendar.md', 'abcdef', 'Calendar'), createMockParagraph('Task 1', 'project.md', 'abcdef', 'Notes')]
       // $FlowIgnore[prop-missing]
       // $FlowIgnore[incompatible-call]
       const result = eliminateDuplicateParagraphs(paras, 'regular-notes')
@@ -141,10 +135,10 @@ describe('syncedCopies', () => {
       // $FlowIgnore[incompatible-call]
       const result = eliminateDuplicateParagraphs(paras, 'first', true)
       expect(result).toHaveLength(3) // Only the last duplicate should be eliminated
-      expect(result.find(p => p.content === 'Task 1' && p.filename === 'note1.md')).toBeDefined()
-      expect(result.find(p => p.content === 'Task 1' && p.filename === 'note2.md')).toBeDefined()
-      expect(result.find(p => p.content === 'Task 2' && p.filename === 'note3.md')).toBeDefined()
-      expect(result.find(p => p.content === 'Task 2' && p.filename === 'note4.md')).toBeUndefined()
+      expect(result.find((p) => p.content === 'Task 1' && p.filename === 'note1.md')).toBeDefined()
+      expect(result.find((p) => p.content === 'Task 1' && p.filename === 'note2.md')).toBeDefined()
+      expect(result.find((p) => p.content === 'Task 2' && p.filename === 'note3.md')).toBeDefined()
+      expect(result.find((p) => p.content === 'Task 2' && p.filename === 'note4.md')).toBeUndefined()
     })
 
     test('should eliminate all duplicates when syncedLinesOnly is false', () => {
@@ -158,15 +152,12 @@ describe('syncedCopies', () => {
       // $FlowIgnore[incompatible-call]
       const result = eliminateDuplicateParagraphs(paras, 'first', false)
       expect(result).toHaveLength(2) // Both duplicates should be eliminated
-      expect(result.find(p => p.content === 'Task 1')).toBeDefined()
-      expect(result.find(p => p.content === 'Task 2')).toBeDefined()
+      expect(result.find((p) => p.content === 'Task 1')).toBeDefined()
+      expect(result.find((p) => p.content === 'Task 2')).toBeDefined()
     })
 
     test('should handle paragraphs without blockId', () => {
-      const paras = [
-        createMockParagraph('Task 1', 'note1.md', undefined),
-        createMockParagraph('Task 1', 'note2.md', undefined),
-      ]
+      const paras = [createMockParagraph('Task 1', 'note1.md', undefined), createMockParagraph('Task 1', 'note2.md', undefined)]
       // $FlowIgnore[prop-missing]
       // $FlowIgnore[incompatible-call]
       const result = eliminateDuplicateParagraphs(paras, 'first', false)
@@ -175,10 +166,7 @@ describe('syncedCopies', () => {
     })
 
     test('should handle paragraphs with different content but same blockId', () => {
-      const paras = [
-        createMockParagraph('Task 1', 'note1.md', 'block1'),
-        createMockParagraph('Task 2', 'note2.md', 'block1'),
-      ]
+      const paras = [createMockParagraph('Task 1', 'note1.md', 'block1'), createMockParagraph('Task 2', 'note2.md', 'block1')]
       // $FlowIgnore[prop-missing]
       // $FlowIgnore[incompatible-call]
       const result = eliminateDuplicateParagraphs(paras)
@@ -186,10 +174,7 @@ describe('syncedCopies', () => {
     })
 
     test('should handle paragraphs with same filename and content', () => {
-      const paras = [
-        createMockParagraph('Task 1', 'note1.md', 'block1'),
-        createMockParagraph('Task 1', 'note1.md', 'block1'),
-      ]
+      const paras = [createMockParagraph('Task 1', 'note1.md', 'block1'), createMockParagraph('Task 1', 'note1.md', 'block1')]
       // $FlowIgnore[prop-missing]
       // $FlowIgnore[incompatible-call]
       const result = eliminateDuplicateParagraphs(paras, 'first', false)
@@ -197,10 +182,7 @@ describe('syncedCopies', () => {
     })
 
     test('should handle paragraphs with same filename but different content', () => {
-      const paras = [
-        createMockParagraph('Task 1', 'note1.md', 'block1'),
-        createMockParagraph('Task 2', 'note1.md', 'block2'),
-      ]
+      const paras = [createMockParagraph('Task 1', 'note1.md', 'block1'), createMockParagraph('Task 2', 'note1.md', 'block2')]
       // $FlowIgnore[prop-missing]
       // $FlowIgnore[incompatible-call]
       const result = eliminateDuplicateParagraphs(paras, 'first', false)
