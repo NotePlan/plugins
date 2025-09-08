@@ -3,6 +3,12 @@
 import { describe, expect, test, beforeAll, beforeEach, jest } from '@jest/globals'
 import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
+
 // Flow type for mock note
 type MockNote = {
   title: string,
@@ -32,7 +38,6 @@ DataStore.invokePluginCommandByName = jest.fn()
 DataStore.updateCache = jest.fn()
 
 Editor.type = 'Notes'
-Editor.note = null
 Editor.openNoteByDate = jest.fn()
 Editor.openNoteByTitle = jest.fn()
 Editor.openWeeklyNote = jest.fn()
@@ -108,6 +113,8 @@ jest.mock('@helpers/NPdateTime', () => ({
 
 jest.mock('@helpers/NPFrontMatter', () => ({
   getNoteTitleFromTemplate: jest.fn(),
+  hasFrontMatter: jest.fn(),
+  getAttributes: jest.fn(),
 }))
 
 jest.mock('../../helpers/note', () => ({
