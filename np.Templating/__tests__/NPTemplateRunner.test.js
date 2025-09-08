@@ -1,6 +1,7 @@
 // @flow
 
 import { describe, expect, test, beforeAll, beforeEach, jest } from '@jest/globals'
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 
 // Flow type for mock note
 type MockNote = {
@@ -21,37 +22,29 @@ type MockNote = {
   addParagraphBelowHeadingTitle: any,
 }
 
-// Mock NotePlan environment
-global.DataStore = {
-  projectNoteByTitle: jest.fn(),
-  calendarNoteByDate: jest.fn(),
-  calendarNoteByDateString: jest.fn(),
-  newNote: jest.fn(),
-  invokePluginCommandByName: jest.fn(),
-  updateCache: jest.fn(),
-  settings: {},
-}
+// Mock NotePlan environment - using imported mocks from @mocks/index
+// Add additional methods to the imported mocks as needed
+DataStore.projectNoteByTitle = jest.fn()
+DataStore.calendarNoteByDate = jest.fn()
+DataStore.calendarNoteByDateString = jest.fn()
+DataStore.newNote = jest.fn()
+DataStore.invokePluginCommandByName = jest.fn()
+DataStore.updateCache = jest.fn()
 
-global.Editor = {
-  type: 'Notes',
-  note: null,
-  openNoteByDate: jest.fn(),
-  openNoteByTitle: jest.fn(),
-  openWeeklyNote: jest.fn(),
-  openNoteByFilename: jest.fn(),
-  selectedParagraphs: [],
-  insertParagraphAtCursor: jest.fn(),
-  addParagraphBelowHeadingTitle: jest.fn(),
-}
+Editor.type = 'Notes'
+Editor.note = null
+Editor.openNoteByDate = jest.fn()
+Editor.openNoteByTitle = jest.fn()
+Editor.openWeeklyNote = jest.fn()
+Editor.openNoteByFilename = jest.fn()
+Editor.selectedParagraphs = []
+Editor.insertParagraphAtCursor = jest.fn()
+Editor.addParagraphBelowHeadingTitle = jest.fn()
 
-global.CommandBar = {
-  prompt: jest.fn(),
-}
+CommandBar.prompt = jest.fn()
 
-global.NotePlan = {
-  environment: {
-    templateFolder: '@Templates',
-  },
+NotePlan.environment = {
+  templateFolder: '@Templates',
 }
 
 // Mock helper functions
@@ -175,17 +168,17 @@ describe('NPTemplateRunner', () => {
     }
 
     // Setup default mocks
-    global.DataStore.projectNoteByTitle.mockResolvedValue([mockNote])
-    global.DataStore.calendarNoteByDate.mockReturnValue(mockNote)
+    DataStore.projectNoteByTitle.mockResolvedValue([mockNote])
+    DataStore.calendarNoteByDate.mockReturnValue(mockNote)
 
     // Setup @helpers/note mock
     const noteHelpers = require('@helpers/note')
     // $FlowFixMe - Mock function
     noteHelpers.getNote = jest.fn()
-    global.DataStore.calendarNoteByDateString.mockReturnValue(mockNote)
-    global.Editor.note = mockNote
+    DataStore.calendarNoteByDateString.mockReturnValue(mockNote)
+    Editor.note = mockNote
     // Ensure Editor.note has the addParagraphBelowHeadingTitle method
-    global.Editor.note.addParagraphBelowHeadingTitle = jest.fn()
+    Editor.note.addParagraphBelowHeadingTitle = jest.fn()
 
     // Setup NPTemplating mocks
     const NPTemplating = require('../lib/NPTemplating')
@@ -328,7 +321,7 @@ describe('NPTemplateRunner', () => {
 
       await NPTemplateRunner.handleNewNoteCreation('template1', data, argObj)
 
-      expect(global.DataStore.invokePluginCommandByName).toHaveBeenCalledWith('templateNew', 'np.Templating', ['template1', 'TestFolder', 'New Note', argObj])
+      expect(DataStore.invokePluginCommandByName).toHaveBeenCalledWith('templateNew', 'np.Templating', ['template1', 'TestFolder', 'New Note', argObj])
     })
 
     test('should not create new note when newNoteTitle is not specified', async () => {
@@ -338,7 +331,7 @@ describe('NPTemplateRunner', () => {
       const result = await NPTemplateRunner.handleNewNoteCreation('template1', data, argObj)
 
       expect(result).toBe(false)
-      expect(global.DataStore.invokePluginCommandByName).not.toHaveBeenCalled()
+      expect(DataStore.invokePluginCommandByName).not.toHaveBeenCalled()
     })
   })
 
@@ -478,7 +471,7 @@ describe('NPTemplateRunner', () => {
 
       await NPTemplateRunner.handleTodayNote('rendered content', writeOptions)
 
-      expect(global.Editor.openNoteByDate).toHaveBeenCalled()
+      expect(Editor.openNoteByDate).toHaveBeenCalled()
     })
 
     test('should write to calendar note when not opening in editor', async () => {
@@ -491,7 +484,7 @@ describe('NPTemplateRunner', () => {
 
       await NPTemplateRunner.handleTodayNote('rendered content', writeOptions)
 
-      expect(global.DataStore.calendarNoteByDate).toHaveBeenCalled()
+      expect(DataStore.calendarNoteByDate).toHaveBeenCalled()
     })
   })
 
@@ -510,7 +503,7 @@ describe('NPTemplateRunner', () => {
 
       await NPTemplateRunner.handleWeeklyNote(true, false, 'rendered content', writeOptions)
 
-      expect(global.DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2024-W03')
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2024-W03')
     })
 
     test('should handle next week note', async () => {
@@ -527,13 +520,13 @@ describe('NPTemplateRunner', () => {
 
       await NPTemplateRunner.handleWeeklyNote(false, true, 'rendered content', writeOptions)
 
-      expect(global.Editor.openWeeklyNote).toHaveBeenCalledWith(2024, 4)
+      expect(Editor.openWeeklyNote).toHaveBeenCalledWith(2024, 4)
     })
   })
 
   describe('handleCurrentNote', () => {
     test('should write to current note when editor type is Notes', async () => {
-      global.Editor.type = 'Notes'
+      Editor.type = 'Notes'
 
       const writeOptions = {
         writeUnderHeading: 'Test Heading',
@@ -548,7 +541,7 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should write to current note when editor type is Calendar', async () => {
-      global.Editor.type = 'Calendar'
+      Editor.type = 'Calendar'
 
       const writeOptions = {
         writeUnderHeading: 'Test Heading',
@@ -563,7 +556,7 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should prompt error when editor type is not Notes or Calendar', async () => {
-      global.Editor.type = 'Tasks'
+      Editor.type = 'Tasks'
 
       const writeOptions = {
         writeUnderHeading: 'Test Heading',
@@ -573,7 +566,7 @@ describe('NPTemplateRunner', () => {
 
       await NPTemplateRunner.handleCurrentNote('rendered content', writeOptions)
 
-      expect(global.CommandBar.prompt).toHaveBeenCalledWith('You must have either Project Note or Calendar Note open when using "<current>".', '')
+      expect(CommandBar.prompt).toHaveBeenCalledWith('You must have either Project Note or Calendar Note open when using "<current>".', '')
     })
   })
 
@@ -615,7 +608,7 @@ describe('NPTemplateRunner', () => {
     test('should open note in editor when requested', async () => {
       // $FlowFixMe - Mock functions
       require('@helpers/NPnote').getOrMakeRegularNoteInFolder.mockResolvedValue(mockNote)
-      global.Editor.openNoteByTitle.mockResolvedValue(mockNote)
+      Editor.openNoteByTitle.mockResolvedValue(mockNote)
 
       const writeOptions = {
         shouldOpenInEditor: true,
@@ -626,7 +619,7 @@ describe('NPTemplateRunner', () => {
 
       await NPTemplateRunner.handleRegularNote('Note Title', 'template1', {}, 'rendered content', writeOptions)
 
-      expect(global.Editor.openNoteByTitle).toHaveBeenCalledWith('Note Title')
+      expect(Editor.openNoteByTitle).toHaveBeenCalledWith('Note Title')
     })
   })
 
@@ -788,7 +781,7 @@ describe('NPTemplateRunner', () => {
       test('should open note in editor when requested', async () => {
         await NPTemplateRunner.writeUnderExistingHeading(mockNote, 'Test Heading', 'New content', 'append', { shouldOpenInEditor: true })
 
-        expect(global.Editor.openNoteByFilename).toHaveBeenCalledWith('test-note.md')
+        expect(Editor.openNoteByFilename).toHaveBeenCalledWith('test-note.md')
         expect(require('@helpers/NPnote').selectFirstNonTitleLineInEditor).toHaveBeenCalled()
       })
     })
@@ -804,11 +797,11 @@ describe('NPTemplateRunner', () => {
       })
 
       test('should insert at cursor when location is cursor and in editor', async () => {
-        global.Editor.selectedParagraphs = [{ indents: 2 }]
+        Editor.selectedParagraphs = [{ indents: 2 }]
 
         await NPTemplateRunner.writeWithoutHeading(mockNote, 'New content', 'cursor', true)
 
-        expect(global.Editor.insertParagraphAtCursor).toHaveBeenCalledWith('New content', 'text', 2)
+        expect(Editor.insertParagraphAtCursor).toHaveBeenCalledWith('New content', 'text', 2)
       })
 
       test('should prepend content when location is not append or cursor', async () => {
@@ -860,7 +853,7 @@ describe('NPTemplateRunner', () => {
 
       await NPTemplateRunner.addFrontmatterToTemplate('template1', true)
 
-      expect(global.Editor.openNoteByFilename).toHaveBeenCalledWith('test-note.md')
+      expect(Editor.openNoteByFilename).toHaveBeenCalledWith('test-note.md')
     })
   })
 })

@@ -3,11 +3,17 @@
  */
 
 import { render } from '../lib/rendering/templateProcessor.js'
-import { CommandBar } from '@mocks/index'
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
+
+// Jest globals
+/* global describe, beforeEach, test, expect */
 
 describe('Meeting Note Template Validation', () => {
   beforeEach(() => {
+    global.DataStore = DataStore
+    global.Editor = Editor
     global.CommandBar = CommandBar
+    global.NotePlan = NotePlan
   })
 
   test('should pass validation when all meeting variables are available', async () => {
@@ -16,7 +22,7 @@ describe('Meeting Note Template Validation', () => {
       data: {
         eventTitle: 'Team Standup',
         eventLocation: 'Conference Room A',
-      }
+      },
     }
 
     const result = await render(template, userData)
@@ -29,7 +35,7 @@ describe('Meeting Note Template Validation', () => {
       data: {
         eventTitle: 'Team Standup',
         // Missing 'eventLocation' variable
-      }
+      },
     }
 
     await expect(render(template, userData)).rejects.toThrow(/^STOPPING RENDER: Render Step 3\.5 stopped execution/)
@@ -48,7 +54,7 @@ describe('Meeting Note Template Validation', () => {
         eventDateValue: '2024-01-15',
         eventLocation: 'Conference Room A',
         // Missing 'eventAttendees' variable
-      }
+      },
     }
 
     await expect(render(template, userData)).rejects.toThrow(/^STOPPING RENDER: Render Step 3\.5 stopped execution/)
@@ -60,7 +66,7 @@ describe('Meeting Note Template Validation', () => {
       data: {
         name: 'John',
         // Missing 'time' variable but this is not a meeting note template
-      }
+      },
     }
 
     const result = await render(template, userData)
@@ -84,7 +90,7 @@ describe('Meeting Note Template Validation', () => {
         eventTitle: 'Team Meeting',
         attendees: ['John', 'Jane'],
         someFunction: () => 'function result',
-      }
+      },
     }
 
     const result = await render(template, userData)
@@ -95,7 +101,7 @@ describe('Meeting Note Template Validation', () => {
   test('should handle empty session data for meeting note template', async () => {
     const template = 'Meeting: <%= eventTitle %>'
     const userData = {
-      data: {}
+      data: {},
     }
 
     await expect(render(template, userData)).rejects.toThrow(/^STOPPING RENDER: Render Step 3\.5 stopped execution/)
@@ -104,7 +110,7 @@ describe('Meeting Note Template Validation', () => {
   test('should provide helpful error message for meeting notes', async () => {
     const template = 'Meeting: <%= eventTitle %>'
     const userData = {
-      data: {}
+      data: {},
     }
 
     await expect(render(template, userData)).rejects.toThrow(/^STOPPING RENDER: Render Step 3\.5 stopped execution/)
@@ -127,7 +133,7 @@ End: <%= eventEndDateValue %>
       data: {
         eventTitle: 'Test Meeting',
         // Missing all other variables
-      }
+      },
     }
 
     await expect(render(template, userData)).rejects.toThrow(/^STOPPING RENDER: Render Step 3\.5 stopped execution/)
@@ -143,7 +149,7 @@ Location: <%= eventLocation %>
       data: {
         eventTitle: 'Test Meeting',
         // Missing eventDate and eventLocation
-      }
+      },
     }
 
     await expect(render(template, userData)).rejects.toThrow(/^STOPPING RENDER: Render Step 3\.5 stopped execution/)

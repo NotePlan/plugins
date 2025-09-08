@@ -37,6 +37,6 @@ export const convertEJSClosingTags = (templateData: string): string => {
 
   // Only convert %> to -%> when the opening tag is <% (with space) or <%# (comment with space)
   // This regex looks for <% or <%# followed by a space, then finds its matching %>
-  // But don't convert if the tag already ends with -%>
-  return templateData.replace(/(<%(?:#)?\s[^%]*?)(?<!-)%>/g, '$1-%>')
+  // But don't convert if the tag already ends with -%> or _%>
+  return templateData.replace(/(<%(?:#)?\s[^%]*?)(?<![-_])%>/g, '$1-%>')
 }

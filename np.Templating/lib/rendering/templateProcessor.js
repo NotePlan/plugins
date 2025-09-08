@@ -213,7 +213,8 @@ export function processReturnTag(tag: string, context: { templateData: string, s
  * @returns {{startDelim: string, rawCodeContent: string, endDelim: string} | null} The parsed components or null if parsing fails
  */
 export function parseCodeTag(tag: string): { startDelim: string, rawCodeContent: string, endDelim: string } | null {
-  const tagPartsRegex = /^(<%(?:-|~|=|#|_)?)([^]*?)((?:-|~|_)?%>)$/ // Capture 1: start, 2: content, 3: end
+  // Regular tag parsing
+  const tagPartsRegex = /^(<%(?:-|~|=|#|_)?)([^]*?)((?:-|~|_)?%>|_%>)$/ // Capture 1: start, 2: content, 3: end
   const match = tag.match(tagPartsRegex)
 
   if (!match) {
@@ -235,6 +236,11 @@ export function parseCodeTag(tag: string): { startDelim: string, rawCodeContent:
  * @returns {{normalizedStart: string, normalizedEnd: string}} The normalized delimiters
  */
 export function normalizeTagDelimiters(startDelim: string, endDelim: string): { normalizedStart: string, normalizedEnd: string } {
+  // Don't normalize whitespace control tags - they should be left exactly as they are
+  if (startDelim.includes('_') || endDelim.includes('_')) {
+    return { normalizedStart: startDelim, normalizedEnd: endDelim }
+  }
+
   // Normalize opening tag spacing - ensure there's a space after <%, <%-, <%=
   // BUT NOT for comment tags (<%#) because that would break the comment functionality
   let normalizedStart = startDelim

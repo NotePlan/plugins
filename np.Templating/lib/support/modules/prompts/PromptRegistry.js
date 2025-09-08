@@ -502,7 +502,8 @@ export function getRegisteredPromptNames(): Array<string> {
  */
 export function isPromptTag(tag: string): boolean {
   // Simple check: if there's a dot before prompt, it's not a templating prompt
-  if (tag.includes('.')) {
+  // Look for pattern like "something.prompt(" to exclude object method calls
+  if (tag.match(/\w+\.\w+\s*\(/)) {
     return false
   }
 
