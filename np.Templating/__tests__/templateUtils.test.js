@@ -2,7 +2,15 @@
  * Tests for templateUtils functions
  */
 
+import { CustomConsole } from '@jest/console'
+import { describe, test, expect, beforeAll } from '@jest/globals'
 import { convertEJSClosingTags } from '../lib/shared/templateUtils.js'
+import { simpleFormatter, DataStore } from '@mocks/index'
+
+beforeAll(() => {
+  global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter)
+  global.DataStore = { ...DataStore, settings: { _logLevel: 'none' } }
+})
 
 describe('convertEJSClosingTags', () => {
   test('should convert <% %> to <% -%> when there is a space after <%', () => {
