@@ -240,7 +240,7 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
       const titleWithoutPath = pathParts.pop() || ''
       const pathWithoutTitle = pathParts.join('/') || ''
       const potentialNotes = DataStore.projectNoteByTitle(titleWithoutPath)
-      logDebug('note/getNote', `  Found ${potentialNotes.length} notes by title "${noteName}"`)
+      logDebug('note/getNote', `  Found ${potentialNotes?.length || '0'} notes by title "${noteName}"`)
       if (potentialNotes && potentialNotes.length > 0) {
         // Apply both path filters differently depending on the use case
         let filteredNotes = potentialNotes
