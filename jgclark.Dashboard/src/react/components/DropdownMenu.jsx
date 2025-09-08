@@ -161,14 +161,15 @@ function DropdownMenu({
       // Only update state if there is a change
       setLocalSwitchStates((prevStates) => {
         const hasChanged = Object.keys(updatedStates).some((key) => updatedStates[key] !== prevStates[key])
-        logDebug(
-          `DropdownMenu: useEffect sectionItems or otherItems changed, updating localSwitchStates`,
-          {
-            updatedStates,
-          },
-          { prevStates },
-          { hasChanged },
-        )
+        // Note: this appears to log every minute, even when Dashboard isn't touched. And presents no other information.
+        // logDebug(
+        //   `DropdownMenu: useEffect sectionItems or otherItems changed, updating localSwitchStates`,
+        //   {
+        //     updatedStates,
+        //   },
+        //   { prevStates },
+        //   { hasChanged },
+        // )
         return hasChanged ? updatedStates : prevStates
       })
     }

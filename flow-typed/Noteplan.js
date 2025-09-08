@@ -1760,24 +1760,37 @@ declare interface CoreNoteFields {
    */
 filename: string;  /* Idea: TRegularFilename | TCalendarFilename; */
   /**
+  * Returns the relative, resolved path of the note (including the folder, like `folder/filename.txt`).
+  * If it's a teamspace note, it replaces the IDs in the path with the name of the teamspace and the name of the note. Teamspace note filenames end otherwise with an ID, and the teamspace is also represented as an ID.
+  * Note: Don't use this filename to read or write the note. Use `.filename`, instead.
+  * { getter only}.
+  * Note: Available from v3.17.0
+  */
++resolvedFilename: string;
+  /**
    * Optional date if it's a calendar note
+   * WARNING: As of 3.18.2 b1428 this is not available in Editor.
    */
   +date: Date | void;
   /**
    * Date and time when the note was last modified.
+   * WARNING: As of 3.18.2 b1428 this is not available in Editor.
    */
   +changedDate: Date;
   /**
    * Date and time of the creation of the note.
+   * WARNING: As of 3.18.2 b1428 this is not available in Editor.
    */
   +createdDate: Date;
   /**
    * All #hashtags contained in this note.
+   * WARNING: As of 3.18.2 b1428 this is not available in Editor.
    */
   +hashtags: $ReadOnlyArray<string>;
   /**
    * All @mentions contained in this note.
    * WARNING: @jgclark experience shows that can be unreliable, sometimes not returning any entries when it should.
+   * WARNING: As of 3.18.2 b1428 this is not available in Editor.
    */
   +mentions: $ReadOnlyArray<string>;
   /**
@@ -2102,12 +2115,6 @@ unpublish(): Promise < void>;
    */
 resolveConflictWithOtherVersion(): void;
 
-/**
- * If used with a teamspace note, it returns a human readable path to the teamspace note, like 'Engineering/Projects/bugs.md'
- * Note: Available from v3.17.0
- * @returns {string}
- */
-+resolvedFilename: string;
 /**
  * To quickly identify if this specific note is from a teamspace.
  * Note: Available from v3.17.0

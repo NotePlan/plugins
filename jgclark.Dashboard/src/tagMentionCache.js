@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2025-08-29 for v2.3.0.b9, @jgclark
+// last updated 2025-09-07 for v2.3.0.b10, @jgclark
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -14,7 +14,6 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-// import { getDashboardSettings } from './dashboardHelpers'
 import type { TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
@@ -30,6 +29,8 @@ const wantedTagMentionsListFile = 'wantedTagMentionsList.json'
 const tagMentionCacheFile = 'tagMentionCache.json'
 const lastTimeThisWasRunPref = 'jgclark.Dashboard.tagMentionCache.lastTimeUpdated'
 const regenerateTagMentionCachePref = 'jgclark.Dashboard.tagMentionCache.regenerateTagMentionCache'
+const TAG_CACHE_UPDATE_INTERVAL_HOURS = 1 // how often to update the cache
+const TAG_CACHE_GENERATE_INTERVAL_HOURS = 24 // how often to re-generate the cache
 
 // TODO(later): remove some of these in time
 const TAG_CACHE_ONLY_FOR_OPEN_ITEMS = true // WARNING: if false, then for JGC the cache file is 20x larger.
@@ -80,7 +81,7 @@ export function scheduleTagMentionCacheGenerationIfTooOld(generatedAtStr: string
   const nowMom = moment()
   const generatedAtMom = moment(generatedAtStr)
   const diffHours = nowMom.diff(generatedAtMom, 'hours', true)
-  if (diffHours >= 24) {
+  if (diffHours >= TAG_CACHE_GENERATE_INTERVAL_HOURS) {
     logInfo('scheduleTagMentionCacheGenerationIfTooOld', `Tag mention cache is too old (${diffHours}hours), so scheduling a regeneration.`)
     scheduleTagMentionCacheGeneration()
   } else {
@@ -92,15 +93,15 @@ export function scheduleTagMentionCacheGenerationIfTooOld(generatedAtStr: string
  * Update the tag mention cache if it's too old (>1 hour). Note: assumes that the cache is available.
  * @param {string} updatedAtStr The date and time the cache was last updated.
  */
-export async function updateTagMentionCacheGenerationIfTooOld(updatedAtStr: string): Promise<void> {
+export async function updateTagMentionCacheIfTooOld(updatedAtStr: string): Promise<void> {
   const nowMom = moment()
   const updatedAtMom = moment(updatedAtStr)
   const diffHours = nowMom.diff(updatedAtMom, 'hours', true)
-  if (diffHours >= 2) {
-    logInfo('updateTagMentionCacheGenerationIfTooOld', `Tag mention cache last update is too old (${diffHours}hours), so will now update it ...`)
+  if (diffHours >= TAG_CACHE_UPDATE_INTERVAL_HOURS) {
+    logInfo('updateTagMentionCacheIfTooOld', `Tag mention cache last update is too old (${diffHours}hours), so will now update it ...`)
     await updateTagMentionCache()
   } else {
-    logInfo('updateTagMentionCacheGenerationIfTooOld', `Tag mention cache last update is not too old (${diffHours}hours).`)
+    logInfo('updateTagMentionCacheIfTooOld', `Tag mention cache last update is not too old (${diffHours}hours).`)
   }
 }
 
@@ -125,6 +126,7 @@ export function getTagMentionCacheDefinitions(): Array<string> {
 
 /**
  * Add new mention(s) and/or tag(s) to the wantedTagMentionsList.json file.
+ * It will start the regeneration of the cache if needed.
  * @param {Array<string>} mentionOrTagsIn The mention(s) and/or tag(s) to add
  */
 export function addTagMentionCacheDefinitions(mentionOrTagsIn: Array<string>): void {
@@ -143,7 +145,7 @@ export function addTagMentionCacheDefinitions(mentionOrTagsIn: Array<string>): v
   if (!TAG_CACHE_FOR_ALL_TAGS && newItems.length > existingItems.length) {
     logInfo('addTagMentionCacheDefinitions', `- added new wanted items '${String(newItems)}', and so need to kick off regeneration of the cache now.`)
     // eslint-disable-next-line require-await
-    const _promise = generateTagMentionCache()
+    const _promise = generateTagMentionCache() // note: no await, as we don't want to block the UI
   }
 }
 
@@ -213,11 +215,17 @@ export async function getFilenamesOfNotesWithTagOrMentions(
             missingItems,
           )}]. Will use the API instead, and then regenerate the cache.`,
         )
+        // Add missing items to the wantedTagMentionsList.json file, and schedule regeneration of the cache
         addTagMentionCacheDefinitions(missingItems)
-        // Note: we don't need to schedule a regeneration of the cache here, as the addTagMentionCacheDefinitions() function will do that for us.
+        scheduleTagMentionCacheGeneration()
 
-        // But we will still do an update of the cache, which is quick, in case that does pick up a few of this new item
+        // And now do an update of the cache, which is quick, in case that does pick up a few of this new item
         await updateTagMentionCache()
+      } else {
+        if (firstUpdateCache) {
+          logInfo('getFilenamesOfNotesWithTagOrMentions', `- updating cache before looking for notes with tags/mentions [${String(tagOrMentions)}]`)
+          await updateTagMentionCache()
+        }
       }
     } else {
       // Update the cache if requested
@@ -239,7 +247,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(
     let countComparison = ''
 
     // Update the cache if too old
-    await updateTagMentionCacheGenerationIfTooOld(parsedCache.lastUpdated)
+    await updateTagMentionCacheIfTooOld(parsedCache.lastUpdated)
     
     // Get matching Calendar notes using Cache
     let matchingNoteFilenamesFromCache = calNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename)

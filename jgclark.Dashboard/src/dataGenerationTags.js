@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-08-21 for v2.3.0.b8, @jgclark
+// Last updated 2025-09-07 for v2.3.0.b10, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -79,8 +79,8 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       // Get notes with matching hashtag or mention (as can't get list of paras directly)
       // Use Cache if wanted (and available), otherwise the API.
       let notesWithTag: Array<TNote> = []
-      const cacheIsAvailable = isTagMentionCacheAvailableforItem(thisTag)
-      if (config.FFlag_UseTagCache && cacheIsAvailable) {
+      const cacheIsAvailableForThisTag = isTagMentionCacheAvailableforItem(thisTag)
+      if (config.FFlag_UseTagCache && cacheIsAvailableForThisTag) {
         // Use Cache
         logInfo('getTaggedSectionData', `- using cache for ${thisTag}`)
         let filenamesWithTagFromCache: Array<string> = []
@@ -107,7 +107,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         // Use API
         logInfo('getTaggedSectionData', `- using API only for ${thisTag}`)
         // Note: this is slow (1-3ms per note, so 3-9s for 3250 notes).
-        notesWithTag = findNotesMatchingHashtagOrMention(thisTag, true, true, true, [], WANTED_PARA_TYPES)
+        notesWithTag = findNotesMatchingHashtagOrMention(thisTag, true, true, true, [], WANTED_PARA_TYPES, '', false, true)
         // $FlowIgnore[unsafe-arithmetic]
         // const APILookupTime = new Date() - thisStartTime
         logTimer('getTaggedSectionData', thisStartTime, `- from API only found ${notesWithTag.length} notes with ${thisTag}`)
@@ -130,18 +130,14 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
 
         // If we want to use note tags, and the note has a 'note-tag' field in its FM, then work out if the note-tag matches this particular tag/mention.
         let hasMatchingNoteTag = false
-
+        logDebug('getTaggedSectionData', `- checking note '${n.filename}' for note-tag`)
         if (noteHasFrontMatter(n)) {
-          const temp = n.title === 'this is in the root'
           const noteTagAttribute = getFrontmatterAttribute(n, 'note-tag')
           const noteTagList = noteTagAttribute ? stringListOrArrayToArray(noteTagAttribute, ',') : []
           if (noteTagList.length > 0) {
             hasMatchingNoteTag = noteTagList && noteTagList.some((tag) => caseInsensitiveMatch(tag, thisTag))
 
             logInfo('getTaggedSectionData', `-> noteTag(s) '${String(noteTagList)}' is ${hasMatchingNoteTag ? 'a' : 'NOT a'} match for ${thisTag}`)
-          }
-          if (temp) {
-            clo(n, `QQQ getTaggedSectionData: n DELETEME noteTagAttribute=${noteTagAttribute} noteTagList=${noteTagList} hasMatchingNoteTag=${hasMatchingNoteTag}`)
           }
         }
         // Add the paras that contain the tag/mention, unless this is a noteTag, in which case add all paras if FM field 'note-tag' matches. (Later we filter down to open non-scheduled items).
@@ -229,11 +225,11 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
       }
 
       // If we wanted to use the cache but it wasn't available or populated correctly, schedule it to be generated at the next opportunity, and ensure thisTag is in the cache definitions.
-      if (config?.FFlag_UseTagCache && !cacheIsAvailable) {
-        logInfo('getTaggedSectionData', `- adding ${thisTag} to the tagCache definitions, and scheduling a rebuild`)
+      if (config?.FFlag_UseTagCache && !cacheIsAvailableForThisTag) {
+        logInfo('getTaggedSectionData', `- adding ${thisTag} to the tagCache definitions, and scheduling a regeneration`)
         addTagMentionCacheDefinitions([thisTag])
         scheduleTagMentionCacheGeneration()
-        source = 'using API as cache not available'
+        source = `using API as cache not yet available for ${thisTag}`
       }
     }
   }
