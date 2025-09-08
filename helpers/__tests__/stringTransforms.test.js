@@ -585,9 +585,6 @@ describe(`${PLUGIN_NAME}`, () => {
         const input = `'5m[CommandBar](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Review%20overdue%20tasks%20%28by%20Task%29) > [React](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Process%20Overdue%20Items%20in%20a%20Separate%20Window&arg0=Overdue)  !!!!`
         const encoded = st.encodeRFC3986URIComponent(input)
         const decoded = st.decodeRFC3986URIComponent(encoded)
-        console.log(input)
-        console.log(encoded)
-        console.log(decoded)
         expect(decoded).toEqual(input)
       })
     })

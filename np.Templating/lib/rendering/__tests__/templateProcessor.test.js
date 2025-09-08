@@ -28,7 +28,7 @@ const mockNotePlanEnvironment = () => {
   global.CommandBar.showOptions = jest.fn().mockResolvedValueOnce({ index: 0, value: 'high' })
 
   // Override DataStore settings for this test file's needs
-  global.DataStore.settings = {}
+  global.DataStore.settings = { _logLevel: 'none' }
   global.DataStore.preference = jest.fn().mockReturnValue('')
   global.DataStore.loadJSON = jest.fn().mockReturnValue({
     templateFolderName: '@Templates',
