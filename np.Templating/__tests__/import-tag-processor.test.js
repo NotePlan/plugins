@@ -2,8 +2,15 @@
  * @fileoverview Tests for import tag processing with template string support
  */
 
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { importTemplates } from '../lib/rendering/templateProcessor'
 import { getTemplate, getTags, isCommentTag } from '../lib/core'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 // Mock the core module functions
 jest.mock('../lib/core', () => ({

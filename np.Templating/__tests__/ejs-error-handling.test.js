@@ -9,7 +9,14 @@
  * Tests improved error messages and line number tracking in templates with JavaScript blocks.
  */
 
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 const ejs = require('../lib/support/ejs')
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 // In Jest environment, these globals are already available
 
 describe('EJS Error Handling', () => {

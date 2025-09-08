@@ -5,7 +5,14 @@
  * @fileoverview Tests for smart quote replacement functionality
  */
 
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { replaceSmartQuotes } from '../lib/utils/stringUtils'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 describe('replaceSmartQuotes', () => {
   test('should replace left double quotation mark (U+201C) with straight double quote (")', () => {

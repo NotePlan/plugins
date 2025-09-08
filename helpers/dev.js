@@ -598,7 +598,20 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
   if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
     userLogLevel = pluginSettings['_logLevel']
   }
-  const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
+
+  // Handle both string and numeric log levels
+  let userLogLevelIndex
+  if (typeof userLogLevel === 'string') {
+    userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
+  } else {
+    userLogLevelIndex = userLogLevel
+  }
+
+  // If 'none' is set, don't output anything
+  if (userLogLevel === 'none' || userLogLevelIndex === 4) {
+    return false
+  }
+
   return thisMessageLevel >= userLogLevelIndex
 }
 

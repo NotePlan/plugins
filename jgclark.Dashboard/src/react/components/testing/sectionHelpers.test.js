@@ -2,8 +2,15 @@
 
 // eslint-disable-next-line flowtype/no-types-missing-file-annotation
 // import type { TSection, TSectionCode } from '../../../types.js'
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import * as sh from '../Section/sectionHelpers.js'
 import { clo, logDebug } from '@helpers/dev'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 // tests start here
 

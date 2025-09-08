@@ -1,5 +1,6 @@
 /* global describe, expect, test */
 
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import {
   aggregateByCategoriesAndMonth,
   castFixedExpensesArrayFromMixed,
@@ -11,16 +12,18 @@ import {
   leftPadWithZeros,
 } from '../src/expensesHelper'
 
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
+
 const simpleConfig = {
   delimiter: ';',
   dateFormat: 'yyyy-MM-dd',
   amountFormat: 'short',
-  columnOrder: [
-    'date', 'category', 'text', 'amount'
-  ],
-  categories: [
-    'Living', 'Media'
-  ],
+  columnOrder: ['date', 'category', 'text', 'amount'],
+  categories: ['Living', 'Media'],
   shortcutExpenses: [
     {
       category: 'Fun',
@@ -41,13 +44,11 @@ const simpleConfig = {
       amount: 10,
       active: true,
     },
-  ]
+  ],
 }
 
 describe('expensesHelper', () => {
-
   describe('expensesHelper.js', () => {
-
     test('should cast string array from mixed config', () => {
       const expected = 'yyyy-MM-dd'
 
@@ -57,7 +58,7 @@ describe('expensesHelper', () => {
     })
 
     test('should cast string array from mixed config', () => {
-      const expectedArray = [ 'Living', 'Media' ]
+      const expectedArray = ['Living', 'Media']
 
       const result = castStringArrayFromMixed(simpleConfig, 'categories')
 
@@ -69,7 +70,7 @@ describe('expensesHelper', () => {
 
       const result = castShortcutExpensesArrayFromMixed(simpleConfig, 'shortcutExpenses')
 
-      const coffee = result.filter(exp => exp.text === 'Coffee').pop()
+      const coffee = result.filter((exp) => exp.text === 'Coffee').pop()
       expect(coffee.amount).toEqual(expectedCofeAmount)
     })
 
@@ -78,7 +79,7 @@ describe('expensesHelper', () => {
 
       const result = castFixedExpensesArrayFromMixed(simpleConfig, 'fixedExpenses')
 
-      const rent = result.filter(exp => exp.text === 'Flat Rent').pop()
+      const rent = result.filter((exp) => exp.text === 'Flat Rent').pop()
       expect(rent.amount).toEqual(expectedFlatRentAmount)
     })
 
@@ -87,7 +88,7 @@ describe('expensesHelper', () => {
         date: new Date(2021, 11, 1),
         category: 'Living',
         text: 'Flat Rent',
-        amount: 600
+        amount: 600,
       }
 
       const result = extractExpenseRowFromCsvRow('2021-12-01;Living;Flat Rent;600', simpleConfig)
@@ -156,7 +157,5 @@ describe('expensesHelper', () => {
       expect(leftPadWithZeros(333, 10)).toEqual('0000000333')
       expect(leftPadWithZeros(5, null)).toEqual('5')
     })
-
   })
-
 })

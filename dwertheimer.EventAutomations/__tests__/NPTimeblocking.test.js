@@ -53,7 +53,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       })
       test('should return default config if no settings set', () => {
         const oldSettings = DataStore.settings
-        DataStore.settings = undefined
+        global.DataStore.settings = { _logLevel: 'DEBUG' } // no plugin settings
         const spy = jest.spyOn(console, 'log')
         const result = timeBlockingShared.getConfig()
         expect(mockWasCalledWithString(spy, /config was empty/)).toBe(true)

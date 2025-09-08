@@ -5,8 +5,15 @@
 /* global describe, test, it, expect, jest, beforeEach, afterEach */
 // @flow
 
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import moment from 'moment/min/moment-with-locales'
 import { formatWithNotePlanWeeks } from '../notePlanWeekFormatter'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 describe('NotePlan Week Formatter', () => {
   beforeEach(() => {

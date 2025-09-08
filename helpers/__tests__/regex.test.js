@@ -1,6 +1,13 @@
 /* globals describe, expect, test */
 
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { RE_BARE_URI_MATCH_G, RE_TEAMSPACE_NOTE_UUID } from '../regex'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 describe('Tests for RE_BARE_URI_MATCH_G', () => {
   test('should match standard protocols', () => {

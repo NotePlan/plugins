@@ -326,7 +326,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
         testCases.forEach(({ date, expected }, index) => {
           const result = dateModule.format('YYYY-MM-DD', date)
-          console.log(`LA Test case ${index + 1}: date="${date}", expected="${expected}", result="${result}"`)
+          // console.log(`LA Test case ${index + 1}: date="${date}", expected="${expected}", result="${result}"`)
           expect(result).toBe(expected)
         })
       })
@@ -344,7 +344,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
         testCases.forEach(({ date, expected }, index) => {
           const result = dateModule.format('YYYY-MM-DD', date)
-          console.log(`NYC Test case ${index + 1}: date="${date}", expected="${expected}", result="${result}"`)
+          // console.log(`NYC Test case ${index + 1}: date="${date}", expected="${expected}", result="${result}"`)
           expect(result).toBe(expected)
         })
       })
@@ -362,7 +362,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
         testCases.forEach(({ date, expected }, index) => {
           const result = dateModule.format('YYYY-MM-DD', date)
-          console.log(`UTC Test case ${index + 1}: date="${date}", expected="${expected}", result="${result}"`)
+          // console.log(`UTC Test case ${index + 1}: date="${date}", expected="${expected}", result="${result}"`)
           expect(result).toBe(expected)
         })
       })

@@ -1,6 +1,13 @@
 /* globals describe, expect, test */
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import colors from 'chalk'
 import * as ch from '../calendar'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/calendar')}`
 const section = colors.blue
@@ -49,9 +56,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     describe('keepTodayPortionOnly', () => {
       test('should not modify items that are start/end in the same day', () => {
-        const events = [
-          { date: new Date(`2021-01-01 08:00`), endDate: new Date(`2021-01-01 23:59`), title: 'foo', isAllDay: false },
-        ]
+        const events = [{ date: new Date(`2021-01-01 08:00`), endDate: new Date(`2021-01-01 23:59`), title: 'foo', isAllDay: false }]
         expect(ch.keepTodayPortionOnly(events)).toEqual(events)
       })
       test('should modify items that are started prior to date in question and end on date in question', () => {
@@ -138,9 +143,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     describe('attendeesAsString', () => {
-      const attendees = ['✓ [Jonathan Clark](mailto:jonathan@clarksonline.me.uk)',
-        '[James Bond](mailto:007@sis.gov.uk)',
-        'x [M](mailto:m@sis.gov.uk)']
+      const attendees = ['✓ [Jonathan Clark](mailto:jonathan@clarksonline.me.uk)', '[James Bond](mailto:007@sis.gov.uk)', 'x [M](mailto:m@sis.gov.uk)']
       test('should return names when only one param sent (default is names)', () => {
         const r = ch.attendeesAsString(attendees)
         expect(r).toEqual('Jonathan Clark, James Bond, M')
@@ -165,7 +168,6 @@ describe(`${PLUGIN_NAME}`, () => {
         const r = ch.attendeesAsString(['[]()'], 'name')
         expect(r).toEqual('')
       })
-
     })
   })
 })

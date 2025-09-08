@@ -1,6 +1,13 @@
 /* global describe, it, expect */
 
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { replaceDoubleDashes, convertToDoubleDashesIfNecessary } from '../lib/engine/templateRenderer'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 describe('Template Renderer Functions', () => {
   describe('replaceDoubleDashes', () => {

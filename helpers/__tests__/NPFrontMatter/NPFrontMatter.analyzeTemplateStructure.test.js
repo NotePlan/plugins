@@ -1,7 +1,14 @@
 // @flow
 /* global describe, test, expect */
 
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { analyzeTemplateStructure, getNoteTitleFromTemplate, getNoteTitleFromRenderedContent } from '../../NPFrontMatter'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 describe('analyzeTemplateStructure', () => {
   describe('newNoteTitle detection', () => {

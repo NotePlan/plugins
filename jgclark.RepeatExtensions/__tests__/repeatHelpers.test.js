@@ -1,6 +1,13 @@
 /* global describe, expect, test, beforeAll */
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import moment from 'moment'
 import { generateNewRepeatDate } from '../src/repeatHelpers'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 // import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
 
