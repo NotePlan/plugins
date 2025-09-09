@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.14.11] - 2025-09-10??? @jgclark
+- improvements to '/List stubs' command
+
 ## [0.14.10] - 2025-09-03 @jgclark
 - fix regression in '/Generate @repeats from recent notes' command.
 

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // listStubs function for Tidy
 // Jonathan Clark
-// Last updated 2025-02-16 for v0.14.7+ by @jgclark
+// Last updated 2025-09-09 for v0.14.11 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { getSettings, type TidyConfig } from './tidyHelpers'
@@ -12,12 +12,14 @@ import { isValidCalendarNoteTitleStr } from '@helpers/dateTime'
 import {
   getFolderListMinusExclusions,
   getFolderFromFilename,
+  getFolderDisplayName,
   getJustFilenameFromFullFilename,
   getProjectNotesInFolder,
 } from '@helpers/folders'
 import {
   createOpenOrDeleteNoteCallbackUrl,
   createPrettyRunPluginLink,
+  displayFolderAndTitle,
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
@@ -42,7 +44,7 @@ type stubDetails = {
  * Ignores links to calendar notes.
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
- * @returns {Array<stubDetails>} array of strings, one for each output line
+ * @returns {Array<stubDetails>} array of <stubDetails> objects: note and wikilink (without surrounding brackets)
 */
 function findStubs(
   foldersToExclude: Array<string> = [],
@@ -65,23 +67,27 @@ function findStubs(
     const numNotes = notes.length
 
     let stubs = 0
-    let i = 0
+    let noteCount = 0
     for (const thisNote of notes) {
+      noteCount++
+      // Ignore the output note, if found.
       if (filenamesToExclude.includes(thisNote.filename)) {
         continue
       }
-      i++
-      CommandBar.showLoading(true, `Checking note ${String(i)}`, i / numNotes)
+      CommandBar.showLoading(true, `Checking note ${String(noteCount)}`, noteCount / numNotes)
       const thisContent = thisNote.content ?? ''
+      // logDebug('findStubs', `- checking in note: ${displayTitle(thisNote)}`)
       // Find all wikilinks in this note
       const matches = thisContent.matchAll(/\[\[[^\[]+?\]\]/g) // has to be global
       for (const match of matches) {
         const thisLink = match[0].slice(2, -2) // remove enclosing brackets
-        // remove any '#heading' or '^link' part
+        // remove any '#heading'
         let thisLinkTitle = (thisLink.includes('#')) ? thisLink.split('#', 1)[0] : thisLink
-        thisLinkTitle = (thisLink.includes('^')) ? thisLink.split('^', 1)[0] : thisLink
+        // remove any '^link' part
+        thisLinkTitle = (thisLinkTitle.includes('^')) ? thisLinkTitle.split('^', 1)[0] : thisLinkTitle
+        // logDebug('findStubs', `  - checking for thisLinkTitle: ${thisLinkTitle} from '${match[0]}'`)
         // Check to see if each match leads anywhere
-        const isCalendarNote = isValidCalendarNoteTitleStr(thisLinkTitle)
+        const isCalendarNote = isValidCalendarNoteTitleStr(thisLinkTitle, true) // also allows YYYYMMDD format
         const notesMatchingTitle = DataStore.projectNoteByTitle(thisLinkTitle) ?? []
         if (!isCalendarNote && notesMatchingTitle.length === 0) {
           // logDebug('findStubs', `- ${thisLink} is a stub`)
@@ -151,17 +157,19 @@ export async function listStubs(params: string = ''): Promise<void> {
       counter++
       const n = d.note
       const titleToDisplay = (n.title !== '') ? n.title ?? 'Untitled' : 'Untitled' // to keep flow happy
-      logDebug('listStubs', `${counter}. ${titleToDisplay} / ${d.wikilink}`)
-      const thisFolder = n.filename.includes('/') ? '**' + getFolderFromFilename(n.filename) + '**' : '**root**'
-      const thisJustFilename = getJustFilenameFromFullFilename(n.filename)
+      // const thisFolder = n.filename.includes('/') ? '**' + getFolderDisplayName(getFolderFromFilename(n.filename), true) + '**' : '**root**'
+      // logDebug('listStubs', `${counter}. ${titleToDisplay} / ${d.wikilink}`)
+      // const thisJustFilename = getJustFilenameFromFullFilename(n.filename)
+      // TODO: update this function for Teamspaces
+      const thisFolderAndTitle = displayFolderAndTitle(n, false)
       // Make some button links
-      const openMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', false)
-      // const deleteMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', true)
+      const openMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'subWindow', false)
 
       // Write out header for this note (if changed from last stub)
       if (lastNote !== n) {
         numNotes++
-        outputArray.push(`## ${thisFolder} / ${titleToDisplay}`)
+        // outputArray.push(`## ${thisFolder} / ${titleToDisplay}`)
+        outputArray.push(`## ${thisFolderAndTitle}`)
         outputArray.push(`[open note](${openMe})`) // [❌ delete note](${deleteMe})
       }
       // Write out details for this dupe
@@ -173,23 +181,28 @@ export async function listStubs(params: string = ''): Promise<void> {
     // To the front add title and an x-callback link under the title to allow this to be refreshed easily
     const xCallbackRefreshButton = createPrettyRunPluginLink('🔄 Click to refresh', 'np.Tidy', 'List stubs', [])
     const summaryLine = `Found ${stubs.length} stubs in ${String(numNotes)
-      }  notes at ${nowLocaleShortDateTime()}. ${xCallbackRefreshButton}`
+      } notes at ${nowLocaleShortDateTime()}. ${xCallbackRefreshButton}`
     outputArray.unshift(summaryLine)
     outputArray.unshift(`# Wikilink Stubs`)
 
-
     // If note is not open in an editor already, write to and open the note. Otherwise just update note.
+    let noteToUse: ?TNote
     if (!noteOpenInEditor(outputFilename)) {
-      const resultingNote = await Editor.openNoteByFilename(outputFilename, false, 0, 0, true, true, outputArray.join('\n'))
+      noteToUse = await Editor.openNoteByFilename(outputFilename, false, 0, 0, true, true, outputArray.join('\n'))
     } else {
-      const noteToUse = DataStore.projectNoteByFilename(outputFilename)
-      if (noteToUse) {
-        noteToUse.content = outputArray.join('\n')
-      } else {
-        throw new Error(`Couldn't find note '${outputFilename}' to write to`)
-      }
+      noteToUse = DataStore.projectNoteByFilename(outputFilename)
     }
-
+    if (!noteToUse) {
+      throw new Error(`Couldn't find note '${outputFilename}' to write to`)
+    }
+    noteToUse.content = outputArray.join('\n')
+    const noteFMAttributes = [
+      { key: 'title', value: 'Wikilink Stubs' },
+      { key: 'updated', value: nowLocaleShortDateTime() },
+      { key: 'icon', value: 'link-slash' },
+      { key: 'icon-color', value: 'red-500' }
+    ]
+    noteToUse.updateFrontmatterAttributes(noteFMAttributes) 
   } catch (err) {
     logError('listStubs', JSP(err))
     return // for completeness
