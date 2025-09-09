@@ -8,6 +8,7 @@ import json5 from 'json5'
 import { clo, JSP, logError, logDebug } from './dev'
 import { getDateStringFromCalendarFilename } from './dateTime'
 import { getFolderFromFilename } from './folders'
+import { parseTeamspaceFilename } from './teamspace'
 
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
 
@@ -195,17 +196,36 @@ export function displayTitle(n: ?CoreNoteFields): string {
 }
 
 /**
- * Return title of note useful for display, including for
- * - calendar notes based on the filename
+ * Return title of note useful for display, starting with folder path.
+ * Now updated for Teamspace notes
  * @author @jgclark
  *
  * @param {CoreNoteFields} note
+ * @param {boolean} titleAsLink - whether to wrap the output in a [[link]]
  * @return {string}
  */
 export function displayFolderAndTitle(note: CoreNoteFields, titleAsLink: boolean = true): string {
-  return note.type === 'Calendar'
-    ? getDateStringFromCalendarFilename(note.filename) ?? ''
-    : `${getFolderFromFilename(note.filename)}/${titleAsLink ? `[[${note.title ?? '?'}]]` : note.title ?? '?'}`
+  const displayTitle = titleAsLink ? `[[${note.title ?? '?'}]]` : note.title ?? '?'
+  const isTeamspaceNote = note.isTeamspaceNote
+  if (isTeamspaceNote) {
+    const teamspaceName = note.teamspaceTitle ?? '?'
+    const teamspaceDetails = parseTeamspaceFilename(note.filename)
+    let folderPart = teamspaceDetails.filepath
+    folderPart = folderPart !== '/' ? `${folderPart}/` : ''
+    const filenameWithoutTeamspaceID = teamspaceDetails.filename ?? '?'
+
+    if (note.type === 'Calendar') {
+      return `[👥 ${teamspaceName}] ${filenameWithoutTeamspaceID}`
+    } else {
+      return `[👥 ${teamspaceName}] ${folderPart}${displayTitle}`
+    }
+  } else {
+    if (note.type === 'Calendar') {
+      return getDateStringFromCalendarFilename(note.filename) ?? ''
+    } else {
+      return `${getFolderFromFilename(note.filename)}/${displayTitle}`
+    }
+  }
 }
 
 /**
