@@ -1590,17 +1590,25 @@ export const isReallyAllDay = (parseDateReturnObj: any): boolean => {
 /**
  * Validate if a string could be used to pull up any calendar note (of all NP allowed calendar note durations)
  * Note: This is just a regex test: it doesn't test if such a note actually exists.
- * @param {string} text
- * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYY-MM-DD not YYYYMMDD), week, month, quarter or year.
+ * Note: It will fail if the date string has other text before or after it.
+ * @author @jgclark
+ * @tests available in jest file
+ * @param {string} input
+ * @param {boolean} allowYYYYMMDDFormat - whether to allow the YYYYMMDD format as well as the ISO format (default: false)
+ * @returns {boolean} whether it passes the @jgclark RegEx tests for day (note YYY-MM-DD not YYYYMMDD), week, month, quarter or year.
  */
-export function isValidCalendarNoteTitleStr(text: string): boolean {
-  const combinedRE = new RegExp(`^(${RE_ISO_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})$`)
-  return combinedRE.test(text)
+export function isValidCalendarNoteTitleStr(input: string, allowYYYYMMDDFormat: boolean = false): boolean {
+  const combinedRE = allowYYYYMMDDFormat
+    ? new RegExp(`^(${RE_ISO_DATE}|${RE_YYYYMMDD_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})$`)
+    : new RegExp(`^(${RE_ISO_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})$`)
+  return combinedRE.test(input)
 }
 
 /**
  * Validate if a filename could be used to pull up any calendar note (of all NP allowed calendar note durations)
  * Note: This is just a regex test: it doesn't test if such a note actually exists.
+ * TODO: Expect this will need modifications for Teamspaces
+ * @author @jgclark
  * @param {string} text
  * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYYYMMDD not ISO), week, month, quarter or year.
  */
@@ -1612,6 +1620,8 @@ export function isValidCalendarNoteFilename(text: string): boolean {
 /**
  * Validate if a filename could be used to pull up any calendar note (of all NP allowed calendar note durations)
  * Note: This is just a regex test: it doesn't test if such a note actually exists.
+ * TODO: Expect this will need modifications for Teamspaces
+ * @author @jgclark
  * @param {string} text
  * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYYYMMDD not ISO), week, month, quarter or year.
  */

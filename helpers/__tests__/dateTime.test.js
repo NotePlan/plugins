@@ -1099,13 +1099,17 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = dt.isValidCalendarNoteTitleStr(`2021-W39`)
         expect(result).toEqual(true)
       })
+      test('should work for non-iso date 1 with special flag', () => {
+        const result = dt.isValidCalendarNoteTitleStr(`20201231`, true)
+        expect(result).toEqual(true)
+      })
     })
     describe('fails', () => {
-      test('should fail for iso date 01-01', () => {
+      test('should fail for non-iso date 1', () => {
         const result = dt.isValidCalendarNoteTitleStr(`20200101`)
         expect(result).toEqual(false)
       })
-      test('should fail for iso date with 12-31', () => {
+      test('should fail for non-iso date 2', () => {
         const result = dt.isValidCalendarNoteTitleStr(`20201231`)
         expect(result).toEqual(false)
       })
@@ -1123,6 +1127,14 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should fail for week date 2021-W62', () => {
         const result = dt.isValidCalendarNoteTitleStr(`2021-W62`)
+        expect(result).toEqual(false)
+      })
+      test('should fail for extra text before', () => {
+        const result = dt.isValidCalendarNoteTitleStr(`date 2021-W12`)
+        expect(result).toEqual(false)
+      })
+      test('should fail for extra text after', () => {
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W12 is a date`)
         expect(result).toEqual(false)
       })
 
