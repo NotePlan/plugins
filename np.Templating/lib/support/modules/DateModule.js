@@ -29,12 +29,33 @@ export function createDateTime(userDateString = '') {
 }
 
 export function format(format: string = 'YYYY-MM-DD', dateString: string = '') {
-  const dt = dateString ? moment(dateString).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
-  return formatWithNotePlanWeeks(moment(createDateTime(dt)), format && format.length > 0 ? format : 'YYYY-MM-DD')
+  let momentToFormat
+  if (dateString && dateString.length > 0) {
+    const m = moment(dateString)
+    if (m.isValid()) {
+      // If the input has a timezone offset, use UTC interpretation for consistency
+      if (dateString.includes('T') && (dateString.includes('+') || dateString.includes('-') || dateString.includes('Z'))) {
+        const hasTimezoneOffset = /[+-]\d{2}:\d{2}$/.test(dateString) || dateString.endsWith('Z')
+        if (hasTimezoneOffset) {
+          momentToFormat = m.utc()
+        } else {
+          momentToFormat = m
+        }
+      } else {
+        momentToFormat = m
+      }
+    } else {
+      momentToFormat = moment()
+    }
+  } else {
+    momentToFormat = moment()
+  }
+
+  return formatWithNotePlanWeeks(momentToFormat, format && format.length > 0 ? format : 'YYYY-MM-DD')
 }
 
 export function currentDate(format: string = 'YYYY-MM-DD') {
-  return formatWithNotePlanWeeks(moment(new Date()), format && format.length > 0 ? format : 'YYYY-MM-DD')
+  return formatWithNotePlanWeeks(moment(), format && format.length > 0 ? format : 'YYYY-MM-DD')
 }
 
 export function date8601() {
