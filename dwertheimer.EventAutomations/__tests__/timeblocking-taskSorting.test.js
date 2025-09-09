@@ -1,7 +1,14 @@
 /* globals describe, expect, it, test, DataStore */
 // import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075 } from 'date-fns'
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import * as tb from '../src/timeblocking-helpers'
 import { getTasksByType, sortListBy } from '@helpers/sorting'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 // import { isNullableTypeAnnotation } from '@babel/types'
 
 // Jest suite

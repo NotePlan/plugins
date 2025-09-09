@@ -9,6 +9,7 @@
 import ejs from '../support/ejs'
 import { logDebug } from '@helpers/dev'
 import pluginJson from '../../plugin.json'
+import { convertEJSClosingTags } from '../shared/templateUtils'
 
 /**
  * Renders template data using EJS with the provided render context.
@@ -19,6 +20,9 @@ import pluginJson from '../../plugin.json'
  */
 export async function renderTemplateWithEJS(processedTemplateData: string, renderData: Object, options: Object): Promise<string> {
   logDebug(pluginJson, `EJS render: ${Object.keys(renderData).length} data keys available`)
+
+  // Convert EJS closing tags to prevent unwanted whitespace
+  processedTemplateData = convertEJSClosingTags(processedTemplateData)
 
   const result = await ejs.render(processedTemplateData, renderData, options)
 

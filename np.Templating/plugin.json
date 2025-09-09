@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.9.10",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "2.0.20",
-  "plugin.lastUpdateInfo": "2.0.20: - Fix folder selection in new note command",
+  "plugin.version": "2.1.0",
+  "plugin.lastUpdateInfo": "2.1.0: - add helpers module to provide access to commonly used helper functions in templates. See [Helpers](https://noteplan.co/templates/docs/built-in-modules/templating-modules-helpers) for details",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson ( codedungeon)",
   "plugin.dependencies": [],
@@ -208,6 +208,15 @@
       "arguments": []
     },
     {
+      "name": "Templating Help/Support",
+      "description": "Get help with templates and templating commands",
+      "jsFunction": "templatingHelp",
+      "alias": [
+        "tp:help", "help", "np:help"
+      ],
+      "arguments": []
+    },
+    {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "Templating: Update Plugin Settings",
       "description": "Templating Preferences",
@@ -340,6 +349,17 @@
       "type": "separator"
     },
     {
+      "key": "autoSlurpingCodeTags",
+      "title": "Automatically close code/comment tags with -%>",
+      "description": "Sometimes people forget to add the newline-slurping closing tag to template lines containing code (<%) or comments (<%#). This results in extra newlines in the output. If this setting is checked, the Templating Engine will automatically add newline slurping tags even when you forget. If you don’t want this behavior, uncheck it.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
       "type": "heading",
       "title": "Debugging"
     },
@@ -364,6 +384,22 @@
       ],
       "description": "Set how much loggin output will be displayed when executing np.Templating commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG Show All Logs\n - INFO Only Show Info, Warnings, and Errors\n - WARN Only Show Errors or Warnings\n - ERROR Only Show Errors\n - none Silence Logs",
       "default": "INFO",
+      "required": true
+    },
+    {
+      "key": "_logFunctionRE",
+      "title": "Regex for Functions to show in debug log",
+      "description": "Overrides the Log Level above if this regex matches the first argument in log*() calls. If not set, has no effect.",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "_logTimer",
+      "title": "Enable Timer logging?",
+      "description": "For plugin authors to help optimise the plugin.",
+      "type": "bool",
+      "default": false,
       "required": true
     }
   ]

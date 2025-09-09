@@ -5,7 +5,7 @@
 // last updated 2025-08-25, for v1.3.1
 // ----------------------------------------------------------------------------
 
-import pluginJson from "../plugin.json"
+import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError } from '@helpers/dev'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'

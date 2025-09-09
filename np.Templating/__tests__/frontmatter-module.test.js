@@ -518,9 +518,9 @@ This is the actual template body.
         }
 
         // Check initial state
-        console.log('DEBUG: Initial frontmatter type:', typeof renderData.frontmatter)
-        console.log('DEBUG: Initial frontmatter.getValuesForKey:', typeof renderData.frontmatter.getValuesForKey)
-        console.log('DEBUG: Initial frontmatter.updateFrontmatterAttributes:', typeof renderData.frontmatter.updateFrontmatterAttributes)
+        // console.log('DEBUG: Initial frontmatter type:', typeof renderData.frontmatter)
+        // console.log('DEBUG: Initial frontmatter.getValuesForKey:', typeof renderData.frontmatter.getValuesForKey)
+        // console.log('DEBUG: Initial frontmatter.updateFrontmatterAttributes:', typeof renderData.frontmatter.updateFrontmatterAttributes)
 
         // Simulate frontmatter attributes extracted from template
         const frontmatterData = {
@@ -532,10 +532,10 @@ This is the actual template body.
         // This is what happens during template processing
         const result = integrateFrontmatterData(renderData, frontmatterData)
 
-        console.log('DEBUG: After integration frontmatter type:', typeof result.frontmatter)
-        console.log('DEBUG: After integration frontmatter.getValuesForKey:', typeof result.frontmatter.getValuesForKey)
-        console.log('DEBUG: After integration frontmatter.updateFrontmatterAttributes:', typeof result.frontmatter.updateFrontmatterAttributes)
-        console.log('DEBUG: After integration frontmatter.title:', result.frontmatter.title)
+        // console.log('DEBUG: After integration frontmatter type:', typeof result.frontmatter)
+        // console.log('DEBUG: After integration frontmatter.getValuesForKey:', typeof result.frontmatter.getValuesForKey)
+        // console.log('DEBUG: After integration frontmatter.updateFrontmatterAttributes:', typeof result.frontmatter.updateFrontmatterAttributes)
+        // console.log('DEBUG: After integration frontmatter.title:', result.frontmatter.title)
 
         // The frontmatter object should still have methods
         expect(typeof result.frontmatter.updateFrontmatterAttributes).toBe('function')
@@ -606,19 +606,19 @@ assignee: Alice
         const { render } = require('../lib/rendering/templateProcessor')
 
         try {
-          console.log('DEBUG: Starting template render with real-world scenario')
+          // console.log('DEBUG: Starting template render with real-world scenario')
 
           // This is the exact call that happens in real-world
           const result = await render(templateData, {}, {})
 
-          console.log('DEBUG: Template render result:', result)
+          // console.log('DEBUG: Template render result:', result)
 
           // If it works, the result should not contain error messages
           expect(result).not.toContain('TypeError')
           expect(result).not.toContain('frontmatter.updateFrontmatterAttributes is not a function')
           expect(result).not.toContain('==**Templating Error Found**')
         } catch (error) {
-          console.log('DEBUG: Template render error:', error.message)
+          // console.log('DEBUG: Template render error:', error.message)
           throw error
         } finally {
           // Clean up

@@ -22,6 +22,7 @@ export { templateSamples } from './Templating'
 export { templateExecute } from './Templating'
 export { templateRunner } from './Templating'
 export { templateWOTD } from './Templating'
+export { templatingHelp } from './Templating'
 export { addFrontmatterToTemplate } from './NPTemplateRunner'
 
 // np.Templating Utility Commands

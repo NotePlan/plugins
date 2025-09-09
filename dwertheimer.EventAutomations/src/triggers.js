@@ -36,7 +36,9 @@ export async function onEditorWillSave(incoming: string | null = null) {
           checkedItems.forEach((item, i) => {
             const referenceID = item.content.match(/noteplan:\/\/.*(\%5E.*)\)/)?.[1].replace('%5E', '^') || null
             logDebug(pluginJson, `onEditorWillSave: item[${i}] content="${item.content}" blockID="${referenceID}"`)
-            const todo = todayTodos.find((f) => (referenceID ? f.blockId === referenceID : cleanTimeBlockLine(item.content, config) === cleanTimeBlockLine(f.content, config)))
+            const todo = todayTodos.find((f) =>
+              referenceID ? f.blockId === referenceID : cleanTimeBlockLine(item.content, config).trim() === cleanTimeBlockLine(f.content, config).trim(),
+            )
             if (todo) {
               clo(todo, `onEditorWillSave: found todo for item[${i}] blockID="${referenceID}" content=${todo.content} in file ${todo.filename || ''} | now updating`)
               const isEditor = Editor.filename === todo.filename

@@ -8,6 +8,7 @@
 
 import FrontmatterModule from '../support/modules/FrontmatterModule'
 import ejs from '../support/ejs'
+import { convertEJSClosingTags } from '../shared/templateUtils'
 
 /**
  * Processes frontmatter in template data, extracting attributes and body content.
@@ -24,6 +25,8 @@ export async function processFrontmatter(templateData: string, renderData: Objec
 
   if (frontmatterBlock.length > 0) {
     // Process template first to see if frontmatter block has template variables
+    // Convert EJS closing tags to prevent unwanted whitespace
+    processedTemplateData = convertEJSClosingTags(processedTemplateData)
     processedTemplateData = await ejs.render(processedTemplateData, renderData, {
       async: true,
       openDelimiter: '{',

@@ -1,5 +1,5 @@
 // @flow
-/* globals describe, expect, test, toEqual */
+/* globals describe, expect, test, toEqual, beforeAll */
 
 import colors from 'chalk'
 import { renameKey, renameKeys, stringListOrArrayToArray } from '../dataManipulation'
@@ -7,6 +7,14 @@ import { clo, logDebug } from '../dev'
 
 const FILE = `${colors.yellow('helpers/dataManipulation')}`
 // const section = colors.blue
+
+beforeAll(() => {
+  global.DataStore = {
+    settings: {
+      _logLevel: 'none',
+    },
+  }
+})
 
 describe(`${FILE}`, () => {
   describe('stringListOrArrayToArray()', () => {

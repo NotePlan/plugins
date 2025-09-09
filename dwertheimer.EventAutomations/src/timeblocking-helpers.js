@@ -97,6 +97,7 @@ export function cleanTimeBlockLine(line: string, config: { [key: string]: any })
   let clean = cleanText(line, cleanerRegexes)
   clean = removeDurationParameter(clean, durationMarker)
   clean = removeDateTagsAndToday(clean, true)
+  clean = clean.replace(DataStore?.preference('timeblockTextMustContainString') || '', '')
   return clean
   // cleanString = removeDateTagsAndToday(cleanString)
 }
@@ -114,8 +115,10 @@ export function createTimeBlockLine(blockData: BlockData, config: { [key: string
     }
     newContentLine = attachTimeblockTag(newContentLine, config.timeBlockTag)
     let tbLine = `${config.todoChar} ${blockData.start}-${blockData.end} ${newContentLine || blockData.title || ''}`
-    if (config.timeblockTextMustContainString?.length && !tbLine.includes(config.timeblockTextMustContainString)) {
-      tbLine = `${tbLine} ${config.timeblockTextMustContainString}`
+    logDebug(pluginJson, `createTimeBlockLine: tbLine="${tbLine}" config.timeblockTextMustContainString="${config.timeblockTextMustContainString}"`)
+    const tbMustContainTrimmed = config.timeblockTextMustContainString?.trim() || ''
+    if (tbMustContainTrimmed.length && !tbLine.includes(tbMustContainTrimmed)) {
+      tbLine = `${tbLine} ${tbMustContainTrimmed}`
     }
     return tbLine
   }
@@ -245,7 +248,7 @@ export function createOpenBlockObject(block: BlockData, config: { [key: string]:
     startTime = getDateObjFromDateTimeString(`2021-01-01 ${block.start || '00:00'}`)
     endTime = getDateObjFromDateTimeString(`2021-01-01 ${block.end || '23:59'}`)
   } catch (error) {
-    console.log(error)
+    logError(`${error.message} for block:${JSP(block)} and config:${JSP(config)}`)
     return null
   }
   endTime = endTime ? (includeLastSlotTime ? addMinutes(endTime, config.intervalMins) : endTime) : null
@@ -324,7 +327,7 @@ export function addMinutesToTimeText(startTimeText: string, minutesToAdd: number
     const startTime = getDateObjFromDateTimeString(`2021-01-01 ${startTimeText}`)
     return startTime ? getTimeStringFromDate(addMinutes(startTime, minutesToAdd)) : ''
   } catch (error) {
-    console.log(error)
+    logError(`${error.message} for startTimeText:${startTimeText} and minutesToAdd:${minutesToAdd}`)
     return ``
   }
 }

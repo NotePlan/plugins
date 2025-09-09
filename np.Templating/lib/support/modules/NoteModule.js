@@ -11,7 +11,7 @@ import { getAllPropertyNames } from '@helpers/dev'
 import moment from 'moment/min/moment-with-locales'
 import FrontmatterModule from './FrontmatterModule'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
-import { replaceContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
+import { replaceContentUnderHeading, insertContentUnderHeading, getParagraphBlock, getBlockUnderHeading } from '@helpers/NPParagraph'
 import { removeSection, getNote } from '@helpers/note'
 import { getFlatListOfBacklinks } from '@helpers/NPnote'
 export default class NoteModule {
@@ -297,6 +297,33 @@ export default class NoteModule {
     const note = this.getCurrentNote()
     return note ? findEndOfActivePartOfNote(note) : -1
   }
+
+  /**
+   * Get the paragraphs beneath a title/heading in the current note.
+   * @param {string|Object} headingTextOrEditor - The heading text to search for, or Editor object (for backward compatibility)
+   * @param {string|boolean} headingTextOrIncludeHeading - The heading text (if first param was Editor) or whether to include heading
+   * @param {boolean} [includeHeading=false] - Whether to include the heading in the results (only used when first param is Editor)
+   * @returns {Array<TParagraph> | null} Array of paragraphs under the heading, or null if not found
+   */
+  getBlockUnderHeading(headingTextOrEditor: string | Object, headingTextOrIncludeHeading?: string | boolean, includeHeading: boolean = false): Array<TParagraph> | null {
+    // Handle backward compatibility: if first param is Editor object
+    if (headingTextOrEditor && typeof headingTextOrEditor === 'object' && headingTextOrEditor.type) {
+      // First param is Editor, second is heading text, third is includeHeading
+      const headingText = String(headingTextOrIncludeHeading || '')
+      const shouldIncludeHeading = Boolean(includeHeading)
+      return getBlockUnderHeading(headingTextOrEditor, headingText, shouldIncludeHeading)
+    } else {
+      // Normal usage: first param is heading text, second is includeHeading
+      const headingText = String(headingTextOrEditor || '')
+      const shouldIncludeHeading = Boolean(headingTextOrIncludeHeading)
+      return getBlockUnderHeading(this.getCurrentNote(), headingText, shouldIncludeHeading)
+    }
+  }
+
+  /**
+   * NOTE: LEAVING THE FOLLOWING FUNCTIONS FOR FUTURE CONSIDERATION.
+   * NEED TO FIGURE OUT HOW TO RELIABLY EDIT A NOTE'S CONTENTS
+   */
 
   /**
    * Remove paragraphs in a section (under a title/heading) of the current note.

@@ -1,7 +1,14 @@
 /* globals describe, expect, test */
 
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { getStartTimeFromPara } from '../dashboardHelpers.js'
 import { clo, logDebug } from '@helpers/dev'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 // tests start here
 

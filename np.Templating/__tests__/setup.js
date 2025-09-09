@@ -13,6 +13,9 @@ global.DataStore = {
   calendarNotes: [],
 }
 
+// Mock showMessage for tests
+global.showMessage = jest.fn().mockResolvedValue('OK')
+
 describe('Test Environment Setup', () => {
   test('should have mocked console', async () => {
     await Promise.resolve()

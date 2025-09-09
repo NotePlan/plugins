@@ -439,11 +439,12 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
     note.content &&
     logDebug(
       'ensureFrontmatter',
-      `${message} note.content:\n\t${String(
-        note.content
+      `${message} note.content (1st 4 lines):\n\t${String(
+        `${note.content
           .split('\n')
+          .slice(0, 4)
           .map((line) => `\t${line}`)
-          .join('\n'),
+          .join('\n')}...`,
       )}`,
     )
 
@@ -488,16 +489,14 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         fm = `---\ntitle: ${quoteText(newTitle)}\n---`
       } else {
         logDebug('ensureFrontmatter', `- just adding empty frontmatter to this calendar note`)
-        // Insert the opening separator
-        note.insertParagraph('---', 0, 'text')
-        // Insert the closing separator
-        note.insertParagraph('---', 1, 'text')
+        // Insert the frontmatter separators
+        note.insertParagraph('---\n---', 0, 'text')
       }
       // const newContent = `${front}${note?.content || ''}`
       // logDebug('ensureFrontmatter', `newContent = ${newContent}`)
       // note.content = '' // in reality, we can just set this to newContent, but for the mocks to work, we need to do it the long way
-      logDebug('ensureFrontmatter', `front to add: ${fm}`)
       if (fm) {
+        logDebug('ensureFrontmatter', `front to add: "${fm}"`)
         note.insertParagraph(fm, 0, 'text')
       }
       // $FlowIgnore
@@ -505,7 +504,7 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         // we must be looking at the Editor (because it has a note property)
         logDebug(
           'ensureFrontmatter',
-          `We just created frontmatter, but due to a bug/lag in NP, the properties panel/editor may not show it immediately. And the Editor.frontmatterAttributes may not be present immediately. In order to see the frontmatter, you can open the note again, e.g. Editor.openNoteByFilename(Editor.filename).`,
+          `We just created frontmatter in the Editor, but due to a bug/lag in NP, the properties panel/editor may not show it immediately. And the Editor.frontmatterAttributes may not be present immediately. In order to see the frontmatter, you can open the note again, e.g. Editor.openNoteByFilename(Editor.filename).`,
         )
       }
       retVal = true
@@ -771,7 +770,7 @@ export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: b
   // preserve #hashtags, @mentions etc. and fm will blank those lines  out as comments
   const sanitizedText = _sanitizeFrontmatterText(noteText || '', removeTemplateTagsInFM)
   try {
-    fmData = fm(sanitizedText, { allowUnsafe: true })
+    fmData = fm(sanitizedText, { allowUnsafe: true }) // WARNING: fm library will transform ISO date to date objects and eliminate # as comments -- in TemplateRunner, we add them back. May need to revisit for other templating commands.
   } catch (error) {
     // Expected to fail in certain circumstances due to limitations in fm library
     // logWarn(
@@ -786,6 +785,7 @@ export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: b
 
     // When fm library fails, we need to manually extract the body and attributes
     // Check if the text has frontmatter structure (starts with --- and has another ---)
+    logWarn(`fm library failed to process data. we will now manually extract it.`)
     const lines = noteText.split('\n')
     if (lines.length >= 2 && lines[0].trim() === '---') {
       // Find the second --- separator
@@ -946,7 +946,7 @@ export function normalizeValue(value: string): string {
 /**
  * Update existing front matter attributes based on the provided newAttributes.
  * Assumes that newAttributes is the complete desired set of attributes.
- * Adds new attributes, updates existing ones, and deletes any that are not present in newAttributes.
+ * Adds new attributes, updates existing ones, and (optionally) deletes any that are not present in newAttributes.
  * @param {CoreNoteFields} note - The note to update.
  * @param {{ [string]: string }} newAttributes - The complete set of desired front matter attributes.
  * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in newAttributes (default: false)
@@ -955,11 +955,12 @@ export function normalizeValue(value: string): string {
 export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {
     clo(newAttributes, `updateFrontMatterVars: newAttributes = ${JSON.stringify(newAttributes)}`)
+    logDebug(pluginJson, `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs before ensureFrontmatter`)
+    // $FlowIgnore[prop-missing]
+    const isEditor = Boolean(note.note)
     // Ensure the note has front matter
-    if (!ensureFrontmatter(note)) {
-      logError(pluginJson, `updateFrontMatterVars: Failed to ensure front matter for note "${note.filename || ''}".`)
-      return false
-    }
+
+    logDebug(pluginJson, `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs after ensureFrontmatter`)
 
     const existingAttributes = { ...getFrontmatterAttributes(note) } || {}
     // Normalize newAttributes before comparison
@@ -978,6 +979,22 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
     keysToAdd.length > 0 && clo(keysToAdd, `updateFrontMatterVars: keysToAdd`)
     keysToUpdate.length > 0 && clo(keysToUpdate, `updateFrontMatterVars: keysToUpdate`)
     keysToDelete.length > 0 && clo(keysToDelete, `updateFrontMatterVars: keysToDelete`)
+
+    logDebug(pluginJson, `updateFrontMatterVars: typeof note.frontmatterAttributes = ${typeof note.frontmatterAttributes}`)
+    if (isEditor) {
+      // The frontmatterAttributes setter only works with macOS >= 14 and iOS >= 16
+      // and only works with the Editor
+      const includingMissingAttributes = deleteMissingAttributes ? normalizedNewAttributes : { ...existingAttributes, ...normalizedNewAttributes }
+      // $FlowIgnore
+      note.frontmatterAttributes = includingMissingAttributes
+      logDebug(pluginJson, `updateFrontMatterVars: writing frontmatterAttributes to note using setter`)
+      return true
+    }
+
+    if (!ensureFrontmatter(note)) {
+      logError(pluginJson, `updateFrontMatterVars: Failed to ensure front matter for note "${note.filename || ''}".`)
+      return false
+    }
 
     // Update existing attributes -- just replace the text in the paragraph
     keysToUpdate.forEach((key: string) => {
@@ -999,9 +1016,31 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       // $FlowIgnore
       const newAttributeLine = `${key}: ${normalizedNewAttributes[key]}`
       // Insert before the closing '---'
+      clo(note.paragraphs, `updateFrontMatterVars: note.paragraphs`)
       const closingIndex = note.paragraphs.findIndex((para) => para.content.trim() === '---' && para.lineIndex > 0)
+      logDebug('updateFrontMatterVars', `closingIndex: ${closingIndex}`)
       if (closingIndex !== -1) {
+        // IMPORTANT: there is a NotePlan race condition here. If we just added frontmatter to an empty note, this does not always do the right thing
+        // Sometimes adds extra lines to the top of the note
+        const numParagraphsBefore = note.paragraphs.length
         note.insertParagraph(newAttributeLine, closingIndex, 'text')
+        const numParagraphsAfter = note.paragraphs.length
+        if (numParagraphsAfter > numParagraphsBefore + 1) {
+          logDebug('updateFrontMatterVars', `numParagraphsBefore: ${numParagraphsBefore} numParagraphsAfter: ${numParagraphsAfter}`)
+          logDebug(pluginJson, `updateFrontMatterVars: NP Race condition added too many lines to note "${note.filename || ''}"`)
+          // find the 3rd and the 4th type === separator paragraphs and remove them
+          const separatorParas = note.paragraphs.filter((para) => para.type === 'separator')
+          if (separatorParas.length >= 2) {
+            // remove the 3rd and 4th separator paragraphs
+            const parasToRemove = separatorParas.slice(2, 4)
+            if (parasToRemove.length === 2 && parasToRemove[0].lineIndex === parasToRemove[1].lineIndex - 1) {
+              note.removeParagraph(parasToRemove[1])
+              note.removeParagraph(parasToRemove[0])
+              logDebug('updateFrontMatterVars', `removed 2 separator paragraphs from note "${note.filename || ''}"`)
+            }
+          }
+          return false
+        }
       } else {
         logError(pluginJson, `updateFrontMatterVars: Failed to find closing '---' in note "${note.filename || ''}" could not add new attribute "${key}".`)
       }
@@ -1345,7 +1384,7 @@ export function analyzeTemplateStructure(templateData: string): {
       inlineTitleText: '',
     }
 
-    // Manually extract template frontmatter and body to handle malformed frontmatter
+    // Extract template frontmatter and body using helper functions
     const lines = templateData.split('\n')
     let templateFrontmatterEnd = -1
 
@@ -1360,33 +1399,18 @@ export function analyzeTemplateStructure(templateData: string): {
     }
 
     if (templateFrontmatterEnd > 0) {
-      // Extract template frontmatter content
-      const frontmatterLines = lines.slice(1, templateFrontmatterEnd)
-      const frontmatterContent = frontmatterLines.join('\n')
+      // Extract and parse template frontmatter
+      const { attributes, isValid } = extractAndParseFrontmatter(lines, 0, templateFrontmatterEnd)
 
-      // Validate that the content between --- markers is actually valid YAML
-      if (isValidYamlContent(frontmatterContent)) {
-        const attributes: { [string]: string } = {}
-
-        // Parse the frontmatter lines manually
-        for (const line of frontmatterLines) {
-          const trimmedLine = line.trim()
-          if (trimmedLine) {
-            // Skip empty lines
-            const colonIndex = trimmedLine.indexOf(':')
-            if (colonIndex > 0) {
-              const key = trimmedLine.substring(0, colonIndex).trim()
-              const value = trimmedLine.substring(colonIndex + 1).trim()
-              // Remove quotes if present, but always return as string
-              const cleanValue = value.replace(/^["'](.*)["']$/, '$1')
-              attributes[key] = String(cleanValue)
-            }
-          }
-        }
-
+      if (isValid) {
         result.templateFrontmatter = attributes
         result.bodyContent = lines.slice(templateFrontmatterEnd + 1).join('\n')
-        logDebug('analyzeTemplateStructure', `Extracted body content (${result.bodyContent.length} chars): "${result.bodyContent.substring(0, 200)}..."`)
+        logDebug(
+          'analyzeTemplateStructure',
+          `Extracted body content (${result.bodyContent.length} chars): "${result.bodyContent ? result.bodyContent.substring(0, 200) : ''}${
+            result.bodyContent ? (result.bodyContent.length > 200 ? '...' : '') : ''
+          }..."`,
+        )
       } else {
         // Not valid YAML, treat the entire content as body
         result.templateFrontmatter = {}
@@ -1401,7 +1425,9 @@ export function analyzeTemplateStructure(templateData: string): {
       result.bodyContent = templateData
       logDebug(
         'analyzeTemplateStructure',
-        `No template frontmatter found, using whole content as body (${result.bodyContent.length} chars): "${result.bodyContent.substring(0, 200)}..."`,
+        `No template frontmatter found, using whole content as body (${result.bodyContent.length} chars): "${result.bodyContent ? result.bodyContent.substring(0, 200) : ''}${
+          result.bodyContent ? (result.bodyContent.length > 200 ? '...' : '') : ''
+        }..."`,
       )
     }
 
@@ -1410,26 +1436,28 @@ export function analyzeTemplateStructure(templateData: string): {
 
     // Check for output frontmatter in the body content
     if (result.bodyContent) {
-      // Convert -- separators to --- for processing (like the templating system does)
-      let processedBodyContent = result.bodyContent
-      const bodyLines = processedBodyContent.split('\n')
-      const startBlock = bodyLines.indexOf('--')
-      const endBlock = startBlock >= 0 ? bodyLines.indexOf('--', startBlock + 1) : -1
+      const bodyLines = result.bodyContent.split('\n')
 
+      // Find separator positions using helper function
+      const { startIndex: startBlock, endIndex: endBlock } = findSeparatorPositions(bodyLines)
+
+      // Only process as frontmatter if we actually found separator markers
       if (startBlock >= 0 && endBlock >= 0) {
-        bodyLines[startBlock] = '---'
-        bodyLines[endBlock] = '---'
-        processedBodyContent = bodyLines.join('\n')
-      }
+        // Extract and parse output frontmatter
+        const { attributes, isValid } = extractAndParseFrontmatter(bodyLines, startBlock, endBlock)
 
-      // Use the isValidYamlContent function to validate that this is actually frontmatter
-      if (isValidYamlContent(processedBodyContent)) {
-        const outputParts = getSanitizedFmParts(processedBodyContent)
-        result.outputFrontmatter = outputParts.attributes || {}
-        result.hasOutputFrontmatter = Object.keys(result.outputFrontmatter).length > 0
-        result.hasOutputTitle = 'title' in result.outputFrontmatter
+        if (isValid) {
+          result.outputFrontmatter = attributes
+          result.hasOutputFrontmatter = Object.keys(result.outputFrontmatter).length > 0
+          result.hasOutputTitle = 'title' in result.outputFrontmatter
+        } else {
+          // Not valid frontmatter, so no output frontmatter
+          result.outputFrontmatter = {}
+          result.hasOutputFrontmatter = false
+          result.hasOutputTitle = false
+        }
       } else {
-        // Not valid frontmatter, so no output frontmatter
+        // No frontmatter separators found, so no output frontmatter
         result.outputFrontmatter = {}
         result.hasOutputFrontmatter = false
         result.hasOutputTitle = false
@@ -1468,6 +1496,69 @@ export function analyzeTemplateStructure(templateData: string): {
       inlineTitleText: '',
     }
   }
+}
+
+/**
+ * Helper function to find separator positions in an array of lines
+ * Looks for both -- and --- separators
+ * @param {Array<string>} lines - Array of lines to search
+ * @param {number} startIndex - Index to start searching from (default: 0)
+ * @returns {{startIndex: number, endIndex: number}} - Object with start and end indices, or {-1, -1} if not found
+ */
+function findSeparatorPositions(lines: Array<string>, startIndex: number = 0): { startIndex: number, endIndex: number } {
+  // First try to find -- separators
+  let startPos = lines.indexOf('--', startIndex)
+  let endPos = startPos >= 0 ? lines.indexOf('--', startPos + 1) : -1
+
+  // If no -- separators found, try to find --- separators
+  if (startPos === -1) {
+    startPos = lines.indexOf('---', startIndex)
+    endPos = startPos >= 0 ? lines.indexOf('---', startPos + 1) : -1
+  }
+
+  return { startIndex: startPos, endIndex: endPos }
+}
+
+/**
+ * Helper function to extract content between separators and parse it as frontmatter
+ * @param {Array<string>} lines - Array of lines to process
+ * @param {number} startIndex - Start index of the separator block
+ * @param {number} endIndex - End index of the separator block
+ * @returns {{attributes: {[string]: string}, isValid: boolean}} - Parsed attributes and validity flag
+ */
+function extractAndParseFrontmatter(lines: Array<string>, startIndex: number, endIndex: number): { attributes: { [string]: string }, isValid: boolean } {
+  if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex) {
+    return { attributes: {}, isValid: false }
+  }
+
+  // Extract the content between separators
+  const frontmatterLines = lines.slice(startIndex + 1, endIndex)
+  const frontmatterContent = frontmatterLines.join('\n')
+
+  // Validate that the content is actually valid YAML
+  if (isValidYamlContent(frontmatterContent)) {
+    const attributes: { [string]: string } = {}
+
+    // Parse the frontmatter lines manually
+    for (const line of frontmatterLines) {
+      const trimmedLine = line.trim()
+      if (trimmedLine) {
+        // Skip empty lines
+        const colonIndex = trimmedLine.indexOf(':')
+        if (colonIndex > 0) {
+          const key = trimmedLine.substring(0, colonIndex).trim()
+          const value = trimmedLine.substring(colonIndex + 1).trim()
+          // Remove quotes if present, but always return as string
+          const cleanValue = value.replace(/^["'](.*)["']$/, '$1')
+          attributes[key] = String(cleanValue)
+        }
+      }
+    }
+
+    return { attributes, isValid: true }
+  }
+
+  return { attributes: {}, isValid: false }
 }
 
 /**
@@ -1526,30 +1617,21 @@ function detectInlineTitleRobust(bodyContent: string): { hasInlineTitle: boolean
   }
 
   const lines = bodyContent.split('\n')
-  logDebug('detectInlineTitleRobust', `Processing ${lines.length} lines of body content`)
+  logDebug('detectInlineTitleRobust', `Processing ${lines.length} lines of rendered body content`)
 
   // Check if the first line starts with frontmatter separators
   if (lines.length >= 2 && lines[0].trim().startsWith('--')) {
-    // Find the end of the frontmatter block
-    let frontmatterEnd = -1
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i].trim().startsWith('--')) {
-        frontmatterEnd = i
-        break
-      }
-    }
+    // Find the end of the frontmatter block using helper function
+    const { startIndex: startBlock, endIndex: endBlock } = findSeparatorPositions(lines)
 
-    if (frontmatterEnd > 0) {
-      // Extract the frontmatter content and check if it's valid
-      const frontmatterContent = lines.slice(1, frontmatterEnd).join('\n')
-      const isValidFrontmatter = isValidYamlContent(frontmatterContent)
-      logDebug('detectInlineTitleRobust', `Frontmatter content: "${frontmatterContent}"`)
-      logDebug('detectInlineTitleRobust', `Is valid frontmatter: ${String(isValidFrontmatter)}`)
+    if (startBlock >= 0 && endBlock >= 0) {
+      // Extract and parse the frontmatter content
+      const { attributes, isValid: isValidFrontmatter } = extractAndParseFrontmatter(lines, startBlock, endBlock)
 
       if (isValidFrontmatter) {
         // Valid frontmatter - look for title in the first line after the block
-        if (frontmatterEnd + 1 < lines.length) {
-          const firstLineAfterFrontmatter = lines[frontmatterEnd + 1].trim()
+        if (endBlock + 1 < lines.length) {
+          const firstLineAfterFrontmatter = lines[endBlock + 1].trim()
           if (firstLineAfterFrontmatter && firstLineAfterFrontmatter.match(/^#{1,6}\s+/)) {
             const titleText = firstLineAfterFrontmatter.replace(/^#{1,6}\s+/, '').trim()
             logDebug('detectInlineTitleRobust', `Found inline title after valid frontmatter: "${titleText}"`)
@@ -1656,7 +1738,19 @@ export function getNoteTitleFromRenderedContent(renderedContent: string): string
     logDebug('getNoteTitleFromRenderedContent', `Processing ${lines.length} lines of rendered content`)
 
     // Look for the first heading (H1-H6) in the content
-    for (let i = 0; i < lines.length; i++) {
+    // Skip frontmatter blocks (lines starting with ---)
+    let i = 0
+    while (i < lines.length && lines[i].trim() === '---') {
+      // Skip to the end of the frontmatter block
+      i++
+      while (i < lines.length && lines[i].trim() !== '---') {
+        i++
+      }
+      if (i < lines.length) i++ // Skip the closing ---
+    }
+
+    // Now look for the first heading after any frontmatter
+    for (; i < lines.length; i++) {
       const trimmedLine = lines[i].trim()
       if (trimmedLine === '') continue
 
@@ -1665,7 +1759,7 @@ export function getNoteTitleFromRenderedContent(renderedContent: string): string
         logDebug('getNoteTitleFromRenderedContent', `Found inline title: "${titleText}"`)
         return titleText
       }
-      break // Stop at first non-empty line
+      break // Stop at first non-empty line that's not a heading
     }
 
     logDebug('getNoteTitleFromRenderedContent', 'No inline title found in rendered content')
@@ -1675,6 +1769,14 @@ export function getNoteTitleFromRenderedContent(renderedContent: string): string
     return ''
   }
 }
+
+/**
+ * Extract the note title from a template using analyzeTemplateStructure
+ * NOTE: This function should only be used for analyzing templates, not for extracting titles from rendered content
+ * For rendered content, use getNoteTitleFromRenderedContent instead
+ * @param {string} templateData - The template content to analyze
+ * @returns {string} - The note title to use, or empty string if none found
+ */
 
 /**
  * Check if content between --- markers is valid YAML-like content
@@ -1690,8 +1792,6 @@ export function isValidYamlContent(content: string): boolean {
   const lines = content.split('\n')
   let hasValidYamlLine = false
 
-  logDebug('isValidYamlContent', `Analyzing ${lines.length} lines of content`)
-
   for (const line of lines) {
     const trimmedLine = line.trim()
     if (trimmedLine === '') continue // Skip empty lines
@@ -1701,20 +1801,18 @@ export function isValidYamlContent(content: string): boolean {
     // 2. key: (empty value) - allows hyphens and spaces in key names
     // 3. - item (list item)
     const yamlPatterns = [
-      /^[a-zA-Z_][a-zA-Z0-9_\-\s]*\s*:\s*/, // key: value (allows hyphens and spaces)
+      /^[a-zA-Z_\#][a-zA-Z0-9_\-\s\#]*\s*:\s*/, // key: value (allows hyphens and spaces and pound signs)
       /^[a-zA-Z_][a-zA-Z0-9_\-\s]*\s*:$/, // key: (empty value, allows hyphens and spaces)
       /^\s*-\s+/, // - item (list item)
     ]
 
     const isValidLine = yamlPatterns.some((pattern) => pattern.test(trimmedLine))
     if (isValidLine) {
-      logDebug('isValidYamlContent', `Valid YAML line found: "${trimmedLine}"`)
       hasValidYamlLine = true
     } else {
-      logDebug('isValidYamlContent', `Invalid YAML line: "${trimmedLine}"`)
+      logDebug('isValidYamlContent', `Invalid YAML line: "${trimmedLine}" in ${lines.length} lines of content`)
     }
   }
 
-  logDebug('isValidYamlContent', `Content validation result: ${String(hasValidYamlLine)}`)
   return hasValidYamlLine
 }

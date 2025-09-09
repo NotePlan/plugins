@@ -88,6 +88,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(note.paragraphs[0].content).toEqual('---')
         expect(note.paragraphs[1].content).toMatch(/triggers: "*onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard"*/)
         expect(note.paragraphs[2].content).toEqual('---')
+        expect(note.paragraphs.length).toEqual(5)
       })
     })
 

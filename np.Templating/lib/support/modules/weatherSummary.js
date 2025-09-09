@@ -86,7 +86,6 @@ export async function getWeatherSummary(format: string): Promise<string> {
         logError(`'${error.message}' parsing Weather data lookup`)
         return `**Error '${error.message}' parsing Weather data lookup.**`
       }
-      logDebug(`getWeatherSummary: received ${JSON.stringify(allWeatherData)}`)
       // Work out some specific values from harder-to-reach parts of the JSON
       const areaName = areaNameOverride(allWeatherData.nearest_area[0]?.areaName[0]?.value ?? '(no nearest_area returned)')
       const region = allWeatherData.nearest_area[0].region[0].value ?? '(no region returned)'

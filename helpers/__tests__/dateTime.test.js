@@ -294,10 +294,10 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(dt.getDateObjFromDateTimeString('2021-01-01 09:40').toTimeString()).toMatch(/09:40:00/) //not checking date b/c it's locale-dependent
     })
     test('should work with seconds specified', () => {
-      expect(dt.getDateObjFromDateTimeString('2021-01-01 00:00:01').toTimeString()).toMatch(/00:00:01/)
+      expect(dt.getDateObjFromDateTimeString('2021-01-02 00:00:01').toTimeString()).toMatch(/00:00:01/)
     })
     test('should work with only date, no time given', () => {
-      expect(dt.getDateObjFromDateTimeString('2021-01-01').toTimeString()).toMatch(/00:00:00/) //not checking date b/c it's locale-dependent
+      expect(dt.getDateObjFromDateTimeString('2021-01-03').toTimeString()).toMatch(/00:00:00/) //not checking date b/c it's locale-dependent
     })
     // Errors should throw
     test('should throw error when date format is incorrect', () => {
@@ -307,17 +307,17 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     test('should throw error when date format is incorrect (no day)', () => {
       expect(() => {
-        dt.getDateObjFromDateTimeString(`2020-01 02:02`)
+        dt.getDateObjFromDateTimeString(`2020-04 02:02`)
       }).toThrow(/not in expected format/)
     })
     test('should throw error when time format is incorrect', () => {
       expect(() => {
-        dt.getDateObjFromDateTimeString(`2020-01-01 02`)
+        dt.getDateObjFromDateTimeString(`2020-01-05 02`)
       }).toThrow(/not in expected format/)
     })
     test('should throw error when time format is incorrect', () => {
       expect(() => {
-        dt.getDateObjFromDateTimeString(`2020-01-01 aa:00`)
+        dt.getDateObjFromDateTimeString(`2020-01-06 aa:00`)
       }).toThrow(/Invalid Date/)
     })
 
@@ -327,7 +327,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should throw error when Date object time does not match time sent in', () => {
         expect(() => {
-          dt.getDateObjFromDateTimeString(`2020-01-01 22:00`)
+          dt.getDateObjFromDateTimeString(`2020-01-07 22:00`)
         }).toThrow(/Catalina date hell/)
       })
       afterEach(() => {

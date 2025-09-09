@@ -4,10 +4,16 @@
 
 // eslint-disable-next-line flowtype/no-types-missing-file-annotation
 // import type { TSection, TSectionCode } from '../../../types.js'
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import * as sh from '../Section/useSectionSortAndFilter.jsx'
 import { openYesterdayParas, refYesterdayParas } from '../../../demoData.js'
 import { clo, clof, logDebug } from '@helpers/dev'
-import { DataStore } from '@mocks/index'
+
+// Make DataStore and Editor available globally for the source code
+global.DataStore = DataStore
+global.Editor = Editor
+global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 
 beforeAll(() => {
   DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
