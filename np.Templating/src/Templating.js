@@ -312,7 +312,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     }
     logDebug(pluginJson, `templateNew: after renderFrontmatter:\nfrontMatterBody:"${frontmatterBody}"\nfrontMatterAttributes:${JSON.stringify(frontmatterAttributes, null, 2)}`)
 
-    // select/choose is by default not closed with > because it could contain a folder name
+    // select/choose is by default not closed with > because it could contain a folder name to limit the list of folders
     if (/<select|<choose|<current>/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }

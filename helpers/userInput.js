@@ -333,7 +333,7 @@ export async function chooseFolder(
       alpha: 0.5,
       darkAlpha: 0.5,
     }
-    logDebug('userInput / createFolder', `creating with folder path, starting at "${startFolder}"`)
+    logDebug('userInput / createFolder', `choosing folder, starting at "${startFolder}"`)
 
     // Get all folders, excluding @Trash
     // V1

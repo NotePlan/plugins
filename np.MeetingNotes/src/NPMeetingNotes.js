@@ -562,14 +562,14 @@ async function newNoteWithFolder(content: string, _folder?: string): Promise<?st
       }
     }
 
-    logDebug(pluginJson, 'create a new note')
+    logDebug(pluginJson, `creating a new note in folder: "${folder || ''}"`)
     // $FlowFixMe
     const filename = DataStore.newNoteWithContent(content, folder)
 
-    logDebug(pluginJson, 'open the created note')
+    logDebug(pluginJson, `opening the created note: "${filename}"`)
     Editor.openNoteByFilename(filename)
 
-    logDebug(pluginJson, 'find the note and return the title')
+    logDebug(pluginJson, `finding the note and returning the title: "${filename}"`)
     const note = DataStore.projectNoteByFilename(filename)
     if (note) {
       return note.title
