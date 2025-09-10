@@ -6,6 +6,12 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.1.1] 2025-09-08 @dwertheimer
+- use chooseFolder() to include teamspaces in folder selection of templateNew command
+- add chooseNoteV2() to helpers module
+- fix edge case in date.format() where it was not preserving timezone information in some cases
+- fix other issues with DateModule and TimeModule where it was not preserving timezone information in some cases (using Date objects instead of moment objects -- now using moment objects exclusively)
+
 ## [2.1.0] 2025-08-?? @dwertheimer
 
 ## New Features

@@ -6,13 +6,159 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { log, logError, logDebug, logWarn } from '@helpers/dev'
+import { log, logError, logDebug, logWarn, timer } from '@helpers/dev'
 import { chooseOption, chooseFolder, showMessageYesNo } from '@helpers/userInput'
 import pluginJson from '../../plugin.json'
 import FrontmatterModule from '../support/modules/FrontmatterModule'
 import { normalizeToNotePlanFilename } from '../utils'
 import { getTemplateFolder } from '../config'
 import { clo } from '@helpers/dev'
+
+/**
+ * Helper function to get filtered template list by attribute (type or tags).
+ * This function consolidates the common logic between getTemplateList and getTemplateListByTags.
+ * @async
+ * @param {string} attributeName - The frontmatter attribute to filter by ('type' or 'tags')
+ * @param {any} [filters='*'] - The filters to apply, '*' for all
+ * @param {Object} [options={}] - Additional options for filtering behavior
+ * @param {boolean} [options.includeNoteObject=false] - Whether to include the note object in results
+ * @param {boolean} [options.useFrontmatterAttributes=false] - Whether to use cached frontmatter attributes for speed
+ * @param {boolean} [options.filterFrontmatterTypes=false] - Whether to filter by frontmatter types
+ * @param {string} [options.debugPrefix=''] - Debug log prefix for identification
+ * @returns {Promise<Array<{label: string, value: string, note?: TNote}>>} A promise that resolves to the filtered template list
+ */
+export async function getFilteredTemplateList(
+  attributeName: string,
+  filters: any = '*',
+  options: {
+    includeNoteObject?: boolean,
+    useFrontmatterAttributes?: boolean,
+    filterFrontmatterTypes?: boolean,
+    debugPrefix?: string,
+  } = {},
+): Promise<Array<{ label: string, value: string, note?: TNote }>> {
+  try {
+    const { includeNoteObject = false, useFrontmatterAttributes = false, filterFrontmatterTypes = false, debugPrefix = '' } = options
+
+    logDebug(`getFilteredTemplateList: ${debugPrefix} ${attributeName}: ${filters}`)
+    const settings = await getSettings()
+
+    const templateFolder = await getTemplateFolder()
+    if (templateFolder == null) {
+      await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
+      return []
+    }
+
+    const filterValues = Array.isArray(filters) ? filters : filters.split(',').map((filter: string) => filter.trim())
+    logDebug(`getFilteredTemplateList: ${debugPrefix} 1: filterValues: ${filterValues}`)
+
+    // Get all templates with basic filtering
+    const allTemplates = DataStore.projectNotes
+      .filter((n) => n.filename?.startsWith(templateFolder))
+      .filter((n) => !filterFrontmatterTypes || !n.frontmatterTypes.includes('ignore'))
+      .filter((n) => !filterFrontmatterTypes || !n.frontmatterTypes.includes('template-helper'))
+      .filter((n) => !n.title?.startsWith('_configuration'))
+      .filter((n) => !n.filename?.startsWith('Delete After Release'))
+      .sort((a, b) => a.filename.localeCompare(b.filename))
+
+    // Build filter matches and exclusions
+    const { matches, exclude } = buildFilterMatches(filterValues)
+
+    // Filter templates in a single pass
+    const templateList = []
+    for (const note of allTemplates) {
+      if (note.title == null) continue
+
+      // Get attributes efficiently
+      const attrs = useFrontmatterAttributes && note.frontmatterAttributes ? note.frontmatterAttributes : await new FrontmatterModule().attributes(await getTemplate(note.filename))
+
+      const attributeValue = attrs?.[attributeName] || ''
+      const attributeValues = parseAttributeValues(attributeValue)
+
+      // Check if template matches filters
+      if (templateMatchesFilters(attributeValues, matches, exclude, filterValues)) {
+        const result = { label: note.title, value: note.filename }
+        if (includeNoteObject) {
+          // $FlowIgnore
+          result.note = note
+        }
+        templateList.push(result)
+      }
+    }
+
+    return templateList
+  } catch (error) {
+    logError(pluginJson, error)
+    return []
+  }
+}
+
+/**
+ * Builds filter matches and exclusions from filter values
+ * @param {Array<string>} filterValues - The filter values to process
+ * @returns {Object} Object containing matches and exclude arrays
+ */
+function buildFilterMatches(filterValues: Array<string>): { matches: Array<string>, exclude: Array<string> } {
+  let matches: Array<string> = []
+  let exclude: Array<string> = []
+
+  filterValues.forEach((filterValue) => {
+    if (filterValue === '*') {
+      // For wildcard, we'll handle this in the matching logic
+      return
+    }
+    if (filterValue[0] === '!') {
+      exclude.push(filterValue.substring(1))
+    } else {
+      matches.push(filterValue)
+    }
+  })
+
+  // Always ignore templates which include a `ignore` attribute
+  exclude.push('ignore')
+
+  return { matches, exclude }
+}
+
+/**
+ * Parses attribute values from string or array format
+ * @param {string|Array} attributeValue - The attribute value to parse
+ * @returns {Array<string>} Array of trimmed attribute values
+ */
+function parseAttributeValues(attributeValue: string | Array<string>): Array<string> {
+  if (typeof attributeValue === 'string') {
+    return attributeValue.length > 0
+      ? attributeValue
+          .split(',')
+          .map((val) => val.trim())
+          .filter(Boolean)
+      : ['*']
+  } else if (Array.isArray(attributeValue)) {
+    return attributeValue.map((val) => String(val).trim()).filter(Boolean)
+  }
+  return ['*']
+}
+
+/**
+ * Checks if template attributes match the filter criteria
+ * @param {Array<string>} attributeValues - The template's attribute values
+ * @param {Array<string>} matches - Values to match
+ * @param {Array<string>} exclude - Values to exclude
+ * @param {Array<string>} filterValues - Original filter values
+ * @returns {boolean} True if template matches filters
+ */
+function templateMatchesFilters(attributeValues: Array<string>, matches: Array<string>, exclude: Array<string>, filterValues: Array<string>): boolean {
+  // Check for wildcard filter
+  if (filterValues.includes('*')) {
+    return !attributeValues.some((val) => exclude.includes(val))
+  }
+
+  // Check for specific matches
+  const hasMatch = matches.length === 0 || matches.some((match) => attributeValues.includes(match))
+  const hasExclusion = attributeValues.some((val) => exclude.includes(val))
+
+  return hasMatch && !hasExclusion
+}
 
 /**
  * Displays a UI for the user to choose a template from the available templates.
@@ -25,6 +171,7 @@ import { clo } from '@helpers/dev'
  */
 export async function chooseTemplate(tags?: any = '*', promptMessage: string = 'Choose Template', userOptions: any = null): Promise<any> {
   try {
+    const start = new Date()
     logDebug(pluginJson, `chooseTemplate: STARTING - tags:"${tags}", promptMessage:"${promptMessage}", userOptions:${JSON.stringify(userOptions)}`)
     // We need access to templateConfig which is in the constructor context in NPTemplating
     // We'll set up a more modular approach here
@@ -50,6 +197,9 @@ export async function chooseTemplate(tags?: any = '*', promptMessage: string = '
     }
 
     // $FlowIgnore
+    logDebug(pluginJson, `getTemplate: pulled together ${options.length} templates in ${timer(start)}`)
+    clo(options[0], 'chooseTemplate options[0]:')
+    // TODO: use chooseNoteV2 instead of chooseOption
     return await chooseOption<TNote, void>(promptMessage, options)
   } catch (error) {
     logError(pluginJson, error)
@@ -92,115 +242,12 @@ export async function getFilenameFromTemplate(note: string = ''): Promise<string
  * @returns {Promise<Array<{label: string, value: string}>>} A promise that resolves to the filtered template list {label: the title, value: the filename}
  */
 export async function getTemplateList(types: any = '*'): Promise<any> {
-  try {
-    logDebug(`getTemplateList 0: types: ${types}`)
-    const settings = await getSettings()
-
-    const templateFolder = await getTemplateFolder()
-    if (templateFolder == null) {
-      await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
-      return []
-    }
-
-    const filterTypes = Array.isArray(types) ? types : types.split(',').map((type: string) => type.trim())
-    logDebug(`getTemplateList 1: filterTypes: ${filterTypes}`)
-    const allTemplates = DataStore.projectNotes
-      .filter((n) => n.filename?.startsWith(templateFolder))
-      .filter((n) => !n.frontmatterTypes.includes('ignore'))
-      .filter((n) => !n.frontmatterTypes.includes('template-helper'))
-      .filter((n) => !n.title?.startsWith('_configuration'))
-      .filter((n) => !n.filename?.startsWith('Delete After Release'))
-      .sort((a, b) => {
-        return a.filename.localeCompare(b.filename)
-      })
-      .map((note) => {
-        return note.title == null ? null : { label: note.title, value: note.filename }
-      })
-      .filter(Boolean)
-
-    let resultTemplates: Array<TNote> = []
-    let matches: Array<string> = []
-    let exclude: Array<string> = []
-    let allTypes: Array<string> = []
-
-    // get master list of types
-    for (const template of allTemplates) {
-      if (template.value.length > 0) {
-        const templateData = await getTemplate(template.value)
-        if (templateData.length > 0) {
-          const attrs = await new FrontmatterModule().attributes(templateData)
-          let type = attrs?.type || ''
-          if (typeof type === 'string') {
-            if (type.length > 0) {
-              allTypes = allTypes.concat(type.split(',')).map((type) => type?.trim())
-            }
-          } else if (Array.isArray(type)) {
-            allTypes = allTypes.concat(...type)
-          }
-        }
-      }
-    }
-    logDebug(`getTemplateList 3: allTypes: ${allTypes.length} before filter`)
-    // remove duplicates
-    allTypes = allTypes.filter((v, i, a) => a.indexOf(v) === i)
-    logDebug(`getTemplateList 4: allTypes: ${allTypes.length} after filter`)
-    // iterate filter types
-    filterTypes.forEach((type) => {
-      // include all types
-      matches = type === '*' ? matches.concat(allTypes) : matches
-      // find matching typews
-      if (type[0] !== '!' && allTypes.indexOf(type) > -1) {
-        matches.push(allTypes[allTypes.indexOf(type)])
-      }
-
-      // remove excluded types
-      if (type[0] === '!' && allTypes.indexOf(type.substring(1)) > -1) {
-        exclude.push(allTypes[allTypes.indexOf(type.substring(1))])
-      }
-    })
-
-    // always ignore templates which include a `ignore` type
-    exclude.push('ignore') // np.Templating specific
-
-    // merge the arrays together using differece
-    let finalMatches = matches.filter((x) => !exclude.includes(x))
-
-    let templateList = []
-    for (const template of allTemplates) {
-      if (template.value.length > 0) {
-        const templateData = await getTemplate(template.value)
-        if (templateData.length > 0) {
-          const attrs = await new FrontmatterModule().attributes(templateData)
-
-          const type = attrs?.type || ''
-          let types = (type.length > 0 && typeof type === 'string' ? type?.split(',') : type) || ['*']
-          types.forEach((element, index) => {
-            if (element) {
-              types[index] = element.trim() // trim element whitespace
-            } else {
-              logWarn(`getTemplateList 5: element: ${element} (typeof: ${typeof element}) label:${template.label || ''} value:${template.value || ''}`)
-            }
-          })
-
-          finalMatches.every((match) => {
-            if (types.includes(match) || (types.includes('*') && filterTypes.includes('*'))) {
-              // check if types includes any excluded items
-              if (types.filter((x) => exclude.includes(x)).length === 0) {
-                templateList.push(template)
-                return false
-              }
-            }
-            return true
-          })
-        }
-      }
-    }
-
-    return templateList
-  } catch (error) {
-    logError(pluginJson, error)
-    return []
-  }
+  return await getFilteredTemplateList('type', types, {
+    includeNoteObject: true,
+    useFrontmatterAttributes: true,
+    filterFrontmatterTypes: true,
+    debugPrefix: 'getTemplateList',
+  })
 }
 
 /**
@@ -211,102 +258,12 @@ export async function getTemplateList(types: any = '*'): Promise<any> {
  * @returns {Promise<Array<{label: string, value: string}>>} A promise that resolves to the filtered template list
  */
 export async function getTemplateListByTags(tags: any = '*'): Promise<any> {
-  try {
-    const templateFolder = await getTemplateFolder()
-    if (templateFolder == null) {
-      await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
-      return []
-    }
-
-    const filterTags = Array.isArray(tags) ? tags : tags.split(',').map((tag: string) => tag.trim())
-
-    const allTemplates = DataStore.projectNotes
-      .filter((n) => n.filename?.startsWith(templateFolder))
-      .filter((n) => !n.title?.startsWith('_configuration'))
-      .filter((n) => !n.filename?.startsWith('Delete After Release'))
-      .sort((a, b) => {
-        return a.filename.localeCompare(b.filename)
-      })
-      .map((note) => {
-        return note.title == null ? null : { label: note.title, value: note.filename }
-      })
-      .filter(Boolean)
-
-    let matches = []
-    let exclude = []
-    let allTags: Array<string> = []
-
-    // get master list of tags
-    for (const template of allTemplates) {
-      if (template.value.length > 0) {
-        const templateData = await getTemplate(template.value)
-        if (templateData.length > 0) {
-          const attrs = await new FrontmatterModule().attributes(templateData)
-
-          const tag = attrs?.tags || ''
-
-          if (tag.length > 0) {
-            allTags = allTags.concat(tag.split(',')).map((tag) => tag?.trim())
-          }
-        }
-      }
-    }
-    // remove duplicates
-    allTags = allTags.filter((v, i, a) => a.indexOf(v) === i)
-
-    // iterate filter tags
-    filterTags.forEach((tag) => {
-      // include all tags
-      matches = tag === '*' ? matches.concat(allTags) : matches
-      // find matching tags
-      if (tag[0] !== '!' && allTags.indexOf(tag) > -1) {
-        matches.push(allTags[allTags.indexOf(tag)])
-      }
-
-      // remove excluded tags
-      if (tag[0] === '!' && allTags.indexOf(tag.substring(1)) > -1) {
-        exclude.push(allTags[allTags.indexOf(tag.substring(1))])
-      }
-    })
-
-    // always ignore templates which include a `ignore` tags
-    exclude.push('ignore') // np.Templating specific
-
-    // merge the arrays together using differece
-    let finalMatches = matches.filter((x) => !exclude.includes(x))
-
-    let templateList = []
-    for (const template of allTemplates) {
-      if (template.value.length > 0) {
-        const templateData = await getTemplate(template.value)
-        if (templateData.length > 0) {
-          const attrs = await new FrontmatterModule().attributes(templateData)
-
-          const tag = attrs?.tags || ''
-          let tags = (tag.length > 0 && tag?.split(',')) || ['*']
-          tags.forEach((element, index) => {
-            tags[index] = element.trim() // trim element whitespace
-          })
-
-          finalMatches.every((match) => {
-            if (tags.includes(match) || (tags.includes('*') && filterTags.includes('*'))) {
-              // check if tags includes any excluded items
-              if (tags.filter((x) => exclude.includes(x)).length === 0) {
-                templateList.push(template)
-                return false
-              }
-            }
-            return true
-          })
-        }
-      }
-    }
-
-    return templateList
-  } catch (error) {
-    logError(pluginJson, error)
-    return []
-  }
+  return await getFilteredTemplateList('tags', tags, {
+    includeNoteObject: false,
+    useFrontmatterAttributes: false,
+    filterFrontmatterTypes: false,
+    debugPrefix: 'getTemplateListByTags',
+  })
 }
 
 /**
@@ -388,6 +345,8 @@ export async function getTemplate(templateName: string = '', options: any = { sh
         }
 
         if (templatesSecondary.length > 1) {
+          logDebug(pluginJson, `getTemplate: pulled together ${templatesSecondary.length} templates in ${timer(startTime)}`)
+          // TODO: use chooseNoteV2 instead of chooseOption
           // $FlowIgnore
           let selectedItem = (await chooseOption<TNote, void>('Choose Template', templatesSecondary)) || null
           if (selectedItem) {
