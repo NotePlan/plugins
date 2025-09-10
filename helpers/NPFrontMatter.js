@@ -785,7 +785,7 @@ export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: b
 
     // When fm library fails, we need to manually extract the body and attributes
     // Check if the text has frontmatter structure (starts with --- and has another ---)
-    logWarn(`fm library failed to process data. we will now manually extract it.`)
+    logDebug(`fm library failed to process data. we will now manually extract it from the note text: ${noteText.substring(0, 200)}...`)
     const lines = noteText.split('\n')
     if (lines.length >= 2 && lines[0].trim() === '---') {
       // Find the second --- separator
@@ -1465,7 +1465,7 @@ export function analyzeTemplateStructure(templateData: string): {
     }
 
     // Check for inline title in the body content
-    const inlineTitleResult = detectInlineTitleRobust(result.bodyContent)
+    const inlineTitleResult = detectInlineTitle(result.bodyContent)
     result.hasInlineTitle = inlineTitleResult.hasInlineTitle
     result.inlineTitleText = inlineTitleResult.inlineTitleText
 
@@ -1605,78 +1605,163 @@ function filterNotesByFolder(notes: Array<TNote>, folderString?: string, fullPat
 }
 
 /**
+ * Helper function to check if a line is a heading
+ * @param {string} line - The line to check
+ * @returns {{isHeading: boolean, titleText: string}} - Whether it's a heading and the title text
+ */
+function isHeadingLine(line: string): { isHeading: boolean, titleText: string } {
+  const trimmedLine = line.trim()
+  if (trimmedLine && trimmedLine.match(/^#{1,6}\s+/)) {
+    const titleText = trimmedLine.replace(/^#{1,6}\s+/, '').trim()
+    return { isHeading: true, titleText }
+  }
+  return { isHeading: false, titleText: '' }
+}
+
+/**
+ * Helper function to find the next heading after a given index
+ * @param {Array<string>} lines - Array of lines to search
+ * @param {number} startIndex - Index to start searching from
+ * @returns {{found: boolean, titleText: string, index: number}} - Search results
+ */
+function findNextHeading(lines: Array<string>, startIndex: number): { found: boolean, titleText: string, index: number } {
+  for (let i = startIndex; i < lines.length; i++) {
+    const { isHeading, titleText } = isHeadingLine(lines[i])
+    if (isHeading) {
+      return { found: true, titleText, index: i }
+    }
+  }
+  return { found: false, titleText: '', index: -1 }
+}
+
+/**
+ * Helper function to find frontmatter blocks in the body content
+ * Since this is called on bodyContent (after first frontmatter is peeled off),
+ * we only need to look for additional frontmatter blocks that can use -- or ---
+ * @param {Array<string>} lines - Array of lines to search
+ * @returns {Array<{startIndex: number, endIndex: number, isValid: boolean}>} - Array of frontmatter blocks
+ */
+function findNoteFrontmatterBlock(lines: Array<string>): Array<{ startIndex: number, endIndex: number, isValid: boolean }> {
+  const blocks = []
+  let currentIndex = 0
+
+  while (currentIndex < lines.length) {
+    const startLine = lines[currentIndex].trim()
+
+    // Look for frontmatter separators (-- or ---)
+    if (startLine === '--' || startLine === '---') {
+      // Found start of potential frontmatter block
+      const { startIndex: startBlock, endIndex: endBlock } = findSeparatorPositions(lines, currentIndex)
+
+      if (startBlock >= 0 && endBlock >= 0) {
+        // Extract and validate the frontmatter content
+        const { isValid } = extractAndParseFrontmatter(lines, startBlock, endBlock)
+        blocks.push({ startIndex: startBlock, endIndex: endBlock, isValid })
+        currentIndex = endBlock + 1
+      } else {
+        currentIndex++
+      }
+    } else {
+      currentIndex++
+    }
+  }
+
+  return blocks
+}
+
+/**
+ * Helper function to find inline title after processing all frontmatter blocks
+ * @param {Array<string>} lines - Array of lines to search
+ * @param {Array<{startIndex: number, endIndex: number, isValid: boolean}>} frontmatterBlocks - All frontmatter blocks found
+ * @returns {{hasInlineTitle: boolean, inlineTitleText: string}} - Search results
+ */
+function findInlineTitleAfterFrontmatter(
+  lines: Array<string>,
+  frontmatterBlocks: Array<{ startIndex: number, endIndex: number, isValid: boolean }>,
+): { hasInlineTitle: boolean, inlineTitleText: string } {
+  if (frontmatterBlocks.length === 0) {
+    // No complete frontmatter blocks found - check for malformed frontmatter
+    if (lines.length > 0 && (lines[0].trim() === '--' || lines[0].trim() === '---')) {
+      // Malformed frontmatter - don't look for titles
+      logDebug('detectInlineTitle', 'Malformed frontmatter detected, not looking for titles')
+      return { hasInlineTitle: false, inlineTitleText: '' }
+    } else {
+      // No frontmatter at all - check only the first non-empty line
+      for (let i = 0; i < lines.length; i++) {
+        const trimmedLine = lines[i].trim()
+        if (trimmedLine === '') continue
+
+        const { isHeading, titleText } = isHeadingLine(trimmedLine)
+        if (isHeading) {
+          logDebug('detectInlineTitle', `Found inline title in first line: "${titleText}"`)
+          return { hasInlineTitle: true, inlineTitleText: titleText }
+        }
+        break // Stop at first non-empty line
+      }
+    }
+    return { hasInlineTitle: false, inlineTitleText: '' }
+  }
+
+  // Find the first frontmatter block
+  const firstBlock = frontmatterBlocks[0]
+
+  // Only look for titles after frontmatter if the first block is valid
+  if (firstBlock.isValid) {
+    // Look for heading immediately after the first frontmatter block
+    const searchStartIndex = firstBlock.endIndex + 1
+    if (searchStartIndex < lines.length) {
+      const firstLineAfterFrontmatter = lines[searchStartIndex].trim()
+      if (firstLineAfterFrontmatter) {
+        const { isHeading, titleText } = isHeadingLine(firstLineAfterFrontmatter)
+        if (isHeading) {
+          logDebug('detectInlineTitle', `Found inline title after frontmatter block: "${titleText}"`)
+          return { hasInlineTitle: true, inlineTitleText: titleText }
+        }
+      }
+    }
+  } else {
+    // Invalid frontmatter - don't look for titles
+    logDebug('detectInlineTitle', 'Invalid frontmatter detected, not looking for titles')
+    return { hasInlineTitle: false, inlineTitleText: '' }
+  }
+
+  // If we have multiple frontmatter blocks, there's content between them
+  // According to strict rules, this means no inline title
+  if (frontmatterBlocks.length > 1) {
+    logDebug('detectInlineTitle', 'Multiple frontmatter blocks detected, no inline title allowed')
+    return { hasInlineTitle: false, inlineTitleText: '' }
+  }
+
+  return { hasInlineTitle: false, inlineTitleText: '' }
+}
+
+/**
  * Robust helper function to detect inline title in template body content
- * Handles malformed frontmatter and multiple consecutive separators
+ * Handles malformed frontmatter, multiple consecutive separators, and multiple frontmatter blocks
  * @param {string} bodyContent - The template body content
  * @returns {{hasInlineTitle: boolean, inlineTitleText: string}}
  */
-function detectInlineTitleRobust(bodyContent: string): { hasInlineTitle: boolean, inlineTitleText: string } {
+export function detectInlineTitle(bodyContent: string): { hasInlineTitle: boolean, inlineTitleText: string } {
   if (!bodyContent) {
-    logDebug('detectInlineTitleRobust', 'No body content provided')
+    logDebug('detectInlineTitle', 'No body content provided')
     return { hasInlineTitle: false, inlineTitleText: '' }
   }
 
   const lines = bodyContent.split('\n')
-  logDebug('detectInlineTitleRobust', `Processing ${lines.length} lines of rendered body content`)
+  logDebug('detectInlineTitle', `Processing ${lines.length} lines of rendered body content`)
 
-  // Check if the first line starts with frontmatter separators
-  if (lines.length >= 2 && lines[0].trim().startsWith('--')) {
-    // Find the end of the frontmatter block using helper function
-    const { startIndex: startBlock, endIndex: endBlock } = findSeparatorPositions(lines)
+  // Find any note frontmatter blocks in the content
+  const frontmatterBlocks = findNoteFrontmatterBlock(lines)
+  logDebug('detectInlineTitle', `Found ${frontmatterBlocks.length} frontmatter blocks`)
 
-    if (startBlock >= 0 && endBlock >= 0) {
-      // Extract and parse the frontmatter content
-      const { attributes, isValid: isValidFrontmatter } = extractAndParseFrontmatter(lines, startBlock, endBlock)
+  // Find inline title after processing all frontmatter blocks
+  const result = findInlineTitleAfterFrontmatter(lines, frontmatterBlocks)
 
-      if (isValidFrontmatter) {
-        // Valid frontmatter - look for title in the first line after the block
-        if (endBlock + 1 < lines.length) {
-          const firstLineAfterFrontmatter = lines[endBlock + 1].trim()
-          if (firstLineAfterFrontmatter && firstLineAfterFrontmatter.match(/^#{1,6}\s+/)) {
-            const titleText = firstLineAfterFrontmatter.replace(/^#{1,6}\s+/, '').trim()
-            logDebug('detectInlineTitleRobust', `Found inline title after valid frontmatter: "${titleText}"`)
-            return {
-              hasInlineTitle: true,
-              inlineTitleText: titleText,
-            }
-          }
-        }
-      } else {
-        // Invalid frontmatter - treat the first line as the title
-        const firstLine = lines[0].trim()
-        if (firstLine && firstLine.match(/^#{1,6}\s+/)) {
-          const titleText = firstLine.replace(/^#{1,6}\s+/, '').trim()
-          logDebug('detectInlineTitleRobust', `Found inline title in invalid frontmatter block: "${titleText}"`)
-          return {
-            hasInlineTitle: true,
-            inlineTitleText: titleText,
-          }
-        }
-        // If invalid frontmatter and first line is not a heading, no inline title
-        logDebug('detectInlineTitleRobust', 'Invalid frontmatter block, no inline title found')
-        return { hasInlineTitle: false, inlineTitleText: '' }
-      }
-    }
-  } else {
-    // No frontmatter - check the first non-empty line
-    for (let i = 0; i < lines.length; i++) {
-      const trimmedLine = lines[i].trim()
-      if (trimmedLine === '') continue
-
-      if (trimmedLine.match(/^#{1,6}\s+/)) {
-        const titleText = trimmedLine.replace(/^#{1,6}\s+/, '').trim()
-        logDebug('detectInlineTitleRobust', `Found inline title in first line: "${titleText}"`)
-        return {
-          hasInlineTitle: true,
-          inlineTitleText: titleText,
-        }
-      }
-      break // Stop at first non-empty line
-    }
+  if (!result.hasInlineTitle) {
+    logDebug('detectInlineTitle', 'No inline title found')
   }
 
-  logDebug('detectInlineTitleRobust', 'No inline title found')
-  return { hasInlineTitle: false, inlineTitleText: '' }
+  return result
 }
 
 /**
@@ -1810,7 +1895,7 @@ export function isValidYamlContent(content: string): boolean {
     if (isValidLine) {
       hasValidYamlLine = true
     } else {
-      logDebug('isValidYamlContent', `Invalid YAML line: "${trimmedLine}" in ${lines.length} lines of content`)
+      logDebug('isValidYamlContent', `FYI: This line is not strictly valid YAML: "${trimmedLine}"`)
     }
   }
 
