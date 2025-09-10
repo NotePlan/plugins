@@ -94,14 +94,14 @@ Content here`
       expect(result).toEqual({ hasInlineTitle: true, inlineTitleText: 'My Note Title' })
     })
 
-    it('should find title in invalid frontmatter block', () => {
+    it('should not find title in invalid frontmatter block', () => {
       const content = `--
 # My Note Title
 invalid yaml content
 --
 More content`
       const result = detectInlineTitle(content)
-      expect(result).toEqual({ hasInlineTitle: true, inlineTitleText: 'My Note Title' })
+      expect(result).toEqual({ hasInlineTitle: false, inlineTitleText: '' })
     })
 
     it('should not find title if no heading after valid frontmatter', () => {
@@ -118,72 +118,6 @@ Just some content without heading`
 invalid yaml content
 --
 Just some content without heading`
-      const result = detectInlineTitle(content)
-      expect(result).toEqual({ hasInlineTitle: false, inlineTitleText: '' })
-    })
-  })
-
-  describe('Multiple frontmatter blocks (edge case)', () => {
-    it('should find title after the last frontmatter block with -- separators', () => {
-      const content = `---
-template frontmatter here
----
---
-the note's frontmatter here
---
-# an inline title here
-Content after title`
-      const result = detectInlineTitle(content)
-      expect(result).toEqual({ hasInlineTitle: true, inlineTitleText: 'an inline title here' })
-    })
-
-    it('should find title after the last frontmatter block with mixed separators', () => {
-      const content = `---
-template frontmatter here
----
---
-the note's frontmatter here
---
-# an inline title here
-Content after title`
-      const result = detectInlineTitle(content)
-      expect(result).toEqual({ hasInlineTitle: true, inlineTitleText: 'an inline title here' })
-    })
-
-    it('should find title after the last frontmatter block with --- separators', () => {
-      const content = `---
-template frontmatter here
----
----
-the note's frontmatter here
----
-# an inline title here
-Content after title`
-      const result = detectInlineTitle(content)
-      expect(result).toEqual({ hasInlineTitle: true, inlineTitleText: 'an inline title here' })
-    })
-
-    it('should find title in invalid frontmatter block when no title after last block', () => {
-      const content = `---
-template frontmatter here
----
---
-# Title in invalid block
-invalid yaml
---
-Just content`
-      const result = detectInlineTitle(content)
-      expect(result).toEqual({ hasInlineTitle: true, inlineTitleText: 'Title in invalid block' })
-    })
-
-    it('should not find title if no heading exists anywhere', () => {
-      const content = `---
-template frontmatter here
----
---
-the note's frontmatter here
---
-Just content without heading`
       const result = detectInlineTitle(content)
       expect(result).toEqual({ hasInlineTitle: false, inlineTitleText: '' })
     })
@@ -217,20 +151,7 @@ Content`
 # Title after all separators
 Content`
       const result = detectInlineTitle(content)
-      expect(result).toEqual({ hasInlineTitle: true, inlineTitleText: 'Title after all separators' })
-    })
-
-    it('should handle mixed valid and invalid frontmatter blocks', () => {
-      const content = `---
-valid: frontmatter
----
---
-# Title in invalid block
-invalid yaml
---
-More content`
-      const result = detectInlineTitle(content)
-      expect(result).toEqual({ hasInlineTitle: true, inlineTitleText: 'Title in invalid block' })
+      expect(result).toEqual({ hasInlineTitle: false, inlineTitleText: '' })
     })
 
     it('should handle title with extra whitespace', () => {

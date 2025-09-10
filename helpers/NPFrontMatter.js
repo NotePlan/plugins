@@ -1535,8 +1535,11 @@ function extractAndParseFrontmatter(lines: Array<string>, startIndex: number, en
   const frontmatterLines = lines.slice(startIndex + 1, endIndex)
   const frontmatterContent = frontmatterLines.join('\n')
 
-  // Validate that the content is actually valid YAML
-  if (isValidYamlContent(frontmatterContent)) {
+  // Check if frontmatter is empty (valid) or has valid YAML content
+  const isEmptyFrontmatter = !frontmatterContent || frontmatterContent.trim() === ''
+  const hasValidYaml = isValidYamlContent(frontmatterContent)
+
+  if (isEmptyFrontmatter || hasValidYaml) {
     const attributes: { [string]: string } = {}
 
     // Parse the frontmatter lines manually
@@ -1702,13 +1705,13 @@ function findInlineTitleAfterFrontmatter(
     return { hasInlineTitle: false, inlineTitleText: '' }
   }
 
-  // Find the first frontmatter block
-  const firstBlock = frontmatterBlocks[0]
+  // Find the first (and only) frontmatter block in body content
+  const frontmatterBlock = frontmatterBlocks[0]
 
-  // Only look for titles after frontmatter if the first block is valid
-  if (firstBlock.isValid) {
-    // Look for heading immediately after the first frontmatter block
-    const searchStartIndex = firstBlock.endIndex + 1
+  // Only look for titles after frontmatter if the block is valid
+  if (frontmatterBlock.isValid) {
+    // Look for heading immediately after the frontmatter block
+    const searchStartIndex = frontmatterBlock.endIndex + 1
     if (searchStartIndex < lines.length) {
       const firstLineAfterFrontmatter = lines[searchStartIndex].trim()
       if (firstLineAfterFrontmatter) {
@@ -1722,13 +1725,6 @@ function findInlineTitleAfterFrontmatter(
   } else {
     // Invalid frontmatter - don't look for titles
     logDebug('detectInlineTitle', 'Invalid frontmatter detected, not looking for titles')
-    return { hasInlineTitle: false, inlineTitleText: '' }
-  }
-
-  // If we have multiple frontmatter blocks, there's content between them
-  // According to strict rules, this means no inline title
-  if (frontmatterBlocks.length > 1) {
-    logDebug('detectInlineTitle', 'Multiple frontmatter blocks detected, no inline title allowed')
     return { hasInlineTitle: false, inlineTitleText: '' }
   }
 
