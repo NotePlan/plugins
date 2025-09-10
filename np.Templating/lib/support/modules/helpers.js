@@ -30,7 +30,7 @@ import { parseJSON5, semverVersionToNumber, getRandomUUID } from '@helpers/gener
 
 import { getNote, removeSection } from '@helpers/note'
 
-import { selectFirstNonTitleLineInEditor, getNoteFromIdentifier, getFlatListOfBacklinks, getOrMakeRegularNoteInFolder, getOrMakeCalendarNote } from '@helpers/NPnote'
+import { selectFirstNonTitleLineInEditor, getNoteFromIdentifier, getFlatListOfBacklinks, getOrMakeRegularNoteInFolder, getOrMakeCalendarNote, chooseNoteV2 } from '@helpers/NPnote'
 
 import {
   hasFrontMatter,
@@ -85,6 +85,7 @@ const helpers = {
   datePicker,
   askDateInterval,
   chooseNote,
+  chooseNoteV2,
   chooseHeading,
   chooseOptionWithModifiers,
   getInput,
