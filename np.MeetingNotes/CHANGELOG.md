@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [2.0.6] - 2025-09-11 @dwertheimer
+
+- Fix using button on empty template, especially with teamspace notes
+
 ## [2.0.5] - 2025-08-11 @dwertheimer
 
 - Just bumping version to make sure title setting and meeting note validation are happening in MN

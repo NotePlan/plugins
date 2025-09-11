@@ -387,16 +387,20 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
 
         if (hasNewNoteTitle && !titlesAreSame) {
           // We have newNoteTitle, so create frontmatter with title
+          logDebug(`templateNew: note was created with newNoteTitle so we need to add title to frontmatter: "${noteTitle}" while adding the content`)
           Editor.content = `---\ntitle: ${noteTitle}\n---\n${templateResult}`
         } else if (hasInlineTitle) {
           // Template already has an inline title, don't add another one
+          logDebug(`templateNew: note was created with inline title so just adding the template content (it will get the H1 title): "${noteTitle}" while adding the content`)
           Editor.content = templateResult
         } else {
           // No inline title in template, add the title
+          logDebug(`templateNew: note was created with no inline title or newNoteTitle so adding the title we received: "${noteTitle}" while adding the content`)
           Editor.content = `# ${noteTitle}\n${templateResult}`
         }
       }
       selectFirstNonTitleLineInEditor()
+      logDebug(`templateNew: FINISHED - note was created with title: "${noteTitle}" in folder: "${folder}" and filename: "${filename}"`)
     } else {
       await CommandBar.prompt('New Template', `An error occured creating ${noteTitle} note`)
     }

@@ -1,9 +1,9 @@
 {
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.9.10",
+  "noteplan.minAppVersion": "3.17.0",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "2.1.1",
+  "plugin.version": "2.1.1-notreleased",
   "plugin.lastUpdateInfo": "2.1.1: - add chooseFolder using new chooseFolder() helper function including teamspaces",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson ( codedungeon)",
