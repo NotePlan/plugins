@@ -66,6 +66,7 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
         note.content = result
       }
     }
+    logDebug(pluginJson, `MeetingNotes: finished applying rendered template to daily note: ${note?.title || ''}`)
   } else {
     logDebug(pluginJson, `MeetingNotes: got rendered content back; applying to the current editor: shouldReplaceContent:${String(shouldReplaceContent)}`)
     if (shouldReplaceContent) {
@@ -82,6 +83,7 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
     } else {
       Editor.insertTextAtCursor(result)
     }
+    logDebug(pluginJson, `MeetingNotes: finished applying rendered template to Editor (not Editor.note)`)
   }
 }
 
