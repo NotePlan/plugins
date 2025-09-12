@@ -30,16 +30,19 @@ type TFolderIcon = {
 
 //------------------------------ Constants ------------------------------------
 
+const TEAMSPACE_ICON_COLOR = 'green-700'
+
 // Define icons to use in decorated CommandBar options
+const defaultNoteIconDetails = { firstLevelFolder: '<NOTE>', icon: 'file-lines', color: 'gray-500', alpha: 1.0, darkAlpha: 1.0 }
 const iconsToUseForSpecialFolders: Array<TFolderIcon> = [
-  { firstLevelFolder: '<CALENDAR>', icon: 'calendar-star', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4 },
-  { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
-  { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
-  { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
+  { firstLevelFolder: '<CALENDAR>', icon: 'calendar-days', color: 'gray-500', alpha: 1.0, darkAlpha: 1.0 },
+  { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'gray-500', alpha: 1.0, darkAlpha: 1.0 },
+  { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'gray-500', alpha: 1.0, darkAlpha: 1.0 },
+  { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'gray-500', alpha: 1.0, darkAlpha: 1.0 },
 ]
 
 // For speed, pre-compute the relative dates
-const relativeDates = getRelativeDates()
+const relativeDates = getRelativeDates(true) // use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
 
 const pluginJson = 'NPnote.js'
 
@@ -68,6 +71,7 @@ export async function chooseNoteV2(
   currentNoteFirst?: boolean = false,
   allowNewRegularNoteCreation?: boolean = true,
 ): Promise<?TNote> {
+  logDebug('chooseNoteV2', `starting with includeCalendarNotes: ${String(includeCalendarNotes)} and includeFutureCalendarNotes: ${String(includeFutureCalendarNotes)}`)
   // $FlowIgnore[incompatible-type]
   let noteList: Array<TNote> = regularNotes
   if (includeCalendarNotes) {
@@ -95,30 +99,26 @@ export async function chooseNoteV2(
     // Show titles with relative dates, but without path
     const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
     // Work out which icon to use for this note
-    if (possTeamspaceDetails.isTeamspace) {
-      // Teamspace notes are currently (v3.18) only regular or calendar notes, not @Templates, @Archive or @Trash.
-      return {
-        text: displayTitleWithRelDate(note, true, false),
-        icon: note.type === 'Calendar' ? 'calendar-star' : 'file-lines',
-        color: 'green-600',
-        shortDescription: getFolderDisplayName(getFolderFromFilename(note.filename) , false),
-        alpha: 0.6,
-        darkAlpha: 0.6,
-      }
-    } else {
-      let folderFirstLevel = getFolderFromFilename(note.filename).split('/')[0]
-      if (note.type === 'Calendar') {
-        folderFirstLevel = '<CALENDAR>'
-      }
-      const folderIconDetails = iconsToUseForSpecialFolders.find((details) => details.firstLevelFolder === folderFirstLevel) ?? { icon: 'file-lines', color: 'gray-500' }
-      return {
-        text: displayTitleWithRelDate(note, true, false),
-        icon: folderIconDetails.icon,
-        color: folderIconDetails.color,
-        shortDescription: note.type === 'Notes' ? getFolderDisplayName(getFolderFromFilename(note.filename) ?? '') : '',
-        alpha: folderIconDetails.alpha ?? 0.7,
-        darkAlpha: folderIconDetails.darkAlpha ?? 0.7,
-      }
+
+    const FMAttributes = note.frontmatterAttributes
+    const userSetIcon = FMAttributes && FMAttributes['icon']
+    // const userSetIconColor = FMAttributes && FMAttributes['icon-color'] // note: this is a tailwind color name, not a hex code
+    // Note: Teamspace notes are currently (v3.18) only regular or calendar notes, not @Templates, @Archive or @Trash.
+
+    let folderFirstLevel = getFolderFromFilename(note.filename).split('/')[0]
+    if (note.type === 'Calendar') {
+      folderFirstLevel = '<CALENDAR>'
+    }
+    const folderIconDetails = iconsToUseForSpecialFolders.find((details) => details.firstLevelFolder === folderFirstLevel) ?? defaultNoteIconDetails
+    return {
+      text: displayTitleWithRelDate(note, true, false),
+      icon: userSetIcon ? userSetIcon : folderIconDetails.icon,
+      // Note: icon-color isn't used by NP in CommandBar, so I won't use it either for now. But if that changes, here's the line:
+      // color: (possTeamspaceDetails.isTeamspace) ? TEAMSPACE_ICON_COLOR : userSetIconColor ? userSetIconColor : folderIconDetails.color,
+      color: (possTeamspaceDetails.isTeamspace) ? TEAMSPACE_ICON_COLOR : folderIconDetails.color,
+      shortDescription: note.type === 'Notes' ? getFolderDisplayName(getFolderFromFilename(note.filename) ?? '') : '',
+      alpha: folderIconDetails.alpha ?? 0.7,
+      darkAlpha: folderIconDetails.darkAlpha ?? 0.7,
     }
   })
 
@@ -146,8 +146,8 @@ export async function chooseNoteV2(
           alpha: 0.5,
           darkAlpha: 0.5,
         })
-      } else {
-        // logDebug('chooseNoteV2', `Found existing note for ${rd.dateStr} so won't add-new-one for it`)
+        // } else {
+        //   logDebug('chooseNoteV2', `Found existing note for ${rd.dateStr} so won't add-new-one for it`)
       }
     }
   }

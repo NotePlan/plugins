@@ -253,7 +253,7 @@ export function getFolderFromFilename(fullFilename: string): string {
 }
 
 /**
- * Get a useful folder name from the folder path, without leading or trailing slash, and with Teamspace name if applicable.
+ * Get a useful folder name from the folder path (*not* filename). Returns without leading or trailing slash, and with Teamspace name if applicable.
  * Note: Not needed before Teamspaces.
  * @author @jgclark
  * @tests in jest file
@@ -276,6 +276,7 @@ export function getFolderDisplayName(folderPath: string, includeTeamspaceEmoji: 
       const teamspaceName = getTeamspaceTitleFromID(teamspaceID)
       // logDebug('folders/getFolderDisplayName', `teamspaceName: ${teamspaceName}`)
       let folderPart = getFilenameWithoutTeamspaceID(folderPath)
+      // logDebug('folders/getFolderDisplayName', `folderPart: ${folderPart} from ${folderPath}`)
       if (folderPart === '') {
         folderPart = '/'
       }
