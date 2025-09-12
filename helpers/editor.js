@@ -120,7 +120,8 @@ export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, 
       logDebug(`checkAndProcessFolderAndNewNoteTitle: invoking templateNew because theFolder:"${theFolder}" hasTitle:${hasTitle} with argsArray:${JSON.stringify(argsArray)}`)
       await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
       // move the empty note to the trash
-      await DataStore.moveNote(emptyNoteFilename, '@Trash')
+      // await DataStore.moveNote(emptyNoteFilename, '@Trash')
+      await DataStore.trashNote(emptyNoteFilename)
       return true
     } else if (theFolder.length > 0) {
       if (!Editor.filename.startsWith(theFolder)) {
