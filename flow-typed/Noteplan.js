@@ -476,20 +476,19 @@ declare class DataStore {
    * Note: Available from v3.6.0
    * @type {Array<string>}
    */
-  static +filters: $ReadOnlyArray<string>;
-  /**
-   * Get list of all overdue tasks as paragraphs
-   * Note: Available from v3.8.1
-   * @type {Array<TParagraph>}
-   */
-  static listOverdueTasks(): $ReadOnlyArray<TParagraph>;
-
+static + filters: $ReadOnlyArray < string >;
   /**
    * Get or set settings for the current plugin (as a JavaScript object).
    * Example: settings.shortcutExpenses[0].category
    * Note: Available from v3.3.2
    */
   static settings: Object;
+  /**
+   * DataStore.teamspaces returns an array of teamspaces represented as Note Objects with title and filename populated. Example of a filename: %%NotePlanCloud%%/275ce631-6c20-4f76-b5fd-a082a9ac5160
+   * Note: No object for private notes is included here.
+   * Note: Available from v3.17.0
+   */
+  static teamspaces: $ReadOnlyArray < TNote >;
 
   /**
    * Returns the value of a given preference.
@@ -576,6 +575,12 @@ declare class DataStore {
    * @returns {string?}
    */
   static loadData(filename: string, loadAsString: boolean): ?string;
+  /**
+   * Get list of all overdue tasks as paragraphs
+   * Note: Available from v3.8.1
+   * @type {Array<TParagraph>}
+   */
+  static listOverdueTasks(): $ReadOnlyArray < TParagraph >;
   /**
    * Check to see if a file in the available folders exists.
    * It starts in the plugin's own data folder, but can be used to check for files in other folders.
@@ -832,14 +837,17 @@ declare class DataStore {
    * @param {string} = keyword to search for
    * @return {$ReadOnlyArray<TParagraph>} Promise to array of results
    */
-  static listOverdueTasks(keyword: string): Promise<$ReadOnlyArray<TParagraph>>;
-
+  static listOverdueTasks(keyword: string): Promise < $ReadOnlyArray < TParagraph >>;
   /**
-   * DataStore.teamspaces returns an array of teamspaces represented as Note Objects with title and filename populated. Example of a filename: %%NotePlanCloud%%/275ce631-6c20-4f76-b5fd-a082a9ac5160
-   * Note: No object for private notes is included here.
-   * Note: Available from v3.17.0
-   */
-  static teamspaces: $ReadOnlyArray < TNote >;
+  * Move a regular note using the given filename (include extension and relative folder like `folder/filename.txt`, if it's in the root folder don't add a leading slash) to the trash folder. 
+  * Returns true if successful.
+  * Note: Calendar notes cannot be moved to trash.
+  * Note: Teamspace notes are deleted immediately (teamspaces have no trash folder as of now), but a copy is made inside the system trash bin, if the user needs to recover the note.
+  * Note: available from v3.18.2 b1431
+  * @param {string} 
+  * @return {boolean}
+  */
+trashNote(filename: string): boolean;
 }
 
 /**
