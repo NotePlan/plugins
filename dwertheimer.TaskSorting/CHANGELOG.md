@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md) for details on available commands and use case.
 
+## [1.2.5] - 2025-09-13 (@dwertheimer)
+
+- Add logging for jgclark to sortTasksUnderHeading
+
 ## [1.2.4] - 2025-08-31 (@dwertheimer)
 
 - Add saveEditorIfNecessary() to all commands

@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.TaskSorting",
   "plugin.name": "🥷 Task Sorting & Tools",
-  "plugin.version": "1.2.4",
-  "plugin.lastUpdateInfo": "1.2.4: Add saveEditorIfNecessary() to all commands",
+  "plugin.version": "1.2.5-notreleasedyet",
+  "plugin.lastUpdateInfo": "1.2.5: Add logging for jgclark to sortTasksUnderHeading",
   "plugin.description": "Commands for sorting tasks in a note",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles-EDIT_ME": [

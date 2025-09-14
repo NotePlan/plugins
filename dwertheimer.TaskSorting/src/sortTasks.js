@@ -733,7 +733,10 @@ export async function sortTasks(
  */
 export async function sortTasksUnderHeading(_heading: string, _sortOrder: string | Array<string>, _noteOverride: TNote | Editor | null = null): Promise<void> {
   try {
+    logDebug(`sortTasksUnderHeading: starting for heading="${_heading}" sortOrder="${String(_sortOrder)}" with note override? ${_noteOverride ? 'yes' : 'no'}`)
+    logDebug(`sortTasksUnderHeading: About to saveEditorIfNecessary()`)
     await saveEditorIfNecessary()
+    logDebug(`sortTasksUnderHeading: Back from saveEditorIfNecessary()`)
     const noteToUse = _noteOverride || Editor.note
     if (!noteToUse) {
       logError(pluginJson, `sortTasksUnderHeading: There is no noteToUse. Bailing`)
@@ -749,7 +752,7 @@ export async function sortTasksUnderHeading(_heading: string, _sortOrder: string
       // if sortOrder is a string, then it's a JSON string, so we need to parse it
       sortOrder = _sortOrder ? JSON.parse(_sortOrder) : await getUserSort()
     }
-    logDebug(pluginJson, `sortTasksUnderHeading: starting for heading="${heading}" sortOrder="${String(sortOrder)}"`)
+    logDebug(pluginJson, `sortTasksUnderHeading: about to get block under heading="${heading}" sortOrder="${String(sortOrder)}"`)
 
     if (heading && noteToUse) {
       const block = getBlockUnderHeading(noteToUse, heading)
