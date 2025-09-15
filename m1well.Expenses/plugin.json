@@ -7,7 +7,8 @@
   "plugin.description": "Plugin to track your expenses for further analyis",
   "plugin.author": "@m1well",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/m1well.Expenses/README.md",
-  "plugin.version": "1.7.3",
+  "plugin.version": "1.7.4",
+  "lastUpdate": "Fix problem with /exp:agg command when config is missing",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
