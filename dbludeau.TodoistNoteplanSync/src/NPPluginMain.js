@@ -390,9 +390,9 @@ async function pullTodoistTasksByProject(project_id: string): Promise<any> {
     let filter = ''
     if (setup.useTeamAccount) {
       if (setup.addUnassigned) {
-        filter = '?filter=!assigned to: others'
+        filter = '& filter=!assigned to: others'
       } else {
-        filter = '?filter=assigned to: me'
+        filter = '& filter=assigned to: me'
       }
     }
     const result = await fetch(`${todo_api}/tasks?project_id=${project_id}${filter}`, getRequestObject())
