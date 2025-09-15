@@ -34,7 +34,7 @@ import { getTodaysDateAsArrowDate, getTodaysDateUnhyphenated } from '../../helpe
 import pluginJson from '../plugin.json'
 import { log, logInfo, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 
-const todo_api: string = 'https://api.todoist.com/rest/v2'
+const todo_api: string = 'https://api.todoist.com/api/v1'
 
 // set some defaults that can be changed in settings
 const setup: {
@@ -350,12 +350,12 @@ async function syncTodayTasks() {
     const response = await pullTodoistTasksForToday()
     const tasks: Array<Object> = JSON.parse(response)
 
-    if (tasks.length > 0 && note) {
-      for (let i = 0; i < tasks.length; i++) {
-        await writeOutTask(note, tasks[i])
-      }
+    if (tasks.results && note) {
+      tasks.results.forEach(async (t) => {
+        await writeOutTask(note, t)
+      })
 
-      //close the tasks in Todoist if they are complete in Noteplan`
+      // close the tasks in Todoist if they are complete in Noteplan`
       closed.forEach(async (t) => {
         await closeTodoistTask(t)
       })
@@ -371,13 +371,12 @@ async function syncTodayTasks() {
  * @returns {Promise<void>}
  */
 async function projectSync(note: TNote, id: string): Promise<void> {
-  console.log(`ID is ${id}`)
   const task_result = await pullTodoistTasksByProject(id)
-  console.log(task_result)
   const tasks: Array<Object> = JSON.parse(task_result)
-  for (let j = 0; j < tasks.length; j++) {
-    await writeOutTask(note, tasks[j])
-  }
+  
+  tasks.results.forEach(async (t) => { 
+    await writeOutTask(note, t)
+  })
 }
 
 /**
@@ -492,7 +491,7 @@ function formatTaskDetails(task: Object): string {
   task_write = `${priorities}${task.content}`
 
   // add the Todoist URL to the end of the string
-  task_write = `${task_write}[^](${task.url})`
+  task_write = `${task_write}[^](https://app.todoist.com/app/task/${task.id})`
 
   // add the lables after the URL
   if (setup.addTags) {
@@ -576,8 +575,9 @@ async function writeOutTask(note: TNote, task: Object) {
       section = JSON.parse(section)
       if (section) {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
-          logInfo(pluginJson, `Task will be added Noteplan (${task.id})`)
+          logInfo(pluginJson, `1. Task will be added to ${note.title} below ${section.name} (${formatted})`)
           note.addTodoBelowHeadingTitle(formatted, section.name, true, true)
+
           // add to just_written so they do not get duplicated in the Today note when updating all projects and today
           just_written.push(task.id)
         } else {
@@ -588,12 +588,13 @@ async function writeOutTask(note: TNote, task: Object) {
         // Put it in with no heading
         logWarn(pluginJson, `Section ID ${task.section_id} did not return a section name`)
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
-          logInfo(pluginJson, `Task will be added to Noteplan (${task.id})`)
+          logInfo(pluginJson, `2. Task will be added to ${note.title} (${formatted})`)
           note.appendTodo(formatted)
+
           // add to just_written so they do not get duplicated in the Today note when updating all projects and today
           just_written.push(task.id)
         } else {
-          logInfo(pluginJson, `Task is already in Noteplan (${task.id})`)
+          logInfo(pluginJson, `Task is already in Noteplan (${formatted})`)
         }
       }
     } else {
@@ -601,15 +602,17 @@ async function writeOutTask(note: TNote, task: Object) {
       // if there is a predefined header in settings
       if (setup.header !== '') {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
-          logInfo(pluginJson, `Adding task from Todoist to Note`)
-          note?.addTodoBelowHeadingTitle(formatted, setup.header, true, true)
+          logInfo(pluginJson, `3. Task will be added to ${note.title} below ${setup.header} (${formatted})`)
+          note.addTodoBelowHeadingTitle(formatted, setup.header, true, true)
+
           // add to just_written so they do not get duplicated in the Today note when updating all projects and today
           just_written.push(task.id)
         }
       } else {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
-          logInfo(pluginJson, `Task will be added to Noteplan (${task.id})`)
+          logInfo(pluginJson, `4. Task will be added to ${note.title} (${formatted})`)
           note.appendTodo(formatted)
+
           // add to just_written so they do not get duplicated in the Today note when updating all projects and today
           just_written.push(task.id)
         }
