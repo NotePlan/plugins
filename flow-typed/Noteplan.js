@@ -42,22 +42,26 @@ declare var Editor: TEditor
  */
 declare interface TEditor extends CoreNoteFields {
   /**
+   * Editor.note
    * Get the note object of the opened note in the editor.
    * WARNING: from @jgclark: since about v3.16.3, Editor operates differently from Note when a note has frontmatter: for the Editor does NOT include frontmatter lines, and they are NOT selectable.
    */
   +note: ?TNote;
   /**
+   * Editor.insertTextAtCharacterIndex()
    * Inserts the given text at the given character position (index)
    * @param text 	  - Text to insert
    * @param index   - Position to insert at (you can get this using 'renderedSelection' for example)
    */
   insertTextAtCharacterIndex(text: string, index: number): void;
   /**
+   * Editor.selectedLinesText
    * Get an array of selected lines. The cursor doesn't have to select the full
    * line, NotePlan returns all complete lines the cursor "touches".
    */
   +selectedLinesText: $ReadOnlyArray<string>;
   /**
+   * Editor.selectedParagraphs
    * Get an array of selected paragraphs. The cursor doesn't have to select the
    * full paragraph, NotePlan returns all complete paragraphs the cursor "touches".
    * Note: not all of the paragraph object data is complete, e.g. "headingLevel", "heading" and other properties may not be set properly.
@@ -67,25 +71,30 @@ declare interface TEditor extends CoreNoteFields {
    */
   +selectedParagraphs: $ReadOnlyArray<TParagraph>;
   /**
+   * Editor.selection
    * Get the raw selection range (hidden Markdown is considered).
    * Note: frontmatter is not included in the character counts, since ~v3.16.3
    */
   +selection: ?TRange;
   /**
+   * Editor.renderedSelection
    * Get the rendered selection range (hidden Markdown is NOT considered).
    */
   +renderedSelection: ?TRange;
   /**
+   * Editor.selectedText
    * Get the selected text.
    */
   +selectedText: ?string;
 
   /**
+   * Editor.insertTextAtCursor()
    * Inserts the given text at the current cursor position
    * @param text - Text to insert
    */
   insertTextAtCursor(text: string): void;
   /**
+   * Editor.insertParagraphAtCursor()
    * Inserts a plain paragraph before the selected paragraph (or the paragraph the cursor is currently positioned)
    * @param name - Text of the paragraph
    * @param type - paragraph type
@@ -93,11 +102,13 @@ declare interface TEditor extends CoreNoteFields {
    */
   insertParagraphAtCursor(name: string, type: ParagraphType, indents: number): void;
   /**
+   * Editor.replaceSelectionWithText()
    * Replaces the current cursor selection with the given text
    * @param text - Text to insert
    */
   replaceSelectionWithText(text: string): void;
   /**
+   * Editor.openNoteByFilename()
    * Opens a note using the given filename. Returns the note if it exists or fails, returning null if the file has not been created yet.
    * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`. If the note doesn't exist, then returns null
    * @param {boolean?} newWindow - (optional) Open note in new window (default = false)?
@@ -122,6 +133,7 @@ declare interface TEditor extends CoreNoteFields {
     stayInSpace?: boolean,
   ): Promise<TNote | void>;
   /**
+   * Editor.openNoteByTitle()
    * Opens a note by searching for the give title (first line of the note)
    * Note: 'splitView' parameter available for macOS from v3.4
    * @param {string} title - Title (case sensitive) of the note (first line)
@@ -133,6 +145,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   openNoteByTitle(title: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
+   * Editor.openNoteByTitleCaseInsensitive()
    * Opens a note by searching for the give title (first line of the note)
    * Note: 'splitView' parameter available for macOS from v3.4
    * @param {string} title - Title (case sensitive) of the note (first line)
@@ -151,6 +164,7 @@ declare interface TEditor extends CoreNoteFields {
     splitView?: boolean,
   ): Promise<TNote | void>;
   /**
+   * Editor.openNoteByDate()
    * Opens a calendar note by the given date
    * Note: 'splitView' parameter available for macOS from v3.4
    * Note: 'timeframe' parameter available from v3.6
@@ -166,6 +180,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string, parent?: string): Promise<TNote | void>;
   /**
+   * Editor.openNoteByDateString()
    * Opens a calendar note by the given date string.
    * @param {string} dateString - The date string that should be opened, in ISO format ("YYYY-MM-DD") or filename format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
@@ -179,6 +194,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   openNoteByDateString(dateString: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
+   * Editor.openWeeklyNote()
    * Opens a weekly calendar note by the given year and week number
    * Note: available from v3.6
    * @param {number} year           - The year of the week
@@ -191,12 +207,14 @@ declare interface TEditor extends CoreNoteFields {
    */
   openWeeklyNote(year: number, weeknumber: number, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
+   * Editor.selectAll()
    * Selects the full text in the Editor.
    * Note: Available from v3.2
    * Note: From ~v3.16.3, this does not include the frontmatter lines.
    */
   selectAll(): void;
   /**
+   * Editor.select()
    * (Raw) select text in the editor (like select 10 characters = length from position 2 = start)
    * Raw means here that the position is calculated with the Markdown revealed, including Markdown links and folded text.
    * Note: From ~v3.16.3, this does not include the frontmatter lines.
@@ -205,6 +223,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   select(start: number, length: number): void;
   /**
+   * Editor.renderedSelect()
    * (Rendered) select text in the editor (like select 10 characters = length from position 2 = start)
    * Rendered means here that the position is calculated with the Markdown hidden, including Markdown links and folded text.
    * Note: From ~v3.16.3, this does not include the frontmatter lines.
@@ -213,18 +232,21 @@ declare interface TEditor extends CoreNoteFields {
    */
   renderedSelect(start: number, length: number): void;
   /**
+   * Editor.copySelection()
    * Copies the currently selected text in the editor to the system clipboard.
    * See also Clipboard object.
    * Note: Available from v3.2
    */
   copySelection(): void;
   /**
+   * Editor.pasteClipboard()
    * Pastes the current content in the system clipboard into the current selection in the editor.
    * See also Clipboard object.
    * Note: Available from v3.2
    */
   pasteClipboard(): void;
   /**
+   * Editor.highlight()
    * Scrolls to and highlights the given paragraph.
    * If the paragraph is folded, it will be unfolded.
    * Note: From ~v3.16.3, this does not include the frontmatter lines.
@@ -232,6 +254,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   highlight(paragraph: TParagraph): void;
   /**
+   * Editor.highlightByRange()
    * Scrolls to and highlights the given character range.
    * If the range exists in a folded heading, it will be unfolded.
    * Note: From ~v3.16.3, this does not include the frontmatter lines.
@@ -239,6 +262,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   highlightByRange(range: TRange): void;
   /**
+   * Editor.highlightByIndex()
    * Scrolls to and highlights the given range defined by the character index and the character length it should cover.
    * If the paragraph is folded, it will be unfolded.
    * Note: Available from v3.0.23
@@ -248,12 +272,14 @@ declare interface TEditor extends CoreNoteFields {
    */
   highlightByIndex(index: number, length: number): void;
   /**
+   * Editor.toggleFolding()
    * Folds the given paragraph or unfolds it if its already folded. If the paragraph is not a heading, it will look for the heading this paragraph exists under.
    * Note: Available from v3.6.0
    * @param {TParagraph}
    */
   toggleFolding(paragraph: TParagraph): void;
   /**
+   * Editor.isFolded()
    * Checks if the given paragraph is folded or not. If it's not a heading, it will look for the heading this paragraph exists under.
    * Note: Available from v3.6.0
    * @param {TParagraph}
@@ -261,6 +287,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   isFolded(paragraph: TParagraph): boolean;
   /**
+   * Editor.showLoading()
    * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
    * `text` is optional, if you define it, it will be shown below the loading indicator.
    * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
@@ -272,6 +299,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   showLoading(visible: boolean, text?: ?string, progress?: number): void;
   /**
+   * Editor.onAsyncThread()
    * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
    * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
    * Otherwise the loading window will be also blocked.
@@ -284,6 +312,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   onAsyncThread(): Promise<void>;
   /**
+   * Editor.onMainThread()
    * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
    * Call this after `onAsyncThread`, once your background work is done.
    * It is safe to call Editor and other user interface functions on the main thread.
@@ -292,6 +321,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   onMainThread(): Promise<void>;
   /**
+   * Editor.save()
    * Save content of Editor to file. This can be used before updateCache() to ensure latest changes are available quickly.
    * Warning: beware possiblity of this causing an infinite loop, particularly if used in a function call be an onEditorWillSave trigger.
    * WARNING: from @jgclark and @dwertheimer: use helper editor.js function saveEditorIfNecessary() instead, as too often this silently fails, and stops plugins from running.
@@ -299,6 +329,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   save(): Promise<void>;
   /**
+   * Editor.availableThemes
    * Get the names of all supported themes (including custom themes imported into the Theme folder).
    * Use together with `.setTheme(name)`
    * Note: available from v3.6.2, returning array of these objects:
@@ -313,6 +344,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   +availableThemes: $ReadOnlyArray<Object>;
   /**
+   * Editor.currentTheme
    * Get the current theme name and mode as an object with these keys:
    *  - "name" in the JSON theme
    *  - "filename" of the JSON theme file
@@ -323,6 +355,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   +currentTheme: Object;
   /**
+   * Editor.setTheme()
    * Change the current theme.
    * Get all available theme names using `.availableThemes`. Custom themes are also supported.
    * Note: Available from NotePlan v3.1
@@ -330,12 +363,14 @@ declare interface TEditor extends CoreNoteFields {
    */
   setTheme(name: string): void;
   /**
+   * Editor.saveDefaultTheme()
    * Save theme as the default for the specified mode.
    * @param {string} theme_name (already-installed; not filename)
    * @param {string} mode "dark" | "light" | "auto"
    */
   saveDefaultTheme(name: string, mode: string): void;
   /**
+   * Editor.addTheme()
    * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
    * It returns true if adding was successful and false if not. An error will be also printed into the console.
    * Adding a theme might fail, if the given json text was invalid.
@@ -346,6 +381,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   addTheme(json: string, filename: string): boolean;
   /**
+   * Editor.currentSystemMode
    * Get the current system mode, either "dark" or "light.
    * Note: Available from NotePlan v3.6.2+
    * @returns {string}
@@ -353,12 +389,14 @@ declare interface TEditor extends CoreNoteFields {
   +currentSystemMode: string;
 
   /**
+   * Editor.id
    * Get a unique ID for the editor to make it easier to identify it later
    * Note: Available from NotePlan v3.8.1 build 973
    * @returns {string}
    */
   +id: string;
   /**
+   * Editor.customId
    * Set / get a custom identifier, so you don't need to cache the unique id.
    * Generally speaking you should set (or at least start) this string with the plugin's ID, e.g. pluginJson['plugin.id']
    * Note: Available from NotePlan v3.8.1 build 973
@@ -366,6 +404,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   customId: string;
   /**
+   * Editor.windowType
    * Get the type of window where the editor is embedded in.
    * Possible values: main|split|floating|unsupported
    * It's unsupported on iOS at the moment.
@@ -374,16 +413,19 @@ declare interface TEditor extends CoreNoteFields {
    */
   +windowType: string;
   /**
+   * Editor.focus()
    * Get the cursor into a specific editor and send the window to the front.
    * Note: Available from NotePlan v3.8.1 build 973
    */
   focus(): void;
   /**
+   * Editor.close()
    * Close the split view or window. If it's the main note, it will close the complete main window.
    * Note: Available from NotePlan v3.8.1 build 973
    */
   close(): void;
   /**
+   * Editor.windowRect
    * Set / get the position and size of the window that contains the editor. Returns an object with x, y, width, height values.
    * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.
    * The position of the window might not be very intuitive, because the coordinate system of the screen works differently (starts at the bottom left for example). Recommended is to adjust the size and position of the window relatively to it's values or other windows.
@@ -399,12 +441,14 @@ declare interface TEditor extends CoreNoteFields {
    */
   windowRect: Rect;
   /**
+   * Editor.skipNextRepeatDeletionCheck
    * Prevents the next "Delete future todos" dialog when deleting a line with a @repeat(...) tag. Will be reset automatically.
    * Note: introduced in 3.15 build 1284/1230
    * @param {boolean}
    */
   skipNextRepeatDeletionCheck: boolean;
   /**
+   * Editor.setFrontmatterAttribute()
    * Sets a frontmatter attribute with the given key and value.
    * If the key already exists, updates its value. If it doesn't exist, adds a new key-value pair.
    * To set multiple frontmatter attributes, use frontmatterAttributes = key-value object.
@@ -424,11 +468,13 @@ declare class DataStore {
   // Impossible constructor
   constructor(_: empty): empty;
   /**
+   * DataStore.defaultFileExtension
    * Get the preference for the default file (note) extension,
    * such as "txt" or "md".
    */
   static +defaultFileExtension: string;
   /**
+   * DataStore.folders
    * Get all folders as array of strings.
    * Note: Includes the root "/" and folders that begin with "@" such as "@Archive" and "@Templates". It excludes the trash folder though.
    * Note: from v3.18.0 v1417, this includes Teamspace root folders.
@@ -445,12 +491,14 @@ declare class DataStore {
    */
   static createFolder(folderPath: string): boolean;
   /**
+   * DataStore.calendarNotes
    * Get all calendar notes.
    * Note: from v3.4 this includes all future-referenced dates, not just those with an actual created note.
    * Note: from v3.17.0, this includes Teamspace calendar notes (with the teamspace ID in the filename).
    */
   static +calendarNotes: $ReadOnlyArray<TNote>;
   /**
+   * DataStore.projectNotes
    * Get all regular notes (earlier called "project notes").
    * From v3.17.0, this includes Teamspace regular notes. These have as their 'filename' a path represented with an ID, followed by any number of folders, and then a note ID.
    * Example: %%NotePlanCloud%%/275ce631-6c20-4f76-b5fd-a082a9ac5160/Projects/Research/b79735c9-144b-4fbf-8633-eaeb40c182fa
@@ -459,6 +507,7 @@ declare class DataStore {
    */
   static +projectNotes: $ReadOnlyArray<TNote>;
   /**
+   * DataStore.hashtags
    * Get all cached hashtags (#tag) that are used across notes.
    * It returns hashtags without leading '#'.
    * @type {Array<string>}
@@ -466,6 +515,7 @@ declare class DataStore {
    */
   static +hashtags: $ReadOnlyArray<string>;
   /**
+   * DataStore.mentions
    * Get all cached mentions (@name) that are used across notes.
    * It returns mentions without leading '@'.
    * Note: Available from v3.6.0
@@ -473,18 +523,21 @@ declare class DataStore {
    */
   static +mentions: $ReadOnlyArray<string>;
   /**
+   * DataStore.filters
    * Get list of all filter names
    * Note: Available from v3.6.0
    * @type {Array<string>}
    */
   static +filters: $ReadOnlyArray<string>;
   /**
+   * DataStore.settings
    * Get or set settings for the current plugin (as a JavaScript object).
    * Example: settings.shortcutExpenses[0].category
    * Note: Available from v3.3.2
    */
   static settings: Object;
   /**
+   * DataStore.teamspaces
    * DataStore.teamspaces returns an array of teamspaces represented as Note Objects with title and filename populated. Example of a filename: %%NotePlanCloud%%/275ce631-6c20-4f76-b5fd-a082a9ac5160
    * Note: No object for private notes is included here.
    * Note: Available from v3.17.0
@@ -1006,11 +1059,13 @@ declare class CommandBar {
   // Impossible constructor
   constructor(_: empty): empty;
   /**
+   * CommandBar.placeholder
    * Get or set the current text input placeholder (what you can read when no
    * input is typed in) of the Command Bar.
    */
   static placeholder: string;
   /**
+   * CommandBar.searchText
    * Get or set the current text input content of the Command Bar
    * (what the user normally types in).
    */
@@ -1174,6 +1229,7 @@ declare class Calendar {
   // Impossible constructor
   constructor(_: empty): empty;
   /**
+   * Calendar.dateUnits
    * Get all available date units: "year", "month", "day", "hour", "minute", "second"
    */
   static +dateUnits: $ReadOnlyArray<CalendarDateUnit>;
@@ -1391,79 +1447,96 @@ declare interface Paragraph {
   // Impossible to create Paragraphs manually
   constructor(_: empty): empty;
   /**
+   * Paragraph.type
    * Get or set the type of the paragraph
    */
   type: ParagraphType;
   /**
+   * Paragraph.note
    * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
    * Note: EM adds that "You could have the paragraph object in memory while the note was deleted in the background", which is why this is optional.
    * Note: Available from v3.5.2
    */
   +note: ?TNote;
   /**
+   * Paragraph.content
    * Get or set the content of the paragraph
    * (without the Markdown 'type' prefix, such as '* [ ]' for open task)
    */
   content: string;
   /**
+   * Paragraph.rawContent
    * Get the content of the paragraph
    * (with the Markdown 'type' prefix, such as '* [ ]' for open task)
    */
   +rawContent: string;
   /**
+   * Paragraph.prefix
    * Get the Markdown prefix of the paragraph (like '* [ ]' for open task).
    * Note: @jgclark thinks this does not include any indentation whitespace.
    */
   +prefix: string;
   /**
+   * Paragraph.contentRange
    * Get the range of the paragraph.
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    */
   +contentRange: TRange | void;
   /**
+   * Paragraph.lineIndex
    * Get the line index of the paragraph.
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    * WARNING: this can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   +lineIndex: number;
   /**
+   * Paragraph.date
    * Get the date of the paragraph, if any (in case of scheduled tasks).
    */
   +date: Date | void;
   /**
+   * Paragraph.heading
    * Get the heading of the paragraph (looks for a previous heading paragraph).
    */
   +heading: string;
   /**
+   * Paragraph.headingRange
    * Get the heading range of the paragraph
    * (looks for a previous heading paragraph).
    */
   +headingRange: TRange | void;
   /**
+   * Paragraph.headingLevel
    * Get the heading level of the paragraph ('# heading' = level 1).
    */
   +headingLevel: number;
   /**
+   * Paragraph.isRecurring
    * If the task is a recurring one (contains '@repeat(...)')
    */
   +isRecurring: boolean;
   /**
+   * Paragraph.indents
    * Get/Set the amount of indentations.
    */
   indents: number;
   /**
+   * Paragraph.filename
    * Get the filename of the note this paragraph was loaded from
    */
   +filename: ?string;
   /**
+   * Paragraph.noteType
    * Get the note type of the note this paragraph was loaded from.
    */
   +noteType: ?NoteType;
   /**
+   * Paragraph.linkedNoteTitles
    * Get the linked note titles this paragraph contains, such as '[[Note Name]]' (will return names without the brackets).
    */
   +linkedNoteTitles: $ReadOnlyArray<string>;
   /**
+   * Paragraph.duplicate()
    * Creates a duplicate object, so you can change values without affecting the original object
    */
   duplicate(): Paragraph;
@@ -1483,18 +1556,21 @@ declare interface Paragraph {
    */
   children(): $ReadOnlyArray<TParagraph> | void;
   /**
+   * Paragraph.referencedBlocks
    * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
    * Note: Available from v3.5.2
    * @type {[TParagraph]} - getter
    */
   +referencedBlocks: [TParagraph];
   /**
+   * Paragraph.note
    * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
    * Note: Available from v3.5.2
    * @type {TNote?}
    */
   +note: ?TNote;
   /**
+   * Paragraph.blockId
    * Returns the given blockId if any.
    * WARNING: This has a different capitalisation than '.addBlockID'
    * Note: Available from v3.5.2
@@ -1515,11 +1591,13 @@ type NoteType = 'Calendar' | 'Notes'
  */
 declare interface Note extends CoreNoteFields {
   /**
+   * Note.linkedItems
    * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
    * Note: Available from v3.2.0
    */
   +linkedItems: $ReadOnlyArray<TParagraph>;
   /**
+   * Note.datedTodos
    * Get paragraphs contained in this note which contain a link to a daily note.
    * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
    * Note: Available from v3.2.0
@@ -1726,6 +1804,7 @@ declare class Clipboard {
    */
   static string: string;
   /**
+   * Clipboard.types
    * Returns a list of types.
    */
   static +types: $ReadOnlyArray<string>;
@@ -1828,20 +1907,24 @@ type TCalendarFilename = string
 type TCoreNoteFields = CoreNoteFields
 declare interface CoreNoteFields {
   /**
+   * [Editor|Note].title
    * Title = first line of the note. (NB: Getter only.)
    */
   +title: string | void;
   /**
+   * [Editor|Note].type
    * Type of the note, either "Notes" or "Calendar".
    */
   +type: NoteType;
   /**
+   * [Editor|Note].filename
    * Get the filename of the note.
    * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
    * From v3.6.0 can also *set* the filename, which does a rename.
    */
   filename: string /* Idea: TRegularFilename | TCalendarFilename; */;
   /**
+   * [Editor|Note].resolvedFilename
    * Returns the relative, resolved path of the note (including the folder, like `folder/filename.txt`).
    * If it's a teamspace note, it replaces the IDs in the path with the name of the teamspace and the name of the note. Teamspace note filenames end otherwise with an ID, and the teamspace is also represented as an ID.
    * Note: Don't use this filename to read or write the note. Use `.filename`, instead.
@@ -1850,32 +1933,38 @@ declare interface CoreNoteFields {
    */
   +resolvedFilename: string;
   /**
+   * [Editor|Note].date
    * Optional date if it's a calendar note
    * WARNING: As of 3.18.2 b1428 this is not available in Editor.
    */
   +date: Date | void;
   /**
+   * [Editor|Note].changedDate
    * Date and time when the note was last modified.
    * WARNING: As of 3.18.2 b1428 this is not available in Editor.
    */
   +changedDate: Date;
   /**
+   * [Editor|Note].createdDate
    * Date and time of the creation of the note.
    * WARNING: As of 3.18.2 b1428 this is not available in Editor.
    */
   +createdDate: Date;
   /**
+   * [Editor|Note].hashtags
    * All #hashtags contained in this note.
    * WARNING: As of 3.18.2 b1428 this is not available in Editor.
    */
   +hashtags: $ReadOnlyArray<string>;
   /**
+   * [Editor|Note].mentions
    * All @mentions contained in this note.
    * WARNING: @jgclark experience shows that can be unreliable, sometimes not returning any entries when it should.
    * WARNING: As of 3.18.2 b1428 this is not available in Editor.
    */
   +mentions: $ReadOnlyArray<string>;
   /**
+   * [Editor|Note].content
    * Get or set the raw text of the note (without hiding or rendering any Markdown).
    * If you set the content, NotePlan will write it immediately to file.
    * If you get the content, it will be read directly from the file.
@@ -1883,12 +1972,14 @@ declare interface CoreNoteFields {
    */
   content: string | void;
   /**
+   * [Editor|Note].paragraphs
    * Get or set the array of paragraphs contained in this note, such as tasks, bullets, etc.
    * If you set the paragraphs, the content of the note will be updated.
    * WARNING: From ~v3.16.3, Editor.paragraphs and Editor.note.paragraphs can be different, with Editor.paragraphs not including the frontmatter lines.
    */
   paragraphs: Array<TParagraph>;
   /**
+   * [Editor|Note].backlinks
    * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
    * NB: Backlinks are all [[note name]] and >date links.
    * TODO(@nmn): Please include `subItems` here
@@ -1896,6 +1987,7 @@ declare interface CoreNoteFields {
    */
   +backlinks: $ReadOnlyArray<TBacklinkNoteFields>;
   /**
+   * [Editor|Note].publicRecordID
    * Returns the database record ID of the published note (on CloudKit). Returns null if the note is not published yet.
    * Use this to verify if a note has been published and to build the public link: https://noteplan.co/n/{publicRecordID}
    * Note: Available from v3.9.1
@@ -1903,12 +1995,14 @@ declare interface CoreNoteFields {
    */
   +publicRecordID: ?string;
   /**
+   * [Editor|Note].conflictedVersion
    * Returns the conflicted version if any, including 'url' which is the path to the file. Otherwise, returns undefined.
    * Note: Available from v3.9.3
    * @return { Object(filename: string, url: string, content: string) }
    */
   +conflictedVersion: Object;
   /**
+   * [Editor|Note].versions
    * Get all available versions of a note from the backup database. It returns an array with objects that have following attributes: `content` (full content of the note) and `date` (when this version was saved).
    * You can use this in combination with note triggers and diffs to figure out what has changed inside the note.
    * The first entry in the array is the current version and the second contains the content of the previous version, etc.
@@ -1916,12 +2010,14 @@ declare interface CoreNoteFields {
    */
   +versions: $ReadOnlyArray<string, Date>;
   /**
+   * [Editor|Note].frontmatterTypes
    * Get all 'type's assigned to this note in the frontmatter as an array of strings.
    * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
    * Note: Available on Note from v3.5.0, but only on Editor from v3.16.3.
    */
   +frontmatterTypes: $ReadOnlyArray<string>;
   /**
+   * [Editor|Note].frontmatterAttributes
    * Returns the frontmatter key-value pairs inside the note. To set a frontmatter attribute, use setFrontmatterAttribute.
    * You can also use the setter, but you will need to first read the complete frontmatter object (key-value pairs), change it and then set it. Otherwise the setter *won't* be triggered if you set it directly like `frontmatterAttributes["key"] = "value"`. This is more useful if you want to set multiple frontmatter values.
    * Note: @dbwertheimer says "Returns {} if no frontmatter stripes or if there are stripes but no attributes."
@@ -1931,6 +2027,7 @@ declare interface CoreNoteFields {
    */
   +frontmatterAttributes: Object;
   /**
+   * [Editor|Note].updateFrontmatterAttributes()
    * Updates multiple frontmatter attributes at once in a single operation.
    * More efficient than calling setFrontmatterAttribute multiple times as it only reads and writes the note content once.
    * Each attribute object should have "key" and "value" properties.
@@ -1947,6 +2044,7 @@ declare interface CoreNoteFields {
   updateFrontmatterAttributes(attributes: Array<{ key: string, value: string }>): void;
 
   /**
+   * [Editor|Note].rename()
    * Renames the note. You can also define a folder path. The note will be moved to that folder and the folder will be automatically created.
    * If the filename already exists, a number will be appended. If the filename begins with ".", it will be removed.
    * It returns the actual filename.
@@ -2221,6 +2319,7 @@ declare class NotePlan {
   // Impossible constructor.
   constructor(_: empty): empty;
   /**
+   * NotePlan.environment
    * Returns the environment information from the operating system:
    * Available from v3.3.2:
    *   .languageCode: string?
@@ -2271,6 +2370,7 @@ declare class NotePlan {
    */
   static ai(prompt: string, filenames: Array<string>, useStrictFilenames: boolean, model?: string): Promise<string>;
   /**
+   * NotePlan.selectedSidebarFolder
    * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)
    * Note: available from v3.5.1
    */
@@ -2304,12 +2404,14 @@ declare class NotePlan {
    */
   static stringDiff(version1: string, version2: string): Array<TRange>;
   /**
+   * NotePlan.editors
    * Returns a list of all opened editors (in the main view, in split views and in floating windows). See more details in the "Editor" documentation.
    * Note: Available from v3.8.1 build 973
    * @returns {Array<TEditor>}
    */
   static +editors: Array<TEditor>;
   /**
+   * NotePlan.htmlWindows
    * Returns a list of all opened HTML windows.
    * Note: Available from v3.8.1 build 973
    * @returns {Array<HTMLView>}
