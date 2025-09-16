@@ -1800,6 +1800,7 @@ declare class Clipboard {
   // Impossible constructor
   constructor(_: empty): empty;
   /**
+   * Clipboard.string
    * Get or set the current text of the clipboard.
    */
   static string: string;
@@ -2054,6 +2055,7 @@ declare interface CoreNoteFields {
    */
   rename(newFilename: string): string;
   /**
+   * [Editor|Note].insertTextInCharacterIndex()
    * Inserts the given text at the given character position (index)
    * Note: this is not quite the same as Editor.insertTextAtCharacterIndex()
    * @param text 	  - Text to insert
@@ -2061,6 +2063,7 @@ declare interface CoreNoteFields {
    */
   insertTextInCharacterIndex(text: string, index: number): void;
   /**
+   * [Editor|Note].replaceTextAtCharacterRange()
    * Replaces the text at the given range with the given text
    * Note: this is not quite the same name as Editor.replaceTextInCharacterRange()
    * @param text 	    - Text to insert
@@ -2069,80 +2072,94 @@ declare interface CoreNoteFields {
    */
   replaceTextAtCharacterRange(text: string, location: number, length: number): void;
   /**
+   * [Editor|Note].paragraphRangeAtCharacterIndex()
    * Returns a range object of the full paragraph of the given character
    * position.
    */
   paragraphRangeAtCharacterIndex(characterPosition: number): TRange;
 
   /**
+   * [Editor|Note].insertParagraph()
    * Inserts a plain paragraph at the given line index.
    * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertParagraph(name: string, lineIndex: number, type: ParagraphType): void;
 
   /**
+   * [Editor|Note].insertTodo()
    * Inserts a todo at the given line index
    * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertTodo(name: string, lineIndex: number): void;
 
   /**
+   * [Editor|Note].insertCompletedTodo()
    * Inserts a completed todo at the given line index
    * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertCompletedTodo(name: string, lineIndex: number): void;
 
   /**
+   * [Editor|Note].insertCancelledTodo()
    * Inserts a cancelled todo at the given line index
    * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertCancelledTodo(name: string, lineIndex: number): void;
 
   /**
+   * [Editor|Note].insertScheduledTodo()
    * Inserts a scheduled todo at the given line index
    * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertScheduledTodo(name: string, lineIndex: number, date: Date): void;
 
   /**
+   * [Editor|Note].insertQuote()
    * Inserts a quote at the given line index
    * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertQuote(name: string, lineIndex: number): void;
 
   /**
+   * [Editor|Note].insertList()
    * Inserts a list (bullet) item at the given line index
    * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertList(name: string, lineIndex: number): void;
 
   /**
+   * [Editor|Note].insertHeading()
    * Inserts a heading at the given line index
    * WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
    */
   insertHeading(name: string, lineIndex: number, level: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): void;
 
   /**
+   * [Editor|Note].appendTodo()
    * Appends a todo at the end of the note
    */
   appendTodo(content: string): void;
 
   /**
+   * [Editor|Note].prependTodo()
    * Prepends a todo at the beginning of the note (after the title heading)
    */
   prependTodo(content: string): void;
 
   /**
+   * [Editor|Note].appendParagraph()
    * Appends a paragraph at the end of the note
    */
   appendParagraph(content: string, type: ParagraphType): void;
 
   /**
+   * [Editor|Note].prependParagraph()
    * Prepends a paragraph at the beginning of the note (after the title heading)
    */
   prependParagraph(content: string, type: ParagraphType): void;
 
   /**
+   * [Editor|Note].addTodoBelowHeadingTitle()
    * Inserts a todo below the given title of a heading (at the beginning or end of existing text)
    * @param {string} content - Text of the todo
    * @param {string} headingTitle - Title of the heading (without '#  Markdown)
@@ -2152,6 +2169,7 @@ declare interface CoreNoteFields {
   addTodoBelowHeadingTitle(content: string, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
 
   /**
+   * [Editor|Note].addParagraphBelowHeadingTitle()
    * Inserts a paragraph below the given title of a heading (at the beginning or end of existing text)
    * @param {string} content - Text of the paragraph
    * @param {ParagraphType} paragraphType
@@ -2162,6 +2180,7 @@ declare interface CoreNoteFields {
   addParagraphBelowHeadingTitle(content: string, paragraphType: ParagraphType, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
 
   /**
+   * [Editor|Note].appendTodoBelowHeadingLineIndex()
    * Appends a todo below the given heading index (at the end of existing text)
    * @param {string} content - Text of the todo
    * @param {number} headingLineIndex - Line index of the heading (get the line index from a paragraph object). WARNING: 'lineIndex' can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
@@ -2481,6 +2500,7 @@ declare class HTMLView {
    */
   +id: string;
   /**
+   * HTMLView.customId
    * Set / get a custom identifier, so you don't need to cache the unique id.
    * Example: NotePlan.editors[0].customId = "test"
    * Generally speaking you should start this string with the plugin's ID, e.g. pluginJson['plugin.id'], and append '.name' if you need to have more than 1 HTML window type in the same plugin.
@@ -2489,6 +2509,7 @@ declare class HTMLView {
    */
   customId: string;
   /**
+   * HTMLView.type
    * Get type of window where the window is embedded in.
    * Possible values: main|split|floating|unsupported
    * It's unsupported on iOS at the moment.
@@ -2497,11 +2518,13 @@ declare class HTMLView {
    */
   +type: string;
   /**
+   * HTMLView.focus()
    * Send the window to the front.
    * Note: Available from NotePlan v3.8.1 build 973
    */
   focus(): void;
   /**
+   * HTMLView.close()
    * Close the HTML window.
    * Note: Available from NotePlan v3.8.1 build 973
    */
@@ -2517,6 +2540,7 @@ declare class HTMLView {
    */
   static runJavaScript(code: string, windowId: string | void): Promise<void>;
   /**
+   * HTMLView.windowRect
    * Set / get the position and size of an HTMLView window. Returns an object with x, y, width, height values.
    * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.
    * The position of the window might not be very intuitive, because the coordinate system of the screen works differently (starts at the bottom left for example). Recommended is to adjust the size and position of the window relatively to it's values or other windows.
