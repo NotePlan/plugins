@@ -12,6 +12,7 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 - add chooseNoteV2() to helpers module
 - fix edge case in date.format() where it was not preserving timezone information in some cases
 - fix other issues with DateModule and TimeModule where it was not preserving timezone information in some cases (using Date objects instead of moment objects -- now using moment objects exclusively)
+- Add smart quotes replacement in import/include files
 
 ## [2.1.0] 2025-08-?? @dwertheimer
 

@@ -609,8 +609,8 @@ export async function preProcessNote(tag: string = ''): Promise<string> {
       const noteNamePath = replaceSmartQuotes(parts[0].replace(/'/gi, '').trim())
       const content = await getNote(noteNamePath)
       if (content.length > 0) {
-        // $FlowIgnore
-        return content
+        // Apply smart quote replacement to note content
+        return replaceSmartQuotes(content)
       } else {
         return `**An error occurred loading note "${noteNamePath}"**`
       }
@@ -1002,8 +1002,10 @@ export async function importTemplates(templateData: string = '', sessionData: Ob
 
         const body = new FrontmatterModule().body(content)
         if (body.length > 0) {
-          newTemplateData = newTemplateData.replace(`\`${tag}\``, body) // adjust fenced formats
-          newTemplateData = newTemplateData.replace(tag, body)
+          // Apply smart quote replacement to imported content
+          const normalizedBody = replaceSmartQuotes(body)
+          newTemplateData = newTemplateData.replace(`\`${tag}\``, normalizedBody) // adjust fenced formats
+          newTemplateData = newTemplateData.replace(tag, normalizedBody)
         } else {
           newTemplateData = newTemplateData.replace(tag, `**An error occurred importing "${noteNamePath}"**`)
         }

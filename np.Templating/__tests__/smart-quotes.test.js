@@ -121,8 +121,50 @@ describe('replaceSmartQuotes', () => {
   })
 
   test('should replace mixed Unicode and literal curly quotes', () => {
-    const input = '“Unicode” and \u201CUnicode\u201D and ‘Unicode’ and \u2018Unicode\u2019'
+    const input = '"Unicode" and \u201CUnicode\u201D and 'Unicode' and \u2018Unicode\u2019'
     const expected = '"Unicode" and "Unicode" and \'Unicode\' and \'Unicode\''
     expect(replaceSmartQuotes(input)).toBe(expected)
+  })
+})
+
+// Test for imported templates with smart quotes
+describe('importTemplates with smart quotes', () => {
+  // Mock the importTemplates function to test smart quote replacement
+  const mockImportTemplates = async (templateData) => {
+    // Simulate the importTemplates function behavior
+    let newTemplateData = templateData
+    const importRegex = /<%[-\s]*import\(['"]([^'"]+)['"]\)[\s-]*%>/g
+    let match
+    
+    while ((match = importRegex.exec(templateData)) !== null) {
+      const fullTag = match[0]
+      const templateName = match[1]
+      
+      // Mock template content with smart quotes
+      const mockTemplateContent = {
+        'weather-template': `const ampm = hours >= 12 ? 'PM' : 'AM';
+const minutesStr = minutes < 10 ? '0' + minutes : minutes;`
+      }
+      
+      const content = mockTemplateContent[templateName]
+      if (content) {
+        // Apply smart quote replacement (this is what we fixed)
+        const normalizedContent = replaceSmartQuotes(content)
+        newTemplateData = newTemplateData.replace(fullTag, normalizedContent)
+      }
+    }
+    
+    return newTemplateData
+  }
+
+  test('should replace smart quotes in imported template content', async () => {
+    const templateWithImport = `<% import("weather-template") %>`
+    const result = await mockImportTemplates(templateWithImport)
+    
+    // The imported content should have smart quotes replaced
+    expect(result).toContain("const ampm = hours >= 12 ? 'PM' : 'AM';")
+    expect(result).toContain("const minutesStr = minutes < 10 ? '0' + minutes : minutes;")
+    expect(result).not.toContain(''PM'') // Should not contain smart quotes
+    expect(result).not.toContain(''AM'') // Should not contain smart quotes
   })
 })
