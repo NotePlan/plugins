@@ -121,7 +121,7 @@ describe('replaceSmartQuotes', () => {
   })
 
   test('should replace mixed Unicode and literal curly quotes', () => {
-    const input = '"Unicode" and \u201CUnicode\u201D and 'Unicode' and \u2018Unicode\u2019'
+    const input = '"Unicode" and \u201CUnicode\u201D and \u2018Unicode\u2019 and \u2018Unicode\u2019'
     const expected = '"Unicode" and "Unicode" and \'Unicode\' and \'Unicode\''
     expect(replaceSmartQuotes(input)).toBe(expected)
   })
@@ -142,8 +142,8 @@ describe('importTemplates with smart quotes', () => {
       
       // Mock template content with smart quotes
       const mockTemplateContent = {
-        'weather-template': `const ampm = hours >= 12 ? 'PM' : 'AM';
-const minutesStr = minutes < 10 ? '0' + minutes : minutes;`
+        'weather-template': `const ampm = hours >= 12 ? \u2018PM\u2019 : \u2018AM\u2019;
+const minutesStr = minutes < 10 ? \u20180\u2019 + minutes : minutes;`
       }
       
       const content = mockTemplateContent[templateName]
@@ -164,7 +164,7 @@ const minutesStr = minutes < 10 ? '0' + minutes : minutes;`
     // The imported content should have smart quotes replaced
     expect(result).toContain("const ampm = hours >= 12 ? 'PM' : 'AM';")
     expect(result).toContain("const minutesStr = minutes < 10 ? '0' + minutes : minutes;")
-    expect(result).not.toContain(''PM'') // Should not contain smart quotes
-    expect(result).not.toContain(''AM'') // Should not contain smart quotes
+    expect(result).not.toContain('\u2018PM\u2019') // Should not contain smart quotes
+    expect(result).not.toContain('\u2018AM\u2019') // Should not contain smart quotes
   })
 })
