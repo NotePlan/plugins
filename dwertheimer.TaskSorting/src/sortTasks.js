@@ -8,6 +8,7 @@ import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType } 
 import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { saveEditorIfNecessary } from '@helpers/editor'
+import { getBooleanValue, getArrayValue } from '@helpers/dataManipulation'
 
 const TOP_LEVEL_HEADINGS = {
   open: 'Open Tasks',
@@ -655,12 +656,27 @@ export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<
  * @returns
  */
 export async function sortTasks(
-  withUserInput: boolean = true,
-  sortFields: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
-  withHeadings: boolean | null = null,
-  subHeadingCategory: boolean | null = null,
+  _withUserInput: string | boolean = true,
+  _sortFields: string | Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
+  _withHeadings: string | boolean | null = null,
+  _subHeadingCategory: string | boolean | null = null,
 ) {
+  // Cast parameters to proper types
+  const withUserInput = getBooleanValue(_withUserInput, true)
+  const sortFields = getArrayValue(_sortFields, SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields, ',')
+  const withHeadings = _withHeadings === null ? null : getBooleanValue(_withHeadings, false)
+  const subHeadingCategory = _subHeadingCategory === null ? null : getBooleanValue(_subHeadingCategory, false)
+
   await saveEditorIfNecessary()
+  logDebug(
+    pluginJson,
+    `sortTasks: Starting sortTasks(withUserInput:${String(
+      withUserInput,
+    )} (typeof:${typeof withUserInput}), sortFields:${sortFields.toString()} (typeof:${typeof sortFields}), withHeadings:${String(
+      withHeadings,
+    )} (typeof:${typeof withHeadings}), subHeadingCategory:${String(subHeadingCategory)} (typeof:${typeof subHeadingCategory}))`,
+  )
+
   const { eliminateSpinsters, sortInHeadings, includeSubHeading } = DataStore.settings
 
   const byHeading = withUserInput ? await sortInsideHeadings() : sortInHeadings

@@ -87,7 +87,6 @@ export async function onUpdateOrInstall(): Promise<void> {
  */
 export function init(): void {
   try {
-    logDebug(pluginJson, `${pluginJson['plugin.id']} :: init running`)
     //   clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
   } catch (error) {
