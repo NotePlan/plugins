@@ -7,6 +7,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 ## [1.2.5] - 2025-09-13 (@dwertheimer)
 
 - Add logging for jgclark to sortTasksUnderHeading
+- Add ability to pass all params to /ts and /tsh commands
+- remove sortTasksViaTemplate code which was never a published command
+- change default behavior of /ts* commands to interleave task types (open/checklist together)
 
 ## [1.2.4] - 2025-08-31 (@dwertheimer)
 

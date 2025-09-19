@@ -71,7 +71,8 @@ export const isTask = (para: TParagraph): boolean => TASK_TYPES.indexOf(para.typ
  * @param {Array<string>} field list - property array, e.g. ['date', 'title']
  * @returns {Function} callback function for sort()
  */
-export const fieldSorter = (fields: Array<string>): Function =>
+export const fieldSorter =
+  (fields: Array<string>): Function =>
   (a: string, b: string) =>
     fields
       .map((_field) => {
@@ -265,7 +266,7 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
   for (let index = 0; index < paragraphs.length; index++) {
     const para = paragraphs[index]
     // logDebug('getTasksByType', `${para.lineIndex}: ${para.type}`)
-    if (isTask || (!ignoreIndents && para.indents > lastParent.indents)) {
+    if (isTask(para) || (!ignoreIndents && para.indents > lastParent.indents)) {
       // const content = para.content // Not used
       // console.log(`found: ${index}: ${para.type}: ${para.content}`)
       try {

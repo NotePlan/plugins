@@ -27,10 +27,11 @@
         "ts"
       ],
       "arguments": [
-        "prompt user to choose options",
-        "sortFields (array of strings)",
-        "withHeadings (default: false)",
-        "subHeadingCategory (default: false)"
+        "prompt user to choose options (true/false)",
+        "sortFields (comma separated string sort order, e.g. '-priority,content')",
+        "withHeadings (true/false)",
+        "subHeadingCategory (true/false)",
+        "interleaveTaskTypes (true/false) - whether to interleave task types (open/checklist together) or keep them separate. Default: true (interleaved)"
       ]
     },
     {
@@ -43,7 +44,8 @@
       "arguments": [
         "heading (string)",
         "sortOrder (array of strings) -- see README for details",
-        "noteOverride (Note or Editor object)"
+        "noteOverride (Note or Editor object)",
+        "interleaveTaskTypes (true/false) - whether to interleave task types (open/checklist together) or keep them separate. Default: true (interleaved)"
       ]
     },
     {
