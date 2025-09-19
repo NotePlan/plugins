@@ -22,7 +22,7 @@ export { renameInconsistentNames } from './lib/commands/renameInconsistentNames'
 export { titleToFilename } from './lib/commands/titleToFilename'
 export { listPublishedNotes } from './listPublishedNotes'
 export { newNote, newNoteFromClipboard, newNoteFromSelection } from './newNote'
-export { addTriggerToNote, convertLocalLinksToPluginLinks, addFrontmatterToNote, moveNote, logEditorNoteDetailed, renameNoteFile, trashNote } from './noteHelpers'
+export { addTriggerToNote, convertLocalLinksToPluginLinks, addFrontmatterToNote, moveNote, logEditorNoteDetailed, renameNoteFile, trashNote, testChooseFolder } from './noteHelpers'
 export {
   jumpToDone,
   jumpToHeading,

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2025-06-06 for v1.2.0 by @jgclark
+// Last updated 2025-09-14 for v1.2.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,13 +10,8 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
 import { displayTitle } from '@helpers/general'
 import { convertNoteToFrontmatter, printNote } from '@helpers/NPnote' // Note: not the one in 'NPTemplating'
 import { addTrigger, noteHasFrontMatter, updateFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
-import { parseTeamspaceFilename } from '@helpers/teamspace'
-import {
-  chooseFolder,
-  chooseOption,
-  getInput,
-  showMessage,
-} from '@helpers/userInput'
+import { getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
+import {chooseFolder,chooseOption,getInput,showMessage} from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 // Settings
@@ -58,9 +53,22 @@ export async function getSettings(): Promise<any> {
 //-----------------------------------------------------------------
 
 /**
- * Command from Eduard to move a note to a different folder
- * @author @eduardme
+ * Test the chooseFolder() function
+ * Call: noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=test%3A%20choose%20folder
+ * @author @jgclark
  */
+export async function testChooseFolder(): Promise<void> {
+  try {
+  const selectedFolder = await chooseFolder(`TEST: Select a folder`, true, true, '', true, false, true)
+    logInfo('testChooseFolder', `Selected folder: ${selectedFolder}`)
+  } catch (err) {
+    logError('noteHelpers/testChooseFolder', err.message)
+    await showMessage(err.message)
+  }
+}
+
+//-----------------------------------------------------------------
+
 export async function logEditorNoteDetailed(): Promise<void> {
   try {
     if (!Editor || !Editor.note) {
@@ -95,7 +103,7 @@ export async function moveNote(): Promise<void> {
       const res = await showMessage(`NotePlan doesn't allow moving calendar notes.`)
       return
     }
-    const selectedFolder = await chooseFolder(`Select a folder for '${title}'`, true, true) // include @Archive as an option, and to create a new folder
+    const selectedFolder = await chooseFolder(`Select a folder for '${title}'`, true, true) // include @Archive, and new folder options
     logDebug('moveNote()', `move ${title} (filename = ${filename}) to ${selectedFolder}`)
 
     const newFilename = DataStore.moveNote(filename, selectedFolder)
@@ -114,28 +122,41 @@ export async function moveNote(): Promise<void> {
 //-----------------------------------------------------------------
 /**
  * Delete a note -- by moving to the special @Trash folder.
- * Note: this cannot work on Teamspace notes (at least as of v3.18.1), because the API doesn't support this.
+ * Note: the following NP API limitations:
+ * - this does not work for Calendar notes
+ * - this only works on Teamspace notes from v3.18.2 build 1431
  * @author @jgclark
  */
 export async function trashNote(): Promise<void> {
   try {
-    const { title, filename } = Editor
-    if (title == null || filename == null) {
-      // No note open, so don't do anything.
+    const { note, filename, type, isTeamspaceNote } = Editor
+    if (note == null || filename == null) {
       throw new Error('No note open. Stopping.')
     }
-    const possibleTeamspaceDetails = parseTeamspaceFilename(filename)
-    if (possibleTeamspaceDetails.isTeamspace) {
-      throw new Error('Sorry, I cannot currently move Teamspace notes to the Trash. You will need to do this manually.')
+    if (type === 'Calendar') {
+      throw new Error(`Sorry, NotePlan doesn't allow moving Calendar notes to the Trash.`)
+    }
+    if (isTeamspaceNote) {
+      if (NotePlan.environment.buildVersion < 1431) {
+        throw new Error('Sorry, before NotePlan v3.18.2, I cannot move Teamspace notes to the Trash. You will need to do this manually.')
+      } else {
+        showMessage('Note: currently Teamspaces have no trash folder, but a copy will be made inside the Operating System Trash, if you need to recover the note.')
+      }
     }
 
-    const newFilename = DataStore.moveNote(filename, '@Trash')
+    const result = DataStore.trashNote(filename)
 
-    if (!newFilename) {
+    if (result) {
+      if (isTeamspaceNote) {
+        logInfo('NoteHelpers/trashNote', `Note '${displayTitle(note)}' from Teamspace '${getTeamspaceTitleFromNote(note)}' (filename '${filename}') was deleted from the Teamspace, and copied to your local @Trash folder.`)
+      } else {
+        logInfo('NoteHelpers/trashNote', `Note '${displayTitle(note)}' (filename '${filename}') was moved to the Trash.`)
+      }
+    } else {
       throw new Error(`Error trying to move note to @Trash`)
     }
   } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
+    logError(`NoteHelpers/trashNote`, err.message)
     await showMessage(err.message)
   }
 }
@@ -205,7 +226,7 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
         logDebug('addTriggerToNote', `- result of updateFrontMatterVars = ${String(res)}`)
       } else {
         logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" doesn't already have frontmatter`)
-        await convertNoteToFrontmatter(Editor, `triggers: ${triggerStringArg}`)
+        await convertNoteToFrontmatter(Editor.note, `triggers: ${triggerStringArg}`)
       }
       return
     } else {
@@ -273,7 +294,7 @@ export function convertLocalLinksToPluginLinks(): void {
   let changed = false
   for (const para of paragraphs) {
     const content = para.content
-    const newContent = content.replace(/\[(.*?)\]\(\#(.*?)\)/g, (match, label, link) => {
+    const newContent = content.replace(/\[(.*?)\]\(\#(.*?)\)/g, (_match, label, link) => {
       const newLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&arg1=${encodeURIComponent(link)}`
       return `[${label}](${newLink})`
     })
@@ -295,7 +316,7 @@ export function convertLocalLinksToPluginLinks(): void {
  */
 export async function renameNoteFile(): Promise<void> {
   try {
-    const { note } = Editor
+    const { note, isTeamspaceNote } = Editor
     if (note == null || note.paragraphs.length < 1) {
       // No note open, so don't do anything.
       throw new Error('No note open, or no content, so nothing to rename.')
@@ -305,27 +326,14 @@ export async function renameNoteFile(): Promise<void> {
       throw new Error('Sorry, you cannot rename Calendar notes.')
     }
     // Don't continue if note is a Teamspace note
-    const teamspaceDetailsFromFilename = parseTeamspaceFilename(note.filename)
-    if (teamspaceDetailsFromFilename.isTeamspace) {
+    if (isTeamspaceNote) {
       throw new Error('Sorry, you cannot rename Teamspace notes.')
     }
 
     const currentFullPath = note.filename
-    // TODO: could use chooseFolderV2() here first
+    // TODO: could use chooseFolder() here first
     const requestedPath = await getInput(`Please enter new filename for file (including folder and file extension)`, 'OK', 'Rename file', currentFullPath)
     if (typeof requestedPath === 'string') {
-      // let newFolder = ''
-      // let newFilename = ''
-      // if (requestedPath.lastIndexOf('/') > -1) {
-      //   newFolder = requestedPath.substr(0, requestedPath.lastIndexOf('/'))
-      //   newFilename = requestedPath.substr(requestedPath.lastIndexOf('/') + 1)
-      // } else {
-      //   newFolder = '/'
-      //   newFilename = requestedPath
-      // }
-      // logDebug(pluginJson, `${newFolder}  /  ${newFilename}`)
-      logDebug(pluginJson, `Requested new filepath = ${requestedPath}`)
-
       const newFilename = note.rename(requestedPath)
       logDebug('renameNoteFile()', `Note file renamed from '${currentFullPath}' to '${newFilename}'`)
     } else {
@@ -349,10 +357,12 @@ export async function addFrontmatterToNote(note: TNote): Promise<void> {
     let thisNote: TNote
     if (note == null) {
       if (Editor == null) {
-        throw new Error(`No note open to convert.`)
-      } else {
-        thisNote = Editor
+        throw new Error(`No note open to convert. Stopping.`)
+      } 
+      if (!Editor.note) {
+        throw new Error(`No note open in the Editor. Stopping.`)
       }
+      thisNote = Editor.note
     } else {
       thisNote = note
     }

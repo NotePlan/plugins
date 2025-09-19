@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Smarter archiving commands, part of Filer plugin
 // Jonathan Clark
-// last updated 2025-08-25 for v1.3.1
+// last updated 2025-09-06 for v1.3.2
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -17,9 +17,9 @@ import { archiveNoteUsingFolder } from '@helpers/NPnote'
  * If 'archiveRootFolder' is supplied, archive under that folder, otherwise default to the built-in @Archive folder.
  * @param {TNote?} noteIn optional; if not given, then use the open Editor's note)
  * @param {string?} archiveRootFolder optional; if not given, then use the built-in @Archive folder)
- * @returns {string | void} newFilename, if success
+ * @returns {?string} newFilename, if success
  */
-export function archiveNote(noteIn?: TNote, archiveRootFolder?: string): string | void {
+export function archiveNote(noteIn?: TNote, archiveRootFolder?: string): ?string {
   try {
     let note: TNote | null
     if (noteIn && (typeof noteIn === "object")) {
@@ -30,7 +30,9 @@ export function archiveNote(noteIn?: TNote, archiveRootFolder?: string): string 
       logDebug(pluginJson, `archiveNote(): starting for note open in Editor`)
       note = Editor.note ?? null
     }
-
+    if (!note) {
+      throw new Error("Couldn't get note, so stopping.")
+    }
     const newFilename = archiveNoteUsingFolder(note, archiveRootFolder)
     if (newFilename) {
       logDebug('archiveNote', `- Note -> ${newFilename}`)
@@ -41,6 +43,6 @@ export function archiveNote(noteIn?: TNote, archiveRootFolder?: string): string 
   }
   catch (error) {
     logError(pluginJson, `archiveNote(): ${error.message}`)
-    return
+    return null
   }
 }
