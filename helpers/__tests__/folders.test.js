@@ -11,8 +11,10 @@ beforeAll(() => {
   global.NotePlan = new NotePlan()
   DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging, or 'none' to get less
   DataStore.folders = [
-    '@Templates',
     '/',
+    '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919', // Note: assumes b1417+ to make this root present
+    '@Archive/CCC Areas/Staff',
+    '@Templates',
     'CCC Areas',
     'CCC Areas/Staff',
     'CCC Projects',
@@ -20,8 +22,6 @@ beforeAll(() => {
     'TEST',
     'TEST/TEST LEVEL 2',
     'TEST/TEST LEVEL 2/TEST LEVEL 3',
-    '@Archive/CCC Areas/Staff',
-    '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919', // Note: assumes b1417+ to make this root present
   ]
   DataStore.teamspaces = [
     {
@@ -79,57 +79,61 @@ describe('helpers/folders', () => {
       const folders = f.getFoldersMatching(inclusions, false)
       expect(folders.length).toBe(11)
     })
-    describe('just inclusions, no @specials', () => {
-      test('/ inclusion -> 1', () => {
-        const inclusions = ['/']
-        const folders = f.getFoldersMatching(inclusions)
-        expect(folders.length).toBe(1)
-      })
-      test('CCC inclusion no @specials', () => {
-        const inclusions = ['CCC']
-        const folders = f.getFoldersMatching(inclusions)
-        expect(folders.length).toBe(4)
-      })
-      test('CCC inclusion with @specials', () => {
-        const inclusions = ['CCC']
-        const folders = f.getFoldersMatching(inclusions, false)
-        expect(folders.length).toBe(5)
-      })
-      test('CCC Areas + / inclusion no @specials', () => {
-        // Note: slightly redundant now
-        const inclusions = ['CCC Areas', '/']
-        const folders = f.getFoldersMatching(inclusions)
-        expect(folders.length).toBe(3)
-      })
-      test('CCC + LEVEL 2 inclusion with @specials', () => {
-        const inclusions = ['CCC', 'LEVEL 2']
-        const folders = f.getFoldersMatching(inclusions, false)
-        expect(folders.length).toBe(7)
-      })
-      test('CCC + LEVEL 2 inclusion with @specials and explicit empty exclusions', () => {
-        const inclusions = ['CCC', 'LEVEL 2']
-        const folders = f.getFoldersMatching(inclusions, false, [])
-        expect(folders.length).toBe(7)
-      })
+    test('no inclusions or exclusions but exclude teamspaces -> all but one', () => {
+      const inclusions = []
+      const folders = f.getFoldersMatching(inclusions, false, [], true)
+      expect(folders.length).toBe(10)
     })
+    test('/ inclusion -> 1', () => {
+      const inclusions = ['/']
+      const folders = f.getFoldersMatching(inclusions)
+      expect(folders.length).toBe(1)
+    })
+    test('CCC inclusion no @specials', () => {
+      const inclusions = ['CCC']
+      const folders = f.getFoldersMatching(inclusions)
+      expect(folders.length).toBe(4)
+    })
+    test('CCC inclusion with @specials', () => {
+      const inclusions = ['CCC']
+      const folders = f.getFoldersMatching(inclusions, false)
+      expect(folders.length).toBe(5)
+    })
+    test('CCC Areas + / inclusion no @specials', () => {
+      // Note: slightly redundant now
+      const inclusions = ['CCC Areas', '/']
+      const folders = f.getFoldersMatching(inclusions)
+      expect(folders.length).toBe(3)
+    })
+    test('CCC + LEVEL 2 inclusion with @specials', () => {
+      const inclusions = ['CCC', 'LEVEL 2']
+      const folders = f.getFoldersMatching(inclusions, false)
+      expect(folders.length).toBe(7)
+    })
+    test('CCC + LEVEL 2 inclusion with @specials and explicit empty exclusions', () => {
+      const inclusions = ['CCC', 'LEVEL 2']
+      const folders = f.getFoldersMatching(inclusions, false, [])
+      expect(folders.length).toBe(7)
+    })
+  
     describe('just exclusions', () => {
       test('exclude CCC Areas; include @specials', () => {
         const exclusions = ['CCC Areas']
         const folders = f.getFoldersMatching([], false, exclusions)
         expect(folders.length).toBe(8)
-        expect(folders).toEqual(['/', '@Templates', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3', '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919'])
+        expect(folders).toEqual(['/', '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3', '@Templates'])
       })
       test('exclude CCC, LEVEL 2; include @specials', () => {
         const exclusions = ['CCC', 'LEVEL 2']
         const folders = f.getFoldersMatching([], false, exclusions)
         expect(folders.length).toBe(5)
-        expect(folders).toEqual(['/', '@Templates', 'Home Areas', 'TEST', '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919'])
+        expect(folders).toEqual(['/','%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919', 'Home Areas', 'TEST', '@Templates'])
       })
       test('exclude CCC, LEVEL 2; no @specials', () => {
         const exclusions = ['CCC', 'LEVEL 2']
         const folders = f.getFoldersMatching([], true, exclusions)
         expect(folders.length).toBe(4)
-        expect(folders).toEqual(['/', 'Home Areas', 'TEST', '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919'])
+        expect(folders).toEqual(['/', '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919', 'Home Areas', 'TEST'])
       })
     })
     describe('both inclusions + exclusions', () => {
@@ -165,6 +169,12 @@ describe('helpers/folders', () => {
         const folders = f.getFoldersMatching(inclusions, false, exclusions)
         expect(folders.length).toBe(6)
       })
+    })
+    test('teamspace exclusion check', () => {
+      const inclusions = []
+      const exclusions = []
+      const folders = f.getFoldersMatching(inclusions, false, exclusions, true)
+      expect(folders.length).toBe(10)
     })
 
     // See also bigger real world test at end
@@ -228,6 +238,54 @@ describe('helpers/folders', () => {
       const exclusions = []
       const folders = f.getFolderListMinusExclusions(exclusions, true, false)
       expect(folders.length).toBe(9)
+    })
+  })
+
+  /**
+   * Tests for orderFolders:
+   * Parameters:
+   * - {Array<string>} folders
+   */
+  describe('orderFolders tests', () => {
+    test('orderFolders test', () => {
+      const inputFolders = [
+        '/',
+        '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919',
+        '@Archive should be at end',
+        '@Templates should be at end',
+        'CCC Areas',
+        'CCC Areas/Staff',
+        'CCC Projects',
+        'Home Areas',
+        'TEST',
+        'TEST/TEST LEVEL 2',
+        'TEST/TEST LEVEL 2/TEST LEVEL 3',
+        '_Should be early',
+        '@Meta should be early',
+        '100 should be after 20',
+        '20 should be after 5',
+        '5 should be at start',
+      ]
+      const outputFolders = f.orderFolders(inputFolders)
+      expect(outputFolders.length).toBe(inputFolders.length)
+      expect(outputFolders).toEqual([
+        '/',
+        '5 should be at start',
+        '20 should be after 5',
+        '100 should be after 20',
+        '_Should be early',
+        '@Meta should be early',
+        '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919',
+        'CCC Areas',
+        'CCC Areas/Staff',
+        'CCC Projects',
+        'Home Areas',
+        'TEST',
+        'TEST/TEST LEVEL 2',
+        'TEST/TEST LEVEL 2/TEST LEVEL 3',
+        '@Archive should be at end',
+        '@Templates should be at end',
+      ])
     })
   })
 

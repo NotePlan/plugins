@@ -6,13 +6,11 @@
 //-----------------------------------------------------------------------------
 
 import json5 from 'json5'
-import moment from 'moment/min/moment-with-locales'
-import { getDateStringFromCalendarFilename, RE_DATE, RE_DATE_INTERVAL } from './dateTime'
-import { displayTitleWithRelDate, getRelativeDates } from './NPdateTime'
+import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
+import { displayTitleWithRelDate } from './NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
-import { getFoldersMatching, getFolderDisplayName, getFolderFromFilename } from './folders'
+import {getFoldersMatching } from './folders'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
-import { calendarNotesSortedByChanged } from './note'
 import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 import { parseTeamspaceFilename } from './teamspace'
@@ -22,6 +20,7 @@ import { parseTeamspaceFilename } from './teamspace'
 type TFolderIcon = {
   firstLevelFolder: string,
   icon: string,
+  emoji: string, // fallback to use before v3.18 (
   color: string,
   alpha?: number,
   darkAlpha?: number,
@@ -29,16 +28,18 @@ type TFolderIcon = {
 
 //------------------------------ Constants ------------------------------------
 
+const TEAMSPACE_ICON_COLOR = 'green-700'
+
 // Define icons to use in decorated CommandBar options
-const iconsToUseForSpecialFolders: Array<TFolderIcon> = [
-  { firstLevelFolder: '<CALENDAR>', icon: 'calendar-star', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4 },
-  { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
-  { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
-  { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'grey-500', alpha: 0.5, darkAlpha: 0.5 },
-]
+// const iconsToUseForSpecialFolders: Array<TFolderIcon> = [
+//   { firstLevelFolder: '<CALENDAR>', icon: 'calendar-star', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4, emoji: '📅' },
+//   { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4, emoji: '🗄️' },
+//   { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4, emoji: '📝' },
+//   { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4, emoji: '🗑️' },
+// ]
 
 // For speed, pre-compute the relative dates
-const relativeDates = getRelativeDates()
+// const relativeDates = getRelativeDates()
 
 //--------------------------- Local functions ---------------------------------
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
@@ -76,26 +77,29 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
 }
 
 /**
- * Show a list of options to the user and return which option they picked (optionally with a modifier key, optionally with ability to create a new item)
+ * Show a list of options to the user and return which option they picked, along with any modifier key pressed.
+ * Optionally, allow the user to create a new item.
  * @author @dwertheimer based on @nmn chooseOption
  *
  * @param {string} message - text to display to user
  * @param {Array<Option<T>>} options - array of options to display
- * @param {boolean} allowCreate - add an option to create a new item (default: false)
+ * @param {boolean} addCreate? - add an option to create a new item (default: false)
+ * @param {string?} addCreateItemDescriptor - (if addCreate is true) descriptor for the "Add new item" option (default: 'item')
  * @returns {Promise<{value: T, label: string, index: number, keyModifiers: Array<string>}>} - Promise resolving to the result
  * see CommandBar.showOptions for more info
  */
 export async function chooseOptionWithModifiers<T, TDefault = T>(
   message: string,
   options: $ReadOnlyArray<Option<T>>,
-  allowCreate: boolean = false,
+  addCreate: boolean = false,
+  addCreateItemDescriptor: string = 'item',
 ): Promise<{ ...TDefault, index: number, keyModifiers: Array<string>, label: string, value: string }> {
   logDebug('userInput / chooseOptionWithModifiers()', `About to showOptions with ${options.length} options & prompt:"${message}"`)
 
-  // Add the "Add new item" option if allowCreate is true
+  // Add the "Add new item" option if addCreate is true
   let displayOptions = [...options]
-  if (allowCreate) {
-    displayOptions = [{ label: '➕ Add new item', value: '__ADD_NEW__' }, ...options]
+  if (addCreate) {
+    displayOptions = [{ label: '➕ Add new '+addCreateItemDescriptor, value: '__ADD_NEW__' }, ...options]
   }
 
   logDebug('userInput / chooseOptionWithModifiers()', `displayOptions: ${displayOptions.length} options`)
@@ -107,15 +111,16 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
   )
 
   // Check if the user selected "Add new item"
-  if (allowCreate && index === 0) {
-    const result = await getInput('Enter new item:', 'OK', 'Add New Item')
+  if (addCreate && index === 0) {
+    const result = await getInput('Enter new '+addCreateItemDescriptor+':', 'OK', 'Add New Item')
     if (result && typeof result === 'string') {
       // Return a custom result with the new item
+      // $FlowFixMe[incompatible-return]
       return {
-        value: result,
-        label: result,
         index: -1, // -1 indicates a custom entry
         keyModifiers: keyModifiers || [],
+        label: result,
+        value: result,
       }
     }
   }
@@ -125,27 +130,26 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
 }
 
 /**
- * Show a list of options to the user and return which option they picked (optionally with a modifier key, optionally with ability to create a new item)
+ * Show a list of options to the user and return which option they picked (and whether they used a modifier key), optionally with ability to create a new item.
  * V2: without the <TDefault> type parameter, using the new CommandBar.showOptions() options from v3.18
  * @author @jgclark, @dwertheimer based on @nmn chooseOption
  *
  * @param {string} message - text to display to user
  * @param {Array<TCommandBarOptionObject>} options - array of options to display
- * @param {boolean} allowCreate - add an option to create a new item (default: false)
- * @returns {Promise<{value: T, label: string, index: number, keyModifiers: Array<string>}>} - Promise resolving to the result
- * Sends back the object that was chosen, plus an index of the chosen option and keyModifiers array
+ * @param {TCommandBarOptionObject} additionalCreateNewOption - optional option object to create a new item
+ * @returns {Promise<TCommandBarResultObject>} - the object that was chosen, plus an index of the chosen option and keyModifiers array. If the user created a new item, the index will be -1.
  */
 export async function chooseOptionWithModifiersV2(
   message: string,
-  options: Array<{ ...TCommandBarOptionObject, label?: string }>,
+  options: Array<TCommandBarOptionObject>,
   additionalCreateNewOption?: TCommandBarOptionObject,
-): Promise<{ index: number, keyModifiers: Array<string>, label?: string, ...TCommandBarOptionObject, text?: string, value?: string }> {
-  logDebug('userInput / chooseOptionWithModifiersV2()', `About to showOptions with ${options.length} options & prompt: "${message}"`)
+): Promise<TCommandBarResultObject> {
+  logDebug('userInput / chooseOptionWithModifiersV2()', `Will showOptions with ${options.length} options & prompt: "${message}"`)
 
   // label field is used elsewhere, but @eduardme made showOptions use text instead, so we map it back to label
-  if (Array.isArray(options) && options.length > 0 && options[0].label && !options[0].text) {
+  if (Array.isArray(options) && options.length > 0) { 
     options.forEach((option, i) => {
-      options[i] = { ...option, text: option.label ?? option.text } // $FlowFixMe[incompatible-type]
+      options[i] = { ...option, text: option.text }
     })
   }
 
@@ -154,12 +158,17 @@ export async function chooseOptionWithModifiersV2(
   if (additionalCreateNewOption) {
     displayOptions.unshift(additionalCreateNewOption)
   }
-  logDebug('userInput / chooseOptionWithModifiersV2()', `displayOptions: ${displayOptions.length} options`)
+  // logDebug('userInput / chooseOptionWithModifiersV2()', `displayOptions: ${displayOptions.length} options`)
+// for TEST:
+  for(let i = 0; i < 15; i++) {
+    console.log(`- ${i}: ${displayOptions[i].text}`)
+  }
 
   // Use newer CommandBar.showOptions() from v3.18
-  const result = await CommandBar.showOptions(displayOptions, message)
-  const { index, keyModifiers, value } = result
-  clo(result, `chooseOptionWithModifiersV2 chosen result (${typeof result})`)
+  const result = await CommandBar.showOptions(displayOptions, message, '')
+  const { index, keyModifiers } = result
+  clo(result, `chooseOptionWithModifiersV2 chosen result`)
+  clo(displayOptions[index], `and relevant displayOption`)
 
   // Check if the user selected "Add new item"
   if (additionalCreateNewOption && index === 0) {
@@ -167,16 +176,14 @@ export async function chooseOptionWithModifiersV2(
     if (result && typeof result === 'string') {
       // Return a custom result with the new item
       return {
-        value: result,
-        label: result,
-        text: result,
         index: -1, // -1 indicates a custom entry
+        value: result,
         keyModifiers: keyModifiers || [],
       }
     }
   }
 
-  return { ...displayOptions[index], index, keyModifiers, value }
+  return result
 }
 
 /**
@@ -303,29 +310,35 @@ export async function showMessageYesNoCancel(message: string, choicesArray: Arra
 
 /**
  * Let user pick from a nicely-indented list of available folders (or / for root, or optionally give a new folder name).
- * This now shows teamspaces as a special case, with a teamspace icon.
+ * This now shows teamspaces as a special case, with a teamspace icon. And uses a new CommandBar.showOptions() function with richer options from v3.18.
  * Note: the API does not allow for creation of the folder, so all this does is pass back a path which you will need to handle creating.
  * @author @jgclark + @dwertheimer
  *
  * @param {string?} msg - text to display to user. Optional: default is 'Choose a folder'
  * @param {boolean?} includeArchive - if true, include the Archive folder in the list of folders. Optional: default is false
  * @param {boolean?} includeNewFolderOption - if true, add a 'New Folder' option that will allow users to create a new folder and select it. Optional: default is false
- * @param {string?} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder) - default is root (/) -- set to "/" to force start at root.
+ * @param {string?} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder). If not given, all folders will be shown.
  * @param {boolean?} includeFolderPath - (optional: default true) Show the folder path (or most of it), not just the last folder name, to give more context.
+ * @param {boolean?} excludeTeamspaces - if true, exclude teamspace folders from the list of folders. Optional: default is false.
  * @returns {string} - returns the user's folder choice (or / for root)
  */
 export async function chooseFolder(
   msg?: string = 'Choose a folder',
   includeArchive?: boolean = false,
   includeNewFolderOption?: boolean = false,
-  startFolder?: string = '/',
+  startFolder?: string = '',
   includeFolderPath?: boolean = true,
+  excludeTeamspaces?: boolean = false,
+  forceOriginalCommandBar?: boolean = false,
 ): Promise<string> {
   try {
     const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
-    const NEW_FOLDER = `➕ New Folder${IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : ''}`
+    const NEW_FOLDER = `➕ New Folder${IS_DESKTOP ? ' - or ⌥+click on a parent folder to create new sub-folder' : ''}`
     const teamspaceDefs = getAllTeamspaceIDsAndTitles()
-    const addNewFolderOption: TCommandBarOptionObject = {
+    const addSimpleNewFolderOption = {
+      label: `➕ New Folder${ IS_DESKTOP ? ' - or ⌥+click on a parent folder to create new sub-folder' : '' }`, 
+      value: '__ADD_NEW__'}
+    const addDecoratedNewFolderOption: TCommandBarOptionObject = {
       text: NEW_FOLDER,
       icon: 'folder-plus',
       color: 'orange-500',
@@ -333,67 +346,152 @@ export async function chooseFolder(
       alpha: 0.5,
       darkAlpha: 0.5,
     }
-    logDebug('userInput / createFolder', `creating with folder path, starting at "${startFolder}"`)
+    logDebug('userInput / chooseFolder', `creating with folder path, starting at "${startFolder}"`)
 
     // Get all folders, excluding @Trash
-    // V1
-    // const allFolders = DataStore.folders.slice() // excludes Trash. slice required to avoid mutating the original $ReadOnlyArray
     // V2
     // Get all folders, excluding the Trash, and only includes folders that match the startFolder (if given)
-    const folderInclusions = startFolder !== '/' ? [startFolder] : []
-    const allFolders = getFoldersMatching(folderInclusions, false, [])
-
-    // Filter and order the list of folders
-    // TODO: can be simplified, as more work is being done in getFoldersMatching() above
-    const folders = filterAndOrderFolders(allFolders, startFolder, includeArchive, includeNewFolderOption ? NEW_FOLDER : undefined)
+    // getAllMatchingFolders() now also sorts the list to the order displayed in NotePlan's sidebar.
+    const folderInclusions: Array<string> = startFolder ? [startFolder] : []
+    const folderExclusions: Array<string> = includeArchive ? [] : ['@Archive']
+    const matchingFolders = getFoldersMatching(folderInclusions, false, folderExclusions, excludeTeamspaces)
+    const folders: Array<string> = matchingFolders
     // logDebug('userInput / chooseFolder', `🟡 ${ folders.length } folders ordered: ${ String(folders) }`) // ✅
 
-    let folder: string
+    let folder: string = ''
     let value: string = ''
     let keyModifiers: Array<string> = []
+    let optClickedOnFolder = false
+    let newFolderWanted = false
 
     if (folders.length > 0) {
-      // Create folder options for display
-      const [simpleFolderOptions, decoratedFolderOptions] = createFolderOptions(folders, teamspaceDefs, includeFolderPath, includeNewFolderOption ? NEW_FOLDER : '')
-      // logDebug('userInput / chooseFolder', `🟢 ${ decoratedFolderOptions.length } decoratedFolderOptions: ${ JSP(decoratedFolderOptions) } `) // ❌ but right number of options
+      // Create folder options for display (without new folder option at this point)
+      const [simpleFolderOptions, decoratedFolderOptions] = createFolderOptions(folders, teamspaceDefs, includeFolderPath)
+      // for(let i = 0; i < 15; i++) {
+      //   console.log(`- ${i}: ${folders[i]}`)
+      // }
 
-      // Get user selection
-      if (NotePlan.environment.buildVersion >= 1413) {
-        const result = await chooseOptionWithModifiersV2(msg, decoratedFolderOptions, addNewFolderOption)
-        clo(result, 'chooseFolder chooseOptionWithModifiersV2 result')
+      // Get user selection. Use newer CommandBar.showOptions() from v3.18 if available.
+      let result: TCommandBarOptionObject | any
+      if (NotePlan.environment.buildVersion >= 1413 && !forceOriginalCommandBar) {
+        // ✅ for list with add new option
+        // ✅ for list without add new option
+        // ✅ for both private + teamspace
+        // ✅ for excluding Archive
+        // ✅ for folder creation to private area root
+        // ✅ for folder creation to private area subfolder
+        // ✅ for folder creation to private area root opt-click
+        // ✅ for folder creation to private area subfolder opt-click
+        // ✅ for folder creation to a Teamspace root
+        // ✅ for folder creation to a Teamspace subfolder
+        // ✅ for folder creation to a Teamspace root opt-click
+        // ✅ for folder creation to a Teamspace subfolder opt-click
+        
+        if (includeNewFolderOption) {
+          // Add in the new folder option just for newer CommandBar use
+          decoratedFolderOptions.unshift(addDecoratedNewFolderOption)
+          result = await chooseOptionWithModifiersV2(msg, decoratedFolderOptions) // note disabling the add new folder option as we need to handle it with access to folders array
+          keyModifiers = result.keyModifiers || []
+          if (keyModifiers.length > 0 && keyModifiers.indexOf('opt') > -1) {
+            optClickedOnFolder = true
+          }
+
+          if (result.index === 0) {
+            // i.e. new folder wanted, but no name given yet
+            folder = '' 
+            newFolderWanted = true
+          } else if (optClickedOnFolder) {
+            // i.e. new folder wanted, and parent folder chosen
+            folder = folders[result.index-1] // to ignore the added new folder option if present
+          }
+          else {
+            folder = folders[result.index-1] // to ignore the added new folder option if present
+            // newFolderWanted = value === NEW_FOLDER
+          }
+  
+          // Handle new folder creation
+          const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
+          if (newFolderPath) {
+            folder = newFolderPath
+            // logInfo(`userInput / chooseFolder`, ` -> created new folder "${folder}"`)
+            return newFolderPath
+          } else {
+            throw new Error(`Failed to create new folder "${folder}"`)
+          }
+    
+        } else {
+          // not including add new folder option
+          result = await chooseOptionWithModifiersV2(msg, decoratedFolderOptions), //includeNewFolderOption ? addDecoratedNewFolderOption : undefined) // note now wanting to disable the add new folder option as we are handling it specifically here
+          clo(result, 'chooseFolder chooseOptionWithModifiersV2 result') // ✅
+          if (result.index === -1) {
+            // i.e. new folder wanted, but no name given yet
+            value = '' 
+            newFolderWanted = true
+          } else {
+            value = folders[result.index]
+          }
+        }
+      } else {
+        // ✅ for both private + teamspace
+        // ✅ for excluding Archive
+        // ✅ for folder creation to private area root
+        // ✅ for folder creation to private area subfolder
+        // ✅ for folder creation to a Teamspace root
+        // ✅ for folder creation to a Teamspace subfolder
+        // ✅ for folder creation to private area root opt-click
+        // ✅ for folder creation to private area subfolder opt-click
+        // ✅ for folder creation to a Teamspace root opt-click
+        // ✅ for folder creation to a Teamspace subfolder opt-click
+
+        // Add in the new folder option just for newer CommandBar use
+        if (includeNewFolderOption) {
+          simpleFolderOptions.unshift(addSimpleNewFolderOption)
+        }
+        // V1 used chooseOptionWithModifiers() but it just got too complicated, so using parts of its logic here
+        // V2
+        const { index, keyModifiers } = await CommandBar.showOptions(
+            simpleFolderOptions.map((option) => (typeof option === 'string' ? option : option.label)),
+            'Choose Folder',
+          )
+        if (keyModifiers.length > 0 && keyModifiers.indexOf('opt') > -1) {
+          optClickedOnFolder = true
+        }
+        logDebug('userInput / chooseFolder', `- index: ${ index }, keyModifiers: ${ String(keyModifiers) }`)
+
+        if (includeNewFolderOption && index === 0) {
+          // i.e. new folder wanted but no name given
+          folder = ''
+          newFolderWanted = true
+        } else if (optClickedOnFolder) {
+          // i.e. new folder wanted, and parent folder chosen
+          folder = folders[index-1]
+          newFolderWanted = true
+        }
+        else {
+          folder = folders[index]
+        }
+        logDebug('userInput / chooseFolder', `- folder: ${ folder }, newFolderWanted? ${ String(newFolderWanted) }`)
+        // Handle new folder creation, if required
+        if (newFolderWanted) {
+          const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
+          if (newFolderPath) {
+            folder = newFolderPath
+            // logInfo(`userInput / chooseFolder`, ` -> created new folder "${folder}"`)
+            return newFolderPath
+          } else {
+            throw new Error(`Failed to create new folder "${folder}"`)
+          }
+        }
         value = result?.value || ''
-        keyModifiers = result.keyModifiers || []
-      } else {
-        const result = await chooseOptionWithModifiers(msg, simpleFolderOptions, includeNewFolderOption)
-        value = result.value
-        keyModifiers = result.keyModifiers || []
+        newFolderWanted = result?.index === -1
       }
-
-      if (keyModifiers.length > 0 && keyModifiers.indexOf('opt') > -1) {
-        folder = NEW_FOLDER
-      } else {
-        folder = value
-      }
-
-      logDebug(
-        `userInput / chooseFolder`,
-        `chooseFolder folder:${folder} value:${value} keyModifiers:${String(keyModifiers)} keyModifiers.indexOf('opt') = ${keyModifiers.indexOf('opt')} `,
-      )
+      logDebug(`userInput / chooseFolder`, ` -> folder:${ folder } value:${ value } keyModifiers:${ String(keyModifiers) }`)
     } else {
-      // no Folders so just choose root
+      // no Folders so just choose private root folder
       folder = '/'
     }
 
-    // Handle new folder creation
-    if (folder === NEW_FOLDER) {
-      const newFolderPath = await handleNewFolderCreation(value, keyModifiers, startFolder, includeArchive)
-      if (newFolderPath) {
-        folder = newFolderPath
-      }
-      logInfo(`userInput / chooseFolder`, `chooseFolder -> new folder name "${folder}" -- note the creation of this needs to be handled by the caller`)
-    } else {
-      logDebug(`userInput / chooseFolder`, `chooseFolder -> "${folder}"`)
-    }
+    logDebug(`userInput / chooseFolder`, ` -> "${folder}"`)
     return folder
   } catch (error) {
     logError('userInput / chooseFolder', error.message)
@@ -402,11 +500,12 @@ export async function chooseFolder(
 }
 
 /**
- * Create folder options for display
- * @param {Array} folders - filtered folders
+ * Create folder options for display (private function).
+ * Note: can't just have opt-click to create a new folder, because this doesn't work on iOS/iPadOS.
+ * @param {Array} folders to create options for
  * @param {Array} teamspaceDefs - teamspace definitions
- * @param {boolean} includeFolderPath - whether to show full path
- * @param {string} newFolderText - text for new folder option
+ * @param {boolean} includeFolderPath? - whether to show full path
+ * @param {string?} newFolderText - text of the special new folder option (if present)
  *
  * @returns {Array<{ label: string, value: string }> | Array<TCommandBarOptionObject>} formatted folder options
  */
@@ -414,7 +513,7 @@ function createFolderOptions(
   folders: Array<string>,
   teamspaceDefs: Array<TTeamspace>,
   includeFolderPath: boolean,
-  newFolderText: string,
+  newFolderText: string = '',
 ): [Array<{ label: string, value: string }>, Array<TCommandBarOptionObject>] {
   const simpleOptions: Array<{ label: string, value: string }> = []
   const decoratedOptions: Array<TCommandBarOptionObject> = []
@@ -436,7 +535,7 @@ function createFolderOptions(
       simpleOptions.push({ label: simpleOption, value: folder })
       decoratedOptions.push(decoratedOption)
     } else {
-      // deal with special case for regular root folder
+      // deal with special case for private root folder
       simpleOptions.push({ label: '📁 /', value: '/' })
       decoratedOptions.push({
         icon: 'folder',
@@ -457,25 +556,39 @@ function createFolderOptions(
  * @param {Array} teamspaceDefs - teamspace definitions
  * @returns {[string, TCommandBarOptionObject]} simple and decorated version of the folder label
  */
-export function createFolderRepresentation(folder: string, includeFolderPath: boolean, teamspaceDefs: Array<TTeamspace>): [string, TCommandBarOptionObject] {
+export function createFolderRepresentation(
+  folder: string,
+  includeFolderPath: boolean,
+  teamspaceDefs: Array<TTeamspace>,
+): [string, TCommandBarOptionObject] {
   // logDebug('userInput / createFolderRepresentation', `- folder: ${folder}`)
   const INDENT_SPACES = '     ' // to use for indentation of folders that are not the root folder, when includeFolderPath is false
   const FOLDER_PATH_MAX_LENGTH = 50 // OK on desktop and iOS, at least for @jgclark
   const folderParts = folder.split('/')
   const isTeamspaceFolder = teamspaceDefs.some((teamspaceDef) => folder.includes(teamspaceDef.id))
   let simpleOption: string = ''
+
+  // Set default icons
+  let simpleIcon = '📁'
   const decoratedOption: TCommandBarOptionObject = {
     icon: 'folder',
     color: 'gray-500',
+    alpha: 0.5,
+    darkAlpha: 0.5,
     text: '',
     shortDescription: '',
   }
 
-  let simpleIcon = '📁'
+  // Update the icon to use the appropriate icon for special @folders
   if (folderParts[0] === '@Archive') {
     simpleIcon = '🗄️'
+    decoratedOption.icon = 'box-archive'
   } else if (folderParts[0] === '@Templates') {
     simpleIcon = '📝'
+    decoratedOption.icon = 'clipboard'
+  } else if (folderParts[0] === '@Trash') {
+    simpleIcon = '🗑️'
+    decoratedOption.icon = 'trash-can'
   }
 
   if (isTeamspaceFolder) {
@@ -488,29 +601,29 @@ export function createFolderRepresentation(folder: string, includeFolderPath: bo
     // logDebug('userInput / createFolderRepresentation', `teamspaceDef: ${ JSON.stringify(thisTeamspaceDef) } from '${folder}' / filepath:${ teamspaceDetails.filepath } / includeFolderPath:${ String(includeFolderPath) }`)
     if (teamspaceDetails.filepath === '/') {
       simpleOption = `👥 ${teamspaceTitle}`
-      decoratedOption.color = 'green-600'
+      decoratedOption.color = TEAMSPACE_ICON_COLOR
       decoratedOption.text = '/'
       decoratedOption.shortDescription = teamspaceTitle
-      decoratedOption.alpha = 0.6
-      decoratedOption.darkAlpha = 0.6
+      // decoratedOption.alpha = 0.6
+      // decoratedOption.darkAlpha = 0.6
     } else {
       if (includeFolderPath) {
         simpleOption = `👥 ${teamspaceTitle} / ${folderParts.slice(2).join(' / ')}`
-        decoratedOption.color = 'green-600'
+        decoratedOption.color = TEAMSPACE_ICON_COLOR
         decoratedOption.text = folderParts.slice(2).join(' / ')
         decoratedOption.shortDescription = teamspaceTitle
-        decoratedOption.alpha = 0.6
-        decoratedOption.darkAlpha = 0.6
+        // decoratedOption.alpha = 0.6
+        // decoratedOption.darkAlpha = 0.6
       } else {
         simpleOption = `${simpleIcon} ${folderParts.slice(2).join(' / ')}`
-        decoratedOption.color = 'green-600'
+        decoratedOption.color = TEAMSPACE_ICON_COLOR
         decoratedOption.text = folderParts.slice(2).join(' / ')
         decoratedOption.shortDescription = teamspaceTitle
-        decoratedOption.alpha = 0.6
-        decoratedOption.darkAlpha = 0.6
+        // decoratedOption.alpha = 0.6
+        // decoratedOption.darkAlpha = 0.6
       }
     }
-    // logDebug('userInput / createFolderRepresentation', `→ teamspaceDef: ${ JSON.stringify(decoratedOption) } `)
+// logDebug('userInput / createFolderRepresentation', `-> teamspaceDef: ${ JSON.stringify(decoratedOption) } `)
   } else if (includeFolderPath) {
     // Get the folder path prefix, and truncate it if it's too long
     if (folder.length >= FOLDER_PATH_MAX_LENGTH) {
@@ -534,61 +647,52 @@ export function createFolderRepresentation(folder: string, includeFolderPath: bo
 }
 
 /**
- * Filter and order the list of folders based on parameters, starting at the 'startFolder' (which can be '/'), and optionally including @Archivethe newFolderText.
- * @param {Array} folders - all available folders
- * @param {string} startFolder - starting folder filter
- * @param {boolean} includeArchive - whether to include archive folders
- * @param {string?} newFolderText - (optional) text for new folder option
- * @returns {Array} filtered and sorted folders
+ * Creates a new folder with help from the user.
+ * If 'containingFolder' is specified, then use it as the containing folder for the new folder, otherwise ask user (constrained by the other two parameters).
+ * Then ask user for the new folder's name.
+ * The function handles the creation process and returns the path of the newly created folder.
+ *
+ * @param {string} containingFolder - The current folder path or name selected by the user. If blank, then ask user where to create the new folder.
+ * @param {string} startingFolderToChooseFrom - The initial folder path to start the selection from.
+ * @param {boolean?} includeArchive? - A flag indicating whether to include archived folders in the selection process. (Optional: defaults to false)
+ * @returns {Promise<string>} - the path of the newly created folder, or an empty string if creation fails.
  */
-function filterAndOrderFolders(folders: Array<string>, startFolder: string, includeArchive: boolean, newFolderText?: string): Array<string> {
-  if (startFolder.length && startFolder !== '/') {
-    // Filter folders to only include those that start with the startFolder, or are the newFolderText
-    return folders.filter((f) => f === newFolderText || f.startsWith(startFolder))
-  } else {
-    // If no startFolder, or it's the root folder, then we need to filter out the special folders and sort them appropriately
-    const archiveFolders = folders.filter((f) => f.startsWith('@Archive'))
-    const otherSpecialFolders = folders.filter((f) => f.startsWith('@') && !f.startsWith('@Archive'))
-    // Remove special folders from list
-    const regularFolders = folders.filter((f) => !f.startsWith('@'))
-    // Now add them back on at the end, with @Archive going last
-    const orderedFolders = [...regularFolders, ...otherSpecialFolders]
-    if (includeArchive) {
-      orderedFolders.push(...archiveFolders)
-    }
-    return orderedFolders
-  }
-}
-
-/**
- * Handle new folder creation
- * @param {string} value - selected value
- * @param {Array} keyModifiers - key modifiers
- * @param {string} startFolder - starting folder.
- * @param {boolean} includeArchive - whether to include archive.
- * @returns {Promise<string>} new folder path
- */
-async function handleNewFolderCreation(value: string, keyModifiers: Array<string>, startFolder: string, includeArchive: boolean): Promise<string> {
+async function handleNewFolderCreation(
+  containingFolder: string,
+  startingFolderToChooseFrom: string,
+  includeArchive?: boolean = false,
+  includeFolderPath?: boolean = true,
+  excludeTeamspaces?: boolean = false,
+  forceOriginalCommandBar?: boolean = false,
+): Promise<string> {
   try {
-    const optClicked = value?.length && keyModifiers && keyModifiers.indexOf('opt') > -1
-    let newFolderName = await CommandBar.textPrompt(
-      `Create new folder${optClicked ? ` inside folder:\n"${value || ''}".` : '...\nYou will choose where to create the folder in the next step.'} `,
-      'Folder name:',
-      '',
-    )
+    let inWhichFolder = ''
+    let newFolderName: string | boolean
 
-    if (newFolderName && newFolderName.length) {
-      const inWhichFolder =
-        optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder ? (${startFolder} for root)`, includeArchive, false, startFolder)
-      if (inWhichFolder) {
-        newFolderName = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
+    // logDebug('userInput / handleNewFolderCreation', `containingFolder: "${containingFolder}" / startingFolderToChooseFrom: "${startingFolderToChooseFrom}"`)
+    if (containingFolder === '') {
+      newFolderName = await getInput(`Step 1: Name (not path) of new folder:`, 'OK', `Create new folder`, '')
+      if (typeof newFolderName !== 'string' || newFolderName === '') {
+        throw new Error('No new folder name given.')
       }
-      DataStore.createFolder(newFolderName)
-      logInfo('userInput / handleNewFolderCreation', `New folder created: "${newFolderName}"`)
-      return newFolderName
+      inWhichFolder = await chooseFolder(`Step 2: Create sub-folder '${newFolderName}' inside which folder?`, includeArchive, false,startingFolderToChooseFrom, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
+    }
+    else {
+      const teamspaceDefs = getAllTeamspaceIDsAndTitles()
+      const [simpleFolderRepresentation, _decoratedFolderRepresentation] = createFolderRepresentation(containingFolder, true, teamspaceDefs)
+      newFolderName = await CommandBar.textPrompt(`Create new folder`, `Name (not path) of new folder to create in folder '${simpleFolderRepresentation}':`, '')
+      if (!newFolderName || newFolderName === '') {
+        throw new Error('No new folder name given.')
+      }
+      inWhichFolder = containingFolder
     }
 
-    throw new Error('No new folder name given.')
+    if (inWhichFolder) {
+      newFolderName = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
+    }
+    DataStore.createFolder(newFolderName)
+    logInfo('userInput / handleNewFolderCreation', ` -> created new folder "${newFolderName}"`)
+    return newFolderName
   } catch (error) {
     logError('userInput / handleNewFolderCreation', error.message)
     return ''

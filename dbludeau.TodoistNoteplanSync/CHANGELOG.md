@@ -4,6 +4,9 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dbludeau.TodoistNoteplanSync/README.md) for details on available commands and use cases.
 
+## [0.4.0] - 2025-09-15 (dbludeau)
+- Updated plugin to use new Todoist V1 API.
+
 ## [0.3.0] - 2024-09-01 (dbludeau)
 - Fixed issue caused by "Folder" setting for Sync Everything command.
     - If leading or trailing slash was included, the plugin would not recognize the folder as already existing, leading to duplication of notes.

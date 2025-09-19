@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "1.2.0",
-  "plugin.lastUpdateInfo": "1.2.0: improvements to displays in 'jump to heading' and 'jump to note heading' commands, and include Teamspace notes. Improvements to 'inconsistent file name' commands.\n1.1.1: add initial support for Teamspaces + bug fix.\n1.1.0: new 'list published notes' command.\n1.1.0: added 'write modified' command to write the modified date to frontmatter (on each save). Can be run by hand or can be included as a trigger using the 'add trigger to note' command. Small improvements to \"new note from selection\".\n1.0.0: move '/new note from ...' commands here from Filer plugin, and revived '/new note' command.\n0.20.3: New 'printEditorDetailed' command to log all paragraph details as well.\n0.20.2: 'printNote' extended to cover backlinks.\n0.20.1: new command 'printNote' for debugging purposes.\n0.20.0: new commands \"unlinked note finder\" and \"delete note\". Bug fix to \"rename note filename\" command.\n0.19.2: fix edge cases with \"add trigger to note\".",
+  "plugin.version": "1.2.1",
+  "plugin.lastUpdateInfo": "1.2.1: Allow 'delete note' command to run on Teamspace notes. Stop 'inconsistent file name' commands from running on Teamspace notes. Bug fixes.\n1.2.0: improvements to displays in 'jump to heading' and 'jump to note heading' commands, and include Teamspace notes. Improvements to 'inconsistent file name' commands.\n1.1.1: add initial support for Teamspaces + bug fix.\n1.1.0: new 'list published notes' command.\n1.1.0: added 'write modified' command to write the modified date to frontmatter (on each save). Can be run by hand or can be included as a trigger using the 'add trigger to note' command. Small improvements to \"new note from selection\".\n1.0.0: move '/new note from ...' commands here from Filer plugin, and revived '/new note' command.\n0.20.3: New 'printEditorDetailed' command to log all paragraph details as well.\n0.20.2: 'printNote' extended to cover backlinks.\n0.20.1: new command 'printNote' for debugging purposes.\n0.20.0: new commands \"unlinked note finder\" and \"delete note\". Bug fix to \"rename note filename\" command.\n0.19.2: fix edge cases with \"add trigger to note\".",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -261,6 +261,16 @@
       "name": "triggerFindUnlinkedNotes",
       "description": "onEditorWillSave",
       "jsFunction": "triggerFindUnlinkedNotes",
+      "hidden": true
+    },
+    {
+      "comment": "TODO: delete me soon",
+      "name": "test: choose folder",
+      "description": "Test the chooseFolder function",
+      "jsFunction": "testChooseFolder",
+      "alias": [
+        "tcf"
+      ],
       "hidden": true
     },
     {

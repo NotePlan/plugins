@@ -1,6 +1,10 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
+## [1.0.1] - 2025-09-17
+### Changed
+Adds future ability for plugin to auto-update itself.
+
 ## [1.0.0] - 2025-09-06
 New feature: can now sort the section after a repeat has been generated in it. There are 2 new settings:
 1.  "Run Task Sorter after changes?". If set, it will sort the lines in the section after a repeat has been generated in it. The ordering is controlled by the next setting.
@@ -27,7 +31,7 @@ Note: This requires @dwertheimer's 'Task Sorting & Tools' Plugin to be installed
 
 ## [0.8.0] - 2024-06-09
 - added setting 'Delete completed item?', which when set deletes rather than keeps the completed repeated item.
-<!-- - fix detailed logging error in dateTime::cODS -->
+- fix detailed logging error in dateTime::cODS
 
 ## [0.7.1] - 2024-06-07
 - can now be run from an x-callback or function, passing in the note to process. This was needed for the new Tidy plugin command, which generate any needed repeats in all recently-changed notes.
@@ -36,6 +40,7 @@ Note: This requires @dwertheimer's 'Task Sorting & Tools' Plugin to be installed
 - adjust new date calculation: when there is no task due date, use the note date if it exists, otherwise default to (current behavior) of task completion date. (PR by @ameritrash)
 - fix to @repeat(1m) repeats in a monthly note not being written into a monthly note (etc.)
 
+<!--
 ## [0.6.1] - 2023-09-29
 - fixed repeats from daily calendar notes (reported by @lnrdgmt)
 - fixed double dates appearing (reported by @lbednarski)
@@ -47,10 +52,11 @@ Note: This requires @dwertheimer's 'Task Sorting & Tools' Plugin to be installed
 
 ## [0.5.2] - 2023-03-15
 ### Changed
-<!-- - Now internally running from Editor only -->
 - Now will write the new repeat date as a week-style date (e.g. `>2023-W11`) where either the task is in a weekly note, or the scheduling of the repeat is for a weekly date.
 ### Fixed
 - Fixed error when running from calendar notes (thanks to @DHERRADOR and @dbcoyer for the report)
+### Dev
+- Now internally running from Editor only
 
 ## [0.5.1] - 2023-01-17
 ### Changed
@@ -96,3 +102,4 @@ triggers: onEditorWillSave => jgclark.RepeatExtensions.onEditorWillSave
 ## [0.2.0] - 2021-05-27
 ### Added
 - first released version for plugin, ported to JavaScript plugin framework from my [npTools Ruby script](https://github.com/jgclark/NotePlan-tools/).
+-->
