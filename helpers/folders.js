@@ -12,7 +12,8 @@ import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from '@helpers/N
 import { getFilenameWithoutTeamspaceID, getTeamspaceIDFromFilename, isTeamspaceNoteFromFilename } from '@helpers/teamspace'
 
 /**
- * Return a list of folders (and any sub-folders) that contain one of the strings on the inclusions list (if given).
+ * Return a list of folders (and any sub-folders) that contain one of the strings on the inclusions list (if given). 
+ * It now returns the list in the order displayed in NotePlan's sidebar.
  * If no inclusions are given, then use all folders.
  * Then excludes those items that are on the exclusions list.
  * The Root folder can be excluded by adding '/' to the exclusions list; this doesn't affect any sub-folders.
@@ -21,46 +22,62 @@ import { getFilenameWithoutTeamspaceID, getTeamspaceIDFromFilename, isTeamspaceN
  * Optionally exclude all special @... folders as well [this overrides inclusions]
  * Note: these are partial matches ("contains" not "equals").
  * Note: now clarified that this is a case-insensitive match.
- * TEST: Teamspace root folders included from b1417
  * @author @jgclark
  * @tests in jest file
  *
  * @param {Array<string>} inclusions - if not empty, use these (sub)strings to match folder items
  * @param {boolean?} excludeSpecialFolders? (default: true)
  * @param {Array<string>?} exclusions - if these (sub)strings match then exclude this folder. Optional: if none given then will treat as an empty list.
+ * @param {boolean?} excludeTeamspaces? If it is set then filter out teamspace folders from being returned. Default false.
+ * @param {boolean?} sortOutput? If true (which is the default) then sort the output list to the order displayed in NotePlan's sidebar.
  * @returns {Array<string>} array of folder names
  */
-export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFolders: boolean = true, exclusions: Array<string> = []): Array<string> {
+export function getFoldersMatching(
+  inclusions: Array<string>,
+  excludeSpecialFolders: boolean = true,
+  exclusions: Array<string> = [],
+  excludeTeamspaces: boolean = false,
+  sortOutput: boolean = true,
+): Array<string> {
   try {
     // Get all folders as array of strings (other than @Trash).
-    const fullFolderList = DataStore.folders.slice() // slice to make not $ReadOnly
-
-    // Note: the API call DataStore.folders does not return the teamspace root folders until it was fixed in b1417, so we need to add them manually here, from position 1.
-    if (NotePlan.environment.buildVersion <= 1416) {
-      const teamspaceDefs = getAllTeamspaceIDsAndTitles()
-      teamspaceDefs.forEach((teamspaceDef) => {
-        // Next line avoids auto-formatting errors
-        // eslint-disable-next-line
-        fullFolderList.splice(1, 0, TEAMSPACE_INDICATOR + '/' + teamspaceDef.id + '/')
-        logDebug('folders / getFoldersMatching', `- adding root for teamspaceDef.id ${teamspaceDef.id}(${teamspaceDef.title}) to work around bug pre v3.18.0`)
-      })
-    }
-
+    let fullFolderList = DataStore.folders.slice() // slice to make not $ReadOnly
     logDebug(
       'getFoldersMatching',
       `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions: [${inclusions.toString()}] and exclusions [${exclusions.toString()}]. ESF? ${String(
         excludeSpecialFolders,
       )}`,
     )
+
+    if (sortOutput) {
+      fullFolderList = orderFolders(fullFolderList)
+    }
+
+    // Note: the API call DataStore.folders does not return the teamspace root folders until it was fixed in b1417, so we need to add them manually here, from position 1.
+    if (NotePlan.environment.buildVersion <= 1416) {
+      const teamspaceDefs = getAllTeamspaceIDsAndTitles()
+      teamspaceDefs.forEach((teamspaceDef) => {
+        // Next line avoids auto-formatting errors from prettier
+        // eslint-disable-next-line
+        fullFolderList.splice(1, 0, TEAMSPACE_INDICATOR + '/' + teamspaceDef.id + '/')
+        logDebug('folders / getFoldersMatching', `- adding root for teamspaceDef.id ${teamspaceDef.id}(${teamspaceDef.title}) to work around bug pre v3.18.0`)
+      })
+    }
     // logDebug('folders / getFoldersMatching', `fullFolderList: [${fullFolderList.toString()}]`)
 
-    // if requested filter fullFolderList to only folders that don't start with the character '@' (special folders)
-    const reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
+    // if requested filter to only folders that don't start with the character '@' (special folders)
+    let reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
     // logDebug('folders / getFoldersMatching', `- after specials filter ->  ${reducedFolderList.length} reducedFolderList: [${reducedFolderList.toString()}]`)
+
+    // Remove all Teamspace folders if wanted
+    if (excludeTeamspaces) {
+      reducedFolderList = reducedFolderList.filter((f) => !f.startsWith(TEAMSPACE_INDICATOR))
+    }
 
     // If no inclusions or exclusions, make life easier and return all straight away
     if (inclusions.length === 0 && exclusions.length === 0) {
-      return reducedFolderList ? reducedFolderList : fullFolderList
+      logDebug('folders / getFoldersMatching', `- no inclusions or exclusions, so returning all folders`)
+      return reducedFolderList
     }
 
     // Also now delete '/' from reducedList (added back later if wanted)
@@ -108,12 +125,56 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     if (!rootExcluded) {
       outputList.unshift('/')
     }
-    logDebug('folders / getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
+    // logDebug('folders / getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
     return outputList
   } catch (error) {
     logError('folders / getFoldersMatching', error.message)
     return ['(error)']
   }
+}
+
+/**
+ * Order the list of folders for display in the same way NP does:
+ * Return list of folders ordered alphanumerically in ascending order. Sort ones starting _ first, and @ last. Ignore case.
+ * TODO: ideally also sort by Teamspace title, not its ID.
+ * @author @jgclark
+ * @tests in jest file
+ *
+ * @param {Array<string>} folders - all available folders
+ * @returns {Array<string>}
+ */
+export function orderFolders(
+  folders: Array<string>,
+): Array<string> {
+  return folders.sort((a, b) => {
+    // Helper to check if a string starts with a number
+    const startsWithNumber = (str: string) => /^\d/.test(str)
+
+    // Root always first
+    if (a === '/') return -1
+    if (b === '/') return 1
+
+    // Numeric folders next
+    const aIsNum = startsWithNumber(a)
+    const bIsNum = startsWithNumber(b)
+    if (aIsNum && !bIsNum) return -1
+    if (!aIsNum && bIsNum) return 1
+
+    // @Templates and @Archive always last
+    if (a.startsWith('@Templates')) return 1
+    if (b.startsWith('@Templates')) return -1
+    if (a.startsWith('@Archive')) return 1
+    if (b.startsWith('@Archive')) return -1
+
+    // _... folders before @... folders before normal folders
+    if (a.startsWith('_') && !b.startsWith('_')) return -1
+    if (!a.startsWith('_') && b.startsWith('_')) return 1
+    if (a.startsWith('@') && !b.startsWith('@')) return -1
+    if (!a.startsWith('@') && b.startsWith('@')) return 1
+
+    // Default: localeCompare, case-insensitive, numeric
+    return a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })
+  })
 }
 
 /**

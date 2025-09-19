@@ -929,10 +929,10 @@ declare class DataStore {
    * Note: Calendar notes cannot be moved to trash.
    * Note: Teamspace notes are deleted immediately (teamspaces have no trash folder as of now), but a copy is made inside the system trash bin, if the user needs to recover the note.
    * Note: available from v3.18.2 b1431
-   * @param {string}
-   * @return {boolean}
-   */
-  trashNote(filename: string): boolean;
+  * @param {string} filename of the note to trash
+  * @return {boolean} successful?
+  */
+  static trashNote(filename: string): boolean;
 }
 
 /**
