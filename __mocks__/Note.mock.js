@@ -68,6 +68,7 @@ export class Note {
     const headingIndex = paragraphs.findIndex((p) => p.content === headingTitle)
     this.paragraphs.splice(headingIndex + 1, 0, ...paras)
     this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
+    this.resetLineIndexesAndContent()
   }
   async addTodoBelowHeadingTitle(): Promise<void> {
     throw 'Note :: addTodoBelowHeadingTitle Not implemented yet'
@@ -109,7 +110,6 @@ export class Note {
     // splice at lineIndex, do not remove any existing paragraphs
     this.paragraphs.splice(lineIndex, 0, ...paras)
     this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
-    this._content = `${this.paragraphs.map((p) => p.content).join('\n')}\n`
     this.resetLineIndexesAndContent()
     return
   }
@@ -293,11 +293,11 @@ function getLineTypeAndContent(content: string, lastHeadingLevel: number = 0): {
   } else if (lineContent.startsWith('+ ') && !lineContent.startsWith('+ [')) {
     type = 'checklist'
     lineContent = lineContent.slice(2)
-  } else if (/^\s*\d|\w/.test(lineContent)) {
-    type = 'text'
   } else if (lineContent.startsWith('* ')) {
     type = 'open'
     lineContent = lineContent.slice(2)
+  } else if (/^\s*\d|\w/.test(lineContent)) {
+    type = 'text'
   }
 
   return { content: lineContent.trim(), type, headingLevel }
