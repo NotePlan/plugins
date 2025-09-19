@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Filer plugin.
 // Jonathan Clark
-// last updated 2025-08-25, for v1.3.1
+// last updated 2025-09-06, for v1.3.2
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -52,5 +52,21 @@ export async function getFilerSettings(): Promise<any> {
   } catch (err) {
     logError(pluginJson, `GetFilerSettings(): ${err.name}: ${err.message}`)
     await showMessage(`Error: ${err.message}`)
+  }
+}
+
+/**
+ * Highlight the given Paragraph range (including just a single line) in the open editor.
+ * @author @jgclark
+ * @param {Array<TParagraph>} paras
+ */
+export function highlightSelectionInEditor(paras: Array<TParagraph>): void {
+  const firstStartCharIndex = paras[0].contentRange?.start ?? NaN
+  const lastEndCharIndex = paras[paras.length - 1].contentRange?.end ?? null
+  if (firstStartCharIndex && lastEndCharIndex) {
+    const parasCharIndexRange: TRange = Range.create(firstStartCharIndex, 
+    lastEndCharIndex)
+    // logDebug('moveParas', `- will try to highlight automatic block  selection range ${rangeToString(parasCharIndexRange)}`)
+    Editor.highlightByRange(parasCharIndexRange)
   }
 }

@@ -1,6 +1,14 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.3.2] - 2025-09-06
+- suppress notes in the special Archive and Template folders from the note chooser in **/add sync'd copy to note** and **/move ...** commands (for @chrismetcalf)
+- fix for **/archive note keeping folder structure** command
+- fix for **/add sync'd copy to note** command
+
+## [1.3.1] - 2025-08-23
+- further fix when trying to work around NP bug when using /move paragraph block on notes with frontmatter.
+
 ## [1.3.0] - 2025-08-15
 ### Added
 - can now access notes from Teamspaces
