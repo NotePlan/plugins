@@ -1,3 +1,9 @@
 {
-    "semi": false
+    "semi": false,
+    "quoteProps": "as-needed",
+    "templateCurlySpacing": false,
+    "experimentalOperatorPosition": "start",
+    "bracketSameLine": false,
+    "arrowParens": "always",
+    "objectWrap": "preserve"
 }

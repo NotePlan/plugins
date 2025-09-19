@@ -1,6 +1,11 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+## [1.2.1] - 2025-09-19
+- improve and fix folder picker in various commands (including updating the sort order to match the app -- thanks for pointing this out, @tastapod)
+- allow **delete note** command to run on Teamspace notes (if running v3.18.2 or above).
+- stop **inconsistent file name** commands from running on Teamspace notes, which are stored in a SQL DB instead of having filenames
+
 ## [1.2.0] - 2025-08-23
 - improved display of lists of notes and headings in **jump to heading** and **jump to note's heading**, and include Teamspace notes
 - various improvements/fixes to the **inconsistent file name** commands. Resolves issues #640, #642, #643 raised by @tastapod.
