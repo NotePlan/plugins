@@ -1,7 +1,7 @@
 // @flow
 
 import { logDebug, clo } from '../../helpers/dev'
-import { showMessage, createFolderRepresentation, chooseOptionWithModifiersV2, chooseOption } from '@helpers/userInput'
+import { showMessage, createFolderRepresentation, chooseDecoratedOptionWithModifiers, chooseOption } from '@helpers/userInput'
 import { getFolderViewData, getFoldersWithNamedViews, getNamedViewsForFolder } from '@helpers/folders'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 
@@ -81,7 +81,7 @@ function createFolderOptions(allFolders: $ReadOnlyArray<string>, folderData: Obj
 async function selectFolder(folderOptions: Array<Object>): Promise<Object | null> {
   clo(folderOptions, `selectFolder: folderOptions`)
 
-  const selection = await chooseOptionWithModifiersV2('Choose a folder', folderOptions)
+  const selection = await chooseDecoratedOptionWithModifiers('Choose a folder', folderOptions)
   if (!selection) return null
 
   const selectedFolderObj = folderOptions[selection.index]
@@ -128,7 +128,7 @@ async function selectView(viewOptions: Array<Object>, selectedFolder: string): P
     return viewOptions[0].value
   }
   clo(viewOptions, `selectView viewOptions`)
-  const responseObj = await chooseOptionWithModifiersV2(`Choose a view for '${selectedFolder}'`, viewOptions)
+  const responseObj = await chooseDecoratedOptionWithModifiers(`Choose a view for '${selectedFolder}'`, viewOptions)
   if (responseObj) {
     clo(responseObj, `selectView responseObj`)
     return responseObj.value
