@@ -294,6 +294,7 @@ function insertTodos(
   subHeadingCategory: string | null = null,
   theTitle: string = '',
   forceTasksToTop: boolean = false,
+  insertAtTopOfNote: boolean = false,
 ) {
   const title = theTitle === ROOT ? '' : theTitle // root level tasks in Calendar note have no heading
   const { tasksToTop } = DataStore.settings
@@ -370,35 +371,35 @@ function insertTodos(
       `\tinsertTodos: hasTraditionalTitle=${hasTraditionalTitle}, hasFrontmatterTitle=${hasFrontmatterTitle}, firstPara.type="${firstPara?.type}", firstPara.headingLevel=${firstPara?.headingLevel}, title="${title}"`,
     )
 
-    // Check if the title matches the note's main title (first paragraph content)
-    const isNoteMainTitle = hasTraditionalTitle && title === firstPara.content
-
-    if (shouldInsertAtTop) {
-      if (hasTraditionalTitle && isNoteMainTitle) {
+    if (insertAtTopOfNote && shouldInsertAtTop) {
+      // Special case: insert at top of note (after main title) regardless of the title parameter
+      logDebug(`\tinsertTodos: insertAtTopOfNote=true, inserting at top of note`)
+      if (hasTraditionalTitle) {
         // Insert below the note's main title
-        logDebug(`\tinsertTodos: Inserting below note's main title="${title}"`)
-        note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
+        logDebug(`\tinsertTodos: Inserting below note's main title="${firstPara.content}"`)
+        note.addParagraphBelowHeadingTitle(content, 'text', firstPara.content, false, true)
         logDebug(`\tinsertTodos: Completed addParagraphBelowHeadingTitle`)
       } else {
-        // Insert at top of active part (either no traditional title, or title is not the main title)
-        logDebug(`\tinsertTodos: Inserting at top of active part (title="${title}" is not main title)`)
+        // Insert at top of active part (frontmatter-only note)
+        logDebug(`\tinsertTodos: No traditional title, inserting at top of active part`)
         const insertionIndex = findStartOfActivePartOfNote(note)
         note.insertParagraph(content, insertionIndex, 'text')
       }
     } else {
-      if (hasTraditionalTitle && isNoteMainTitle) {
-        // Insert at end of the main title section
+      // Normal behavior: insert under the specified title/heading
+      if (shouldInsertAtTop) {
+        // Insert below the specified heading
+        logDebug(`\tinsertTodos: Inserting below specified heading="${title}"`)
+        note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
+        logDebug(`\tinsertTodos: Completed addParagraphBelowHeadingTitle`)
+      } else {
+        // Insert at end of the specified heading section
         const paras = getBlockUnderHeading(note, title)
         const lastPara = paras[paras.length - 1]
         const insertFunc = lastPara.type === 'separator' ? `insertTodoBeforeParagraph` : `insertParagraphAfterParagraph`
         logDebug(`\tinsertTodos note.${insertFunc} "${lastPara.content}"`)
         // $FlowIgnore - calling function by name is not very Flow friendly (but it works!)
         note[insertFunc](content, lastPara)
-      } else {
-        // Insert at end of note
-        logDebug(`\tinsertTodos: Inserting at end of note (title="${title}" is not main title)`)
-        const insertionIndex = findEndOfActivePartOfNote(note) + 1
-        note.insertParagraph(content, insertionIndex, 'text')
       }
     }
   } else {
@@ -640,6 +641,7 @@ export async function writeOutTasks(
   subHeadingCategory: any | null | string = null,
   title: string = '',
   interleaveTaskTypes: boolean = true,
+  insertAtTopOfNote: boolean = false,
 ): Promise<void> {
   const { outputOrder, tasksToTop } = DataStore.settings
 
@@ -691,6 +693,7 @@ export async function writeOutTasks(
           subHeadingCategory,
           title,
           true, // Force tasks to top when interleaving
+          insertAtTopOfNote, // Pass through the insertAtTopOfNote parameter
         )
       } catch (e) {
         logError(pluginJson, JSON.stringify(e))
@@ -722,6 +725,7 @@ export async function writeOutTasks(
                 subHeadingCategory,
                 title,
                 false, // Use normal tasksToTop behavior
+                insertAtTopOfNote, // Pass through the insertAtTopOfNote parameter
               )
             : null
         } catch (e) {
@@ -930,7 +934,7 @@ export async function sortTasks(
       const sortedTasks = sortParagraphsByType(sortGroups[key], sortOrder, interleaveTaskTypes)
       clo(sortedTasks, `sortTasks sortedTasks after sortParagraphsByType ${key}`)
       if (Editor.note) await deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
-      if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', key, interleaveTaskTypes)
+      if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', key, interleaveTaskTypes, !byHeading)
     }
   }
 
@@ -996,7 +1000,7 @@ export async function sortTasksUnderHeading(
           // const sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
           if (noteToUse) await deleteExistingTasks(noteToUse, sortedTasks) // need to do this before adding new lines to preserve line numbers
           // if (noteToUse) await writeOutTasks(noteToUse, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', heading)
-          if (noteToUse) await writeOutTasks(noteToUse, sortedTasks, false, false, '', heading, interleaveTaskTypes)
+          if (noteToUse) await writeOutTasks(noteToUse, sortedTasks, false, false, '', heading, interleaveTaskTypes, false)
         }
       } else {
         await showMessage(`No tasks found under heading "${heading}"`)

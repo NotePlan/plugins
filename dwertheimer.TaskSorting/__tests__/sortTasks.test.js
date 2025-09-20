@@ -683,12 +683,14 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = global.Editor.paragraphs
 
         // Verify the order matches interleaved sorting (priority first, open tasks before checklists within same priority)
-        expect(result[1].content).toBe('!!! High priority checklist task (A)') // Highest priority (!!!)
-        expect(result[2].content).toBe('!! High priority scheduled task >2024-01-01 (D)') // Second highest (!!) - scheduled is open type
-        expect(result[3].content).toBe('!! Medium priority open task (B)') // Third highest (!!) - open task
-        expect(result[4].content).toBe('Low priority open task') // Fourth highest (no priority) - open task
-        expect(result[5].content).toBe('Low priority checklist task (C)') // Fifth highest (no priority) - checklist
-        expect(result[6].content).toBe('! Completed task') // Done task (separate group)
+        // Note: Tasks are now inserted at top of note, so they start at index 0, title is pushed down
+        expect(result[0].content).toBe('!!! High priority checklist task (A)') // Highest priority (!!!)
+        expect(result[1].content).toBe('!! High priority scheduled task >2024-01-01 (D)') // Second highest (!!) - scheduled is open type
+        expect(result[2].content).toBe('!! Medium priority open task (B)') // Third highest (!!) - open task
+        expect(result[3].content).toBe('Low priority open task') // Fourth highest (no priority) - open task
+        expect(result[4].content).toBe('Low priority checklist task (C)') // Fifth highest (no priority) - checklist
+        expect(result[5].content).toBe('! Completed task') // Done task (separate group)
+        expect(result[6].content).toBe('Test Note with Mixed Tasks') // Title is now at the bottom
 
         global.Editor = { ...editorBackup }
         global.DataStore = { ...dataStoreBackup }
@@ -759,11 +761,13 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = global.Editor.paragraphs
 
         // Verify active tasks are interleaved, but completed/cancelled are separate groups
-        expect(result[1].content).toBe('!!! High priority checklist task') // Highest active priority (!!!)
-        expect(result[2].content).toBe('Low priority open task') // Lower active priority (no priority)
-        expect(result[3].content).toBe('!! High priority done task') // Highest done priority (!!)
-        expect(result[4].content).toBe('Low priority done task') // Lower done priority (no priority)
-        expect(result[5].content).toBe('! Cancelled task') // Cancelled task (separate group)
+        // Note: Tasks are now inserted at top of note, so they start at index 0, title is pushed down
+        expect(result[0].content).toBe('!!! High priority checklist task') // Highest active priority (!!!)
+        expect(result[1].content).toBe('Low priority open task') // Lower active priority (no priority)
+        expect(result[2].content).toBe('!! High priority done task') // Highest done priority (!!)
+        expect(result[3].content).toBe('Low priority done task') // Lower done priority (no priority)
+        expect(result[4].content).toBe('! Cancelled task') // Cancelled task (separate group)
+        expect(result[5].content).toBe('Test Note with All Types') // Title is now at the bottom
 
         global.Editor = { ...editorBackup }
         global.DataStore = { ...dataStoreBackup }
@@ -786,8 +790,9 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = global.Editor.paragraphs
 
         // Verify it behaves like boolean true (interleaved, open tasks before checklists within same priority)
-        expect(result[1].content).toBe('!!! High priority checklist task (A)') // Highest priority (!!!)
-        expect(result[2].content).toBe('!! High priority scheduled task >2024-01-01 (D)') // Second highest (!!) - scheduled is open type
+        // Note: Tasks are now inserted at top of note, so they start at index 0, title is pushed down
+        expect(result[0].content).toBe('!!! High priority checklist task (A)') // Highest priority (!!!)
+        expect(result[1].content).toBe('!! High priority scheduled task >2024-01-01 (D)') // Second highest (!!) - scheduled is open type
 
         global.Editor = { ...editorBackup }
         global.DataStore = { ...dataStoreBackup }
@@ -875,7 +880,6 @@ describe(`${PLUGIN_NAME}`, () => {
         // 10. * [x] a completed task (priority 0, completed)
 
         const tasksAfterHeading = result.slice(headingIndex + 1).filter((p) => p.content && !p.content.startsWith('noteplan://') && TASK_TYPES.includes(p.type))
-
 
         // Interleaved order: priority first, then open tasks before checklists within same priority
         expect(tasksAfterHeading[0].rawContent).toBe('+ !!! 01 a checklist') // Highest priority (3) checklist
