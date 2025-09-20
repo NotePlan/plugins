@@ -216,7 +216,7 @@ export async function openTasksToTop(
 export async function tasksToTop() {
   try {
     logDebug(`tasksToTop(): Bringing tasks to top`)
-    await sortTasks(false, [], null, null, false)
+    await sortTasks(false, [], null, null, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -226,7 +226,7 @@ export async function sortTasksByPerson() {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
-    await sortTasks(false, ['mentions', '-priority', 'content'], includeHeading, includeSubHeading, false)
+    await sortTasks(false, ['mentions', '-priority', 'content'], includeHeading, includeSubHeading, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -236,7 +236,7 @@ export async function sortTasksByDue() {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
-    await sortTasks(false, ['due', '-priority', 'content'], includeHeading, includeSubHeading, false)
+    await sortTasks(false, ['due', '-priority', 'content'], includeHeading, includeSubHeading, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -246,7 +246,7 @@ export async function sortTasksByTag() {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
-    await sortTasks(false, ['hashtags', '-priority', 'content'], includeHeading, includeSubHeading, false)
+    await sortTasks(false, ['hashtags', '-priority', 'content'], includeHeading, includeSubHeading, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -259,7 +259,7 @@ export async function sortTasksDefault() {
     logDebug(
       `sortTasksDefault(): defaultSort1=${defaultSort1}, defaultSort2=${defaultSort2}, defaultSort3=${defaultSort3}, includeHeading=${includeHeading}, includeSubHeading=${includeSubHeading}\nCalling sortTasks now`,
     )
-    await sortTasks(false, [defaultSort1, defaultSort2, defaultSort3], includeHeading, includeSubHeading, false)
+    await sortTasks(false, [defaultSort1, defaultSort2, defaultSort3], includeHeading, includeSubHeading, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -269,7 +269,7 @@ export async function sortTasksTagMention() {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
-    await sortTasks(false, ['hashtags', 'mentions'], includeHeading, includeSubHeading, false)
+    await sortTasks(false, ['hashtags', 'mentions'], includeHeading, includeSubHeading, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -822,6 +822,7 @@ export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<
  * @param {boolean} withHeadings - top level headings (e.g. "Open Tasks")
  * @param {boolean} subHeadingCategory - subheadings (e.g. for each tag)
  * @param {boolean} interleaveTaskTypes - whether to interleave task types (open/checklist together) or keep them separate
+ * @param {boolean} sortInHeadings - whether to sort within each heading separately (true) or treat entire note as one unit (false)
  * @returns
  */
 export async function sortTasks(
@@ -830,6 +831,7 @@ export async function sortTasks(
   _withHeadings: string | boolean | null = null,
   _subHeadingCategory: string | boolean | null = null,
   _interleaveTaskTypes: string | boolean = true,
+  _sortInHeadings: string | boolean | null = null,
 ) {
   // Cast parameters to proper types
   const withUserInput = getBooleanValue(_withUserInput, true)
@@ -837,6 +839,7 @@ export async function sortTasks(
   const withHeadings = _withHeadings === null ? null : getBooleanValue(_withHeadings, false)
   const subHeadingCategory = _subHeadingCategory === null ? null : getBooleanValue(_subHeadingCategory, false)
   const interleaveTaskTypes = getBooleanValue(_interleaveTaskTypes, true)
+  const sortInHeadingsOverride = _sortInHeadings === null ? null : getBooleanValue(_sortInHeadings, true)
 
   await saveEditorIfNecessary()
   logDebug(
@@ -852,7 +855,8 @@ export async function sortTasks(
 
   const { eliminateSpinsters, sortInHeadings, includeSubHeading } = DataStore.settings
 
-  const byHeading = withUserInput ? await sortInsideHeadings() : sortInHeadings
+  // Use override parameter if provided, otherwise use DataStore setting or prompt user
+  const byHeading = withUserInput ? await sortInsideHeadings() : sortInHeadingsOverride !== null ? sortInHeadingsOverride : sortInHeadings
 
   logDebug(
     `\n\nStarting sortTasks(withUserInput:${String(withUserInput)}, default sortFields:${JSON.stringify(sortFields)}, withHeadings:${String(withHeadings)}, byHeading:${String(

@@ -4,12 +4,16 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md) for details on available commands and use case.
 
-## [1.2.5] - 2025-09-13 (@dwertheimer)
+## [1.2.5] - 2025-09-19 (@dwertheimer)
 
 - Add logging for jgclark to sortTasksUnderHeading
 - Add ability to pass all params to /ts and /tsh commands
 - remove sortTasksViaTemplate code which was never a published command
 - change default behavior of /ts* commands to interleave task types (open/checklist together)
+- **NEW**: Add `sortInHeadings` parameter to `/ts` command to override DataStore setting
+  - `sortInHeadings: false` treats entire note as one unit (moves all open tasks to top)
+  - `sortInHeadings: true` sorts tasks within each heading separately (default behavior)
+  - Allows x-callback-url calls to specify sorting behavior regardless of user's DataStore settings 
 
 ## [1.2.4] - 2025-08-31 (@dwertheimer)
 

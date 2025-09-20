@@ -31,7 +31,8 @@
         "sortFields (comma separated string sort order, e.g. '-priority,content')",
         "withHeadings (true/false)",
         "subHeadingCategory (true/false)",
-        "interleaveTaskTypes (true/false) - whether to interleave task types (open/checklist together) or keep them separate. Default: true (interleaved)"
+        "interleaveTaskTypes (true/false) - whether to interleave task types (open/checklist together) or keep them separate. Default: true (interleaved)",
+        "sortInHeadings (true/false) - whether to sort tasks within each heading separately (true) or treat entire note as one unit (false). Default: null (use DataStore setting)"
       ]
     },
     {

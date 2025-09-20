@@ -28,10 +28,31 @@ This plugin will sort your tasks in the open note in the Editor interactively so
 
 When you run /ts, it will sort the tasks into task types (open|scheduled|completed|cancelled), and it will ask you how you want to sort within those categories and whether you want the output to have the category type headings or not, e.g.:
 
+#### Parameters (for x-callback-url calls):
+- `arg0`: `withUserInput` (true/false) - whether to prompt user interactively
+- `arg1`: `sortFields` (comma-separated string) - sort order, e.g. "-priority,content"
+- `arg2`: `withHeadings` (true/false) - whether to output section headings like "Open Tasks"
+- `arg3`: `subHeadingCategory` (true/false) - whether to output subheadings for each tag/mention
+- `arg4`: `interleaveTaskTypes` (true/false) - whether to interleave task types together or keep separate
+- `arg5`: `sortInHeadings` (true/false) - whether to sort within each heading separately or treat entire note as one unit
+
+#### Examples:
+```text
+# Sort by priority without headings, treating entire note as one unit (moves all open tasks to top)
+noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sort%20tasks%20on%20the%20page&arg0=false&arg1=-priority,content&arg2=false&arg3=false&arg4=true&arg5=false
+
+# Sort within each heading separately (default behavior)
+noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sort%20tasks%20on%20the%20page&arg0=false&arg1=-priority,content&arg2=false&arg3=false&arg4=true&arg5=true
+```
+
 **New Feature: Task Type Interleaving (Default Behavior)**
 - **By default**, tasks are interleaved: compatible task types are combined and sorted together by priority
 - Within each priority level, open tasks appear before checklists
 - This allows tasks to be sorted by priority first, then by type (open before checklist)
+
+**Sorting Behavior Options:**
+- **`sortInHeadings: true`** (default): Sort tasks within each heading separately. Tasks stay under their original headings but are sorted within each heading.
+- **`sortInHeadings: false`**: Treat the entire note as one unit. All open tasks move to the top of the page regardless of which heading they were originally under.
 - To use traditional grouping (all open tasks together, then all checklists together), set `interleaveTaskTypes=false`
 
 ```text
