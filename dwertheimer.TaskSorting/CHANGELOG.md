@@ -14,6 +14,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
   - `sortInHeadings: false` treats entire note as one unit (moves all open tasks to top)
   - `sortInHeadings: true` sorts tasks within each heading separately (default behavior)
   - Allows x-callback-url calls to specify sorting behavior regardless of user's DataStore settings 
+- Fix bug where tasks were not being sorted in headings for frontmatter-only notes
 
 ## [1.2.4] - 2025-08-31 (@dwertheimer)
 

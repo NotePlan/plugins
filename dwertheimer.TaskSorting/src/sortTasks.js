@@ -360,15 +360,46 @@ function insertTodos(
   if (title !== '') {
     // const headingIndex = findHeading(note, title)?.lineIndex || 0
     logDebug(`\tinsertTodos`, `shouldInsertAtTop=${shouldInsertAtTop} title="${title}"`)
+
+    // Check if this is a traditional note with a single # heading or frontmatter-only note
+    const firstPara = note.paragraphs[0]
+    const hasTraditionalTitle = firstPara && firstPara.type === 'title' && firstPara.headingLevel === 1
+    const hasFrontmatterTitle = note.frontmatterAttributes && note.frontmatterAttributes.title
+
+    logDebug(
+      `\tinsertTodos: hasTraditionalTitle=${hasTraditionalTitle}, hasFrontmatterTitle=${hasFrontmatterTitle}, firstPara.type="${firstPara?.type}", firstPara.headingLevel=${firstPara?.headingLevel}, title="${title}"`,
+    )
+
+    // Check if the title matches the note's main title (first paragraph content)
+    const isNoteMainTitle = hasTraditionalTitle && title === firstPara.content
+
     if (shouldInsertAtTop) {
-      note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
+      if (hasTraditionalTitle && isNoteMainTitle) {
+        // Insert below the note's main title
+        logDebug(`\tinsertTodos: Inserting below note's main title="${title}"`)
+        note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
+        logDebug(`\tinsertTodos: Completed addParagraphBelowHeadingTitle`)
+      } else {
+        // Insert at top of active part (either no traditional title, or title is not the main title)
+        logDebug(`\tinsertTodos: Inserting at top of active part (title="${title}" is not main title)`)
+        const insertionIndex = findStartOfActivePartOfNote(note)
+        note.insertParagraph(content, insertionIndex, 'text')
+      }
     } else {
-      const paras = getBlockUnderHeading(note, title)
-      const lastPara = paras[paras.length - 1]
-      const insertFunc = lastPara.type === 'separator' ? `insertTodoBeforeParagraph` : `insertParagraphAfterParagraph`
-      logDebug(`\tinsertTodos note.${insertFunc} "${lastPara.content}"`)
-      // $FlowIgnore - calling function by name is not very Flow friendly (but it works!)
-      note[insertFunc](content, lastPara)
+      if (hasTraditionalTitle && isNoteMainTitle) {
+        // Insert at end of the main title section
+        const paras = getBlockUnderHeading(note, title)
+        const lastPara = paras[paras.length - 1]
+        const insertFunc = lastPara.type === 'separator' ? `insertTodoBeforeParagraph` : `insertParagraphAfterParagraph`
+        logDebug(`\tinsertTodos note.${insertFunc} "${lastPara.content}"`)
+        // $FlowIgnore - calling function by name is not very Flow friendly (but it works!)
+        note[insertFunc](content, lastPara)
+      } else {
+        // Insert at end of note
+        logDebug(`\tinsertTodos: Inserting at end of note (title="${title}" is not main title)`)
+        const insertionIndex = findEndOfActivePartOfNote(note) + 1
+        note.insertParagraph(content, insertionIndex, 'text')
+      }
     }
   } else {
     const insertionIndex = shouldInsertAtTop ? findStartOfActivePartOfNote(note) : findEndOfActivePartOfNote(note) + 1
