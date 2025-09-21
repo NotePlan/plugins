@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 2025-08-25, for v1.3.1
+// Last updated 2025-09-06, for v1.3.2
 // -----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json' // allow changes in plugin.json to trigger recompilation

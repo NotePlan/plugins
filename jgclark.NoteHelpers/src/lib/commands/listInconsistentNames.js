@@ -15,6 +15,7 @@ import { chooseFolder, showMessage } from '@helpers/userInput'
 
 /**
  * Shows a list of notes with inconsistent names (i.e. where the note title and filename are different).
+ * Only makes sense for private regular notes.
  * @param {string} folderIn - Optional URL-encodedfolder to check for inconsistent names. If not provided, the user will be prompted to choose a folder.
  * @returns void
  */
@@ -26,7 +27,8 @@ export async function listInconsistentNames(folderIn: string = ''): Promise<void
       folder = decodeURIComponent(folderIn)
     } else {
       logDebug(pluginJson, 'listInconsistentNames(): Checking for inconsistent names in project notes...')
-      folder = await chooseFolder('Choose a folder to find inconsistent filenames in')
+      // Find only private (non-teamspace) notes
+      folder = await chooseFolder('Choose a note folder to find inconsistent filenames in', false, false, '', true, true)
     }
 
     if (!folder) {

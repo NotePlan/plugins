@@ -342,7 +342,7 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
 }
 
 /**
- * Return list of all regular notes, sorted by changed date (newest to oldest)
+ * Return list of all regular notes, apart from those in special '@...' folders, sorted by changed date (newest to oldest)
  * @author @jgclark
  * @param {Array<string>} foldersToExclude? (default: [])
  * @return {Array<TNote>} array of notes

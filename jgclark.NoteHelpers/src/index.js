@@ -9,10 +9,10 @@
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 
-import { JSP, logDebug, logError } from '@helpers/dev'
+import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 // import { migrateCommandsIfNecessary } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
-import { showMessage } from '@helpers/userInput'
+import { chooseFolder, showMessage } from '@helpers/userInput'
 
 export { countAndAddDays } from './countDays'
 export { indexFolders, updateAllIndexes } from './indexFolders'
@@ -83,5 +83,22 @@ export async function updateSettings(): Promise<void> {
     await editSettings(pluginJson)
   } catch (error) {
     logError(pluginJson, JSP(error))
+  }
+}
+
+//-----------------------------------------------------------------
+
+/**
+ * Test the chooseFolder() function
+ * Call: noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=test%3A%20choose%20folder
+ * @author @jgclark
+ */
+export async function testChooseFolder(): Promise<void> {
+  try {
+  const selectedFolder = await chooseFolder(`TEST: Select a folder`, true, true, '', true, false, false)
+    logInfo('testChooseFolder', `Selected folder: ${selectedFolder}`)
+  } catch (err) {
+    logError('noteHelpers/testChooseFolder', err.message)
+    await showMessage(err.message)
   }
 }

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Functions to identify and fix where note names and their filenames are inconsistent.
 // by Leo Melo, readied for the plugin and maintained by @jgclark
-// Last updated 2025-06-11 for v1.2.0 by @jgclark
+// Last updated 2025-09-14 for v1.2.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../../../plugin.json'
@@ -14,10 +14,11 @@ import { chooseFolder, showMessage, showMessageWithList, showMessageYesNoCancel 
 /**
  * Renames all project notes with inconsistent names (i.e. where the note title and filename are different (apart from case)).
  * Optionally prompts the user before renaming each note.
+ * Note: currently only works for private regular notes.
  */
 export async function renameInconsistentNames(): Promise<void> {
   try {
-    const directory = await chooseFolder('Choose a folder to rename inconsistent notes in')
+    const directory = await chooseFolder('Choose a folder to rename inconsistent notes in', true, false, '', true, true) // exclude Teamspace notes
 
     if (!directory) {
       logWarn(pluginJson, 'renameInconsistentNames(): No folder chosen. Stopping.')
