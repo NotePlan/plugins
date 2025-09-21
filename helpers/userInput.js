@@ -400,13 +400,15 @@ export async function chooseFolder(
           } else if (optClickedOnFolder) {
             // i.e. new folder wanted, and parent folder chosen
             folder = folders[result.index-1] // to ignore the added new folder option if present
+            newFolderWanted = true
           }
           else {
             folder = folders[result.index-1] // to ignore the added new folder option if present
             // newFolderWanted = value === NEW_FOLDER
           }
   
-          // Handle new folder creation
+          // Handle new folder creation, if requested
+          if (newFolderWanted) {
           const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
           if (newFolderPath) {
             folder = newFolderPath
@@ -415,18 +417,13 @@ export async function chooseFolder(
           } else {
             throw new Error(`Failed to create new folder "${folder}"`)
           }
+          }
     
         } else {
           // not including add new folder option
-          result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions), //includeNewFolderOption ? addDecoratedNewFolderOption : undefined) // note now wanting to disable the add new folder option as we are handling it specifically here
+          result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions)
           clo(result, 'chooseFolder chooseDecoratedOptionWithModifiers result') // ✅
-          if (result.index === -1) {
-            // i.e. new folder wanted, but no name given yet
-            value = '' 
-            newFolderWanted = true
-          } else {
-            value = folders[result.index]
-          }
+          value = folders[result.index]
         }
       } else {
         // ✅ for both private + teamspace
