@@ -233,7 +233,7 @@ export async function updateDoneCountsFromChangedNotes(reason: string = '', keep
       // Update the map with the filename as key and an object with lastUpdated and doneCount as value
       changedNoteMap.set(note.filename, doneTaskCount)
     })
-    logDebug('updateDoneCountsFromChangedNotes', `=> checked ${recentlychangedNotes.length} updated notes`)
+    // logDebug('updateDoneCountsFromChangedNotes', `=> checked ${recentlychangedNotes.length} updated notes`)
 
     // Sum the completedTasks from all map entries
     let totalCompletedTasks = 0
@@ -249,7 +249,7 @@ export async function updateDoneCountsFromChangedNotes(reason: string = '', keep
       lastUpdated: value.lastUpdated,
     }))
     const res = DataStore.saveData(JSON.stringify(mapArray), changedNoteFile, true)
-    logDebug('updateDoneCountsFromChangedNotes', `Output:\n${mapArray.map((o) => `${o.filename} -> ${o.completedTasks}`).join('\n')}\n`)
+    // logDebug('updateDoneCountsFromChangedNotes', `Output:\n${mapArray.map((o) => `${o.filename} -> ${o.completedTasks}`).join('\n')}\n`)
 
     // Update the preference for current time
     DataStore.setPreference(lastTimeThisWasRunPref, new Date())

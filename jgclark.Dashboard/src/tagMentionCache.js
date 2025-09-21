@@ -92,16 +92,19 @@ export function scheduleTagMentionCacheGenerationIfTooOld(generatedAtStr: string
 /**
  * Update the tag mention cache if it's too old (>1 hour). Note: assumes that the cache is available.
  * @param {string} updatedAtStr The date and time the cache was last updated.
+ * @returns {boolean} True if the cache was updated, false otherwise.
  */
-export async function updateTagMentionCacheIfTooOld(updatedAtStr: string): Promise<void> {
+export async function updateTagMentionCacheIfTooOld(updatedAtStr: string): Promise<boolean> {
   const nowMom = moment()
   const updatedAtMom = moment(updatedAtStr)
   const diffHours = nowMom.diff(updatedAtMom, 'hours', true)
   if (diffHours >= TAG_CACHE_UPDATE_INTERVAL_HOURS) {
     logInfo('updateTagMentionCacheIfTooOld', `Tag mention cache last update is too old (${diffHours}hours), so will now update it ...`)
     await updateTagMentionCache()
+    return true
   } else {
     logInfo('updateTagMentionCacheIfTooOld', `Tag mention cache last update is not too old (${diffHours}hours).`)
+    return false
   }
 }
 
@@ -235,19 +238,24 @@ export async function getFilenamesOfNotesWithTagOrMentions(
       }
     }
 
+    // FIXME: Somewhere here stop @Jo matching @Jonathan
+
     // Get the cache contents
     const startTime = new Date()
-    const cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
+    let cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
     const parsedCache = JSON.parse(cache)
-    const regularNoteItems = parsedCache.regularNotes
-    const calNoteItems = parsedCache.calendarNotes
-    logInfo('getFilenamesOfNotesWithTagOrMentions', `Regular notes in cache: ${String(regularNoteItems.length)}`)
-    logInfo('getFilenamesOfNotesWithTagOrMentions', `Calendar notes in cache: ${String(calNoteItems.length)}`)
-    const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
-    let countComparison = ''
 
     // Update the cache if too old
-    await updateTagMentionCacheIfTooOld(parsedCache.lastUpdated)
+    const cacheUpdated = await updateTagMentionCacheIfTooOld(parsedCache.lastUpdated)
+    if (cacheUpdated) {
+      cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
+    }
+    const regularNoteItems = parsedCache.regularNotes
+    const calNoteItems = parsedCache.calendarNotes
+    logDebug('getFilenamesOfNotesWithTagOrMentions', `Regular notes in cache: ${String(regularNoteItems.length)}`)
+    logDebug('getFilenamesOfNotesWithTagOrMentions', `Calendar notes in cache: ${String(calNoteItems.length)}`)
+    const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
+    let countComparison = ''
     
     // Get matching Calendar notes using Cache
     let matchingNoteFilenamesFromCache = calNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename)
@@ -266,12 +274,13 @@ export async function getFilenamesOfNotesWithTagOrMentions(
     )
 
     // If wanted, compare the Cache results with API results
+    // FIXME: update to make more accurate
     if (turnOnAPIComparison) {
       logInfo('getFilenamesOfNotesWithTagOrMentions', `- getting matching notes from API ready for comparison`)
       const thisStartTime = new Date()
       let matchingNotesFromAPI: Array<TNote> = []
       for (const tagOrMention of tagOrMentions) {
-        matchingNotesFromAPI = matchingNotesFromAPI.concat(findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, [], WANTED_PARA_TYPES))
+        matchingNotesFromAPI = matchingNotesFromAPI.concat(findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, [], WANTED_PARA_TYPES, '', false, true))
       }
       // $FlowIgnore[unsafe-arithmetic]
       const APILookupTime = new Date() - thisStartTime
@@ -611,7 +620,7 @@ export function getWantedTagOrMentionListFromNote(
       tagsAndMentions = filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(note, tagsAndMentions, WANTED_PARA_TYPES, includeNoteTags)
     }
 
-    // If FFlag_UseNoteTags is true, include the frontmatter tags in the results
+    // Include the frontmatter tags in the results
     const seenWantedNoteTagsOrMentions: Array<string> = []
     if (includeNoteTags && noteHasFrontMatter(note)) {
       const frontmatterAttributes = note.frontmatterAttributes

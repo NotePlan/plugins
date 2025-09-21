@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-07-04 for v2.3.0.b4
+// last updated 2025-07-04 for v2.3.0.b10
 // ----------------------------------------------------------------------------
 
 /**
@@ -109,17 +109,18 @@ export async function onUpdateOrInstall(): Promise<void> {
     const newPerspectives = perspectiveSettings.map((p) => ({ ...p, dashboardSettings: { ...defaults, ...p.dashboardSettings } }))
     const migratedSettings = { ...initialSettings, dashboardSettings: JSON.stringify(migratedDashboardSettings), perspectiveSettings: JSON.stringify(newPerspectives) }
 
+    // Backup the settings on all new installs
+    await backupSettings(true)
     const diff = compareObjects(migratedDashboardSettings, initialDashboardSettings, [], true)
     if (diff != null) {
       // Save the settings back to the DataStore
-      clo(diff, `Dashboard: onUpdateOrInstall - changes detected; diff:`)
-      await backupSettings(true)
+      clo(diff, `Dashboard: onUpdateOrInstall - changes to settings detected. Diff:`)
       await saveSettings(pluginID, migratedSettings)
-      await showDashboardReact() // force a refresh of the dashboard with the new settings.
-      // throw new Error('Stop because changes detected (this is not actually an ERROR but we are using a throw statement to stop execution)') // updates were required to be made to the settings.
     } else {
       logInfo(`onUpdateOrInstall`, `- no changes detected to settings.`)
     }
+    // force a refresh of the dashboard with the new settings.
+    await showDashboardReact()
     logInfo(`onUpdateOrInstall`, `- finished.`)
     pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
 
