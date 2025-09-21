@@ -131,7 +131,8 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
 
 /**
  * Show a list of options to the user and return which option they picked (and whether they used a modifier key), optionally with ability to create a new item.
- * V2: without the <TDefault> type parameter, using the new CommandBar.showOptions() options from v3.18
+ * This is a fork of chooseOptionWithModifiers(), without the <TDefault> type parameter, using the new CommandBar.showOptions() options from v3.18
+ * Note: requires at least v3.18
  * @author @jgclark, @dwertheimer based on @nmn chooseOption
  *
  * @param {string} message - text to display to user
@@ -139,12 +140,12 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
  * @param {TCommandBarOptionObject} additionalCreateNewOption - optional option object to create a new item
  * @returns {Promise<TCommandBarResultObject>} - the object that was chosen, plus an index of the chosen option and keyModifiers array. If the user created a new item, the index will be -1.
  */
-export async function chooseOptionWithModifiersV2(
+export async function chooseDecoratedOptionWithModifiers(
   message: string,
   options: Array<TCommandBarOptionObject>,
   additionalCreateNewOption?: TCommandBarOptionObject,
 ): Promise<TCommandBarResultObject> {
-  logDebug('userInput / chooseOptionWithModifiersV2()', `Will showOptions with ${options.length} options & prompt: "${message}"`)
+  logDebug('userInput / chooseDecoratedOptionWithModifiers()', `Will showOptions with ${options.length} options & prompt: "${message}"`)
 
   // label field is used elsewhere, but @eduardme made showOptions use text instead, so we map it back to label
   if (Array.isArray(options) && options.length > 0) { 
@@ -158,16 +159,12 @@ export async function chooseOptionWithModifiersV2(
   if (additionalCreateNewOption) {
     displayOptions.unshift(additionalCreateNewOption)
   }
-  // logDebug('userInput / chooseOptionWithModifiersV2()', `displayOptions: ${displayOptions.length} options`)
-// for TEST:
-  for(let i = 0; i < 15; i++) {
-    console.log(`- ${i}: ${displayOptions[i].text}`)
-  }
+  // logDebug('userInput / chooseDecoratedOptionWithModifiers()', `displayOptions: ${displayOptions.length} options`)
 
   // Use newer CommandBar.showOptions() from v3.18
   const result = await CommandBar.showOptions(displayOptions, message, '')
   const { index, keyModifiers } = result
-  clo(result, `chooseOptionWithModifiersV2 chosen result`)
+  clo(result, `chooseDecoratedOptionWithModifiers chosen result`)
   clo(displayOptions[index], `and relevant displayOption`)
 
   // Check if the user selected "Add new item"
@@ -390,7 +387,7 @@ export async function chooseFolder(
         if (includeNewFolderOption) {
           // Add in the new folder option just for newer CommandBar use
           decoratedFolderOptions.unshift(addDecoratedNewFolderOption)
-          result = await chooseOptionWithModifiersV2(msg, decoratedFolderOptions) // note disabling the add new folder option as we need to handle it with access to folders array
+          result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions) // note disabling the add new folder option as we need to handle it with access to folders array
           keyModifiers = result.keyModifiers || []
           if (keyModifiers.length > 0 && keyModifiers.indexOf('opt') > -1) {
             optClickedOnFolder = true
@@ -403,13 +400,15 @@ export async function chooseFolder(
           } else if (optClickedOnFolder) {
             // i.e. new folder wanted, and parent folder chosen
             folder = folders[result.index-1] // to ignore the added new folder option if present
+            newFolderWanted = true
           }
           else {
             folder = folders[result.index-1] // to ignore the added new folder option if present
             // newFolderWanted = value === NEW_FOLDER
           }
   
-          // Handle new folder creation
+          // Handle new folder creation, if requested
+          if (newFolderWanted) {
           const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
           if (newFolderPath) {
             folder = newFolderPath
@@ -418,18 +417,13 @@ export async function chooseFolder(
           } else {
             throw new Error(`Failed to create new folder "${folder}"`)
           }
+          }
     
         } else {
           // not including add new folder option
-          result = await chooseOptionWithModifiersV2(msg, decoratedFolderOptions), //includeNewFolderOption ? addDecoratedNewFolderOption : undefined) // note now wanting to disable the add new folder option as we are handling it specifically here
-          clo(result, 'chooseFolder chooseOptionWithModifiersV2 result') // ✅
-          if (result.index === -1) {
-            // i.e. new folder wanted, but no name given yet
-            value = '' 
-            newFolderWanted = true
-          } else {
-            value = folders[result.index]
-          }
+          result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions)
+          clo(result, 'chooseFolder chooseDecoratedOptionWithModifiers result') // ✅
+          value = folders[result.index]
         }
       } else {
         // ✅ for both private + teamspace
