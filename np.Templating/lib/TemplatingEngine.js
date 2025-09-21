@@ -14,7 +14,7 @@ import UtilityModule from './support/modules/UtilityModule'
 import SystemModule from './support/modules/SystemModule'
 import FrontmatterModule from './support/modules/FrontmatterModule'
 import TasksModule from './support/modules/TasksModule'
-import helpersModule from './support/modules/helpers'
+import helpersModule from './support/modules/helpersModule'
 
 import pluginJson from '../plugin.json'
 import { clo, log, logDebug, logError, timer } from '@helpers/dev'
