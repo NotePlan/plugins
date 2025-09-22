@@ -1,6 +1,10 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+
+## [1.2.2] - 2025-09-22
+- Fix regression in folder picker.
+
 ## [1.2.1] - 2025-09-19
 - improve and fix folder picker in various commands (including updating the sort order to match the app -- thanks for pointing this out, @tastapod)
 - allow **delete note** command to run on Teamspace notes (if running v3.18.2 or above).

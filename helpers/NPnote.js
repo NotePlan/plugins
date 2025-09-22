@@ -146,8 +146,6 @@ export async function chooseNoteV2(
           alpha: 0.5,
           darkAlpha: 0.5,
         })
-        // } else {
-        //   logDebug('chooseNoteV2', `Found existing note for ${rd.dateStr} so won't add-new-one for it`)
       }
     }
   }

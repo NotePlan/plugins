@@ -30,17 +30,6 @@ type TFolderIcon = {
 
 const TEAMSPACE_ICON_COLOR = 'green-700'
 
-// Define icons to use in decorated CommandBar options
-// const iconsToUseForSpecialFolders: Array<TFolderIcon> = [
-//   { firstLevelFolder: '<CALENDAR>', icon: 'calendar-star', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4, emoji: '📅' },
-//   { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4, emoji: '🗄️' },
-//   { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4, emoji: '📝' },
-//   { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'grey-500', alpha: 0.4, darkAlpha: 0.4, emoji: '🗑️' },
-// ]
-
-// For speed, pre-compute the relative dates
-// const relativeDates = getRelativeDates()
-
 //--------------------------- Local functions ---------------------------------
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 function parseJSON5(contents: string): ?{ [string]: ?mixed } {
