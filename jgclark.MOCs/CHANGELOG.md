@@ -1,9 +1,13 @@
 # What's Changed in 🕸 Map of Contents plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/).
 
-## [0.3.2] - 2024-11-28
+## [0.3.3] - 2025-09-22
+- rebuild to use more advanced folder picker
+- adds frontmatter to generated MOC (if running NP 3.18.1 or greater)
 
+## [0.3.2] - 2024-12-22
 - bump version number to get round a GitHub problem
+
 ## [0.3.1] - 2023-06-16
 - new command **/MOC: update plugin settings** that allows settings to be changed on iOS/iPadOS.
 

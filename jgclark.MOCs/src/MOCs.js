@@ -1,17 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Last updated 2024-10-26 for v0.3.0+, @jgclark
+// Last updated 2025-09-22 for v0.3.0+, @jgclark
 //-----------------------------------------------------------------------------
 
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-// import { replaceContentUnderHeading } from '@helpers/NPParagraph'
-import {
-  // getFolderListMinusExclusions,
-  getFolderFromFilename,
-  // regularNotesFromFilteredFolders
-} from '@helpers/folders'
+import {  getFolderFromFilename } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
@@ -132,33 +127,11 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
         folderName = getFolderFromFilename(note.filename)
         logDebug('makeMOC', `Found ${possibleNotes.length} existing '${requestedTitle}' notes, so will re-use the first of those, from folder ${folderName}`)
       }
-
-
-      // V1 method
-      // const existingNotes: $ReadOnlyArray<TNote> =
-      //   DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
-      // logDebug('makeMOC', `  found ${existingNotes.length} existing '${requestedTitle}' notes`)
-
-      // if (existingNotes.length > 0) {
-      //   note = existingNotes[0] // pick the first if more than one
-      //   logDebug('makeMOC', `  will write MOC to existing note: ${displayTitle(note)}`)
-      // } else {
-      // // make a new note for this. NB: filename here = folder + filename
-      //   // (API says don't add "/" for root, though.)
-      //   noteFilename = DataStore.newNote(requestedTitle, folderName) ?? ''
-      //   if (noteFilename === '') {
-      //     logError('makeMOC', `Error creating new note (filename '${noteFilename}')`)
-      //     await showMessage('There was an error creating the new note')
-      //     return
-      //   }
-      //   logDebug('makeMOC', `  newNote filename: ${noteFilename}`)
-      //   note = DataStore.projectNoteByFilename(noteFilename)
-      // }
     }
 
     if (note == null) {
       logError('makeMOC', `Can't get new note (filename: ${noteFilename})`)
-      await showMessage('There was an error getting the new note ready to write')
+      await showMessage('There was an error getting the new note ready to write to')
       return
     }
     const noteToUse = note
@@ -167,7 +140,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
 
     // Add an x-callback link under the title to allow this MOC to be re-created
     const xCallbackURL = createRunPluginCallbackUrl('jgclark.MOCs', 'make MOC', [noteToUse.filename, termsToMatchStr])
-    const xCallbackLine = `Last updated: ${nowLocaleShortDateTime()} [🔄 Click to refresh](${xCallbackURL})`
+    const xCallbackLine = `[🔄 Click to refresh](${xCallbackURL})`
     // Either replace the existing line that starts the same way, or insert a new line after the title, so as not to disrupt any other section headings
     const line1content = (noteToUse.paragraphs.length >= 2) ? noteToUse.paragraphs[1].content : ''
     // logDebug('makeMOC', `line 1 of ${String(noteToUse.paragraphs.length)}: <${line1content}>`)
@@ -191,7 +164,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       const searchTerm = term.trim()
       const headingToUse = `${(config.headingPrefix) ? `${config.headingPrefix} ` : ''}${searchTerm}`
       const outputArray = []
-      // V2 method using later search API, to try to work for chinese characters 筆記
+      // V2 method using later search API, to ensure it works for chinese characters
       let results = await DataStore.search(searchTerm, ['notes'], [], config.foldersToExclude)
       logDebug('makeMOC', `- found ${results.length} matches for [${searchTerm}]`)
 
@@ -233,21 +206,6 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
 
         const uniqTitles = uniqNotes.map((r) => displayTitle(r))
 
-        // V1 method using JGC's gatherMatchingLines()
-        // Create list of project notes not in excluded folders, starting with NP's list of Project Notes (which only excludes the @Trash).
-        // const projectNotesToUse = projectNotesFromFilteredFolders(config.foldersToExclude, true)
-        // const results = await gatherMatchingLines(projectNotesToUse, searchTerm, false, 'none', config.caseInsensitive)
-        // const resultTitles = results?.[1]
-        // if (resultTitles.length > 0) {
-        //   // dedupe results by making and unmaking it into a set
-        //   const uniqTitlesAsLinks = [...new Set(resultTitles)]
-        //   // remove [[ and ]]
-        //   let uniqTitles: Array<string> = uniqTitlesAsLinks.map((element) => {
-        //     return element.slice(2, -2)
-        //   })
-        //   // remove this note title (if it exists)
-        //   uniqTitles = uniqTitles.filter((t) => t !== requestedTitle)
-
         logDebug('makeMOC', `- ${uniqTitles.length} results for '${searchTerm}' in ${timer(startTime)}`)
         CommandBar.showLoading(false)
 
@@ -265,13 +223,21 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
             myn = 'Yes'
           }
           if (myn === 'Yes') {
-            // write all (wanted) lines out, starting with a heading if needed
+            // prepare each line to be added to the output
             for (let i = 0; i < uniqTitles.length; i++) {
               outputArray.push(`${config.resultPrefix} [[${uniqTitles[i]}]]`)
             }
             // Write new lines to end of active section of note
-            // await replaceContentUnderHeading(noteToUse, headingToUse, outputArray.join('\n'), true, config.headingLevel)
             replaceSection(noteToUse, headingToUse, headingToUse, config.headingLevel, outputArray.join('\n'))
+
+            // Add/update Frontmatter for the note (if 3.18.1 or later)
+            if (NotePlan.environment.buildVersion >= 1419) {
+            noteToUse.updateFrontmatterAttributes([
+              { key: "icon", value: "map-location-dot" },
+                { key: "iconColor", value: "orange-700" },
+                { key: "generated", value: `${moment().format('YYYY-MM-DD HH:mm:ss')}` },
+              ])
+            }
           }
         } else {
           if (config.showEmptyOccurrences) {
@@ -284,7 +250,6 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       } else {
         CommandBar.showLoading(false)
         if (config.showEmptyOccurrences) {
-          // await replaceContentUnderHeading(noteToUse, headingToUse, `No notes found`, true, config.headingLevel)
           replaceSection(noteToUse, headingToUse, headingToUse, config.headingLevel, `No notes found`)
         } else {
           logWarn('makeMOC', `- no matches for search term '${searchTerm}'`)
