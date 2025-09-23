@@ -1,9 +1,25 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
-## [0.15.0] - 2025-07-??? @jgclark
+## [1.0.0] - 2025-09-23??? @jgclark
 - New command **/Remove empty blocks** which in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line.
+- new setting 'Ignore future calendar notes?' for '/Remove section from all notes' command
+- rather arbitrarily promoting this to v1.0 after 2.5 years :-)
 <!-- Perhaps improvement to Remove Section from all notes ? -->
+
+## [0.14.11] - 2025-09-09 @jgclark
+- improvements to '/List stubs' command, including better display of Teamspace notes
+
+## [0.14.10] - 2025-09-03 @jgclark
+- fix regression in '/Generate @repeats from recent notes' command.
+
+## [0.14.9] - 2025-08-30 @jgclark
+- rebuild to use updated code from Repeat Extensions plugin in **/Generate @repeats in recent notes** command
+- update **/Remove blank notes** to gracefully handle Teamspace notes, which can't be removed (at this time).
+
+## [0.14.8] - 2025-06-24 @jgclark
+- updated **/Remove section from all notes** command to show how many sections it will remove, and also to use the 'Type of match for section headings' (`Exact`, `Starts with`, or `Contains`) and 'Folders to exclude' settings
+- code refactoring
 
 ## [0.14.7] - 2025-02-18 @jgclark
 - Stop lots of popups appearing when running **/Generate @repeats in recent notes** command (thanks, @kanera).

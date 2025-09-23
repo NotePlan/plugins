@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 2025-02-16 for v0.14.7 by @jgclark
+// Last updated 2025-09-23 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -17,8 +17,6 @@ export {
   logNotesChangedInInterval,
   removeDoneMarkers,
   removeOrphanedBlockIDs,
-  removeSectionFromAllNotes,
-  removeSectionFromRecentNotes,
   removeTriggersFromRecentCalendarNotes,
   removeDoneTimeParts,
   removeBlankNotes,
@@ -26,13 +24,14 @@ export {
   removeTodayTagsFromCompletedTodos,
 } from './tidyMain'
 export { listConflicts, openConflictSideBySide, resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion } from './conflicts'
+export { listPotentialDoubles } from './doubledNotes'
 export { listDuplicates } from './duplicates'
+export { removeEmptyBlocks } from './emptyBlocks'
 export { fileRootNotes } from './fileRoot'
 export { generateRepeatsFromRecentNotes } from './repeats'
+export { removeSectionFromAllNotes, removeSectionFromRecentNotes } from './removeSections'
 export { listStubs } from './stubs'
 export { moveTopLevelTasksInEditor } from './topLevelTasks'
-export { listPotentialDoubles } from './doubledNotes'
-export { removeEmptyBlocks } from './emptyBlocks'
 
 /**
  * Other imports/exports

@@ -501,18 +501,19 @@ export async function blockContainsOnlySyncedCopies(note: CoreNoteFields, showEr
 /**
  * Remove all previously written blocks under a given heading in all notes (e.g. for deleting previous "TimeBlocks" or "SyncedCopies")
  * WARNING: This is DANGEROUS. Could delete a lot of content. You have been warned!
- * @author @dwertheimer
+ * @author @dwertheimer, updated by @jgclark
  * @param {Array<string>} noteTypes - the types of notes to look in -- e.g. ['calendar','notes']
  * @param {string} heading - the heading too look for in the notes (without the #)
- * @param {boolean} keepHeading - whether to leave the heading in place afer all the content underneath is
- * @param {boolean} runSilently - whether to show CommandBar popups confirming how many notes will be affected - you should set it to 'yes' when running from a template
+ * @param {boolean} keepHeading? - whether to leave the heading in place afer all the content underneath is removed. Default is false.
+ * @param {string} runSilently - 'yes' or 'no': whether to show CommandBar popups confirming how many notes will be affected - you should set it to 'yes' when running from a template
+ * @param {boolean} syncedOnly? - whether to only remove content under headings that contain only synced copies. Default is false.
  */
 export async function removeContentUnderHeadingInAllNotes(
   noteTypes: Array<string>,
   heading: string,
   keepHeading: boolean = false,
   runSilently: string = 'no',
-  syncedOnly?: boolean,
+  syncedOnly?: boolean = false,
 ): Promise<void> {
   try {
     logDebug(`NPParagraph`, `removeContentUnderHeadingInAllNotes "${heading}" in ${noteTypes.join(', ')}`)

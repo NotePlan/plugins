@@ -57,8 +57,39 @@ export async function removeEmptyBlocks(filenameIn?: string) {
         changesMade = true
       }
 
-      // Handle multiple empty paras
-      if (para.type === 'empty') {
+      // Delete empty sections
+      // i.e. headings that have no following content before the next heading of the same level, a separator, or the end of the note
+      if (para && para.type === 'title') {
+        let sectionHasContent = false
+        for (let i = para.lineIndex + 1; i < paragraphs.length; i++) {
+          const nextPara = paragraphs[i]
+          // Stop if we hit a heading of the same or higher level, or a separator, or end of note
+          if (
+            (nextPara.type === 'title' && nextPara.headingLevel <= para.headingLevel) ||
+            nextPara.type === 'separator'
+          ) {
+            break
+          }
+          // If we find any non-empty, non-empty-line, non-separator content, mark as having content
+          if (
+            nextPara.type !== 'empty' &&
+            nextPara.type !== 'separator' &&
+            nextPara.content.trim() !== ''
+          ) {
+            sectionHasContent = true
+            break
+          }
+        }
+        if (!sectionHasContent) {
+          logDebug('removeEmptyBlocks', `Removing heading para on line ${String(para.lineIndex)} (no content before next heading/separator/end)`)
+          note.removeParagraph(para)
+          changesMade = true
+        }
+      }
+
+      // Delete multiple consecutive empty paras
+      // Deliberately after delete empty sections, to help tidy up blank lines that it can leave.
+      if (para && para.type === 'empty') {
         // logDebug('removeEmptyBlocks', `Line ${String(para.lineIndex)} is empty. lastWasEmpty: ${String(lastWasEmpty)}`)
         if (lastWasEmpty) {
           logDebug('removeEmptyBlocks', `Removing empty para on line ${String(para.lineIndex)}`)

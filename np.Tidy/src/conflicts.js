@@ -37,10 +37,9 @@ import { noteOpenInEditor, openNoteInNewSplitIfNeeded } from '@helpers/NPWindows
 import { contentRangeToString } from '@helpers/paragraph'
 import { showMessage } from "@helpers/userInput"
 
-const pluginID = 'np.Tidy'
-
 //----------------------------------------------------------------------------
 
+const pluginID = 'np.Tidy'
 const enoughDifference = 100 // 100 bytes
 const conflictedCopiesBaseFolder = '@Conflicted Copies' // folder to use
 
@@ -64,20 +63,12 @@ type conflictDetails = {
 async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise<Array<conflictDetails>> {
   try {
     if (NotePlan.environment.buildVersion < 1053) {
-      await showMessage("Command '/list conflicted notes' is only available from NP 3.9.3")
+      await showMessage("Command '/List conflicted notes' is only available from NP 3.9.3")
       return []
     }
     logDebug(pluginJson, `getConflictedNotes() starting`)
 
     const outputArray: Array<conflictDetails> = []
-    // let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, true)
-    // logDebug('getConflictedNotes', `- Found ${relevantFolderList.length} folders to check`)
-    // Get all notes to check
-    // let notes: Array<TNote> = []
-    // for (const thisFolder of relevantFolderList) {
-    //   const theseNotes = getProjectNotesInFolder(thisFolder)
-    //   notes = notes.concat(theseNotes)
-    // }
     let notes = allNotesSortedByTitle(foldersToExclude)
     logDebug('getConflictedNotes', `- Will check all ${notes.length} notes`)
 

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-07-15 for v0.15.0, @jgclark
+// Last updated 2025-09-23 for v1.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -21,6 +21,7 @@ export type TidyConfig = {
   listFoldersToExclude: Array<string>,
   justRemoveFromChecklists: boolean,
   matchType: string,
+  ignoreFutureCalendarNotes: boolean,
   numDays: number,
   conflictedNoteFilename: string,
   duplicateNoteFilename: string,

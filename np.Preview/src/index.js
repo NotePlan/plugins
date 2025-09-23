@@ -45,10 +45,9 @@ const pluginID = "np.Preview"
 export async function init(): Promise<void> {
   try {
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
-    // Note: turned off, as it was causing too much noise in logs
-    // DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
-    //   pluginUpdated(pluginJson, r),
-    // )
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
+      pluginUpdated(pluginJson, r),
+    )
   } catch (error) {
     logError(`${pluginID}/init`, JSP(error))
   }
