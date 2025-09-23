@@ -235,7 +235,6 @@ export async function getHeadingLink(allowPrettyLink: boolean = true): Promise<s
     // $FlowIgnore
     const url = createOpenOrDeleteNoteCallbackUrl(selectedPara.note.title, 'title', heading) || ''
     if (allowPrettyLink) {
-      Clipboard.string = url
       const linkText = await getInputTrimmed(
         `Link to this note and heading "${heading}" copied to clipboard (click Cancel). If you would like to create a pretty link for pasting inside of NotePlan\ne.g. [text](url), enter the text to display + OK/Enter and a pretty link will be copied to the clipboard instead.`,
         'Copy Pretty Link',
@@ -244,6 +243,8 @@ export async function getHeadingLink(allowPrettyLink: boolean = true): Promise<s
       )
       if (linkText && linkText !== '') {
         Clipboard.string = `[${String(linkText) || ''}](${url})`
+      } else {
+        Clipboard.string = url
       }
     }
     // await showMessage(`Link to this note and heading "${heading}" copied to clipboard`)
@@ -262,6 +263,10 @@ export async function getHeadingLink(allowPrettyLink: boolean = true): Promise<s
 export async function lineLink(): Promise<string> {
   const selectedPara = await getSelectedParagraph()
   if (selectedPara && selectedPara?.note?.title !== null) {
+    if (selectedPara.type === 'title') {
+      await getHeadingLink(true)
+      return ''
+    }
     // if a heading is selected, use that. otherwise look for the heading this note is in
     Editor.addBlockID(selectedPara)
     Editor.updateParagraph(selectedPara)
@@ -271,15 +276,16 @@ export async function lineLink(): Promise<string> {
       url = createOpenOrDeleteNoteCallbackUrl(revisedPara.note.title, 'title', null, null, false, revisedPara.blockId)
     }
     logDebug(pluginJson, `lineLink url=${url}`)
-    Clipboard.string = url
     const linkText = await getInputTrimmed(
-      `Link to this note and line copied to clipboard (click Enter or Return). If you would like to create a pretty link for pasting inside of NotePlan\ne.g. [text](url), enter the text to display and a pretty link will be copied to the clipboard instead.`,
+      `Link to this note and line copied to clipboard (click Cancel). If you would like to create a pretty link for pasting inside of NotePlan\ne.g. [text](url), enter the text to display and a pretty link will be copied to the clipboard instead.`,
       'OK',
-      'Link to Heading',
+      'Link to Specific Line',
       '',
     )
     if (linkText && linkText !== '') {
       Clipboard.string = `[${String(linkText) || ''}](${url})`
+    } else {
+      Clipboard.string = url
     }
     return url
   } else {
@@ -308,6 +314,7 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
     } else {
       const options = [
         { label: 'COPY URL to NOTE+Heading of current line', value: 'headingLink' },
+        { label: 'COPY URL to the current line', value: 'lineLink' },
         { label: 'OPEN a note or folder', value: 'openNote' },
         { label: 'NEW NOTE with title and text', value: 'addNote' },
         { label: 'ADD text to a note', value: 'addText' },
@@ -347,6 +354,9 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
       case 'headingLink':
         url = await getHeadingLink(!passBackResults) // don't allow pretty links if we're just trying to get a URL to pass back to the caller
         break
+      case 'lineLink':
+        url = await lineLink()
+        return url
       case 'search':
         url = await search()
         break

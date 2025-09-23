@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.10.0] - 2025-09-23 @dwertheimer
+
+- Add lineLink command
+- Fix bug in line+headingLink where the URL was being written to clipboard even if u don't want it
+
 ## [1.9.2] - 2025-08-29 @dwertheimer
 
 - Fix chooseNote bug in TemplateRunner
