@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable import/order */
 /* global jest, it, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
-import * as f from '../src/emptyBlocks.js'
+import * as f from '../src/emptyElements.js'
 import { CustomConsole, LogType, LogMessage } from '@jest/console'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, Note, NotePlan, simpleFormatter } from '@mocks/index'
 import * as NPParagraph from '@helpers/NPParagraph'
