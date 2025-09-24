@@ -17,7 +17,10 @@ export async function saveEditorIfNecessary() {
     logDebug('saveEditorIfNecessary', 'We are not in the Editor; Nothing to do.')
     return
   }
-  if (Editor.note?.content !== Editor.content) await Editor.save() // ensure recent/unsaved changes get saved first
+  if (Editor.note?.content !== Editor.content) {
+    logDebug('saveEditorIfNecessary', 'Editor.note?.content !== Editor.content; Saving Editor')
+    await Editor.save() // ensure recent/unsaved changes get saved first
+  }
 }
 
 /**

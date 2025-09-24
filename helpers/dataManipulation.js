@@ -256,3 +256,196 @@ export function setNestedValue(obj: any, path: string, value: any): void {
   const finalField = fields[fields.length - 1]
   currentObj[finalField] = value
 }
+
+/**
+ * For parameter casting: Convert input to boolean value. Returns the input as-is if it's already a boolean, otherwise converts string values to boolean.
+ * String values that convert to true: 'true', '1', 'yes', 'on' (case insensitive)
+ * String values that convert to false: 'false', '0', 'no', 'off' (case insensitive)
+ * @param {string|boolean} input - The input to convert
+ * @param {boolean} defaultValue - Default value if conversion fails
+ * @returns {boolean} The boolean value
+ */
+export function getBooleanValue(input: string | boolean, defaultValue: boolean = false): boolean {
+  if (typeof input === 'boolean') {
+    return input
+  }
+
+  if (typeof input === 'string') {
+    const lowerInput = input.toLowerCase()
+    if (lowerInput === 'true' || lowerInput === '1' || lowerInput === 'yes' || lowerInput === 'on') {
+      return true
+    }
+    if (lowerInput === 'false' || lowerInput === '0' || lowerInput === 'no' || lowerInput === 'off') {
+      return false
+    }
+  }
+
+  return defaultValue
+}
+
+/**
+ * For parameter casting: Convert input to array value. Returns the input as-is if it's already an array, otherwise converts string to array.
+ * If string looks like JSON array (starts with '[' and ends with ']'), attempts JSON.parse.
+ * Otherwise splits the string by the provided separator and trims whitespace from each element.
+ * @param {string|Array<mixed>} input - The input to convert
+ * @param {Array<mixed>} defaultValue - Default value if conversion fails
+ * @param {string} separator - Separator to use for string splitting (default: ',')
+ * @returns {Array<mixed>} The array value
+ */
+export function getArrayValue(input: string | Array<mixed>, defaultValue: Array<mixed> = [], separator: string = ','): Array<mixed> {
+  if (Array.isArray(input)) {
+    return input
+  }
+
+  if (typeof input === 'string') {
+    try {
+      // Try JSON.parse first if it looks like JSON
+      if (input.trim().startsWith('[') && input.trim().endsWith(']')) {
+        return JSON.parse(input)
+      }
+
+      // Otherwise split by separator
+      return input.split(separator).map((item) => item.trim())
+    } catch (e) {
+      // If JSON.parse fails, fall back to splitting
+      return input.split(separator).map((item) => item.trim())
+    }
+  }
+
+  return defaultValue
+}
+
+/**
+ * For parameter casting: Convert input to object value. Returns the input as-is if it's already an object, otherwise attempts JSON.parse on string input.
+ * @param {string|Object} input - The input to convert
+ * @param {Object} defaultValue - Default value if conversion fails
+ * @returns {Object} The object value
+ */
+export function getObjectValue(input: string | Object, defaultValue: Object = {}): Object {
+  if (typeof input === 'object' && input !== null) {
+    return input
+  }
+
+  if (typeof input === 'string') {
+    try {
+      return JSON.parse(input)
+    } catch (e) {
+      // If JSON.parse fails, return default
+      return defaultValue
+    }
+  }
+
+  return defaultValue
+}
+
+/**
+ * For parameter casting: Convert input to number value. Returns the input as-is if it's already a number, otherwise uses parseFloat on string input.
+ * @param {string|number} input - The input to convert
+ * @param {number} defaultValue - Default value if conversion fails
+ * @returns {number} The number value
+ */
+export function getNumberValue(input: string | number, defaultValue: number = 0): number {
+  if (typeof input === 'number') {
+    return input
+  }
+
+  if (typeof input === 'string') {
+    const parsed = parseFloat(input)
+    if (!isNaN(parsed)) {
+      return parsed
+    }
+  }
+
+  return defaultValue
+}
+
+/**
+ * For parameter casting: Convert input to Date value using moment. Returns the input as-is if it's already a Date, otherwise attempts to parse string input.
+ * First tries moment.js parsing, then falls back to native Date constructor if moment fails.
+ * @param {string|Date} input - The input to convert
+ * @param {Date} defaultValue - Default value if conversion fails
+ * @returns {Date} The Date value
+ */
+export function getDateValue(input: string | Date, defaultValue: Date = new Date()): Date {
+  if (input instanceof Date) {
+    return input
+  }
+
+  if (typeof input === 'string') {
+    try {
+      const moment = require('moment')
+      const parsed = moment(input)
+      if (parsed.isValid()) {
+        return parsed.toDate()
+      }
+    } catch (e) {
+      // If moment fails, try native Date constructor
+      const parsed = new Date(input)
+      if (!isNaN(parsed.getTime())) {
+        return parsed
+      }
+    }
+  }
+
+  return defaultValue
+}
+
+/**
+ * For parameter casting: Convert input to string value. Returns the input as-is if it's already a string, otherwise converts to string.
+ * For numbers and booleans, uses String() conversion. For objects, attempts JSON.stringify.
+ * @param {any} input - The input to convert
+ * @param {string} defaultValue - Default value if conversion fails
+ * @returns {string} The string value
+ */
+export function getStringValue(input: any, defaultValue: string = ''): string {
+  if (typeof input === 'string') {
+    return input
+  }
+
+  if (typeof input === 'number' || typeof input === 'boolean') {
+    return String(input)
+  }
+
+  if (input === null || input === undefined) {
+    return defaultValue
+  }
+
+  try {
+    return JSON.stringify(input)
+  } catch (e) {
+    return defaultValue
+  }
+}
+
+/**
+ * For parameter casting: Convert input to integer value. Returns Math.floor(input) if it's already a number, otherwise uses parseInt on string input.
+ * @param {string|number} input - The input to convert
+ * @param {number} defaultValue - Default value if conversion fails
+ * @returns {number} The integer value
+ */
+export function getIntegerValue(input: string | number, defaultValue: number = 0): number {
+  if (typeof input === 'number') {
+    return Math.floor(input)
+  }
+
+  if (typeof input === 'string') {
+    const parsed = parseInt(input, 10)
+    if (!isNaN(parsed)) {
+      return parsed
+    }
+  }
+
+  return defaultValue
+}
+
+/**
+ * For parameter casting: Convert input to positive integer value. Uses getIntegerValue internally and ensures the result is positive (> 0).
+ * Returns the defaultValue if the converted value is not positive.
+ * @param {string|number} input - The input to convert
+ * @param {number} defaultValue - Default value if conversion fails
+ * @returns {number} The positive integer value
+ */
+export function getPositiveIntegerValue(input: string | number, defaultValue: number = 1): number {
+  const value = getIntegerValue(input, defaultValue)
+  return value > 0 ? value : defaultValue
+}

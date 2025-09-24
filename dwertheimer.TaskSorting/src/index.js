@@ -17,18 +17,7 @@
 /**
  * Command Exports
  */
-export {
-  sortTasks,
-  sortTasksByPerson,
-  sortTasksByTag,
-  sortTasksByDue,
-  tasksToTop,
-  openTasksToTop,
-  sortTasksViaTemplate,
-  sortTasksTagMention,
-  sortTasksDefault,
-  sortTasksUnderHeading,
-} from './sortTasks'
+export { sortTasks, sortTasksByPerson, sortTasksByTag, sortTasksByDue, tasksToTop, openTasksToTop, sortTasksTagMention, sortTasksDefault, sortTasksUnderHeading } from './sortTasks'
 export { addNoteTagsToAllTask, addNoteTagsTriggerToFm, copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'
 export { default as markTasks } from './markTasks'
 

@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.TaskSorting",
   "plugin.name": "🥷 Task Sorting & Tools",
-  "plugin.version": "1.2.4",
-  "plugin.lastUpdateInfo": "1.2.4: Add saveEditorIfNecessary() to all commands",
+  "plugin.version": "1.2.6",
+  "plugin.lastUpdateInfo": "1.2.6: Ability to pass all params using templates",
   "plugin.description": "Commands for sorting tasks in a note",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles-EDIT_ME": [
@@ -27,10 +27,12 @@
         "ts"
       ],
       "arguments": [
-        "prompt user to choose options",
-        "sortFields (array of strings)",
-        "withHeadings (default: false)",
-        "subHeadingCategory (default: false)"
+        "prompt user to choose options (true/false)",
+        "sortFields (comma separated string sort order, e.g. '-priority,content')",
+        "withHeadings (true/false)",
+        "subHeadingCategory (true/false)",
+        "interleaveTaskTypes (true/false) - whether to interleave task types (open/checklist together) or keep them separate. Default: true (interleaved)",
+        "sortInHeadings (true/false) - whether to sort tasks within each heading separately (true) or treat entire note as one unit (false). Default: null (use DataStore setting)"
       ]
     },
     {
@@ -43,7 +45,8 @@
       "arguments": [
         "heading (string)",
         "sortOrder (array of strings) -- see README for details",
-        "noteOverride (Note or Editor object)"
+        "noteOverride (Note or Editor object)",
+        "interleaveTaskTypes (true/false) - whether to interleave task types (open/checklist together) or keep them separate. Default: true (interleaved)"
       ]
     },
     {

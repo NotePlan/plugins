@@ -8,6 +8,7 @@ import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType } 
 import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { saveEditorIfNecessary } from '@helpers/editor'
+import { getBooleanValue, getArrayValue } from '@helpers/dataManipulation'
 
 const TOP_LEVEL_HEADINGS = {
   open: 'Open Tasks',
@@ -76,6 +77,66 @@ const SORT_ORDERS = [
     name: 'Unsorted, bring to top in same order',
   },
 ]
+
+/**
+ * Common helper function to delete paragraphs from a note
+ * @param {CoreNoteFields} note - The note to delete paragraphs from
+ * @param {Array<TParagraph>} tasksToDelete - Array of paragraph objects to delete
+ * @param {string} functionName - Name of the calling function for logging
+ */
+/**
+ * Delete existing tasks from note when input is an array of SortableParagraphSubset objects
+ * @param {CoreNoteFields} note - The note to delete tasks from
+ * @param {Array<SortableParagraphSubset>} tasks - Array of SortableParagraphSubset objects
+ */
+async function deleteExistingTasksFromSortable(note: CoreNoteFields, tasks: Array<SortableParagraphSubset>): Promise<void> {
+  const tasksToDelete = []
+
+  // Extract paragraph objects from SortableParagraphSubset
+  tasks.forEach((task) => {
+    if (task.paragraph) {
+      tasksToDelete.push(task.paragraph)
+    }
+
+    // Also include children if they exist
+    if (task.children && task.children.length) {
+      task.children.forEach((child) => {
+        if (child.paragraph) {
+          tasksToDelete.push(child.paragraph)
+        }
+      })
+    }
+  })
+
+  // Use the common deletion logic
+  await deleteParagraphsFromNote(note, tasksToDelete, 'deleteExistingTasksFromSortable')
+}
+
+async function deleteParagraphsFromNote(note: CoreNoteFields, tasksToDelete: Array<TParagraph>, functionName: string): Promise<void> {
+  // Sort by lineIndex in descending order to avoid index shifting issues
+  const sortedTasks = tasksToDelete.sort((a, b) => b.lineIndex - a.lineIndex)
+
+  logDebug(pluginJson, `${functionName}: Deleting ${sortedTasks.length} tasks from note`)
+
+  // Set Editor flags to avoid UI updates during bulk deletion
+  if (Editor.beginEdits) {
+    Editor.beginEdits()
+  }
+
+  try {
+    // Delete each task
+    for (const task of sortedTasks) {
+      if (note.removeParagraph) {
+        note.removeParagraph(task)
+      }
+    }
+  } finally {
+    // Always end edits, even if there was an error
+    if (Editor.endEdits) {
+      Editor.endEdits()
+    }
+  }
+}
 
 /**
  * @param {string} heading The text that goes above the tasks. Should have a \n at the end.
@@ -148,21 +209,6 @@ export async function openTasksToTop(
   }
 }
 
-//FIXME: need to finish this...
-/**
- * This template/macro is going to headlessly sort all tasks in the note based on certain criteria.
- * e.g. {{sortTasks({withUserInput: false, withHeadings: true, subHeadingCategory: true, sortOrder: ['-priority', 'content'], })}}
- */
-export async function sortTasksViaTemplate(paramStr: string = ''): Promise<void> {
-  logDebug(`tasksortTasksViaTemplateToTop(): calling sortTasks`)
-  await saveEditorIfNecessary()
-  const withUserInput: boolean = await getTagParamsFromString(paramStr, 'withUserInput', true)
-  const sortFields: string[] = await getTagParamsFromString(paramStr, 'sortFields', SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields)
-  const withHeadings: boolean = await getTagParamsFromString(paramStr, 'withHeadings', false)
-  const subHeadingCategory: boolean = await getTagParamsFromString(paramStr, 'subHeadingCategory', false)
-  await sortTasks(withUserInput, sortFields, withHeadings, subHeadingCategory)
-}
-
 /**
  * @description Bring tasks (tasks only, no surrounding text) to top of note
  * @returns {Promise<void>}
@@ -170,7 +216,7 @@ export async function sortTasksViaTemplate(paramStr: string = ''): Promise<void>
 export async function tasksToTop() {
   try {
     logDebug(`tasksToTop(): Bringing tasks to top`)
-    await sortTasks(false, [])
+    await sortTasks(false, [], null, null, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -180,7 +226,7 @@ export async function sortTasksByPerson() {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
-    await sortTasks(false, ['mentions', '-priority', 'content'], includeHeading, includeSubHeading)
+    await sortTasks(false, ['mentions', '-priority', 'content'], includeHeading, includeSubHeading, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -190,7 +236,7 @@ export async function sortTasksByDue() {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
-    await sortTasks(false, ['due', '-priority', 'content'], includeHeading, includeSubHeading)
+    await sortTasks(false, ['due', '-priority', 'content'], includeHeading, includeSubHeading, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -200,7 +246,7 @@ export async function sortTasksByTag() {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
-    await sortTasks(false, ['hashtags', '-priority', 'content'], includeHeading, includeSubHeading)
+    await sortTasks(false, ['hashtags', '-priority', 'content'], includeHeading, includeSubHeading, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -213,7 +259,7 @@ export async function sortTasksDefault() {
     logDebug(
       `sortTasksDefault(): defaultSort1=${defaultSort1}, defaultSort2=${defaultSort2}, defaultSort3=${defaultSort3}, includeHeading=${includeHeading}, includeSubHeading=${includeSubHeading}\nCalling sortTasks now`,
     )
-    await sortTasks(false, [defaultSort1, defaultSort2, defaultSort3], includeHeading, includeSubHeading)
+    await sortTasks(false, [defaultSort1, defaultSort2, defaultSort3], includeHeading, includeSubHeading, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -223,7 +269,7 @@ export async function sortTasksTagMention() {
   try {
     await saveEditorIfNecessary()
     const { includeHeading, includeSubHeading } = DataStore.settings
-    await sortTasks(false, ['hashtags', 'mentions'], includeHeading, includeSubHeading)
+    await sortTasks(false, ['hashtags', 'mentions'], includeHeading, includeSubHeading, false, null)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -240,9 +286,20 @@ const DEFAULT_SORT_INDEX = 0
  * @param {string} subHeadingCategory
  * @return {number} next line number
  */
-function insertTodos(note: CoreNoteFields, todos, heading: string = '', separator: string = '', subHeadingCategory: string = '', theTitle: string = '') {
+function insertTodos(
+  note: CoreNoteFields,
+  todos: Array<any>,
+  heading: string = '',
+  separator: string = '',
+  subHeadingCategory: string | null = null,
+  theTitle: string = '',
+  forceTasksToTop: boolean = false,
+  insertAtTopOfNote: boolean = false,
+) {
   const title = theTitle === ROOT ? '' : theTitle // root level tasks in Calendar note have no heading
   const { tasksToTop } = DataStore.settings
+  // Use forceTasksToTop if provided, otherwise use the setting
+  const shouldInsertAtTop = forceTasksToTop || tasksToTop
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
   logDebug(`\tInsertTodos: subHeadingCategory=${String(subHeadingCategory)} typeof=${typeof subHeadingCategory} ${todos.length} todos`)
@@ -303,19 +360,50 @@ function insertTodos(note: CoreNoteFields, todos, heading: string = '', separato
   const content = `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`
   if (title !== '') {
     // const headingIndex = findHeading(note, title)?.lineIndex || 0
-    logDebug(`\tinsertTodos`, `tasksToTop=${tasksToTop} title="${title}"`)
-    if (tasksToTop) {
-      note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
+    logDebug(`\tinsertTodos`, `shouldInsertAtTop=${shouldInsertAtTop} title="${title}"`)
+
+    // Check if this is a traditional note with a single # heading or frontmatter-only note
+    const firstPara = note.paragraphs[0]
+    const hasTraditionalTitle = firstPara && firstPara.type === 'title' && firstPara.headingLevel === 1
+    const hasFrontmatterTitle = note.frontmatterAttributes && note.frontmatterAttributes.title
+
+    logDebug(
+      `\tinsertTodos: hasTraditionalTitle=${hasTraditionalTitle}, hasFrontmatterTitle=${hasFrontmatterTitle}, firstPara.type="${firstPara?.type}", firstPara.headingLevel=${firstPara?.headingLevel}, title="${title}"`,
+    )
+
+    if (insertAtTopOfNote && shouldInsertAtTop) {
+      // Special case: insert at top of note (after main title) regardless of the title parameter
+      logDebug(`\tinsertTodos: insertAtTopOfNote=true, inserting at top of note`)
+      if (hasTraditionalTitle) {
+        // Insert below the note's main title
+        logDebug(`\tinsertTodos: Inserting below note's main title="${firstPara.content}"`)
+        note.addParagraphBelowHeadingTitle(content, 'text', firstPara.content, false, true)
+        logDebug(`\tinsertTodos: Completed addParagraphBelowHeadingTitle`)
+      } else {
+        // Insert at top of active part (frontmatter-only note)
+        logDebug(`\tinsertTodos: No traditional title, inserting at top of active part`)
+        const insertionIndex = findStartOfActivePartOfNote(note)
+        note.insertParagraph(content, insertionIndex, 'text')
+      }
     } else {
-      const paras = getBlockUnderHeading(note, title)
-      const lastPara = paras[paras.length - 1]
-      const insertFunc = lastPara.type === 'separator' ? `insertTodoBeforeParagraph` : `insertParagraphAfterParagraph`
-      logDebug(`\tinsertTodos note.${insertFunc} "${lastPara.content}"`)
-      // $FlowIgnore - calling function by name is not very Flow friendly (but it works!)
-      note[insertFunc](content, lastPara)
+      // Normal behavior: insert under the specified title/heading
+      if (shouldInsertAtTop) {
+        // Insert below the specified heading
+        logDebug(`\tinsertTodos: Inserting below specified heading="${title}"`)
+        note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
+        logDebug(`\tinsertTodos: Completed addParagraphBelowHeadingTitle`)
+      } else {
+        // Insert at end of the specified heading section
+        const paras = getBlockUnderHeading(note, title)
+        const lastPara = paras[paras.length - 1]
+        const insertFunc = lastPara.type === 'separator' ? `insertTodoBeforeParagraph` : `insertParagraphAfterParagraph`
+        logDebug(`\tinsertTodos note.${insertFunc} "${lastPara.content}"`)
+        // $FlowIgnore - calling function by name is not very Flow friendly (but it works!)
+        note[insertFunc](content, lastPara)
+      }
     }
   } else {
-    const insertionIndex = tasksToTop ? findStartOfActivePartOfNote(note) : findEndOfActivePartOfNote(note) + 1
+    const insertionIndex = shouldInsertAtTop ? findStartOfActivePartOfNote(note) : findEndOfActivePartOfNote(note) + 1
     note.insertParagraph(content, insertionIndex, 'text')
   }
   // logDebug(`\tinsertTodos finished`)
@@ -336,18 +424,98 @@ function insertTodos(note: CoreNoteFields, todos, heading: string = '', separato
  *  any item can be in DESC order by placing a minus in front, e.g. "-priority"
  *  @return the object sorted list of the tasks from the note (keys are task types)
  */
-export function sortParagraphsByType(paragraphs: $ReadOnlyArray<TParagraph>, sortOrder: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields): ParagraphsGroupedByType {
+/**
+ * Define which task types should be interleaved together when interleaveTaskTypes is true
+ * Each group contains task types that should be sorted together as one unit
+ * @returns {Array<{types: Array<string>, name: string}>} Array of groups with their task types
+ */
+function getInterleavedTaskGroups(): Array<{ types: Array<string>, name: string }> {
+  return [
+    {
+      name: 'Active Tasks',
+      types: ['open', 'checklist', 'scheduled', 'checklistScheduled'],
+    },
+    {
+      name: 'Completed Tasks',
+      types: ['done', 'checklistDone'],
+    },
+    {
+      name: 'Cancelled Tasks',
+      types: ['cancelled', 'checklistCancelled'],
+    },
+  ]
+}
+
+export function sortParagraphsByType(
+  paragraphs: $ReadOnlyArray<TParagraph>,
+  sortOrder: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
+  interleaveTaskTypes: boolean = true,
+): ParagraphsGroupedByType {
   // $FlowFixMe
-  const sortedList: ParagraphsGroupedByType = TASK_TYPES.reduce((acc, ty) => (acc[ty] = []), {})
+  const sortedList: ParagraphsGroupedByType = {}
+  for (const ty of TASK_TYPES) {
+    sortedList[ty] = []
+  }
+  logDebug(`\tInitialized sortedList with keys: ${Object.keys(sortedList).join(', ')}`)
   if (paragraphs?.length) {
-    logDebug(`\t${paragraphs.length} total lines in section/note`)
+    logDebug(`\tsortParagraphsByType: ${paragraphs.length} total lines in section/note, interleaveTaskTypes: ${interleaveTaskTypes}`)
     if (paragraphs.length) {
       const taskList = getTasksByType(paragraphs)
-      logDebug(`\tOpen Tasks:${taskList.open.length}`)
-      for (const ty of TASK_TYPES) {
-        sortedList[ty] = sortListBy(taskList[ty], sortOrder)
+      logDebug(`\tOpen Tasks:${taskList.open.length}, Checklist Tasks:${taskList.checklist.length}`)
+
+      if (interleaveTaskTypes) {
+        // Interleaved sorting: prioritize open tasks over checklists within same priority
+        const interleavedGroups = getInterleavedTaskGroups()
+        for (const group of interleavedGroups) {
+          const combinedTasks = []
+          // Combine all task types in this group
+          for (const taskType of group.types) {
+            if (taskList[taskType] && taskList[taskType].length) {
+              combinedTasks.push(...taskList[taskType])
+            }
+          }
+
+          // Custom sort: priority first, then open tasks before checklists within same priority
+          const sortedCombined = combinedTasks.sort((a, b) => {
+            // First sort by priority (highest to lowest)
+            const priorityDiff = (b.priority || -1) - (a.priority || -1)
+            if (priorityDiff !== 0) return priorityDiff
+
+            // Within same priority, open tasks come before checklists
+            const aIsOpen = a.type === 'open' || a.type === 'scheduled' || a.type === 'done' || a.type === 'cancelled'
+            const bIsOpen = b.type === 'open' || b.type === 'scheduled' || b.type === 'done' || b.type === 'cancelled'
+
+            if (aIsOpen && !bIsOpen) return -1 // a (open) comes before b (checklist)
+            if (!aIsOpen && bIsOpen) return 1 // b (open) comes before a (checklist)
+
+            // If both are same type, sort by content
+            return a.content.localeCompare(b.content)
+          })
+
+          // For interleaved sorting, put all tasks in the first type of each group
+          // This maintains the interleaved order while satisfying the output format
+          const firstTypeInGroup = group.types[0]
+          if (sortedList[firstTypeInGroup]) {
+            sortedList[firstTypeInGroup].push(...sortedCombined)
+          }
+        }
+      } else {
+        // Traditional grouped sorting: sort each type separately
+        logDebug(`\tTraditional sorting: sorting each type separately`)
+        for (const ty of TASK_TYPES) {
+          sortedList[ty] = sortListBy(taskList[ty], sortOrder)
+          logDebug(`\tTraditional: ${ty} tasks: ${taskList[ty]?.length || 0} -> ${sortedList[ty]?.length || 0}`)
+        }
       }
-      logDebug(`\tAfter Sort - Open Tasks:${sortedList.open?.length || 0}`)
+
+      logDebug(`\tAfter Sort - Open Tasks:${sortedList.open?.length || 0}, Checklist Tasks:${sortedList.checklist?.length || 0}`)
+      logDebug(`\tAfter Sort - Scheduled Tasks:${sortedList.scheduled?.length || 0}, Done Tasks:${sortedList.done?.length || 0}`)
+      if (interleaveTaskTypes) {
+        logDebug(`\tInterleaved arrays: open=${JSON.stringify(sortedList.open?.map((t) => t.content) || [])}`)
+        logDebug(`\tInterleaved arrays: checklist=${JSON.stringify(sortedList.checklist?.map((t) => t.content) || [])}`)
+        logDebug(`\tInterleaved arrays: scheduled=${JSON.stringify(sortedList.scheduled?.map((t) => t.content) || [])}`)
+        logDebug(`\tInterleaved arrays: done=${JSON.stringify(sortedList.done?.map((t) => t.content) || [])}`)
+      }
     }
   } else {
     logDebug(`\tsortParagraphsByType: no paragraphs to sort`)
@@ -356,7 +524,7 @@ export function sortParagraphsByType(paragraphs: $ReadOnlyArray<TParagraph>, sor
   return sortedList
 }
 
-async function getUserSort(sortChoices: Array<any> = SORT_ORDERS) {
+async function getUserSort(sortChoices: Array<any> = SORT_ORDERS): Promise<Array<string>> {
   // logDebug(`\tgetUserSort(${JSON.stringify(sortChoices)}`)
   // [String] list of options, placeholder text, callback function with selection/
   const choice = await CommandBar.showOptions(
@@ -409,60 +577,31 @@ async function getUserSort(sortChoices: Array<any> = SORT_ORDERS) {
  * @param {TNote} note
  * @param {Array<TParagraph>} tasks
  */
-function deleteExistingTasks(note: CoreNoteFields, tasks: ParagraphsGroupedByType) {
+async function deleteExistingTasks(note: CoreNoteFields, tasks: ParagraphsGroupedByType): Promise<void> {
   const tasksToDelete = []
   for (const typ of TASK_TYPES) {
-    if (tasks[typ].length) logDebug(`\tQueuing ${tasks[typ].length} ${typ} tasks for temporary deletion from note (so they can be re-inserted in the correct order)`)
-    // if (shouldBackupTasks) {
-    //   await saveBackup(tasks[typ])
-    // }
-    let tasksAndIndented = []
-    tasks[typ].forEach((taskPara) => {
-      tasksAndIndented = [...tasksAndIndented, taskPara]
-      if (taskPara.children.length) {
-        tasksAndIndented = [...tasksAndIndented, ...taskPara.children]
-      }
-    })
-    // if (tasksAndIndented.length) logDebug(`tasksAndIndented=${tasksAndIndented.length}=${JSON.stringify(tasksAndIndented)}`)
-    tasksAndIndented.forEach((t) => {
-      // clo(t.paragraph, `deleteExistingTasks map t`)
-      // $FlowFixMe
-      // return findRawParagraph(note, t.raw || null)
-      tasksToDelete.push(t.paragraph)
-    })
-    //$FlowIgnore
-    // logDebug(`deletesForThisType.length=${deletesForThisType.length} \n${JSON.stringify(deletesForThisType)}`)
-    // deletesForThisType.map(t=>logDebug(`Before: lineIndex:${t.lineIndex} content:${t.content}`))
-    // logDebug(`Editor content before remove: ${Editor.content || ''}`)
-    // $FlowFixMe
-    // if (deletesForThisType && deletesForThisType.length) tasksToDelete.push(deletesForThisType)
-    // Editor.paragraphs.map(t=>logDebug(`After: lineIndex:${t.lineIndex} content:${t.content}`))
+    if (tasks[typ] && tasks[typ].length) {
+      logDebug(`\tQueuing ${tasks[typ].length} ${typ} tasks for temporary deletion from note (so they can be re-inserted in the correct order)`)
 
-    // logDebug(`Editor content after remove: ${Editor.content || ''}`)
+      tasks[typ].forEach((taskPara) => {
+        if (taskPara.paragraph) {
+          tasksToDelete.push(taskPara.paragraph)
+        }
+
+        // Also include children if they exist
+        if (taskPara.children && taskPara.children.length) {
+          taskPara.children.forEach((child) => {
+            if (child.paragraph) {
+              tasksToDelete.push(child.paragraph)
+            }
+          })
+        }
+      })
+    }
   }
-  if (tasksToDelete.length) {
-    const beforeDeleteParas = note.paragraphs.length
-    logDebug(`\tsortTasks/deleteExistingTasks`, `Before Sort Lines in Note:${beforeDeleteParas} | Lines to delete:${tasksToDelete.length}`)
-    const tasksToDeleteByIndex = sortListBy(tasksToDelete, ['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
-    logDebug(`\tsortTasks/deleteExistingTasks`, `After Sort Lines in Note:${note.paragraphs.length} | Lines to delete:${tasksToDelete.length}`)
-    // clo(tasksToDelete, `\tsortTasks/deleteExistingTasks=`)
-    // We are going to delete them one at a time, and so that the page does not get confused, we will delete them bottom to top
-    const tasksToDeleteByIndexReverse = sortListBy(tasksToDelete, ['-lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
-    tasksToDeleteByIndexReverse.forEach((t) => {
-      // $FlowIgnore
-      if (note.note) {
-        // we are in the editor
-        Editor.skipNextRepeatDeletionCheck = true
-      }
-      note.removeParagraph(t)
-    })
-    logDebug(
-      `\tsortTasks/deleteExistingTasks`,
-      `After Remove Paragraphs, Lines in note:${note.paragraphs.length} ${
-        beforeDeleteParas - tasksToDelete.length === note.paragraphs.length ? '-- OK (math lines up)' : '-- ERROR'
-      }`,
-    )
-  }
+
+  // Use the common deletion logic
+  await deleteParagraphsFromNote(note, tasksToDelete, 'deleteExistingTasks')
 }
 
 /**
@@ -501,32 +640,97 @@ export async function writeOutTasks(
   withHeadings: boolean = false,
   subHeadingCategory: any | null | string = null,
   title: string = '',
+  interleaveTaskTypes: boolean = true,
+  insertAtTopOfNote: boolean = false,
 ): Promise<void> {
   const { outputOrder, tasksToTop } = DataStore.settings
-  let taskTypes = (outputOrder ?? 'open, scheduled, done, cancelled').split(',').map((t) => t.trim())
-  taskTypes = addChecklistTypes(taskTypes)
-  logDebug(pluginJson, `writeOutTasks taskTypes: ${taskTypes.toString()}`)
-  const headings = TOP_LEVEL_HEADINGS
-  // need to write in reverse order if we are going to keep adding a top insertionIndex
-  const writeSequence = tasksToTop ? taskTypes.slice().reverse() : taskTypes
-  logDebug(`writeOutTasks: writing task types in ${tasksToTop ? 'reverse for lineIndex security' : 'order'} : ${writeSequence.toString()}`)
-  for (let i = 0; i < writeSequence.length; i++) {
-    const ty = writeSequence[i]
-    if (tasks[ty]?.length) {
-      logDebug(`\twriteOutTasks TASK_TYPE=${ty} -- ${tasks[ty].length} tasks -- withHeadings=${String(withHeadings)}`)
+
+  if (interleaveTaskTypes) {
+    // When interleaving, write tasks in logical groups but interleave within each group
+    const allTasks = []
+
+    // Group 1: Active tasks (open + checklist) - interleaved by priority
+    const activeTypes = ['open', 'checklist']
+    for (const taskType of activeTypes) {
+      if (tasks[taskType] && tasks[taskType].length > 0) {
+        allTasks.push(...tasks[taskType])
+      }
+    }
+
+    // Group 2: Scheduled tasks (scheduled + checklistScheduled) - interleaved by priority
+    const scheduledTypes = ['scheduled', 'checklistScheduled']
+    for (const taskType of scheduledTypes) {
+      if (tasks[taskType] && tasks[taskType].length > 0) {
+        allTasks.push(...tasks[taskType])
+      }
+    }
+
+    // Group 3: Completed tasks (done + checklistDone) - interleaved by priority
+    const completedTypes = ['done', 'checklistDone']
+    for (const taskType of completedTypes) {
+      if (tasks[taskType] && tasks[taskType].length > 0) {
+        allTasks.push(...tasks[taskType])
+      }
+    }
+
+    // Group 4: Cancelled tasks (cancelled + checklistCancelled) - interleaved by priority
+    const cancelledTypes = ['cancelled', 'checklistCancelled']
+    for (const taskType of cancelledTypes) {
+      if (tasks[taskType] && tasks[taskType].length > 0) {
+        allTasks.push(...tasks[taskType])
+      }
+    }
+
+    logDebug(pluginJson, `writeOutTasks (interleaved): combining ${allTasks.length} tasks into single array`)
+
+    if (allTasks.length > 0) {
       try {
-        note
-          ? await insertTodos(
-              note,
-              tasks[ty],
-              withHeadings ? `### ${headings[ty]}:` : '',
-              drawSeparators ? `${i === tasks[ty].length - 1 ? '---' : ''}` : '',
-              subHeadingCategory,
-              title,
-            )
-          : null
+        await insertTodos(
+          note,
+          allTasks,
+          '', // No headings when interleaving
+          drawSeparators ? '---' : '',
+          subHeadingCategory,
+          title,
+          true, // Force tasks to top when interleaving
+          insertAtTopOfNote, // Pass through the insertAtTopOfNote parameter
+        )
       } catch (e) {
         logError(pluginJson, JSON.stringify(e))
+      }
+    }
+  } else {
+    // Traditional approach: write each type separately
+    let taskTypes = (outputOrder ?? 'open, scheduled, done, cancelled').split(',').map((t) => t.trim())
+    taskTypes = addChecklistTypes(taskTypes)
+    logDebug(pluginJson, `writeOutTasks taskTypes: ${taskTypes.toString()}`)
+
+    const headings = TOP_LEVEL_HEADINGS
+
+    // Traditional approach: write in reverse order if tasksToTop is enabled
+    const writeSequence = tasksToTop ? taskTypes.slice().reverse() : taskTypes
+    logDebug(`writeOutTasks: writing task types in ${tasksToTop ? 'reverse for lineIndex security' : 'order'} : ${writeSequence.toString()}`)
+
+    for (let i = 0; i < writeSequence.length; i++) {
+      const ty = writeSequence[i]
+      if (tasks[ty]?.length) {
+        logDebug(`\twriteOutTasks TASK_TYPE=${ty} -- ${tasks[ty].length} tasks -- withHeadings=${String(withHeadings)}`)
+        try {
+          note
+            ? await insertTodos(
+                note,
+                tasks[ty],
+                withHeadings ? `### ${headings[ty]}:` : '',
+                drawSeparators ? `${i === tasks[ty].length - 1 ? '---' : ''}` : '',
+                subHeadingCategory,
+                title,
+                false, // Use normal tasksToTop behavior
+                insertAtTopOfNote, // Pass through the insertAtTopOfNote parameter
+              )
+            : null
+        } catch (e) {
+          logError(pluginJson, JSON.stringify(e))
+        }
       }
     }
   }
@@ -652,18 +856,42 @@ export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<
  * @param {Array<string>} sortFields (see SORT_FIELDS description above)
  * @param {boolean} withHeadings - top level headings (e.g. "Open Tasks")
  * @param {boolean} subHeadingCategory - subheadings (e.g. for each tag)
+ * @param {boolean} interleaveTaskTypes - whether to interleave task types (open/checklist together) or keep them separate
+ * @param {boolean} sortInHeadings - whether to sort within each heading separately (true) or treat entire note as one unit (false)
  * @returns
  */
 export async function sortTasks(
-  withUserInput: boolean = true,
-  sortFields: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
-  withHeadings: boolean | null = null,
-  subHeadingCategory: boolean | null = null,
+  _withUserInput: string | boolean = true,
+  _sortFields: string | Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
+  _withHeadings: string | boolean | null = null,
+  _subHeadingCategory: string | boolean | null = null,
+  _interleaveTaskTypes: string | boolean = true,
+  _sortInHeadings: string | boolean | null = null,
 ) {
+  // Cast parameters to proper types
+  const withUserInput = getBooleanValue(_withUserInput, true)
+  const sortFields = getArrayValue(_sortFields, SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields, ',')
+  const withHeadings = _withHeadings === null ? null : getBooleanValue(_withHeadings, false)
+  const subHeadingCategory = _subHeadingCategory === null ? null : getBooleanValue(_subHeadingCategory, false)
+  const interleaveTaskTypes = getBooleanValue(_interleaveTaskTypes, true)
+  const sortInHeadingsOverride = _sortInHeadings === null ? null : getBooleanValue(_sortInHeadings, true)
+
   await saveEditorIfNecessary()
+  logDebug(
+    pluginJson,
+    `sortTasks: Starting sortTasks(withUserInput:${String(
+      withUserInput,
+    )} (typeof:${typeof withUserInput}), sortFields:${sortFields.toString()} (typeof:${typeof sortFields}), withHeadings:${String(
+      withHeadings,
+    )} (typeof:${typeof withHeadings}), subHeadingCategory:${String(subHeadingCategory)} (typeof:${typeof subHeadingCategory}), interleaveTaskTypes:${String(
+      interleaveTaskTypes,
+    )} (typeof:${typeof interleaveTaskTypes}))`,
+  )
+
   const { eliminateSpinsters, sortInHeadings, includeSubHeading } = DataStore.settings
 
-  const byHeading = withUserInput ? await sortInsideHeadings() : sortInHeadings
+  // Use override parameter if provided, otherwise use DataStore setting or prompt user
+  const byHeading = withUserInput ? await sortInsideHeadings() : sortInHeadingsOverride !== null ? sortInHeadingsOverride : sortInHeadings
 
   logDebug(
     `\n\nStarting sortTasks(withUserInput:${String(withUserInput)}, default sortFields:${JSON.stringify(sortFields)}, withHeadings:${String(withHeadings)}, byHeading:${String(
@@ -693,30 +921,23 @@ export async function sortTasks(
   logDebug(pluginJson, `sortTasks about to get sortGroups object`)
   const activeParagraphs = Editor.note ? getActiveParagraphs(Editor.note) : []
   const sortGroups = byHeading && Editor?.note?.title ? getTasksByHeading(Editor.note) : { [Editor?.note?.title || '']: activeParagraphs }
-  // clo(sortGroups, `sortTasks -- sortGroups obj=`)
+  clo(sortGroups, `sortTasks -- sortGroups obj=`)
   logDebug(pluginJson, `sortTasks have sortGroups object. key count=${Object.keys(sortGroups).length}. About to start the display loop`)
 
   for (const key in sortGroups) {
     logDebug(`sortTasks: heading Group title="${key}" (${sortGroups[key].length} paragraphs)`)
     if (sortGroups[key].length) {
-      const sortedTasks = sortParagraphsByType(sortGroups[key], sortOrder)
-      if (Editor.note) deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
-      // TODO: come back to this with new template fields
-      if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', key)
+      clo(sortGroups[key], `sortTasks sortGroups[${key}] before sortParagraphsByType with sortOrder=${typeof sortOrder === 'string' ? sortOrder : JSON.stringify(sortOrder)}`)
+      logDebug(`sortTasks: ----------------------------------------------`)
+      // TODO: think about how to have a "type" sort field that can be used as a sort key
+      // so instead of tasks by type all being separate, they could be grouped together and sorted by the "type" sort field
+      const sortedTasks = sortParagraphsByType(sortGroups[key], sortOrder, interleaveTaskTypes)
+      clo(sortedTasks, `sortTasks sortedTasks after sortParagraphsByType ${key}`)
+      if (Editor.note) await deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
+      if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', key, interleaveTaskTypes, !byHeading)
     }
   }
 
-  // const sortedTasks = sortParagraphsByType(Editor.paragraphs, sortOrder)
-  // logDebug(`\tFinished sortParagraphsByType, now running deleteExistingTasks`)
-  // logDebug(`\tFinished deleteExistingTasks, now running writeOutTasks`)
-
-  // if (Editor) {
-  //   if (printSubHeadings) {
-  //     // TODO: come back to this with new template fields
-  //     // await deleteParagraphsContainingString(Editor)
-  //   }
-  //   // if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '')
-  // }
   logDebug(`\tFinished writeOutTasks, now finished`)
   if (eliminateSpinsters) {
     removeEmptyHeadings(Editor)
@@ -730,26 +951,41 @@ export async function sortTasks(
  * Can also be called from templates or other plugins.
  * @param {string} _heading - the heading to sort (probably comes in from xcallback)
  * @param {string} _sortOrder - the sort order (probably comes in from xcallback)
+ * @param {boolean} _interleaveTaskTypes - whether to interleave task types (open/checklist together) or keep them separate
  */
-export async function sortTasksUnderHeading(_heading: string, _sortOrder: string | Array<string>, _noteOverride: TNote | Editor | null = null): Promise<void> {
+export async function sortTasksUnderHeading(
+  _heading: string | null,
+  _sortOrder: string | Array<string> | null,
+  _noteOverride: TNote | typeof Editor | null = null,
+  _interleaveTaskTypes: string | boolean = true,
+): Promise<void> {
   try {
+    logDebug(`sortTasksUnderHeading: starting for heading="${_heading}" sortOrder="${String(_sortOrder)}" with note override? ${_noteOverride ? 'yes' : 'no'}`)
+    logDebug(`sortTasksUnderHeading: About to saveEditorIfNecessary()`)
     await saveEditorIfNecessary()
+    logDebug(`sortTasksUnderHeading: Back from saveEditorIfNecessary()`)
     const noteToUse = _noteOverride || Editor.note
     if (!noteToUse) {
       logError(pluginJson, `sortTasksUnderHeading: There is no noteToUse. Bailing`)
       await showMessage('No note is open')
       return
     }
+
+    // Handle heading parameter - prompt user if null
     const heading = _heading || (await chooseHeading(noteToUse, false, false, false))
+
+    // Handle sortOrder parameter - use type conversion if provided, otherwise prompt user
     let sortOrder: Array<string> = []
-    if (typeof _sortOrder === 'object') {
-      // if sortOrder is an array, then it's already in the correct format
-      sortOrder = _sortOrder
-    } else {
-      // if sortOrder is a string, then it's a JSON string, so we need to parse it
-      sortOrder = _sortOrder ? JSON.parse(_sortOrder) : await getUserSort()
+    // Use type conversion to handle string or array input
+    sortOrder = getArrayValue(_sortOrder, null, ',')
+    if (!_sortOrder) {
+      // If null, prompt the user for sort order
+      sortOrder = await getUserSort()
     }
-    logDebug(pluginJson, `sortTasksUnderHeading: starting for heading="${heading}" sortOrder="${String(sortOrder)}"`)
+
+    // Handle interleaveTaskTypes parameter
+    const interleaveTaskTypes = getBooleanValue(_interleaveTaskTypes, true)
+    logDebug(pluginJson, `sortTasksUnderHeading: about to get block under heading="${heading}" sortOrder="${String(sortOrder)}"`)
 
     if (heading && noteToUse) {
       const block = getBlockUnderHeading(noteToUse, heading)
@@ -757,14 +993,14 @@ export async function sortTasksUnderHeading(_heading: string, _sortOrder: string
       if (block?.length) {
         // clo(sortOrder, `sortTasksUnderHeading sortOrder`)
         if (sortOrder) {
-          const sortedTasks = sortParagraphsByType(block, sortOrder)
+          const sortedTasks = sortParagraphsByType(block, sortOrder, interleaveTaskTypes)
           // clo(sortedTasks, `sortTasksUnderHeading sortedTasks`)
           // const printHeadings = (await wantHeadings()) || false
           // const printSubHeadings = (await wantSubHeadings()) || false
           // const sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
-          if (noteToUse) deleteExistingTasks(noteToUse, sortedTasks) // need to do this before adding new lines to preserve line numbers
+          if (noteToUse) await deleteExistingTasks(noteToUse, sortedTasks) // need to do this before adding new lines to preserve line numbers
           // if (noteToUse) await writeOutTasks(noteToUse, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', heading)
-          if (noteToUse) await writeOutTasks(noteToUse, sortedTasks, false, false, '', heading)
+          if (noteToUse) await writeOutTasks(noteToUse, sortedTasks, false, false, '', heading, interleaveTaskTypes, false)
         }
       } else {
         await showMessage(`No tasks found under heading "${heading}"`)

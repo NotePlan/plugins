@@ -5,7 +5,7 @@ import * as f from '../src/sortTasks'
 import * as testNote from './factories/taskDocument.json'
 import * as testNoteAfterSortByTitle from './factories/taskDocumentAfterSortByTitle.json'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, simpleFormatter, mockWasCalledWithString, Paragraph } from '@mocks/index'
-import { getTasksByType } from '@helpers/sorting'
+import { getTasksByType, TASK_TYPES } from '@helpers/sorting'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -358,7 +358,7 @@ describe(`${PLUGIN_NAME}`, () => {
           new Paragraph({ type: 'scheduled', content: '4-scheduled' }),
         ]
         const tByType = getTasksByType(tasks)
-        await f.writeOutTasks(note, tByType)
+        await f.writeOutTasks(note, tByType, false, false, null, '', false)
         const result = note.paragraphs
         expect(result.length).toEqual(6)
         // export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
@@ -387,7 +387,7 @@ describe(`${PLUGIN_NAME}`, () => {
           new Paragraph({ type: 'checklistScheduled', content: '8-checklistScheduled' }),
         ]
         const tByType = getTasksByType(tasks)
-        await f.writeOutTasks(note, tByType)
+        await f.writeOutTasks(note, tByType, false, false, null, '', false)
         const result = note.paragraphs
         expect(result.length).toEqual(10)
         // export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
@@ -419,7 +419,7 @@ describe(`${PLUGIN_NAME}`, () => {
           new Paragraph({ type: 'scheduled', content: '4-scheduled' }),
         ]
         const tByType = getTasksByType(tasks)
-        await f.writeOutTasks(note, tByType)
+        await f.writeOutTasks(note, tByType, false, false, null, '', false)
         const result = note.paragraphs
         expect(result.length).toEqual(6)
         // export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
@@ -447,7 +447,7 @@ describe(`${PLUGIN_NAME}`, () => {
           new Paragraph({ type: 'scheduled', content: '4-scheduled' }),
         ]
         const tByType = getTasksByType(tasks)
-        await f.writeOutTasks(note, tByType)
+        await f.writeOutTasks(note, tByType, false, false, null, '', false)
         const result = note.paragraphs
         expect(result.length).toEqual(6)
         // export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
@@ -473,7 +473,7 @@ describe(`${PLUGIN_NAME}`, () => {
         })
         const tasks = [new Paragraph({ type: 'open', content: '1-open' })]
         const tByType = getTasksByType(tasks)
-        await f.writeOutTasks(note, tByType)
+        await f.writeOutTasks(note, tByType, false, false, null, '', false)
         const result = note.paragraphs
         expect(result.length).toEqual(4)
         expect(result[3].content).toEqual('1-open')
@@ -495,7 +495,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
         const tasks = [new Paragraph({ type: 'open', content: '1-open' })]
         const tByType = getTasksByType(tasks)
-        await f.writeOutTasks(note, tByType, false, false, false, 'theTitle')
+        await f.writeOutTasks(note, tByType, false, false, null, 'theTitle', false)
         const result = note.paragraphs
         expect(result.length).toEqual(5)
         expect(result[3].content).toEqual('1-open')
@@ -515,7 +515,7 @@ describe(`${PLUGIN_NAME}`, () => {
         })
         const tasks = [new Paragraph({ type: 'open', content: '1-open' })]
         const tByType = getTasksByType(tasks)
-        await f.writeOutTasks(note, tByType)
+        await f.writeOutTasks(note, tByType, false, false, null, '', false)
         const result = note.paragraphs
         expect(result.length).toEqual(7)
         expect(result[6].content).toEqual('1-open')
@@ -526,7 +526,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const note = new Note({ paragraphs: [] })
         const tasks = new Note(testNote).paragraphs.filter((p) => p.lineIndex >= 21 && p.lineIndex <= 33)
         const tByType = getTasksByType(tasks)
-        await f.writeOutTasks(note, tByType)
+        await f.writeOutTasks(note, tByType, false, false, null, '', false)
         const result = note.paragraphs
         expect(result[0].content).toEqual('Task-4 @done(2022-10-01)')
         expect(result[8].content).toEqual('And a note under Task-8')
@@ -573,7 +573,7 @@ describe(`${PLUGIN_NAME}`, () => {
           const note = new Note(testNote)
           global.Editor = note
           global.Editor.note = note
-          await f.sortTasks(false, ['-priority', 'content'], false, null)
+          await f.sortTasks(false, ['-priority', 'content'], false, null, false)
           const result = global.Editor.paragraphs
           testNoteAfterSortByTitle.paragraphs.forEach((p, i) => {
             const shouldBe = `${p.rawContent}`
@@ -586,6 +586,323 @@ describe(`${PLUGIN_NAME}`, () => {
           global.Editor = { ...editorBackup }
           global.DataStore = { ...dataStoreBackup }
         })
+      })
+    })
+
+    /**
+     * Tests for interleaveTaskTypes functionality
+     */
+    describe('interleaveTaskTypes functionality', () => {
+      const testNoteWithMixedTasks = {
+        title: 'Test Note with Mixed Tasks',
+        paragraphs: [
+          { type: 'title', content: 'Test Note with Mixed Tasks', lineIndex: 0, rawContent: '# Test Note with Mixed Tasks' },
+          { type: 'open', content: 'Low priority open task', lineIndex: 1, rawContent: '- [ ] Low priority open task' },
+          { type: 'checklist', content: '!!! High priority checklist task (A)', lineIndex: 2, rawContent: '- [ ] !!! High priority checklist task (A)' },
+          { type: 'open', content: '!! Medium priority open task (B)', lineIndex: 3, rawContent: '- [ ] !! Medium priority open task (B)' },
+          { type: 'checklist', content: 'Low priority checklist task (C)', lineIndex: 4, rawContent: '- [ ] Low priority checklist task (C)' },
+          { type: 'scheduled', content: '!! High priority scheduled task >2024-01-01 (D)', lineIndex: 5, rawContent: '- [>] !! High priority scheduled task >2024-01-01 (D)' },
+          { type: 'done', content: '! Completed task', lineIndex: 6, rawContent: '- [x] ! Completed task' },
+        ],
+      }
+
+      const expectedTraditionalSort = {
+        title: 'Test Note with Mixed Tasks',
+        paragraphs: [
+          { type: 'title', content: 'Test Note with Mixed Tasks', lineIndex: 0, rawContent: '# Test Note with Mixed Tasks' },
+          // Open tasks first (sorted by priority desc)
+          { type: 'open', content: 'Medium priority open task', lineIndex: 3, rawContent: '- [ ] Medium priority open task (B)', priority: 5 },
+          { type: 'open', content: 'Low priority open task', lineIndex: 1, rawContent: '- [ ] Low priority open task', priority: 1 },
+          // Then checklist tasks (sorted by priority desc)
+          { type: 'checklist', content: 'High priority checklist task', lineIndex: 2, rawContent: '- [ ] High priority checklist task (A)', priority: 10 },
+          { type: 'checklist', content: 'Low priority checklist task', lineIndex: 4, rawContent: '- [ ] Low priority checklist task (C)', priority: 2 },
+          // Then scheduled tasks (sorted by priority desc)
+          { type: 'scheduled', content: 'High priority scheduled task', lineIndex: 5, rawContent: '- [>] High priority scheduled task >2024-01-01 (D)', priority: 9 },
+          // Then done tasks (sorted by priority desc)
+          { type: 'done', content: 'Completed task', lineIndex: 6, rawContent: '- [x] Completed task', priority: 8 },
+        ],
+      }
+
+      const expectedInterleavedSort = {
+        title: 'Test Note with Mixed Tasks',
+        paragraphs: [
+          { type: 'title', content: 'Test Note with Mixed Tasks', lineIndex: 0, rawContent: '# Test Note with Mixed Tasks' },
+          // Active tasks interleaved by priority (high to low)
+          { type: 'checklist', content: 'High priority checklist task', lineIndex: 2, rawContent: '- [ ] High priority checklist task (A)', priority: 10 },
+          { type: 'scheduled', content: 'High priority scheduled task', lineIndex: 5, rawContent: '- [>] High priority scheduled task >2024-01-01 (D)', priority: 9 },
+          { type: 'open', content: 'Medium priority open task', lineIndex: 3, rawContent: '- [ ] Medium priority open task (B)', priority: 5 },
+          { type: 'checklist', content: 'Low priority checklist task', lineIndex: 4, rawContent: '- [ ] Low priority checklist task (C)', priority: 2 },
+          { type: 'open', content: 'Low priority open task', lineIndex: 1, rawContent: '- [ ] Low priority open task', priority: 1 },
+          // Completed tasks (separate group)
+          { type: 'done', content: 'Completed task', lineIndex: 6, rawContent: '- [x] Completed task', priority: 8 },
+        ],
+      }
+
+      test('should sort tasks by type first when interleaveTaskTypes is false (traditional)', async () => {
+        const editorBackup = { ...global.Editor }
+        const dataStoreBackup = { ...global.DataStore }
+
+        DataStore.settings.sortInHeadings = false
+        DataStore.settings.outputOrder = 'open, scheduled, done'
+
+        const note = new Note(testNoteWithMixedTasks)
+        global.Editor = note
+        global.Editor.note = note
+
+        // Call sortTasks with interleaveTaskTypes = false (traditional sorting)
+        await f.sortTasks(false, ['-priority'], false, false, false)
+
+        const result = global.Editor.paragraphs
+
+        // Verify the order matches traditional sorting (type first, then priority)
+        expect(result[1].content).toBe('!! Medium priority open task (B)') // Highest priority open task (!!)
+        expect(result[2].content).toBe('Low priority open task') // Lower priority open task (no priority)
+        expect(result[3].content).toBe('!!! High priority checklist task (A)') // Highest priority checklist task (!!!)
+        expect(result[4].content).toBe('Low priority checklist task (C)') // Lower priority checklist task (no priority)
+        expect(result[5].content).toBe('!! High priority scheduled task >2024-01-01 (D)') // Scheduled task (!!)
+        expect(result[6].content).toBe('! Completed task') // Done task (!)
+
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
+      })
+
+      test('should interleave compatible task types when interleaveTaskTypes is true', async () => {
+        const editorBackup = { ...global.Editor }
+        const dataStoreBackup = { ...global.DataStore }
+
+        DataStore.settings.sortInHeadings = false
+        DataStore.settings.outputOrder = 'open, scheduled, done'
+
+        const note = new Note(testNoteWithMixedTasks)
+        global.Editor = note
+        global.Editor.note = note
+
+        // Call sortTasks with interleaveTaskTypes = true (interleaved sorting)
+        await f.sortTasks(false, ['-priority'], false, false, true)
+
+        const result = global.Editor.paragraphs
+
+        // Verify the order matches interleaved sorting (priority first, open tasks before checklists within same priority)
+        // Note: Tasks are now inserted at top of note, so they start at index 0, title is pushed down
+        expect(result[0].content).toBe('!!! High priority checklist task (A)') // Highest priority (!!!)
+        expect(result[1].content).toBe('!! High priority scheduled task >2024-01-01 (D)') // Second highest (!!) - scheduled is open type
+        expect(result[2].content).toBe('!! Medium priority open task (B)') // Third highest (!!) - open task
+        expect(result[3].content).toBe('Low priority open task') // Fourth highest (no priority) - open task
+        expect(result[4].content).toBe('Low priority checklist task (C)') // Fifth highest (no priority) - checklist
+        expect(result[5].content).toBe('! Completed task') // Done task (separate group)
+        expect(result[6].content).toBe('Test Note with Mixed Tasks') // Title is now at the bottom
+
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
+      })
+
+      test('should handle sortTasksUnderHeading with interleaving', async () => {
+        const editorBackup = { ...global.Editor }
+        const dataStoreBackup = { ...global.DataStore }
+
+        DataStore.settings.sortInHeadings = false
+        DataStore.settings.outputOrder = 'open, scheduled, done'
+
+        const noteWithHeading = {
+          title: 'Test Note with Heading',
+          paragraphs: [
+            { type: 'title', content: 'Test Note with Heading', lineIndex: 0, rawContent: '# Test Note with Heading' },
+            { type: 'title', content: 'Active Tasks', lineIndex: 1, rawContent: '## Active Tasks', headingLevel: 2 },
+            { type: 'open', content: 'Low priority open task', lineIndex: 2, rawContent: '- [ ] Low priority open task' },
+            { type: 'checklist', content: '!!! High priority checklist task (A)', lineIndex: 3, rawContent: '- [ ] !!! High priority checklist task (A)' },
+            { type: 'open', content: '!! Medium priority open task (B)', lineIndex: 4, rawContent: '- [ ] !! Medium priority open task (B)' },
+          ],
+        }
+
+        const note = new Note(noteWithHeading)
+        global.Editor = note
+        global.Editor.note = note
+
+        // Call sortTasksUnderHeading with interleaveTaskTypes = true
+        await f.sortTasksUnderHeading('Active Tasks', ['-priority'], null, true)
+
+        const result = global.Editor.paragraphs
+
+        // Verify the tasks under the heading are interleaved by priority
+        expect(result[2].content).toBe('!!! High priority checklist task (A)') // Highest priority (!!!)
+        expect(result[3].content).toBe('!! Medium priority open task (B)') // Second highest (!!)
+        expect(result[4].content).toBe('Low priority open task') // Lowest priority (no priority)
+
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
+      })
+
+      test('should maintain separate groups for completed and cancelled tasks even when interleaving', async () => {
+        const editorBackup = { ...global.Editor }
+        const dataStoreBackup = { ...global.DataStore }
+
+        DataStore.settings.sortInHeadings = false
+        DataStore.settings.outputOrder = 'open, checklist, scheduled, done, cancelled'
+
+        const noteWithAllTypes = {
+          title: 'Test Note with All Types',
+          paragraphs: [
+            { type: 'title', content: 'Test Note with All Types', lineIndex: 0, rawContent: '# Test Note with All Types' },
+            { type: 'open', content: 'Low priority open task', lineIndex: 1, rawContent: '- [ ] Low priority open task' },
+            { type: 'checklist', content: '!!! High priority checklist task', lineIndex: 2, rawContent: '- [ ] !!! High priority checklist task' },
+            { type: 'done', content: '!! High priority done task', lineIndex: 3, rawContent: '- [x] !! High priority done task' },
+            { type: 'done', content: 'Low priority done task', lineIndex: 4, rawContent: '- [x] Low priority done task' },
+            { type: 'cancelled', content: '! Cancelled task', lineIndex: 5, rawContent: '- [-] ! Cancelled task' },
+          ],
+        }
+
+        const note = new Note(noteWithAllTypes)
+        global.Editor = note
+        global.Editor.note = note
+
+        // Call sortTasks with interleaveTaskTypes = true
+        await f.sortTasks(false, ['-priority'], false, false, true)
+
+        const result = global.Editor.paragraphs
+
+        // Verify active tasks are interleaved, but completed/cancelled are separate groups
+        // Note: Tasks are now inserted at top of note, so they start at index 0, title is pushed down
+        expect(result[0].content).toBe('!!! High priority checklist task') // Highest active priority (!!!)
+        expect(result[1].content).toBe('Low priority open task') // Lower active priority (no priority)
+        expect(result[2].content).toBe('!! High priority done task') // Highest done priority (!!)
+        expect(result[3].content).toBe('Low priority done task') // Lower done priority (no priority)
+        expect(result[4].content).toBe('! Cancelled task') // Cancelled task (separate group)
+        expect(result[5].content).toBe('Test Note with All Types') // Title is now at the bottom
+
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
+      })
+
+      test('should handle string parameters for interleaveTaskTypes correctly', async () => {
+        const editorBackup = { ...global.Editor }
+        const dataStoreBackup = { ...global.DataStore }
+
+        DataStore.settings.sortInHeadings = false
+        DataStore.settings.outputOrder = 'open, scheduled, done'
+
+        const note = new Note(testNoteWithMixedTasks)
+        global.Editor = note
+        global.Editor.note = note
+
+        // Test with string 'true' parameter
+        await f.sortTasks(false, ['-priority'], false, false, 'true')
+
+        const result = global.Editor.paragraphs
+
+        // Verify it behaves like boolean true (interleaved, open tasks before checklists within same priority)
+        // Note: Tasks are now inserted at top of note, so they start at index 0, title is pushed down
+        expect(result[0].content).toBe('!!! High priority checklist task (A)') // Highest priority (!!!)
+        expect(result[1].content).toBe('!! High priority scheduled task >2024-01-01 (D)') // Second highest (!!) - scheduled is open type
+
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
+      })
+
+      test('should handle string parameters for interleaveTaskTypes correctly (false)', async () => {
+        const editorBackup = { ...global.Editor }
+        const dataStoreBackup = { ...global.DataStore }
+
+        DataStore.settings.sortInHeadings = false
+        DataStore.settings.outputOrder = 'open, scheduled, done'
+
+        const note = new Note(testNoteWithMixedTasks)
+        global.Editor = note
+        global.Editor.note = note
+
+        // Test with string 'false' parameter
+        await f.sortTasks(false, ['-priority'], false, false, 'false')
+
+        const result = global.Editor.paragraphs
+
+        // Verify it behaves like boolean false (traditional)
+        expect(result[1].content).toBe('!! Medium priority open task (B)') // Highest priority open task (!!)
+        expect(result[2].content).toBe('Low priority open task') // Lower priority open task (no priority)
+        expect(result[3].content).toBe('!!! High priority checklist task (A)') // Highest priority checklist task (!!!)
+
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
+      })
+
+      test('should interleave tasks correctly in real-world scenario with heading', async () => {
+        const editorBackup = { ...global.Editor }
+        const dataStoreBackup = { ...global.DataStore }
+
+        DataStore.settings.sortInHeadings = true
+        DataStore.settings.outputOrder = 'open, scheduled, done'
+
+        // Create a note that matches the real-world scenario from the debug logs
+        const realWorldNote = new Note({
+          title: 'jgclark sort test',
+          content: `# jgclark sort test
+
+## my heading
++ !!! 01 a checklist
+* !!! a 3 ! open task
++ !! 06 a two checklist
+* !! a high priority task
++ ! a single priority checklist
+* ! a single priority open task
+* 02 a task
+	some indented text under 02 a task
+	+ !!!! 03 a high priority checklist under 02 a task
+		* 04 a task under 03 checklist
+* [x] !!! a super high priority completed task
++ [x] a completed checklist
+	a completed task
+* [x] a completed task
+`,
+        })
+
+        global.Editor = realWorldNote
+        global.Editor.note = realWorldNote
+
+        // Test interleaving with the exact same parameters as the real-world scenario
+        await f.sortTasks(false, ['-priority', 'content'], false, false, true)
+
+        const result = global.Editor.paragraphs
+
+        // Find the heading section
+        const headingIndex = result.findIndex((p) => p.content === 'my heading')
+        expect(headingIndex).toBeGreaterThan(-1)
+
+        // The tasks should be interleaved by priority within logical groups:
+        // Group 1: Active tasks (open + checklist) - sorted by priority, open tasks first within same priority:
+        // 1. * !!! a 3 ! open task (priority 3, open)
+        // 2. + !!! 01 a checklist (priority 3, checklist)
+        // 3. * !! a high priority task (priority 2, open)
+        // 4. + !! 06 a two checklist (priority 2, checklist)
+        // 5. * ! a single priority open task (priority 1, open)
+        // 6. + ! a single priority checklist (priority 1, checklist)
+        // 7. * 02 a task (priority 0, open)
+        // Group 2: Completed tasks (done + checklistDone) - interleaved by priority:
+        // 8. * [x] !!! a super high priority completed task (priority 3, completed)
+        // 9. + [x] a completed checklist (priority 0, completed)
+        // 10. * [x] a completed task (priority 0, completed)
+
+        const tasksAfterHeading = result.slice(headingIndex + 1).filter((p) => p.content && !p.content.startsWith('noteplan://') && TASK_TYPES.includes(p.type))
+
+        // Interleaved order: priority first, then open tasks before checklists within same priority
+        expect(tasksAfterHeading[0].rawContent).toBe('+ !!! 01 a checklist') // Highest priority (3) checklist
+        expect(tasksAfterHeading[1].rawContent).toBe('* !!! a 3 ! open task') // Same priority (3) open task
+        expect(tasksAfterHeading[2].rawContent).toBe('+ !! 06 a two checklist') // Next priority (2) checklist
+        expect(tasksAfterHeading[3].rawContent).toBe('* !! a high priority task') // Same priority (2) open task
+        expect(tasksAfterHeading[4].rawContent).toBe('+ ! a single priority checklist') // Next priority (1) checklist
+        expect(tasksAfterHeading[5].rawContent).toBe('* ! a single priority open task') // Same priority (1) open task
+
+        // Verify completed tasks come after active tasks
+        const completedTasks = tasksAfterHeading.filter((p) => p.content.includes('[x]'))
+        const activeTasks = tasksAfterHeading.filter((p) => !p.content.includes('[x]'))
+
+        // All active tasks should come before completed tasks
+        const firstCompletedIndex = tasksAfterHeading.findIndex((p) => p.content.includes('[x]'))
+
+        // Check that all tasks before the first completed task are active tasks
+        for (let i = 0; i < firstCompletedIndex; i++) {
+          expect(tasksAfterHeading[i].content).not.toContain('[x]')
+        }
+
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
       })
     })
   })
