@@ -120,7 +120,7 @@
     },
     {
       "name": "Remove empty elements",
-      "description": "Removes empty list items, quotations, headings, and reduces multiple empty lines to a single empty line. Setting 'Strip all empty lines?' controls whether to leave no empty paragraphs at all.",
+      "description": "Removes empty list items, quotations, headings, and reduces multiple empty lines to a single empty line.",
       "jsFunction": "removeEmptyElements",
       "alias": [
         "ree",
@@ -130,7 +130,8 @@
       ],
       "arguments": [
         "filename (or 'Editor' for the open note in the Editor) -- default: Editor",
-        "stripAllEmptyLines -- default: false; By default, multiple consecutive empty lines are reduced to a single empty line. But if this is set to true, then all empty lines will be removed."
+        "stripAllEmptyLines -- default: false; By default, multiple consecutive empty lines are reduced to a single empty line. But if this is set to true, then all empty lines will be removed.",
+        "preserveHeadingStructure -- default: false; When true, keeps all headings (even empty ones) to maintain note templates and structure. Useful for preserving heading hierarchy in templates."
       ]
     },
     {

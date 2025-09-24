@@ -427,6 +427,91 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).not.toMatch(/Empty Subsection/)
         expect(result).not.toMatch(/Another Section/)
       })
+
+      it('should preserve heading structure when preserveHeadingStructure is true', async () => {
+        const testParagraphs = [
+          {
+            content: 'Main Section',
+            rawContent: '# Main Section',
+            type: 'title',
+            headingLevel: 1,
+            lineIndex: 0,
+            indents: 0,
+            noteType: 'Notes',
+          },
+          {
+            content: '',
+            rawContent: '',
+            type: 'empty',
+            headingLevel: 0,
+            lineIndex: 1,
+            indents: 0,
+            noteType: 'Notes',
+          },
+          {
+            content: '',
+            rawContent: '## ',
+            type: 'title',
+            headingLevel: 2,
+            lineIndex: 2,
+            indents: 0,
+            noteType: 'Notes',
+          },
+          {
+            content: '',
+            rawContent: '',
+            type: 'empty',
+            headingLevel: 0,
+            lineIndex: 3,
+            indents: 0,
+            noteType: 'Notes',
+          },
+          {
+            content: 'Some content',
+            rawContent: 'Some content',
+            type: 'text',
+            headingLevel: 0,
+            lineIndex: 4,
+            indents: 0,
+            noteType: 'Notes',
+          },
+          {
+            content: '',
+            rawContent: '',
+            type: 'empty',
+            headingLevel: 0,
+            lineIndex: 5,
+            indents: 0,
+            noteType: 'Notes',
+          },
+          {
+            content: '',
+            rawContent: '',
+            type: 'empty',
+            headingLevel: 0,
+            lineIndex: 6,
+            indents: 0,
+            noteType: 'Notes',
+          },
+        ]
+        Editor.note = new Note({ paragraphs: testParagraphs })
+
+        await f.removeEmptyElements('Editor', false, true)
+        const paragraphs = Editor.note.paragraphs
+
+        // All headings should be preserved (even empty ones)
+        const mainSectionHeading = paragraphs.find((p) => p.type === 'title' && p.content === 'Main Section')
+        const emptyHeading = paragraphs.find((p) => p.type === 'title' && p.content === '' && p.rawContent === '## ')
+        const contentParagraph = paragraphs.find((p) => p.type === 'text' && p.content === 'Some content')
+
+        expect(mainSectionHeading).toBeDefined()
+        expect(emptyHeading).toBeDefined() // Empty heading preserved
+        expect(contentParagraph).toBeDefined()
+
+        // Check that we have the right number of paragraphs (should have removed one consecutive empty line)
+        const emptyParagraphs = paragraphs.filter((p) => p.type === 'empty')
+        expect(emptyParagraphs.length).toBe(3) // Should have 3 empty lines (removed 1 consecutive empty line)
+      })
     })
   })
 })

@@ -20,37 +20,33 @@ export async function testRemoveEmptyElements(): Promise<void> {
 }
 
 /**
- * Removes empty list items, quotations, headings, sections, and reduces multiple empty lines to a single empty line.
- * Setting 'stripAllEmptyLines' controls whether to leave no empty paragraphs at all.
- * Works on the note open in the Editor, unless a filename is provided.
- *
- * The function operates in three passes:
- * - PASS 1: Removes empty list items, quotes, and headings with no content
- * - PASS 2: Removes empty sections (headings with no content and no subheadings with content)
- * - PASS 3: Handles consecutive empty lines based on stripAllEmptyLines setting
- *
- * @param {string} filenameIn - Filename of note to work on. If not provided, works on the note open in the Editor. Can also pass literal string "Editor".
- * @param {boolean?} stripAllEmptyLinesArg - Optional setting to control whether to leave no empty paragraphs at all. If present it overrides the setting in the plugin settings.
- * @author @jgclark
- */
-/**
  * PASS 1: Removes empty list items, quotes, and headings with no content
  *
  * This is the first pass of the empty elements removal process. It handles the simplest
  * cases where elements are completely empty (no text content).
  *
  * @param {TNote} note - The note to process
+ * @param {boolean} preserveHeadings - Whether to preserve heading structure (skip removing empty headings)
  * @returns {boolean} - Whether any changes were made
  *
  * @example
+ * // When preserveHeadings = false (default):
  * // Removes: "- " (empty list item)
  * // Removes: "> " (empty quote)
  * // Removes: "# " (empty heading)
  * // Preserves: "- Some content" (list with content)
  * // Preserves: "> Some quote" (quote with content)
  * // Preserves: "# Some heading" (heading with content)
+ *
+ * // When preserveHeadings = true:
+ * // Removes: "- " (empty list item)
+ * // Removes: "> " (empty quote)
+ * // Preserves: "# " (empty heading - structure preserved)
+ * // Preserves: "- Some content" (list with content)
+ * // Preserves: "> Some quote" (quote with content)
+ * // Preserves: "# Some heading" (heading with content)
  */
-function removeEmptyListItemsAndHeadings(note: TNote): boolean {
+function removeEmptyListItemsAndHeadings(note: TNote, preserveHeadings: boolean = false): boolean {
   const paragraphs = note.paragraphs
   let changesMade = false
 
@@ -58,7 +54,21 @@ function removeEmptyListItemsAndHeadings(note: TNote): boolean {
     const trimmedContent = para.content.trim()
     const isEmptyContent = trimmedContent === ''
 
-    if (isEmptyContent && ['list', 'quote', 'title'].includes(para.type)) {
+    // For headings, when preserving structure, never remove them
+    // For other types, check if content is empty
+    let shouldRemove = false
+    if (para.type === 'title' && preserveHeadings) {
+      // Don't remove headings when preserving structure
+      shouldRemove = false
+    } else if (para.type === 'title' && !preserveHeadings) {
+      // Remove empty headings when not preserving structure
+      shouldRemove = isEmptyContent
+    } else {
+      // For list and quote items, remove if empty
+      shouldRemove = isEmptyContent && ['list', 'quote'].includes(para.type)
+    }
+
+    if (shouldRemove) {
       logDebug('removeEmptyElements', `Removing empty ${para.type} para on line ${String(para.lineIndex)}`)
       note.removeParagraph(para)
       changesMade = true
@@ -165,6 +175,7 @@ function removeEmptySections(note: TNote): boolean {
  *
  * @param {TNote} note - The note to process
  * @param {boolean} stripAllEmptyLines - Whether to remove all empty lines or just consecutive ones
+ * @param {boolean} preserveHeadings - Whether to preserve heading structure (skip removing empty headings)
  * @returns {boolean} - Whether any changes were made
  *
  * @example
@@ -176,13 +187,17 @@ function removeEmptySections(note: TNote): boolean {
  * // Before: "Line 1\n\n\n\nLine 2"
  * // After:  "Line 1\nLine 2"  (removes all empty lines)
  */
-function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean): boolean {
+function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean, preserveHeadings: boolean = false): boolean {
   const paragraphs = note.paragraphs
   let changesMade = false
 
   if (stripAllEmptyLines) {
-    // Delete *all* empty paras
-    const emptyParasToRemove = paragraphs.filter((para) => para.type === 'empty')
+    // Delete *all* empty paras, but preserve headings if preserveHeadings is true
+    const emptyParasToRemove = paragraphs.filter((para) => {
+      if (para.type === 'empty') return true
+      if (preserveHeadings && para.type === 'title' && para.content.trim() === '') return false
+      return false
+    })
     for (const para of emptyParasToRemove) {
       logDebug('removeEmptyElements', `Removing empty para on line ${String(para.lineIndex)}`)
       note.removeParagraph(para)
@@ -206,6 +221,9 @@ function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean): 
           logDebug('removeEmptyElements', `Line ${String(para.lineIndex)} is empty (first in sequence)`)
           inEmptySequence = true
         }
+      } else if (preserveHeadings && para.type === 'title' && para.content.trim() === '') {
+        // When preserving headings, treat empty headings as non-empty to break sequences
+        inEmptySequence = false
       } else {
         // Non-empty line, reset the sequence flag
         inEmptySequence = false
@@ -224,8 +242,43 @@ function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean): 
   return changesMade
 }
 
-export async function removeEmptyElements(filenameIn: string = 'Editor', stripAllEmptyLinesArg: ?boolean = null): Promise<void> {
+/**
+ * Removes empty list items, quotations, headings, sections, and reduces multiple empty lines to a single empty line.
+ * Setting 'stripAllEmptyLines' controls whether to leave no empty paragraphs at all.
+ * Setting 'preserveHeadingStructure' controls whether to preserve all heading structure (no heading deletions).
+ * Works on the note open in the Editor, unless a filename is provided.
+ *
+ * The function operates in three passes:
+ * - PASS 1: Removes empty list items, quotes, and headings with no content
+ * - PASS 2: Removes empty sections (headings with no content and no subheadings with content)
+ * - PASS 3: Handles consecutive empty lines based on stripAllEmptyLines setting
+ *
+ * @param {string} filenameIn - Filename of note to work on. If not provided, works on the note open in the Editor. Can also pass literal string "Editor".
+ * @param {boolean?} stripAllEmptyLinesArg - Optional setting to control whether to leave no empty paragraphs at all. If present it overrides the setting in the plugin settings.
+ * @param {boolean?} preserveHeadingStructure - Optional setting to preserve all heading structure. When true, skips PASS 2 (no heading deletions) and only removes empty list items, quotes, and empty lines.
+ * @returns {Promise<void>} - Promise that resolves when the operation is complete
+ *
+ * @example
+ * // Normal behavior - removes empty headings and sections
+ * await removeEmptyElements('Editor', false, false)
+ *
+ * // Preserve heading structure - keeps all headings, even empty ones
+ * await removeEmptyElements('Editor', false, true)
+ *
+ * // Remove all empty lines while preserving heading structure
+ * await removeEmptyElements('Editor', true, true)
+ *
+ * @author @jgclark
+ */
+export async function removeEmptyElements(filenameIn: string = 'Editor', stripAllEmptyLinesArg: ?boolean = null, preserveHeadingStructure: ?boolean = null): Promise<void> {
   try {
+    logDebug(
+      pluginJson,
+      `Starting removeEmptyElements() with filenameIn: "${filenameIn}", stripAllEmptyLinesArg: ${String(stripAllEmptyLinesArg)}, preserveHeadingStructure: ${String(
+        preserveHeadingStructure,
+      )}`,
+    )
+
     let note: TNote | null
     let workingInEditor = false
 
@@ -250,12 +303,14 @@ export async function removeEmptyElements(filenameIn: string = 'Editor', stripAl
 
     const config = await getSettings()
     const stripAllEmptyLines = stripAllEmptyLinesArg !== null ? stripAllEmptyLinesArg : config.stripAllEmptyLines
+    const preserveHeadings = preserveHeadingStructure !== null ? preserveHeadingStructure : false
     logDebug(pluginJson, `stripAllEmptyLinesArg: ${String(stripAllEmptyLinesArg)} typeof=${typeof stripAllEmptyLinesArg} / stripAllEmptyLines: ${String(stripAllEmptyLines)}`)
+    logDebug(pluginJson, `preserveHeadingStructure: ${String(preserveHeadingStructure)} typeof=${typeof preserveHeadingStructure} / preserveHeadings: ${String(preserveHeadings)}`)
 
-    // Execute the three phases of cleanup
-    const changes1 = removeEmptyListItemsAndHeadings(note)
-    const changes2 = removeEmptySections(note)
-    const changes3 = removeConsecutiveEmptyLines(note, Boolean(stripAllEmptyLines))
+    // Execute the phases of cleanup
+    const changes1 = removeEmptyListItemsAndHeadings(note, preserveHeadings)
+    const changes2 = preserveHeadings ? false : removeEmptySections(note)
+    const changes3 = removeConsecutiveEmptyLines(note, Boolean(stripAllEmptyLines), preserveHeadings)
 
     const changesMade = changes1 || changes2 || changes3
 

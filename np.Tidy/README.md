@@ -48,31 +48,17 @@ The **/Remove empty blocks** command intelligently cleans up your notes while pr
 
 **Empty line handling:**
 - **Default behavior**: Reduces multiple consecutive empty lines to a single empty line
-- **Strip all empty lines**: Available as a setting to remove ALL empty lines completely
-
-**Example:**
-```markdown
-# Main Section
-
-## Subsection
-Some important content here
-
-## Another Empty Subsection
-
-# Another Section
+- **Strip all empty lines**: Available as an x-callback setting to remove ALL empty lines completely
+```
+noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20elements&arg0=Editor&arg1=true
 ```
 
-After running the command:
-```markdown
-# Main Section
-
-## Subsection
-Some important content here
-
-# Another Section
+**Advanced options:**
+- **Preserve heading structure**: Availabe as an x-callback setting. When arg2 is true, keeps ALL headings (even empty ones) to maintain note templates and structure
+- This is useful for note templates where you want to keep the heading hierarchy intact
 ```
-
-Notice how "Main Section" is preserved because its subheading "Subsection" has content, while "Another Empty Subsection" is removed because it has no content.
+noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20elements&arg0=Editor&arg1=false&arg2=true
+```
 
 ### Details on /List conflicted notes
 Important notes:
