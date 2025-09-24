@@ -13,7 +13,7 @@ This plugin provides commands to help tidy up your notes:
 - **/List stubs**: creates a note that lists all your notes that have wikilinks that lead nowhere.
 - **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See section below.
 - **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character.
-- **/Remove empty blocks** (alias: "reb"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line.
+- **/Remove empty blocks** (alias: "reb"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
 - **/Remove section from recent notes** (alias "rsrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
  - **/Remove section from all notes** (alias "rsan"). Remove a given section (heading + its content block) from _all notes_. Use wisely, as this is dangerous! (original function by @dwertheimer)
@@ -30,6 +30,49 @@ There's also the **/Tidy Up** (alias "tua"), which runs as many of the other com
 (If these commands are useful to you, you'll probably find the [Note Helpers plugin](https://noteplan.co/plugins/jgclark.NoteHelpers) helpful too. It's rather arbitrary which commands live in which plugin.)
 
 [<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
+
+### Details on /Remove empty blocks
+
+The **/Remove empty blocks** command intelligently cleans up your notes while preserving important structure:
+
+**What it removes:**
+- Empty list items (e.g., `- ` or `* ` with no content)
+- Empty quotations (e.g., `> ` with no content)  
+- Empty headings (e.g., `# ` with no text)
+- Multiple consecutive empty lines (reduces to single empty lines)
+
+**Smart heading behavior:**
+- **Preserves parent headings** when their subheadings contain content
+- **Removes headings** only when they have no content AND no subheadings with content
+- This ensures your note hierarchy stays intact when subheadings contain valuable information
+
+**Empty line handling:**
+- **Default behavior**: Reduces multiple consecutive empty lines to a single empty line
+- **Strip all empty lines**: Available as a setting to remove ALL empty lines completely
+
+**Example:**
+```markdown
+# Main Section
+
+## Subsection
+Some important content here
+
+## Another Empty Subsection
+
+# Another Section
+```
+
+After running the command:
+```markdown
+# Main Section
+
+## Subsection
+Some important content here
+
+# Another Section
+```
+
+Notice how "Main Section" is preserved because its subheading "Subsection" has content, while "Another Empty Subsection" is removed because it has no content.
 
 ### Details on /List conflicted notes
 Important notes:

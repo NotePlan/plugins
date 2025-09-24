@@ -6,7 +6,7 @@
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "1.0.0-b2",
+  "plugin.version": "1.0.0-b3",
   "plugin.lastUpdateInfo": "v1.0.0: new '/Remove empty elements' command, and its setting 'Strip all empty lines?'. New setting 'Ignore future calendar notes?' for '/Remove section from all notes' command.\nv0.14.11: improvements to '/List stubs' command.\nv0.14.10: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.9: update '/Generate @repeats from recent notes' and '/Remove blank notes' commands.\nv0.14.8: improvements to '/Remove section from all notes' command.\nv0.14.7: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.6: fix to allow top-level tasks to be run by template.\nv0.14.5: fix to allow top-level tasks to be run by xcallback.\nv0.14.4: fix to allow blank Calendar notes to be removed by '/remove blank notes'.\nv0.14.3: fix unwanted popups in '/generate @repeats from recent notes' command.\nv0.14.2: add new option to file root notes.\nv0.14.1: rebuild.\nv0.14.0: new '/Generate repeats' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -124,10 +124,13 @@
       "jsFunction": "removeEmptyElements",
       "alias": [
         "ree",
-        "tidy"
+        "tidy",
+        "blank",
+        "block"
       ],
       "arguments": [
-        "filename"
+        "filename (or 'Editor' for the open note in the Editor) -- default: Editor",
+        "stripAllEmptyLines -- default: false; By default, multiple consecutive empty lines are reduced to a single empty line. But if this is set to true, then all empty lines will be removed."
       ]
     },
     {
