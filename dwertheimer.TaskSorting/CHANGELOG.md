@@ -4,7 +4,7 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md) for details on available commands and use case.
 
-## [1.2.5] - 2025-09-19 (@dwertheimer)
+## [1.2.6] - 2025-09-23 (@dwertheimer)
 
 - Add logging for jgclark to sortTasksUnderHeading
 - Add ability to pass all params to /ts and /tsh commands
