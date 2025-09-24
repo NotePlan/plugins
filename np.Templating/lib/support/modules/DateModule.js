@@ -29,12 +29,33 @@ export function createDateTime(userDateString = '') {
 }
 
 export function format(format: string = 'YYYY-MM-DD', dateString: string = '') {
-  const dt = dateString ? moment(dateString).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
-  return formatWithNotePlanWeeks(moment(createDateTime(dt)), format && format.length > 0 ? format : 'YYYY-MM-DD')
+  let momentToFormat
+  if (dateString && dateString.length > 0) {
+    const m = moment(dateString)
+    if (m.isValid()) {
+      // If the input has a timezone offset, use UTC interpretation for consistency
+      if (dateString.includes('T') && (dateString.includes('+') || dateString.includes('-') || dateString.includes('Z'))) {
+        const hasTimezoneOffset = /[+-]\d{2}:\d{2}$/.test(dateString) || dateString.endsWith('Z')
+        if (hasTimezoneOffset) {
+          momentToFormat = m.utc()
+        } else {
+          momentToFormat = m
+        }
+      } else {
+        momentToFormat = m
+      }
+    } else {
+      momentToFormat = moment()
+    }
+  } else {
+    momentToFormat = moment()
+  }
+
+  return formatWithNotePlanWeeks(momentToFormat, format && format.length > 0 ? format : 'YYYY-MM-DD')
 }
 
 export function currentDate(format: string = 'YYYY-MM-DD') {
-  return formatWithNotePlanWeeks(moment(new Date()), format && format.length > 0 ? format : 'YYYY-MM-DD')
+  return formatWithNotePlanWeeks(moment(), format && format.length > 0 ? format : 'YYYY-MM-DD')
 }
 
 export function date8601() {
@@ -100,39 +121,51 @@ export default class DateModule {
     const locale = this.config?.templateLocale || 'en-US'
     this.setLocale()
 
-    let dateToFormat // This will be a Date object
+    let momentToFormat // This will be a moment object
 
     if (dateInput instanceof moment) {
-      dateToFormat = dateInput.toDate() // Convert moment object to Date
+      momentToFormat = dateInput // Keep as moment object to preserve timezone info
     } else if (typeof dateInput === 'string' && dateInput.length > 0) {
       const m = moment(dateInput) // Moment is robust for parsing various string formats
       if (m.isValid()) {
-        dateToFormat = m.toDate()
+        // If the input has a timezone offset, use UTC interpretation for consistency
+        // Check for actual timezone offsets (not just dashes in the date part)
+        if (dateInput.includes('T') && (dateInput.includes('+') || dateInput.includes('-') || dateInput.includes('Z'))) {
+          // More specific check: look for timezone offset patterns
+          const hasTimezoneOffset = /[+-]\d{2}:\d{2}$/.test(dateInput) || dateInput.endsWith('Z')
+          if (hasTimezoneOffset) {
+            momentToFormat = m.utc() // Use UTC interpretation for timezone-aware inputs
+          } else {
+            momentToFormat = m // Keep as moment object to preserve timezone info
+          }
+        } else {
+          momentToFormat = m // Keep as moment object to preserve timezone info
+        }
       } else {
         // console.warn(`DateModule.format: Invalid date string '${dateInput}' received. Defaulting to now.`);
-        dateToFormat = new Date() // Fallback
+        momentToFormat = moment() // Fallback
       }
     } else if (dateInput instanceof Date && isFinite(dateInput.getTime())) {
-      dateToFormat = dateInput // Already a valid Date object
+      momentToFormat = moment(dateInput) // Convert Date to moment
     } else {
       // Default to current date if dateInput is empty, invalid, or unexpected type
       // Use moment() to get current date consistently with timezone handling
-      dateToFormat = moment().toDate()
+      momentToFormat = moment()
     }
 
-    // Ensure dateToFormat is a valid, finite Date object for Intl.DateTimeFormat
-    if (!(dateToFormat instanceof Date) || !isFinite(dateToFormat.getTime())) {
-      // console.warn(`DateModule.format: dateToFormat is not a finite Date after processing input:`, dateInput, `. Defaulting to now.`);
-      dateToFormat = moment().toDate() // Final fallback - use moment for consistent timezone handling
+    // Ensure momentToFormat is a valid moment object
+    if (!momentToFormat || !momentToFormat.isValid()) {
+      // console.warn(`DateModule.format: momentToFormat is not a valid moment after processing input:`, dateInput, `. Defaulting to now.`);
+      momentToFormat = moment() // Final fallback
     }
 
     let formattedDateString
     if (effectiveFormat === 'short' || effectiveFormat === 'medium' || effectiveFormat === 'long' || effectiveFormat === 'full') {
-      formattedDateString = new Intl.DateTimeFormat(locale, { dateStyle: effectiveFormat }).format(dateToFormat)
+      formattedDateString = new Intl.DateTimeFormat(locale, { dateStyle: effectiveFormat }).format(momentToFormat.toDate())
     } else {
       // Use formatWithNotePlanWeeks for NotePlan-compatible week numbering
-      // Convert Date object to moment instance for compatibility
-      formattedDateString = formatWithNotePlanWeeks(moment(dateToFormat), effectiveFormat)
+      // Use the moment object directly to preserve timezone information
+      formattedDateString = formatWithNotePlanWeeks(momentToFormat, effectiveFormat)
     }
     return formattedDateString
   }

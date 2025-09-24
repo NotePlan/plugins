@@ -9,7 +9,7 @@ import json5 from 'json5'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { displayTitleWithRelDate } from './NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
-import {getFoldersMatching } from './folders'
+import { getFoldersMatching } from './folders'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
 import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
@@ -59,10 +59,10 @@ export type Option<T> = $ReadOnly<{
  */
 export async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnlyArray<Option<T>>, defaultValue: TDefault | null = null): Promise<T | TDefault> {
   const { index } = await CommandBar.showOptions(
-    options.map((option) => option.label),
+    options.map((option) => (typeof option === 'string' ? option : option.label)),
     message,
   )
-  return options[index]?.value ?? defaultValue ?? options[0].value
+  return typeof options[index] === 'string' ? options[index] : options[index]?.value ?? defaultValue ?? options[0].value
 }
 
 /**
@@ -86,9 +86,10 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
   logDebug('userInput / chooseOptionWithModifiers()', `About to showOptions with ${options.length} options & prompt:"${message}"`)
 
   // Add the "Add new item" option if addCreate is true
-  let displayOptions = [...options]
+  let displayOptions: Array<Option<T>> = [...options]
   if (addCreate) {
-    displayOptions = [{ label: '➕ Add new '+addCreateItemDescriptor, value: '__ADD_NEW__' }, ...options]
+    // $FlowIgnore[incompatible-type]
+    displayOptions = [{ label: '➕ Add new ' + addCreateItemDescriptor, value: '__ADD_NEW__' }, ...options]
   }
 
   logDebug('userInput / chooseOptionWithModifiers()', `displayOptions: ${displayOptions.length} options`)
@@ -101,7 +102,7 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
 
   // Check if the user selected "Add new item"
   if (addCreate && index === 0) {
-    const result = await getInput('Enter new '+addCreateItemDescriptor+':', 'OK', 'Add New Item')
+    const result = await getInput('Enter new ' + addCreateItemDescriptor + ':', 'OK', 'Add New Item')
     if (result && typeof result === 'string') {
       // Return a custom result with the new item
       // $FlowFixMe[incompatible-return]
@@ -137,7 +138,7 @@ export async function chooseDecoratedOptionWithModifiers(
   logDebug('userInput / chooseDecoratedOptionWithModifiers()', `Will showOptions with ${options.length} options & prompt: "${message}"`)
 
   // label field is used elsewhere, but @eduardme made showOptions use text instead, so we map it back to label
-  if (Array.isArray(options) && options.length > 0) { 
+  if (Array.isArray(options) && options.length > 0) {
     options.forEach((option, i) => {
       options[i] = { ...option, text: option.text }
     })
@@ -322,8 +323,9 @@ export async function chooseFolder(
     const NEW_FOLDER = `➕ New Folder${IS_DESKTOP ? ' - or ⌥+click on a parent folder to create new sub-folder' : ''}`
     const teamspaceDefs = getAllTeamspaceIDsAndTitles()
     const addSimpleNewFolderOption = {
-      label: `➕ New Folder${ IS_DESKTOP ? ' - or ⌥+click on a parent folder to create new sub-folder' : '' }`, 
-      value: '__ADD_NEW__'}
+      label: `➕ New Folder${IS_DESKTOP ? ' - or ⌥+click on a parent folder to create new sub-folder' : ''}`,
+      value: '__ADD_NEW__',
+    }
     const addDecoratedNewFolderOption: TCommandBarOptionObject = {
       text: NEW_FOLDER,
       icon: 'folder-plus',
@@ -372,7 +374,7 @@ export async function chooseFolder(
         // ✅ for folder creation to a Teamspace subfolder
         // ✅ for folder creation to a Teamspace root opt-click
         // ✅ for folder creation to a Teamspace subfolder opt-click
-        
+
         if (includeNewFolderOption) {
           // Add in the new folder option just for newer CommandBar use
           decoratedFolderOptions.unshift(addDecoratedNewFolderOption)
@@ -384,30 +386,27 @@ export async function chooseFolder(
 
           if (result.index === 0) {
             // i.e. new folder wanted, but no name given yet
-            folder = '' 
+            folder = ''
             newFolderWanted = true
           } else if (optClickedOnFolder) {
             // i.e. new folder wanted, and parent folder chosen
-            folder = folders[result.index-1] // to ignore the added new folder option if present
+            folder = folders[result.index - 1] // to ignore the added new folder option if present
             newFolderWanted = true
+          } else {
+            folder = folders[result.index - 1] // to ignore the added new folder option if present
           }
-          else {
-            folder = folders[result.index-1] // to ignore the added new folder option if present
-            // newFolderWanted = value === NEW_FOLDER
-          }
-  
+
           // Handle new folder creation, if requested
           if (newFolderWanted) {
-          const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
-          if (newFolderPath) {
-            folder = newFolderPath
-            // logInfo(`userInput / chooseFolder`, ` -> created new folder "${folder}"`)
-            return newFolderPath
-          } else {
-            throw new Error(`Failed to create new folder "${folder}"`)
+            const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
+            if (newFolderPath) {
+              folder = newFolderPath
+              // logInfo(`userInput / chooseFolder`, ` -> created new folder "${folder}"`)
+              return newFolderPath
+            } else {
+              throw new Error(`Failed to create new folder "${folder}"`)
+            }
           }
-          }
-    
         } else {
           // not including add new folder option
           result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions)
@@ -433,13 +432,13 @@ export async function chooseFolder(
         // V1 used chooseOptionWithModifiers() but it just got too complicated, so using parts of its logic here
         // V2
         const { index, keyModifiers } = await CommandBar.showOptions(
-            simpleFolderOptions.map((option) => (typeof option === 'string' ? option : option.label)),
-            'Choose Folder',
-          )
+          simpleFolderOptions.map((option) => (typeof option === 'string' ? option : option.label)),
+          'Choose Folder',
+        )
         if (keyModifiers.length > 0 && keyModifiers.indexOf('opt') > -1) {
           optClickedOnFolder = true
         }
-        logDebug('userInput / chooseFolder', `- index: ${ index }, keyModifiers: ${ String(keyModifiers) }`)
+        logDebug('userInput / chooseFolder', `- index: ${index}, keyModifiers: ${String(keyModifiers)}`)
 
         if (includeNewFolderOption && index === 0) {
           // i.e. new folder wanted but no name given
@@ -447,13 +446,12 @@ export async function chooseFolder(
           newFolderWanted = true
         } else if (optClickedOnFolder) {
           // i.e. new folder wanted, and parent folder chosen
-          folder = folders[index-1]
+          folder = folders[index - 1]
           newFolderWanted = true
-        }
-        else {
+        } else {
           folder = folders[index]
         }
-        logDebug('userInput / chooseFolder', `- folder: ${ folder }, newFolderWanted? ${ String(newFolderWanted) }`)
+        logDebug('userInput / chooseFolder', `- folder: ${folder}, newFolderWanted? ${String(newFolderWanted)}`)
         // Handle new folder creation, if required
         if (newFolderWanted) {
           const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
@@ -468,7 +466,7 @@ export async function chooseFolder(
         value = result?.value || ''
         newFolderWanted = result?.index === -1
       }
-      logDebug(`userInput / chooseFolder`, ` -> folder:${ folder } value:${ value } keyModifiers:${ String(keyModifiers) }`)
+      logDebug(`userInput / chooseFolder`, ` -> folder:${folder} value:${value} keyModifiers:${String(keyModifiers)}`)
     } else {
       // no Folders so just choose private root folder
       folder = '/'
@@ -539,11 +537,7 @@ function createFolderOptions(
  * @param {Array} teamspaceDefs - teamspace definitions
  * @returns {[string, TCommandBarOptionObject]} simple and decorated version of the folder label
  */
-export function createFolderRepresentation(
-  folder: string,
-  includeFolderPath: boolean,
-  teamspaceDefs: Array<TTeamspace>,
-): [string, TCommandBarOptionObject] {
+export function createFolderRepresentation(folder: string, includeFolderPath: boolean, teamspaceDefs: Array<TTeamspace>): [string, TCommandBarOptionObject] {
   // logDebug('userInput / createFolderRepresentation', `- folder: ${folder}`)
   const INDENT_SPACES = '     ' // to use for indentation of folders that are not the root folder, when includeFolderPath is false
   const FOLDER_PATH_MAX_LENGTH = 50 // OK on desktop and iOS, at least for @jgclark
@@ -606,7 +600,7 @@ export function createFolderRepresentation(
         // decoratedOption.darkAlpha = 0.6
       }
     }
-// logDebug('userInput / createFolderRepresentation', `-> teamspaceDef: ${ JSON.stringify(decoratedOption) } `)
+    // logDebug('userInput / createFolderRepresentation', `-> teamspaceDef: ${ JSON.stringify(decoratedOption) } `)
   } else if (includeFolderPath) {
     // Get the folder path prefix, and truncate it if it's too long
     if (folder.length >= FOLDER_PATH_MAX_LENGTH) {
@@ -652,15 +646,22 @@ async function handleNewFolderCreation(
     let inWhichFolder = ''
     let newFolderName: string | boolean
 
-    // logDebug('userInput / handleNewFolderCreation', `containingFolder: "${containingFolder}" / startingFolderToChooseFrom: "${startingFolderToChooseFrom}"`)
+    logDebug('userInput / handleNewFolderCreation', `containingFolder: "${containingFolder}" / startingFolderToChooseFrom: "${startingFolderToChooseFrom}"`)
     if (containingFolder === '') {
       newFolderName = await getInput(`Step 1: Name (not path) of new folder:`, 'OK', `Create new folder`, '')
       if (typeof newFolderName !== 'string' || newFolderName === '') {
         throw new Error('No new folder name given.')
       }
-      inWhichFolder = await chooseFolder(`Step 2: Create sub-folder '${newFolderName}' inside which folder?`, includeArchive, false,startingFolderToChooseFrom, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
-    }
-    else {
+      inWhichFolder = await chooseFolder(
+        `Step 2: Create sub-folder '${newFolderName}' inside which folder?`,
+        includeArchive,
+        false,
+        startingFolderToChooseFrom,
+        includeFolderPath,
+        excludeTeamspaces,
+        forceOriginalCommandBar,
+      )
+    } else {
       const teamspaceDefs = getAllTeamspaceIDsAndTitles()
       const [simpleFolderRepresentation, _decoratedFolderRepresentation] = createFolderRepresentation(containingFolder, true, teamspaceDefs)
       newFolderName = await CommandBar.textPrompt(`Create new folder`, `Name (not path) of new folder to create in folder '${simpleFolderRepresentation}':`, '')
@@ -938,6 +939,7 @@ export async function datePicker(dateParams: string | Object, config?: { [string
   try {
     const dateConfig = config.date ?? {}
     // $FlowIgnore[incompatible-call]
+    // $FlowIgnore[not-an-object]
     clo(dateConfig, `userInput / datePicker dateParams="${JSON.stringify(dateParams)}" dateConfig typeof="${typeof dateConfig}" keys=${Object.keys(dateConfig || {}).toString()}`)
     let paramConfig = dateParams
     if (typeof dateParams === 'string') {
@@ -957,7 +959,9 @@ export async function datePicker(dateParams: string | Object, config?: { [string
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
       // $FlowIgnore[exponential-spread] known to be very small objects
+      // $FlowIgnore[not-an-object]
       ...dateConfig,
+      // $FlowIgnore[not-an-object]
       ...paramConfig,
     }
     // logDebug('userInput / datePicker', allSettings.toString())

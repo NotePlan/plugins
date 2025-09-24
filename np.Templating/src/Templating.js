@@ -312,7 +312,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     }
     logDebug(pluginJson, `templateNew: after renderFrontmatter:\nfrontMatterBody:"${frontmatterBody}"\nfrontMatterAttributes:${JSON.stringify(frontmatterAttributes, null, 2)}`)
 
-    // select/choose is by default not closed with > because it could contain a folder name
+    // select/choose is by default not closed with > because it could contain a folder name to limit the list of folders
     if (/<select|<choose|<current>/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
@@ -322,13 +322,24 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     logDebug(pluginJson, `templateNew: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
     logDebug(pluginJson, `templateNew: newNoteTitle parameter: "${newNoteTitle}"`)
 
-    // Render the template first to get the final content for title extraction
+    // Check if the template requires a noteTitle by looking for the variable in the template
+    const templateRequiresNoteTitle = frontmatterBody.includes('<%- noteTitle %>') || frontmatterBody.includes('<%= noteTitle %>')
+    logDebug(pluginJson, `templateNew: templateRequiresNoteTitle: ${templateRequiresNoteTitle}`)
+
+    // Get the note title - either from parameters, frontmatter, or ask the user
+    let noteTitle = newNoteTitle || renderedNewNoteTitle
+    if (!noteTitle && templateRequiresNoteTitle) {
+      noteTitle = await CommandBar.textPrompt('Template', 'Enter New Note Title', '')
+      if (typeof noteTitle === 'boolean' || !noteTitle) {
+        return // user cancelled or didn't provide title
+      }
+    }
+
+    // Render the template with the note title
     const data = {
       data: {
         ...frontmatterAttributes,
-        ...{
-          noteTitle: newNoteTitle || renderedNewNoteTitle || '',
-        },
+        noteTitle: noteTitle && typeof noteTitle === 'string' ? noteTitle : '',
       },
     }
 
@@ -338,23 +349,16 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     const renderedTemplateNoteTitle = getNoteTitleFromRenderedContent(templateResult)
     logDebug(pluginJson, `templateNew: renderedTemplateNoteTitle from getNoteTitleFromRenderedContent: "${renderedTemplateNoteTitle}"`)
 
-    // Fall back to template analysis if no rendered title found
-    const templateNoteTitle = renderedTemplateNoteTitle || getNoteTitleFromTemplate(templateData)
-    logDebug(pluginJson, `templateNew: templateNoteTitle from getNoteTitleFromTemplate: "${templateNoteTitle}"`)
+    // Use the final title - prefer the rendered title if it's different from what we provided
+    const finalNoteTitle = renderedTemplateNoteTitle || noteTitle || (await CommandBar.textPrompt('Template', 'Enter New Note Title', ''))
+    logDebug(pluginJson, `templateNew: final noteTitle: "${finalNoteTitle}"`)
 
-    const noteTitle = newNoteTitle || renderedNewNoteTitle || templateNoteTitle || (await CommandBar.textPrompt('Template', 'Enter New Note Title', ''))
-    logDebug(pluginJson, `templateNew: final noteTitle: "${noteTitle}"`)
-
-    if (typeof noteTitle === 'boolean' || noteTitle.length === 0) {
+    if (typeof finalNoteTitle === 'boolean' || finalNoteTitle.length === 0) {
       return // user did not provide note title (Cancel) abort
     }
 
-    if (noteTitle.length === 0) {
-      return
-    }
-
-    const filename = DataStore.newNote(noteTitle, folder) || ''
-    logDebug(pluginJson, `templateNew: calling DataStore.newNote with noteTitle: "${noteTitle}" and folder: "${folder}" -> filename: "${filename}"`)
+    const filename = DataStore.newNote(finalNoteTitle, folder) || ''
+    logDebug(pluginJson, `templateNew: calling DataStore.newNote with noteTitle: "${finalNoteTitle}" and folder: "${folder}" -> filename: "${filename}"`)
 
     if (filename) {
       await Editor.openNoteByFilename(filename)
@@ -374,7 +378,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
         const titlesAreSame = hasInlineTitle && hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle === analysis.inlineTitleText
 
         if ((hasNewNoteTitle && !titlesAreSame) || !hasInlineTitle) {
-          updateFrontMatterVars(Editor, { title: noteTitle })
+          updateFrontMatterVars(Editor, { title: finalNoteTitle })
         }
       } else {
         // Check if the template already contains an inline title to avoid duplication
@@ -387,18 +391,22 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
 
         if (hasNewNoteTitle && !titlesAreSame) {
           // We have newNoteTitle, so create frontmatter with title
-          Editor.content = `---\ntitle: ${noteTitle}\n---\n${templateResult}`
+          logDebug(`templateNew: note was created with newNoteTitle so we need to add title to frontmatter: "${finalNoteTitle}" while adding the content`)
+          Editor.content = `---\ntitle: ${finalNoteTitle}\n---\n${templateResult}`
         } else if (hasInlineTitle) {
           // Template already has an inline title, don't add another one
+          logDebug(`templateNew: note was created with inline title so just adding the template content (it will get the H1 title): "${finalNoteTitle}" while adding the content`)
           Editor.content = templateResult
         } else {
           // No inline title in template, add the title
-          Editor.content = `# ${noteTitle}\n${templateResult}`
+          logDebug(`templateNew: note was created with no inline title or newNoteTitle so adding the title we received: "${finalNoteTitle}" while adding the content`)
+          Editor.content = `# ${finalNoteTitle}\n${templateResult}`
         }
       }
       selectFirstNonTitleLineInEditor()
+      logDebug(`templateNew: FINISHED - note was created with title: "${finalNoteTitle}" in folder: "${folder}" and filename: "${filename}"`)
     } else {
-      await CommandBar.prompt('New Template', `An error occured creating ${noteTitle} note`)
+      await CommandBar.prompt('New Template', `An error occured creating ${finalNoteTitle} note`)
     }
   } catch (error) {
     logError(pluginJson, error)

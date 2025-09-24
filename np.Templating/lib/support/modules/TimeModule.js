@@ -52,37 +52,47 @@ export default class TimeModule {
 
     const locale = this.config?.locale || 'en-US'
 
-    let dateToFormat // This will be a Date object
+    let momentToFormat // This will be a moment object
 
     if (dateInput instanceof Date && isFinite(dateInput.getTime())) {
-      dateToFormat = dateInput // Already a valid Date object
+      momentToFormat = moment(dateInput) // Convert Date to moment
     } else if (typeof dateInput === 'string' && dateInput.length > 0) {
       const m = moment(dateInput) // Try parsing the string with moment
       if (m.isValid()) {
-        dateToFormat = m.toDate()
+        // If the input has a timezone offset, use UTC interpretation for consistency
+        if (dateInput.includes('T') && (dateInput.includes('+') || dateInput.includes('-') || dateInput.includes('Z'))) {
+          const hasTimezoneOffset = /[+-]\d{2}:\d{2}$/.test(dateInput) || dateInput.endsWith('Z')
+          if (hasTimezoneOffset) {
+            momentToFormat = m.utc() // Use UTC interpretation for timezone-aware inputs
+          } else {
+            momentToFormat = m // Keep as moment object
+          }
+        } else {
+          momentToFormat = m // Keep as moment object
+        }
       } else {
         // If string is not a valid date/time, default to now
         // console.warn(`TimeModule.format: Invalid date string '${dateInput}' received. Defaulting to now.`);
-        dateToFormat = new Date()
+        momentToFormat = moment()
       }
     } else {
       // Default to current date/time if dateInput is empty, null, undefined, or unexpected type
-      dateToFormat = new Date()
+      momentToFormat = moment()
     }
 
-    // Ensure dateToFormat is a valid, finite Date object for Intl.DateTimeFormat
-    if (!(dateToFormat instanceof Date) || !isFinite(dateToFormat.getTime())) {
-      // console.warn(`TimeModule.format: dateToFormat is not a finite Date after processing input:`, dateInput, `. Defaulting to now.`);
-      dateToFormat = new Date() // Final fallback
+    // Ensure momentToFormat is a valid moment object
+    if (!momentToFormat || !momentToFormat.isValid()) {
+      // console.warn(`TimeModule.format: momentToFormat is not a valid moment after processing input:`, dateInput, `. Defaulting to now.`);
+      momentToFormat = moment() // Final fallback
     }
 
     let formattedTimeString
     if (effectiveFormat === 'short' || effectiveFormat === 'medium' || effectiveFormat === 'long' || effectiveFormat === 'full') {
       // Use Intl.DateTimeFormat for standard time styles
-      formattedTimeString = new Intl.DateTimeFormat(locale, { timeStyle: effectiveFormat }).format(dateToFormat)
+      formattedTimeString = new Intl.DateTimeFormat(locale, { timeStyle: effectiveFormat }).format(momentToFormat.toDate())
     } else {
       // Use moment for other specific formats
-      formattedTimeString = moment(dateToFormat).format(effectiveFormat)
+      formattedTimeString = momentToFormat.format(effectiveFormat)
     }
     return this.isValid(formattedTimeString) // Assuming this.isValid is for the final string
   }

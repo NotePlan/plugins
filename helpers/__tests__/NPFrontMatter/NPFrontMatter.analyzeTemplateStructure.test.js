@@ -1,8 +1,8 @@
 // @flow
 /* global describe, test, expect */
 
-import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { analyzeTemplateStructure, getNoteTitleFromTemplate, getNoteTitleFromRenderedContent } from '../../NPFrontMatter'
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 
 // Make DataStore and Editor available globally for the source code
 global.DataStore = DataStore

@@ -1,9 +1,9 @@
 {
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.5.0",
+  "noteplan.minAppVersion": "3.18.2",
   "plugin.id": "np.MeetingNotes",
   "plugin.name": "✍️ Meeting Notes",
-  "plugin.version": "2.0.5",
+  "plugin.version": "2.0.6",
   "plugin.description": "Create Meeting Notes from events using templates.",
   "plugin.author": "NotePlan",
   "plugin.dependencies": [],
