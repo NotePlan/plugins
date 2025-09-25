@@ -1,7 +1,7 @@
-// @flow
-/* eslint-disable */
+// NOTE: You cannot use flow on this file. Must be pure JS.
+// Use JSDOC for type annotations.
 
-const TEST = false // when set to true, doesn't actually create or delete anything. Just a dry run
+const TEST = true // when set to true, doesn't actually create or delete anything. Just a dry run
 const COMMAND = 'Plugin Release'
 
 // $FlowIgnore
@@ -63,65 +63,104 @@ if (TEST) {
 }
 
 /**
- *
- * @param {string} pluginDevDirFullPath
- * @returns {Promise<{name:string,tag:string} | null>
+ * Extract plugin name from tag (removes version suffix like -v1.0.0)
+ * @param {string} tagName - The full tag name (e.g., "dwertheimer.TaskAutomations-v1.0.0")
+ * @returns {string} - The plugin name without version (e.g., "dwertheimer.TaskAutomations")
  */
-async function getExistingRelease(pluginName) {
-  // const command = `gh release upload --clobber "dwertheimer.TaskAutomations" /tmp/test.txt`
-  //   const command = `gh release list | grep "${releaseName}"`
-  const command = `gh release list`
+function extractPluginNameFromTag(tagName) {
+  // Remove version suffix pattern like -v1.0.0, -v1.0, -v1, etc. including pre-release versions
+  return tagName.replace(/-v\d+(\.\d+)*(\.\d+)*(?:-[a-zA-Z0-9.-]+)?$/, '')
+}
+
+/**
+ * Extract version from tag
+ * @param {string} tagName - The full tag name (e.g., "dwertheimer.TaskAutomations-v1.0.0")
+ * @returns {string|null} - The version number (e.g., "1.0.0")
+ */
+function extractVersionFromTag(tagName) {
+  const match = tagName.match(/-v(\d+(?:\.\d+)*(?:\.\d+)*(?:-[a-zA-Z0-9.-]+)?)$/)
+  return match ? match[1] : null
+}
+
+/**
+ * Get all existing releases for a specific plugin
+ * @param {string} pluginName - The plugin name to search for
+ * @returns {Promise<Array<{name: string, tag: string, version: string, publishedAt: string}> | null>}
+ */
+async function getExistingReleases(pluginName) {
+  const limit = 1000
+  const command = `gh release list --limit ${limit} --json tagName,publishedAt`
   console.log('')
   Messenger.info(`==> ${COMMAND}: Getting full release list from github.com`)
 
-  const releases = await runShellCommand(command)
+  const releasesJson = await runShellCommand(command)
 
-  if (releases.length) {
-    let checkForLines = []
-    let failed = false
-    const lines = releases.split('\n')
-    Messenger.info(`==> ${COMMAND}: Found ${lines.length} releases. Searching for release named: "${pluginName}"`)
-    if (lines.length) {
-      checkForLines = lines.filter((line) => line.includes(pluginName))
-      if (checkForLines.length > 1 && checkForLines[1] !== '') {
-        Messenger.error(
-          `Found more than one matching release for "${pluginName}" on github\nYou will need to delete one of them on github before running this script. Go to:\n\thttps://github.com/NotePlan/plugins/releases\nand delete one of these:\n${checkForLines.join(
-            '\n',
-          )}`,
-        )
-        process.exit(0)
-      } else if (checkForLines.length === 0) {
-        Messenger.log(
-          `==> ${COMMAND}: Did not find a pre-existing release that matched the pattern for this plugin folder: "${pluginName}" on github.\
-          \nThat's ok if this is the first release. Or it could be that a pre-existing release did not match this naming convention.\
-          Here are all the currently existing releases on github:\n---\n${releases}\nYou can always delete the old release at:\n\thttps://github.com/NotePlan/plugins/releases`,
-        )
-        failed = true
-      }
-    }
-    if (!failed) {
-      const parts = checkForLines[0].split('\t')
-      if (parts.length > 3) {
-        const name = parts[0]
-        const tag = parts[2]
-        Messenger.note(`==> ${COMMAND}: Found on github.com release tagged: ${colors.cyan(tag)}`)
-        return { name, tag }
-      } else {
-        console.log(`==> ${COMMAND}: couldn't find proper fields in: ${JSON.stringify(parts)}`)
-      }
-    } else {
+  if (!releasesJson || releasesJson.trim() === '') {
+    console.log(`==> ${COMMAND}: Did not find pre-existing releases.`)
+    return null
+  }
+
+  try {
+    const releases = JSON.parse(releasesJson)
+    Messenger.info(`==> ${COMMAND}: Found ${releases.length} total releases. Searching for releases matching plugin: "${pluginName}"`)
+
+    // Filter releases that match this plugin name
+    const pluginReleases = releases
+      .map((release) => {
+        const pluginNameFromTag = extractPluginNameFromTag(release.tagName)
+        const version = extractVersionFromTag(release.tagName)
+
+        return {
+          name: pluginNameFromTag,
+          tag: release.tagName,
+          version: version,
+          publishedAt: release.publishedAt,
+        }
+      })
+      .filter((release) => release.name === pluginName && release.version !== null)
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()) // Sort by published date, newest first
+
+    if (pluginReleases.length === 0) {
+      Messenger.log(
+        `==> ${COMMAND}: Did not find any pre-existing releases that matched the pattern for this plugin folder: "${pluginName}" on github.\
+        \nThat's ok if this is the first release. Or it could be that a pre-existing release did not match this naming convention.`,
+      )
       return null
     }
-  } else {
-    console.log(`==> ${COMMAND}: Did not find pre-existing releases.`)
+
+    Messenger.note(`==> ${COMMAND}: Found ${pluginReleases.length} existing release(s) for plugin "${pluginName}":`)
+    pluginReleases.forEach((release, index) => {
+      Messenger.log(`  ${index + 1}. ${colors.cyan(release.tag)} (version ${release.version}, published ${new Date(release.publishedAt).toLocaleDateString()})`)
+    })
+
+    return pluginReleases
+  } catch (error) {
+    Messenger.error(`==> ${COMMAND}: Error parsing releases JSON: ${error.message}`)
+    return null
   }
 }
 
+/**
+ * Generate release tag name from plugin name and version
+ * @param {string} pluginName - The plugin name
+ * @param {string} version - The version number
+ * @returns {string} - The formatted tag name
+ */
 function getReleaseTagName(pluginName, version) {
   return `${pluginName}-v${version}`
 }
 
+/**
+ * Get a field value from plugin data
+ * @param {Object} pluginData - The plugin data object
+ * @param {string} field - The field name to retrieve
+ * @returns {*} - The field value
+ */
 function getPluginDataField(pluginData, field) {
+  if (!pluginData || typeof pluginData !== 'object') {
+    console.log(`Could not find value for "${field}" in plugin.json`)
+    process.exit(0)
+  }
   const data = pluginData[field] || null
   if (!data) {
     console.log(`Could not find value for "${field}" in plugin.json`)
@@ -130,12 +169,12 @@ function getPluginDataField(pluginData, field) {
   return data
 }
 
-// $FlowFix - tried to use this type below, but flow doesn't like it
-// type FileList = { changelog: string | null, files: Array<string> }
-
 /**
- * @param {string} pluginDevDirFullPath
- * @returns {Promise<{ changelog: string | null, files: Array<string> } | null >}
+ * Get the list of files to include in the release
+ * @param {string} pluginDevDirFullPath - Path to the plugin development directory
+ * @param {string} appPluginsPath - Path to the app plugins directory
+ * @param {Array<string>} dependencies - Array of dependency file names
+ * @returns {Promise<{changelog: string|null, files: Array<string>}|null>} - File list object or null if error
  */
 // eslint-disable-next-line no-unused-vars
 async function getReleaseFileList(pluginDevDirFullPath, appPluginsPath, dependencies) {
@@ -215,14 +254,24 @@ async function getReleaseFileList(pluginDevDirFullPath, appPluginsPath, dependen
   }
 }
 
+/**
+ * Display error message for wrong arguments
+ * @param {*} limitToFolders - The folders that were passed as arguments
+ */
 function wrongArgsMessage(limitToFolders) {
   console.log(`==> ${COMMAND}: ${limitToFolders ? String(limitToFolders.length) : ''} file(s): ${JSON.stringify(limitToFolders) || ''}`)
   console.log(colors.red(`\nERROR:\n Invalid Arguments (you may only release one plugin at a time)`), colors.yellow(`\n\nUsage:\n npm run release "dwertheimer.dateAutomations"`))
 }
 
-function ensureVersionIsNew(existingRelease, versionedTagName) {
-  if (existingRelease && versionedTagName) {
-    if (existingRelease.tag === versionedTagName) {
+/**
+ * Ensure the version being released is new and not a duplicate
+ * @param {Array<{name: string, tag: string, version: string, publishedAt: string}>|null} existingReleases - Array of existing releases
+ * @param {string} versionedTagName - The new version tag name to check
+ */
+function ensureVersionIsNew(existingReleases, versionedTagName) {
+  if (existingReleases && existingReleases.length > 0 && versionedTagName) {
+    const duplicateRelease = existingReleases.find((release) => release.tag === versionedTagName)
+    if (duplicateRelease) {
       Messenger.note(
         `==> ${COMMAND}: Found existing release with tag name: ${colors.cyan(versionedTagName)}, which matches the version number in your ${colors.cyan('plugin.json')}`,
       )
@@ -237,6 +286,14 @@ function ensureVersionIsNew(existingRelease, versionedTagName) {
   }
 }
 
+/**
+ * Generate the GitHub release command
+ * @param {string} version - The version tag
+ * @param {string} pluginTitle - The plugin title
+ * @param {Object} fileList - Object containing changelog and files
+ * @param {boolean} [sendToGithub=false] - Whether to actually send to GitHub
+ * @returns {string} - The release command
+ */
 function getReleaseCommand(version, pluginTitle, fileList, sendToGithub = false) {
   const changeLog = fileList.changelog ? `-F "${fileList.changelog}"` : ''
   const cmd = `gh release create "${version}" -t "${pluginTitle}" ${changeLog} ${!sendToGithub ? `--draft` : ''} ${fileList.files.map((m) => `"${m}"`).join(' ')}`
@@ -247,6 +304,12 @@ function getReleaseCommand(version, pluginTitle, fileList, sendToGithub = false)
   return cmd
 }
 
+/**
+ * Generate the GitHub release delete command
+ * @param {string} version - The version tag to delete
+ * @param {boolean} [sendToGithub=false] - Whether to actually send to GitHub
+ * @returns {string} - The delete command
+ */
 function getRemoveCommand(version, sendToGithub = false) {
   const cmd = `gh release delete "${version}" ${sendToGithub ? `` : '-y'}` // -y removes the release without prompting
   if (!sendToGithub) {
@@ -255,6 +318,13 @@ function getRemoveCommand(version, sendToGithub = false) {
   return cmd
 }
 
+/**
+ * Release a plugin to GitHub
+ * @param {string} versionedTagName - The versioned tag name for the release
+ * @param {Object} pluginData - The plugin data object
+ * @param {Object} fileList - Object containing changelog and files
+ * @param {boolean} [sendToGithub=false] - Whether to actually send to GitHub
+ */
 async function releasePlugin(versionedTagName, pluginData, fileList, sendToGithub = false) {
   const pluginTitle = getPluginDataField(pluginData, 'plugin.name')
   const releaseCommand = getReleaseCommand(versionedTagName, pluginTitle, fileList, sendToGithub)
@@ -268,7 +338,12 @@ async function releasePlugin(versionedTagName, pluginData, fileList, sendToGithu
   }
 }
 
-async function removePlugin(versionedTagName, sendToGithub = false) {
+/**
+ * Remove a plugin release from GitHub
+ * @param {string} versionedTagName - The versioned tag name to remove
+ * @param {boolean} [sendToGithub=false] - Whether to actually send to GitHub
+ */
+async function _removePlugin(versionedTagName, sendToGithub = false) {
   const removeCommand = getRemoveCommand(versionedTagName, sendToGithub)
   if (sendToGithub) {
     if (removeCommand) {
@@ -280,6 +355,9 @@ async function removePlugin(versionedTagName, sendToGithub = false) {
   }
 }
 
+/**
+ * Check if GitHub CLI (gh) is installed
+ */
 async function checkForGh() {
   if (!((await fileExists(`/usr/local/bin/gh`)) || (await fileExists(`/opt/homebrew/bin/gh`)))) {
     console.log(`${colors.red('==> ${COMMAND}: ERROR: Could not find "gh" command.')}\n${installInstructions}`)
@@ -287,6 +365,9 @@ async function checkForGh() {
   }
 }
 
+/**
+ * Main function to handle plugin release process
+ */
 async function main() {
   await checkForGh()
   const rootFolderPath = path.join(__dirname, '..')
@@ -298,7 +379,7 @@ async function main() {
   if (limitToFolders.length === 1) {
     const pluginName = limitToFolders[0]
     const pluginDevDirFullPath = path.join(rootFolderPath, pluginName)
-    const existingRelease = await getExistingRelease(pluginName)
+    const existingReleases = await getExistingReleases(pluginName)
     const pluginData = await getPluginFileContents(path.join(pluginDevDirFullPath, 'plugin.json'))
     const versionNumber = getPluginDataField(pluginData, 'plugin.version')
     const copyTargetPath = await getCopyTargetPath(rootFolderDirs)
@@ -307,12 +388,18 @@ async function main() {
     if (fileList) {
       const versionedTagName = getReleaseTagName(pluginName, versionNumber)
       // console.log(`==> ${COMMAND}: This version/tag will be:\n\t${versionedTagName}`)
-      ensureVersionIsNew(existingRelease, versionedTagName)
+      ensureVersionIsNew(existingReleases, versionedTagName)
       await releasePlugin(versionedTagName, pluginData, fileList, !TEST)
-      if (existingRelease) await removePlugin(existingRelease.tag, !TEST)
-      const newReleaseList = await getExistingRelease(pluginName)
-      if (newReleaseList && newReleaseList.tag === versionedTagName) {
+
+      // Note: We no longer automatically remove previous releases - they are kept for history
+      // The user can manually prune old releases if needed in a future step
+
+      const newReleaseList = await getExistingReleases(pluginName)
+      if (newReleaseList && newReleaseList.some((release) => release.tag === versionedTagName)) {
         Messenger.success(`Release Completed Successfully. "${versionedTagName}" has been published.`, 'SUCCESS')
+        if (newReleaseList.length > 1) {
+          Messenger.note(`Plugin now has ${newReleaseList.length} total releases. Previous releases are preserved for history.`)
+        }
       } else {
         Messenger.error(`^^^ Something went wrong. Please check log ^^^`, 'ERROR')
       }
@@ -321,4 +408,6 @@ async function main() {
     wrongArgsMessage()
   }
 }
-main()
+
+// Run the main function
+main().catch(console.error)
