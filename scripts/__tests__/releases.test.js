@@ -83,6 +83,33 @@ describe('Releases Script Utility Functions', () => {
   }
 
   /**
+   * Get the base version from a pre-release version (removes pre-release identifier)
+   */
+  function getBaseVersion(version) {
+    return version.replace(/-.*$/, '')
+  }
+
+  /**
+   * Check if a pre-release version has an obsolete stable counterpart
+   */
+  function isPreReleaseObsolete(preReleaseVersion, allReleases, monthsThreshold = 3) {
+    const baseVersion = getBaseVersion(preReleaseVersion)
+    const now = new Date()
+    const thresholdDate = new Date(now.getTime() - monthsThreshold * 30 * 24 * 60 * 60 * 1000)
+
+    // Find the stable version of the same base version
+    const stableVersion = allReleases.find((release) => !isPreRelease(release.version) && getBaseVersion(release.version) === baseVersion)
+
+    if (!stableVersion) {
+      return false // No stable version found, keep the pre-release
+    }
+
+    // Check if the stable version was published more than the threshold ago
+    const stablePublishedDate = new Date(stableVersion.publishedAt)
+    return stablePublishedDate < thresholdDate
+  }
+
+  /**
    * Compare two version strings for sorting (semantic versioning)
    */
   function compareVersions(a, b) {
@@ -416,6 +443,87 @@ describe('Releases Script Utility Functions', () => {
       expect(isPreRelease('1.0.0-ALPHA')).toBe(true)
       expect(isPreRelease('1.0.0-Beta')).toBe(true)
       expect(isPreRelease('1.0.0-RC')).toBe(true)
+    })
+  })
+
+  describe('getBaseVersion', () => {
+    test('should extract base version from pre-release versions', () => {
+      expect(getBaseVersion('1.0.0-alpha.1')).toBe('1.0.0')
+      expect(getBaseVersion('2.1.3-beta.2')).toBe('2.1.3')
+      expect(getBaseVersion('0.5.0-rc.1')).toBe('0.5.0')
+    })
+
+    test('should return stable versions unchanged', () => {
+      expect(getBaseVersion('1.0.0')).toBe('1.0.0')
+      expect(getBaseVersion('2.1.3')).toBe('2.1.3')
+    })
+  })
+
+  describe('isPreReleaseObsolete', () => {
+    const createRelease = (version, publishedAt) => ({
+      name: 'test.plugin',
+      tag: `test.plugin-v${version}`,
+      version,
+      publishedAt,
+    })
+
+    test('should identify obsolete pre-releases when stable version is old', () => {
+      const now = new Date()
+      const fourMonthsAgo = new Date(now.getTime() - 4 * 30 * 24 * 60 * 60 * 1000).toISOString()
+      const oneMonthAgo = new Date(now.getTime() - 1 * 30 * 24 * 60 * 60 * 1000).toISOString()
+
+      const releases = [
+        createRelease('2.1.0', fourMonthsAgo), // Stable version published 4 months ago
+        createRelease('2.1.0-alpha.1', oneMonthAgo), // Pre-release published 1 month ago
+        createRelease('2.1.0-beta.2', oneMonthAgo), // Pre-release published 1 month ago
+      ]
+
+      expect(isPreReleaseObsolete('2.1.0-alpha.1', releases)).toBe(true)
+      expect(isPreReleaseObsolete('2.1.0-beta.2', releases)).toBe(true)
+    })
+
+    test('should not identify pre-releases as obsolete when stable version is recent', () => {
+      const now = new Date()
+      const oneMonthAgo = new Date(now.getTime() - 1 * 30 * 24 * 60 * 60 * 1000).toISOString()
+      const twoMonthsAgo = new Date(now.getTime() - 2 * 30 * 24 * 60 * 60 * 1000).toISOString()
+
+      const releases = [
+        createRelease('2.1.0', oneMonthAgo), // Stable version published 1 month ago
+        createRelease('2.1.0-alpha.1', twoMonthsAgo), // Pre-release published 2 months ago
+        createRelease('2.1.0-beta.2', twoMonthsAgo), // Pre-release published 2 months ago
+      ]
+
+      expect(isPreReleaseObsolete('2.1.0-alpha.1', releases)).toBe(false)
+      expect(isPreReleaseObsolete('2.1.0-beta.2', releases)).toBe(false)
+    })
+
+    test('should not identify pre-releases as obsolete when no stable version exists', () => {
+      const now = new Date()
+      const oneMonthAgo = new Date(now.getTime() - 1 * 30 * 24 * 60 * 60 * 1000).toISOString()
+
+      const releases = [
+        createRelease('2.1.0-alpha.1', oneMonthAgo), // Only pre-release exists
+        createRelease('2.1.0-beta.2', oneMonthAgo), // Only pre-release exists
+      ]
+
+      expect(isPreReleaseObsolete('2.1.0-alpha.1', releases)).toBe(false)
+      expect(isPreReleaseObsolete('2.1.0-beta.2', releases)).toBe(false)
+    })
+
+    test('should work with different base versions', () => {
+      const now = new Date()
+      const fourMonthsAgo = new Date(now.getTime() - 4 * 30 * 24 * 60 * 60 * 1000).toISOString()
+      const oneMonthAgo = new Date(now.getTime() - 1 * 30 * 24 * 60 * 60 * 1000).toISOString()
+
+      const releases = [
+        createRelease('2.1.0', fourMonthsAgo), // Old stable version
+        createRelease('2.2.0', oneMonthAgo), // Recent stable version
+        createRelease('2.1.0-alpha.1', oneMonthAgo), // Pre-release of old version
+        createRelease('2.2.0-beta.1', oneMonthAgo), // Pre-release of recent version
+      ]
+
+      expect(isPreReleaseObsolete('2.1.0-alpha.1', releases)).toBe(true) // Obsolete
+      expect(isPreReleaseObsolete('2.2.0-beta.1', releases)).toBe(false) // Not obsolete
     })
   })
 

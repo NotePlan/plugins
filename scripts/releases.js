@@ -1,7 +1,39 @@
 // NOTE: You cannot use flow on this file. Must be pure JS.
 // Use JSDOC for type annotations.
 
-const TEST = true // when set to true, doesn't actually create or delete anything. Just a dry run
+/**
+ * RELEASE MANAGEMENT HEURISTICS
+ *
+ * MULTIPLE RELEASES ALLOWED:
+ * - The script now supports multiple releases per plugin (previously only allowed one)
+ * - All existing releases are preserved for historical purposes
+ * - New releases must have unique version numbers to prevent duplicates
+ *
+ * PRUNING RECOMMENDATIONS (the script will make suggestions for pruning, but it will not actually prune anything)
+ *
+ * The script provides intelligent pruning suggestions based on these heuristics:
+ *
+ * 1. SAFETY NET: Keep at least 3 releases minimum
+ *
+ * 2. LATEST STABLE: Always keep the highest version number without pre-release identifiers
+ *
+ * 3. RECENT ACTIVITY: Keep all releases from the last 6 months regardless of version
+ *
+ * 4. PRE-RELEASE MANAGEMENT: Keep the latest 2-3 pre-release versions if they're recent (a pre-release is any version with a dash and a pre-release identifier, like -alpha.1, -beta.1, -rc.1, -dev, -snapshot, etc.)
+ *
+ * 5. OBSOLETE PRE-RELEASES: Prune pre-release versions of a version that has been published as stable for more than 3 months (e.g., if 2.1.0 was published 3+ months ago, prune 2.1.0-alpha1, 2.1.0-beta2, etc.)
+ *
+ * 6. AGE-BASED PRUNING: Prune releases older than 2 years (unless they're the latest stable)
+ *
+ * 7. PRE-RELEASE LIMITS: Prune excess pre-release versions (more than 5 total pre-releases)
+ *
+ * 8. VOLUME LIMITS: Prune non-recent, non-latest-stable releases when more than 5 total releases
+ *
+ * The pruning logic is conservative and prioritizes keeping important releases while
+ * suggesting cleanup of old, redundant, or excessive pre-release versions.
+ */
+
+const TEST = false // when set to true, doesn't actually create or delete anything. Just a dry run
 const COMMAND = 'Plugin Release'
 
 // $FlowIgnore
@@ -119,6 +151,39 @@ function isPreRelease(version) {
 }
 
 /**
+ * Get the base version from a pre-release version (removes pre-release identifier)
+ * @param {string} version - Version string (e.g., "2.1.0-alpha.1")
+ * @returns {string} - Base version (e.g., "2.1.0")
+ */
+function getBaseVersion(version) {
+  return version.replace(/-.*$/, '')
+}
+
+/**
+ * Check if a pre-release version has an obsolete stable counterpart
+ * @param {string} preReleaseVersion - The pre-release version to check
+ * @param {Array<{name: string, tag: string, version: string, publishedAt: string}>} allReleases - All releases
+ * @param {number} monthsThreshold - Number of months after which stable version makes pre-release obsolete
+ * @returns {boolean} - True if the pre-release is obsolete
+ */
+function isPreReleaseObsolete(preReleaseVersion, allReleases, monthsThreshold = 3) {
+  const baseVersion = getBaseVersion(preReleaseVersion)
+  const now = new Date()
+  const thresholdDate = new Date(now.getTime() - monthsThreshold * 30 * 24 * 60 * 60 * 1000)
+
+  // Find the stable version of the same base version
+  const stableVersion = allReleases.find((release) => !isPreRelease(release.version) && getBaseVersion(release.version) === baseVersion)
+
+  if (!stableVersion) {
+    return false // No stable version found, keep the pre-release
+  }
+
+  // Check if the stable version was published more than the threshold ago
+  const stablePublishedDate = new Date(stableVersion.publishedAt)
+  return stablePublishedDate < thresholdDate
+}
+
+/**
  * Compare two version strings for sorting (semantic versioning)
  * @param {string} a - First version
  * @param {string} b - Second version
@@ -186,13 +251,17 @@ function identifyReleasesToPrune(releases) {
     const isOld = new Date(release.publishedAt) < twoYearsAgo
     const isLatestStable = release === latestStable
     const isRecentPreRelease = recentPreReleases.includes(release)
+    const isObsoletePreRelease = isPreRelease(release.version) && isPreReleaseObsolete(release.version, releases)
 
     // Prune if:
     // 1. It's old (2+ years) AND not the latest stable
-    // 2. It's a pre-release that's not recent and we have more than 5 pre-releases
-    // 3. It's not recent and not the latest stable and we have more than 5 total releases
+    // 2. It's a pre-release that's obsolete (stable version published 3+ months ago)
+    // 3. It's a pre-release that's not recent and we have more than 5 pre-releases
+    // 4. It's not recent and not the latest stable and we have more than 5 total releases
 
     if (isOld && !isLatestStable) {
+      toPrune.push(release)
+    } else if (isObsoletePreRelease) {
       toPrune.push(release)
     } else if (isPreRelease(release.version) && !isRecentPreRelease && preReleaseReleases.length > 5) {
       toPrune.push(release)
