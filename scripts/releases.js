@@ -83,6 +83,183 @@ function extractVersionFromTag(tagName) {
 }
 
 /**
+ * Calculate relative time string (e.g., "3+ years ago", "2 months ago")
+ * @param {string} publishedAt - ISO date string
+ * @returns {string} - Relative time string
+ */
+function getRelativeTime(publishedAt) {
+  const now = new Date()
+  const published = new Date(publishedAt)
+  const diffInMs = now - published
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
+  const diffInMonths = Math.floor(diffInDays / 30)
+  const diffInYears = Math.floor(diffInDays / 365)
+
+  if (diffInYears >= 1) {
+    return `${diffInYears}+ year${diffInYears > 1 ? 's' : ''} ago`
+  } else if (diffInMonths >= 1) {
+    return `${diffInMonths}+ month${diffInMonths > 1 ? 's' : ''} ago`
+  } else if (diffInDays >= 7) {
+    const weeks = Math.floor(diffInDays / 7)
+    return `${weeks}+ week${weeks > 1 ? 's' : ''} ago`
+  } else if (diffInDays >= 1) {
+    return `${diffInDays}+ day${diffInDays > 1 ? 's' : ''} ago`
+  } else {
+    return 'today'
+  }
+}
+
+/**
+ * Check if a version is a pre-release version (alpha, beta, rc, etc.)
+ * @param {string} version - Version string
+ * @returns {boolean} - True if pre-release
+ */
+function isPreRelease(version) {
+  return /-(alpha|beta|rc|pre|dev|snapshot)/i.test(version)
+}
+
+/**
+ * Compare two version strings for sorting (semantic versioning)
+ * @param {string} a - First version
+ * @param {string} b - Second version
+ * @returns {number} - Comparison result
+ */
+function compareVersions(a, b) {
+  // Remove pre-release identifiers for comparison
+  const cleanA = a.replace(/-.*$/, '')
+  const cleanB = b.replace(/-.*$/, '')
+
+  const partsA = cleanA.split('.').map(Number)
+  const partsB = cleanB.split('.').map(Number)
+
+  const maxLength = Math.max(partsA.length, partsB.length)
+
+  for (let i = 0; i < maxLength; i++) {
+    const partA = partsA[i] || 0
+    const partB = partsB[i] || 0
+
+    if (partA !== partB) {
+      return partB - partA // Descending order (newest first)
+    }
+  }
+
+  // If versions are equal, put pre-release after stable
+  const aIsPre = isPreRelease(a)
+  const bIsPre = isPreRelease(b)
+
+  if (aIsPre && !bIsPre) return 1
+  if (!aIsPre && bIsPre) return -1
+
+  return 0
+}
+
+/**
+ * Identify releases that should be pruned based on heuristics
+ * @param {Array<{name: string, tag: string, version: string, publishedAt: string}>} releases - Array of releases
+ * @returns {Array<{name: string, tag: string, version: string, publishedAt: string}>} - Releases to prune
+ */
+function identifyReleasesToPrune(releases) {
+  if (releases.length <= 3) {
+    return [] // Keep at least 3 releases minimum
+  }
+
+  const now = new Date()
+  const sixMonthsAgo = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000)
+  const twoYearsAgo = new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000)
+
+  // Sort releases by version (newest first)
+  const sortedReleases = [...releases].sort((a, b) => compareVersions(a.version, b.version))
+
+  const toPrune = []
+  const stableReleases = sortedReleases.filter((r) => !isPreRelease(r.version))
+  const preReleaseReleases = sortedReleases.filter((r) => isPreRelease(r.version))
+
+  // Keep the latest stable release
+  const latestStable = stableReleases[0]
+
+  // Keep the latest 2-3 pre-release versions if they're recent
+  const recentPreReleases = preReleaseReleases.filter((r) => new Date(r.publishedAt) >= sixMonthsAgo).slice(0, 3)
+
+  // Identify releases to prune
+  for (const release of releases) {
+    const isRecent = new Date(release.publishedAt) >= sixMonthsAgo
+    const isOld = new Date(release.publishedAt) < twoYearsAgo
+    const isLatestStable = release === latestStable
+    const isRecentPreRelease = recentPreReleases.includes(release)
+
+    // Prune if:
+    // 1. It's old (2+ years) AND not the latest stable
+    // 2. It's a pre-release that's not recent and we have more than 5 pre-releases
+    // 3. It's not recent and not the latest stable and we have more than 5 total releases
+
+    if (isOld && !isLatestStable) {
+      toPrune.push(release)
+    } else if (isPreRelease(release.version) && !isRecentPreRelease && preReleaseReleases.length > 5) {
+      toPrune.push(release)
+    } else if (!isRecent && !isLatestStable && releases.length > 5) {
+      toPrune.push(release)
+    }
+  }
+
+  return toPrune
+}
+
+/**
+ * Identify releases to prune for duplicate version scenario (more lenient)
+ * @param {Array<{name: string, tag: string, version: string, publishedAt: string}>} releases - Array of releases
+ * @returns {Array<{name: string, tag: string, version: string, publishedAt: string}>} - Releases to prune
+ */
+function identifyReleasesToPruneForDuplicate(releases) {
+  if (releases.length <= 1) {
+    return [] // Keep at least 1 release
+  }
+
+  const now = new Date()
+  const twoYearsAgo = new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000)
+
+  // Sort releases by version (newest first)
+  const sortedReleases = [...releases].sort((a, b) => compareVersions(a.version, b.version))
+
+  const toPrune = []
+  const stableReleases = sortedReleases.filter((r) => !isPreRelease(r.version))
+
+  // Keep the latest stable release
+  const latestStable = stableReleases[0]
+
+  // For duplicate version scenario, be more aggressive about pruning old releases
+  for (const release of releases) {
+    const isOld = new Date(release.publishedAt) < twoYearsAgo
+    const isLatestStable = release === latestStable
+
+    // Prune if it's old (2+ years) AND not the latest stable
+    if (isOld && !isLatestStable) {
+      toPrune.push(release)
+    }
+  }
+
+  return toPrune
+}
+
+/**
+ * Generate prune commands for identified releases
+ * @param {Array<{name: string, tag: string, version: string, publishedAt: string}>} releasesToPrune - Releases to prune
+ * @returns {string} - Commands to run for pruning
+ */
+function generatePruneCommands(releasesToPrune) {
+  if (releasesToPrune.length === 0) {
+    return 'No releases recommended for pruning.'
+  }
+
+  const commands = releasesToPrune.map((release) => `gh release delete "${release.tag}" -y`)
+
+  if (releasesToPrune.length === 1) {
+    return `Recommended prune command:\n${commands[0]}`
+  }
+
+  return `Recommended prune commands:\n${commands.join('\n')}\n\nTo prune all at once:\n${commands.join(' && ')}`
+}
+
+/**
  * Get all existing releases for a specific plugin
  * @param {string} pluginName - The plugin name to search for
  * @returns {Promise<Array<{name: string, tag: string, version: string, publishedAt: string}> | null>}
@@ -130,8 +307,27 @@ async function getExistingReleases(pluginName) {
 
     Messenger.note(`==> ${COMMAND}: Found ${pluginReleases.length} existing release(s) for plugin "${pluginName}":`)
     pluginReleases.forEach((release, index) => {
-      Messenger.log(`  ${index + 1}. ${colors.cyan(release.tag)} (version ${release.version}, published ${new Date(release.publishedAt).toLocaleDateString()})`)
+      const publishedDate = new Date(release.publishedAt).toLocaleDateString()
+      const relativeTime = getRelativeTime(release.publishedAt)
+      Messenger.log(`  ${index + 1}. ${colors.cyan(release.tag)} (version ${release.version}, published ${publishedDate} -- ${relativeTime})`)
     })
+
+    // Show pruning recommendations if there are many releases
+    if (pluginReleases.length > 3) {
+      const releasesToPrune = identifyReleasesToPrune(pluginReleases)
+      if (releasesToPrune.length > 0) {
+        console.log('')
+        Messenger.warn(`==> ${COMMAND}: Pruning Recommendations (${releasesToPrune.length} releases can be pruned):`)
+        releasesToPrune.forEach((release, index) => {
+          const publishedDate = new Date(release.publishedAt).toLocaleDateString()
+          const relativeTime = getRelativeTime(release.publishedAt)
+          Messenger.log(`  ${index + 1}. ${colors.yellow(release.tag)} (version ${release.version}, published ${publishedDate} -- ${relativeTime})`)
+        })
+        console.log('')
+        console.log(colors.cyan(generatePruneCommands(releasesToPrune)))
+        console.log('')
+      }
+    }
 
     return pluginReleases
   } catch (error) {
@@ -278,6 +474,23 @@ function ensureVersionIsNew(existingReleases, versionedTagName) {
       Messenger.error(
         `    New releases must contain a unique name/tag. Update ${colors.magenta('plugin.version')} in ${colors.cyan('plugin.json, CHANGELOG.md or README.md')} and try again.`,
       )
+
+      // Show pruning recommendations even when there's a duplicate version
+      // Use special logic for duplicate version scenario that's more lenient
+      const releasesToPrune = identifyReleasesToPruneForDuplicate(existingReleases)
+      if (releasesToPrune.length > 0) {
+        console.log('')
+        Messenger.warn(`==> ${COMMAND}: Pruning Recommendations (${releasesToPrune.length} releases can be pruned):`)
+        releasesToPrune.forEach((release, index) => {
+          const publishedDate = new Date(release.publishedAt).toLocaleDateString()
+          const relativeTime = getRelativeTime(release.publishedAt)
+          Messenger.log(`  ${index + 1}. ${colors.yellow(release.tag)} (version ${release.version}, published ${publishedDate} -- ${relativeTime})`)
+        })
+        console.log('')
+        console.log(colors.cyan(generatePruneCommands(releasesToPrune)))
+        console.log('')
+      }
+
       console.log('')
       const testMessage = TEST ? '(Test Mode)' : ''
       Messenger.error(`${COMMAND} Failed ${testMessage} (duplicate version)`, 'ERROR')
