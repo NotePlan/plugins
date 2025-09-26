@@ -42,7 +42,10 @@ const path = require('path')
 const colors = require('chalk')
 const Messenger = require('@codedungeon/messenger')
 
+// Import shared release management utilities
 const { program } = require('commander')
+const releaseManagement = require('../src/commands/support/release-management')
+
 const { getFolderFromCommandLine, runShellCommand, getPluginFileContents, fileExists, getCopyTargetPath } = require('./shared')
 
 // Command line options
@@ -141,137 +144,8 @@ function getRelativeTime(publishedAt) {
   }
 }
 
-/**
- * Check if a version is a pre-release version (alpha, beta, rc, etc.)
- * @param {string} version - Version string
- * @returns {boolean} - True if pre-release
- */
-function isPreRelease(version) {
-  return /-(alpha|beta|rc|pre|dev|snapshot)/i.test(version)
-}
-
-/**
- * Get the base version from a pre-release version (removes pre-release identifier)
- * @param {string} version - Version string (e.g., "2.1.0-alpha.1")
- * @returns {string} - Base version (e.g., "2.1.0")
- */
-function getBaseVersion(version) {
-  return version.replace(/-.*$/, '')
-}
-
-/**
- * Check if a pre-release version has an obsolete stable counterpart
- * @param {string} preReleaseVersion - The pre-release version to check
- * @param {Array<{name: string, tag: string, version: string, publishedAt: string}>} allReleases - All releases
- * @param {number} monthsThreshold - Number of months after which stable version makes pre-release obsolete
- * @returns {boolean} - True if the pre-release is obsolete
- */
-function isPreReleaseObsolete(preReleaseVersion, allReleases, monthsThreshold = 3) {
-  const baseVersion = getBaseVersion(preReleaseVersion)
-  const now = new Date()
-  const thresholdDate = new Date(now.getTime() - monthsThreshold * 30 * 24 * 60 * 60 * 1000)
-
-  // Find the stable version of the same base version
-  const stableVersion = allReleases.find((release) => !isPreRelease(release.version) && getBaseVersion(release.version) === baseVersion)
-
-  if (!stableVersion) {
-    return false // No stable version found, keep the pre-release
-  }
-
-  // Check if the stable version was published more than the threshold ago
-  const stablePublishedDate = new Date(stableVersion.publishedAt)
-  return stablePublishedDate < thresholdDate
-}
-
-/**
- * Compare two version strings for sorting (semantic versioning)
- * @param {string} a - First version
- * @param {string} b - Second version
- * @returns {number} - Comparison result
- */
-function compareVersions(a, b) {
-  // Remove pre-release identifiers for comparison
-  const cleanA = a.replace(/-.*$/, '')
-  const cleanB = b.replace(/-.*$/, '')
-
-  const partsA = cleanA.split('.').map(Number)
-  const partsB = cleanB.split('.').map(Number)
-
-  const maxLength = Math.max(partsA.length, partsB.length)
-
-  for (let i = 0; i < maxLength; i++) {
-    const partA = partsA[i] || 0
-    const partB = partsB[i] || 0
-
-    if (partA !== partB) {
-      return partB - partA // Descending order (newest first)
-    }
-  }
-
-  // If versions are equal, put pre-release after stable
-  const aIsPre = isPreRelease(a)
-  const bIsPre = isPreRelease(b)
-
-  if (aIsPre && !bIsPre) return 1
-  if (!aIsPre && bIsPre) return -1
-
-  return 0
-}
-
-/**
- * Identify releases that should be pruned based on heuristics
- * @param {Array<{name: string, tag: string, version: string, publishedAt: string}>} releases - Array of releases
- * @returns {Array<{name: string, tag: string, version: string, publishedAt: string}>} - Releases to prune
- */
-function identifyReleasesToPrune(releases) {
-  if (releases.length <= 3) {
-    return [] // Keep at least 3 releases minimum
-  }
-
-  const now = new Date()
-  const sixMonthsAgo = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000)
-  const twoYearsAgo = new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000)
-
-  // Sort releases by version (newest first)
-  const sortedReleases = [...releases].sort((a, b) => compareVersions(a.version, b.version))
-
-  const toPrune = []
-  const stableReleases = sortedReleases.filter((r) => !isPreRelease(r.version))
-  const preReleaseReleases = sortedReleases.filter((r) => isPreRelease(r.version))
-
-  // Keep the latest stable release
-  const latestStable = stableReleases[0]
-
-  // Keep the latest 2-3 pre-release versions if they're recent
-  const recentPreReleases = preReleaseReleases.filter((r) => new Date(r.publishedAt) >= sixMonthsAgo).slice(0, 3)
-
-  // Identify releases to prune
-  for (const release of releases) {
-    const isRecent = new Date(release.publishedAt) >= sixMonthsAgo
-    const isOld = new Date(release.publishedAt) < twoYearsAgo
-    const isLatestStable = release === latestStable
-    const isRecentPreRelease = recentPreReleases.includes(release)
-    const isObsoletePreRelease = isPreRelease(release.version) && isPreReleaseObsolete(release.version, releases)
-
-    // Prune if:
-    // 1. It's old (2+ years) AND not the latest stable
-    // 2. It's a pre-release that's obsolete (stable version published 3+ months ago)
-    // 3. It's a pre-release that's not recent and we have more than 5 pre-releases
-    // 4. It's not recent and not the latest stable and we have more than 5 total releases
-
-    if (isOld && !isLatestStable) {
-      toPrune.push(release)
-    } else if (isObsoletePreRelease) {
-      toPrune.push(release)
-    } else if (isPreRelease(release.version) && !isRecentPreRelease && preReleaseReleases.length > 5) {
-      toPrune.push(release)
-    } else if (!isRecent && !isLatestStable && releases.length > 5) {
-      toPrune.push(release)
-    }
-  }
-
-  return toPrune
-}
+// Use shared utility functions
+const { isPreRelease, getBaseVersion, isPreReleaseObsolete, compareVersions, identifyReleasesToPrune, generatePruneCommands } = releaseManagement
 
 /**
  * Identify releases to prune for duplicate version scenario (more lenient)
@@ -307,25 +181,6 @@ function identifyReleasesToPruneForDuplicate(releases) {
   }
 
   return toPrune
-}
-
-/**
- * Generate prune commands for identified releases
- * @param {Array<{name: string, tag: string, version: string, publishedAt: string}>} releasesToPrune - Releases to prune
- * @returns {string} - Commands to run for pruning
- */
-function generatePruneCommands(releasesToPrune) {
-  if (releasesToPrune.length === 0) {
-    return 'No releases recommended for pruning.'
-  }
-
-  const commands = releasesToPrune.map((release) => `gh release delete "${release.tag}" -y`)
-
-  if (releasesToPrune.length === 1) {
-    return `Recommended prune command:\n${commands[0]}`
-  }
-
-  return `Recommended prune commands:\n${commands.join('\n')}\n\nTo prune all at once:\n${commands.join(' && ')}`
 }
 
 /**

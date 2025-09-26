@@ -14,6 +14,7 @@ const { catchError, filter } = require('rxjs/operators')
 const streamToObservable = require('@samverschueren/stream-to-observable')
 const pluginUtils = require('./plugin-utils')
 const github = require('./github')
+const releaseManagement = require('./release-management')
 
 const prerequisiteTasks = require('./plugin-release/prerequisite-tasks')
 const gitTasks = require('./plugin-release/git-tasks')
@@ -28,27 +29,7 @@ const exec = (cmd, args) => {
   return merge(streamToObservable(cp.stdout.pipe(split())), streamToObservable(cp.stderr.pipe(split())), cp).pipe(filter(Boolean))
 }
 
-const buildDeleteCommands = async (pluginId = '', currentVersion = '') => {
-  const deleteCommands = []
-
-  const api = http.create({
-    baseURL: 'https://api.github.com',
-    headers: { Accept: 'application/vnd.github.v3+json' },
-  })
-
-  const releases = await api.get('repos/NotePlan/plugins/releases')
-  if (releases.data.length > 0) {
-    releases.data.forEach((release) => {
-      const tag = release.tag_name
-      if (tag.includes(pluginId) && !tag.includes(currentVersion)) {
-        const version = tag.replace(pluginId, '').replace('-v', '')
-        deleteCommands.push(`gh release delete "${pluginId}-v${version}" -y`)
-      }
-    })
-  }
-
-  return deleteCommands
-}
+// Removed buildDeleteCommands - no longer automatically deleting releases
 
 module.exports = {
   run: async (pluginId = '', pluginName = '', pluginVersion = '', args = {}) => {
@@ -68,25 +49,31 @@ module.exports = {
     const tasks = new Listr(
       [
         {
-          title: 'Prerequisite check',
+          title: 'Validating plugin files and structure',
           skip: () => {
             if (preview) {
-              return `[Preview] all validation`
+              return `[Preview] validate plugin files and structure`
             }
           },
           task: () => prerequisiteTasks(pluginId, args),
         },
         {
-          title: 'Github check',
+          title: 'Checking GitHub authentication and repository status',
           skip: () => {
             if (preview) {
-              return `[Preview] github tasks`
+              return `[Preview] check GitHub auth and repo status`
             }
           },
           task: () => gitTasks(pluginId, args),
         },
       ],
-      { showSubtaks: true },
+      {
+        renderer: 'default',
+        nonTTYRenderer: 'verbose',
+        collapse: false,
+        clearOutput: true,
+        showSubtasks: false,
+      },
     )
 
     tasks.add([
@@ -166,27 +153,23 @@ module.exports = {
       ])
     }
 
-    if (deletePrevious) {
-      tasks.add([
-        {
-          title: 'Deleting previous releases',
-          skip: async () => {
-            const cmds = await buildDeleteCommands(pluginId, pluginVersion)
-            if (args.preview) {
-              return `[Preview] ${(await cmds).join(', ')}`
-            }
-          },
-          task: async () => {
-            const cmds = await buildDeleteCommands(pluginId, pluginVersion)
-            if (cmds.length > 0) {
-              cmds.forEach(async (cmd) => {
-                const result = await system.run(cmd, true)
-              })
-            }
-          },
+    // Always check release history and show pruning recommendations
+    tasks.add([
+      {
+        title: 'Checking release history',
+        skip: () => {
+          if (args.preview) {
+            return `[Preview] Show pruning recommendations`
+          }
         },
-      ])
-    }
+        task: async () => {
+          // Collect release information but don't display it yet (to avoid interfering with Listr)
+          const releases = await releaseManagement.getExistingReleases(pluginId)
+          // Store the release info for display after Listr completes
+          return { releases, pluginId }
+        },
+      },
+    ])
 
     tasks.add([
       {
@@ -208,7 +191,55 @@ module.exports = {
       },
     ])
 
+    // Store release info to display after Listr completes
+    let releaseInfo = null
+
+    // Override the release history task to capture the data
+    const originalTasks = tasks._tasks
+    const releaseHistoryTask = originalTasks.find((task) => task.title === 'Checking release history')
+    if (releaseHistoryTask) {
+      const originalTask = releaseHistoryTask.task
+      releaseHistoryTask.task = async () => {
+        const releases = await releaseManagement.getExistingReleases(pluginId)
+        releaseInfo = { releases, pluginId }
+        return { releases, pluginId }
+      }
+    }
+
     const result = await tasks.run()
+
+    // Now display the release information after Listr has completed
+    if (releaseInfo) {
+      const { releases, pluginId: resultPluginId } = releaseInfo
+      if (releases && releases.length > 0) {
+        console.log('')
+        print.note(`Found ${releases.length} existing release(s) for plugin "${resultPluginId}":`)
+
+        // Get pruning recommendations
+        const releasesToPrune = releases.length > 3 ? releaseManagement.identifyReleasesToPrune(releases) : []
+        const pruneTags = new Set(releasesToPrune.map((r) => r.tag))
+
+        releases.forEach((release, index) => {
+          const publishedDate = new Date(release.publishedAt).toLocaleDateString()
+          const relativeTime = releaseManagement.getRelativeTime(release.publishedAt)
+          const shouldPrune = pruneTags.has(release.tag)
+          const pruneIndicator = shouldPrune ? ` ${colors.red('--PRUNE?')}` : ''
+
+          print.log(`  ${index + 1}. ${colors.cyan(release.tag)} (version ${release.version}, published ${publishedDate} -- ${relativeTime})${pruneIndicator}`)
+        })
+
+        if (releasesToPrune.length > 0) {
+          console.log('')
+          print.log(colors.cyan(releaseManagement.generatePruneCommands(releasesToPrune)))
+          console.log('')
+        } else if (releases.length <= 3) {
+          print.note(`Plugin has ${releases.length} releases (≤3), no pruning recommendations`)
+        }
+      } else {
+        print.note('No existing releases found for this plugin')
+      }
+    }
+
     console.log('')
     if (preview) {
       print.note(`${pluginId} v${pluginVersion} Released Successfully [PREVIEW]`, 'PREVIEW')
