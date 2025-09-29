@@ -505,4 +505,93 @@ describe('search.js tests', () => {
       expect(output).toEqual('- ... ipsum dolor sit amet, ==sed== consectetur adipisicing ... elit, ==sed== do eiusmod tempor incididunt ...')
     })
   })
+
+  describe('getSearchOperators', () => {
+    test('should return empty array from empty input', () => {
+      const result = s.getSearchOperators('')
+      expect(result).toEqual([])
+    })
+    test('should return a single hyphenated operator', () => {
+      const result = s.getSearchOperators('date:2025-09-01-2025-09-30 term1')
+      expect(result).toEqual(['date:2025-09-01-2025-09-30'])
+    })
+    test('should return array of search operators from input', () => {
+      const result = s.getSearchOperators('term1:xxx term2:yyy')
+      expect(result).toEqual(['term1:xxx', 'term2:yyy'])
+    })
+    test('should return array of search operators from input ignoring the search terms', () => {
+      const result = s.getSearchOperators('term1:xxx term2:yyy term3:zzz term1 term2 OR term3 -term4')
+      expect(result).toEqual(['term1:xxx', 'term2:yyy', 'term3:zzz'])
+    })
+    test('ignore search operators preceded by a backslash', () => {
+      const result = s.getSearchOperators('term1:xxx \\term2:yyy')
+      expect(result).toEqual(['term1:xxx'])
+    })
+  })
+
+  describe('removeSearchOperators', () => {
+    test('should return empty string from empty input', () => {
+      const result = s.removeSearchOperators('')
+      expect(result).toEqual('')
+    })
+    test('should return input string from single term', () => {
+      const result = s.removeSearchOperators('term1')
+      expect(result).toEqual('term1')
+    })
+    test('for multiple (AND) terms', () => {
+      const result = s.removeSearchOperators('term1 term2')
+      expect(result).toEqual('term1 term2')
+    })
+    test('should remove single leading search operator leaving search terms after it', () => {
+      const result = s.removeSearchOperators('operatorA:xxx term2 term3')
+      expect(result).toEqual('term2 term3')
+    })
+    test('should remove multiple leading search operators but leave one that is preceded by a backslash', () => {
+      const result = s.removeSearchOperators('operatorA:2025-09-01 is:not-task \\operatorC:zzz term4')
+      expect(result).toEqual('\\operatorC:zzz term4')
+    })
+    test('should remove single leading search operator and leave others after search terms', () => {
+      const result = s.removeSearchOperators('operatorA:xxx term2 operatorB:yyy operatorC:zzz')
+      expect(result).toEqual('term2 operatorB:yyy operatorC:zzz')
+    })
+  })
+  
+  describe('quoteTermsInSearchString', () => {
+    test('should return empty string from empty input', () => {
+      const result = s.quoteTermsInSearchString('')
+      expect(result).toEqual('')
+    })
+    test('should return input string from single term', () => {
+      const result = s.quoteTermsInSearchString('term1')
+      expect(result).toEqual('"term1"')
+    })
+    test('for multiple (AND) terms', () => {
+      const result = s.quoteTermsInSearchString('term1 term2')
+      expect(result).toEqual('"term1" "term2"')
+    })
+    test('For OR-d terms', () => {
+      const result = s.quoteTermsInSearchString('term1 OR term2')
+      expect(result).toEqual('"term1" OR "term2"')
+    })
+    test('for negated terms', () => {
+      const result = s.quoteTermsInSearchString('-term1 -term2')
+      expect(result).toEqual('"-term1" "-term2"')
+    })
+    test('for negated terms in parentheses', () => {
+      const result = s.quoteTermsInSearchString('-(term1 OR term2)')
+      expect(result).toEqual('-("term1" OR "term2")')
+    })
+    test('for quoted single-word terms, return as is', () => {
+      const result = s.quoteTermsInSearchString('"term1" "term2"')
+      expect(result).toEqual('"term1" "term2"')
+    })
+    test('for quoted multi-word terms, return as is', () => {
+      const result = s.quoteTermsInSearchString('"Holy Spirit"')
+      expect(result).toEqual('"Holy Spirit"')
+    })
+    test('For complex mix of terms', () => {
+      const result = s.quoteTermsInSearchString('term1 (term2 OR term3) -term4')
+      expect(result).toEqual('"term1" ("term2" OR "term3") "-term4"')
+    })
+  })
 })

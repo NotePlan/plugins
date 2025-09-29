@@ -453,3 +453,178 @@ export function trimAndHighlightTermInLine(
     return 'error' // for completeness
   }
 }
+
+/**
+ * Return true if the string is a search operator. These are the ones that are a string without a space that contains a non-escaped colon, and ignore search operators preceded by a backslash.
+ * Note: does not check validity of the search operators, just the form of the a:b string.
+ * @param {string} term to test
+ * @returns {boolean}
+ */
+function isSearchOperator(term: string) {
+  return term.match(/\w+:[\w\d-]+$/) && !term.startsWith('\\')
+}
+
+/**
+ * Get array of search operators (e.g. date:2025-09-28 or is:open) from a search terms string. 
+ * Note: does not check validity of the search operators, just the form of the a:b string.
+ * Suitable for use with extended search API from v3.18.1.
+ * @author @jgclark
+ * @tests in jest file
+ * @param {string} searchTermsStr string of search terms
+ * @returns {Array<string>} array of search operators
+ */
+export function getSearchOperators(searchTermsStr: string): Array<string> {
+  const searchTerms = searchTermsStr.split(' ')
+  // Get the ones that have word characters, then a : character, then more alpha numeric characters. Also ignore search operators preceded by a backslash.
+  const searchOperators = searchTerms.filter(isSearchOperator)
+  return searchOperators
+}
+
+/**
+ * Remove all search operators (e.g. date:2025-09-28 or is:open) from the start of a search terms string.
+ * Leaves search operators preceded by a backslash.
+ * Note: does not check validity of the search operators or remaining search terms, just the form of the a:b string.
+ * Suitable for use with extended search API from v3.18.1.
+ * @author @jgclark
+ * @tests in jest file
+ * @param {string} searchTermsStr string of search terms
+ * @returns {string} result
+ */
+export function removeSearchOperators(searchTermsStr: string): string {
+  const searchTerms = searchTermsStr.split(' ')
+  // Iterate over the searchTerms noting which are search operators. Remove all up until the first searchTerms that isn't a search operator.
+  let firstNonOperatorIndex = 0
+  for (const term of searchTerms) {
+    if (isSearchOperator(term)) {
+      logDebug('removeSearchOperators', `- removed search operator: ${term}`)
+      firstNonOperatorIndex++
+    } else {
+      break
+    }
+  }
+  const result = searchTerms.slice(firstNonOperatorIndex).join(' ')
+  logDebug('removeSearchOperators', `-> search terms without operators: ${result}`)
+  return result
+}
+
+/**
+ * Return a searchString with each term surrounded by double-quotes.
+ * Treat -, ( and ) as punctuation not part of the terms.
+ * If a term is already surrounded by double-quotes, leave it alone.
+ * Suitable for use with extended search API from v3.18.1.
+ * @author @Cursor guided by @jgclark
+ * @tests in jest file
+ * @param {string} searchString 
+ * @returns {string} searchString with terms surrounded by quotes
+ */
+export function quoteTermsInSearchString(searchString: string): string {
+  if (!searchString || searchString.trim() === '') return ''
+  
+  // Handle the case where the entire string is already quoted
+  if (searchString.startsWith('"') && searchString.endsWith('"')) {
+    return searchString
+  }
+  
+  let result = ''
+  let i = 0
+  
+  while (i < searchString.length) {
+    const char = searchString[i]
+    
+    if (char === '"') {
+      // Handle already quoted terms - find the closing quote
+      const start = i
+      i++ // skip opening quote
+      while (i < searchString.length && searchString[i] !== '"') {
+        i++
+      }
+      if (i < searchString.length) {
+        i++ // skip closing quote
+        result += searchString.slice(start, i)
+      } else {
+        // Unclosed quote, treat as regular text
+        result += searchString.slice(start)
+      }
+    } else if (char === '(') {
+      // Handle opening parenthesis
+      result += '('
+      i++
+      
+      // Process content inside parentheses
+      let parenContent = ''
+      let parenDepth = 1
+      while (i < searchString.length && parenDepth > 0) {
+        const nextChar = searchString[i]
+        if (nextChar === '(') {
+          parenDepth++
+        } else if (nextChar === ')') {
+          parenDepth--
+        }
+        if (parenDepth > 0) {
+          parenContent += nextChar
+        }
+        i++
+      }
+      
+      // Recursively quote the content inside parentheses
+      const quotedParenContent = quoteTermsInSearchString(parenContent)
+      result += quotedParenContent
+      result += ')'
+    } else if (char === '-') {
+      // Handle negation - check if it's followed by a parenthesis
+      if (i + 1 < searchString.length && searchString[i + 1] === '(') {
+        // Negated parentheses: -(content)
+        result += '-('
+        i += 2 // skip -(
+        
+        // Process content inside parentheses
+        let parenContent = ''
+        let parenDepth = 1
+        while (i < searchString.length && parenDepth > 0) {
+          const nextChar = searchString[i]
+          if (nextChar === '(') {
+            parenDepth++
+          } else if (nextChar === ')') {
+            parenDepth--
+          }
+          if (parenDepth > 0) {
+            parenContent += nextChar
+          }
+          i++
+        }
+        
+        // Recursively quote the content inside parentheses
+        const quotedParenContent = quoteTermsInSearchString(parenContent)
+        result += quotedParenContent
+        result += ')'
+      } else {
+        // Regular negation - find the term and quote it with the minus
+        let term = '-'
+        i++
+        while (i < searchString.length && searchString[i] !== ' ' && searchString[i] !== '(' && searchString[i] !== ')') {
+          term += searchString[i]
+          i++
+        }
+        result += `"${term}"`
+      }
+    } else if (char === ' ') {
+      result += ' '
+      i++
+    } else {
+      // Regular term - collect until space, parenthesis, or quote
+      let term = ''
+      while (i < searchString.length && searchString[i] !== ' ' && searchString[i] !== '(' && searchString[i] !== ')' && searchString[i] !== '"') {
+        term += searchString[i]
+        i++
+      }
+      
+      if (term === 'OR') {
+        result += 'OR'
+      } else {
+        result += `"${term}"`
+      }
+    }
+  }
+  
+  return result
+}
