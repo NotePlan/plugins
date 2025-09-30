@@ -506,6 +506,42 @@ describe('search.js tests', () => {
     })
   })
 
+  describe('isSearchOperator', () => {
+    test('should return false from empty input', () => {
+      const result = s.isSearchOperator('')
+      expect(result).toEqual(false)
+    })
+    test('should return false from input preceded by a backslash', () => {
+      const result = s.isSearchOperator('\\term1:xxx')
+      expect(result).toEqual(false)
+    })
+    test('should return true from input with a quoted value', () => {
+      const result = s.isSearchOperator('term1:"Holy Spirit"')
+      expect(result).toEqual(true)
+    })
+    test('should return false from input with an unquoted value', () => {
+      const result = s.isSearchOperator('term1:Holy Spirit')
+      expect(result).toEqual(false)
+    })
+    test('should return true from input with a quoted value', () => {
+      const result = s.isSearchOperator('term1:"Holy Spirit"')
+      expect(result).toEqual(true)
+    })
+    test('should return false from input with a dash in key', () => {
+      const result = s.isSearchOperator('key-1:this-and-that')
+      expect(result).toEqual(false)
+    })
+    test('should return false from input with a space in key', () => {
+      const result = s.isSearchOperator('key 1:this-and-that')
+      expect(result).toEqual(false)
+    })
+    test('should return true from input with a dash in value', () => {
+      const result = s.isSearchOperator('term1:this-and-that')
+      expect(result).toEqual(true)
+    })
+  })
+
+  
   describe('getSearchOperators', () => {
     test('should return empty array from empty input', () => {
       const result = s.getSearchOperators('')
@@ -526,6 +562,10 @@ describe('search.js tests', () => {
     test('ignore search operators preceded by a backslash', () => {
       const result = s.getSearchOperators('term1:xxx \\term2:yyy')
       expect(result).toEqual(['term1:xxx'])
+    })
+    test('should return array of search operators from input with double quotes', () => {
+      const result = s.getSearchOperators('term1:xxx term2:"Holy Spirit" term3:zzz')
+      expect(result).toEqual(['term1:xxx', 'term2:Holy Spirit', 'term3:zzz'])
     })
   })
 

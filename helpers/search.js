@@ -74,7 +74,8 @@ export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): 
 }
 
 /**
- * Perform substring match, ignoring case
+ * Perform substring match, ignoring case.
+ * This version uses regex, though TODO: look at changing to a variant of "new Intl.Collator("de", { caseFirst: "upper" }).compare"
  * @author @jgclark
  * @param {string} searchTerm
  * @param {string} textToSearch
@@ -87,6 +88,31 @@ export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: 
     const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = new RegExp(`${escapedSearchTerm}`, "i") // = case insensitive match
     return re.test(textToSearch)
+  }
+  catch (error) {
+    logError('search/caseInsensitiveSubstringMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
+    return false
+  }
+}
+
+/**
+ * Perform substring match, case-sensitively.
+ * Note: variant characters of the same case and be matched. E.g. a ≠ b, a = á, a ≠ A.
+ * @author @jgclark
+ * @param {string} searchTerm
+ * @param {string} textToSearch
+ * @returns {boolean}
+ * TODO: @tests available in jest file
+ */
+export function caseSensitiveSubstringMatch(searchTerm: string, textToSearch: string): boolean {
+  try {
+    const searchOptions = {
+      sensitivity: "case",
+      usage: "search",
+    }
+    const userLocale = "en-GB" // TODO: look this up
+    const collator = new Intl.Collator(userLocale, searchOptions)
+    return collator.compare(searchTerm, textToSearch) === 0
   }
   catch (error) {
     logError('search/caseInsensitiveSubstringMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
@@ -396,7 +422,7 @@ export function trimAndHighlightTermInLine(
           output = textAroundTerms.join(' ...')
           // If the output doesn't start with the mainPart, then we have chopped the start of a sentence, so prepend '...'
           if (!caseInsensitiveStartsWith(output, mainPart, false)) {
-            logDebug('trimAndHighlight', `- have shortened start of line`)
+            // logDebug('trimAndHighlight', `- have shortened start of line`)
             output = `... ${output}`
           }
           // If we now have a shortened string, then append '...' unless search term is at the end of the line
@@ -456,16 +482,21 @@ export function trimAndHighlightTermInLine(
 
 /**
  * Return true if the string is a search operator. These are the ones that are a string without a space that contains a non-escaped colon, and ignore search operators preceded by a backslash.
+ * Also includes values that are wrapped in double quotes (e.g. heading:"Project A"), but if so, the value is returned without the double quotes.
  * Note: does not check validity of the search operators, just the form of the a:b string.
  * @param {string} term to test
  * @returns {boolean}
  */
-function isSearchOperator(term: string) {
-  return term.match(/\w+:[\w\d-]+$/) && !term.startsWith('\\')
+export function isSearchOperator(term: string): boolean {
+  if (!term || term.startsWith('\\')) return false
+  // Match key:value where key has no spaces and value is either a quoted string (may include spaces)
+  // or an unquoted token with no spaces. Examples: date:2025-09-01, is:not-task, heading:"Project A"
+  const re = /^\w+:("[^"]+"|[^"\s]+)$/
+  return re.test(term)
 }
 
 /**
- * Get array of search operators (e.g. date:2025-09-28 or is:open) from a search terms string. 
+ * Get array of search operators (e.g. date:2025-09-28 or is:open or heading:"Project A") from a search terms string. 
  * Note: does not check validity of the search operators, just the form of the a:b string.
  * Suitable for use with extended search API from v3.18.1.
  * @author @jgclark
@@ -474,10 +505,16 @@ function isSearchOperator(term: string) {
  * @returns {Array<string>} array of search operators
  */
 export function getSearchOperators(searchTermsStr: string): Array<string> {
-  const searchTerms = searchTermsStr.split(' ')
-  // Get the ones that have word characters, then a : character, then more alpha numeric characters. Also ignore search operators preceded by a backslash.
+  // Split on spaces that are not inside double quotes
+  const searchTerms = searchTermsStr.match(/(?:[^\s"]+|"[^"]*")+/g) || []
   const searchOperators = searchTerms.filter(isSearchOperator)
-  return searchOperators
+  // Also return the values of the search operators without the quotes
+  const searchOperatorsWithUnquotedValues = searchOperators.map((op) => {
+    const key = op.split(':')[0]
+    const value = op.split(':')[1]
+    return (value.startsWith('"') && value.endsWith('"')) ? `${key}:${value.slice(1, -1)}` : op
+  })
+  return searchOperatorsWithUnquotedValues
 }
 
 /**
