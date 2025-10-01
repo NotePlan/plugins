@@ -288,6 +288,9 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
  * - ignoreItemsWithTerms  (from 2.1.0.b4 can be applied to calendar headings too)
  * - ignoreTasksScheduledToFuture
  * - excludeTasksWithTimeblocks & excludeChecklistsWithTimeblocks
+ * 
+ * TODO: finish? add support for Teamspace daily notes
+ * 
  * @param {TNote} timePeriodNote base calendar note to process
  * @param {string} calendarPeriodName
  * @param {TDashboardSettings} dashboardSettings

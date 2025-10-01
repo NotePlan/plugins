@@ -311,7 +311,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(
     const momLastUpdatedAgeMins = momNow.diff(momLastUpdated, 'minutes', true)
     const cacheGenerationAge = Math.round(momGeneratedAgeMins * 10) / 10
     const cacheUpdatedAge = Math.round(momLastUpdatedAgeMins * 10) / 10
-    countComparison += ` Cache age: ${cacheGenerationAge}, updated ${cacheUpdatedAge}min ago`
+    countComparison += `. Cache age: ${cacheGenerationAge}m, updated ${cacheUpdatedAge}m ago`
 
     // Update the cache if too old
     scheduleTagMentionCacheGenerationIfTooOld(parsedCache.generatedAt)

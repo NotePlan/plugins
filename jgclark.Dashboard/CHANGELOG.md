@@ -10,7 +10,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
-## [2.3.0.b10] 2025-09-???
+## [2.3.0.b11] 2025-10-01
+- Save a copy of settings.json if it's discovered that it doesn't contain perspectiveSettings.
+- TODO: Fix DBW can't-click-link report
+- TODO: Get Calendar notes from Teamspaces included in calendar sections
+
+## [2.3.0.b10] 2025-09-18
 ### Changed
 - When the "filter out lower-priority items" is on, this now calculated across all sections, not just each one independently. The label that says there are hidden items now includes "(click to show all)" text to make it clearer how to turn off the filter for that section.
 - improve cache updates

@@ -26,6 +26,7 @@ import { isOpen } from '@helpers/utils'
 //--------------------------------------------------------------------
 /**
  * Get open items from Today's note
+ * TODO: finish? add support for Teamspace daily notes
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?

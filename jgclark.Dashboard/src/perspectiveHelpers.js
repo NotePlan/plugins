@@ -2,11 +2,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-06-05 for v2.2.2
+// Last updated 2025-10-01 for v2.3.0
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 // import { generateProjectListsAndRenderIfOpen, renderProjectListsIfOpen } from '../../jgclark.Reviews/src/reviews.js' // produces circular dependency
+import { backupSettings } from './backupSettings.js'
 import { getDashboardSettings, getOpenItemParasForTimePeriod, setPluginData } from './dashboardHelpers.js'
 import { dashboardSettingsDefaults } from './react/support/settingsHelpers'
 import { getTagSectionDetails, showSectionSettingItems } from './react/components/Section/sectionHelpers'
@@ -197,8 +198,9 @@ export async function getPerspectiveSettings(logAllKeys: boolean = false): Promi
       perspectiveSettings = parseSettings(perspectiveSettingsStr) ?? []
       // logPerspectives(perspectiveSettings, logAllKeys)
     } else {
-      // No settings found, so will need to set from the defaults instead
-      logWarn('getPerspectiveSettings', `No settings found: will load in the defaults:`)
+      // No perspective settings found, so will need to set from the defaults instead
+      logWarn('getPerspectiveSettings', `No perspective settings found, so will load in the defaults. But first, I will save a copy of the settings.json file for investigation.`)
+      await backupSettings('after_no_perspective_settings_found')
       perspectiveSettings = await getPerspectiveSettingDefaults()
       const defaultPersp = getPerspectiveNamed('-', perspectiveSettings)
       if (!defaultPersp) {
