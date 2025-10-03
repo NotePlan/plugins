@@ -1,6 +1,20 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+_Rather arbitrarily promoting this to v1.0. But I think it deserves it after 4 years!_
+
+## [1.0.0.b2] - 2025-10-03 (only released to @grdn)
+### New
+- Allow override of settings for periodStats when called from x-callbacks (for @grdn)
+
+## [1.0.0.b1] - 2025-10-01 (only released to @grdn)
+### New
+- Adds support for 'all' time period in /periodStats command, including x-callback (for @grdn)
+### Changed
+- Uses richer menu in /periodStats command (available from NP 3.18.0)
+### Dev
+- Fixed spurious "Skipping ill-formed mention" logs
+
 ## [0.22.1] - 2024-09-13
 - fix empty lines appearing in output of some `progressUpdate(...)` template calls (reported by Madscientist and Kc)
 

@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 2024-09-13 for v0.22.1 by @jgclark
+// Last updated 2025-09-30 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -11,7 +11,6 @@ import pluginJson from '../plugin.json'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   calcOffsetDateStr,
-  // getDateFromYYYYMMDDString,
   getDateStringFromCalendarFilename,
   getISODateStringFromYYYYMMDD,
   isDailyNote,
@@ -20,17 +19,13 @@ import {
   convertISODateFilenameToNPDayFilename,
   withinDateRange,
 } from '@helpers/dateTime'
+import type { TPeriodCode } from '@helpers/NPdateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
   type headingLevelType,
 } from '@helpers/general'
-import {
-  caseInsensitiveMatch,
-  caseInsensitiveStartsWith,
-  isHashtagWanted,
-  isMentionWanted,
-} from '@helpers/search'
+import { caseInsensitiveMatch, caseInsensitiveStartsWith, isHashtagWanted, isMentionWanted } from '@helpers/search'
 
 //------------------------------------------------------------------------------
 // Plotly info -- from v2.32.0
@@ -67,17 +62,12 @@ const pluginID = 'jgclark.Summaries'
 export type SummariesConfig = {
   foldersToExclude: Array<string>,
   showSparklines: boolean,
-  folderToStore: string,
-  statsHeading: string,
   headingLevel: headingLevelType,
   excludeToday: boolean,
-  hashtagCountsHeading: string,
-  mentionCountsHeading: string,
-  showAsHashtagOrMention: boolean,
   weeklyStatsItems: Array<string>,
   weeklyStatsDuration: ?number,
   weeklyStatsIncludeCurrentWeek: boolean,
-  progressPeriod: string,
+  progressPeriod: TPeriodCode,
   progressDestination: string,
   progressHeading: string,
   progressYesNoChars: string,
@@ -90,18 +80,27 @@ export type SummariesConfig = {
   progressMentionsAverage: Array<string>,
   progressMentionsTotal: Array<string>,
   progressYesNo: Array<string>,
-  periodStatsShowSparklines: boolean,
   // for todayProgress ...
   todayProgressHeading: string,
   todayProgressItems: Array<string>,
   // for periodStats ...
+  folderToStore: string,
+  statsHeading: string,
+  hashtagCountsHeading: string,
+  mentionCountsHeading: string,
+  periodStatsShowSparklines: boolean,
+  showAsHashtagOrMention: boolean,
+  periodStatsMentions: Array<string>,
   periodStatsYesNo: Array<string>,
   includedHashtags: Array<string>,
-  excludedHashtags: Array<string>,
-  includedMentions: Array<string>,
+  excludeHashtags: Array<string>,
+  periodStatsHashtagsAverage: Array<string>,
+  periodStatsHashtagsTotal: Array<string>,
+  periodStatsMentions: Array<string>,
   excludedMentions: Array<string>,
   periodStatsMentionsAverage: Array<string>,
-  periodStatsMentionsTotal: Array<string>,
+  periodStatsMentionsTotal: Array<string>, // "mentions to total"
+  // includedMentions: Array<string>,
 }
 
 // Reduced set of the above designed to carry settings into gatherOccurrences
@@ -462,11 +461,17 @@ export class TMOccurrences {
  * @param {OccurrencesToLookFor} occToLookFor containing the various settings of which occurrences to gather
  * @returns {Array<TMOccurrences>}
  */
-export function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr: string, occToLookFor: OccurrencesToLookFor): Array<TMOccurrences> {
+export function gatherOccurrences(
+  periodString: string,
+  fromDateStr: string,
+  toDateStr: string,
+  occToLookFor: OccurrencesToLookFor
+): Array<TMOccurrences> {
   try {
     const calendarNotesInPeriod = DataStore.calendarNotes.filter(
       (n) =>
-        isDailyNote(n) && withinDateRange(getDateStringFromCalendarFilename(n.filename), convertISODateFilenameToNPDayFilename(fromDateStr), convertISODateFilenameToNPDayFilename(toDateStr)))
+        isDailyNote(n) &&
+        withinDateRange(getDateStringFromCalendarFilename(n.filename), convertISODateFilenameToNPDayFilename(fromDateStr), convertISODateFilenameToNPDayFilename(toDateStr)))
     if (calendarNotesInPeriod.length === 0) {
       logWarn('gatherOccurrences', `- no matching calendar notes found between ${fromDateStr} and ${toDateStr}`)
       return [] // for completeness
@@ -524,9 +529,12 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
         // const lastMention = ''
         for (const mention of seenMentions) {
           // First need to add a check for a bug: `@repeat(1/7)` is returned as `@repeat(1/7), @repeat(1`. Skip the incomplete one.
+          if (mention.match(/^@repeat\(\d+$/)) { // e.g. @repeat(4/ 
+            continue // skip this mention
+          }
           // Also skip where there are mis-matched brackets in this single mention e.g. `@run(12 @distance(6.5)`
           if (mention.match(/\(([^\)]+$|[^\)]+\s@.*\(.*\))/)) {
-            logDebug('gatherOccurrences', `- Skipping ill-formed mention '${mention}' on date ${n.filename}`)
+            logInfo('gatherOccurrences', `- Skipping ill-formed mention '${mention}' on date ${n.filename}`)
             continue // skip this mention
           }
 

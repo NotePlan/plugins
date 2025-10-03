@@ -27,7 +27,7 @@ import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { noteHasFrontMatter, getFrontmatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { formRegExForUsersOpenTasks } from '@helpers/regex'
+import { formRegExForUsersOpenTasks, TEAMSPACE_INDICATOR } from '@helpers/regex'
 import { sortListBy } from '@helpers/sorting'
 import { isOpen } from '@helpers/utils'
 
@@ -379,12 +379,25 @@ export function calendarNotesSortedByChanged(): Array<TNote> {
 }
 
 /**
- * Return list of calendar notes, sorted by their date (oldest to newest)
+ * Return list of calendar notes, sorted by date (oldest to newest, based on their filename)
+ * Will include future calendar notes if includeFutureCalendarNotes is true.
+ * WARNING: Not tested with Teamspace notes, and will likely fail, as it relies on filenames.
  * @author @jgclark
+ * @param {boolean} includeFutureCalendarNotes? (optional: default = false)
+ * @param {boolean} includeTeamspaceNotes? (optional: default = false)
  * @return {Array<TNote>} array of notes
  */
-export function calendarNotesSortedByDate(): Array<TNote> {
-  return DataStore.calendarNotes.slice().sort(function (first, second) {
+export function calendarNotesSortedByDate(includeFutureCalendarNotes: boolean = false, includeTeamspaceNotes: boolean = false): Array<TNote> {
+  let notes = (includeFutureCalendarNotes)
+    ? DataStore.calendarNotes.slice()
+    : pastCalendarNotes()
+
+  // Remove Teamspace calendar notes if requested
+  if (!includeTeamspaceNotes) {
+    notes = notes.filter((note) => !note.filename.startsWith(TEAMSPACE_INDICATOR))
+  }
+
+  return notes.sort(function (first, second) {
     const a = first.filename
     const b = second.filename
     if (a < b) {
@@ -400,6 +413,8 @@ export function calendarNotesSortedByDate(): Array<TNote> {
 /**
  * Return list of past calendar notes, of any duration.
  * Note: the date that's checked is the *start* of the period. I.e. test on 30th June will match 2nd Quarter as being in the past.
+ * Note: A version of this function exists in helpers/NPdateTime.js::getEarliestCalendarNoteDate(), but it's not imported because it would create a circular dependency.
+
  * @author @jgclark
  * @return {Array<TNote>} array of notes
  */

@@ -35,7 +35,7 @@ import {
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import {getFolderFromFilename} from './folders'
 // import { displayTitle } from './general'
-import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from './regex'
+import { RE_FIRST_SCHEDULED_DATE_CAPTURE, TEAMSPACE_INDICATOR } from './regex'
 import { hasScheduledDate } from './utils'
 import { getTeamspaceTitleFromID } from './NPTeamspace'
 import { parseTeamspaceFilename } from './teamspace'
@@ -71,6 +71,42 @@ async function getInput(message: string, okLabel: string = 'OK', dialogTitle: st
 }
 
 //--------------------------------------------------------------------------------
+// Types
+
+export type NotePlanWeekInfo = {
+  weekNumber: number,
+  weekYear: number,
+  weekString: string,
+  startDate: Date,
+  endDate: Date,
+  date: Date,
+}
+
+export type NotePlanMonthInfo = {
+  monthIndex: number /* 0-indexed */,
+  monthString: number /* 2022-01 (1-indexed) */,
+  startDate: Date,
+  endDate: Date,
+}
+
+export type NotePlanQuarterInfo = {
+  quarterIndex: number /* 0-indexed */,
+  quarterString: number /* 2022-Q1 (1-indexed) */,
+  startDate: Date,
+  endDate: Date,
+}
+
+export type NotePlanYearInfo = {
+  yearString: number /* 2022 */,
+  startDate: Date,
+  endDate: Date,
+}
+
+export type TPeriodCode = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'YYYY-MMDD' | 'all' | 'lw' | 'last2w' | 'last4w' | 'last7d' | 'wtd' | 'userwtd' | 'ow' | 'lm' | 'mtd' | 'om' | 'lq' | 'qtd' | 'oq' | 'ly' | 'ytd' | 'oy'
+
+
+//--------------------------------------------------------------------------------
+// Functions
 
 // TODO: work out how to test these next few functions
 export function setMomentLocaleFromEnvironment(): void {
@@ -277,6 +313,10 @@ export const periodTypesAndDescriptions = [
     label: 'Other Year',
     value: 'oy',
   },
+  {
+    label: 'All Time',
+    value: 'all',
+  },
 ]
 
 /**
@@ -292,18 +332,19 @@ export const periodTypesAndDescriptions = [
  *
  * @param {string?} question to show user
  * @param {boolean?} excludeToday? (default true)
- * @param {string?} periodShortCodeArg? lm | mtd | om etc. | today | a YYYY-MM-DD date. If not provided ask user.
- * @returns {[Date, Date, string, string, string, number]}
+ * @param {TPeriodCode?} periodShortCodeArg? lm | mtd | om etc. | today | a YYYY-MM-DD date. If not provided ask user.
+ * @returns {[Date, Date, TPeriodCode, string, string, number]}
  */
 export async function getPeriodStartEndDates(
   question: string = 'Create stats for which period?',
   excludeToday: boolean = true /* currently only used when a date is passed through as periodShortCode */,
-  periodShortCodeArg?: string,
-): Promise<[Date, Date, string, string, string, number]> {
-  let periodShortCode: string
+  periodShortCodeArg?: TPeriodCode,
+): Promise<[Date, Date, TPeriodCode, string, string, number]> {
+  let periodShortCode: TPeriodCode
   // If we're passed the period, then use that, otherwise ask user
   if (periodShortCodeArg && periodShortCodeArg !== '') {
     // It may come with surrounding quotes, so remove those
+    // $FlowIgnore[incompatible-type]
     periodShortCode = trimAnyQuotes(periodShortCodeArg)
   } else {
     // Ask user what date interval to do tag counts for
@@ -326,6 +367,21 @@ export async function getPeriodStartEndDates(
   const d = todaysDate.getDate()
 
   switch (periodShortCode) {
+    case 'all': {
+      // Find first calendar note date
+      const firstCalendarNoteDate = getEarliestCalendarNoteDate()
+      if (!firstCalendarNoteDate) {
+        throw new Error('No earliest calendar note found')
+      }
+      logInfo('getPeriodStartEndDatesFromPeriodCode', `First calendar note date: ${String(firstCalendarNoteDate)}`)
+      fromDate = firstCalendarNoteDate
+      toDate = toDateMom.toDate()
+      fromDateMom = moment(firstCalendarNoteDate)
+      toDateMom = moment(toDateMom).endOf('day')
+      periodString = `all dates`
+      periodAndPartStr = `all dates`
+      break
+    }
     case 'ly': {
       const lastY = y - 1
       fromDateMom = moment().startOf('year').subtract(1, 'year')
@@ -567,13 +623,18 @@ export async function getPeriodStartEndDates(
  * - {string} periodAndPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
  * @author @jgclark
  * @tests some in jest file; doesn't cover the JS Date returns
- * @param {string} periodCode only week | month | quarter | year | YYYY-MM-DD
+ * @param {TPeriodCodes} periodCode: week | month | quarter | year | YYYY-MM-DD | all
  * @param {number} periodNumber e.g. 3 for '3rd Quarter' or '3rd month' etc. (ignored for periodCode 'year' or YYYY-MM-DD)
  * @param {number} year
  * @param {boolean?} excludeToday? (default true)
- * @returns {[Date, Date, string, string, string]}
+ * @returns {[Date, Date, TPeriodCode, string, string]}
  */
-export function getPeriodStartEndDatesFromPeriodCode(periodCode: string, periodNumber: number, year: number, excludeToday: boolean = true): [Date, Date, string, string, string] {
+export function getPeriodStartEndDatesFromPeriodCode(
+  periodCode: TPeriodCode,
+  periodNumber: number,
+  year: number,
+  excludeToday: boolean = true
+): [Date, Date, TPeriodCode, string, string] {
   let fromDateMom = new moment()
   let toDateMom = new moment()
   let fromDate: Date = fromDateMom.toDate()
@@ -584,6 +645,20 @@ export function getPeriodStartEndDatesFromPeriodCode(periodCode: string, periodN
 
   // logDebug('getPeriodStartEndDatesFromPeriodCode', `Starting with code ${periodCode}`)
   switch (periodCode) {
+    case 'all': {
+      const firstCalendarNoteDate = getEarliestCalendarNoteDate()
+      if (!firstCalendarNoteDate) {
+        throw new Error('No earliest calendar note found')
+      }
+      logInfo('getPeriodStartEndDatesFromPeriodCode', `First calendar note date: ${String(firstCalendarNoteDate)}`)
+      fromDate = firstCalendarNoteDate
+      fromDateMom = moment(firstCalendarNoteDate)
+      toDate = toDateMom.toDate()
+      toDateMom = moment(toDateMom).endOf('day')
+      periodString = `all dates`
+      periodAndPartStr = `all dates`
+      break
+    }
     case 'year': {
       fromDateMom = moment({ year: year, month: 0, day: 1 })
       toDateMom = moment(fromDateMom).endOf('year') // have to clone otherwise fromDateMom mutates
@@ -661,33 +736,21 @@ export function getPeriodStartEndDatesFromPeriodCode(periodCode: string, periodN
   return [fromDate, toDate, periodCode, periodString, periodAndPartStr]
 }
 
-export type NotePlanWeekInfo = {
-  weekNumber: number,
-  weekYear: number,
-  weekString: string,
-  startDate: Date,
-  endDate: Date,
-  date: Date,
-}
-
-export type NotePlanMonthInfo = {
-  monthIndex: number /* 0-indexed */,
-  monthString: number /* 2022-01 (1-indexed) */,
-  startDate: Date,
-  endDate: Date,
-}
-
-export type NotePlanQuarterInfo = {
-  quarterIndex: number /* 0-indexed */,
-  quarterString: number /* 2022-Q1 (1-indexed) */,
-  startDate: Date,
-  endDate: Date,
-}
-
-export type NotePlanYearInfo = {
-  yearString: number /* 2022 */,
-  startDate: Date,
-  endDate: Date,
+/**
+ * Get the earliest calendar note date, ignoring teamspace ones
+ * Note: Based on helpers/note.js::calendarNotesSortedByDate(), but not imported because it would create a circular dependency
+ * @author @jgclark
+ * @returns {Date} the earliest calendar note date, or null if there's an error
+ */
+export function getEarliestCalendarNoteDate(): ?Date {
+  // get all calendar notes, ignoring future and teamspace ones
+  const startOfTodayDate = moment().startOf('day').toDate()
+  const calendarNotesToConsider = DataStore.calendarNotes.slice().filter((note) => {
+    return (note.date < startOfTodayDate) && (!note.filename.startsWith(TEAMSPACE_INDICATOR))
+  }).sort((first, second) => first.date - second.date)
+  const earliestCalendarNote = calendarNotesToConsider[0]
+  logDebug('getEarliestCalendarNote', `Earliest calendar note: ${earliestCalendarNote.filename} from ${calendarNotesToConsider.length} calendar notes`)
+  return earliestCalendarNote.date ?? null
 }
 
 export function pad(n: number): string {

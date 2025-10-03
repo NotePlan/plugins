@@ -254,9 +254,9 @@ Note: sparklines won't show for periods of time greater than 31 days -- they jus
 
 ### Calling by x-callback
 You can run this from an **x-callback**  using the form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=periodStats&arg0=?&arg1=?&arg2=?` where
-- `arg0` is the calendar period code (`year`, `quarter`, `month`, `week`, `today`, or an `YYYY-MM-DD` date)",
-- `arg1` is the number within the calendar type (ignored for `today` or `YYYY-MM-DD`)
-- `arg2` is the `YYYY` year number to use (ignored for `YYYY-MM-DD`)
+- `arg0` is the calendar period code (`year`, `quarter`, `month`, `week`, `today`, `all` (all calendar notes) or an `YYYY-MM-DD` date)",
+- `arg1` is the number within the calendar type (ignored for `all`, `today`, or `YYYY-MM-DD`)
+- `arg2` is the `YYYY` year number to use (ignored for `all`, `today`, or `YYYY-MM-DD`)
 
 For example the following will add stats for Dec 2023 to the end of the current note:
 ```
@@ -275,6 +275,9 @@ The relevant settings for these commands are:
 
 ## To do
 - now NotePlan has begun to make HTML content possible, I wish to create proper charts/graphs of numeric summaries. (The 'ASCII art' sparklines, and now Mermaid charts, are interim steps towards this.)
+
+## Won't do
+At this stage, I don't expect to extend the plugin to cover Teamspace calendar notes as well. To do so would be possible, but more work than I think warrants the potential benefit.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

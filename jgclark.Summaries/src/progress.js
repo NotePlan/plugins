@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 4.6.2024 for v0.22.0, @jgclark
+// Last updated 2025-09-30 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -15,6 +15,7 @@ import {
   type SummariesConfig,
 } from './summaryHelpers'
 import { hyphenatedDate } from '@helpers/dateTime'
+// import type { TPeriodCode } from '@helpers/NPdateTime'
 import {
   clo, logDebug, logError, logInfo, logWarn, timer,
   overrideSettingsWithEncodedTypedArgs
@@ -72,7 +73,10 @@ export async function progressUpdate(params: any = '', sourceIn: string = ''): P
  * @param {string?} source of this call: 'callback', 'template' or 'command' (the default)
  * @returns {string|void} - either return string to Template, or void to plugin
  */
-export async function makeProgressUpdate(paramsIn: any = '', source: string = 'command'): Promise<string | void> {
+export async function makeProgressUpdate(
+  paramsIn: any = '',
+  source: string = 'command'
+): Promise<string | void> {
   try {
     // Get config setting
     let config: SummariesConfig = await getSummariesSettings()

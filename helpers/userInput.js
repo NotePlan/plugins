@@ -155,7 +155,7 @@ export async function chooseDecoratedOptionWithModifiers(
   const result = await CommandBar.showOptions(displayOptions, message, '')
   const { index, keyModifiers } = result
   clo(result, `chooseDecoratedOptionWithModifiers chosen result`)
-  clo(displayOptions[index], `and relevant displayOption`)
+  clo(displayOptions[index], `from relevant displayOption`)
 
   // Check if the user selected "Add new item"
   if (additionalCreateNewOption && index === 0) {
