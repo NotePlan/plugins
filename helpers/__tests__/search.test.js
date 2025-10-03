@@ -126,29 +126,45 @@ describe('search.js tests', () => {
   })
 
   describe('caseSensitiveSubstringLocaleMatch', () => {
+    test('should not match empty array to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch([], 'ABCDEFG', 'en-GB')
+      expect(result).toEqual(false)
+    })
     test('should not match empty string to ABCDEFG', () => {
-      const result = s.caseSensitiveSubstringLocaleMatch('', 'ABCDEFG', 'en-GB')
+      const result = s.caseSensitiveSubstringLocaleMatch([''], 'ABCDEFG', 'en-GB')
       expect(result).toEqual(false)
     })
     test('should match ABC to ABCDEFG', () => {
-      const result = s.caseSensitiveSubstringLocaleMatch('ABC', 'ABCDEFG', 'en-GB')
+      const result = s.caseSensitiveSubstringLocaleMatch(['ABC'], 'ABCDEFG', 'en-GB')
       expect(result).toEqual(true)
     })
     test('should match EFG to ABCDEFG', () => {
-      const result = s.caseSensitiveSubstringLocaleMatch('EFG', 'ABCDEFG', 'en-GB')
+      const result = s.caseSensitiveSubstringLocaleMatch(['EFG'], 'ABCDEFG', 'en-GB')
       expect(result).toEqual(true)
     })
     test('should match CDE to ABCDEFG', () => {
-      const result = s.caseSensitiveSubstringLocaleMatch('CDE', 'ABCDEFG', 'en-GB')
+      const result = s.caseSensitiveSubstringLocaleMatch(['CDE'], 'ABCDEFG', 'en-GB')
       expect(result).toEqual(true)
     })
     test('should not match Abc to ABCDEFG', () => {
-      const result = s.caseSensitiveSubstringLocaleMatch('Abc', 'ABCDEFG', 'en-GB')
+      const result = s.caseSensitiveSubstringLocaleMatch(['Abc'], 'ABCDEFG', 'en-GB')
       expect(result).toEqual(false)
     })
     test('should match DÉF to ABCDEFG', () => {
-      const result = s.caseSensitiveSubstringLocaleMatch('DÉF', 'ABCDEFG', 'en-GB')
+      const result = s.caseSensitiveSubstringLocaleMatch(['DÉF'], 'ABCDEFG', 'en-GB')
       expect(result).toEqual(true)
+    })
+    test('should match DEF to ABCDÉFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch(['DEF'], 'ABCDÉFG', 'en-GB')
+      expect(result).toEqual(true)
+    })
+    test('should match [BOB, CAT, DÉF] to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch(['BOB', 'CAT', 'DEF'], 'ABCDEFG', 'en-GB')
+      expect(result).toEqual(true)
+    })
+    test('should not match [BOB, CAT, FRED] to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch(['BOB', 'CAT', 'FRED'], 'ABCDÉFG', 'en-GB')
+      expect(result).toEqual(false)
     })
   })
 

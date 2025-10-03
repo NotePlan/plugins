@@ -96,49 +96,81 @@ export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: 
 }
 
 /**
- * Perform substring match, case-sensitively.
+ * Perform substring match, case-sensitively. Returns true if any of the needles is found in the haystack.
  * Uses the Intl.Collator API to match the search term to the text to search, using the user's locale.
  * Note: variant characters of the same case and be matched. E.g. a ≠ b, a = á, a ≠ A.
  * @author @jgclark with help from ChatGPT
  * @tests available in jest file
  * 
- * @param {string} needle
- * @param {string} haystack
+ * @param {Array<string>} needles one or more search terms
+ * @param {string} haystack the text content to search
  * @param {string} userLocale? (default: "en-US")
  * @returns {boolean}
  */
 export function caseSensitiveSubstringLocaleMatch(
-  needle: string,
+  needles: string[],
   haystack: string,
   userLocale: string = "en-US"
 ): boolean {
   try {
-    if (!needle || !haystack) {
+    if (!Array.isArray(needles) || needles.length === 0 || !haystack) {
       return false
     }
     const collator = new Intl.Collator(userLocale, { sensitivity: "case", usage: "search" })
-    // NFC avoids splitting equivalent composed/decomposed forms
-    const H = haystack.normalize('NFC')
-    const N = needle.normalize('NFC')
-
-    const hay = Array.from(H) // iterate by Unicode code points (no surrogate halves)
+    const H = haystack.normalize('NFC') // Normalize the haystack string to Unicode NFC form to ensure consistent character representation
+    const hay = Array.from(H)
     const hayLen = hay.length
-    const ned = Array.from(N)
-    const nLen = ned.length
 
-    for (let i = 0; i + nLen <= hayLen; i++) {
-      const segment = hay.slice(i, i + nLen).join('')
-      if (collator.compare(segment, N) === 0) return true
+    for (const needle of needles) {
+      if (!needle) continue
+      const N = needle.normalize('NFC')
+      const NLen = Array.from(N).length
+
+      for (let i = 0; i + NLen <= hayLen; i++) {
+        const segment = hay.slice(i, i + NLen).join('')
+        if (collator.compare(segment, N) === 0) return true
+      }
     }
     return false
   } catch (error) {
     logError(
       'search/caseSensitiveSubstringLocaleMatch',
-      `Error matching '${needle}' to '${haystack}': ${error.message}`
+      `Error matching '${needles}' to '${haystack}': ${error.message}`
     )
     return false
   }
 }
+//   needle: string,
+//   haystack: string,
+//   userLocale: string = "en-US"
+// ): boolean {
+//   try {
+//     if (!needle || !haystack) {
+//       return false
+//     }
+//     const collator = new Intl.Collator(userLocale, { sensitivity: "case", usage: "search" })
+//     // NFC avoids splitting equivalent composed/decomposed forms
+//     const H = haystack.normalize('NFC')
+//     const N = needle.normalize('NFC')
+
+//     const hay = Array.from(H) // iterate by Unicode code points (no surrogate halves)
+//     const hayLen = hay.length
+//     const ned = Array.from(N)
+//     const nLen = ned.length
+
+//     for (let i = 0; i + nLen <= hayLen; i++) {
+//       const segment = hay.slice(i, i + nLen).join('')
+//       if (collator.compare(segment, N) === 0) return true
+//     }
+//     return false
+//   } catch (error) {
+//     logError(
+//       'search/caseSensitiveSubstringLocaleMatch',
+//       `Error matching '${needle}' to '${haystack}': ${error.message}`
+//     )
+//     return false
+//   }
+// }
 
 /**
  * Returns true if A is a subset of B, starting from the beginning.
