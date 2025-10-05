@@ -554,9 +554,8 @@ export const clearNote = (note: TNote) => {
 
 /**
  * Replace all paragraphs in the section of a note with new supplied content.
- * A section is defined (here at least) as all the lines between the heading,
- * and the next heading of that same or higher level, or the end of the file
- * if that's sooner.
+ * Note: A section is defined (here at least) as all the lines between the heading, and the next heading of that same or higher level, or the end of the file if that's sooner.
+ * Note: Parameter 'headingOfSectionToReplace' needs to match from start of line but not necessarily the end.
  * If no existing section is found, then append.
  * @author @jgclark
  *
@@ -833,4 +832,26 @@ export function numberOfOpenItemsInString(content: string): number {
 export function numberOfOpenItemsInNote(note: CoreNoteFields): number {
   const res = note.paragraphs.filter((p) => ['open', 'scheduled', 'checklist', 'checklistScheduled'].includes(p.type))
   return res ? res.length : 0
+}
+
+/**
+ * Set the icon for a note in the frontmatter.
+ * @author @jgclark
+ * @param {TNote} note
+ * @param {string} icon
+ * @param {string?} iconColor
+ * @param {string?} iconStyle
+ */
+export function setIconForNote(note: TNote, icon: string, iconColor: ?string, iconStyle: ?string): void {
+  // To set icon in frontmatter, first read existing frontmatter, then update.
+  const noteFrontmatter = note.frontmatterAttributes
+  noteFrontmatter["icon"] = icon
+  if (iconColor) {
+    noteFrontmatter["icon-color"] = iconColor
+  }
+  if (iconStyle) {
+    noteFrontmatter["icon-style"] = iconStyle
+  }
+  // $FlowIgnore[cannot-write] documentation says this particular usage *is* safe
+  note.frontmatterAttributes = noteFrontmatter
 }
