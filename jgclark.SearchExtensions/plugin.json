@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "2.0.0",
-  "plugin.lastUpdateInfo": "2.0.0: Adds '/replace' commands. Other improvements. Note: there are breaking changes to x-callback arguments.\n1.4.0: Adds case sensitive searching. Adds full-word searching. Tweaks and fixes.\n1.3.0: Adds `*` and `?` wildcard operators. Adds auto-refresh capability. Other improvements. (Please see documentation for details.)\n1.2.4: Fix /flexiSearch issues on iOS\n1.2.3: change to allow /quickSearch from x-callback without search term.\n1.2.2: ability to run FlexiSearch without closing the Dashboard and Project list windows from other plugins.\n1.2.1: fix bug in /searchInPeriod. 1.2.0: multi-word search terms.\n1.1: New 'flexiSearch' command. Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case. Lots of other polish.\n1.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
+  "plugin.version": "3.0.0.b1",
+  "plugin.lastUpdateInfo": "3.0.0: Significant changes to align with welcome new native search capabilities in NotePlan  v3.18.1.\nIn particular, when you are running v3.18.1 it will assume you're using the new native search syntax.\nPlease see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -136,8 +136,8 @@
       ],
       "description": "Save results from a search with the most flexible of options",
       "jsFunction": "showFlexiSearchDialog",
-      "arguments": [],
-      "comment": "Note: no arguments possible"
+      "comment": "Note: no arguments possible",
+      "arguments": []
     },
     {
       "name": "replace over all notes",
@@ -180,7 +180,7 @@
     },
     {
       "hidden": true,
-      "name": "refreshSavedSearch",
+      "name": "onOpen",
       "description": "Trigger to refresh a saved search on note open",
       "jsFunction": "refreshSavedSearch",
       "arguments": []
@@ -230,24 +230,18 @@
       "jsFunction": "updateSettings"
     }
   ],
-  "plugin.commands_disabled": [
-    {
-      "comment": "??? I think this was for testing refresh. Can it be removed now?",
-      "hidden": true,
-      "name": "refreshSavedSearch",
-      "description": "onOpen",
-      "jsFunction": "refreshSavedSearch"
-    },
-    {
-      "name": "test:updateSearchPlugin",
-      "description": "test:updateSearchPlugin",
-      "jsFunction": "onUpdateOrInstall"
-    }
-  ],
   "plugin.settings": [
     {
       "type": "heading",
       "title": "Search Extensions settings"
+    },
+    {
+      "key": "useNativeSearch",
+      "title": "Use native search?",
+      "description": "If true, the plugin will use the native search capabilities in NotePlan, including many new 'search operators'.\nThis requires you running NotePlan v3.18.1 or later. If not set, or if you're running an older version of NotePlan, the plugin will use the old search capabilities (from Plugin v2).",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
       "key": "caseSensitiveSearching",
@@ -260,7 +254,7 @@
     {
       "key": "fullWordSearching",
       "title": "Match only on full words?",
-      "description": "By default search terms in NotePlan matches on parts of longer words. Turn this on to restrict searches to matching full words only.",
+      "description": "By default search terms in NotePlan matches on parts of longer words. Turn this on to restrict searches to matching full words only.\nNote: When using the new native search syntax, you can turn this on for a particular search by putting the search term(s) in double quotes.",
       "type": "bool",
       "default": false,
       "required": true
@@ -451,6 +445,14 @@
       "key": "_logTimer",
       "title": "Enable Timer logging?",
       "description": "For plugin authors to help optimise the plugin.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "_runComparison",
+      "title": "Run Comparison?",
+      "description": "If true, it will run a comparison between the old and new search capabilities, and log the results.",
       "type": "bool",
       "default": false,
       "required": true

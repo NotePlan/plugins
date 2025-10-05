@@ -1,7 +1,8 @@
 # 🔎 Search Extensions plugin
 NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.  This plugin adds some extra power and usability to searching. It:
 - lets you have keep special notes that lists all open tasks for @colleagueX that you can update in place!
-- extends the search syntax to allow much more control, including wildcards
+- extends the search syntax to allow more control, including wildcards
+- allows you to set certain folders to ignore
 - by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
 - these saved searches can be refreshed automatically when you open the note to consult it.
 - (v2) lets you **replace** as well as search.
@@ -24,6 +25,10 @@ NotePlan can search over your notes, but it is currently not very flexible or ea
 - **/searchInPeriod**: searches over the **calendar (daily, weekly etc.) notes of the time period you select**:
 
   <img width="500px" alt="selecting a period" src="period-selection.png"/>
+
+All notes in the special Trash folder are ignored.  Others can be excluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
+
+You can also set default search terms in the 'Default Search terms' setting; if set you can still always override them on individual searches.
 
 ### Results Display
 The results are always **saved to a note** with the search terms as its title in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  You also are given the option of saving to the current note, or to the plugin console.  _The exception is /quickSearch, which always saves to the same "Quick Search Results" note._
@@ -56,6 +61,17 @@ Each results note has a ` [🔄 Refresh results for ...]` pseudo-button under th
 A saved search can be **automatically refreshed when opening it**. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'refreshSavedSearch'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the note's properties.
 
 ## Extended search syntax
+NotePlan v3.18.1 added much new power and flexibility for its searches, [documented here](https://help.noteplan.co/article/269-advanced-search). The Plugin now works differently depending which version of NotePlan you're running.
+
+### Using v3.18.1 onwards
+The Plugin now uses the app's extended syntax, with the following additions:
+- like the search in NotePlan, the searches default to ignoring the case of words (i.e. `SPIRIT` will match `spirit` or `Spirit` as well as `SPIRIT`). However, you can select "**Case Sensitive searching**" option in settings and the FlexiSearch dialog.
+<!-- - two **wildcard** operators:
+  -  `*` in a term means "match any number of characters (including none)" -- e.g. `pos*e` matches "possible", "posie" and "pose".
+  -  `?` in a term means "match any single character" -- e.g. `poli?e` matches "polite" and "police". -->
+
+### Using versions before 3.18.1
+The Plugin adds all the following search syntax:
 - put a `+`  and `-` search operator on the front of terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must_have_me !no_way_jose`. (thanks @dwertheimer for this suggestion)
 - to search for an exact multi-word phrases, put it in double quotes (e.g. `"Holy Spirit"`)
@@ -65,9 +81,7 @@ A saved search can be **automatically refreshed when opening it**. To enable thi
   -  `*` in a term means "match any number of characters (including none)" -- e.g. `pos*e` matches "possible", "posie" and "pose".
   -  `?` in a term means "match any single character" -- e.g. `poli?e` matches "polite" and "police".
 <!-- - normally, a search term must have at least two alphanumeric characters to be valid.  -->
-- you can use an empty search term (from v1.1), which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
-- all notes in the special Trash folder are ignored.  Others can be excluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
-- you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
+- you can use an empty search term, which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
 
 ## The Replace commands
 v2.0 adds the following commands:

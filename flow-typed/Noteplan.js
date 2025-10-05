@@ -399,7 +399,7 @@ openNoteByDate(date: Date, newWindow ?: boolean, highlightStart ?: number, highl
    */
   skipNextRepeatDeletionCheck: boolean;
 /**
-* Sets a frontmatter attribute with the given key and value.
+* Sets a frontmatter attribute on Editor with the given key and value.
 * If the key already exists, updates its value. If it doesn't exist, adds a new key-value pair.
 * To set multiple frontmatter attributes, use frontmatterAttributes = key-value object.
 * @param {string} key - The frontmatter key to set

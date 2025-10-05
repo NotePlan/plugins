@@ -151,7 +151,7 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
     if (!Editor || !Editor.note) {
       throw new Error("No Editor open, so can't continue")
     }
-    logDebug(pluginJson, `addTriggerToNote('${triggerStringArg}') starting ...`)
+    logDebug(pluginJson, `addTriggerToNote() starting with arg0='${triggerStringArg}' ...`)
 
     // Get list of available triggers from looking at installed plugins
     const allVisibleCommands = []
@@ -163,8 +163,8 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
       for (const pluginCommand of p.commands) {
         // Only include if this command name or description is a trigger type or contains the string 'trigger' (excluding this one!)
         if (
-          (pluginCommand.desc.includes('trigger') ||
-            pluginCommand.name.includes('trigger') ||
+          (pluginCommand.desc.match(/trigger/i) ||
+            pluginCommand.name.match(/trigger/i) ||
             TRIGGER_LIST.includes(pluginCommand.name) ||
             TRIGGER_LIST.includes(pluginCommand.desc)) &&
           pluginCommand.name !== 'add trigger to note'
@@ -180,13 +180,13 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
       }
     }
     // clo(triggerRelatedCommands, 'triggerRelatedCommands')
+    // clo(triggerRelatedStrings, 'triggerRelatedStrings')
 
     let triggerName = ''
     let triggerPluginID = ''
     let funcName = ''
 
     if (triggerStringArg !== '') {
-      // if (!TRIGGER_LIST.includes(triggerName)) {
       if (!triggerRelatedStrings.includes(triggerStringArg)) {
         logInfo('addTriggerToNote', `Trigger '${triggerStringArg}' not found in the list of triggers I can identify, but will still add it.`)
       }
@@ -204,7 +204,8 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
         logDebug('addTriggerToNote', `- result of updateFrontMatterVars = ${String(res)}`)
       } else {
         logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" doesn't already have frontmatter`)
-        await convertNoteToFrontmatter(Editor, `triggers: ${triggerStringArg}`)
+        // $FlowIgnore[incompatible-call] tested above
+        await convertNoteToFrontmatter(Editor.note, `triggers: ${triggerStringArg}`)
       }
       return
     } else {
@@ -218,6 +219,7 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
       let commandOptions: Array<any> = triggerRelatedCommands.map((pco) => {
         return { label: `${pco.pluginName} '${pco.name}'`, value: pco }
       })
+      clo(commandOptions, 'commandOptions')
       commandOptions.push({ label: `Pick from whole list of functions ...`, value: 'pickFromAll' })
       const result: PluginCommandObject | string = await chooseOption('Pick the trigger to add', commandOptions)
       let choice: PluginCommandObject

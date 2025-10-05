@@ -8,7 +8,7 @@
 
 // import pluginJson from '../plugin.json'
 import type { noteAndLine, resultOutputV3Type, reducedFieldSet, SearchConfig, TSearchOptions } from './searchHelpers'
-import { getNonNegativeSearchTerms, numberOfUniqueFilenames } from './searchHelpers'
+import { numberOfUniqueFilenames } from './searchHelpers'
 import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getLocale } from '@helpers/NPConfiguration'
@@ -68,15 +68,25 @@ export async function runNPExtendedSyntaxSearches(
   searchOptions: TSearchOptions,
 ): Promise<resultOutputV3Type> {
   try {
+    // clo(searchOptions, 'searchOptions:')
     const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
+    // logDebug('runNPExtendedSyntaxSearches', `noteTypesToInclude: ${String(noteTypesToInclude)}`)
     const foldersToInclude = searchOptions.foldersToInclude || []
+    // logDebug('runNPExtendedSyntaxSearches', `foldersToInclude: ${String(foldersToInclude)}`)
     const foldersToExclude = searchOptions.foldersToExclude || []
+    // logDebug('runNPExtendedSyntaxSearches', `foldersToExclude: ${String(foldersToExclude)}`)
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
+    // logDebug('runNPExtendedSyntaxSearches', `paraTypesToInclude: ${String(paraTypesToInclude)}`)
     const fromDateStr = searchOptions.fromDateStr || ''
+    // logDebug('runNPExtendedSyntaxSearches', `fromDateStr: ${String(fromDateStr)}`)
     const toDateStr = searchOptions.toDateStr || ''
+    // logDebug('runNPExtendedSyntaxSearches', `toDateStr: ${String(toDateStr)}`)
     const fullWordSearching: boolean = config.fullWordSearching || false
+    // logDebug('runNPExtendedSyntaxSearches', `fullWordSearching: ${String(fullWordSearching)}`)
     const resultLimit: number = config.resultLimit || 500
-    const userLocale: string = getLocale()
+    // logDebug('runNPExtendedSyntaxSearches', `resultLimit: ${String(resultLimit)}`)
+    const userLocale: string = getLocale(config)
+    // logDebug('runNPExtendedSyntaxSearches', `userLocale: ${String(userLocale)}`)
 
     // const headingMarker = '#'.repeat(config.headingLevel)
     // let searchTerm = fullSearchTerm
@@ -100,12 +110,12 @@ export async function runNPExtendedSyntaxSearches(
     //   logDebug('runNPExtendedSyntaxSearches', `wildcard: will now use [${searchTerm}] for [${fullSearchTerm}]`)
     // }
 
-    const searchTermsToHighlight = getNonNegativeSearchTerms(searchTerms)
+    const searchTermsToHighlight = getNonNegativeSearchTermsFromNPExtendedSyntax(searchString)
     logDebug('runNPExtendedSyntaxSearches', `searchTermsToHighlight: ${String(searchTermsToHighlight)}`)
 
     // If the settings say we want only full word matches, then update the searchString to surround the search term(s) with quotes
     if (fullWordSearching) {
-      searchString = quoteTermsInSearchString(searchString)
+      searchString = (searchOperators.join(" ") + " " + quoteTermsInSearchString(searchTerms.join(" "))).trim()
       logInfo('runNPExtendedSyntaxSearches', `fullWordSearching: updated searchString to [${searchString}]`)
     }
 
@@ -121,7 +131,7 @@ export async function runNPExtendedSyntaxSearches(
     const noteAndLineArr: Array<noteAndLine> = []
 
     if (initialResult.length > 0) {
-      logDebug('runNPExtendedSyntaxSearches', `- Found ${initialResult.length} results for '${searchString}'`)
+      logDebug('runNPExtendedSyntaxSearches', `- Found ${initialResult.length} results for [${searchString}]`)
 
       // Try creating much smaller data sets, without full Note or Para. Use filename for disambig later.
       let resultReducedParas: Array<reducedFieldSet> = initialResult.map((p) => {
@@ -176,15 +186,15 @@ export async function runNPExtendedSyntaxSearches(
       // If we want case-sensitive searching, then filter the results to only those that contains the exact search string
       // TEST: get this to work for multi-term searches
       if (caseSensitive) {
-        logDebug('runNPExtendedSyntaxSearches', `case-sensitive: before filtering for '${searchStringIn}': ${String(resultReducedParas.length)}`)
+        logDebug('runNPExtendedSyntaxSearches', `case-sensitive: before filtering for [${searchStringIn}]: ${String(resultReducedParas.length)}`)
         // FIXME: this fails when it comes in as a double-quoted string
         resultReducedParas = resultReducedParas.filter(p => caseSensitiveSubstringLocaleMatch(searchTermsToHighlight, p.content, userLocale)) // Note: this is the unmodified searchStringIn, not the modified searchString which can have extra quotes
         // TEST: display the results after filtering
-        const rrpStrArray = resultReducedParas.map((p) => {
-          const truncatedRawContent = (p.rawContent.length > 100) ? p.rawContent.slice(0, 70) + '...' : p.rawContent
-          return `  ${truncatedRawContent} [${p.filename}]`
-        })
-        logDebug('runNPExtendedSyntaxSearches', `case-sensitive: after filtering: ${String(resultReducedParas.length)}:\n${rrpStrArray.join('\n')}`)
+        // const rrpStrArray = resultReducedParas.map((p) => {
+        //   const truncatedRawContent = (p.rawContent.length > 100) ? p.rawContent.slice(0, 70) + '...' : p.rawContent
+        //   return `  ${truncatedRawContent} [${p.filename}]`
+        // })
+        // logDebug('runNPExtendedSyntaxSearches', `case-sensitive: after filtering: ${String(resultReducedParas.length)}:\n${rrpStrArray.join('\n')}`)
       }
 
       // Dedupe identical synced lines

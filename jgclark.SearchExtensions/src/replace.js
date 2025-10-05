@@ -3,14 +3,17 @@
 //-----------------------------------------------------------------------------
 // Commands to search and replace over NP notes.
 // Jonathan Clark
-// Last updated 2025-03-14 for v2.0.0.b1, @jgclark
+// Last updated 2025-09-28 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import type { resultOutputType, TSearchOptions, typedSearchTerm } from './searchHelpers'
-import { getSearchSettings, logBasicResultLines, runExtendedSearches, validateAndTypeSearchTerms, } from './searchHelpers'
+import type { resultOutputV3Type, TSearchOptions, typedSearchTerm } from './searchHelpers'
+import { getSearchSettings, logBasicResultLines, } from './searchHelpers'
+import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
+import { runPluginExtendedSyntaxSearches, validateAndTypeSearchTerms, } from './pluginExtendedSyntaxHelpers'
 import { clo, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
+import { getSearchOperators, quoteTermsInSearchString, removeSearchOperators } from '@helpers/search'
 import {
   getInput,
   showMessage,
@@ -59,6 +62,7 @@ export async function replaceOverNotes(searchTermsArg?: string, replaceTermArg?:
 /**------------------------------------------------------------------------
  * Run a search and replace over notes.
  * Works interactively (if no arguments given) or in the background (using supplied arguments).
+ * TODO: update this to understand search operators, probably using getSearchOperators, quoteTermsInSearchString, removeSearchOperators.
  * @author @jgclark
  *
  * @param {string?} searchTermArg optional search term to use (which can be regex)
@@ -80,10 +84,11 @@ export async function replace(
     // const headingMarker = '#'.repeat(config.headingLevel)
     logDebug(pluginJson, `arg0 -> searchTermArg ${typeof searchTermArg}`)
     logDebug(pluginJson, `arg0 -> searchTermArg '${searchTermArg ?? '(not supplied)'}'`)
+    const NPAdvancedSyntaxAvailable = NotePlan.environment.buildVersion >= 1429
 
     // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
-    const calledNonInteractively = (searchTermArg !== undefined)
-    logDebug('replace', `- called non-interactively? ${String(calledNonInteractively)}`)
+    // const calledNonInteractively = (searchTermArg !== undefined)
+    // logDebug('replace', `- called ${calledNonInteractively ? 'NON-' : ''}interactively`)
 
     // Get the noteTypes to include, from arg2
     const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both' || noteTypesToIncludeArg === '') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
@@ -98,7 +103,7 @@ export async function replace(
     }
     else {
       // ask user
-      const newTerms = await getInput(`Enter the search term.`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
+      const newTerms = await getInput(`Enter the search term to replace`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
       if (typeof newTerms === 'boolean') {
         // i.e. user has cancelled
         logInfo('replace', `User has cancelled operation.`)
@@ -135,12 +140,17 @@ export async function replace(
 
     //----------------------------------------------------------------------------
     // Search using search() API, extended to make case-sensitive
+    let searchResultsProm: resultOutputV3Type
     CommandBar.showLoading(true, `${commandNameToDisplay} ...`)
     await CommandBar.onAsyncThread()
-    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    // const searchResultsProm: resultOutputType = runExtendedSearches([searchTerm], noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
-    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const searchResultsProm: resultOutputType = runExtendedSearches([searchTerm], config, searchOptions)
+    // Now do the relevant processing for different versions of NP
+    if (NPAdvancedSyntaxAvailable) {
+      // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
+      searchResultsProm = runNPExtendedSyntaxSearches(searchStr, config, searchOptions)
+    } else {
+      // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
+      searchResultsProm = runPluginExtendedSyntaxSearches([searchTerm], config, searchOptions)
+    }
     await CommandBar.onMainThread()
 
     //----------------------------------------------------------------------------
@@ -216,13 +226,15 @@ export async function replace(
     }
     logTimer('replace', startTime, `replace() finished.`)
 
-    // // Confirmatory check: run search again and see if it is zero
-    // const checkResults: resultOutputType = await runExtendedSearches([searchTerm], noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
-    // if (checkResults.resultCount > 0) {
-    //   logWarn('replace', `I've double-checked the replace, and found that there are still ${checkResults.resultCount} unchanged copies of '${searchStr}'`)
-    // } else {
-    //   logDebug('replace', `I've double-checked the replace, and it has changed all the copies.`)
-    // }
+    // Confirmatory check: run search again and see if it is zero
+    const checkResults: resultOutputV3Type = (NPAdvancedSyntaxAvailable)
+      ? await runNPExtendedSyntaxSearches(String(searchTerm), config, searchOptions) 
+      : await runPluginExtendedSyntaxSearches([searchTerm], config, searchOptions)
+    if (checkResults.resultCount > 0) {
+      logWarn('replace', `I've double-checked the replace, and found that there are still ${checkResults.resultCount} unchanged copies of '${searchStr}'`)
+    } else {
+      logDebug('replace', `I've double-checked the replace, and it has changed all the copies.`)
+    }
   }
   catch (err) {
     logError(pluginJson, err.message)

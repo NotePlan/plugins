@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers, for both older and newer methods of running searches.
 // Jonathan Clark
-// Last updated 2025-09-29 for v3.0.0, @jgclark
+// Last updated 2025-10-05 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -15,9 +15,9 @@ import {
 } from '@helpers/general'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getNoteByFilename, getNoteLinkForDisplay, getOrMakeNote,
-  replaceSection } from '@helpers/note'
+  replaceSection, setIconForNote } from '@helpers/note'
 import { getNoteTitleFromFilename } from '@helpers/NPnote'
-import { removeSearchOperators, trimAndHighlightTermInLine } from '@helpers/search'
+import { trimAndHighlightTermInLine } from '@helpers/search'
 import { showMessageYesNo } from '@helpers/userInput'
 
 //------------------------------------------------------------------------------
@@ -105,6 +105,7 @@ export type SearchConfig = {
   useNativeSearch: boolean,
   caseSensitiveSearching: boolean,
   fullWordSearching: boolean,
+  includeArchive: boolean,
   foldersToExclude: Array<string>,
   autoSave: boolean,
   folderToStore: string,
@@ -136,17 +137,16 @@ export async function getSearchSettings(): Promise<any> {
   const pluginID = 'jgclark.SearchExtensions'
   // logDebug(pluginJson, `Start of getSearchSettings()`)
   try {
-    // Get settings using ConfigV2
-    const v2Config: SearchConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    // clo(v2Config, `${pluginID} settings:`)
-    if (v2Config == null || Object.keys(v2Config).length === 0) {
+    const config: SearchConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    if (config == null || Object.keys(config).length === 0) {
       throw new Error(`Cannot find settings for '${pluginID}' plugin`)
     }
     // Set syncOpenResultItems which is a special case. There's no separate setting for it (in SE), as is it is implied by resultStyle === 'NotePlan'
     // But it can be overridden by calls from other plugins.
-    v2Config.syncOpenResultItems = v2Config.resultStyle === 'NotePlan'
+    config.syncOpenResultItems = config.resultStyle === 'NotePlan'
+    // clo(config, `${pluginID} settings:`)
 
-    return v2Config
+    return config
   } catch (err) {
     logError(pluginJson, `getSearchSettings(): ${err.name}: ${err.message}`)
     return null // for completeness
@@ -158,6 +158,8 @@ export async function getSearchSettings(): Promise<any> {
 
 /**
  * Get array of paragraph types from a string
+ * For v3 we need to map 'non-task' to 'quote', 'list', 'title' (heading), and 'text'
+ * @author @jgclark
  * @param {string} paraTypesAsStr
  * @returns {Array<ParagraphType>}
  */
@@ -168,6 +170,13 @@ export function getParaTypesFromString(paraTypesAsStr: string): Array<ParagraphT
       // $FlowFixMe[incompatible-type]
       ? stringListOrArrayToArray(paraTypesAsStr, ',')
       : []
+  if (paraTypesAsStr.includes('non-task')) {
+    paraTypesToInclude.push('quote')
+    paraTypesToInclude.push('list')
+    paraTypesToInclude.push('title')
+    paraTypesToInclude.push('text')
+    paraTypesToInclude.splice(paraTypesToInclude.indexOf('non-task'), 1)
+  }
   logDebug('getParaTypesFromString', `'${paraTypesAsStr ?? '(null)'}' -> para types [${paraTypesToInclude.toString()}]`)
   return paraTypesToInclude
 }
@@ -246,22 +255,44 @@ export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteA
  * @returns {string}
  */
 export function resultCounts(resultSet: resultOutputV3Type): string {
+  // V2:
+  // return (resultSet.resultCount < resultSet.fullResultCount)
+  //   ? `(first ${resultSet.resultCount} from ${resultSet.fullResultCount} results from ${resultSet.resultNoteCount} notes)`
+  //   : `(${resultSet.resultCount} results from ${resultSet.resultNoteCount} notes)`
+  // V3: TEST:
+  if (resultSet.resultCount === 0) {
+    return `_No results_`
+  }
   return (resultSet.resultCount < resultSet.fullResultCount)
-    ? `(first ${resultSet.resultCount} from ${resultSet.fullResultCount} results from ${resultSet.resultNoteCount} notes)`
-    : `(${resultSet.resultCount} results from ${resultSet.resultNoteCount} notes)`
+    ? `**First ${resultSet.resultCount} results** (of ${resultSet.fullResultCount}) from ${resultSet.resultNoteCount} notes`
+    : `**${resultSet.resultCount} results** from ${resultSet.resultNoteCount} notes`
+}
+
+export function formSearchResultsHeadingLine(resultSet: resultOutputV3Type): string {
+  // const headingMarker = '#'.repeat(config.headingLevel)
+  const searchTermsRepStr = resultSet.searchTermsStr ?? '?'
+  return `[${searchTermsRepStr}]`
+}
+
+export function formSearchResultsMetadataLine(resultSet: resultOutputV3Type, xCallbackURL: string): string {
+  const resultCountsStr = resultCounts(resultSet)
+  const searchTermsRepStr = resultSet.searchTermsStr ?? '?'
+  const searchOperatorsRepStr = resultSet.searchOperatorsStr ? `, with operators _${resultSet.searchOperatorsStr}_` : ''
+  const xCallbackText = (xCallbackURL !== '') ? `[🔄 Refresh results for '${searchTermsRepStr}'](${xCallbackURL})` : ''
+  return `${resultCountsStr}${searchOperatorsRepStr} at ${nowLocaleShortDateTime()}. ${xCallbackText}`
 }
 
 /**
- * Write results set(s) out to a note, reusing it where it already exists.
- * The data is in the first parameter; the rest are various settings.
- * Note: It's now possible to give a 'heading' parameter: if it's given then just that section will be replaced, otherwise the whole contents will be deleted first.
+ * Write results set to a note, reusing it where it already exists.
+ * Note: It's now possible to give a 'justReplaceThisSection' parameter: if it's given then just that section will be replaced, otherwise the whole contents will be deleted first. This allows for some preamble text to be left between runs.
+ * Note: A heading is also needed for QuickSearch note, as otherwise the search terms aren't given.
  * @author @jgclark
  *
  * @param {SearchConfig} config
  * @param {resultOutputType} resultSet object
  * @param {string} requestedTitle requested note title to use/make
  * @param {string?} xCallbackURL URL to cause a 'refresh' of this command
- * @param {boolean?} justReplaceSection if set, will just replace this justReplaceSection's section, not replace the whole note (default: false)
+ * @param {boolean?} justReplaceThisSection if set, will just replace this justReplaceThisSection's section, not replace the whole note (default: false)
  * @param {boolean?} createNoteIfNoResults if set, will create a note even if there are no results
  * @returns {string} filename of note we've written to
  */
@@ -270,38 +301,26 @@ export async function writeSearchResultsToNote(
   resultSet: resultOutputV3Type,
   requestedTitle: string,
   xCallbackURL: string = '',
-  justReplaceSection: boolean = false,
+  justReplaceThisSection: boolean = false,
   createNoteIfNoResults: boolean = false,
 ): Promise<string> {
   try {
+    logDebug('writeSearchResultsToNote', `Starting with ${resultSet.resultCount} results to write to note ${requestedTitle}, ${justReplaceThisSection ? 'just replacing this section' : 'replacing the whole note'}`)
     let noteFilename = ''
-    // TEST:
-    const searchTermsRepStr = resultSet.searchTermsStr ?? '?'
     const headingMarker = '#'.repeat(config.headingLevel)
-    logDebug('writeSearchResultsToNote', `Starting with ${resultSet.resultCount} results for [${searchTermsRepStr}] ...`)
-    const xCallbackText = (xCallbackURL !== '') ? ` [🔄 Refresh results for '${searchTermsRepStr}'](${xCallbackURL})` : ''
-    logDebug('writeSearchResultsToNote', `- xCallbackText = ${xCallbackText}`)
-    const timestampAndRefreshLine = `at ${nowLocaleShortDateTime()}${xCallbackText}`
+    const searchTermsRepStr = resultSet.searchTermsStr ?? '?'
 
     // Add each result line to output array
-    // let titleLines = `# ${requestedTitle}\n${timestampAndRefreshLine}`
-    const titleLines = `# ${requestedTitle}`
-    let headingLine = ''
     let resultsContent = ''
     // First check if we have any results
     if (resultSet.resultCount > 0) {
       resultsContent = '\n' + createFormattedResultLines(resultSet, config).join('\n')
-      const resultCountsStr = resultCounts(resultSet)
-      headingLine += `${searchTermsRepStr} ${resultCountsStr}`
     }
-    else {
-      // No results
-      headingLine = `${searchTermsRepStr}`
-      resultsContent = "\n(no matches)"
-    }
+    const titleLine = `# ${requestedTitle}`
+    const headingLine = formSearchResultsHeadingLine(resultSet)
+    const metadataLine = formSearchResultsMetadataLine(resultSet, xCallbackURL)
     // Prepend the results part with the timestamp+refresh line
-    resultsContent = `${timestampAndRefreshLine}${resultsContent}`
-    // logDebug('writeSearchResultsToNote', `resultsContent is ${resultsContent.length} bytes`)
+    resultsContent = `${metadataLine}${resultsContent}`
 
     // If there are no results, and we would be creating a note, then stop
     const possExistingNotes = DataStore.projectNoteByTitle(requestedTitle)
@@ -311,13 +330,12 @@ export async function writeSearchResultsToNote(
     }
 
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
-    // FIXME: not working for QuickSearch
     // Note: in theory could now use the 'content' parameter on Editor.openNoteByFilename() via NPNote/openNoteByFilename() helper here.
     const outputNote = await getOrMakeNote(requestedTitle, config.folderToStore)
 
     if (outputNote) {
       // If the relevant note has more than just a title line, decide whether to replace all contents, or just replace a given heading section
-      if (justReplaceSection && outputNote.paragraphs.length > 1) {
+      if (justReplaceThisSection && outputNote.paragraphs.length > 1) {
         // Just replace the heading section, to allow for some text to be left between runs
         logDebug('writeSearchResultsToNote', `- just replacing section '${searchTermsRepStr}' in ${outputNote.filename}`)
         replaceSection(outputNote, searchTermsRepStr, headingLine, config.headingLevel, resultsContent)
@@ -332,13 +350,16 @@ export async function writeSearchResultsToNote(
       else {
         // Replace all note contents
         logDebug('writeSearchResultsToNote', `- replacing note content in ${outputNote.filename}`)
-        const newContent = `${titleLines}\n${headingMarker} ${headingLine}\n${resultsContent}`
+        const newContent = `${titleLine}\n${headingMarker} ${headingLine}\n${resultsContent}`
         // logDebug('', `${newContent} = ${newContent.length} bytes`)
         outputNote.content = newContent
       }
+
+      // Set note's icon
+      setIconForNote(outputNote, "magnifying-glass")
+
       noteFilename = outputNote.filename ?? '<error>'
       logDebug('writeSearchResultsToNote', `written resultSet for ${searchTermsRepStr} to the note ${noteFilename} (${displayTitle(outputNote)})`)
-      // logDebug('writeSearchResultsToNote', `-> ${String(outputNote.content?.length)} bytes`)
       return noteFilename
     }
     else {

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // More advanced searching
 // Jonathan Clark
-// Last updated 2025-03-13 for v2.0.0, @jgclark
+// Last updated 2025-09-27 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 export {
@@ -20,7 +20,6 @@ export {
   searchOverCalendar,
   searchPeriod
 } from './saveSearch'
-// export { searchPeriod } from './saveSearchPeriod' Note: now refactored into saveSearch.js
 export { refreshSavedSearch } from './searchTriggers'
 export {
   closeDialogWindow,

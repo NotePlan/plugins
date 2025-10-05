@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2025-03-21 for v2.0.0, @jgclark
+// Last updated 2025-10-05 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -27,15 +27,17 @@ import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
  */
 function getUrlParams(query: string): { [key: string]: string } {
   const search = /([^&=]+)=?([^&]*)/g
-  let match
+  let match: RegExp$matchResult | null
   const decode = function (s: string) {
     // Regex for replacing addition symbol with a space
     return decodeURIComponent(s.replace(/\+/g, " "))
   }
   const urlParams: { [key: string]: string } = {}
   while ((match = search.exec(query)) !== null) {
-    urlParams[decode(match[1])] = decode(match[2])
-    console.log(`Found param: ${decode(match[1])} / ${decode(match[2])}`)
+    if (match != null && match.length >= 3) {
+      urlParams[decode(match[1])] = decode(match[2])
+      console.log(`Found param: ${decode(match[1])} / ${decode(match[2])}`)
+    }
   }
   clo(urlParams)
   return urlParams
@@ -86,7 +88,7 @@ export async function refreshSavedSearch(): Promise<void> {
     )
     // Only proceed if we have a refresh button
     if (refreshButtonLines?.length === 0) {
-      logDebug(pluginJson, 'Note has no suitable Refresh button')
+      logInfo(pluginJson, 'Note has no suitable Refresh button')
       return
     }
 
@@ -94,9 +96,14 @@ export async function refreshSavedSearch(): Promise<void> {
     logDebug(pluginJson, `Note has a suitable Refresh button line: {${firstLine}}`)
 
     // V2: attempt to reconstruct the parameters to call the plugin's command directly.
-    const firstUrlInLine = firstLine.match(/noteplan:\/\/[^\s\)]*/)[0]
-    logDebug(pluginJson, `firstUrlInLine: {${firstUrlInLine}}`)
-    const params = getUrlParams(firstUrlInLine)
+    const matchArr = firstLine.match(/noteplan:\/\/[^\s\)]*/)
+    if (!matchArr || matchArr.length === 0) {
+      logWarn(pluginJson, 'No noteplan callback URL found in the Refresh button line.')
+      return
+    }
+    const firstNPCallbackURLInLine = matchArr[0]
+    logDebug(pluginJson, `firstNPCallbackURLInLine: {${firstNPCallbackURLInLine}}`)
+    const params = getUrlParams(firstNPCallbackURLInLine)
     const cmdName = params.command
     const arg0 = params.arg0 ?? ''
     const arg1 = params.arg1 ?? ''
@@ -135,23 +142,6 @@ export async function refreshSavedSearch(): Promise<void> {
     }
     await CommandBar.onMainThread()
     await CommandBar.showLoading(false)
-
-    // V1: use the callback URL from the note directly
-    // Note: as it triggers a note open, need to stop it creating infinite loops
-    // const urlMatches = firstLine.match(/\((noteplan:\/\/x\-callback\-url\/runPlugin\?pluginID=jgclark\.SearchExtensions&.*?)\)/)
-    // noteplan:\/\/[^\s\)]*
-    // if (urlMatches) {
-    //   const firstURL = urlMatches[1] // first capture group
-    //   logDebug(pluginJson, `First matching URL:  {${firstURL}}`)
-
-    //   // If we get this far, then we can call this callback to refresh the note
-    //   // Put up a progress indicator first, though
-    //   await CommandBar.showLoading(true, 'Refreshing search results ...')
-    //   await CommandBar.onAsyncThread()
-    //   NotePlan.openURL(firstURL)
-    //   await CommandBar.onMainThread()
-    //   await CommandBar.showLoading(false)
-    // }
   }
   catch (error) {
     logError(pluginJson, `${error.name}: ${error.message}`)

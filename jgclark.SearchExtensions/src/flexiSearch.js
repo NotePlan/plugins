@@ -2,14 +2,14 @@
 //-----------------------------------------------------------------------------
 // Save search but with flexible options presented as HTML dialog to user first
 // Jonathan Clark
-// Last updated 2025-03-14 for v2.0.0.b1, @jgclark
+// Last updated 2025-10-03 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 // TODO: fix Cancel button not working on iOS
 
 import pluginJson from '../plugin.json'
 import { saveSearch } from './saveSearch'
 import type { TSearchOptions } from './searchHelpers'
-import { getNoteTypesFromString, getParaTypesFromString } from './searchHelpers'
+import { getNoteTypesFromString, getParaTypesFromString, getSearchSettings } from './searchHelpers'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { type HtmlWindowOptions, showHTMLV2 } from '@helpers/HTMLView'
 import { closeWindowFromCustomId, logWindowsList } from '@helpers/NPWindows'
@@ -17,11 +17,7 @@ import { closeWindowFromCustomId, logWindowsList } from '@helpers/NPWindows'
 const pluginID = "jgclark.SearchExtensions"
 
 //-----------------------------------------------------------------------------
-const flexiSearchDialogHTML = `
-<div class="dialogBox">
- <form type="dialog" id="searchOptions">
-  <div class="dialogSection">
-		<b>Search Terms</b><input type="text" id="searchTerms" name="searchTerms" size="40" value="" autofocus tabindex="1" />&nbsp;
+const infoTooltipForPluginExtendedSyntax = `
     <div class="tooltip">
       <i class="fa-regular fa-circle-question"></i>
       <div class="tooltipUnderLeft">
@@ -30,9 +26,46 @@ const flexiSearchDialogHTML = `
       Must find: <kbd>+term</kbd><br />
       Must not find in same line: <kbd>-term</kbd><br />
       Must not find in note: <kbd>!term</kbd><br />
-      <a href="https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/" target="_blank">Full documentation.</a>
+      <i class="fa-regular fa-globe"></i><a href="https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/" target="_blank">Full documentation</a>
       <u></u> <!-- used to trigger extra bit that mimics speech bubble -->
-      </div>
+    </div>
+`
+const infoTooltipForNPExtendedSyntax = `
+    <div class="tooltip">
+      <i class="fa-regular fa-circle-question"></i>
+      <div class="tooltipUnderLeft">
+      Searches match on partial words; to get whole words enclose in double quotes. Separate search terms by spaces; surround an exact phrase in double quotes.<br />
+      Must find: <kbd>term</kbd><br />
+      Must not find in same line: <kbd>-term</kbd><br />
+      May find in same line: <kbd>termA OR termB</kbd> and negative groups <kbd>-(termA OR termB)</kbd><br />
+      Source: <kbd>source:calendar|dated-notes|notes|events|reminders|list-reminders</kbd><br />
+      Relative Dates: <kbd>date:yesterday|today|tomorrow|past|future|past-and-today|this-week|last-week|next-week|this-month|last-month|next-month|this-year|last-year|next-year|30days|all</kbd><br />
+      Specific Date: <kbd>date:2025-01-01|2025-W01|2025-01|2025-Q1|2025</kbd><br />
+      Date range: <kbd>date:2025-01-01-2025-01-31|2025-W01-2025-W52|2025-01-2025-02|2025-Q1-2025-Q4|2024-2025</kbd><br />
+      Path: <kbd>path:Projects/Work</kbd><br />
+      Task type(s): <kbd>is:open|done|scheduled|cancelled|checklist|checklist-done|checklist-scheduled|checklist-cancelled|not-task</kbd><br />
+      Heading: <kbd>heading:Projects</kbd><br />
+      Sort: <kbd>sort:asc|desc</kbd><br />
+      Show/Hide: <kbd>show|hide:past-events|archive|teamspace|timeblocked</kbd><br />
+      <i class="fa-regular fa-globe"></i><a href="https://help.noteplan.co/article/269-advanced-search" target="_blank">Full documentation</a>
+      <u></u> <!-- used to trigger extra bit that mimics speech bubble -->
+    </div>
+`
+
+const infoTooltipToUse = async (): Promise<string> => {
+  // TODO(later): remove config check, and then can take out the async stuff
+  const config = await getSearchSettings()
+  const useNPAdvancedSyntax = config.useNativeSearch && (NotePlan.environment.buildVersion >= 1429)
+  return useNPAdvancedSyntax ? infoTooltipForNPExtendedSyntax : infoTooltipForPluginExtendedSyntax
+}
+
+// Dialog box, for use with plugin extended syntax (i.e. before NP extended syntax available in 3.18)
+const flexiSearchDialogHTML = async () => `
+<div class="dialogBox">
+ <form type="dialog" id="searchOptions">
+  <div class="dialogSection">
+		<b>Search Terms</b><input type="text" id="searchTerms" name="searchTerms" size="40" value="" autofocus tabindex="1" />&nbsp;
+${await infoTooltipToUse()}
 	</div>
 
 	<div class="dialogSection">
@@ -68,62 +101,54 @@ const flexiSearchDialogHTML = `
   <div class="dialogSection">
 	<b>Line Types to include</b>
 
-  <div class="grid-container">
-    <div class="grid-item dialogList">Tasks:</div>
-    <div class="grid-item">
-      <input type="checkbox" id="taskOpen" name="task" value="open" />
-      <label for="taskOpen"><i class="fa-regular fa-circle"></i>Open</label>
-		</div>
-		<div class="grid-item">
-      <input type="checkbox" id="taskScheduled" name="task" value="taskScheduled" />
-      <label for="taskScheduled"><i class="fa-regular fa-clock"></i>Scheduled</label>
-		</div>
-		 <div class="grid-item">
-      <input type="checkbox" id="taskDone" name="task" value="done"  />
-      <label for="taskDone"><i class="fa-regular fa-circle-check"></i>Complete</label>
-		</div>
-		<div class="grid-item">
-      <input type="checkbox" id="taskCancelled" name="task" value="taskCancelled" />
-      <label for="taskCancelled"><i class="fa-regular fa-circle-xmark"></i>Cancelled</label>
-		</div>
+  <div class="grid-v3-container">
+    <div class="dialogList">
+      <ul class="grid-item">
+        <input type="checkbox" id="taskOpen" name="task" value="open" />
+        <label for="taskOpen"><i class="fa-regular fa-circle"></i><b>Tasks</b> Open</label>
+      </ul>
+      <ul class="grid-item">
+        <input type="checkbox" id="taskScheduled" name="task" value="taskScheduled" />
+        <label for="taskScheduled"><i class="fa-regular fa-clock"></i>Scheduled</label>
+      </ul>
+      <ul class="grid-item">
+        <input type="checkbox" id="taskDone" name="task" value="done"  />
+        <label for="taskDone"><i class="fa-regular fa-circle-check"></i>Complete</label>
+      </ul>
+      <ul class="grid-item">
+        <input type="checkbox" id="taskCancelled" name="task" value="taskCancelled" />
+        <label for="taskCancelled"><i class="fa-regular fa-circle-xmark"></i>Cancelled</label>
+      </ul>
+    </div>
 
-    <div class="grid-item dialogList">Checklists:</div>
-		<div class="grid-item">
-      <input type="checkbox" id="checklistOpen" name="checklist"
-      value="checklistOpen" checked />
-      <label for="checklistOpen"><i class="fa-regular fa-square"></i>Open</label>
-		</div>
-		<div class="grid-item">
-      <input type="checkbox" id="checklistScheduled" name="checklist"
-      value="checklistScheduled" />
-      <label for="checklistScheduled"><i class="fa-regular fa-square-chevron-right"></i>Scheduled</label>
-		</div>
-		<div class="grid-item">
-      <input type="checkbox" id="checklistDone" name="checklist" value="checklistDone" checked />
-      <label for="checklistDone"><i class="fa-regular fa-square-check"></i>Complete</label>
-		</div>
-		<div class="grid-item">
-      <input type="checkbox" id="checklistCancelled" name="checklist" value="checklistCancelled" />
-      <label for="checklistCancelled"><i class="fa-regular fa-square-xmark"></i>Cancelled</label>
-		</div>
+    <div class="dialogList">
+      <ul class="grid-item">
+        <input type="checkbox" id="checklistOpen" name="checklist"
+        value="checklistOpen" checked />
+        <label for="checklistOpen"><i class="fa-regular fa-square"></i><b>Checklists</b> Open</label>
+      </ul>
+      <ul class="grid-item">
+        <input type="checkbox" id="checklistScheduled" name="checklist"
+        value="checklistScheduled" />
+        <label for="checklistScheduled"><i class="fa-regular fa-square-chevron-right"></i>Scheduled</label>
+      </ul>
+      <ul class="grid-item">
+        <input type="checkbox" id="checklistDone" name="checklist" value="checklistDone" checked />
+        <label for="checklistDone"><i class="fa-regular fa-square-check"></i>Complete</label>
+      </ul>
+      <ul class="grid-item">
+        <input type="checkbox" id="checklistCancelled" name="checklist" value="checklistCancelled" />
+        <label for="checklistCancelled"><i class="fa-regular fa-square-xmark">
+        </i>Cancelled</label>
+      </ul>
+    </div>
 
-    <div class="grid-item dialogList">Other line types:</div>
-    <div class="grid-item">
-      <input type="checkbox" name="other" id="list" value="list" checked />
-      <label for="list"><kbd>-</kbd>Bullet lists</label>
-		</div>
-		<div class="grid-item">
-      <input type="checkbox" name="other" id="quote" value="quote" checked />
-      <label for="quote"><kbd>&gt;</kbd>Quotations</label>
-		</div>
-		<div class="grid-item">
-      <input type="checkbox" name="other" id="headings" value="title" checked />
-      <label for="other"><kbd>#</kbd>Headings</label>
-		</div>
-		<div class="grid-item">
-      <input type="checkbox" name="other" id="text" value="text" checked />
-      <label for="text">Note lines</label>
-		</div>
+    <div class="dialogList">
+        <ul class="grid-item">
+        <input type="checkbox" name="other" id="list" value="non-task" checked />
+        <label for="list"><b>Other line types</b>: bullets, quotes, headings, ordinary lines</label>
+      </ul>
+    </div>
   </div>
 
   <!-- following will normally be hidden by CSS -->
@@ -371,7 +396,7 @@ export async function showFlexiSearchDialog(
     const caseSensitiveSearching = DataStore.preference(`${pluginID}.caseSensitiveSearching`) ?? false
     const fullWordSearching = DataStore.preference(`${pluginID}.fullWordSearching`) ?? false
     const noteTypesStr = String(DataStore.preference(`${pluginID}.noteTypesStr`)) ?? 'notes,calendar,'
-    const paraTypesStr = String(DataStore.preference(`${pluginID}.paraTypesStr`)) ?? 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
+    const paraTypesStr = String(DataStore.preference(`${pluginID}.paraTypesStr`)) ?? 'open,done,checklistOpen,checklistDone,other,'
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
       // $FlowIgnore[incompatible-call] not pretty, but works
@@ -397,7 +422,7 @@ export async function showFlexiSearchDialog(
       shouldFocus: true,
     }
     // show dialog as non-modal HTML window
-    await showHTMLV2(flexiSearchDialogHTML, opts)
+    await showHTMLV2(await flexiSearchDialogHTML(), opts)
   }
   catch (err) {
     logError(pluginJson, `showFlexiSearchDialog: ${err.message}`)
@@ -427,14 +452,14 @@ export async function flexiSearchHandler(
     // First close the window
     closeDialogWindow('flexiSearchDialog')
 
-    // Take saveType and noteType add create originatorCommand from it
+    // Take saveType and noteType add set originatorCommand from it
     const originatorCommand =
       (saveType === 'quick') ? 'quickSearch'
         : (noteType === 'notes') ? 'searchOverNotes'
           : (noteType === 'calendar') ? 'searchOverCalendar'
             : 'search' // which defaults to 'both'
 
-    // Then call main saveSearch function (no need to await for it)
+    // Set searchOptions
     const caseSensitiveSearching: boolean = getPluginPreference('caseSensitiveSearching') === 'casesens'
     const fullWordSearching: boolean = getPluginPreference('fullWordSearching') === 'fullword'
     // saveSearch(searchTerms, noteType, originatorCommand, paraTypes, 'Searching', caseSensitiveSearching, fullWordSearching)
@@ -445,7 +470,8 @@ export async function flexiSearchHandler(
       fullWordSearching,
       originatorCommand,
     }
-    await saveSearch(searchOptions, searchTerms) // Note: no need to await, but done for consistency
+    // Then call main saveSearch function. No need to await, but done for consistency
+    await saveSearch(searchOptions, searchTerms)
     return
   }
   catch (err) {

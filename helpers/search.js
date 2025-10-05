@@ -585,7 +585,7 @@ export function removeSearchOperators(searchTermsStr: string): string {
   let firstNonOperatorIndex = 0
   for (const term of searchTerms) {
     if (isSearchOperator(term)) {
-      logDebug('removeSearchOperators', `- removed search operator: ${term}`)
+      // logDebug('removeSearchOperators', `- removed search operator: ${term}`)
       firstNonOperatorIndex++
     } else {
       break
@@ -599,7 +599,9 @@ export function removeSearchOperators(searchTermsStr: string): string {
 /**
  * Return a searchString with each term surrounded by double-quotes.
  * Treat -, ( and ) as punctuation not part of the terms.
- * If a term is already surrounded by double-quotes, leave it alone.
+ * Leaves alone:
+ * - terms already surrounded by double-quotes
+ * - search operators
  * Suitable for use with extended search API from v3.18.1.
  * @author @Cursor guided by @jgclark
  * @tests in jest file

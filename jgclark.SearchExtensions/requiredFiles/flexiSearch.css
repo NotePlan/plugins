@@ -15,11 +15,6 @@
   max-height: 22rem;
   background-color: var(--bg-alt-color);
 }
-ul.dialogList {
-  list-style-type: none;
-  margin: 0rem;
-  padding-inline: 0.4rem;
-}
 .dialogSection {
   margin: 0.4rem 0rem; /* horiz + vert */
 }
@@ -30,10 +25,17 @@ ul.dialogList {
 .gap-right {
   margin: 0.3rem;
 }
-.fa-regular, kbd {
+.fa-regular {
   color: var(--tint-color);
   padding: 0 0.3rem;
-  font-size: 0.9rem; /* FIXME: FA icons and kbd land up being 1pt different in height :-( */
+  font-size: 0.9rem;
+}
+/* FIXME: FA icons and kbd land up being 1pt different in height :-( */
+kbd {
+  color: var(--tint-color);
+  padding: 0 0.3rem;
+  font-size: 0.9rem;
+  font-family: var(--font-family);
 }
 label {
   margin-right: 2px;
@@ -61,7 +63,8 @@ input[type="checkbox"] {
   justify-content: right;
   align-items: right;
 }
-.mainButton { /* should only be used for default action button */
+/* should only be used for default action button */
+.mainButton { 
   font-weight: 700;
 }
 .validationWarning {
@@ -69,27 +72,45 @@ input[type="checkbox"] {
   color: red;
   display: none; /* starts hidden */
 }
-/* when at least one of the checkboxes is checked its sibling span is hidden */
-/*
-input:checked ~ span {
-  display: none;
+a {
+  color: var(--fg-alt-color);
+  text-decoration: underline;
 }
-*/
 
 /* ----------------------------------------------------------------- */
-.grid-container {
+.grid-v3-container {
   display: grid;
-  grid-auto-flow: column; /* fill down then across */
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(5, 1fr);
-  gap: 2px; /* Optional: space between grid items */
+  grid-template-columns: repeat(3, 1fr); /* Equal width columns */
+  padding-left: 1rem;
+  gap: 0.5rem; /* Optional: space between grid items */
   /* width: 400px; /* Adjust as needed */
   /* height: 400px; /* Adjust as needed */
+  width: min-intrinsic;
+  min-width: 27rem;
 }
-.grid-item {
+.dialogList {
+  list-style: none;
   display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0rem;
+  /* padding-inline: 0.4rem; */
+}
+
+/*
+.grid-container {
+  display: grid;
+  grid-auto-flow: column; /* fill down then across 
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 2px;
+} */
+.grid-item {
+  /* display: flex; */
   justify-content: left;
   align-items: baseline;
+  padding: 1px;
+  margin: 0px;
 }
 
 /* ----------------------------------------------------------------- */
