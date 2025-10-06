@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-07-04 for v2.3.0.b10
+// last updated 2025-10-05 for v2.3.0
 // ----------------------------------------------------------------------------
 
 /**
@@ -12,10 +12,9 @@ import pluginJson from '../plugin.json'
 import { generateTagMentionCache } from './tagMentionCache'
 import { getDashboardSettingsDefaultsWithSectionsSetToFalse } from './dashboardHelpers'
 import { showDashboardReact } from './reactMain'
-import { backupSettings } from './backupSettings'
 import { renameKeys } from '@helpers/dataManipulation'
 import { clo, compareObjects, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { pluginUpdated, saveSettings } from '@helpers/NPConfiguration'
+import * as npc from '@helpers/NPConfiguration'
 
 // ----------------------------------------------------------------------------
 
@@ -63,13 +62,20 @@ export {
 
 export { generateTagMentionCache, updateTagMentionCache } from './tagMentionCache'
 
-export { backupSettings } from './backupSettings'
-
 export { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 
 export { externallyStartSearch } from './dataGenerationSearch.js'
 
 //-----------------------------------------------------------------------------
+
+export async function backupSettings(): Promise<void> {
+  const res = await npc.backupSettings(pluginID, 'backup')
+  if (res) {
+    logInfo(pluginJson, `backupSettings() - backup successful.`)
+  } else {
+    logError(pluginJson, `backupSettings() - backup failed.`)
+  }
+}
 
 // Migrate some setting names to new names
 // TODO(later): remove this code in v2.3.0+
@@ -104,25 +110,24 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     clo(migratedDashboardSettings, `onUpdateOrInstall - migratedDashboardSettings:`)
 
-    clo(initialSettings, `onUpdateOrInstall - initialSettings:`)
     const perspectiveSettings = await JSON.parse(initialSettings.perspectiveSettings)
     const newPerspectives = perspectiveSettings.map((p) => ({ ...p, dashboardSettings: { ...defaults, ...p.dashboardSettings } }))
     const migratedSettings = { ...initialSettings, dashboardSettings: JSON.stringify(migratedDashboardSettings), perspectiveSettings: JSON.stringify(newPerspectives) }
 
     // Backup the settings on all new installs
-    await backupSettings(true)
+    await npc.backupSettings('jgclark.Dashboard', `onUpdateOrInstall_to_v${pluginJson["plugin.version"]}`)
     const diff = compareObjects(migratedDashboardSettings, initialDashboardSettings, [], true)
     if (diff != null) {
       // Save the settings back to the DataStore
       clo(diff, `Dashboard: onUpdateOrInstall - changes to settings detected. Diff:`)
-      await saveSettings(pluginID, migratedSettings)
+      await npc.saveSettings(pluginID, migratedSettings)
     } else {
       logInfo(`onUpdateOrInstall`, `- no changes detected to settings.`)
     }
     // force a refresh of the dashboard with the new settings.
     await showDashboardReact()
     logInfo(`onUpdateOrInstall`, `- finished.`)
-    pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
+    npc.pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
 
     // Now get the tagMentionCache up to date, by forcing a rebuild.
     // Note: DBW thinks that we don't await this, NotePlan will kill the thread, and stop this from finishing.

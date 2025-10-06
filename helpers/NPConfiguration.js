@@ -7,6 +7,7 @@
  * --------------------------------------------------------------------------------------------------------------------------*/
 
 import json5 from 'json5'
+import moment from 'moment/min/moment-with-locales'
 import { showMessage, showMessageYesNo } from './userInput'
 import { castStringFromMixed } from '@helpers/dataManipulation'
 import { logDebug, logWarn, logError, logInfo, JSP, clo, copyObject, timer } from '@helpers/dev'
@@ -573,5 +574,28 @@ export async function getSettingFromAnotherPlugin(pluginID: string, settingName:
     return thisSetting
   } catch (error) {
     logError('getSettingFromAnotherPlugin', `getSettingFromAnotherPlugin: caught error: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Backup the settings.json file for 'pluginID' to a dated version in the plugin data folder.
+ * @author @jgclark
+ * @param {string} pluginID
+ * @param {string} reason
+ * @returns {boolean} true if successful, false if not
+ */
+export async function backupSettings(pluginID: string, reason: string = 'backup'): Promise<boolean> {
+  try {
+    const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    const backupFilename = `settings_${reason}_${moment().format('YYYYMMDDHHmmss')}.json`
+    const backupPath = `../${pluginID}/${backupFilename}`
+    await DataStore.saveJSON(pluginSettings, backupPath)
+    await showMessage(`Backup of ${pluginID} settings saved to ${backupPath}`, 'OK', `${pluginID} Settings Backup`)
+    logInfo('backupSettings', `Backup of ${pluginID} settings saved to ${backupPath}`)
+    return true
+  } catch (error) {
+    await showMessage(`Error trying to Backup ${pluginID} settings. Please see Plugin Console log for details.`, 'OK', `${pluginID} Settings Backup`)
+    logError('backupSettings', `Error: ${error.message}`)
+    return false
   }
 }

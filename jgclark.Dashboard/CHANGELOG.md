@@ -10,6 +10,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
+## [2.3.0.b12] 2025-10-05
+- Improve /backupSettings command
+
 ## [2.3.0.b11] 2025-10-01
 - Save a copy of settings.json if it's discovered that it doesn't contain perspectiveSettings.
 - TODO: Fix DBW can't-click-link report
