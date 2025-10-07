@@ -86,6 +86,9 @@ export async function onUpdateOrInstall(): Promise<void> {
     // clo(initialSettings, `onUpdateOrInstall - initialSettings:`)
     // Note: this is deceptive because dashboardSettings is one single JSON stringified key inside initialSettings
 
+    // Backup the settings on all new installs
+    await npc.backupSettings('jgclark.Dashboard', `before_onUpdateOrInstall_v${pluginJson["plugin.version"]}`)
+
     // Migrate some setting names to new names.
     // Note: can't easily be done with updateSettingData() in index.js as there can be multiple copies of these settings at different object levels.
     // logInfo(pluginJson, `- renaming any necessary keys from 2.1.x to 2.2.x ...`)
@@ -114,8 +117,6 @@ export async function onUpdateOrInstall(): Promise<void> {
     const newPerspectives = perspectiveSettings.map((p) => ({ ...p, dashboardSettings: { ...defaults, ...p.dashboardSettings } }))
     const migratedSettings = { ...initialSettings, dashboardSettings: JSON.stringify(migratedDashboardSettings), perspectiveSettings: JSON.stringify(newPerspectives) }
 
-    // Backup the settings on all new installs
-    await npc.backupSettings('jgclark.Dashboard', `onUpdateOrInstall_to_v${pluginJson["plugin.version"]}`)
     const diff = compareObjects(migratedDashboardSettings, initialDashboardSettings, [], true)
     if (diff != null) {
       // Save the settings back to the DataStore

@@ -50,29 +50,10 @@ export function init(): void {
  * Log settings have been updated in the Preferences panel.
  */
 export async function onSettingsUpdated(): Promise<void> {
-  // logDebug(
-  //   pluginJson,
-  //   `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated(). Now no further action is taken.Log settings are not being automatically updated on the front-end, because of race conditions.`,
-  // )
-  // Note: deliberately not taking any further action here.
-  // Previously tried to call `await getLogSettings()` but race conditions caused it to failures. Instead we getLogSettings as required in the code.
   return
 }
 
-// Note: not needed as Dashboard has its own built-in settings window.
-// /**
-//  * Update Settings/Preferences (for iOS/iPadOS)
-//  * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
-//  * @author @dwertheimer
-//  */
-// export async function updateSettings(): Promise<void> {
-//   try {
-//     logDebug(pluginJson, `updateSettings running`)
-//     await editSettings(pluginJson)
-//   } catch (error) {
-//     logError(pluginJson, JSP(error))
-//   }
-// }
+// Note: a updateSettings() function is not needed as Dashboard has its own built-in settings window.
 
 /**
  * Check the version of the plugin (which triggers init() which forces an update if the version is out of date)
