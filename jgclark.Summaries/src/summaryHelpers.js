@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 2025-09-30 for v1.0.0 by @jgclark
+// Last updated 2025-10-07 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -22,10 +22,13 @@ import {
 import type { TPeriodCode } from '@helpers/NPdateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import {
-  CaseInsensitiveMap,
+  // CaseInsensitiveMap,
   type headingLevelType,
 } from '@helpers/general'
-import { caseInsensitiveMatch, caseInsensitiveStartsWith, isHashtagWanted, isMentionWanted } from '@helpers/search'
+import {
+  caseInsensitiveMatch, caseInsensitiveStartsWith,
+  // isHashtagWanted, isMentionWanted
+} from '@helpers/search'
 
 //------------------------------------------------------------------------------
 // Plotly info -- from v2.32.0
@@ -60,47 +63,46 @@ import { caseInsensitiveMatch, caseInsensitiveStartsWith, isHashtagWanted, isMen
 const pluginID = 'jgclark.Summaries'
 
 export type SummariesConfig = {
+  // Common settings ...
   foldersToExclude: Array<string>,
-  showSparklines: boolean,
   headingLevel: headingLevelType,
+  progressYesNoChars: string,
   excludeToday: boolean,
-  weeklyStatsItems: Array<string>,
-  weeklyStatsDuration: ?number,
-  weeklyStatsIncludeCurrentWeek: boolean,
+  // for appendProgressUpdate ...
   progressPeriod: TPeriodCode,
   progressDestination: string,
   progressHeading: string,
-  progressYesNoChars: string,
-  progressChecklistReferenceNote: string,
-  // for progressUpdate ...
+  showSparklines: boolean,
+  progressYesNo: Array<string>,
+  progressHashtags: Array<string>,
   progressHashtags: Array<string>,
   progressHashtagsAverage: Array<string>,
   progressHashtagsTotal: Array<string>,
   progressMentions: Array<string>,
   progressMentionsAverage: Array<string>,
   progressMentionsTotal: Array<string>,
-  progressYesNo: Array<string>,
+  progressChecklistReferenceNote: string,
+  // for periodStats ...
+  folderToStore: string,
+  PSStatsHeading: string, // was "statsHeading"
+  PSShowSparklines: boolean, // was "periodStatsShowSparklines"
+  PSHowAsHashtagOrMention: boolean, // was "showAsHashtagOrMention"
+  PSYesNo: Array<string>, // both hashtags and mentions. Was "periodStatsYesNo"
+  PSHashtagsCount: Array<string>, // was "includedHashtags"
+  PSHashtagsAverage: Array<string>, // was "periodStatsHashtagsAverage"
+  PSHashtagsTotal: Array<string>, // was "periodStatsHashtagsTotal"
+  // PSHashtagsToExclude: Array<string>, // was "excludeHashtags"
+  PSMentionsCount: Array<string>, // was "periodStatsMentions"
+  PSMentionsAverage: Array<string>, // was "periodStatsMentionsAverage"
+  PSMentionsTotal: Array<string>, // was "periodStatsMentionsTotal"
+  // PSMentionsToExclude: Array<string>, // was "excludeMentions"
   // for todayProgress ...
   todayProgressHeading: string,
   todayProgressItems: Array<string>,
-  // for periodStats ...
-  folderToStore: string,
-  statsHeading: string,
-  hashtagCountsHeading: string,
-  mentionCountsHeading: string,
-  periodStatsShowSparklines: boolean,
-  showAsHashtagOrMention: boolean,
-  periodStatsMentions: Array<string>,
-  periodStatsYesNo: Array<string>,
-  includedHashtags: Array<string>,
-  excludeHashtags: Array<string>,
-  periodStatsHashtagsAverage: Array<string>,
-  periodStatsHashtagsTotal: Array<string>,
-  periodStatsMentions: Array<string>,
-  excludedMentions: Array<string>,
-  periodStatsMentionsAverage: Array<string>,
-  periodStatsMentionsTotal: Array<string>, // "mentions to total"
-  // includedMentions: Array<string>,
+  // for charts ...
+  weeklyStatsItems: Array<string>,
+  weeklyStatsDuration: ?number,
+  weeklyStatsIncludeCurrentWeek: boolean,
 }
 
 // Reduced set of the above designed to carry settings into gatherOccurrences
@@ -109,11 +111,9 @@ export type OccurrencesToLookFor = {
   GOHashtagsCount: Array<string>,
   GOHashtagsAverage: Array<string>,
   GOHashtagsTotal: Array<string>,
-  GOHashtagsExclude: Array<string>,
   GOMentionsCount: Array<string>,
   GOMentionsAverage: Array<string>,
   GOMentionsTotal: Array<string>,
-  GOMentionsExclude: Array<string>,
   GOChecklistRefNote: string,
 }
 
@@ -295,7 +295,6 @@ export class TMOccurrences {
     summaryOcc.count = count
     // clo(summaryOcc, '', ' ')
 
-    // NOTE: tested and looks ok for @mention(...)
     return summaryOcc.getSummaryForPeriod(style)
   }
 
@@ -370,21 +369,21 @@ export class TMOccurrences {
    */
   getSummaryForPeriod(style: string): string {
     let output = ''
-    // logDebug('TMOcc:getStats', `starting for ${ this.term } type ${ this.type } style ${ style } `)
-    // $FlowFixMe[incompatible-type] - @DW says the !== '' check is needed but flow doesn't like it
+    // logDebug('TMOcc:getStats', `starting for ${this.term} type=${this.type} style=${style} `)
+    // $FlowIgnore[incompatible-type] - @DW says the !== '' check is needed but flow doesn't like it
     const countStr = (!isNaN(this.count) && this.count !== '') ? this.count.toLocaleString() : `none`
-    // $FlowFixMe[incompatible-type] - as above
+    // $FlowIgnore[incompatible-type] - as above
     const totalStr = (!isNaN(this.total) && this.total !== '' && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
     // This is the average per item, not the average per day. In general I feel this is more useful for numeric amounts
-    // $FlowFixMe[incompatible-type] - as above
-    const itemAvgStr = (!isNaN(this.total) && this.total !== '' && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 3 }) : ''
+    // $FlowIgnore[incompatible-type] - as above
+    const itemAvgStr = (!isNaN(this.total) && this.total !== '' && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 }) : ''
 
     switch (style) {
       case 'CSV': {
         output = `${this.term},${this.dateStr},${this.count},${this.total},${itemAvgStr}`
         break
       }
-      case 'single': {
+      case 'single': { // Note: not currently used
         // Single text output depends on the type
         switch (this.type) {
           case 'yesno': {
@@ -418,6 +417,10 @@ export class TMOccurrences {
               output = `${countStr} / ${this.numDays}`
               break
             }
+            case 'count': {
+              output = `${countStr}`
+              break
+            }
             case 'total': {
               output = `${totalStr} (from ${countStr})`
               break
@@ -443,8 +446,9 @@ export class TMOccurrences {
 }
 
 /**
- * Gather all occurrences of requested hashtags and mentions for a given period, including 'progressYesNo', 'mentionTotal' and 'mentionAverage' variations.
- * It only inspects the daily calendar notes for the period.
+ * Gather all occurrences of requested hashtags and mentions from daily notes for a given period, including 'YesNo', 'Count', 'Total' and 'Average' for the items.
+ * Note: Completed Checklist items are also gathered if a Reference note is set (added by @aaronpoweruser).
+ * Note: This will look at Teamspace notes, but this has not been tested.
  * Returns a list of TMOccurrences instances:
     term: string
     type: string // 'daily-average', 'item-average', 'total', 'yesno', 'count'
@@ -454,7 +458,7 @@ export class TMOccurrences {
     total: number
     count: number
  *
- * @author @jgclark
+ * @author @jgclark, with addition by @aaronpoweruser
  * @param {string} periodString
  * @param {string} fromDateStr (YYYY-MM-DD)
  * @param {string} toDateStr (YYYY-MM-DD)
@@ -552,22 +556,40 @@ export function gatherOccurrences(
     logTimer('gatherOccurrences', startTime, `Gathered YesNoList`)
     logDebug('gatherOccurrences', `Now ${tmOccurrencesArr.length} occObjects`)
 
+    // Now compute Completed Checklist items, if Reference note is set
+    // Note: this was added by @aaronpoweruser. TODO: it would make more sense to refactor this to have the GO...Setting be the checklist array, not the note name.
+    if (occToLookFor.GOChecklistRefNote !== '') {
+      startTime = new Date()
+      const CompletedChecklistItems = gatherCompletedChecklistItems(calendarNotesInPeriod, fromDateStr, toDateStr, occToLookFor)
+      tmOccurrencesArr = tmOccurrencesArr.concat(CompletedChecklistItems)
+      logTimer('gatherOccurrences', startTime, `Gathered CompletedChecklistItems data`)
+    }
+
     //------------------------------
     // Review each wanted hashtag
-    // Note: Add exclusion mechanism back in if needed? (I looked at it, and to do so breaks various things including result ordering that derives from the 'wanted' setting.)
     startTime = new Date()
 
     // There are now 3 kinds of @mentions to process: make a superset of them to sort and then process in one go
     // Make sure they are arrays first.
-    const allHashtagsArr = stringListOrArrayToArray(occToLookFor.GOHashtagsCount, ',')
+    const countHashtagsArr = stringListOrArrayToArray(occToLookFor.GOHashtagsCount, ',')
     const averageHashtagsArr = stringListOrArrayToArray(occToLookFor.GOHashtagsAverage, ',')
     const totalHashtagsArr = stringListOrArrayToArray(occToLookFor.GOHashtagsTotal, ',')
     const combinedHashtags = []
-    allHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'all']) })
+    countHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'count']) })
     averageHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'average']) })
     totalHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'total']) })
     combinedHashtags.sort()
     logDebug('gatherOccurrences', `${String(combinedHashtags.length)} sorted combinedHashtags: <${String(combinedHashtags)}>`)
+
+    // If the sorted combinedHashtags array contains a repeated term as both 'average' and 'total', then remove the second occurence, and change the type of the first to  'all'
+    for (let i = 1; i < combinedHashtags.length; i++) {
+      if (combinedHashtags[i - 1][0] === combinedHashtags[i][0] && combinedHashtags[i - 1][1] === 'average' && combinedHashtags[i][1] === 'total') {
+        // logDebug('gatherOccurrences', ` - found ones to combine: <${String(combinedHashtags[i])}> and <${String(combinedHashtags[i - 1])}>`)
+        combinedHashtags[i - 1][1] = 'all'
+        combinedHashtags.splice(i, 1)
+        i++
+      }
+    }
 
     // Note: I think there's a reason for nesting these two loops this way round, but I now can't remember what it was.
     for (const thisTag of combinedHashtags) {
@@ -610,21 +632,29 @@ export function gatherOccurrences(
 
     //------------------------------
     // Now repeat for @mentions
-    // Note: Add exclusions -- as section above?
     startTime = new Date()
 
     // There are now 3 kinds of @mentions to process: make a superset of them to sort and then process in one go
     // Make sure they are arrays first.
-    const allMentionsArr = stringListOrArrayToArray(occToLookFor.GOMentionsCount, ',')
+    const countMentionsArr = stringListOrArrayToArray(occToLookFor.GOMentionsCount, ',')
     const averageMentionsArr = stringListOrArrayToArray(occToLookFor.GOMentionsAverage, ',')
     const totalMentionsArr = stringListOrArrayToArray(occToLookFor.GOMentionsTotal, ',')
     const combinedMentions = []
-    allMentionsArr.forEach((m) => { combinedMentions.push([m, 'all']) })
+    countMentionsArr.forEach((m) => { combinedMentions.push([m, 'count']) })
     averageMentionsArr.forEach((m) => { combinedMentions.push([m, 'average']) })
     totalMentionsArr.forEach((m) => { combinedMentions.push([m, 'total']) })
     combinedMentions.sort()
-
     logDebug('gatherOccurrences', `sorted combinedMentions: <${String(combinedMentions)}>`)
+
+    // If the sorted combinedMentions array contains a repeated term as both 'average' and 'total', then remove the second occurence, and change the type of the first to  'all'
+    for (let i = 1; i < combinedMentions.length; i++) {
+      if (combinedMentions[i - 1][0] === combinedMentions[i][0] && combinedMentions[i - 1][1] === 'average' && combinedMentions[i][1] === 'total') {
+        // logDebug('gatherOccurrences', ` - found ones to combine: <${String(combinedMentions[i])}> and <${String(combinedMentions[i - 1])}>`)
+        combinedMentions[i - 1][1] = 'all'
+        combinedMentions.splice(i, 1)
+        i++
+      }
+    }
 
     // Note: I think there's a reason for nesting these two loops this way round, but I now can't remember what it was.
     for (const thisMention of combinedMentions) {
@@ -666,14 +696,6 @@ export function gatherOccurrences(
     }
     logTimer('gatherOccurrences', startTime, `Gathered ${String(combinedMentions.length)} combinedMentions`)
     logDebug('gatherOccurrences', `Now ${tmOccurrencesArr.length} occObjects`)
-
-    // Now compute Completed Checklist items, if Reference note is set
-    if (occToLookFor.GOChecklistRefNote !== '') {
-      startTime = new Date()
-      const CompletedChecklistItems = gatherCompletedChecklistItems(calendarNotesInPeriod, fromDateStr, toDateStr, occToLookFor)
-      tmOccurrencesArr = tmOccurrencesArr.concat(CompletedChecklistItems)
-      logTimer('gatherOccurrences', startTime, `Gathered CompletedChecklistItems data`)
-    }
 
     logDebug('gatherOccurrences', `Finished with ${tmOccurrencesArr.length} occObjects`)
     return tmOccurrencesArr
@@ -757,7 +779,7 @@ function gatherCompletedChecklistItems(calendarNotesInPeriod: Array<TNote>, from
  * @param {string} periodString
  * @param {string} fromDateStr
  * @param {string} toDateStr
- * @param {string} style
+ * @param {string} style (currently only supports 'markdown')
  * @param {boolean} requestToShowSparklines
  * @param {boolean} sortOutput
  * @returns Array<string>
@@ -815,221 +837,6 @@ export async function generateProgressUpdate(
     logError('generateProgressUpdate', error.message)
     return [] // for completeness
   }
-}
-
-/**
- * WARNING: THIS IS NOW DEPRECATED IN FAVOUR OF gatherOccurrences and generateProgressUpdate.
- *
- * Calculate hashtag statistics for daily notes of a given time period
- * - Map of { tag, count } for all tags included or not excluded
- * - Map of { tag, total } for the subset of all tags above that finish with a /number
- * @author @jgclark
- *
- * @param {string} fromDateStr - YYYYMMDD string of start date
- * @param {string} toDateStr - YYYYMMDD string of start date
- * @param {$ReadOnlyArray<string>} includedTerms - array of hashtags to include (takes precedence over excluded terms)
- * @param {$ReadOnlyArraystring>} excludedTerms - array of hashtags to exclude
- * @return {[Map, Map]}
- */
-export function calcHashtagStatsPeriod(
-  fromDateStr: string,
-  toDateStr: string,
-  includedTerms: $ReadOnlyArray<string>,
-  excludedTerms: $ReadOnlyArray<string>,
-): ?[CaseInsensitiveMap<number>, CaseInsensitiveMap<number>] {
-  // ): ?[Map<string, number>, Map<string, number>] {
-  // Get all daily notes that are within this time period
-  const calendarNotesInPeriod = DataStore.calendarNotes.filter(
-    (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
-  if (calendarNotesInPeriod.length === 0) {
-    logWarn('calcHashtagStatsPeriod', `no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
-    return
-  }
-
-  // Define maps to count term matches, and where there is a final /number part, the total too
-  const termCounts = new CaseInsensitiveMap < number > () // key: tagname; value: count
-  // const termCounts = new Map<string, number>() // key: tagname; value: count
-  const termSumTotals = new CaseInsensitiveMap < number > () // key: tagname (except last part); value: total
-  // const termSumTotals = new Map < string, number> () // key: tagname (except last part); value: total
-
-  // Initialise the maps for terms that we're deliberately including
-  for (let i = 0; i < includedTerms.length; i++) {
-    const termKey = includedTerms[i]
-    termCounts.set(termKey, 0)
-    termSumTotals.set(termKey, NaN)
-  }
-
-  logDebug('calcHashtagStatsPeriod', "hCounts init:")
-  for (const [key, value] of termCounts.entries()) {
-    logDebug('calcHashtagStatsPeriod', `  ${key}: ${value}`)
-  }
-
-  // For each daily note review each included hashtag
-  for (const n of calendarNotesInPeriod) {
-    // The following is a workaround to an API 'feature' in note.hashtags where
-    // #one/two/three gets reported as #one, #one/two, and #one/two/three.
-    // Go backwards through the hashtag array, and then check
-    const seenTags = n.hashtags.slice().reverse()
-    let lastTag = ''
-    for (const tag of seenTags) {
-      if (caseInsensitiveStartsWith(tag, lastTag)) {
-        // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
-        logDebug('calcHashtagStatsPeriod', `\tFound ${tag} but ignoring as part of a longer hashtag of the same name`)
-      }
-      else {
-        let k = tag
-        let v = NaN
-        // if this tag that finishes '/number', then break into its two parts, ready to sum the numbers as well
-        // Note: testing includes decimal part of a number, but the API .hashtags drops them
-        if (tag.match(/\/-?\d+(\.\d+)?$/)) {
-          const tagParts = tag.split('/')
-          k = tagParts[0] // tag
-          v = Number(tagParts[1]) // number after tag
-          logDebug('calcHashtagStatsPeriod', `  found tagParts ${k} / ${v.toString()}`)
-        }
-        // check this is on inclusion, or not on exclusion list, before adding
-        if (isHashtagWanted(k, includedTerms, excludedTerms)) {
-          // if this has a numeric value as well, save to both maps
-          if (!isNaN(v)) {
-            termCounts.set(k, (termCounts.get(k) ?? 0) + 1)
-            const prevTotal = !isNaN(termSumTotals.get(k)) ? termSumTotals.get(k) : 0
-            // $FlowIgnore[unsafe-addition]
-            termSumTotals.set(k, prevTotal + v)
-            logDebug('calcHashtagStatsPeriod', `  ${k} add ${v} -> ${String(termSumTotals.get(k))} from ${String(termCounts.get(k))}`)
-          } else {
-            // else just save this to the counts map
-            termCounts.set(tag, (termCounts.get(k) ?? 0) + 1)
-            logDebug('calcHashtagStatsPeriod', `  ${k} increment -> ${String(termCounts.get(k))}`)
-          }
-        } else {
-          logDebug('calcHashtagStatsPeriod', `  ${k} -> not wanted`)
-        }
-      }
-      lastTag = tag
-    }
-  }
-
-  // logDebug('calcHashtagStatsPeriod', "Hashtag Keys:")
-  // for (let a of termCounts.keys()) {
-  //   logDebug('calcHashtagStatsPeriod', a)
-  // }
-  // logDebug('calcHashtagStatsPeriod', "Values:")
-  // termCounts.forEach(h => {
-  //   logDebug('calcHashtagStatsPeriod', h)
-  // })
-  for (const [key, value] of termCounts) {
-    logDebug(`${key}\t${value}`)
-  }
-
-  return [termCounts, termSumTotals]
-}
-
-/**
- * WARNING: THIS IS NOW DEPRECATED IN FAVOUR OF gatherOccurrences and generateProgressUpdate.
- *
- * Calculate mention statistics for daily notes of a given time period.
- * If an 'include' list is set, only include things from that list.
- * If not, include all, except those on an 'exclude' list (if set).
- * @author @jgclark
- *
- * @param {string} fromDateStr - YYYYMMDD string of start date
- * @param {string} toDateStr - YYYYMMDD string of start date
- * @param {$ReadOnlyArray<string>} includedTerms - array of hashtags to include (takes precedence over excluded terms)
- * @param {$ReadOnlyArray<string>} excludedTerms - array of hashtags to exclude
- * @return {Map, Map} maps of {tag, count}
- */
-export function calcMentionStatsPeriod(
-  fromDateStr: string,
-  toDateStr: string,
-  includedTerms: $ReadOnlyArray<string>,
-  excludedTerms: $ReadOnlyArray<string>,
-  // ): ?[Map<string, number>, Map<string, number>] {
-): ?[CaseInsensitiveMap<number>, CaseInsensitiveMap<number>] {
-  // Get all daily notes that are within this time period
-  const calendarNotesInPeriod = DataStore.calendarNotes.filter(
-    (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
-
-  if (calendarNotesInPeriod.length === 0) {
-    logWarn(pluginJson, 'no matching daily notes found between ${fromDateStr} and ${toDateStr}')
-    return
-  }
-
-  // Define maps to count term matches, and where there is a final /number part, the total too
-  // const termCounts = new Map < string, number> () // key: tagname; value: count
-  const termCounts = new CaseInsensitiveMap < number > () // key: tagname; value: count
-  // const termSumTotals = new Map < string, number> () // key: mention name (except last part); value: total
-  const termSumTotals = new CaseInsensitiveMap < number > () // key: mention name (except last part); value: total
-
-  // Initialise the maps for terms that we're deliberately including
-  for (let i = 0; i < includedTerms.length; i++) {
-    const k = includedTerms[i]
-    termCounts.set(k, 0)
-    termSumTotals.set(k, NaN) // start with NaN so we can tell if there has been nothing added
-  }
-
-  logDebug('calcMentionStatsPeriod', "mSumTotals init:")
-  for (const [key, value] of termSumTotals.entries()) {
-    logDebug('calcMentionStatsPeriod', `  ${key}: ${value}`)
-  }
-
-  for (const n of calendarNotesInPeriod) {
-    // The following is a workaround to an API 'feature' in note.mentions where
-    // @one/two/three gets reported as @one, @one/two, and @one/two/three.
-    // Go backwards through the mention array, and then check
-    // Note: The .mentions includes part in brackets afterwards
-    const seenMentions = n.mentions.slice().reverse()
-    let lastMention = ''
-
-    for (const m of seenMentions) {
-      if (caseInsensitiveStartsWith(m, lastMention)) {
-        // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
-        logDebug('calcHashtagStatsPeriod', `Found ${m} but ignoring as part of a longer mention of the same name`)
-        continue
-      }
-      else {
-        let k = m
-        let v = NaN
-        // if this is a mention that finishes (number), then break into separate parts first
-        if (m.match(/\(-?\d+(\.\d+)?\)$/)) {
-          const mentionParts = m.split('(')
-          k = mentionParts[0]
-          v = Number.parseFloat(mentionParts[1].slice(0, -1)) // chop off final ')' character
-          logDebug('calcMentionStatsPeriod', `  found tagParts ${k} / ${v}`)
-        }
-        // check this is on inclusion, or not on exclusion list, before adding.
-        if (isMentionWanted(k, includedTerms, excludedTerms)) {
-          if (!isNaN(v)) {
-            termCounts.set(k, (termCounts.get(k) ?? 0) + 1)
-            const prevTotal = !isNaN(termSumTotals.get(k)) ? termSumTotals.get(k) : 0
-            // $FlowIgnore[unsafe-addition]
-            termSumTotals.set(k, prevTotal + v)
-            logDebug('calcMentionStatsPeriod', `  ${k} add ${v} -> ${String(termSumTotals.get(k))} from ${String(termCounts.get(k))}`)
-          } else {
-            // just save this to the main map
-            termCounts.set(m, (termCounts.get(m) ?? 0) + 1)
-            logDebug('calcMentionStatsPeriod', `  ${m} increment -> ${String(termCounts.get(m))}`)
-          }
-        } else {
-          logDebug('calcMentionStatsPeriod', `  ${k} -> not wanted`)
-        }
-      }
-      lastMention = m
-    }
-  }
-
-  // logDebug('calcMentionStatsPeriod', "Mention Keys:")
-  // for (let a of termSumTotals.keys()) {
-  //   logDebug('calcMentionStatsPeriod', a)
-  // }
-  // logDebug('calcMentionStatsPeriod', "Values:")
-  // termSumTotals.forEach(h => {
-  //   logDebug('calcMentionStatsPeriod', h)
-  // })
-  for (const [key, value] of termCounts) {
-    logDebug(`${key}\t${value}`)
-  }
-
-  return [termCounts, termSumTotals]
 }
 
 /**

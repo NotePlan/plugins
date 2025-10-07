@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "1.0.0.b2",
+  "plugin.version": "1.0.0.b3",
   "plugin.lastUpdateInfo": "1.0.0: add support for 'all' time period in stats command. Allow override of settings for periodStats when called from x-callbacks.\n0.22.1: fix empty lines appearing in template output from `progressUpdate(...)` calls.\n0.22.0: Add support for checklist progress.\n0.21.0: Add Mermaid charting command. Fix to simple weekly CSV generation.\n0.20.3: Bug fix for progressUpdate() in templates.\n0.20.2: Added x-callback options for /periodStats.\n0.20.1: fix refresh after '/append progress update' command. Logging change.\n0.20.0: add new '/today progress' and '/heatmap for tag' commands, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -17,8 +17,6 @@
     {
       "name": "appendProgressUpdate",
       "alias": [
-        "ipu",
-        "insertProgressUpdate",
         "apu",
         "progress",
         "habitTracker",
@@ -27,7 +25,8 @@
       "description": "Append weekly/monthly habit and progress update",
       "jsFunction": "makeProgressUpdate",
       "arguments": [
-        "JSON5-formatted parameter list"
+        "JSON5-formatted parameter list",
+        "Source ('callback', 'template', or 'refresh')"
       ]
     },
     {
@@ -37,7 +36,7 @@
       "jsFunction": "progressUpdate",
       "arguments": [
         "JSON5-formatted parameter list",
-        "Source ('command' or 'template')"
+        "Source ('callback', 'template', or 'refresh')"
       ]
     },
     {
@@ -58,7 +57,7 @@
       "description": "insert today's progress update",
       "jsFunction": "todayProgress",
       "arguments": [
-        "comma-separated list of items to count",
+        "comma-separated list of items to count (optional)",
         "heading (optional)"
       ]
     },
@@ -67,6 +66,7 @@
       "alias": [
         "stp",
         "period",
+        "pst",
         "stats",
         "count"
       ],
@@ -75,7 +75,8 @@
       "arguments": [
         "calendar period (year, quarter, month, week, today, or an YYYY-MM-DD date)",
         "number within the calendar type (ignored for today and YYYY-MM-DD)",
-        "year (ignored for YYYY-MM-DD)"
+        "year (ignored for YYYY-MM-DD)",
+        "settings override (optional): see README"
       ]
     },
     {
@@ -117,19 +118,24 @@
       "jsFunction": "updateSettings"
     },
     {
-      "hidden": false,
+      "name": "Habits+Summaries: onUpdateOrInstall",
+      "description": "Test onUpdateOrInstall",
+      "jsFunction": "onUpdateOrInstall"
+    },
+    {
+      "hidden": true,
       "name": "test:GenTaskStats",
       "description": "test task gen stats",
       "jsFunction": "testTaskGenStats"
     },
     {
-      "hidden": false,
+      "hidden": true,
       "name": "test:GenTagStats",
       "description": "test tag gen stats",
       "jsFunction": "testTagGenStats"
     },
     {
-      "hidden": false,
+      "hidden": true,
       "name": "test:JGCHeatmaps",
       "description": "Test JGC Heatmaps",
       "jsFunction": "testJGCHeatmaps"
@@ -318,6 +324,119 @@
     },
     {
       "type": "heading",
+      "title": "/periodStats command settings"
+    },
+    {
+      "key": "folderToStore",
+      "title": "Folder to store summary notes in",
+      "description": "Name of the Folder to store the summaries in.\nNote: the first option will be to use the built-in daily/weekly/monthly/quarterly or yearly notes instead. That will also be used if this is empty.",
+      "type": "string",
+      "default": "@Summaries",
+      "required": false
+    },
+    {
+      "key": "PSStatsHeading",
+      "title": "Stats heading",
+      "description": "Heading to go before the output section. The plugin adds to it the period that the stats covers.",
+      "type": "string",
+      "default": "Period Stats",
+      "required": true
+    },
+    {
+      "key": "PSHashtagsHeading",
+      "title": "Heading before hashtags stats",
+      "description": "(Optional) Heading to go before section of #hashtag stats",
+      "type": "bool",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "PSMentionsHeading",
+      "title": "Heading before mentions stats",
+      "description": "(Optional) Heading to go before section of @mention stats",
+      "type": "bool",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "PSShowSparklines",
+      "title": "Include sparkline graphs?",
+      "description": "Show basic ASCII-art sparklines for each item, reflecting each day's data in the period.\nNote: Sparklines won't be shown where the summarised time period is more than a month.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "showAsHashtagOrMention",
+      "title": "Show hashtag or mention as links?",
+      "description": "Whether to show the # or @ symbols, or hide them to stop them being active links. (Beware double counting if you turn this on and save results in daily notes.)",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "PSYesNo",
+      "title": "Yes/No items",
+      "description": "Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'.\nNote: you need to include the @ or # on the front.",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "PSHashtagsCount",
+      "title": "#hashtags to count",
+      "description": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar').",
+      "_description": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar'). These take precedence over any excluded hashtags (below). If this list is empty, all hashtags will be included.",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "PSHashtagsAverage",
+      "title": "#hashtags to average",
+      "description": "Optional list of #hashtag(number)s to include in Period Stats updates, presented as an average.\n(Note: you need to include the # of the #hashtag.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "PSHashtagsTotal",
+      "title": "#hashtags to total",
+      "description": "Optional list of #hashtag(number)s to include in Period Stats updates, presented as a total.\n(Note: you need to include the # of the #hashtag.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "PSMentionsCount",
+      "title": "@mentions to count",
+      "description": "List of @mentions to include in counts (e.g. '@gym', '@sleepOnTime').",
+      "_description": "List of @mentions to include in counts (e.g. '@gym', '@sleepOnTime'). These take precedence over any excluded mentions (below). If this list is empty, all mentions will be included.",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "PSMentionsAverage",
+      "title": "@mentions to average",
+      "description": "Optional list of @mention(number)s to include in Period Stats updates, presented as an average.\n(Note: you need to include the @ of the @mention.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "PSMentionsTotal",
+      "title": "@mentions to total",
+      "description": "Optional list of @mention(number)s to include in Period Stats updates, presented as a total.\n(Note: you need to include the @ of the @mention.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
       "title": "/today progress command settings"
     },
     {
@@ -334,138 +453,6 @@
       "description": "Heading to go before this output. If this is left blank, then no heading will be added (and no refresh button).",
       "type": "string",
       "default": "Progress Update",
-      "required": false
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "/periodStats command settings"
-    },
-    {
-      "key": "folderToStore",
-      "title": "Folder for output",
-      "description": "Name of the Folder to store the summaries in.\nNote: from NotePlan v3.7.2, the first option will be to use the built-in daily/weekly/monthly/quarterly or yearly notes instead. That will also be used if this is empty.",
-      "type": "string",
-      "default": "@Summaries",
-      "required": false
-    },
-    {
-      "key": "statsHeading",
-      "title": "Stats heading",
-      "description": "Heading to go before the output section. The plugin adds to it the period that the stats covers.",
-      "type": "string",
-      "default": "Period Stats",
-      "required": true
-    },
-    {
-      "key": "hashtagCountsHeading",
-      "title": "Hashtag counts heading",
-      "description": "(Optional) Heading to go before section of #hashtag stats",
-      "type": "hidden",
-      "default": "",
-      "required": false
-    },
-    {
-      "key": "mentionCountsHeading",
-      "title": "Mention counts heading",
-      "description": "(Optional) Heading to go before section of @mention stats",
-      "type": "hidden",
-      "default": "",
-      "required": false
-    },
-    {
-      "key": "periodStatsShowSparklines",
-      "title": "Include sparkline graphs?",
-      "description": "Show basic ASCII-art sparklines for each item, reflecting each day's data in the period.\nNote: Sparklines won't be shown where the summarised time period is more than a month.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "showAsHashtagOrMention",
-      "title": "Show hashtag or mention as links?",
-      "description": "Whether to show the # or @ symbols, or hide them to stop them being active links. (Beware double counting if you turn this on and save results in daily notes.)",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "periodStatsYesNo",
-      "title": "Yes/No items",
-      "description": "Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'.\n(Note: you need to include the @ or # on the front.)",
-      "type": "[string]",
-      "default": [],
-      "required": false
-    },
-    {
-      "key": "includeHashtags",
-      "title": "#hashtags to count",
-      "description": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar').",
-      "_description": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar'). These take precedence over any excluded hashtags (below). If this list is empty, all hashtags will be included.",
-      "type": "[string]",
-      "default": [],
-      "required": false
-    },
-    {
-      "key": "excludeHashtags",
-      "hidden": true,
-      "title": "#hashtags to exclude",
-      "description": "List of #hashtags to exclude in counts. If empty, none will be excluded.",
-      "default": [],
-      "required": false
-    },
-    {
-      "key": "periodStatsHashtagsAverage",
-      "title": "#hashtags to average",
-      "description": "Optional list of #hashtag(number)s to include in Period Stats updates, presented as an average.\n(Note: you need to include the # of the #hashtag.)",
-      "type": "[string]",
-      "default": [],
-      "required": false
-    },
-    {
-      "key": "periodStatsHashtagsTotal",
-      "title": "#hashtags to total",
-      "description": "Optional list of #hashtag(number)s to include in Period Stats updates, presented as a total.\n(Note: you need to include the # of the #hashtag.)",
-      "type": "[string]",
-      "default": [],
-      "required": false
-    },
-    {
-      "key": "periodStatsMentions",
-      "title": "@mentions to count",
-      "description": "List of @mentions to include in counts (e.g. '@gym', '@sleepOnTime').",
-      "_description": "List of @mentions to include in counts (e.g. '@gym', '@sleepOnTime'). These take precedence over any excluded mentions (below). If this list is empty, all mentions will be included.",
-      "type": "[string]",
-      "default": [],
-      "required": false
-    },
-    {
-      "key": "excludeMentions",
-      "hidden": true,
-      "title": "@mentions to exclude",
-      "description": "List of @mentions to exclude in counts. If empty, none will be excluded.",
-      "default": [
-        "@done",
-        "@repeat"
-      ],
-      "required": false
-    },
-    {
-      "key": "periodStatsMentionsAverage",
-      "title": "@mentions to average",
-      "description": "Optional list of @mention(number)s to include in Period Stats updates, presented as an average.\n(Note: you need to include the @ of the @mention.)",
-      "type": "[string]",
-      "default": [],
-      "required": false
-    },
-    {
-      "key": "periodStatsMentionsTotal",
-      "title": "@mentions to total",
-      "description": "Optional list of @mention(number)s to include in Period Stats updates, presented as a total.\n(Note: you need to include the @ of the @mention.)",
-      "type": "[string]",
-      "default": [],
       "required": false
     },
     {

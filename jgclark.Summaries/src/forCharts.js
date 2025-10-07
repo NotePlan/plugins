@@ -3,7 +3,7 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 16.2.2024 for v0.21.0+, @jgclark
+// Last updated 2025-10-07 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -381,11 +381,9 @@ export async function weeklyStatsCSV(): Promise<void> {
       GOHashtagsCount: [],
       GOHashtagsAverage: [],
       GOHashtagsTotal: hashtagItems,
-      GOHashtagsExclude: [], // no exclusions used here
       GOMentionsCount: [],
       GOMentionsAverage: [],
       GOMentionsTotal: mentionItems,
-      GOMentionsExclude: [], // no exclusions used here
       GOChecklistRefNote: "",
     }
 
@@ -480,11 +478,9 @@ export async function weeklyStatsMermaid(): Promise<void> {
       GOHashtagsCount: [],
       GOHashtagsAverage: [],
       GOHashtagsTotal: hashtagItems,
-      GOHashtagsExclude: [], // no exclusions used here
       GOMentionsCount: [],
       GOMentionsAverage: [],
       GOMentionsTotal: mentionItems,
-      GOMentionsExclude: [], // no exclusions used here
       GOChecklistRefNote: "",
     }
 

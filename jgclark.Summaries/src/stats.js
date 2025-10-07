@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 2025-09-30 for v1.0.0 by @jgclark
+// Last updated 2025-10-07 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -19,17 +19,27 @@ import {
   type TMOccurrences,
 } from './summaryHelpers'
 import { hyphenatedDate, RE_DATE } from '@helpers/dateTime'
-import { clo, logDebug, logError, logInfo, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
+import {
+  clo, logDebug, logError, logInfo,
+  // overrideSettingsWithEncodedTypedArgs,
+  timer
+} from '@helpers/dev'
+import { createPrettyRunPluginLink } from '@helpers/general'
+import { replaceSection, setIconForNote } from '@helpers/note'
 import { getPeriodStartEndDates, getPeriodStartEndDatesFromPeriodCode } from '@helpers/NPdateTime'
 import type { TPeriodCode } from '@helpers/NPdateTime'
-import { noteOpenInEditor } from '@helpers/NPWindows'
-import { createPrettyRunPluginLink } from '@helpers/general'
-import { replaceSection } from '@helpers/note'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
+import { noteOpenInEditor, openNoteInNewSplitIfNeeded } from '@helpers/NPWindows'
 import { chooseDecoratedOptionWithModifiers, chooseOption, showMessage } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
 // Main function
+
+/**
+ * There are 2 ways to invoke statsPeriod:
+ * 1. "/statsPeriod" command -- uses settings, and writes to current note
+ * 2. callback to statsPeriod&arg0=... -- can give params to override settings if wanted; writes to current note
+ */
 
 /**
  * Ask user which period to cover, call main stats function accordingly, and present results
@@ -47,22 +57,14 @@ export async function statsPeriod(
 ): Promise<void> {
   try {
     // Get config from settings
-    let config = await getSummariesSettings()
-
-    if (specificGOSettingsStr !== '') {
-      const specificGOSettings = JSON.parse(specificGOSettingsStr)
-      logDebug('statsPeriod', `- overriding config with specific GOSettings '${specificGOSettingsStr}'`)
-      clo(specificGOSettings, `- specific GOSettings object:`)
-      config = overrideSettingsWithEncodedTypedArgs(config, specificGOSettingsStr)
-      clo(config, `- config after overriding with specific GOSettings '${specificGOSettingsStr}':`)
-    }
+    const config = await getSummariesSettings()
 
     // 1. Validate parameters and calculate period
     logDebug(pluginJson, `statsPeriod: starting with params '${periodCodeArg}', '${periodNumberArg}', '${yearArg}'`)
     const periodData = await validateAndCalculatePeriod(periodCodeArg, periodNumberArg, yearArg, config)
 
     // 2. Gather statistics data
-    const statsData: Array<TMOccurrences> = await gatherStatsData(periodData.periodString, periodData.fromDateStr, periodData.toDateStr, config)
+    const statsData: Array<TMOccurrences> = await gatherStatsData(periodData.periodString, periodData.fromDateStr, periodData.toDateStr, config, specificGOSettingsStr)
 
     // 3. Generate output
     const output: string = await generateStatsOutput(statsData, periodData.periodString, periodData.fromDateStr, periodData.toDateStr, config)
@@ -71,7 +73,7 @@ export async function statsPeriod(
     const destination = await selectOutputDestination(periodData.isRunningFromXCallback, config, periodData.calendarTimeframe, periodData.periodString)
 
     // 5. Handle output
-    await handleOutputDestination(destination, output, periodData, config)
+    await handleOutputDestination(destination, output, periodData, config, specificGOSettingsStr)
 
   } catch (error) {
     logError('statsPeriod', error.message)
@@ -160,19 +162,17 @@ async function validateAndCalculatePeriod(
  * @param {string} periodShortCode - Short period code
  * @param {number} periodNumber - Period number
  * @param {number} year - Year
+ * @param {string} overrideGOSettingsStr - stringified JSON string containing some/all settings to ovveride in settingsForGO (but may be empty)
  * @returns {string} Callback markdown string
  */
-function determineCallbackParameters(periodShortCode: string, periodNumber: number, year: number): string {
+function determineCallbackParameters(periodShortCode: string, periodNumber: number, year: number, overrideGOSettingsStr: string): string {
   let xCallbackMD = ''
-  if (!isNaN(periodNumber) || periodShortCode === 'today' || new RegExp(`^${RE_DATE}$`).test(periodShortCode) || periodShortCode === 'year') {
-    const yearStr = String(year)
-    const periodNumberStr = String(periodNumber)
-    logDebug('periodStats', `Forming refresh callback with params ${periodShortCode}, ${periodNumberStr}, ${yearStr}`)
-    xCallbackMD =
-      ' ' + createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'periodStats', [periodShortCode, periodNumberStr, yearStr])
-  } else {
-    logDebug('periodStats', `NOT Forming refresh callback from params ${periodShortCode}, ${periodNumber}, ${year}`)
-  }
+  const yearStr = String(year)
+  const periodNumberStr = String(periodNumber)
+  logDebug('periodStats', `Forming refresh callback with params ${periodShortCode}, ${periodNumberStr}, ${yearStr}`)
+  xCallbackMD = (overrideGOSettingsStr !== '')
+    ? createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'periodStats', [periodShortCode, periodNumberStr, yearStr, overrideGOSettingsStr])
+    : createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'periodStats', [periodShortCode, periodNumberStr, yearStr])
   return xCallbackMD
 }
 
@@ -182,31 +182,45 @@ function determineCallbackParameters(periodShortCode: string, periodNumber: numb
  * @param {string} fromDateStr - From date string
  * @param {string} toDateStr - To date string
  * @param {Object} config - Configuration object
+ * @param {string} overrideGOSettingsStr - optional stringified JSON string containing some/all settings to ovveride in settingsForGO
  * @returns {Array<TMOccurrences>} Occurrences array
  */
 async function gatherStatsData(
   periodString: string,
   fromDateStr: string,
   toDateStr: string,
-  config: SummariesConfig
+  config: SummariesConfig,
+  overrideGOSettingsStr: string
 ): Promise<Array<TMOccurrences>> {
   const startTime = new Date()
   CommandBar.showLoading(true, `Gathering Data from Calendar notes`)
   await CommandBar.onAsyncThread()
 
   // Main work: calculate the occurrences, using config settings and the time period info
-  const settingsForGO: OccurrencesToLookFor = {
-    GOYesNo: config.periodStatsYesNo,
-    GOHashtagsCount: config.includedHashtags,
-    GOHashtagsExclude: [],
-    // FIXME: tidy up here and in Settings and plugin.json
-    GOHashtagsAverage: config.includedHashtagsAverage,
-    GOHashtagsTotal: config.includedHashtagsTotal,
-    GOMentionsCount: config.includedMentions,
-    GOMentionsExclude: [],
-    GOMentionsAverage: config.periodStatsMentionsAverage,
-    GOMentionsTotal: config.periodStatsMentionsTotal,
-    GOChecklistRefNote: config.progressChecklistReferenceNote,
+  let settingsForGO: OccurrencesToLookFor
+  if (overrideGOSettingsStr === '') {
+    settingsForGO = {
+      GOYesNo: config.PSYesNo,
+      GOHashtagsCount: config.PSHashtagsCount,
+      GOHashtagsAverage: config.PSHashtagsAverage,
+      GOHashtagsTotal: config.PSHashtagsTotal,
+      GOMentionsCount: config.PSMentionsCount,
+      GOMentionsAverage: config.PSMentionsAverage,
+      GOMentionsTotal: config.PSMentionsTotal,
+      GOChecklistRefNote: config.progressChecklistReferenceNote,
+    }
+  } else {
+    const overrideSettings = JSON.parse(overrideGOSettingsStr)
+    settingsForGO = {
+      GOYesNo: overrideSettings.PSYesNo ?? [],
+      GOHashtagsCount: overrideSettings.PSHashtagsCount ?? [],
+      GOHashtagsAverage: overrideSettings.PSHashtagsAverage ?? [],
+      GOHashtagsTotal: overrideSettings.PSHashtagsTotal ?? [],
+      GOMentionsCount: overrideSettings.PSMentionsCount ?? [],
+      GOMentionsAverage: overrideSettings.PSMentionsAverage ?? [],
+      GOMentionsTotal: overrideSettings.PSMentionsTotal ?? [],
+      GOChecklistRefNote: overrideSettings.progressChecklistReferenceNote ?? '',
+    }
   }
   const tmOccurrencesArray: Array<TMOccurrences> = await gatherOccurrences(periodString,
     fromDateStr,
@@ -235,7 +249,7 @@ async function generateStatsOutput(
 ): Promise<string> {
   CommandBar.showLoading(true, `Creating Period Stats`)
   const startTime = new Date()
-  const output = (await generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.periodStatsShowSparklines, true)).join('\n')
+  const output = (await generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.PSShowSparklines, true)).join('\n')
   CommandBar.showLoading(false)
   await CommandBar.onMainThread()
   logInfo('statsPeriod', `Created period stats in ${timer(startTime)}`)
@@ -278,7 +292,7 @@ async function selectOutputDestination(
     result = optionValues[chosenOption.index]
   }
   else {
-  // Start by tailoring the set of options to present
+    // Start by tailoring the set of options to present
     const simpleOutputOptions: Array<{ label: string, value: string }> = [
       { label: `📅 Add/Update the ${calendarTimeframe}ly calendar note '${periodString}'`, value: 'calendar' },
       { label: '🖊 Update/append to the open note', value: 'current' },
@@ -289,7 +303,7 @@ async function selectOutputDestination(
       simpleOutputOptions.unshift({ label: `🖊 Create/update a note in folder '${config.folderToStore}'`, value: 'note' })
     }
     const chosenOption = await chooseOption(`Where to save the summary for ${periodString}?`, simpleOutputOptions, 'note')
-    result = chosenOption.value
+    result = chosenOption
   }
   logDebug('statsPeriod', `selectOutputDestination() -> ${result}`)
   return result
@@ -313,13 +327,18 @@ function handleCurrentNoteOutput(
     logError('statsPeriod', `No note is open in the Editor, so I can't write to it.`)
   } else {
     // Replace or add output section
-    replaceSection(currentNote, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}${xCallbackMD}`, config.headingLevel, output)
-    logDebug('statsPeriod', `Updated results in note section '${config.statsHeading}' for ${periodAndPartStr}`)
+    replaceSection(currentNote, config.PSStatsHeading, `${config.PSStatsHeading} ${periodAndPartStr} ${xCallbackMD}`, config.headingLevel, output)
+    logDebug('statsPeriod', `Updated results in note section '${config.PSStatsHeading}' for ${periodAndPartStr}`)
+
+    // Add icon to note, if a regular note
+    if (currentNote.type === 'Notes') {
+      setIconForNote(currentNote, "square-poll-horizontal")
+    }
   }
 }
 
 /**
- * Handles output to a new note
+ * Handles output to a new (regular) note
  * @param {string} output - Output content
  * @param {string} periodString - Period string
  * @param {string} periodAndPartStr - Period and part string
@@ -340,14 +359,13 @@ async function handleNoteOutput(
     await showMessage('There was an error getting the new note ready to write')
   } else {
     // Replace or add output section
-    replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}${xCallbackMD}`, config.headingLevel, output)
+    replaceSection(note, config.PSStatsHeading, `${config.PSStatsHeading} ${periodAndPartStr} ${xCallbackMD}`, config.headingLevel, output)
     logDebug('statsPeriod', `Written results to note '${periodString}'`)
+    // Add icon to note
+    setIconForNote(note, "square-poll-horizontal")
 
     // Open the results note in a new split window, unless we already have this note open
-    if (Editor.note?.filename !== note.filename) {
-      // Open the results note in a new split window, unless we can tell we already have this note open. Only works for active Editor, though.
-      await Editor.openNoteByFilename(note.filename, false, 0, 0, true)
-    }
+    const _res = await openNoteInNewSplitIfNeeded(note.filename)
   }
 }
 
@@ -393,7 +411,7 @@ async function handleCalendarOutput(
     throw new Error(`cannot get Calendar note for ${filenameForCalDate} ready to write. Stopping.`)
   } else {
     // Replace or add output section
-    replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}${xCallbackMD}`, config.headingLevel, output)
+    replaceSection(note, config.PSStatsHeading, `${config.PSStatsHeading} ${periodAndPartStr} ${xCallbackMD}`, config.headingLevel, output)
     logDebug('statsPeriod', `Written results to note '${periodString}' (filename=${note.filename})`)
     logDebug(pluginJson, `- Editor.note.filename=${note.filename})`)
   }
@@ -406,8 +424,10 @@ async function handleCalendarOutput(
  * @param {string} periodString - Period string
  * @param {Object} config - Configuration object
  */
-function handleLogOutput(output: string, periodAndPartStr: string, periodString: string, config: any): void {
-  logInfo(pluginJson, `${config.statsHeading} for ${periodAndPartStr ? periodAndPartStr : periodString}`)
+function handleLogOutput(
+  output: string, periodAndPartStr: string, periodString: string, config: any
+): void {
+  logInfo(pluginJson, `${config.PSStatsHeading} for ${periodAndPartStr ? periodAndPartStr : periodString}`)
   logInfo(pluginJson, output)
 }
 
@@ -417,10 +437,13 @@ function handleLogOutput(output: string, periodAndPartStr: string, periodString:
  * @param {string} output - Output content
  * @param {Object} periodData - Period data object
  * @param {Object} config - Configuration object
+ * @param {?string} overrideGOSettingsStr - optional stringified JSON string containing some/all settings to ovveride in settingsForGO
  */
-async function handleOutputDestination(destination: string, output: string, periodData: any, config: any): Promise<void> {
+async function handleOutputDestination(
+  destination: string, output: string, periodData: any, config: any, overrideGOSettingsStr: string
+): Promise<void> {
   const { periodString, periodAndPartStr, fromDate, periodShortCode, calendarTimeframe } = periodData
-  const xCallbackMD = determineCallbackParameters(periodShortCode, periodData.periodNumber, periodData.year)
+  const xCallbackMD = determineCallbackParameters(periodShortCode, periodData.periodNumber, periodData.year, overrideGOSettingsStr)
 
   switch (destination) {
     case 'current': {

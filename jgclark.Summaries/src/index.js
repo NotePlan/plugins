@@ -1,5 +1,5 @@
+/* eslint-disable require-await */
 // @flow
-
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
@@ -33,18 +33,10 @@ export { statsPeriod } from './stats'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
-import { updateJSONForFunctionNamed } from '@helpers/NPPresets'
-import {
-  getPluginJson,
-  getSettings,
-  pluginUpdated,
-  // savePluginJson,
-  // semverVersionToNumber,
-  updateSettingData
-} from '@helpers/NPConfiguration'
+import { renameKeys } from '@helpers/dataManipulation'
+import { clo, compareObjects, JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { backupSettings, pluginUpdated, saveSettings } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
-import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 const pluginID = "jgclark.Summaries"
 
@@ -60,73 +52,48 @@ export function init(): void {
 }
 
 export async function onSettingsUpdated(): Promise<void> {
-  try {
-    logDebug(pluginID, 'starting onSettingsUpdated')
-
-    // See if we need to hide or unhide the test: commands in this plugin, depending whether _logLevel is DEBUG or not
-    // Get the commands' details
-    const initialPluginJson = await getPluginJson(pluginID)
-    const initialSettings = await getSettings(pluginID) ?? `{".logLevel": "INFO"}`
-    // $FlowFixMe[incompatible-type]
-    const logLevel = initialSettings["_logLevel"]
-    // logInfo('onSettingsUpdated', `Starting with _logLevel ${logLevel}`)
-    // clo(initialPluginJson, 'initialPluginJson')
-
-    // WARNING: savePluginJson causes an infinite loop!
-    // WARNING: So all these lines are commented out.
-    // let updatedPluginJson = initialPluginJson
-    // if (initialPluginJson) {
-    //   const commands = updatedPluginJson['plugin.commands']
-    //   clo(commands, 'commands')
-    //   let testCommands = commands.filter((command) => {
-    //     const start = command.name.slice(0, 4)
-    //     return start === 'test'
-    //   })
-    //   logInfo('onSettingsUpdated', `- found ${testCommands.length} test commands`)
-
-    //   if (logLevel === 'DEBUG') {
-    //     for (let command of testCommands) {
-    //       updatedPluginJson = updateJSONForFunctionNamed(updatedPluginJson, command, false)
-    //     }
-    //     clo(updatedPluginJson, `updatedPluginJson after unhiding:`)
-    //   }
-    //   else {
-    //     for (let command of testCommands) {
-    //       updatedPluginJson = updateJSONForFunctionNamed(updatedPluginJson, command, true)
-    //     }
-    //     clo(updatedPluginJson, `updatedPluginJson after hiding:`)
-
-    //   }
-    //   logDebug('onSettingsUpdated', `- before savePluginJson ...`)
-
-    //   await savePluginJson(pluginJson['plugin.id'], updatedPluginJson)
-    //   logDebug('onSettingsUpdated', `  - NOT CALLED OTHERWISE AN INFINITE LOOP!`)
-    // }
-  }
-  catch (error) {
-    logError('jgclark.Summaries::onSettingsUpdated', error.message)
-  }
+  return
 }
 
-// test the update mechanism, including display to user
-export function testUpdate(): void {
-  onUpdateOrInstall(true) // force update mechanism to fire
-}
-
-export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<void> {
+export async function onUpdateOrInstall(): Promise<void> {
   try {
-    logInfo(pluginID, `onUpdateOrInstall ...`)
-    let updateSettingsResult = updateSettingData(pluginJson)
-    logInfo(pluginID, `- updateSettingData code: ${updateSettingsResult}`)
+    logInfo(pluginID, `onUpdateOrInstall() ...`)
+    const initialSettings = (await DataStore.loadJSON(`../${pluginID}/settings.json`)) || DataStore.settings
+    await backupSettings(pluginID, `before_onUpdateOrInstall-v${pluginJson['plugin.version']}`)
 
-    if (testUpdate) {
-      updateSettingsResult = 1 // updated
-      logDebug(pluginID, '- forcing pluginUpdated() tu run ...')
+    // Migrate any necessary settings from v0.22.x to v1.0.0
+    // TODO: also remove old settings: excludeHashtags, excludeMentions
+    const keysToChange = {
+      // oldKey: newKey
+      statsHeading: "PSStatsHeading",
+      periodStatsShowSparklines: 'PSShowSparklines',
+      showAsHashtagOrMention: "PSHowAsHashtagOrMention",
+      periodStatsYesNo: 'PSYesNo',
+      periodStatsHashtagsAverage: 'PSHashtagsAverage',
+      includeHashtags: 'PSHashtagsCount',
+      includedHashtags: 'PSHashtagsCount',
+      periodStatsHashtagsTotal: 'PSHashtagsTotal',
+      excludeHashtags: 'PSHashtagsToExclude',
+      periodStatsMentions: 'PSMentionsCount',
+      periodStatsMentionsAverage: 'PSMentionsAverage',
+      periodStatsMentionsTotal: 'PSMentionsTotal',
+      excludeMentions: 'PSMentionsToExclude',
     }
-    // Tell user the plugin has been updated
-    await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
-    logInfo(pluginID, `- finished`)
+    const migratedSettings = renameKeys(initialSettings, keysToChange)
+    const diff = compareObjects(migratedSettings, initialSettings, [], true)
+    if (diff != null) {
+      // Save the settings back to the DataStore
+      logInfo(`onUpdateOrInstall`, `- changes to settings detected`)
+      clo(initialSettings, `onUpdateOrInstall:  initialSettings:`)
+      clo(migratedSettings, `onUpdateOrInstall:  migratedSettings:`)
+      await saveSettings(pluginID, migratedSettings)
+    } else {
+      logDebug(`onUpdateOrInstall`, `- no changes detected to settings.`)
+    }
 
+    // Tell user the plugin has been updated
+    logInfo(pluginID, `- finished`)
+    await pluginUpdated(pluginJson, { code: 1, message: 'Plugin Installed or Updated.' }) // unused?
   } catch (error) {
     logError('jgclark.Summaries::onUpdateOrInstall', error.message)
   }

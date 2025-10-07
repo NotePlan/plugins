@@ -3,9 +3,19 @@
 
 _Rather arbitrarily promoting this to v1.0. But I think it deserves it after 4 years!_
 
-## [1.0.0.b2] - 2025-10-03 (only released to @grdn)
+## [1.0.0.b3] - 2025-10-07
+### Changed
+- If you 'Refresh' an existing progress summary in an older note, it should now use the date interval when it was created, rather than the current date interval (for @vorg, closes #450)
+- In the progress update output, if an item is asked for both in "average" and "total", then the output will show them combined, rather than as separate lines (for @joshdoyle, closes #614).
+- Add note icon to periodStats output notes.
+### Fixed
+- stop periodStats opening its output note in a new split window when it was already open
+### Dev
+- Refactored most of progress.js
+
+## [1.0.0.b2] - 2025-10-07 (only released to @grdn)
 ### New
-- Allow override of settings for periodStats when called from x-callbacks (for @grdn)
+- Allow override of settings for periodStats when called from x-callbacks (for @grdn). This is achieved through a new 4th callback argument where any relevant settings can be over-ridden by specifying as a URLEncoded JSON object. (See examples in README!)
 
 ## [1.0.0.b1] - 2025-10-01 (only released to @grdn)
 ### New
@@ -14,6 +24,7 @@ _Rather arbitrarily promoting this to v1.0. But I think it deserves it after 4 y
 - Uses richer menu in /periodStats command (available from NP 3.18.0)
 ### Dev
 - Fixed spurious "Skipping ill-formed mention" logs
+- Refactored most of stats.js
 
 ## [0.22.1] - 2024-09-13
 - fix empty lines appearing in output of some `progressUpdate(...)` template calls (reported by Madscientist and Kc)
@@ -49,6 +60,7 @@ _Rather arbitrarily promoting this to v1.0. But I think it deserves it after 4 y
 ## [0.19.4] - 2023-09-26 unreleased
 ### Added
 - Refresh button to output of **periodStats** command, where the time period is "<period> to date"
+
 ## [0.19.3] - 2023-08-06
 ### Fixed
 - date logic on 'weeklyStatsToCSV' command output
