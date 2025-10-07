@@ -31,6 +31,7 @@ import {
   RE_YYYYMMDD_DATE,
   todaysDateISOString,
   toISOShortDateTimeString,
+  YYYYMMDDDateStringFromDate,
 } from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import {getFolderFromFilename} from './folders'
@@ -737,6 +738,31 @@ export function getPeriodStartEndDatesFromPeriodCode(
 }
 
 /**
+ * Returns a YYYYMMDD string representation of a Calendar note's last date that it covers, from its filename (e.g. '2022-Q4.md' -> '20221231').
+ * Note: see related getDateStrForEndofPeriodFromCalendarFilename() in dateTime.js file.
+ * WARNING: Probably not reliable as it relies on the Calendar note existing, I think.
+ * @param {string} filename
+ * @returns {string} YYYYMMDD for last date in period
+ */
+export function getDateStrForEndofPeriodFromCalendarFilename(filename: string): string {
+  try {
+    // Trying a shortcut way first: seems to work
+    // logDebug('dateTime / gDSFEOPFCF', `for ${filename} ...`)
+    const dateStr = getDateStringFromCalendarFilename(filename)
+    if (dateStr) {
+      const dateOut = getLastDateInPeriod(dateStr) ?? '(error)'
+      // logDebug('gDSFEOPFCF', `${filename} -> ${dateStr} -> ${dateOut}`)
+      return dateOut
+    } else {
+      throw new Error(`Error in getting note's date from ${filename}`)
+    }
+  } catch (err) {
+    logError('dateTime / gDSFEOPFCF', err.message)
+    return '(invalid date)' // for completeness
+  }
+}
+
+/**
  * Get the earliest calendar note date, ignoring teamspace ones
  * Note: Based on helpers/note.js::calendarNotesSortedByDate(), but not imported because it would create a circular dependency
  * @author @jgclark
@@ -980,6 +1006,50 @@ export function getFirstDateInPeriod(NPDateStringIn: string): string {
     return firstDateStr
   } catch (err) {
     logError('getFirstDateInPeriod', err.message)
+    return '(error)'
+  }
+}
+
+/**
+ * Get the last date in a period, given a NotePlan date string (e.g. '2022-01-01', '2022-W01', '2022-Q1', '2022'), or 'today'.
+ * If the date string is already a day date, it will be returned as is.
+ * If the date string starts with '>' then it will be trimmed off.
+ * @param {string} NPDateStringIn - NotePlan date string (or 'today')
+ * @returns {string} - the last date in the period
+ * @tests in jest file
+ */
+export function getLastDateInPeriod(NPDateStringIn: string): string {
+  try {
+    let NPDateString = NPDateStringIn
+    if (NPDateString.startsWith('>')) {
+      NPDateString = NPDateString.slice(1)
+    }
+    let lastDateStr = ''
+    if (NPDateString === 'today') {
+      lastDateStr = todaysDateISOString
+    } else if (isDailyDateStr(NPDateString)) {
+      // logDebug('getLastDateInPeriod', `'${NPDateString}' was already a day date`)
+      lastDateStr = NPDateString
+    } else {
+      // It's not a day date, so need to convert to one. Take the first day of the week/month/quarter/year.
+      let NPInfo: NotePlanWeekInfo | NotePlanMonthInfo | NotePlanQuarterInfo | NotePlanYearInfo | null
+      if (isWeeklyDateStr(NPDateString)) {
+        NPInfo = getNPWeekData(NPDateString)
+      } else if (isMonthlyDateStr(NPDateString)) {
+        NPInfo = getMonthData(NPDateString)
+      } else if (isQuarterlyDateStr(NPDateString)) {
+        NPInfo = getQuarterData(NPDateString)
+      } else if (isYearlyDateStr(NPDateString)) {
+        NPInfo = getYearData(NPDateString)
+      } else {
+        throw new Error(`unexpected date format ${NPDateString}, so won't use it`)
+      }
+      lastDateStr = NPInfo && NPInfo.endDate ? hyphenatedDateString(NPInfo?.endDate) : ''
+    }
+    // logDebug('getLastDateInPeriod', `last date of ${NPDateString} = '${lastDateStr}'`)
+    return lastDateStr
+  } catch (err) {
+    logError('getLastDateInPeriod', err.message)
     return '(error)'
   }
 }
