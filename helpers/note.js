@@ -814,3 +814,25 @@ export function numberOfOpenItemsInNote(note: CoreNoteFields): number {
   const res = note.paragraphs.filter((p) => ['open', 'scheduled', 'checklist', 'checklistScheduled'].includes(p.type))
   return res ? res.length : 0
 }
+
+/**
+ * Set the icon for a note in the frontmatter.
+ * @author @jgclark
+ * @param {TNote} note
+ * @param {string} icon
+ * @param {string?} iconColor
+ * @param {string?} iconStyle
+ */
+export function setIconForNote(note: TNote, icon: string, iconColor: ?string, iconStyle: ?string): void {
+  // To set icon in frontmatter, first read existing frontmatter, then update.
+  const noteFrontmatter = note.frontmatterAttributes
+  noteFrontmatter["icon"] = icon
+  if (iconColor) {
+    noteFrontmatter["icon-color"] = iconColor
+  }
+  if (iconStyle) {
+    noteFrontmatter["icon-style"] = iconStyle
+  }
+  // $FlowIgnore[cannot-write] documentation says this particular usage *is* safe
+  note.frontmatterAttributes = noteFrontmatter
+}

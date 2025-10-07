@@ -138,13 +138,31 @@ export function getWindowIdFromCustomId(customId: string): string | false {
 }
 
 /**
- * Is a given HTML window open? Matches are case-insensitive, and either an exact match or a starts-with-match on the supplied customId.
+ * Is a given HTML window open, based on its customId? 
+ * Matches are case-insensitive, and either an exact match or a starts-with-match on the supplied customId.
  * @author @jgclark
  * @param {string} customId to look for
  * @returns {boolean}
  */
 export function isHTMLWindowOpen(customId: string): boolean {
   return !!getWindowIdFromCustomId(customId)
+}
+
+/**
+ * Is a given note open in a NP Editor window/split, based on its filename?
+ * @author @jgclark
+ * @param {string} filename to look for
+ * @returns {boolean}
+ */
+export function isEditorWindowOpen(filename: string): boolean {
+  // Get list of open Editor windows/splits
+  const allEditorWindows = NotePlan.editors
+  for (const thisEditorWindow of allEditorWindows) {
+    if (thisEditorWindow.filename === filename) {
+      return true
+    }
+  }
+  return false
 }
 
 /**
@@ -239,16 +257,41 @@ export function focusHTMLWindowIfAvailable(customId: string): boolean {
 }
 
 /**
- * Opens note in new window, if it's not already open in one
- * @param {string} filename to open in split
+ * Opens note in new floating window, if it's not already open in one
+ * @param {string} filename to open in window
  * @returns {boolean} success?
  */
 export async function openNoteInNewWindowIfNeeded(filename: string): Promise<boolean> {
-  const res = await Editor.openNoteByFilename(filename, true, 0, 0, false, true) // create new floating (and the note if needed)
+  const isAlreadyOpen = isEditorWindowOpen(filename)
+  if (isAlreadyOpen) {
+    logDebug('openNoteInNewWindowIfNeeded', `Note '${filename}' is already open in an Editor window. Skipping.`)
+    return false
+  }
+  const res = await Editor.openNoteByFilename(filename, true, 0, 0, false, false) // create new floating window
   if (res) {
-    logDebug('openWindowSet', `Opened floating window pane '${filename}'`)
+    logDebug('openWindowSet', `Opened floating window '${filename}'`)
   } else {
     logWarn('openWindowSet', `Failed to open floating window '${filename}'`)
+  }
+  return !!res
+}
+
+/**
+ * Opens note in new split window, if it's not already open in one
+ * @param {string} filename to open in split
+ * @returns {boolean} success?
+ */
+export async function openNoteInNewSplitIfNeeded(filename: string): Promise<boolean> {
+  const isAlreadyOpen = isEditorWindowOpen(filename)
+  if (isAlreadyOpen) {
+    logDebug('openNoteInNewSplitIfNeeded', `Note '${filename}' is already open in an Editor window. Skipping.`)
+    return false
+  }
+  const res = await Editor.openNoteByFilename(filename, false, 0, 0, true, false) // create new split window
+  if (res) {
+    logDebug('openWindowSet', `Opened split window '${filename}'`)
+  } else {
+    logWarn('openWindowSet', `Failed to open split window '${filename}'`)
   }
   return !!res
 }
@@ -267,21 +310,6 @@ export async function openCalendarNoteInSplit(filename: string, cursorPointIn?: 
     // Make sure it all fits on the screen
     await constrainMainWindow()
   }
-}
-
-/**
- * Opens note in new split, if it's not already open in one
- * @param {string} filename to open in split
- * @returns {boolean} success?
- */
-export async function openNoteInNewSplitIfNeeded(filename: string): Promise<boolean> {
-  const res = await Editor.openNoteByFilename(filename, false, 0, 0, true, true) // create new split (and the note if needed) // TODO(@EduardMe): this doesn't create an empty note if needed for Calendar notes
-  if (res) {
-    logDebug('openWindowSet', `Opened split window '${filename}'`)
-  } else {
-    logWarn('openWindowSet', `Failed to open split window '${filename}'`)
-  }
-  return !!res
 }
 
 export function getWindowFromId(windowId: string): TEditor | HTMLView | false {

@@ -114,13 +114,12 @@ declare interface TEditor extends CoreNoteFields {
    * @param {boolean?} newWindow - (optional) Open note in new window (default = false)?
    * @param {number?} highlightStart - (optional) Start position of text highlighting
    * @param {number?} highlightEnd - (optional) End position of text highlighting
-   * @param {boolean?} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
-   * @param {boolean?} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
-   * @param {string?} content - (optional) Content to fill the note (replaces contents if the note already existed) (from v3.7.2)
-   * @param {boolean?} stayInSpace? - (optional; default = false) Stay in the current Teamspace or Private space for the given filename
+   * @param {boolean?} splitView - (optional) Open note in a new split view
+   * @param {boolean?} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist
+   * @param {string?} content - (optional) Content to fill the note (replaces contents if the note already existed)
+   * @param {boolean?} stayInSpace? - (optional; default = false) Stay in the current Teamspace or Private space for the given filename (available from v3.17.0)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
-   * Note: some parameters introduced in v3.4 and v3.5.2
-   * Note: stayInSpace parameter available from v3.17.0
+   * Note: some parameters introduced in v3.4, v3.5.2, and v3.7.2
    */
   openNoteByFilename(
     filename: string,
