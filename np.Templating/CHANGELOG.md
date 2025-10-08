@@ -6,6 +6,9 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.1.2] 2025-10-07 @dwertheimer
+- allow passing of templateRunner body content via xcallback with blank template title
+
 ## [2.1.1] 2025-09-08 @dwertheimer
 - fix using button on empty template, especially with teamspace notes
 - use chooseFolder() to include teamspaces in folder selection of templateNew command
