@@ -1,9 +1,22 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-_Rather arbitrarily promoting this to v1.0. But I think it deserves it after 4 years!_
 
-## [1.0.0.b3] - 2025-10-07
+## [1.0.0] - 2025-10-08
+_Rather arbitrarily promoting this to v1.0. But I think it deserves it after 4 years!_
+### New
+- Adds support for 'all' time period in /periodStats command, including x-callback (for @grdn)
+- Allow override of settings for /periodStats command when called from x-callbacks (for @grdn)
+  This is achieved through a new 4th callback argument where any relevant settings can be over-ridden. (See examples in README!)
+### Changed
+- In the progress update output, if an item is asked for both in "average" and "total", then the output will show them combined, rather than as separate lines (for @joshdoyle, closes #614).
+- If you 'Refresh' an existing progress summary in an older note, it should now use the date interval when it was created, rather than the current date interval (for @vorg, closes #450)
+- Uses richer menu in /periodStats command (available from NP 3.18.0)
+- Add note icon to periodStats output notes.
+### Fixed
+- stop periodStats opening its output note in a new split window when it was already open
+<!--
+## [1.0.0.b3] - 2025-10-07 (unreleased)
 ### Changed
 - If you 'Refresh' an existing progress summary in an older note, it should now use the date interval when it was created, rather than the current date interval (for @vorg, closes #450)
 - In the progress update output, if an item is asked for both in "average" and "total", then the output will show them combined, rather than as separate lines (for @joshdoyle, closes #614).
@@ -25,7 +38,7 @@ _Rather arbitrarily promoting this to v1.0. But I think it deserves it after 4 y
 ### Dev
 - Fixed spurious "Skipping ill-formed mention" logs
 - Refactored most of stats.js
-
+-->
 ## [0.22.1] - 2024-09-13
 - fix empty lines appearing in output of some `progressUpdate(...)` template calls (reported by Madscientist and Kc)
 
