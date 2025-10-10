@@ -1,21 +1,13 @@
-# 💭 Journalling plugin
+# 💭 Journalling Helpers Plugin
 <img width="196px" src="calendar-notes-319@2x.png" align="right"/>
-This plugin helps you write daily, weekly, monthly, quarterly and/or yearly Journals, by speeding up applying your pre-set Templates to your calendar notes, and/or prompting you for review questions that you set in advance.
-
-The commands are:
-- **/dayStart**: Apply your 'Daily Note' Template to the currently open daily note (or today's note if you're not editing a daily note)
-- **/todayStart**: Apply your 'Daily Note' Template to today's calendar note
-- **/weekStart**: Apply your 'Weekly Note' Template to the currently open weekly note (or the current weekly note if you're not editing a weekly note)
-- **/monthStart**: Apply your 'Monthly Note' Template to the currently open monthly note (or the current monthly note if you're not editing a monthly note)
-- **/dayReview**: Ask journal questions for an end-of-day review, and write answers in the current daily note. See below for details and examples.
-- **/weekReview**, **/monthReview**, **/quarterReview** and **/yearReview** all work similarly, asking the appropriately-configured journal questions, and write answers in the currently-open week/month/quarter/year note for that period, or if one of those isn't open, then offers to open the current note for that period.
+This plugin gives support for journalling in NotePlan, including making it easier to apply start-of-day Templates, and end-of-day/week Reviews, Summaries or Tidy Up.
 
 ### Configuration
-To use weekly/monthly/quarterly/yearly commands, you first need to have them turned on in **NotePlan Settings** > Calendar pane:
+To use this plugin on weekly/monthly/quarterly/yearly notes, you first need to have them turned on in **NotePlan Settings** > Calendar pane:
 
 <img src="calendar-settings@2x.png"/>
 
-Then you will need to **configure the Plugin**: click the gear button on the 'Journalling' line in the Plugin Preferences panel, and fill in the settings according to which of the following commands you want to use.  (On iOS or iPadOS, you need to use the separate **/Journalling: update plugin settings** command instead.)
+All the available commands require some **configuration** first. On Mac click the gear button on the 'Journalling' line in the Plugin Preferences panel, and fill in the settings according to which of the following commands you want to use.  If you only use iPhone or iPad, you'll need to use the separate **/Journalling: update plugin settings** command instead.
 
 ## Quickly applying Templates at the start of each Day/Week
 The NotePlan website has good [articles on getting started with Templates](https://help.noteplan.co/article/136-templates), and a helpful [Template Gallery](https://noteplan.co/templates), to build from.
@@ -34,9 +26,9 @@ These commands make it quicker to apply a Template at the start or end of a day 
 This acts very similarly to the /dayStart command above.
 
 ### /dayEnd, /todayEnd, /weekEnd commands
-These act in the same way as above, but can be tailored to adding items at the end of a day, perhaps like a Habit or Stats summary from the separate [**Habits & Summaries plugin**]().
+These act in the same way as above, but can be tailored to adding items at the end of a day, perhaps like a Habit or Stats summary from the separate [**Habits & Summaries plugin**](https://noteplan.co/plugins/jgclark.Summaries).
 
-This is also a quick way of regularly running one or more commands from the separate [**Tidy Up plugin**]().
+This is also a quick way of regularly running one or more commands from the separate [**Tidy Up plugin**](https://noteplan.co/plugins/np.Tidy).
 
 ## Helping with periodic Reviews
 There's no right or wrong way to do reviews, and you'll no doubt change what you find helpful over time. But the key is to be taking some time to answer questions to help you pause and review what has and hasn't gone well over the last day/week/month/quarter. Some use it as a way of capturing their main **emotions**; others to track **goals**; others to write a simple **gratitude** journal.

@@ -2,14 +2,14 @@
   "noteplan.minAppVersion": "3.3.2",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.DailyJournal",
-  "plugin.name": "💭 Journalling",
-  "plugin.description": "Support for daily journalling in NotePlan, including start-of-day template, and end-of-day review questions. Before use it requires some configuration: please see website for details.",
+  "plugin.name": "💭 Journalling Helpers",
+  "plugin.description": "Supports daily journalling in NotePlan, including making it easier to apply start-of-day templates, and end-of-day/week  Reviews, Summaries or Tidy Up. Before use it requires some configuration: please see website for details.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md",
   "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "v1.0.0: Add new '/dayEnd', '/todayEnd' and '/weekEnd' commands, that run pre-set Templates (like /dayStart etc.).\nv0.15.1: New 'Journalling: update plugin settings' command for use on iOS/iPadOS. v0.15: Added support for Monthly, Quarterly and Yearly review questions. v0.14: Added /weekStart command. \nv0.13: Added support for /weekReview, /monthReview and /quarterlyReview, each of which have settings for their different Review Questions. /dayStart now uses the template's location field to determine where in the note to insert.",
+  "plugin.lastUpdateInfo": "v1.0.0: Rename to 'Journalling Helpers Plugin'. Add new '/dayEnd', '/todayEnd' and '/weekEnd' commands, that run pre-set Templates for Reviews, Summaries or Tidy Up.\nv0.15.1: New 'Journalling: update plugin settings' command for use on iOS/iPadOS. v0.15: Added support for Monthly, Quarterly and Yearly review questions. v0.14: Added /weekStart command. \nv0.13: Added support for /weekReview, /monthReview and /quarterlyReview, each of which have settings for their different Review Questions. /dayStart now uses the template's location field to determine where in the note to insert.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -18,7 +18,8 @@
       "name": "dayStart",
       "alias": [
         "daily",
-        "template"
+        "ds",
+        "startDay"
       ],
       "description": "Apply Daily Note Template",
       "jsFunction": "dayStart"
@@ -27,7 +28,8 @@
       "name": "dayEnd",
       "alias": [
         "daily",
-        "template"
+        "de",
+        "endDay"
       ],
       "description": "Apply Day End Template",
       "jsFunction": "dayEnd"
@@ -37,7 +39,7 @@
       "alias": [
         "day",
         "today",
-        "template"
+        "ts"
       ],
       "description": "Apply Daily Note Template to Today's Calendar Note",
       "jsFunction": "todayStart"
@@ -46,8 +48,8 @@
       "name": "todayEnd",
       "alias": [
         "day",
-        "today",
-        "template"
+        "endToday",
+        "te"
       ],
       "description": "Apply Day End Template to Today's Calendar Note",
       "jsFunction": "todayEnd"
@@ -56,7 +58,7 @@
       "name": "weekStart",
       "alias": [
         "weekly",
-        "template"
+        "ws"
       ],
       "description": "Apply Weekly Note Template",
       "jsFunction": "weekStart"
@@ -71,7 +73,7 @@
       "name": "monthStart",
       "alias": [
         "monthly",
-        "template"
+        "ms"
       ],
       "description": "Apply Monthly Note Template (requires configuring)",
       "jsFunction": "monthStart"
@@ -130,6 +132,11 @@
       "name": "Journalling: update plugin settings",
       "description": "Settings interface (even for iOS)",
       "jsFunction": "updateSettings"
+    },
+    {
+      "name": "Journalling: Test onUpdateOrInstall",
+      "description": "onUpdateOrInstall",
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
@@ -138,27 +145,51 @@
       "title": "Daily Journal settings"
     },
     {
-      "key": "templateTitle",
-      "title": "Daily Template Title",
+      "key": "startDailyTemplateTitle",
+      "title": "Start-of-Day Template Title",
       "description": "The name of the template that `/dayStart` and `/todayStart` commands will use.",
       "type": "string",
       "default": "Daily Note Template",
-      "required": true
+      "required": false
     },
     {
-      "key": "weeklyTemplateTitle",
-      "title": "Weekly Template Title",
+      "key": "endDailyTemplateTitle",
+      "title": "End-of-DayTemplate Title",
+      "description": "The name of the template that `/dayEnd` and `/todayEnd` commands will use.",
+      "type": "string",
+      "default": "Daily Review Template",
+      "required": false
+    },
+    {
+      "key": "startWeeklyTemplateTitle",
+      "title": "Start-of-Week Template Title",
       "description": "Optional name of the template that `/weekStart` command will use.",
       "type": "string",
       "default": "Weekly Note Template",
       "required": false
     },
     {
-      "key": "monthlyTemplateTitle",
-      "title": "Monthly Template Title",
+      "key": "endWeeklyTemplateTitle",
+      "title": "End-of-Week Template Title",
+      "description": "Optional name of the template that `/weekEnd` command will use.",
+      "type": "string",
+      "default": "Weekly Review Template",
+      "required": false
+    },
+    {
+      "key": "startMonthlyTemplateTitle",
+      "title": "Start-of-Month Template Title",
       "description": "Optional name of the template that `/monthStart` command will use.",
       "type": "string",
       "default": "Monthly Note Template",
+      "required": false
+    },
+    {
+      "key": "endMonthlyTemplateTitle",
+      "title": "End-of-Month Template Title",
+      "description": "Optional name of the template that `/monthEnd` command will use.",
+      "type": "string",
+      "default": "Monthly Review Template",
       "required": false
     },
     {
@@ -172,13 +203,13 @@
     {
       "key": "moods",
       "title": "List of moods",
-      "description": "A comma-separated list of possible moods to select from.",
+      "description": "(Optional.) A comma-separated list of possible moods to select from.",
       "type": "string",
       "default": "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
       "required": true
     },
     {
-      "key": "reviewQuestions",
+      "key": "dailyReviewQuestions",
       "title": "Daily Journal Questions",
       "description": "Optional string that includes both the Journal/Review questions and how to lay out the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
       "type": "string",

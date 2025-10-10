@@ -1,12 +1,12 @@
-# What's changed in 💭 Journalling Plugin?
+# What's changed in 💭 Journalling Helpers Plugin?
 _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md)._
 
 <!-- TODO: improved flexibility of questions -->
 
 ## [1.0.0] - 2025-10-10
-_I've somewhat  arbitrarily promoted this to v1.0 -- though I think it deserves it after 4.5 years._
+_I've somewhat  arbitrarily promoted this to v1.0 -- though I think it deserves it after 4.5 years. Renamed it to "Journalling Helpers Plugin"._
 ### Added
-- new **/dayEnd**, **/todayEnd** and **/weekEnd** commands, that run pre-set Templates (like /dayStart etc.)
+- new **/dayEnd**, **/todayEnd** and **/weekEnd** commands, that run pre-set Templates (like /dayStart etc.). These can be useful for review or summary questions and/or tidy up operations.
 ### Changed
 - re-wrote documentation to bring it up to date with NotePlan's improvements in Templating in the last 2 years.
 
