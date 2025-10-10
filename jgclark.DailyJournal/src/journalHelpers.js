@@ -6,8 +6,6 @@
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import strftime from 'strftime'
-// import { getWeek, isDailyNote, isWeeklyNote } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { findHeadingStartsWith } from '@helpers/paragraph'
@@ -19,11 +17,14 @@ import { getInputTrimmed, isInt, showMessage } from '@helpers/userInput'
 const pluginID = 'jgclark.DailyJournal' // now out of date, but tricky to rename
 
 export type JournalConfigType = {
-  templateTitle: string, // named over a year before weekly notes became possible
-  weeklyTemplateTitle: string,
-  monthlyTemplateTitle: string,
+  startDailyTemplateTitle: string,
+  endDailyTemplateTitle: string,
+  startWeeklyTemplateTitle: string,
+  endWeeklyTemplateTitle: string,
+  startMonthlyTemplateTitle: string,
+  endMonthlyTemplateTitle: string,
   reviewSectionHeading: string,
-  reviewQuestions: string, // named over a year before weekly notes became possible
+  dailyReviewQuestions: string,
   weeklyReviewQuestions: string,
   monthlyReviewQuestions: string,
   quarterlyReviewQuestions: string,
@@ -60,7 +61,7 @@ export async function getJournalSettings(): Promise<any> { // want to use Promis
 export async function processJournalQuestions(period: string): Promise<void> {
   try {
     // Work out which note to output to
-    let outputNote = Editor
+    const outputNote = Editor
     if (Editor.note == null || Editor.type !== 'Calendar') {
       logError(pluginJson, `Editor isn't open with a Calendar note open. Stopping.`)
       await showMessage('Please run again with a calendar note open.')
@@ -71,7 +72,7 @@ export async function processJournalQuestions(period: string): Promise<void> {
     let questionLines: Array<string> = []
     switch (period) {
       case 'day': {
-        questionLines = config.reviewQuestions.split('\n')
+        questionLines = config.dailyReviewQuestions.split('\n')
         break
       }
       case 'week': {

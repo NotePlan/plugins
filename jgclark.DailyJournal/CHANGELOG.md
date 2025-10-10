@@ -3,6 +3,13 @@ _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/ma
 
 <!-- TODO: improved flexibility of questions -->
 
+## [1.0.0] - 2025-10-10
+_I've somewhat  arbitrarily promoted this to v1.0 -- though I think it deserves it after 4.5 years._
+### Added
+- new **/dayEnd**, **/todayEnd** and **/weekEnd** commands, that run pre-set Templates (like /dayStart etc.)
+### Changed
+- re-wrote documentation to bring it up to date with NotePlan's improvements in Templating in the last 2 years.
+
 ## [0.15.1] - 2023-06-16
 ### Added
 - **/Journalling: update plugin settings**: This command allows the plugin's settings to be changed on iOS/iPadOS.
@@ -34,7 +41,7 @@ To go with the new calendar note capabilities of NotePlan v3.7.2:
 ### Changed
 - now uses the new **Templating** framework, not the old **Templates** system.  The 'Daily Note Template' file now lives in the new top-level 'Templates' folder listed as one of the Smart Folders.
 - removed ability to read its settings from the old _configuration note: from now on you need to use the (much easier) user interface by clicking the ⚙️ button in the Plugin Preferences pane.
-
+<!--
 ## [0.11.1..0.11.4] - 2022-02-04
 ### Changed
 - now using new Configuration UI system instead of _configuration.
@@ -92,6 +99,6 @@ To go with the new calendar note capabilities of NotePlan v3.7.2:
 ### Changed
 - use Template system (from '**NoteHelpers**' plugin) to provide the `Daily Note Template`. This template title defaults to 'Daily Note Template', but can be configured in `pref_templateText ` (as above).
 - updated code to use newer NotePlan APIs
-
+-->
 ## [0.4.0] - 2021-04-24
 - first main release

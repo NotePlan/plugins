@@ -8,12 +8,30 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md",
-  "plugin.version": "0.15.1",
-  "plugin.lastUpdateInfo": "v0.15.1: New 'Journalling: update plugin settings' command for use on iOS/iPadOS. v0.15: Added support for Monthly, Quarterly and Yearly review questions. v0.14: Added /weekStart command. \nv0.13: Added support for /weekReview, /monthReview and /quarterlyReview, each of which have settings for their different Review Questions. /dayStart now uses the template's location field to determine where in the note to insert.",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "v1.0.0: Add new '/dayEnd', '/todayEnd' and '/weekEnd' commands, that run pre-set Templates (like /dayStart etc.).\nv0.15.1: New 'Journalling: update plugin settings' command for use on iOS/iPadOS. v0.15: Added support for Monthly, Quarterly and Yearly review questions. v0.14: Added /weekStart command. \nv0.13: Added support for /weekReview, /monthReview and /quarterlyReview, each of which have settings for their different Review Questions. /dayStart now uses the template's location field to determine where in the note to insert.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
+    {
+      "name": "dayStart",
+      "alias": [
+        "daily",
+        "template"
+      ],
+      "description": "Apply Daily Note Template",
+      "jsFunction": "dayStart"
+    },
+    {
+      "name": "dayEnd",
+      "alias": [
+        "daily",
+        "template"
+      ],
+      "description": "Apply Day End Template",
+      "jsFunction": "dayEnd"
+    },
     {
       "name": "todayStart",
       "alias": [
@@ -21,17 +39,18 @@
         "today",
         "template"
       ],
-      "description": "Apply Daily Note Template to Today's Calendar Note (requires configuring)",
+      "description": "Apply Daily Note Template to Today's Calendar Note",
       "jsFunction": "todayStart"
     },
     {
-      "name": "dayStart",
+      "name": "todayEnd",
       "alias": [
-        "daily",
+        "day",
+        "today",
         "template"
       ],
-      "description": "Apply Daily Note Template (requires configuring)",
-      "jsFunction": "dayStart"
+      "description": "Apply Day End Template to Today's Calendar Note",
+      "jsFunction": "todayEnd"
     },
     {
       "name": "weekStart",
@@ -39,7 +58,13 @@
         "weekly",
         "template"
       ],
-      "description": "Apply Weekly Note Template (requires configuring)",
+      "description": "Apply Weekly Note Template",
+      "jsFunction": "weekStart"
+    },
+    {
+      "name": "weekEnd",
+      "alias": [],
+      "description": "Apply Week End Template",
       "jsFunction": "weekStart"
     },
     {
