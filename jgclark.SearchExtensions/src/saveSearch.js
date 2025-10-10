@@ -32,6 +32,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpe
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { removeSection,replaceSection, setIconForNote } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
+import { getSearchOperators } from '@helpers/search'
 import {
   chooseOption,
   getInput,
@@ -219,15 +220,27 @@ export async function saveSearch(
   try {
     const config = await getSearchSettings()
     const NPAdvancedSyntaxAvailable = NotePlan.environment.buildVersion >= 1429
+    const searchOperators = (searchTermsArg) ? getSearchOperators(searchTermsArg) : []
     logDebug(pluginJson, `Starting saveSearch() with searchTermsArg '${searchTermsArg ?? '(not supplied)'}', on NP build version ${String(NotePlan.environment.buildVersion)} and useNativeSearch? ${String(config.useNativeSearch)}`)
 
     // destructure the searchOptions object, the long way
     // Get the noteTypes to include
-    const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
-    // TODO: Note: can also be specified in the search string:
-    // - source:notes - Notes only
-    // - source:calendar - Calendar notes only
-    // - source:notes,calendar - Notes and Calendar notes
+    let noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
+    if (searchOperators) {
+      // Now check the searchOperators and use those to set noteTypesToInclude if present.
+      // - source:notes - Notes only
+      if (searchOperators.includes('source:notes')) {
+        noteTypesToInclude = ['notes']
+      }
+      // - source:calendar - Calendar notes only
+      if (searchOperators.includes('source:calendar')) {
+        noteTypesToInclude = ['calendar']
+      }
+      // - source:notes,calendar - Notes and Calendar notes
+      if (searchOperators.includes('source:notes,calendar') || searchOperators.includes('source:calendar,notes')) {
+        noteTypesToInclude = ['notes', 'calendar']
+      }
+    }
     logDebug('saveSearch', `- note types -> '${noteTypesToInclude.toString()}'`)
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
     if (!('caseSensitiveSearching' in searchOptions)) {
@@ -334,8 +347,6 @@ export async function saveSearch(
       }
     
       searchTermsRepStr = `'${validatedSearchTerms.map(term => term.termRep).join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
-
-      // Now optimise the order we tackle the search terms. Note: now moved into runExtendedSearches()
 
       // Get the paraTypes to include. Can take string (which needs turning into an array), or array (which is fine).
       logDebug('saveSearch', `- arg3 -> para types '${paraTypesToInclude.toString()}'`)
@@ -576,6 +587,6 @@ function writeToCurrentNote(
   replaceSection(currentNote, thisResultHeading, thisResultHeading, config.headingLevel, `${thisMetadataLine}\n${resultOutputLines.join('\n')}`)
 
   // Set note's icon
-  setIconForNote(currentNote, "magnifying-glass")
+  setIconForNote(currentNote, "magnifying-glass", "blue-500")
   logDebug('saveSearch', `saveSearch() finished writing to current note.`)
 }
