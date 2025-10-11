@@ -63,7 +63,7 @@ All notes in the special folders (@Archive, @Templates and @Trash) are **ignored
 Note: **Why use `@run(...)` (mentions) rather than `#run(...)` (hashtags)**? Well, it just felt more right to use `@run(...)` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`) but they are not ignored inside `@run(5.3)`.  However, you _can_ use a `#hashtag/value` if you don't mind this limitation.
 
 
-## 'appendProgressUpdate' (alias 'insertProgressUpdate' or 'habitTracker') command
+## 'appendProgressUpdate' (alias 'apu' or 'habitTracker') command
 As NotePlan is such a flexible app, there are [various ways people use it to track habits](https://help.noteplan.co/article/144-habit-tracking).
 
 This Plugin command helps show progress for items you track (e.g. `@work(9)`, `@run(5.3)`, `#prayed` or `+ [x] vitamins`) over various time periods. It does this by generating stats for the configured #hashtags or @mentions over the time interval you select, and inserts it as a section into the destination note. If the progress update section already exists in the destination note -- if for example you have it set to insert in the weekly note -- it will be updated, rather than be repeated.
@@ -125,15 +125,20 @@ or
 ```
 <%- progressUpdate({period: '2022-02-15', excludeToday: true, progressHeading: 'Post-Birthday Habits', showSparklines: true}) %>
 ```
-You can add many parameters, _which if present override all the main settings described above_. The main ones are:
-1. `period` (alias `interval`): time period to run report for, e.g. 'wtd' or 'userwtd' (week to date), 'mtd' (month to date), 'last7d', 'last2w', or 'last4w' or give a specific ISO8601 date to report since (e.g. '2022-10-25')
-2. `progressHeading` to use before the results.
-3. `showSparklines`: true (default) or false.
-4. `excludeToday`: false (default) or true (applies when you set a date for period and you don't want to include today in the visualization -- e.g. if you use this template as part of your /dayStart routine and you haven't had time to do the habit yet!)
+You can add many parameters, _which if present override all the main settings described above_. The simple settings are:
+1. `period` (alias `interval`): time period to run report for, e.g. `wtd` or `userwtd` (week to date), `mtd` (month to date), `last7d`, `last2w`, or `last4w` or give a specific ISO8601 date to report since (e.g. `2022-10-25`)
+2. `progressHeading: "string"` to use before the results.
+3. `showSparklines`: `true` (default) or `false`.
+4. `excludeToday`: `false` (default) or `true` (applies when you set a date for period and you don't want to include today in the visualization -- e.g. if you use this template as part of your /dayStart routine and you haven't had time to do the habit yet!)
 
-Each must be a `key:"value"` pair, with string values enclosed in double quotes, with following pairs separated by commas, and all enclosed in curly brackets (i.e. in [JSON5 format](https://json5.org)). The 'key' names of the other possible settings are found in the `plugin.json` file installed as part of the plugin.
-
-Note: if you specify any of the settings that take **lists** of hashtags or mentions, they overrides the same ones in the plugin settings. E.g. `{... progressYesNo:"#read,#pray,#exercise", ...}` will not use any of the usual '#hashtags or count' or '@mentions to count', but only show Yes/No for each of those 3 specific tags.
+The more complex ones are the settings that take **lists** of hashtags or mentions: E.g. `{... progressYesNo:"#read,#pray,#exercise", ...}`. If any are of these are set, then only this list will be used. Each must be a `key:"value"` pair, with string values enclosed in double quotes, with following pairs separated by commas, and all enclosed in curly brackets (i.e. in [JSON5 format](https://json5.org)). The possible 'key' names are:
+- "progressYesNo": Yes/No items    
+- "progressHashtags": #hashtags to count    
+- "progressHashtagsAverage": #hashtags to average    
+- "progressHashtagsTotal": #hashtags to total    
+- "progressMentions": @mentions to count    
+- "progressMentionsAverage": @mentions to average
+- "progressMentionsTotal": @mentions to total
 
 ### Calling by x-callback
 This is similar to the Template above: create a JSON5 version of `"key":"value"` pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=`
@@ -150,7 +155,7 @@ Notes:
 
 
 ## 'today progress' command (alias: 'tp')
-Sometimes you want to have a summary of progress on something within a day -- for example `@carlories(...)` or `@exercise(...)`. To summarise these from today's daily note use **/today progress**, which works in the same way as **/append progress update**.
+Sometimes you want to have a summary of progress on something within a day -- for example `@calories(...)` or `@exercise(...)`. To summarise these from today's daily note use **/today progress**, which works in the same way as **/append progress update**.
 
 When run by the user directly, it adds the output onto the current note, and uses the following settings from the plugin pane:
 - #hashtags and @mentions to total: a comma separated list of the terms to total from today's note
@@ -168,7 +173,7 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=todayProg
 You can also run it as part of a **template**; for example use in a "Daily Note Template" by including a line like the following: `<%- todayProgressFromTemplate({todayProgressItems: '@calories, @exercise', todayProgressHeading: 'Progress Today'}) %>`. (Note the slightly different 'command name', and that this time the parameters need to be given as a JSON5 object of key:'value' pairs.)
 
 
-## 'periodStats' command (aliases: 'statsPeriod', 'stp')
+## 'periodStats' command (aliases: 'pst', 'statsPeriod', 'stp')
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify, and saves them into notes in a special 'Summaries' folder. For example:
 - **count** every time you've noted you've visited  family this month -- i.e. counts the number of times `#family` is mentioned in calendar notes this month
 - **count** the times you've met with staff member Alice this year so far -- i.e. counts the number of times `@alice` is mentioned in calendar notes this year

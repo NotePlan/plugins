@@ -1,4 +1,5 @@
 /* eslint-disable max-len */
+/* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
@@ -46,14 +47,14 @@ import { showMessage } from "@helpers/userInput"
  */
 export async function progressUpdate(params: any = '', sourceIn: string = ''): Promise<string> {
   try {
-    logDebug(pluginJson, `progressUpdate (from template or callback): Starting with params '${params}' (type: ${typeof params}) and source '${sourceIn}'`)
+    logDebug(pluginJson, `progressUpdate (from template or callback): Starting with params '${params}' and source '${sourceIn}'`)
     const source = (sourceIn !== '') ? sourceIn
       : (typeof params === 'string')
         ? 'callback'
         : (typeof params === 'object')
           ? 'template'
           : ''
-    logDebug(pluginJson, `- source determined to be '${source}'`)
+    logDebug('progressUpdate', `- source determined to be '${source}'`)
     if (source === 'refresh') {
       // Work out what note we're called from
       const note = Editor.note
@@ -61,16 +62,16 @@ export async function progressUpdate(params: any = '', sourceIn: string = ''): P
         throw new Error('No note is open in the Editor, so cannot refresh')
       }
       const noteFilename = note.filename
-      logDebug(pluginJson, `- refresh called from filename: '${noteFilename}'`)
+      logDebug('progressUpdate', `- refresh called from filename: '${noteFilename}'`)
       const endOfPeriodDateStr = getDateStrForEndofPeriodFromCalendarFilename(noteFilename)
-      logDebug(pluginJson, `- end of period date string: '${endOfPeriodDateStr}'`)
+      logDebug('progressUpdate', `- end of period date string: '${endOfPeriodDateStr}'`)
     }
 
     // If run from a template, then return the output string. Otherwise there is no return value.
     return await makeProgressUpdate(params, source) ?? ''
   }
   catch (err) {
-    logError(pluginJson, `Error: ${err.message} in progressUpdate (for template)`)
+    logError(pluginJson, `progressUpdate (for template) Error: ${err.message}`)
     return '❗️ Error: please open Plugin Console and re-run to see more details.' // for completeness
   }
 }
@@ -90,7 +91,7 @@ export async function makeProgressUpdate(
   source: string = 'command',
 ): Promise<string | void> {
   try {
-    logDebug(pluginJson, `makeProgressUpdate: Starting with params '${paramsIn}' (type: ${typeof paramsIn}) from source '${source}'`)
+    logDebug(pluginJson, `makeProgressUpdate: Starting with params '${paramsIn}' from source '${source}'`)
 
     let config: SummariesConfig = await getSummariesSettings()
     const paramsStr = normalizeParams(paramsIn)
@@ -119,7 +120,7 @@ export async function makeProgressUpdate(
 
     const output = await createProgressOutput(settingsForGO, periodString, fromDateStr, toDateStr, config)
 
-    const { thisHeading, headingAndXCBStr } = buildHeadingAndLink(config, period, periodString, periodAndPartStr, fromDateStr, toDateStr, paramsStr)
+    const { thisHeading, headingAndXCBStr } = buildHeadingAndLink(config, period, periodString, periodAndPartStr, fromDateStr, toDateStr, paramsObj)
 
     const routed = await routeOutput(
       source,
@@ -239,16 +240,26 @@ async function createProgressOutput(
 }
 
 function buildHeadingAndLink(
-  config: SummariesConfig, period: string, periodString: string, periodAndPartStr: string, fromDateStr: string, toDateStr: string, paramsIn: string
+  config: SummariesConfig, period: string, periodString: string, periodAndPartStr: string, fromDateStr: string, toDateStr: string, paramsObjIn: any
 ): { thisHeading: string, headingAndXCBStr: string } {
   // Create params string from paramsIn with date range information added
-  logDebug('makeProgressUpdate', `- paramsIn: '${paramsIn}'`)
-  const params = (paramsIn.length > 1)
-    // eslint-disable-next-line prefer-template
-    ? paramsIn.slice(0, -1) + `, "period": "${period}", "periodString": "${periodString}", "fromDateStr": "${fromDateStr}", "toDateStr": "${toDateStr}"}`
-    : `{"period": "${period}", "periodString": "${periodString}", "fromDateStr": "${fromDateStr}", "toDateStr": "${toDateStr}"}`
-  logDebug('makeProgressUpdate', `- params string for refresh: '${params}'`)
-  const xCallbackMD = createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'progressUpdate', [params, 'refresh']) // this does URL encoding
+  // V1
+  // logDebug('buildHeadingAndLink', `- paramsStr: '${paramsStr}'`)
+  // const paramsStr = (paramsIn.length > 1)
+  //   ? paramsIn.slice(0, -1) + `, "period": "${period}", "periodString": "${periodString}", "fromDateStr": "${fromDateStr}", "toDateStr": "${toDateStr}"}`
+  //   : `{"period": "${period}", "periodString": "${periodString}", "fromDateStr": "${fromDateStr}", "toDateStr": "${toDateStr}"}`
+  // V2
+  // clo(paramsObjIn, 'buildHeadingAndLink: paramsObjIn:')
+  const params: any = { ...paramsObjIn, period, periodString, fromDateStr, toDateStr }
+  // Remove duplicate keys in params
+  const paramsUniqueByKey = Object.fromEntries(
+    new Map(Object.entries(params))
+  )
+  // clo(paramsUniqueByKey, 'buildHeadingAndLink: paramsUniqueByKey:')
+
+  const paramsStr = JSON.stringify(paramsUniqueByKey)
+  logDebug('buildHeadingAndLink', `- params string for refresh: '${paramsStr}'`)
+  const xCallbackMD = createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'progressUpdate', [paramsStr, 'refresh']) // this does URL encoding
   const thisHeading = formatWithFields(config.progressHeading, { PERIOD: periodAndPartStr ? periodAndPartStr : periodString })
   const headingAndXCBStr = `${thisHeading} ${xCallbackMD}`
   return { thisHeading, headingAndXCBStr }
@@ -257,14 +268,16 @@ function buildHeadingAndLink(
 async function routeOutput(
   source: string, config: SummariesConfig, output: string, thisHeading: string, headingAndXCBStr: string, periodString: string, periodAndPartStr: string
 ): Promise<string | void> {
-  if (source === 'template') {
-    logDebug('makeProgressUpdate', `-> returning text to template for '${thisHeading}' (${periodAndPartStr} for ${periodString})`)
-    return (config.progressHeading !== '')
-      ? `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}\n${output}`
-      : output
-  } else if (source === 'refresh') {
+  // if (source === 'template') {
+  //   // FIXME: currently this means a template call has to route its output to the current note, which doesn't match when used as a command.
+  //   logDebug('routeOutput', `-> returning text to template for '${thisHeading}' ('${periodAndPartStr}' for '${periodString}')`)
+  //   return (config.progressHeading !== '')
+  //     ? `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}\n${output}`
+  //     : output
+  // } else
+  if (source === 'refresh') {
     config.progressDestination = 'current'
-    logDebug('makeProgressUpdate', `- will refresh section '${thisHeading}' in current note for ${periodAndPartStr}`)
+    logDebug('routeOutput', `- will refresh section '${thisHeading}' in current note for '${periodAndPartStr}'`)
   } else if (source === 'todayProgressUpdate') {
     config.progressDestination = 'daily'
   }
@@ -273,33 +286,33 @@ async function routeOutput(
     case 'daily': {
       const destNote = DataStore.calendarNoteByDate(new Date(), 'day')
       if (destNote) {
-        logDebug('makeProgressUpdate', `- about to update section '${thisHeading}' in daily note '${destNote.filename}' for ${periodAndPartStr}`)
+        logDebug('routeOutput', `- about to update section '${thisHeading}' in daily note '${destNote.filename}' for '${periodAndPartStr}'`)
         replaceSection(destNote, thisHeading, headingAndXCBStr, config.headingLevel, output)
-        logInfo('makeProgressUpdate', `Updated section '${thisHeading}' in daily note '${destNote.filename}' for ${periodAndPartStr}`)
+        logInfo('routeOutput', `Updated section '${thisHeading}' in daily note '${destNote.filename}' for '${periodAndPartStr}'`)
       } else {
-        logError('makeProgressUpdate', `Cannot find weekly note to write to`)
+        logError('routeOutput', `Cannot find weekly note to write to`)
       }
       break
     }
     case 'weekly': {
       const destNote = DataStore.calendarNoteByDate(new Date(), 'week')
       if (destNote) {
-        logDebug('makeProgressUpdate', `- about to update section '${thisHeading}' in weekly note '${destNote.filename}' for ${periodAndPartStr}`)
+        logDebug('routeOutput', `- about to update section '${thisHeading}' in weekly note '${destNote.filename}' for '${periodAndPartStr}'`)
         replaceSection(destNote, thisHeading, headingAndXCBStr, config.headingLevel, output)
-        logInfo('makeProgressUpdate', `Updated section '${thisHeading}' in weekly note '${destNote.filename}' for ${periodAndPartStr}`)
+        logInfo('routeOutput', `Updated section '${thisHeading}' in weekly note '${destNote.filename}' for '${periodAndPartStr}'`)
       } else {
-        logError('makeProgressUpdate', `Cannot find weekly note to write to`)
+        logError('routeOutput', `Cannot find weekly note to write to`)
       }
       break
     }
     default: {
       const currentNote = Editor.note
       if (currentNote == null) {
-        logWarn('makeProgressUpdate', `No note is open in the Editor, so I can't write to it.`)
+        logWarn('routeOutput', `No note is open in the Editor, so I can't write to it.`)
         await showMessage(`No note is open in the Editor, so I can't write to it.`)
       } else {
         replaceSection(currentNote, thisHeading, headingAndXCBStr, config.headingLevel, output)
-        logInfo('makeProgressUpdate', `Appended progress update for ${periodString} to current note`)
+        logInfo('routeOutput', `Appended progress update for '${periodString}' to current note`)
       }
       break
     }

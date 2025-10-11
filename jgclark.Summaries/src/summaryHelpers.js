@@ -831,6 +831,7 @@ export async function generateProgressUpdate(
         }
       }
     }
+    outputArray.push('') // to ensure next content after this goes onto a new line
     return outputArray
   }
   catch (error) {

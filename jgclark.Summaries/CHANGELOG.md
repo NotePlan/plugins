@@ -2,15 +2,20 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
 
+## [1.0.1] - 2025-10-11
+### Dev
+- Fixed formation of 'Refresh' x-callbacks for /appendProgressUpdate (only noticeable to devs)
+### Fixed
+- running the `progressUpdate(...)` template tag wouldn't write to anything other than the current note.
+
 ## [1.0.0] - 2025-10-08
 _Rather arbitrarily promoting this to v1.0. But I think it deserves it after 4 years!_
 ### New
 - Adds support for 'all' time period in /periodStats command, including x-callback (for @grdn)
-- Allow override of settings for /periodStats command when called from x-callbacks (for @grdn)
-  This is achieved through a new 4th callback argument where any relevant settings can be over-ridden. (See examples in README!)
+- Allow override of settings for /periodStats command when called from x-callbacks (for @grdn).  This is achieved through a new 4th callback argument where any relevant settings can be over-ridden. (See examples in README!) Note: will work for newly-created 'Refresh' buttons, but existing progress sections may need re-generating from scratch for this to work.
 ### Changed
 - In the progress update output, if an item is asked for both in "average" and "total", then the output will show them combined, rather than as separate lines (for @joshdoyle, closes #614).
-- If you 'Refresh' an existing progress summary in an older note, it should now use the date interval when it was created, rather than the current date interval (for @vorg, closes #450)
+- If you 'Refresh' an existing progress summary in an older note, it should now use the date interval when it was created, rather than the current date interval (for @vorg, closes #450). Note: will work for newly-created 'Refresh' buttons, but existing progress sections may need re-generating from scratch for this to work.
 - Uses richer menu in /periodStats command (available from NP 3.18.0)
 - Add note icon to periodStats output notes.
 ### Fixed
