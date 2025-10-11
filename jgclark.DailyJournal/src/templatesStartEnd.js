@@ -93,7 +93,7 @@ async function renderAndInsertTemplate(
       Editor.insertTextAtCharacterIndex(result, pos)
       break
     }
-    // TODO: change this (if needed), to suit @DW changes 25.2.2023 to 'cursor: <current>'?
+    // Note: unsure if this works.
     case 'cursor': {
       logDebug(commandName, `- Will insert to Editor at cursor position`)
       Editor.insertTextAtCursor(result)

@@ -38,13 +38,16 @@ export type JournalConfigType = {
  */
 export async function getJournalSettings(): Promise<any> { // want to use Promise<JournalConfigType> but too many flow errors result
   try {
-    const tempConfig: JournalConfigType = DataStore.settings
-    if ((tempConfig != null) && Object.keys(tempConfig).length > 0) {
-      const config: JournalConfigType = tempConfig
-      // clo(config, `\t${pluginID} settings from V2:`)
-      return config
+    // Get settings using Config system
+    const config: JournalConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+
+    if (config == null || Object.keys(config).length === 0) {
+      logError(pluginJson, `getJournalSettings() cannot find '${pluginID}' plugin settings. Stopping.`)
+      await showMessage(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+      return
     } else {
-      throw new Error(`couldn't read settings for '${pluginID}.`)
+      // clo(config, `${pluginID} settings:`)
+      return config
     }
   }
   catch (error) {
@@ -172,7 +175,7 @@ export async function processJournalQuestions(period: string): Promise<void> {
           break
         }
         case 'string': {
-          let reply = await getInputTrimmed(`Please enter text`, 'OK', `Journal Q: ${question[i]}?`)
+          const reply = await getInputTrimmed(`Please enter text`, 'OK', `Journal Q: ${question[i]}?`)
           if (typeof reply === 'boolean') {
             throw ('cancelled')
           }
@@ -243,8 +246,8 @@ export function returnAnsweredQuestion(question: string): string {
   const RE_Q = `${question}.+`
   const { paragraphs } = Editor
   let result = ''
-  for (let p of paragraphs) {
-    let m = p.content.match(RE_Q)
+  for (const p of paragraphs) {
+    const m = p.content.match(RE_Q)
     if (m != null) {
       result = m[0]
     }
