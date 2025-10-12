@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2025-02-16 for v0.14.7+ by @jgclark
+// Last updated 2025-10-12 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -20,10 +20,10 @@ import {
 import {
   createOpenOrDeleteNoteCallbackUrl,
   createPrettyRunPluginLink,
+  displayFolderAndTitle,
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
-
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { showMessage } from "@helpers/userInput"
@@ -40,7 +40,8 @@ type dupeDetails = {
 //----------------------------------------------------------------------------
 
 /**
- * Private function to generate a list of potentially duplicate notes
+ * Private function to generate a list of potentially duplicate notes.
+ * Ignores folders in the 'foldersToExclude' setting, plus Trash.
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
  * @returns {Array<dupeDetails>} array of strings, one for each output line
@@ -51,17 +52,17 @@ function findDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDet
 
     const outputArray: Array<dupeDetails> = []
     let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, false, false)
-    logDebug('findDuplicateNotes', `- Found ${relevantFolderList.length} folders to check`)
-    // Get all notes to check
+    logDebug('findDuplicateNotes', `- Found ${relevantFolderList.length} folders to check: ${relevantFolderList.join('\n')}`)
+    // Get all the notes in those folders to check
     let notes: Array<TNote> = []
     for (const thisFolder of relevantFolderList) {
       const theseNotes = getProjectNotesInFolder(thisFolder)
       notes = notes.concat(theseNotes)
     }
 
-    // Get all dupes
+    // Get all dupes, now including Teamspace notes
     const counter: { [mixed]: number } = {}
-    const dupes = notes.filter(n => (counter[displayTitle(n)] = counter[displayTitle(n)] + 1 || 1) === 2)
+    const dupes = notes.filter(n => (counter[displayTitle(n, false)] = counter[displayTitle(n, false)] + 1 || 1) === 2)
     const dupeTitles = dupes.map(n => n.title ?? '')
 
     // Log details of each dupe
@@ -145,7 +146,8 @@ export async function listDuplicates(params: string = ''): Promise<void> {
         const openMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', false)
         const deleteMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', true)
         // Write out all details for this dupe
-        outputArray.push(`${String(i)}. ${thisFolder}/${thisJustFilename}: [open note](${openMe}) [❌ delete note](${deleteMe})`)
+        const teamspaceAwareFolderAndTitle = displayFolderAndTitle(n, false)
+        outputArray.push(`${String(i)}. ${teamspaceAwareFolderAndTitle}: [open note](${openMe}) [delete note ❌](${deleteMe})`)
         outputArray.push(`\t- ${String(n.paragraphs?.length ?? 0)} lines, ${String(n.content?.length ?? 0)} bytes, created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}`)
 
         // For all but the first of the duplicate set, show some comparison stats

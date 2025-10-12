@@ -1,8 +1,12 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.14.12] - 2025-10-12 @jgclark (unreleased)
+- '/List duplicates' command now has better display of Teamspace notes, and checks against the special Archive and Template folders.
+- '/List stubs' now doesn't check the special Archive and Template folders.
+
 ## [0.14.11] - 2025-09-09 @jgclark
-- improvements to '/List stubs' command, including better display of Teamspace notes
+- '/List stubs' command now has better display of Teamspace notes.
 
 ## [0.14.10] - 2025-09-03 @jgclark
 - fix regression in '/Generate @repeats from recent notes' command.

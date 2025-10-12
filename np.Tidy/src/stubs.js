@@ -55,7 +55,7 @@ function findStubs(
     const outputArray: Array<stubDetails> = []
 
     // get folder list, minus any to exclude
-    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, false, false)
+    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, false)
     logDebug('getDuplicateNotes', `- Found ${relevantFolderList.length} folders to check`)
 
     // Get all notes to check
@@ -157,10 +157,6 @@ export async function listStubs(params: string = ''): Promise<void> {
       counter++
       const n = d.note
       const titleToDisplay = (n.title !== '') ? n.title ?? 'Untitled' : 'Untitled' // to keep flow happy
-      // const thisFolder = n.filename.includes('/') ? '**' + getFolderDisplayName(getFolderFromFilename(n.filename), true) + '**' : '**root**'
-      // logDebug('listStubs', `${counter}. ${titleToDisplay} / ${d.wikilink}`)
-      // const thisJustFilename = getJustFilenameFromFullFilename(n.filename)
-      // TODO: update this function for Teamspaces
       const thisFolderAndTitle = displayFolderAndTitle(n, false)
       // Make some button links
       const openMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'subWindow', false)
