@@ -256,10 +256,11 @@ export async function openNoteInNewWindowIfNeeded(filename: string): Promise<boo
 /**
  * Open a calendar note in a split editor, and (optionally) move insertion point to 'cursorPointIn'
  * @author @jgclark
- * @param {*} filename
- * @param {*} cursorPointIn
+ * @param {string} filename
+ * @param {string | number} cursorPointIn
  */
 export async function openCalendarNoteInSplit(filename: string, cursorPointIn?: string | number = 0): Promise<void> {
+  logDebug('openCalendarNoteInSplit', `Opening calendar note '${filename}' in split at cursor point ${cursorPointIn}`)
   // For some reason need to add a bit to get to the right place.
   const cursorPoint = (typeof cursorPointIn === 'string') ? parseInt(cursorPointIn) + 21 : cursorPointIn + 21
   const res = Editor.openNoteByDateString(filename.split('.')[0], false, cursorPoint, cursorPoint, true)
@@ -270,12 +271,12 @@ export async function openCalendarNoteInSplit(filename: string, cursorPointIn?: 
 }
 
 /**
- * Opens note in new split, if it's not already open in one
+ * Opens note in new split, if it's not already open in one. (Does not create an empty note if it doesn't already exist.)
  * @param {string} filename to open in split
  * @returns {boolean} success?
  */
 export async function openNoteInNewSplitIfNeeded(filename: string): Promise<boolean> {
-  const res = await Editor.openNoteByFilename(filename, false, 0, 0, true, true) // create new split (and the note if needed) // TODO(@EduardMe): this doesn't create an empty note if needed for Calendar notes
+  const res = await Editor.openNoteByFilename(filename, false, 0, 0, true, false) // create new split
   if (res) {
     logDebug('openWindowSet', `Opened split window '${filename}'`)
   } else {

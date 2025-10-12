@@ -10,15 +10,6 @@ import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getNoteFromFilename } from '@helpers/NPnote'
 
-export async function testRemoveEmptyElements(): Promise<void> {
-  // await removeEmptyElements() // ❌
-  // await removeEmptyElements("Editor") // ❌
-  // await removeEmptyElements("Editor", true) // ✅
-  await removeEmptyElements('Editor', false) // ❌
-  // await removeEmptyElements("TEST/Tidy TESTs/Empty Block TESTs.md", false) // ❌
-  // await removeEmptyElements("TEST/Tidy TESTs/Empty Block TESTs.md", false) // ✅
-}
-
 /**
  * PASS 1: Removes empty list items, quotes, and headings with no content
  *
@@ -30,21 +21,21 @@ export async function testRemoveEmptyElements(): Promise<void> {
  * @returns {boolean} - Whether any changes were made
  *
  * @example
- * // When preserveHeadings = false (default):
- * // Removes: "- " (empty list item)
- * // Removes: "> " (empty quote)
- * // Removes: "# " (empty heading)
- * // Preserves: "- Some content" (list with content)
- * // Preserves: "> Some quote" (quote with content)
- * // Preserves: "# Some heading" (heading with content)
+ * When preserveHeadings = false (default):
+ * - Removes: "- " (empty list item)
+ * - Removes: "> " (empty quote)
+ * - Removes: "# " (empty heading)
+ * - Preserves: "- Some content" (list with content)
+ * - Preserves: "> Some quote" (quote with content)
+ * - Preserves: "# Some heading" (heading with content)
  *
- * // When preserveHeadings = true:
- * // Removes: "- " (empty list item)
- * // Removes: "> " (empty quote)
- * // Preserves: "# " (empty heading - structure preserved)
- * // Preserves: "- Some content" (list with content)
- * // Preserves: "> Some quote" (quote with content)
- * // Preserves: "# Some heading" (heading with content)
+ * When preserveHeadings = true:
+ * - Removes: "- " (empty list item)
+ * - Removes: "> " (empty quote)
+ * - Preserves: "# " (empty heading - structure preserved)
+ * - Preserves: "- Some content" (list with content)
+ * - Preserves: "> Some quote" (quote with content)
+ * - Preserves: "# Some heading" (heading with content)
  */
 function removeEmptyListItemsAndHeadings(note: TNote, preserveHeadings: boolean = false): boolean {
   const paragraphs = note.paragraphs
@@ -259,14 +250,14 @@ function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean, p
  * @returns {Promise<void>} - Promise that resolves when the operation is complete
  *
  * @example
- * // Normal behavior - removes empty headings and sections
- * await removeEmptyElements('Editor', false, false)
+ * Normal behavior - removes empty headings and sections
+ * - await removeEmptyElements('Editor', false, false)
  *
- * // Preserve heading structure - keeps all headings, even empty ones
- * await removeEmptyElements('Editor', false, true)
+ * Preserve heading structure - keeps all headings, even empty ones
+ * - await removeEmptyElements('Editor', false, true)
  *
- * // Remove all empty lines while preserving heading structure
- * await removeEmptyElements('Editor', true, true)
+ * Remove all empty lines while preserving heading structure
+ * - await removeEmptyElements('Editor', true, true)
  *
  * @author @jgclark
  */

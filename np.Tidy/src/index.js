@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 2025-09-24 for v1.0.0 by @jgclark
+// Last updated 2025-10-12 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -26,7 +26,7 @@ export {
 export { listConflicts, openConflictSideBySide, resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion } from './conflicts'
 export { listPotentialDoubles } from './doubledNotes'
 export { listDuplicates } from './duplicates'
-export { removeEmptyElements, testRemoveEmptyElements } from './emptyElements'
+export { removeEmptyElements } from './emptyElements'
 export { fileRootNotes } from './fileRoot'
 export { generateRepeatsFromRecentNotes } from './repeats'
 export { removeSectionFromAllNotes, removeSectionFromRecentNotes } from './removeSections'
@@ -38,6 +38,7 @@ export { moveTopLevelTasksInEditor } from './topLevelTasks'
  */
 // eslint-disable-next-line import/order
 export { onUpdateOrInstall, init, onSettingsUpdated } from './triggers-hooks'
+export { openCalendarNoteInSplit } from '@helpers/NPWindows'
 
 // Note: not yet written or used:
 // export { onOpen, onEditorWillSave } from './NPTriggers-Hooks'

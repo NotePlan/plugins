@@ -6,8 +6,8 @@
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "1.0.0-b3",
-  "plugin.lastUpdateInfo": "v1.0.0: new '/Remove empty elements' command, and its setting 'Strip all empty lines?'. New setting 'Ignore future calendar notes?' for '/Remove section from all notes' command.\nv0.14.11: improvements to '/List stubs' command.\nv0.14.10: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.9: update '/Generate @repeats from recent notes' and '/Remove blank notes' commands.\nv0.14.8: improvements to '/Remove section from all notes' command.\nv0.14.7: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.6: fix to allow top-level tasks to be run by template.\nv0.14.5: fix to allow top-level tasks to be run by xcallback.\nv0.14.4: fix to allow blank Calendar notes to be removed by '/remove blank notes'.\nv0.14.3: fix unwanted popups in '/generate @repeats from recent notes' command.\nv0.14.2: add new option to file root notes.\nv0.14.1: rebuild.\nv0.14.0: new '/Generate repeats' command.",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "v1.0.0: new '/Remove empty elements' command, and its setting 'Strip all empty lines?'. New setting 'Ignore future calendar notes?' for '/Remove section from all notes' command. Other fixes and improvements.\nv0.14.11: improvements to '/List stubs' command.\nv0.14.10: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.9: update '/Generate @repeats from recent notes' and '/Remove blank notes' commands.\nv0.14.8: improvements to '/Remove section from all notes' command.\nv0.14.7: fix regression in '/Generate @repeats from recent notes' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -45,7 +45,7 @@
       "alias": [
         "conflicts"
       ],
-      "description": "Creates/updates a note that lists all notes on this device that have conflicts. (Requires NP v3.9.3)",
+      "description": "Creates/updates a note that lists all notes on this device that have conflicts",
       "jsFunction": "listConflicts"
     },
     {
@@ -132,17 +132,6 @@
         "filename (or 'Editor' for the open note in the Editor) -- default: Editor",
         "stripAllEmptyLines -- default: false; By default, multiple consecutive empty lines are reduced to a single empty line. But if this is set to true, then all empty lines will be removed.",
         "preserveHeadingStructure -- default: false; When true, keeps all headings (even empty ones) to maintain note templates and structure. Useful for preserving heading hierarchy in templates."
-      ]
-    },
-    {
-      "name": "TEST: Remove empty elements",
-      "description": "Test for /ree",
-      "jsFunction": "testRemoveEmptyElements",
-      "alias": [
-        "tree"
-      ],
-      "arguments": [
-        "filename"
       ]
     },
     {
@@ -354,6 +343,16 @@
       "type": "string",
       "default": "Possible Doubled Notes.md",
       "required": true
+    },
+    {
+      "hidden": true,
+      "name": "openCalendarNoteInSplit",
+      "description": "Open calendar note in a split window (for callback)",
+      "jsFunction": "openCalendarNoteInSplit",
+      "arguments": [
+        "filename",
+        "cursor point (optional)"
+      ]
     },
     {
       "key": "stubsNoteFilename",

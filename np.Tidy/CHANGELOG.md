@@ -1,10 +1,11 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
-## [1.0.0] - 2025-09-23??? @jgclark
+## [1.15.0] - 2025-10-12 @jgclark
+- rather arbitrarily promoting this to v1.x, after 2.5 years :-)
 - New command **/Remove empty blocks** which in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line.
-- new setting 'Ignore future calendar notes?' for '/Remove section from all notes' command
-- rather arbitrarily promoting this to v1.0 after 2.5 years :-)
+- new setting 'Ignore future calendar notes?' for **/Remove section from all notes** command
+- improvements to **/List Doubled Notes** command
 <!-- Perhaps improvement to Remove Section from all notes ? -->
 
 ## [0.14.11] - 2025-09-09 @jgclark
@@ -25,7 +26,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README
 - Stop lots of popups appearing when running **/Generate @repeats in recent notes** command (thanks, @kanera).
 - The **/List stubs** command now understands line links (and so ignores the part of the link after the `^` character) (thanks, @ChrisMetcalf).
 - Improved descriptions of some settings.
-
+<!--
 ## [0.14.6] - 2025-02-16 @dwertheimer
 - Minor fix to calling **/Move top-level tasks to heading** from a template
 
@@ -119,3 +120,4 @@ First release, implementing these commands:
 - **Remove @done() markers** (alias "rdm"): Remove @done() markers from recently-updated notes.
 
 Most can be used with parameters from a Template, or via an x-callback call.
+-->
