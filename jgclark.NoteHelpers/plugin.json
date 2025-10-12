@@ -264,14 +264,13 @@
       "hidden": true
     },
     {
-      "comment": "TODO: delete me soon",
+      "hidden": true,
       "name": "test: choose folder",
       "description": "Test the chooseFolder function",
       "jsFunction": "testChooseFolder",
       "alias": [
         "tcf"
-      ],
-      "hidden": true
+      ]
     },
     {
       "name": "Write changed/modified date to frontmatter",
@@ -289,40 +288,6 @@
       "alias": [],
       "arguments": [],
       "hidden": true
-    }
-  ],
-  "offerToDownloadPlugin": {
-    "id": "jgclark.WindowTools",
-    "minVersion": "1.0.0"
-  },
-  "commandMigrationMessage": "Note: the 'open ... note in new ...' commands have been migrated to the WindowTools plugin.",
-  "plugin.disabled_commands": [
-    {
-      "name": "Show This Month",
-      "alias": [
-        "stm",
-        "month"
-      ],
-      "description": "Open the current Month note",
-      "jsFunction": "showMonth"
-    },
-    {
-      "name": "Show This Quarter",
-      "alias": [
-        "stq",
-        "quarter"
-      ],
-      "description": "Open the current Quarter note",
-      "jsFunction": "showQuarter"
-    },
-    {
-      "name": "Show This Year",
-      "alias": [
-        "sty",
-        "year"
-      ],
-      "description": "Open the current Year note",
-      "jsFunction": "showYear"
     }
   ],
   "plugin.settings": [
