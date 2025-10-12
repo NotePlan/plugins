@@ -76,7 +76,7 @@ describe('paragraph.js', () => {
     })
   })
 
-  describe('termNotInURL()', () => {
+  describe('isTermInURL()', () => {
     test('should find search term in a URL', () => {
       const result = p.isTermInURL('tennis', 'Something about http://www.tennis.org/')
       expect(result).toEqual(true)

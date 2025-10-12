@@ -170,25 +170,41 @@ export function rangeToString(r: TRange): string {
 
 /**
  * Return title of note useful for display.
- * FIXME(EduardMe): Produces error for Teamspace Calendar notes.
+ * Now updated for Teamspace notes
  * Note: local copy of this in helpers/paragraph.js to avoid circular dependency.
+ * Now updated for Teamspace notes (with 👥 icon)
  * @author @jgclark
  *
- * @param {?CoreNoteFields} n - note to get title for
+ * @param {CoreNoteFields} note to get title for
+ * @param {boolean} addTeamspaceIconAndName - whether to add the 👥 icon and teamspace name to the title, where relevant
  * @return {string}
  */
-export function displayTitle(n: ?CoreNoteFields): string {
-  if (!n) {
+export function displayTitle(note: CoreNoteFields, addTeamspaceIconAndName: boolean = true): string {
+  if (!note) {
     logError('general/displayTitle', 'No note found')
     return '(error: no note found)'
   }
-  if (n.type === 'Calendar') {
-    if (getDateStringFromCalendarFilename(n.filename)) {
-      return getDateStringFromCalendarFilename(n.filename)
+  const basicDisplayTitle = note.title ?? '?'
+  const isTeamspaceNote = note.isTeamspaceNote
+  if (isTeamspaceNote && addTeamspaceIconAndName) {
+    const teamspaceName = note.teamspaceTitle ?? '?'
+    const teamspaceDetails = parseTeamspaceFilename(note.filename)
+    const filenameWithoutTeamspaceID = teamspaceDetails.filename ?? '?'
+    
+    if (note.type === 'Calendar') {
+      return `[👥 ${teamspaceName}] ${filenameWithoutTeamspaceID}`
+    } else {
+      return `[👥 ${teamspaceName}] ${basicDisplayTitle}`
     }
   } else {
-    if (n.title) {
-      return n.title
+    if (note.type === 'Calendar') {
+      if (getDateStringFromCalendarFilename(note.filename)) {
+        return getDateStringFromCalendarFilename(note.filename)
+      }
+    } else {
+      if (note.title) {
+        return note.title
+      }
     }
   }
   logError('general/displayTitle', 'No title found')
@@ -197,7 +213,7 @@ export function displayTitle(n: ?CoreNoteFields): string {
 
 /**
  * Return title of note useful for display, starting with folder path.
- * Now updated for Teamspace notes
+ * Now updated for Teamspace notes (with 👥 icon)
  * @author @jgclark
  *
  * @param {CoreNoteFields} note
@@ -483,6 +499,7 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
       throw new Error('JSON5 parsing did not return an object')
     }
     // clo(paramObj, 'paramObj')
+    // $FlowIgnore(invalid-computed-prop)
     const output = paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
     // logDebug('general/getTagParamsFromString', `--> ${output} type ${typeof output}`)
     return output

@@ -5,6 +5,7 @@
 
 import { getDateStringFromCalendarFilename } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
+import { parseTeamspaceFilename } from './teamspace'
 import { getElementsFromTask } from './sorting'
 import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import {
@@ -184,7 +185,6 @@ export function isTermInEventLinkHiddenPart(term: string, input: string): boolea
 /**
  * Check to see if search term is present in 'path' part of a string potentially containing a markdown link [...](path), using case insensitive searching.
  * Now updated to _not match_ if the search term is present in the rest of the line.
- * FIXME: errors in tests now, and termNotInURL.
  * @author @jgclark
  *
  * @tests available in jest file
@@ -243,21 +243,45 @@ export function contentRangeToString(content: string, r: TRange): string {
 }
 
 /**
- * Return title of note useful for display, including for
- * - daily calendar notes (the YYYYMMDD)
- * - weekly notes (the YYYY-Wnn)
+ * Return title of note useful for display.
+ * Now updated for Teamspace notes (with 👥 icon).
  * Note: this is a local copy of the main helpers/general.js to avoid a circular dependency
  * @author @jgclark
  *
- * @param {?TNote} n - note to get title for
+ * @param {CoreNoteFields} note to get title for
+ * @param {boolean} addTeamspaceIconAndName - whether to add the 👥 icon and teamspace name to the title, where relevant
  * @return {string}
  */
-export function displayTitle(n: ?CoreNoteFields): string {
-  return !n
-    ? '(error)'
-    : n.type === 'Calendar'
-    ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
-    : n.title ?? '(error)'
+export function displayTitle(note: CoreNoteFields, addTeamspaceIconAndName: boolean = true): string {
+  if (!note) {
+    logError('general/displayTitle', 'No note found')
+    return '(error: no note found)'
+  }
+  const basicDisplayTitle = note.title ?? '?'
+  const isTeamspaceNote = note.isTeamspaceNote
+  if (isTeamspaceNote && addTeamspaceIconAndName) {
+    const teamspaceName = note.teamspaceTitle ?? '?'
+    const teamspaceDetails = parseTeamspaceFilename(note.filename)
+    const filenameWithoutTeamspaceID = teamspaceDetails.filename ?? '?'
+    
+    if (note.type === 'Calendar') {
+      return `[👥 ${teamspaceName}] ${filenameWithoutTeamspaceID}`
+    } else {
+      return `[👥 ${teamspaceName}] ${basicDisplayTitle}`
+    }
+  } else {
+    if (note.type === 'Calendar') {
+      if (getDateStringFromCalendarFilename(note.filename)) {
+        return getDateStringFromCalendarFilename(note.filename)
+      }
+    } else {
+      if (note.title) {
+        return note.title
+      }
+    }
+  }
+  logError('general/displayTitle', 'No title found')
+  return '(error: no title found)'
 }
 
 /**
