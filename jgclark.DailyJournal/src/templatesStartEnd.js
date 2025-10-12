@@ -53,10 +53,12 @@ const NOTE_TYPE_CONFIG = {
  */
 async function ensureCorrectNoteOpen(isNoteType: Function, noteType: string, workToday: boolean): Promise<void> {
   if (Editor.note && isNoteType(Editor.note) && !workToday) {
+    // $FlowIgnore(invalid-computed-property-type) .note is a superset of CoreNoteFields
     logDebug('ensureCorrectNoteOpen', `Will work on the open ${noteType} note '${displayTitle(Editor.note)}'`)
   } else {
     logInfo('ensureCorrectNoteOpen', `Started without a ${noteType} note open, so will open and work in this ${noteType}'s note.`)
     await Editor.openNoteByDate(new Date(), false, 0, 0, false, noteType)
+    // $FlowIgnore(invalid-computed-property-type) .note is a superset of CoreNoteFields
     logDebug('ensureCorrectNoteOpen', `- for '${displayTitle(Editor.note)}'`)
   }
 }
