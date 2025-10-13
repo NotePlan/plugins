@@ -1,25 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2025-06-20 for v0.14.7+ by @jgclark
+// Last updated 2025-10-12 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { constrainMainWindow } from '@helpers/NPWindows'
 import { getSettings, percentWithTerm } from './tidyHelpers'
-import {
-  relativeDateFromDate,
-} from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, timer } from '@helpers/dev'
-import {
-  createPrettyRunPluginLink,
-  createRunPluginCallbackUrl,
-  displayTitle,
-  getTagParamsFromString,
-} from '@helpers/general'
-import { getProjectNotesInFolder } from '@helpers/folders'
+import { relativeDateFromDate } from '@helpers/dateTime'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, getTagParamsFromString } from '@helpers/general'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { noteOpenInEditor, openCalendarNoteInSplit } from '@helpers/NPWindows'
+import { noteOpenInEditor } from '@helpers/NPWindows'
 import { showMessage } from "@helpers/userInput"
 
 const pluginID = 'np.Tidy'
@@ -49,7 +41,10 @@ function findPotentialDoubledNotes(): Array<DoubleDetails> {
     const calendarNotes = DataStore.calendarNotes.slice().filter(n => n.paragraphs.length > 8)
 
     // Look at each and see if it looks doubled
+    let i = 0
     for (const n of calendarNotes) {
+      i++
+      CommandBar.showLoading(true, `Checking note ${String(i)}`, i / calendarNotes.length)
       // Split note content into halves
       const contentLength = n.paragraphs.length
       // Get all content by joining .content of all paragraphs
@@ -69,6 +64,7 @@ function findPotentialDoubledNotes(): Array<DoubleDetails> {
         outputArray.push({ filename: n.filename, contentLength: allContent.length, matchLevel: percentDiff })
       }
     }
+    CommandBar.showLoading(false)
     return outputArray
   }
   catch (err) {
@@ -120,6 +116,7 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
         outputArray.push(`- ${titleToDisplay} [open note in split](${openURL}): match ${d.matchLevel.toPrecision(3)}. (${String(n.paragraphs?.length ?? 0)} lines, ${String(d.contentLength)} bytes, last updated ${relativeDateFromDate(n.changedDate)})`)
       } else {
         // error
+        logWarn('listPotentialDoubledNotes', `- Couldn't find note '${d.filename}'`)
       }
     }
 

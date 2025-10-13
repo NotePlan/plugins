@@ -2,17 +2,18 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-06-24 for v0.14.8, @jgclark
+// Last updated 2025-09-23 for v1.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { moveTopLevelTasksInNote } from './topLevelTasks'
 import { getSettings, type TidyConfig } from './tidyHelpers'
+import { filenameIsInFuture } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
 import { allNotesSortedByChanged, pastCalendarNotes, removeSection } from '@helpers/note'
 import { getNotesChangedInIntervalFromList } from '@helpers/NPnote'
-import { findHeading, findHeadingInNotes, removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
+import { findHeading, removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -82,8 +83,15 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
 
     // Now keep only those changed recently (or all if numDays === 0)
     // $FlowFixMe[incompatible-type]
-    const notesToProcess: Array<TNote> = numDays > 0 ? getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), numDays) : allMatchedNotes
+    let notesToProcess: Array<TNote> = numDays > 0 ? getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), numDays) : allMatchedNotes
     numToRemove = notesToProcess.length
+
+    // Now filter out any future calendar notes if the setting is enabled
+    if (notesToProcess.length > 0 && config.ignoreFutureCalendarNotes) {
+      notesToProcess = notesToProcess.filter((n) => n.type !== 'Calendar' || !filenameIsInFuture(n.filename))
+      logDebug('removeSectionFromRecentNotes', `- filtered out ${String(numToRemove - notesToProcess.length)} future calendar notes`)
+      numToRemove = notesToProcess.length
+    }
 
     if (numToRemove > 0) {
       logDebug('removeSectionFromRecentNotes', `- ${String(numToRemove)} are in the right date interval:`)
@@ -160,9 +168,11 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     logDebug('removeSectionFromAllNotes', `matchType: '${config.matchType}'`)
     logDebug('removeSectionFromAllNotes', `removeFoldersToExclude: '${String(config.removeFoldersToExclude)}'`)
 
-    // Now see how many matching headings there are
-    let parasToRemove = await findHeadingInNotes(sectionHeading, config.matchType, config.removeFoldersToExclude, true)
-    // Ideally work out how many this will remove, and then use this code:
+    // For speed, first multi-core search the notes to find the notes that contain this string. 
+    let allInstancesOfSectionHeadingString = await DataStore.search(sectionHeading, ['calendar', 'notes'], [], config.removeFoldersToExclude)
+    // Then filter to just the headings that match sectionHeading.
+    let parasToRemove = allInstancesOfSectionHeadingString.filter((n) => n.type === 'title' && n.content === sectionHeading && n.headingLevel !== 1)
+    // Check if user wants to proceed
     if (parasToRemove.length > 0) {
       if (!runSilently) {
         const res = await showMessageYesNo(`Are you sure you want to remove ${String(parasToRemove.length)} '${sectionHeading}' sections? (See Plugin Console for full list)`, ['Yes', 'No'], 'Remove Section from Notes')

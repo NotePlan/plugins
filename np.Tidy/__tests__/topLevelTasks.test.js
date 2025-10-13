@@ -103,12 +103,19 @@ beforeEach(() => {
       noteType: 'Calendar',
     },
   ]
+  // $FlowIgnore[prop-missing]
   paragraphs[0].children = () => []
+  // $FlowIgnore[prop-missing]
   paragraphs[1].children = () => []
+  // $FlowIgnore[prop-missing]
   paragraphs[2].children = () => [paragraphs[3], paragraphs[4], paragraphs[5]]
+  // $FlowIgnore[prop-missing]
   paragraphs[3].children = () => [paragraphs[4], paragraphs[5]]
+  // $FlowIgnore[prop-missing]
   paragraphs[4].children = () => []
+  // $FlowIgnore[prop-missing]
   paragraphs[5].children = () => []
+  // $FlowIgnore[prop-missing]
   paragraphs[6].children = () => []
   globalNote = new Note({ paragraphs })
 })
@@ -155,7 +162,7 @@ describe(`${PLUGIN_NAME}`, () => {
             { headingLevel: 0, type: 'open', content: 'Task 2' },
           ],
         }
-
+        // $FlowIgnore[prop-missing]
         const result = f.getTopLevelTasks(mockNote)
 
         expect(result).toEqual([mockNote.paragraphs[0]])
@@ -166,6 +173,7 @@ describe(`${PLUGIN_NAME}`, () => {
           paragraphs: [{ headingLevel: 1, type: 'open', content: 'Task 1' }],
         }
 
+        // $FlowIgnore[prop-missing]
         const result = f.getTopLevelTasks(mockNote)
 
         expect(result).toEqual([])
@@ -175,6 +183,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result.length).toEqual(5)
       })
       it('should work with empty note', () => {
+        // $FlowIgnore[prop-missing]
         const result = f.getTopLevelTasks({ paragraphs: [] })
         expect(result.length).toEqual(0)
       })
@@ -215,6 +224,7 @@ describe(`${PLUGIN_NAME}`, () => {
       // it is tested elsewhere
       beforeEach(() => {
         jest.spyOn(ParentsAndChildren, 'getParagraphParentsOnly').mockImplementation((paragraphs: TParagraph[]) => {
+          // $FlowIgnore[method-unbinding]
           return paragraphs.map((para) => ({ parent: para, children: para.children || [] }))
         })
       })
@@ -229,6 +239,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
       it('should handle single parent without children', () => {
         const parent = { id: 1, content: 'Parent', children: () => [] }
+        // $FlowIgnore[prop-missing]
         expect(f.getFlatArrayOfParentsAndChildren([parent])).toEqual([parent])
       })
 
@@ -236,6 +247,8 @@ describe(`${PLUGIN_NAME}`, () => {
         const child1 = { lineIndex: 2, content: 'Child 1', children: () => [] }
         const child2 = { lineIndex: 3, content: 'Child 2', children: () => [] }
         const parent = { lineIndex: 1, content: 'Parent', children: () => [child1, child2] }
+        // $FlowIgnore[prop-missing]
+        // $FlowIgnore[incompatible-call]
         expect(f.getFlatArrayOfParentsAndChildren([parent])).toEqual([parent, child1, child2])
       })
 
@@ -245,6 +258,8 @@ describe(`${PLUGIN_NAME}`, () => {
         const parent2 = { lineIndex: 3, content: 'Parent 2', children: () => [] }
         const child2 = { lineIndex: 4, content: 'Child 2', children: () => [] }
         const parent3 = { lineIndex: 5, content: 'Parent 3', children: () => [child2] }
+        // $FlowIgnore[prop-missing]
+        // $FlowIgnore[incompatible-call]
         expect(f.getFlatArrayOfParentsAndChildren([parent1, parent2, parent3])).toEqual([parent1, child1, parent2, parent3, child2])
       })
       it('should deal with real-world example', () => {
@@ -307,7 +322,7 @@ describe(`${PLUGIN_NAME}`, () => {
         Editor.paragraphs = globalNote.paragraphs
         Editor.note = globalNote
         // test the return-as-string version
-        const result = await f.moveTopLevelTasksInEditor('', true, 'false')
+        const result = await f.moveTopLevelTasksInEditor('', true, false)
         // expect result to be a string
         expect(result).toEqual(expect.any(String))
         expect(result).toEqual('')

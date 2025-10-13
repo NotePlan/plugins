@@ -1,6 +1,14 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.15.0] - 2025-10-12 @jgclark + @dwertheimer
+- rather arbitrarily promoting this to v1.x, after 2.5 years :-)
+- New command **/Remove empty blocks** which in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line.
+- New command **/List missing daily notes** in last year
+- new setting 'Ignore future calendar notes?' for **/Remove section from all notes** command
+- improvements to **/List Doubled Notes** command
+<!-- Perhaps improvement to Remove Section from all notes ? -->
+
 ## [0.14.12] - 2025-10-12 @jgclark (unreleased)
 - '/List duplicates' command now has better display of Teamspace notes, and checks against the special Archive and Template folders.
 - '/List stubs' now doesn't check the special Archive and Template folders.
@@ -23,7 +31,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README
 - Stop lots of popups appearing when running **/Generate @repeats in recent notes** command (thanks, @kanera).
 - The **/List stubs** command now understands line links (and so ignores the part of the link after the `^` character) (thanks, @ChrisMetcalf).
 - Improved descriptions of some settings.
-
+<!--
 ## [0.14.6] - 2025-02-16 @dwertheimer
 - Minor fix to calling **/Move top-level tasks to heading** from a template
 
@@ -112,8 +120,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README
 ## [0.1.0] - 2023-01-04 (unreleased) @jgclark
 First release, implementing these commands:
 - **Remove section from recent notes** (alias "rsfrn"): Remove a given section (both the heading and its content) from recently-changed notes. (Can be used with parameters from Template or x-callback.)
-- **Remove section from all notes** (alias "rcuh"). Remove a given section (both the heading and its content) from all notes. (Can be used with parameters from Template or x-callback.)
+- **Remove section from all notes** (alias "rsan"). Remove a given section (both the heading and its content) from all notes. (Can be used with parameters from Template or x-callback.)  _Dangerous!_
 - **Remove time parts from @done() dates** (alias "rtp"): Remove time parts of @done(date time) from recently-updated notes. Can be used with parameters from Template or Callback.
 - **Remove @done() markers** (alias "rdm"): Remove @done() markers from recently-updated notes.
 
 Most can be used with parameters from a Template, or via an x-callback call.
+-->

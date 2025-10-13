@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 2025-02-16 for v0.14.8 by @jgclark
+// Last updated 2025-10-13 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -20,27 +20,30 @@ export {
 } from './removeSections'
 export {
   logNotesChangedInInterval,
-  removeDoneMarkers,
-  removeOrphanedBlockIDs,
-  removeTriggersFromRecentCalendarNotes,
-  removeDoneTimeParts,
   removeBlankNotes,
-  tidyUpAll,
+  removeDoneMarkers,
+  removeDoneTimeParts,
+  removeOrphanedBlockIDs,
   removeTodayTagsFromCompletedTodos,
+  removeTriggersFromRecentCalendarNotes,
+  tidyUpAll,
 } from './tidyMain'
 export { listConflicts, openConflictSideBySide, resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion } from './conflicts'
+export { listPotentialDoubles } from './doubledNotes'
 export { listDuplicates } from './duplicates'
+export { removeEmptyElements } from './emptyElements'
 export { fileRootNotes } from './fileRoot'
+export { listMissingDailyNotes } from './missingDailyNotes'
 export { generateRepeatsFromRecentNotes } from './repeats'
 export { listStubs } from './stubs'
 export { moveTopLevelTasksInEditor } from './topLevelTasks'
-export { listPotentialDoubles } from './doubledNotes'
 
 /**
  * Other imports/exports
  */
 // eslint-disable-next-line import/order
 export { onUpdateOrInstall, init, onSettingsUpdated } from './triggersHooks'
+export { openCalendarNoteInSplit } from '@helpers/NPWindows'
 
 // Note: not yet written or used:
 // export { onOpen, onEditorWillSave } from './NPTriggers-Hooks'

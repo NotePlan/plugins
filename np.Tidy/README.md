@@ -7,12 +7,14 @@ This plugin provides commands to help tidy up your notes:
 - **/List conflicted notes** (alias "conflicts"): creates/updates a note that lists all your notes on your current device with file-level conflicts, along with summary details about them. It gives options to delete one or other of the conflicted versions, or to open them side-by-side for easier comparison.
     ![](conflicted-notes-v0.13.0.png)
     (See more details below.)
+- **/List doubled notes**:  creates/updates a note that lists calendar notes that potentially have doubled content (i.e. internal duplication). Note: this is unlikely to happen, but it happened to me a lot for reasons I don't understand. This command helped me go through the notes and manually delete the duplicated content.
 - **/List duplicate notes** (alias "dupes"): creates/updates a note that lists all your notes with identical titles, along with summary details about those potential duplicates. It gives options to delete one or other of the conflicted versions:
     ![](duplicate-note-display@2x.png)
-- **/List doubled notes**:  creates/updates a note that lists calendar notes that potentially have doubled content (i.e. internal duplication). Note: this is unlikely to happen, but it happened to me a lot for reasons I don't understand. This command helped me go through the notes and manually delete the duplicated content.
-- **/List stubs**: creates a note that lists all your notes that have wikilinks that lead nowhere.
+- **/List missing daily notes**: create a note that lists any missing or empty daily notes in the last year.
+- **/List stubs**: creates a note that lists all your notes that contain "stubs" -- i.e. that caontain `[[note links]]` (aka "wikilinks") that don't lead to other notes in NotePlan.
 - **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See section below.
 - **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character. Note: this command cannot remove Teamspace notes (as of NotePlan v3.18.1), so it won't try.
+- **/Remove empty blocks** (alias: "reb"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
 - **/Remove section from recent notes** (alias "rsrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
  - **/Remove section from all notes** (alias "rsan"). Remove a given section (heading + its content block) from _all notes_. Use wisely, as this is dangerous! (original function by @dwertheimer)
@@ -31,9 +33,37 @@ There's also the **/Tidy Up** (alias "tua"), which runs as many of the other com
 [<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 ### Details on /Generate @repeats in recent notes
-This command works around a limitation of my separate  [Repeat Extensions plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.RepeatExtensions/README.md), because the NotePlan API doesn't fire a change trigger when a task is completed from a search result list or from the Reference area.
+This command exists to work around a limitation of my separate [Repeat Extensions plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.RepeatExtensions/README.md), because the NotePlan API doesn't fire a change trigger when a task is completed from a search result list or from the Reference area.
 
 This command catches any such completed repeats that haven't had the next repeat generated from them. It will work on all notes changed over the number of days you set the 'recently changed' setting to be.
+
+### Details on /Remove empty blocks
+The **/Remove empty blocks** command intelligently cleans up your notes while preserving important structure:
+
+**What it removes:**
+- Empty list items (e.g., `- ` or `* ` with no content)
+- Empty quotations (e.g., `> ` with no content)  
+- Empty headings (e.g., `# ` with no text)
+- Multiple consecutive empty lines (reduces to single empty lines)
+
+**Smart heading behavior:**
+- **Preserves parent headings** when their subheadings contain content
+- **Removes headings** only when they have no content AND no subheadings with content
+- This ensures your note hierarchy stays intact when subheadings contain valuable information
+
+**Empty line handling:**
+- **Default behavior**: Reduces multiple consecutive empty lines to a single empty line
+- **Strip all empty lines**: Available as an x-callback setting to remove ALL empty lines completely
+```
+noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20elements&arg0=Editor&arg1=true
+```
+
+**Advanced options:**
+- **Preserve heading structure**: Availabe as an x-callback setting. When arg2 is true, keeps ALL headings (even empty ones) to maintain note templates and structure
+- This is useful for note templates where you want to keep the heading hierarchy intact
+```
+noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20elements&arg0=Editor&arg1=false&arg2=true
+```
 
 ### Details on /List conflicted notes
 Important notes:

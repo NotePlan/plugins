@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 7.6.2024 for v0.14.0, @jgclark
+// Last updated 2025-10-13 for v1.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -21,10 +21,13 @@ export type TidyConfig = {
   listFoldersToExclude: Array<string>,
   justRemoveFromChecklists: boolean,
   matchType: string,
+  ignoreFutureCalendarNotes: boolean,
+  stripAllEmptyLines: boolean,
   numDays: number,
   conflictedNoteFilename: string,
-  duplicateNoteFilename: string,
   doubledNoteFilename: string,
+  duplicateNoteFilename: string,
+  missingDailyNotesNoteFilename: string,
   stubsNoteFilename: string,
   removeFoldersToExclude: Array<string>,
   runRemoveBlankNotes: boolean,
@@ -36,7 +39,7 @@ export type TidyConfig = {
   runRemoveOrphansCommand: boolean,
   runRemoveDoneMarkersCommand: boolean,
   runRemoveDoneTimePartsCommand: boolean,
-  runRemoveSectionFromNotesCommand: boolean,
+  runRemoveSectionFromRecentNotesCommand: boolean,
   removeTriggersFromRecentCalendarNotes: boolean,
   removeTodayTagsFromCompletedTodos: boolean,
   moveTopLevelTasksInEditor: boolean,

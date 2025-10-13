@@ -6,8 +6,8 @@
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "0.14.12",
-  "plugin.lastUpdateInfo": "v0.14.12: improvements to '/List duplicates' command.\nv0.14.11: improvements to '/List stubs' command.\nv0.14.10: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.9: update '/Generate @repeats from recent notes' and '/Remove blank notes' commands.\nv0.14.8: improvements to '/Remove section from all notes' command.\nv0.14.7: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.6: fix to allow top-level tasks to be run by template.\nv0.14.5: fix to allow top-level tasks to be run by xcallback.\nv0.14.4: fix to allow blank Calendar notes to be removed by '/remove blank notes'.\nv0.14.3: fix unwanted popups in '/generate @repeats from recent notes' command.\nv0.14.2: add new option to file root notes.\nv0.14.1: rebuild.\nv0.14.0: new '/Generate repeats' command.",
+  "plugin.version": "1.15.0",
+  "plugin.lastUpdateInfo": "v1.15.0: new '/Remove empty elements' command, and its setting 'Strip all empty lines?'. New setting 'Ignore future calendar notes?' for '/Remove section from all notes' command. Other fixes and improvements.\nv0.14.12: improvements to '/List duplicates' command.\nv0.14.11: improvements to '/List stubs' command.\nv0.14.10: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.9: update '/Generate @repeats from recent notes' and '/Remove blank notes' commands.\nv0.14.8: improvements to '/Remove section from all notes' command.\nv0.14.7: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.6: fix to allow top-level tasks to be run by template.\nv0.14.5: fix to allow top-level tasks to be run by xcallback.\nv0.14.4: fix to allow blank Calendar notes to be removed by '/remove blank notes'.\nv0.14.3: fix unwanted popups in '/generate @repeats from recent notes' command.\nv0.14.2: add new option to file root notes.\nv0.14.1: rebuild.\nv0.14.0: new '/Generate repeats' command.\nv0.13.0: '/List conflicted notes' now clears out all copies, and offers side-by-side viewing of conflicted note versions. Also bug fixes.\nv0.12.1: '/List conflicted notes' now covers Calendar notes as well.\nv0.12.0: add more capability to '/List conflicted notes'.\nv0.11.0: new command '/find doubled notes'.\nv0.10.0: fix bug in moving top level tasks, and adds support for indented tasks.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -45,7 +45,7 @@
       "alias": [
         "conflicts"
       ],
-      "description": "Creates/updates a note that lists all notes on this device that have conflicts. (Requires NP v3.9.3)",
+      "description": "Creates/updates a note that lists all notes on this device that have conflicts",
       "jsFunction": "listConflicts"
     },
     {
@@ -65,14 +65,19 @@
       "jsFunction": "listPotentialDoubles"
     },
     {
-      "name": "openCalendarNoteInSplit",
       "hidden": true,
+      "name": "openCalendarNoteInSplit",
       "description": "callback entry point for double-finder",
       "jsFunction": "openCalendarNoteInSplit",
       "arguments": [
         "filename",
         "point in file for cursor to be moved to"
       ]
+    },
+    {
+      "name": "List missing daily notes",
+      "description": "Creates/updates a note that lists any daily notes that don't exist in the last year",
+      "jsFunction": "listMissingDailyNotes"
     },
     {
       "name": "List stubs",
@@ -116,6 +121,22 @@
       ],
       "arguments": [
         "Parameters"
+      ]
+    },
+    {
+      "name": "Remove empty elements",
+      "description": "Removes empty list items, quotations, headings, and reduces multiple empty lines to a single empty line.",
+      "jsFunction": "removeEmptyElements",
+      "alias": [
+        "ree",
+        "tidy",
+        "blank",
+        "block"
+      ],
+      "arguments": [
+        "filename (or 'Editor' for the open note in the Editor) -- default: Editor",
+        "stripAllEmptyLines -- default: false; By default, multiple consecutive empty lines are reduced to a single empty line. But if this is set to true, then all empty lines will be removed.",
+        "preserveHeadingStructure -- default: false; When true, keeps all headings (even empty ones) to maintain note templates and structure. Useful for preserving heading hierarchy in templates."
       ]
     },
     {
@@ -184,7 +205,7 @@
         "tidy"
       ],
       "arguments": [
-        "Parameters"
+        "filename"
       ]
     },
     {
@@ -235,20 +256,6 @@
       "jsFunction": "updateSettings"
     }
   ],
-  "plugin.commands_disabled": [
-    {
-      "name": "onOpen",
-      "description": "Trigger, not a user command",
-      "jsFunction": "onOpen",
-      "hidden": true
-    },
-    {
-      "name": "onEditorWillSave",
-      "description": "Trigger, not a user command",
-      "jsFunction": "onEditorWillSave",
-      "hidden": true
-    }
-  ],
   "plugin.settings": [
     {
       "type": "heading",
@@ -258,7 +265,7 @@
       "title": "How many days count as recent?",
       "key": "numDays",
       "type": "number",
-      "description": "The number of days to look back for 'recently changed' notes in many of the commands in this plugin. If this is 0 or empty, then all notes will be checked.",
+      "description": "Many of the commands in this plugin look back for 'recently changed' notes. This sets the number of days to look back. If this is 0 or empty, then all notes will be checked.",
       "default": 7,
       "required": false
     },
@@ -302,7 +309,7 @@
       "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Conflicted Notes.md')",
       "type": "string",
       "default": "Conflicted Notes.md",
-      "required": true
+      "required": false
     },
     {
       "title": "Save a copy of previous version as a separate note?",
@@ -318,7 +325,7 @@
       "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Duplicate Notes.md')",
       "type": "string",
       "default": "Duplicate Notes.md",
-      "required": true
+      "required": false
     },
     {
       "key": "doubledNoteFilename",
@@ -326,7 +333,25 @@
       "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Possible Doubled Notes.md')",
       "type": "string",
       "default": "Possible Doubled Notes.md",
-      "required": true
+      "required": false
+    },
+    {
+      "key": "missingDailyNotesNoteFilename",
+      "title": "/List missing daily notes: Filepath for results",
+      "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Missing Daily Notes.md')",
+      "type": "string",
+      "default": "Missing Daily Notes.md",
+      "required": false
+    },
+    {
+      "hidden": true,
+      "name": "openCalendarNoteInSplit",
+      "description": "Open calendar note in a split window (for callback)",
+      "jsFunction": "openCalendarNoteInSplit",
+      "arguments": [
+        "filename",
+        "cursor point (optional)"
+      ]
     },
     {
       "key": "stubsNoteFilename",
@@ -334,6 +359,21 @@
       "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Stubs.md')",
       "type": "string",
       "default": "Stubs.md",
+      "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "'/Remove empty elements' command settings"
+    },
+    {
+      "title": "Strip all empty lines?",
+      "key": "stripAllEmptyLines",
+      "description": "Normally, multiple consecutive empty lines are reduced to a single empty line. But if this is set, then all empty lines will be removed. This will particularly suit users who use a theme that adds vertical before headings",
+      "type": "bool",
+      "default": false,
       "required": true
     },
     {
@@ -341,7 +381,7 @@
     },
     {
       "type": "heading",
-      "title": "'/Remove section...' command settings"
+      "title": "'/Remove ... from recent ...' command settings"
     },
     {
       "key": "removeFoldersToExclude",
@@ -364,6 +404,10 @@
       "required": true
     },
     {
+      "type": "heading",
+      "title": "'/Remove section from all/recent notes' commands settings"
+    },
+    {
       "title": "Type of match for section headings",
       "key": "matchType",
       "description": "The 'Starts with' setting allows headings that always start the same (e.g. 'Habit Progress') to be matched, even if the end of the heading changes (e.g. 'Habit Progress for Tuesday').",
@@ -377,8 +421,19 @@
       "required": true
     },
     {
+      "title": "Ignore future calendar notes?",
+      "key": "ignoreFutureCalendarNotes",
+      "description": "When removing sections, ignore future calendar notes?",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
       "type": "heading",
-      "title": "'/Move top-level tasks in Editor...' command settings"
+      "title": "'/Move top-level tasks ...to heading' command settings"
     },
     {
       "title": "Heading name for '/Move top-level tasks in Editor to heading' command",
@@ -452,6 +507,14 @@
       "required": true
     },
     {
+      "title": "Run '/Remove section from recent notes' command?",
+      "key": "runRemoveSectionFromRecentNotesCommand",
+      "ddescription": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "title": "Run '/Remove time parts from @done() dates' command?",
       "key": "runRemoveDoneTimePartsCommand",
       "description": "",
@@ -460,7 +523,7 @@
       "required": true
     },
     {
-      "title": "Run '/Remove >today tags from completed todos?",
+      "title": "Run '/Remove >today tags from completed todos?'",
       "key": "removeTodayTagsFromCompletedTodos",
       "description": "",
       "type": "bool",
@@ -468,7 +531,7 @@
       "required": true
     },
     {
-      "title": "Run '/Remove triggers from recent calendar notes?",
+      "title": "Run '/Remove triggers from recent calendar notes?'",
       "key": "removeTriggersFromRecentCalendarNotes",
       "description": "",
       "type": "bool",
@@ -476,7 +539,7 @@
       "required": true
     },
     {
-      "title": "Run '/Move top-level tasks in Editor to heading?",
+      "title": "Run '/Move top-level tasks in Editor to heading?'",
       "key": "moveTopLevelTasksInEditor",
       "description": "Note: this command does not work like the other commands inside a template (e.g. your daily template). See plugin README for how to run this command in a daily template.",
       "type": "bool",
@@ -508,16 +571,6 @@
       ],
       "description": "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
       "default": "INFO",
-      "required": true
-    }
-  ],
-  "plugin.settings_disabled": [
-    {
-      "title": "Run '/Remove section from recent notes' command?",
-      "key": "runRemoveSectionFromNotesCommand",
-      "ddescription": "Note: the '/Remove section from all notes' command is deliberately not available, given how dangerous it could be.",
-      "type": "bool",
-      "default": false,
       "required": true
     }
   ]
