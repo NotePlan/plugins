@@ -8,6 +8,7 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 
 ## [2.1.2] 2025-10-07 @dwertheimer
 - allow passing of templateRunner body content via xcallback with blank template title
+- fix clay russell's edge case of inline title not being detected when you have multiple sections that look like frontmatter but some aren't
 
 ## [2.1.1] 2025-09-08 @dwertheimer
 - fix using button on empty template, especially with teamspace notes
