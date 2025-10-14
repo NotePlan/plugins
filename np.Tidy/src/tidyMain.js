@@ -70,6 +70,7 @@ export async function tidyUpAll(): Promise<void> {
     //   logDebug('tidyUpAll', `Starting fileRootNotes...`)
     //   await fileRootNotes()
     // }
+    
     // Note: Disabling this one as it can't be run silently
     // if (config.runRemoveSectionFromNotesCommand) {
     //   logDebug('tidyUpAll', `Starting removeSectionFromRecentNotes...`)
