@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /* globals describe, expect, test, beforeAll */
 
 import colors from 'chalk'
@@ -63,17 +64,27 @@ describe(`${PLUGIN_NAME}`, () => {
         /^Listen to <a class="externalLink" href="https:\/\/clicks\.zoe\.com\/f\/a\/ZUR-0srQ-voOYivE4-3Cbg~~\/AAAHahA~\/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~"><i class="fa-regular fa-globe pad-right"><\/i>Protein on a plant-b…<\/a>$/,
       )
     })
-    test('adds ellipsis if dots is true', () => {
+    test('should add ellipsis if dots is true', () => {
       const htmlIn = '<p>This is a long paragraph of text that needs to be truncated.</p>'
       const maxLength = 20
       const expectedOutput = '<p>This is a long parag…</p>'
       expect(st.truncateHTML(htmlIn, maxLength, true)).toBe(expectedOutput)
     })
-    test('does not add ellipsis if dots is false', () => {
+    test('should not add ellipsis if dots is false', () => {
       const htmlIn = '<p>This is a long paragraph of text that needs to be truncated.</p>'
       const maxLength = 20
       const expectedOutput = '<p>This is a long parag</p>'
       expect(st.truncateHTML(htmlIn, maxLength, false)).toBe(expectedOutput)
+    })
+    test('should not do any truncating', () => {
+      const htmlIn = '!!! buy epic passes <a class="externalLink" href="www.beavercreek.com"><i class="fa-regular fa-globe pad-right"></i>www.beavercreek.com</a> for family (breakeven at 4 days of skiing) for family (breakeven at 4 days of skiing) <span class="attag">@repeat(2/7)</span> <i class="fa-solid fa-asterisk" style="color: var(--block-id-color);"></i>>2025-10-12'
+      expect(st.truncateHTML(htmlIn, 0, false)).toBe(htmlIn)
+    })
+    test('should not truncate www link, but truncate line', () => {
+      const htmlIn = '!!! buy epic passes <a class="externalLink" href="www.beavercreek.com"><i class="fa-regular fa-globe pad-right"></i>www.beavercreek.com</a> for family (breakeven at 4 days of skiing) for family (breakeven at 4 days of skiing) <span class="attag">@repeat(2/7)</span> <i class="fa-solid fa-asterisk" style="color: var(--block-id-color);"></i>>2025-10-12'
+      const maxLength = 140
+      const expectedOutput = '!!! buy epic passes <a class="externalLink" href="www.beavercreek.com"><i class="fa-regular fa-globe pad-right"></i>www.beavercreek.com</a> for family (breakeven at 4 days of skiing) for family (breakeven at 4 days of skiing) <span class="attag">@repeat(2/7)</span> <i class="fa-solid fa-asterisk" style="color: var(--block-id-color);"></i>>…'
+      expect(st.truncateHTML(htmlIn, maxLength, true)).toBe(expectedOutput)
     })
   })
 
@@ -207,10 +218,15 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = st.changeBareLinksToHTMLLink(input)
       expect(result).toEqual(input)
     })
-    test('should find www link without http:// protocol', () => {
+    test('should find www link without http:// protocol 1', () => {
       const input = 'this has www.domain.com to find'
       const result = st.changeBareLinksToHTMLLink(input)
       expect(result).toEqual('this has <a class="externalLink" href="www.domain.com"><i class="fa-regular fa-globe pad-right"></i>www.domain.com</a> to find')
+    })
+    test('should find www link without http:// protocol 2', () => {
+      const input = '* !!! buy epic passes www.beavercreek.com for family (breakeven at 4 days of skiing) for family (breakeven at 4 days of skiing) @repeat(2/7) ^sleu9a >2025-10-07'
+      const result = st.changeBareLinksToHTMLLink(input)
+      expect(result).toEqual('* !!! buy epic passes <a class="externalLink" href="www.beavercreek.com"><i class="fa-regular fa-globe pad-right"></i>www.beavercreek.com</a> for family (breakeven at 4 days of skiing) for family (breakeven at 4 days of skiing) @repeat(2/7) ^sleu9a >2025-10-07')
     })
     test('should not touch markdown link (shorter)', () => {
       const input = 'this has [a valid MD link](https://www.something.com/with?various&chars%20ok)'

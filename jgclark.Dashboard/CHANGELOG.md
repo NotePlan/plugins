@@ -12,6 +12,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.3.0.b12] 2025-10-05
 - Improve /backupSettings command
+- Fixed #688 edge case with multiple ellipses (for @dwertheimer)
 
 ## [2.3.0.b11] 2025-10-01
 - Save a copy of settings.json if it's discovered that it doesn't contain perspectiveSettings.

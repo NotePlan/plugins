@@ -244,7 +244,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
 
     // Display underline with .underlined style
     output = convertUnderlinedToHTML(output)
-    // logDebug('makeParaContent...', `- after convertUnderlinedToHTML: ${output}`)
+    logDebug('makeParaContent...', `- after convertUnderlinedToHTML: ${output}`)
 
     // Add suitable colouring to 'arrow' >date< items
     // (Needs to go before match on >date dates)
@@ -265,17 +265,18 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
     // Add suitable colouring to remaining >date items
     let captures = output.match(RE_SCHEDULED_DATES_G)
     if (captures) {
-      // clo(captures, 'results from >date match:')
+      // clo(captures, 'makeParaContent... results from >date match:')
       for (const capture of captures) {
         output = output.replace(capture, `<span style="color: var(--tint-color);">${capture}</span>`)
       }
+      logDebug('makeParaContent...', `- after colouring >dates: ${output}`) // ✅
     }
 
     // Truncate the HTML string if wanted (avoiding breaking in middle of HTML tags)
     // Note: Best done before the note link is added
     if (truncateLength > 0 && origContent.length > truncateLength) {
       output = truncateHTML(output, truncateLength, true)
-      // logDebug('makeParaContent...', `- after truncate HTML: ${output}`)
+      logDebug('makeParaContent...', `- after truncate HTML (len ${truncateLength}, true) ${output}`) // ❌ adds weird ellipses after most <a>...</a> tags
     }
 
     // Replace [[notelinks]] with HTML equivalent, and coloured
@@ -290,12 +291,14 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
         const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(capturedTitle, '') // don't want folder part here
         output = output.replace(`[[${capturedTitle}]]`, `</a>${noteTitleWithOpenAction}<a>`)
       }
+      // logDebug('makeParaContent...', `- after replace note links: ${output}`)
     }
 
     // If we already know (from above) there's a !, !!, !!! or >> in the line add priorityN styling around the whole string. Where it is "working-on", it uses priority4.
     // Note: this wrapping needs to go at the end of the content.
     if (taskPriority > 0) {
       output = `<span class="priority${String(taskPriority)}">${output}</span>`
+      // logDebug('makeParaContent...', `- after add priority style: ${output}`)
     }
 
     // Add a child marker if relevant
@@ -312,7 +315,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
     //   // clo(para,`makeParaContent...: - adding child marker for ${thisItem.ID}`)
     // }
 
-    // logDebug('makeParaContet...', `\n-> ${output}`)
+    logDebug('makeParaContent...', `\n-> ${output}`)
     return output
   } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, error.message)
