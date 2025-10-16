@@ -1,6 +1,10 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.15.1] - 2025-10-14 @jgclark
+- update **/File root notes** to improve menu display, particularly for Teamspace folders
+- remove '/Remove section from recent notes' command from being available in the general "/Tidy Up" command, as it requires user input, and so can't run silently.
+
 ## [1.15.0] - 2025-10-12 @jgclark + @dwertheimer
 - rather arbitrarily promoting this to v1.x, after 2.5 years :-)
 - New command **/Remove empty blocks** which in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line.
