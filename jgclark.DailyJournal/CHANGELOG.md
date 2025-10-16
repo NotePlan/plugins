@@ -3,8 +3,14 @@ _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/ma
 
 <!-- TODO: improved flexibility of questions -->
 
-## [1.0.0] - 2025-10-10
-_I've somewhat  arbitrarily promoted this to v1.0 -- though I think it deserves it after 4.5 years. Renamed it to "Journalling Helpers Plugin"._
+## [1.15.1] - 2025-10-16
+### Added
+- review questions can include `<boolean>`s, e.g. `#closedRings<boolean>`. The text gets included in the output if you answer "Yes" to the question "Was '#closedRings' done?'
+### Dev notes
+- refactored the journal questions code to be shorter and easier to maintain
+
+## [1.15.0] - 2025-10-10
+_I've somewhat  arbitrarily promoted this to v1.15 from v0.15 -- though I think it deserves it after 4.5 years. Renamed it to "Journalling Helpers Plugin"._
 ### Added
 - new **/dayEnd**, **/todayEnd** and **/weekEnd** commands, that run pre-set Templates (like /dayStart etc.). These can be useful for review or summary questions and/or tidy up operations.
 ### Changed

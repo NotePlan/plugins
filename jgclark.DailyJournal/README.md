@@ -14,10 +14,8 @@ The NotePlan website has good [articles on getting started with Templates](https
 
 For more details of the tag commands you can use in a Template, including a list of events, a quote-of-the-day or summary weather forecast, see the [full Templating Documentation](https://noteplan.co/templates/docs).
 
-??? start-of-day ... after previously setting up a template
-
 ### /dayStart & /todayStart commands
-These commands make it quicker to apply a Template at the start or end of a day or week. The names of the Templates to use are set in the Plugin Settings pane, referring to Template names stored in the special NotePlan `Templates` folder.  (This command has become less necessary since NotePlan v3., which introduced [auto-inserting of templates into new calendar notes](https://help.noteplan.co/article/229-auto-insert-templates).)
+These commands make it quicker to apply a Template at the start or end of a day or week. The names of the Templates to use are set in the Plugin Settings pane, referring to Template names stored in the special NotePlan `Templates` folder.  (This command has become less necessary since about NotePlan v3.17, which introduced [auto-inserting of templates into new calendar notes](https://help.noteplan.co/article/229-auto-insert-templates).)
 
 - **/todayStart**: applies your 'Daily Note' Template only to _today's_ calendar note, no matter what note you're editing.
 - **/dayStart** appends your 'Daily Note' Template to the _currently open daily note_ (or today's note if you're not editing a daily note). Therefore, be careful using it on another calendar note than today using template tag commands like `<%- date... / formattedDate... %>` or `<%- weather() %>` -> because this renders the TODAY content!
@@ -49,6 +47,7 @@ This string includes both the questions and how to lay out the answers in the no
 - `<string>` asks for a string
 - You can also add bulletpoints with an identifier e.g. `-(thoughts) <string>` where the identifier doesn't get rendered. (The identifier is there to work out which question the user currently is on.)
 - `<mood>`select one of the configured moods
+- `<done>` will include the rest of the text in the line and will be included in the output if you answer "Yes" to the "Yes"/"No" question about it
 - `<subheading>` includes the given string as `### Subheading`.
 
 Other notes:
