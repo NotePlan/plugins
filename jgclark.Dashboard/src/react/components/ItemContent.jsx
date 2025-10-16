@@ -244,7 +244,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
 
     // Display underline with .underlined style
     output = convertUnderlinedToHTML(output)
-    logDebug('makeParaContent...', `- after convertUnderlinedToHTML: ${output}`)
+    // logDebug('makeParaContent...', `- after convertUnderlinedToHTML: ${output}`)
 
     // Add suitable colouring to 'arrow' >date< items
     // (Needs to go before match on >date dates)
@@ -269,14 +269,14 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
       for (const capture of captures) {
         output = output.replace(capture, `<span style="color: var(--tint-color);">${capture}</span>`)
       }
-      logDebug('makeParaContent...', `- after colouring >dates: ${output}`) // ✅
+      // logDebug('makeParaContent...', `- after colouring >dates: ${output}`)
     }
 
     // Truncate the HTML string if wanted (avoiding breaking in middle of HTML tags)
     // Note: Best done before the note link is added
     if (truncateLength > 0 && origContent.length > truncateLength) {
       output = truncateHTML(output, truncateLength, true)
-      logDebug('makeParaContent...', `- after truncate HTML (len ${truncateLength}, true) ${output}`) // ❌ adds weird ellipses after most <a>...</a> tags
+      // logDebug('makeParaContent...', `- after truncate HTML (len ${truncateLength}, true) ${output}`)
     }
 
     // Replace [[notelinks]] with HTML equivalent, and coloured
