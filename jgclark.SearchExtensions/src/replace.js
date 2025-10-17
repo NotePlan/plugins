@@ -13,7 +13,7 @@ import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
 import { runPluginExtendedSyntaxSearches, validateAndTypeSearchTerms, } from './pluginExtendedSyntaxHelpers'
 import { clo, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
-import { getSearchOperators, quoteTermsInSearchString, removeSearchOperators } from '@helpers/search'
+// import { getSearchOperators, quoteTermsInSearchString, removeSearchOperators } from '@helpers/search'
 import {
   getInput,
   showMessage,

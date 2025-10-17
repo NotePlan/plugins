@@ -76,6 +76,7 @@ export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): 
 /**
  * Perform substring match, ignoring case.
  * This version uses regex, though TODO: look at changing to a variant of "new Intl.Collator("de", { caseFirst: "upper" }).compare"
+ * Note: there's a copy in paragraph.js to avoid circular dependency.
  * @author @jgclark
  * @param {string} searchTerm
  * @param {string} textToSearch

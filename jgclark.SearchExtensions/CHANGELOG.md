@@ -15,6 +15,7 @@ To get this version out more quickly, some previous functionality is temporarily
 
 Note: The existing functionality is retained for users not able to run v3.18.1 or later.
 ### Other changes
+- added 2 new options for sorting results
 - now adds 🔍 icon to result notes
 - the trigger name has been changed to **automatically refresh** a saved search when opening its note. To enable this, run "/add trigger" on the saved search note, and now select "🔎 Search Extensions: 'onOpen'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the frontmatter. (Existing set triggers should still work.)
 ### Dev notes

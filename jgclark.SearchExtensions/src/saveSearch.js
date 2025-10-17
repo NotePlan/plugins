@@ -181,7 +181,22 @@ export async function searchPeriod(
   fromDateArg?: string = '',
   toDateArg?: string = '',
 ): Promise<void> {
-  logDebug('searchPeriod', `starting with searchTermsArg=${searchTermsArg ?? ''} for period '${fromDateArg}' to '${toDateArg}' and destinationArg=${destinationArg ?? ''}`)
+  logDebug('searchPeriod', `starting with searchTermsArg=${searchTermsArg ?? ''} with date range args '${fromDateArg}' to '${toDateArg}' and destinationArg=${destinationArg ?? ''}`)
+  let fromDateStr = fromDateArg
+  let toDateStr = toDateArg
+  let _periodString: string
+  let _periodAndPartStr: string
+  // If we have neither fromDate and toDate, then ask user for them, ensuring we have at least one of them.
+  if (!fromDateStr  && !toDateStr) {
+    [fromDateStr, toDateStr, _periodString, _periodAndPartStr] = await getDateRangeFromUser()
+    logDebug('searchPeriod', `- user requested date range '${fromDateStr}' to '${toDateStr}'`)
+    if (fromDateStr > toDateStr) {
+      throw new Error(`Stopping: fromDate ${fromDateStr} is after toDate ${toDateStr}`)
+    }
+    if (fromDateStr === '' && toDateStr === '') {
+      fromDateStr = 'past'
+    }
+  }
   const searchOptions: TSearchOptions = {
     noteTypesToInclude: ['calendar'],
     foldersToInclude: [],
@@ -189,8 +204,8 @@ export async function searchPeriod(
     originatorCommand: 'searchPeriod',
     commandNameToDisplay: 'Searching in period',
     destinationArg: destinationArg,
-    fromDateStr: fromDateArg,
-    toDateStr: toDateArg,
+    fromDateStr: fromDateStr,
+    toDateStr: toDateStr,
   }
   await saveSearch(
     searchOptions,
@@ -222,6 +237,7 @@ export async function saveSearch(
     const NPAdvancedSyntaxAvailable = NotePlan.environment.buildVersion >= 1429
     const searchOperators = (searchTermsArg) ? getSearchOperators(searchTermsArg) : []
     logDebug(pluginJson, `Starting saveSearch() with searchTermsArg '${searchTermsArg ?? '(not supplied)'}', on NP build version ${String(NotePlan.environment.buildVersion)} and useNativeSearch? ${String(config.useNativeSearch)}`)
+    clo(searchOptions, 'searchOptions:')
 
     // destructure the searchOptions object, the long way
     // Get the noteTypes to include
@@ -305,13 +321,14 @@ export async function saveSearch(
     if (config.useNativeSearch && NPAdvancedSyntaxAvailable) {
       logDebug('saveSearch', `Will use newer NP extended syntax`)
 
+      logDebug('saveSearch', `- ${String('fromDateStr' in searchOptions)} and ${String('toDateStr' in searchOptions)}`)
       // If we have a date range, then add it to the search terms
       if (('fromDateStr' in searchOptions) && ('toDateStr' in searchOptions)) {
-        termsToMatchStr = `date:${fromDateStr}-${toDateStr} ${termsToMatchStr}`
+        termsToMatchStr = `date:${String(searchOptions.fromDateStr)}-${String(searchOptions.toDateStr)} ${termsToMatchStr}`
       } else if ('fromDateStr' in searchOptions) {
-        termsToMatchStr = `date:${fromDateStr} ${termsToMatchStr}`
+        termsToMatchStr = `date:${String(searchOptions.fromDateStr)} ${termsToMatchStr}`
       } else if ('toDateStr' in searchOptions) {
-        termsToMatchStr = `date:past-${toDateStr} ${termsToMatchStr}`
+        termsToMatchStr = `date:past-${String(searchOptions.toDateStr)} ${termsToMatchStr}`
       }
       searchTermsRepStr = termsToMatchStr
 

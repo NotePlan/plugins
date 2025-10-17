@@ -2,6 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Search Extensions helpers, for both older and newer methods of running searches.
+// Search Extensions helpers, for both older and newer methods of running searches.
 // Jonathan Clark
 // Last updated 2025-10-05 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
@@ -14,9 +15,9 @@ import {
   type headingLevelType,
 } from '@helpers/general'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
-import { getNoteByFilename, getNoteLinkForDisplay, getOrMakeNote,
+import { getNoteByFilename, getNoteLinkForDisplay,
   replaceSection, setIconForNote } from '@helpers/note'
-import { getNoteTitleFromFilename } from '@helpers/NPnote'
+import { getOrMakeRegularNoteInFolder, getNoteTitleFromFilename } from '@helpers/NPnote'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { showMessageYesNo } from '@helpers/userInput'
 
@@ -279,7 +280,7 @@ export function formSearchResultsMetadataLine(resultSet: resultOutputV3Type, xCa
   const searchTermsRepStr = resultSet.searchTermsStr ?? '?'
   const searchOperatorsRepStr = resultSet.searchOperatorsStr ? `, with operators _${resultSet.searchOperatorsStr}_` : ''
   const xCallbackText = (xCallbackURL !== '') ? `[🔄 Refresh results for '${searchTermsRepStr}'](${xCallbackURL})` : ''
-  return `${resultCountsStr}${searchOperatorsRepStr} at ${nowLocaleShortDateTime()}. ${xCallbackText}`
+  return `${resultCountsStr}${searchOperatorsRepStr} at ${nowLocaleShortDateTime()} ${xCallbackText}`
 }
 
 /**
@@ -307,8 +308,9 @@ export async function writeSearchResultsToNote(
   try {
     logDebug('writeSearchResultsToNote', `Starting with ${resultSet.resultCount} results to write to note ${requestedTitle}, ${justReplaceThisSection ? 'just replacing this section' : 'replacing the whole note'}`)
     let noteFilename = ''
-    const headingMarker = '#'.repeat(config.headingLevel)
+    // TEST:
     const searchTermsRepStr = resultSet.searchTermsStr ?? '?'
+    const headingMarker = '#'.repeat(config.headingLevel)
 
     // Add each result line to output array
     let resultsContent = ''
@@ -331,7 +333,7 @@ export async function writeSearchResultsToNote(
 
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
     // Note: in theory could now use the 'content' parameter on Editor.openNoteByFilename() via NPNote/openNoteByFilename() helper here.
-    const outputNote = await getOrMakeNote(requestedTitle, config.folderToStore)
+    const outputNote = await getOrMakeRegularNoteInFolder(requestedTitle, config.folderToStore)
 
     if (outputNote) {
       // If the relevant note has more than just a title line, decide whether to replace all contents, or just replace a given heading section

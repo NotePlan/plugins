@@ -8,13 +8,13 @@
 import moment from 'moment/min/moment-with-locales'
 import type { TSearchOptions } from './searchHelpers'
 import {
+  convertISODateFilenameToNPDayFilename,
+  hyphenatedDateString,
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
-  convertISODateFilenameToNPDayFilename,
-  YYYYMMDDDateStringFromDate,
 } from '@helpers/dateTime'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
-import { getPeriodStartEndDates, } from '@helpers/NPdateTime'
+import { getPeriodStartEndDates } from '@helpers/NPdateTime'
 
 /**
  * NP extended search syntax for dates and date ranges:
@@ -91,11 +91,12 @@ export function getDateRangeFromSearchOptions(searchOptions: TSearchOptions): [s
 
 /**
  * Get date range from user
+ * @returns {Array<string>} [fromDateStr, toDateStr, periodString, periodAndPartStr]
  */
 export async function getDateRangeFromUser(): Promise<[string, string, string, string]> {
   try {
-    let _fromDate: Date
-    let _toDate: Date
+    let fromDate: Date
+    let toDate: Date
     let periodString = ''
     let periodAndPartStr = ''
     let periodType = ''
@@ -103,12 +104,12 @@ export async function getDateRangeFromUser(): Promise<[string, string, string, s
     let toDateStr = ''
     let _periodNumber: number
     // eslint-disable-next-line no-unused-vars
-    [_fromDate, _toDate, periodType, periodString, periodAndPartStr, _periodNumber] = await getPeriodStartEndDates(`What period shall I search over?`, false)
-    if (_fromDate == null || _toDate == null) {
-      throw new Error('dates could not be parsed for requested time period')
+    [fromDate, toDate, periodType, periodString, periodAndPartStr, _periodNumber] = await getPeriodStartEndDates(`What period shall I search over?`, false)
+    if (fromDate == null || toDate == null) {
+      throw new Error('Dates could not be parsed for requested time period')
     }
-    fromDateStr = YYYYMMDDDateStringFromDate(_fromDate)
-    toDateStr = YYYYMMDDDateStringFromDate(_toDate)
+    fromDateStr = hyphenatedDateString(fromDate)
+    toDateStr = hyphenatedDateString(toDate)
     if (periodAndPartStr === '') {
       periodAndPartStr = periodString
     }
