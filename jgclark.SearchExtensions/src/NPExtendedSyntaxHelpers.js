@@ -77,9 +77,9 @@ export async function runNPExtendedSyntaxSearches(
     // logDebug('runNPExtendedSyntaxSearches', `foldersToExclude: ${String(foldersToExclude)}`)
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
     // logDebug('runNPExtendedSyntaxSearches', `paraTypesToInclude: ${String(paraTypesToInclude)}`)
-    const fromDateStr = searchOptions.fromDateStr || ''
-    // logDebug('runNPExtendedSyntaxSearches', `fromDateStr: ${String(fromDateStr)}`)
-    const toDateStr = searchOptions.toDateStr || ''
+    // const fromDateStr = searchOptions.fromDateStr || ''
+    // // logDebug('runNPExtendedSyntaxSearches', `fromDateStr: ${String(fromDateStr)}`)
+    // const toDateStr = searchOptions.toDateStr || ''
     // logDebug('runNPExtendedSyntaxSearches', `toDateStr: ${String(toDateStr)}`)
     const fullWordSearching: boolean = config.fullWordSearching || false
     // logDebug('runNPExtendedSyntaxSearches', `fullWordSearching: ${String(fullWordSearching)}`)
@@ -217,7 +217,9 @@ export async function runNPExtendedSyntaxSearches(
       // Look-up table for sort details
       const sortMap = new Map([
         ['note title', ['title', 'lineIndex']],
+        ['note title (descending)', ['-title', 'lineIndex']],
         ['folder name then note title', ['filename', 'lineIndex']],
+        ['folder name then note title (descending)', ['-filename', 'lineIndex']],
         ['updated (most recent note first)', ['-changedDate', 'lineIndex']],
         ['updated (least recent note first)', ['changedDate', 'lineIndex']],
         ['created (newest note first)', ['-createdDate', 'lineIndex']],

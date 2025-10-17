@@ -352,7 +352,9 @@
       "type": "string",
       "choices": [
         "note title",
+        "note title (descending)",
         "folder name then note title",
+        "folder name then note title (descending)",
         "created (newest note first)",
         "created (oldest note first)",
         "updated (most recent note first)",

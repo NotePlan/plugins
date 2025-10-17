@@ -658,13 +658,13 @@ export async function runPluginExtendedSearch(
     const foldersToInclude = searchOptions.foldersToInclude || []
     const foldersToExclude = searchOptions.foldersToExclude || []
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
-    const fromDateStr = searchOptions.fromDateStr || ''
-    const toDateStr = searchOptions.toDateStr || ''
+    // const fromDateStr = searchOptions.fromDateStr || ''
+    // const toDateStr = searchOptions.toDateStr || ''
 
     // const headingMarker = '#'.repeat(config.headingLevel)
     const fullSearchTerm = typedSearchTerm.term
     let searchTerm = fullSearchTerm
-    let resultParas: Array<TParagraph> = []
+    const resultParas: Array<TParagraph> = []
     let multiWordSearch = false
     let wildcardedSearch = false
     const caseSensitive: boolean = config.caseSensitiveSearching
@@ -700,7 +700,7 @@ export async function runPluginExtendedSearch(
     CommandBar.showLoading(true, `Running search for ${fullSearchTerm} ${fullSearchTerm !== searchTerm ? '(via ' + searchTerm + ') ' : ''}...`)
 
     const response = await DataStore.search(searchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, false)
-    let initialResult: Array<TParagraph> = response.slice() // to convert from $ReadOnlyArray to $Array
+    const initialResult: Array<TParagraph> = response.slice() // to convert from $ReadOnlyArray to $Array
 
     CommandBar.showLoading(false)
     //-------------------------------------------------------
@@ -782,7 +782,9 @@ export async function runPluginExtendedSearch(
       // Look-up table for sort details
       const sortMap = new Map([
         ['note title', ['title', 'lineIndex']],
+        ['note title (descending)', ['-title', 'lineIndex']],
         ['folder name then note title', ['filename', 'lineIndex']],
+        ['folder name then note title (descending)', ['-filename', 'lineIndex']],
         ['updated (most recent note first)', ['-changedDate', 'lineIndex']],
         ['updated (least recent note first)', ['changedDate', 'lineIndex']],
         ['created (newest note first)', ['-createdDate', 'lineIndex']],
