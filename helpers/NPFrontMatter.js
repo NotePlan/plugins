@@ -2,7 +2,7 @@
 
 /**
  * Key FrontMatter functions:
- * getFrontMatterAttributes() - get the front matter attributes from a note
+ * getFrontmatterAttributes() - get the front matter attributes from a note
  * updateFrontMatterVars() - update the front matter attributes for a note
  * (deprecated) setFrontMatterVars() - set/update the front matter attributes for a note (will create frontmatter if necessary)
  * noteHasFrontMatter() - test whether a Test whether a Note contains front matter
@@ -12,10 +12,10 @@
 
 import fm from 'front-matter'
 // import { showMessage } from './userInput'
+const pluginJson = 'helpers/NPFrontMatter.js'
 import { clo, clof, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { RE_MARKDOWN_LINKS_CAPTURE_G } from '@helpers/regex'
-const pluginJson = 'helpers/NPFrontMatter.js'
 
 // Note: update these for each new trigger that gets added
 export type TriggerTypes = 'onEditorWillSave' | 'onOpen'
@@ -125,7 +125,7 @@ export function noteHasFrontMatter(note: CoreNoteFields): boolean {
  * @param {TNote} note
  * @returns object of attributes or empty object if the note has no front matter
  */
-export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: string } => note.frontmatterAttributes || {}
+export const getFrontmatterAttributes = (note: CoreNoteFields): { [string]: string } => note.frontmatterAttributes || {}
 
 /**
  * Gets the value of a given field ('attribute') from frontmatter if it exists
@@ -133,12 +133,10 @@ export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: stri
  * @param {string} attribute - The attribute/field to get the value of
  * @returns {string|null} The value of the attribute/field or null if not found
  */
-export function getFrontMatterAttribute(note: TNote, attribute: string): string | null {
-  const fmAttributes = getFrontMatterAttributes(note)
+export function getFrontmatterAttribute(note: TNote, attribute: string): string | null {
+  const fmAttributes = getFrontmatterAttributes(note)
   // Note: fmAttributes returns an empty object {} if there are not frontmatter fields
-  return Object.keys(fmAttributes).length > 0 && fmAttributes[attribute]
-    ? fmAttributes[attribute]
-    : null
+  return Object.keys(fmAttributes).length > 0 && fmAttributes[attribute] ? fmAttributes[attribute] : null
 }
 
 /**
@@ -149,7 +147,7 @@ export function getFrontMatterAttribute(note: TNote, attribute: string): string 
  * @param {boolean} includeSeparators - whether to include the separator lines (---) in the returned array
  * @returns {Array<TParagraph>} just the paragraphs in the front matter (or false if no frontmatter)
  */
-export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators: boolean = false): Array<TParagraph> | false => {
+export const getFrontmatterParagraphs = (note: CoreNoteFields, includeSeparators: boolean = false): Array<TParagraph> | false => {
   try {
     const paras = note?.paragraphs || []
     if (!paras.length || paras[0].content !== '---') return false
@@ -160,8 +158,39 @@ export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators
     }
     return false
   } catch (err) {
-    logError('NPFrontMatter/getFrontMatterParagraphs()', JSP(err))
+    logError('NPFrontMatter/getFrontmatterParagraphs()', JSP(err))
     return false
+  }
+}
+
+/**
+ * get all notes with frontmatter (specify noteType: 'Notes' | 'Calendar' | 'All')
+ * @author @dwertheimer
+ * @param {'Notes' | 'Calendar' | 'All'} noteType (optional) - The type of notes to search in
+ * @param {string} folderString (optional) - The string to match in the path
+ * @param {boolean} fullPathMatch (optional) - Whether to match the full path (default: false)
+ * @returns {Array<TNote>} - An array of notes with frontmatter
+ */
+export function getNotesWithFrontmatter(noteType: 'Notes' | 'Calendar' | 'All' = 'All', folderString?: string, fullPathMatch: boolean = false): Array<TNote> {
+  try {
+    const start = new Date()
+    logDebug(`getNotesWithFrontmatter running with noteType:${noteType}, folderString:${folderString || 'none'}, fullPathMatch:${String(fullPathMatch)}`)
+
+    const notes = (noteType !== 'Calendar' ? DataStore.projectNotes : []) || []
+    const calendarNotes = (noteType !== 'Notes' ? DataStore.calendarNotes : []) || []
+    const allNotes = [...notes, ...calendarNotes]
+
+    // First filter by frontmatter attributes
+    const notesWithFrontmatter = allNotes.filter((note) => note.frontmatterAttributes && Object.keys(note.frontmatterAttributes).length > 0)
+
+    // Then filter by folder if specified
+    const filteredNotes = filterNotesByFolder(notesWithFrontmatter, folderString, fullPathMatch)
+
+    logDebug(`getNotesWithFrontmatter: FM notes: ${filteredNotes.length}/${allNotes.length} in ${timer(start)}`)
+    return filteredNotes
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+    return []
   }
 }
 
@@ -171,7 +200,7 @@ export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators
  * @param {boolean} onlyTemplateNotes - whether to include only template notes (default: false). By default, includes all notes that have frontmatter keys.
  * @returns {Array<CoreNoteFields>} - an array of notes that have front matter (template notes are included only if includeTemplateFolders is true and the note has frontmatter keys)
  */
-export function getFrontMatterNotes(includeTemplateFolders: boolean = false, onlyTemplateNotes: boolean = false): Array<CoreNoteFields> {
+export function getFrontmatterNotes(includeTemplateFolders: boolean = false, onlyTemplateNotes: boolean = false): Array<CoreNoteFields> {
   const start = new Date()
   const templateFolder = NotePlan.environment.templateFolder || '@Templates'
   const returnedNotes = DataStore.projectNotes.filter((note) => {
@@ -180,7 +209,7 @@ export function getFrontMatterNotes(includeTemplateFolders: boolean = false, onl
     if (onlyTemplateNotes) return isTemplate && hasKeys
     return !isTemplate ? hasKeys : includeTemplateFolders && hasKeys
   })
-  logDebug('getFrontMatterNotes', `Found ${returnedNotes.length} (${includeTemplateFolders ? 'including' : 'excluding'} template notes) notes with frontmatter in ${timer(start)}`)
+  logDebug('getFrontmatterNotes', `Found ${returnedNotes.length} (${includeTemplateFolders ? 'including' : 'excluding'} template notes) notes with frontmatter in ${timer(start)}`)
   return returnedNotes
 }
 
@@ -194,11 +223,11 @@ export function getFrontMatterNotes(includeTemplateFolders: boolean = false, onl
  */
 export function removeFrontMatter(note: CoreNoteFields, removeSeparators: boolean = false): boolean {
   try {
-    const fmParas = getFrontMatterParagraphs(note, removeSeparators)
+    const fmParas = getFrontmatterParagraphs(note, removeSeparators)
     // clo(fmParas, 'fmParas')
     // clo(note.paragraphs, 'note.paragraphs')
     if (!fmParas) return false
-    const fm = getFrontMatterAttributes(note || '')
+    const fm = getFrontmatterAttributes(note || '')
     note.removeParagraphs(fmParas)
     if (removeSeparators && fm && fm.title) note.prependParagraph(`# ${fm.title}`, 'text')
     return true
@@ -219,8 +248,8 @@ export function removeFrontMatter(note: CoreNoteFields, removeSeparators: boolea
  */
 export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: string, value: string = '', removeSeparators: boolean = true): boolean {
   try {
-    const fmFields = getFrontMatterAttributes(note)
-    const fmParas = getFrontMatterParagraphs(note, true)
+    const fmFields = getFrontmatterAttributes(note)
+    const fmParas = getFrontmatterParagraphs(note, true)
     if (!fmFields || !fmParas) {
       logWarn('rFMF', `no front matter in note '${displayTitle(note)}'`)
       return false
@@ -410,11 +439,12 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
     note.content &&
     logDebug(
       'ensureFrontmatter',
-      `${message} note.content:\n\t${String(
-        note.content
+      `${message} note.content (1st 4 lines):\n\t${String(
+        `${note.content
           .split('\n')
+          .slice(0, 4)
           .map((line) => `\t${line}`)
-          .join('\n'),
+          .join('\n')}...`,
       )}`,
     )
 
@@ -459,19 +489,22 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         fm = `---\ntitle: ${quoteText(newTitle)}\n---`
       } else {
         logDebug('ensureFrontmatter', `- just adding empty frontmatter to this calendar note`)
-        fm = `---\n---`
+        // Insert the frontmatter separators
+        note.insertParagraph('---\n---', 0, 'text')
       }
       // const newContent = `${front}${note?.content || ''}`
       // logDebug('ensureFrontmatter', `newContent = ${newContent}`)
       // note.content = '' // in reality, we can just set this to newContent, but for the mocks to work, we need to do it the long way
-      logDebug('ensureFrontmatter', `front to add: ${fm}`)
-      note.insertParagraph(fm, 0, 'text')
+      if (fm) {
+        logDebug('ensureFrontmatter', `front to add: "${fm}"`)
+        note.insertParagraph(fm, 0, 'text')
+      }
       // $FlowIgnore
       if (note.note) {
         // we must be looking at the Editor (because it has a note property)
         logDebug(
           'ensureFrontmatter',
-          `We just created frontmatter, but due to a bug/lag in NP, the properties panel/editor may not show it immediately. And the Editor.frontmatterAttributes may not be present immediately. In order to see the frontmatter, you can open the note again, e.g. Editor.openNoteByFilename(Editor.filename).`,
+          `We just created frontmatter in the Editor, but due to a bug/lag in NP, the properties panel/editor may not show it immediately. And the Editor.frontmatterAttributes may not be present immediately. In order to see the frontmatter, you can open the note again, e.g. Editor.openNoteByFilename(Editor.filename).`,
         )
       }
       retVal = true
@@ -586,22 +619,25 @@ export function formatTriggerString(triggerObj: { [TriggerTypes]: Array<{ plugin
 /**
  * Add a trigger to the frontmatter of a note (will create frontmatter if doesn't exist). Will append onto any existing list of trigger(s).
  * @author @dwertheimer
- * @param {CoreNoteFields} note
+ * @param {TEditor | TNote} note
  * @param {string} trigger 1 from the TriggerTypes
  * @param {string} pluginID - the ID of the plugin
  * @param {string} commandName - the name (NOT THE jsFunction) of the command to run
  * @returns {boolean} - true if the trigger already existed or was added succesfully
  */
-export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: string, commandName: string): boolean {
+export function addTrigger(note: TEditor | TNote, trigger: string, pluginID: string, commandName: string): boolean {
   try {
     if (!TRIGGER_LIST.includes(trigger)) {
       throw new Error(`'${trigger}' is not in the TRIGGER_LIST. Stopping.`)
     }
-    if (ensureFrontmatter(note) === false) {
-      throw new Error(`Failed to convert note '${displayTitle(note)}' to have frontmatter. Stopping.`)
-    }
+    // Only call ensureFrontmatter if the note doesn't already have frontmatter
+    // if (Object.keys(note.frontmatterAttributes).length === 0) {
+    //   if (ensureFrontmatter(note) === false) {
+    //     throw new Error(`Failed to convert note '${displayTitle(note)}' to have frontmatter. Stopping.`)
+    //   }
+    // }
     logDebug(pluginJson, `addTrigger() starting to add the ${trigger} / ${pluginID} /  ${commandName} to FM:`)
-    const attributes = getFrontMatterAttributes(note)
+    const attributes = getFrontmatterAttributes(note)
     // clo(attributes, `addTrigger() attributes =`)
     const triggersArray = attributes ? attributes.triggers?.split(',') || [] : []
     const triggersObj = getTriggersByCommand(triggersArray)
@@ -618,6 +654,7 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
     // clo(triggersObj, `addTrigger() triggersObj =`)
     const triggerFrontMatter = { triggers: formatTriggerString(triggersObj) }
     clo(triggerFrontMatter, `addTrigger() triggerFrontMatter setting frontmatter for ${displayTitle(note)}`)
+    logDebug(pluginJson, `addTrigger() before add, 1st paragraph: ${note.paragraphs[0]?.content}`)
     return updateFrontMatterVars(note, triggerFrontMatter)
   } catch (error) {
     logError('NPFrontMatter/addTrigger()', JSP(error))
@@ -728,17 +765,68 @@ export type FrontMatterDocumentObject = { attributes: { [string]: string }, body
  */
 export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: boolean = false): FrontMatterDocumentObject {
   let fmData = { attributes: {}, body: noteText, frontmatter: '' } //default
+
   // we need to pre-process the text to sanitize it instead of running fm because we need to
   // preserve #hashtags, @mentions etc. and fm will blank those lines  out as comments
   const sanitizedText = _sanitizeFrontmatterText(noteText || '', removeTemplateTagsInFM)
   try {
-    fmData = fm(sanitizedText, { allowUnsafe: true })
+    fmData = fm(sanitizedText, { allowUnsafe: true }) // WARNING: fm library will transform ISO date to date objects and eliminate # as comments -- in TemplateRunner, we add them back. May need to revisit for other templating commands.
   } catch (error) {
     // Expected to fail in certain circumstances due to limitations in fm library
-    logWarn(
-      `Frontmatter getAttributes error. fm module COULD NOT SANITIZE CONTENT: "${error.message}".\nSuggestion: Check for items in frontmatter that need to be quoted. If fm values are surrounded by double quotes, makes sure they do not contain template tags that also contain double quotes. Template tags in frontmatter will always be quoted. And so make sure your template tags in frontmatter use single quotes, not double quotes in this note:\n"${noteText}\n\nSanitizedText:\n${sanitizedText}"`,
-    )
+    // logWarn(
+    //   `Frontmatter getAttributes error. fm module COULD NOT SANITIZE CONTENT: "${error.message}".\nSuggestion: Check for items in frontmatter that need to be quoted. If fm values are surrounded by double quotes, makes sure they do not contain template tags that also contain double quotes. Template tags in frontmatter will always be quoted. And so make sure your template tags in frontmatter use single quotes, not double quotes in this note:\n"${noteText}\n\nSanitizedText:\n${sanitizedText}"`,
+    // )
     // logError(`Frontmatter getAttributes error. COULD NOT SANITIZE CONTENT: "${error.message}". Returning empty values for this note: "${JSON.stringify(noteText)}"`)
+
+    // Add debug logging to understand why fm library failed
+    // logDebug(pluginJson, `getSanitizedFmParts: fm library failed with error: ${error.message}`)
+    // logDebug(pluginJson, `getSanitizedFmParts: Original text: ${noteText.substring(0, 200)}...`)
+    // logDebug(pluginJson, `getSanitizedFmParts: Sanitized text: ${sanitizedText.substring(0, 200)}...`)
+
+    // When fm library fails, we need to manually extract the body and attributes
+    // Check if the text has frontmatter structure (starts with --- and has another ---)
+    logDebug(`fm library failed to process data. we will now manually extract it from the note text: ${noteText.substring(0, 200)}...`)
+    const lines = noteText.split('\n')
+    if (lines.length >= 2 && lines[0].trim() === '---') {
+      // Find the second --- separator
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim() === '---') {
+          // Extract everything between the first and second --- as frontmatter
+          const frontmatterLines = lines.slice(1, i)
+          const frontmatterContent = frontmatterLines.join('\n')
+
+          // Only treat as frontmatter if it's valid YAML
+          if (isValidYamlContent(frontmatterContent)) {
+            const attributes: { [string]: string } = {}
+
+            // Parse the frontmatter lines manually when fm library fails
+            // This handles both cases: template tags and rendered template output
+            for (const line of frontmatterLines) {
+              const trimmedLine = line.trim()
+              if (trimmedLine && !trimmedLine.startsWith('#')) {
+                // Skip empty lines and comments
+                const colonIndex = trimmedLine.indexOf(':')
+                if (colonIndex > 0) {
+                  const key = trimmedLine.substring(0, colonIndex).trim()
+                  const value = trimmedLine.substring(colonIndex + 1).trim()
+                  // Remove quotes if present, but always return as string
+                  const cleanValue = value.replace(/^["'](.*)["']$/, '$1')
+                  attributes[key] = String(cleanValue)
+                }
+              }
+            }
+
+            // Extract everything after the second --- as the body
+            const body = lines.slice(i + 1).join('\n')
+            fmData = { attributes: attributes, body: body, frontmatter: '' }
+          } else {
+            // Not valid YAML, treat the entire content as body
+            fmData = { attributes: {}, body: noteText, frontmatter: '' }
+          }
+          break
+        }
+      }
+    }
   }
   return fmData
 }
@@ -858,7 +946,7 @@ export function normalizeValue(value: string): string {
 /**
  * Update existing front matter attributes based on the provided newAttributes.
  * Assumes that newAttributes is the complete desired set of attributes.
- * Adds new attributes, updates existing ones, and deletes any that are not present in newAttributes.
+ * Adds new attributes, updates existing ones, and (optionally) deletes any that are not present in newAttributes.
  * @param {CoreNoteFields} note - The note to update.
  * @param {{ [string]: string }} newAttributes - The complete set of desired front matter attributes.
  * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in newAttributes (default: false)
@@ -867,22 +955,23 @@ export function normalizeValue(value: string): string {
 export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {
     clo(newAttributes, `updateFrontMatterVars: newAttributes = ${JSON.stringify(newAttributes)}`)
+    logDebug(pluginJson, `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs before ensureFrontmatter`)
+    // $FlowIgnore[prop-missing]
+    const isEditor = Boolean(note.note)
     // Ensure the note has front matter
-    if (!ensureFrontmatter(note)) {
-      logError(pluginJson, `updateFrontMatterVars: Failed to ensure front matter for note "${note.filename || ''}".`)
-      return false
-    }
 
-    const existingAttributes = { ...getFrontMatterAttributes(note) } || {}
+    logDebug(pluginJson, `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs after ensureFrontmatter`)
+
+    const existingAttributes = { ...getFrontmatterAttributes(note) } || {}
     // Normalize newAttributes before comparison
     clo(existingAttributes, `updateFrontMatterVars: existingAttributes`)
-    const normalizedNewAttributes = {}
+    const normalizedNewAttributes: { [string]: any } = {}
     clo(Object.keys(newAttributes), `updateFrontMatterVars: Object.keys(newAttributes) = ${JSON.stringify(Object.keys(newAttributes))}`)
     Object.keys(newAttributes).forEach((key: string) => {
       const value = newAttributes[key]
       logDebug('updateFrontMatterVars newAttributes', `key: ${key}, value: ${value}`)
       // $FlowIgnore
-      normalizedNewAttributes[key] = typeof value === 'object' ? JSON.stringify(value) : quoteText(value.trim())
+      normalizedNewAttributes[key] = typeof value === 'object' ? JSON.stringify(value) : key === 'triggers' ? value.trim() : quoteText(value.trim())
     })
 
     const { keysToAdd, keysToUpdate, keysToDelete } = determineAttributeChanges(existingAttributes, normalizedNewAttributes, deleteMissingAttributes)
@@ -890,6 +979,22 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
     keysToAdd.length > 0 && clo(keysToAdd, `updateFrontMatterVars: keysToAdd`)
     keysToUpdate.length > 0 && clo(keysToUpdate, `updateFrontMatterVars: keysToUpdate`)
     keysToDelete.length > 0 && clo(keysToDelete, `updateFrontMatterVars: keysToDelete`)
+
+    logDebug(pluginJson, `updateFrontMatterVars: typeof note.frontmatterAttributes = ${typeof note.frontmatterAttributes}`)
+    if (isEditor) {
+      // The frontmatterAttributes setter only works with macOS >= 14 and iOS >= 16
+      // and only works with the Editor
+      const includingMissingAttributes = deleteMissingAttributes ? normalizedNewAttributes : { ...existingAttributes, ...normalizedNewAttributes }
+      // $FlowIgnore
+      note.frontmatterAttributes = includingMissingAttributes
+      logDebug(pluginJson, `updateFrontMatterVars: writing frontmatterAttributes to note using setter`)
+      return true
+    }
+
+    if (!ensureFrontmatter(note)) {
+      logError(pluginJson, `updateFrontMatterVars: Failed to ensure front matter for note "${note.filename || ''}".`)
+      return false
+    }
 
     // Update existing attributes -- just replace the text in the paragraph
     keysToUpdate.forEach((key: string) => {
@@ -911,9 +1016,31 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       // $FlowIgnore
       const newAttributeLine = `${key}: ${normalizedNewAttributes[key]}`
       // Insert before the closing '---'
+      clo(note.paragraphs, `updateFrontMatterVars: note.paragraphs`)
       const closingIndex = note.paragraphs.findIndex((para) => para.content.trim() === '---' && para.lineIndex > 0)
+      logDebug('updateFrontMatterVars', `closingIndex: ${closingIndex}`)
       if (closingIndex !== -1) {
+        // IMPORTANT: there is a NotePlan race condition here. If we just added frontmatter to an empty note, this does not always do the right thing
+        // Sometimes adds extra lines to the top of the note
+        const numParagraphsBefore = note.paragraphs.length
         note.insertParagraph(newAttributeLine, closingIndex, 'text')
+        const numParagraphsAfter = note.paragraphs.length
+        if (numParagraphsAfter > numParagraphsBefore + 1) {
+          logDebug('updateFrontMatterVars', `numParagraphsBefore: ${numParagraphsBefore} numParagraphsAfter: ${numParagraphsAfter}`)
+          logDebug(pluginJson, `updateFrontMatterVars: NP Race condition added too many lines to note "${note.filename || ''}"`)
+          // find the 3rd and the 4th type === separator paragraphs and remove them
+          const separatorParas = note.paragraphs.filter((para) => para.type === 'separator')
+          if (separatorParas.length >= 2) {
+            // remove the 3rd and 4th separator paragraphs
+            const parasToRemove = separatorParas.slice(2, 4)
+            if (parasToRemove.length === 2 && parasToRemove[0].lineIndex === parasToRemove[1].lineIndex - 1) {
+              note.removeParagraph(parasToRemove[1])
+              note.removeParagraph(parasToRemove[0])
+              logDebug('updateFrontMatterVars', `removed 2 separator paragraphs from note "${note.filename || ''}"`)
+            }
+          }
+          return false
+        }
       } else {
         logError(pluginJson, `updateFrontMatterVars: Failed to find closing '---' in note "${note.filename || ''}" could not add new attribute "${key}".`)
       }
@@ -966,4 +1093,807 @@ export function createFrontmatterTextArray(attributes: { [string]: string }, quo
     }
   })
   return outputArr
+}
+
+/**
+ * get all notes with certain frontmatter tags
+ * @param {Array<string> | string} tags - The key (string) or array of keys to search for.
+ * @param {'Notes' | 'Calendar' | 'All'} noteType (optional) - The type of notes to search in
+ * @param {boolean} caseSensitive (optional) - Whether to perform case-sensitive matching (default: false)
+ * @param {string} folderString (optional) - The string to match in the path
+ * @param {boolean} fullPathMatch (optional) - Whether to match the full path (default: false)
+ * @returns {Array<TNote>} - An array of notes with frontmatter tags.
+ */
+export function getNotesWithFrontmatterTags(
+  _tags: Array<string> | string,
+  noteType: 'Notes' | 'Calendar' | 'All' = 'All',
+  caseSensitive: boolean = false,
+  folderString?: string,
+  fullPathMatch: boolean = false,
+): Array<TNote> {
+  const start = new Date()
+  logDebug(
+    `getNotesWithFrontmatterTags running with tags:${JSON.stringify(_tags)}, noteType:${noteType}, folderString:${folderString || 'none'}, fullPathMatch:${String(fullPathMatch)}`,
+  )
+
+  const tags: Array<string> = Array.isArray(_tags) ? _tags : [_tags]
+
+  // Get notes with frontmatter, passing folder filtering parameters
+  const notes: Array<TNote> = getNotesWithFrontmatter(noteType, folderString, fullPathMatch) || []
+
+  const notesWithFrontmatterTags = notes.filter((note) => {
+    return tags.some((tag) => {
+      if (!caseSensitive) {
+        // Case-insensitive matching (default)
+        const lowerCaseTag = tag.toLowerCase()
+        return Object.keys(note.frontmatterAttributes || {}).some((key) => key.toLowerCase() === lowerCaseTag && note.frontmatterAttributes[key])
+      }
+      // Case-sensitive matching
+      return note.frontmatterAttributes[tag]
+    })
+  })
+
+  logDebug(`getNotesWithFrontmatterTags: ${tags.toString()} ${notesWithFrontmatterTags.length}/${notes.length} in ${timer(start)}`)
+  return notesWithFrontmatterTags
+}
+
+/**
+ * get all notes with a certain frontmatter tag value
+ * @param {string} tag - The key to search for.
+ * @param {string} value - The value to search for.
+ * @param {'Notes' | 'Calendar' | 'All'} noteType (optional) - The type of notes to search in
+ * @param {boolean} caseSensitive (optional) - Whether to perform case-sensitive matching (default: false)
+ * @param {string} folderString (optional) - The string to match in the path
+ * @param {boolean} fullPathMatch (optional) - Whether to match the full path (default: false)
+ * @returns {Array<TNote>} - An array of notes with the frontmatter tag value.
+ */
+export function getNotesWithFrontmatterTagValue(
+  tag: string,
+  value: string,
+  noteType: 'Notes' | 'Calendar' | 'All' = 'All',
+  caseSensitive: boolean = false,
+  folderString?: string,
+  fullPathMatch: boolean = false,
+): Array<TNote> {
+  // Get notes with the tag, passing along the case sensitivity and folder filtering settings
+  const notes: Array<TNote> = getNotesWithFrontmatterTags(tag, noteType, caseSensitive, folderString, fullPathMatch) || []
+
+  const notesWithFrontmatterTagValue = notes.filter((note) => {
+    // Get the correct key based on case sensitivity
+    let matchingKey = tag
+    if (!caseSensitive) {
+      const lowerCaseTag = tag.toLowerCase()
+      matchingKey = Object.keys(note.frontmatterAttributes || {}).find((key) => key.toLowerCase() === lowerCaseTag) || tag
+    }
+
+    const tagValue = note.frontmatterAttributes[matchingKey]
+    if (!caseSensitive && typeof tagValue === 'string' && typeof value === 'string') {
+      return tagValue.toLowerCase() === value.toLowerCase()
+    }
+    return tagValue === value
+  })
+
+  return notesWithFrontmatterTagValue
+}
+
+/**
+ * get all unique values used for a specific frontmatter tag across notes
+ * @param {string} tagParam - The key to search for. Can be a regex pattern starting with / and ending with /.
+ * @param {'Notes' | 'Calendar' | 'All'} noteType (optional) - The type of notes to search in
+ * @param {boolean} caseSensitive (optional) - Whether to perform case-sensitive matching (default: false)
+ * @param {string} folderString (optional) - The string to match in the path
+ * @param {boolean} fullPathMatch (optional) - Whether to match the full path (default: false)
+ * @returns {Promise<Array<any>>} - An array of all unique values found for the specified tag
+ */
+export async function getValuesForFrontmatterTag(
+  tagParam?: string,
+  noteType: 'Notes' | 'Calendar' | 'All' = 'All',
+  caseSensitive: boolean = false,
+  folderString?: string,
+  fullPathMatch: boolean = false,
+): Promise<Array<any>> {
+  // Use a mutable variable for the tag
+  let tagToUse: string = tagParam || ''
+  let isRegex = false
+  let regex: RegExp | null = null
+
+  // Check if tagToUse is a regex pattern
+  if (tagToUse.startsWith('/') && tagToUse.includes('/')) {
+    try {
+      // Find the last / in the string to handle flags
+      const lastSlashIndex = tagToUse.lastIndexOf('/')
+      if (lastSlashIndex > 0) {
+        const regexPattern = tagToUse.slice(1, lastSlashIndex)
+        const flags = tagToUse.slice(lastSlashIndex + 1).replace('g', '') // don't include global flag b/c it messes with the loop and regex cursor
+        // Add 'i' flag if case-insensitive is requested
+        const finalFlags = caseSensitive ? flags : flags.includes('i') ? flags : `${flags}i`
+        regex = new RegExp(regexPattern, finalFlags)
+        isRegex = true
+        logDebug('getValuesForFrontmatterTag', `Using regex pattern "${regexPattern}" with flags "${finalFlags}"`)
+      }
+    } catch (error) {
+      logError('getValuesForFrontmatterTag', `Invalid regex pattern: ${error.message}`)
+      return []
+    }
+  }
+
+  // If no tag is provided, prompt the user to select one
+  if (!tagToUse) {
+    logDebug('getValuesForFrontmatterTag: No tag key provided, prompting user to select one')
+
+    // Get all notes with frontmatter
+    const notesWithFrontmatter = getNotesWithFrontmatter(noteType, folderString, fullPathMatch)
+
+    // Extract all unique frontmatter keys from these notes
+    const allKeys: Set<string> = new Set()
+    notesWithFrontmatter.forEach((note) => {
+      if (note.frontmatterAttributes) {
+        Object.keys(note.frontmatterAttributes).forEach((key) => {
+          allKeys.add(key)
+        })
+      }
+    })
+
+    // Convert to array and sort alphabetically
+    const keyOptions: Array<string> = Array.from(allKeys).sort()
+
+    if (keyOptions.length === 0) {
+      logDebug('getValuesForFrontmatterTag: No frontmatter keys found in notes')
+      return []
+    }
+
+    // Prompt user to select a key
+    const message = 'Please select a key to search for:'
+
+    try {
+      // Call CommandBar to show options and get selected key
+      clo(keyOptions, `getValuesForFrontmatterTag: keyOptions=`)
+      const response = await CommandBar.showOptions(keyOptions, message)
+      logDebug(`getValuesForFrontmatterTag: response=${JSON.stringify(response)}`)
+      // Check if the user cancelled or if the returned value is valid
+      if (!response || typeof response !== 'object') {
+        logDebug('getValuesForFrontmatterTag: User cancelled key selection or invalid key returned')
+        return []
+      }
+      tagToUse = keyOptions[response.index]
+
+      logDebug(`getValuesForFrontmatterTag: User selected key "${tagToUse}"`)
+    } catch (error) {
+      logError('getValuesForFrontmatterTag', `Error showing options: ${JSP(error)}`)
+      return []
+    }
+  }
+
+  // At this point tagToUse should be a non-empty string
+  if (!tagToUse) {
+    logError('getValuesForFrontmatterTag', 'No tag provided and user did not select one')
+    return []
+  }
+
+  // Get all notes with frontmatter
+  const notes = getNotesWithFrontmatter(noteType, folderString, fullPathMatch)
+
+  // Create a set to store unique values
+  const uniqueValuesSet: Set<any> = new Set()
+
+  notes.forEach((note) => {
+    if (!note.frontmatterAttributes) return
+
+    // If using regex, find all matching keys
+    if (isRegex && regex instanceof RegExp) {
+      Object.keys(note.frontmatterAttributes).forEach((key) => {
+        // Test if the key matches the regex pattern
+        if (regex && regex.test(key)) {
+          const value = note.frontmatterAttributes[key]
+          if (value !== null && value !== undefined) {
+            if (!caseSensitive && typeof value === 'string') {
+              // Check if this value (case-insensitive) is already in the set
+              let found = false
+              for (const existingValue of uniqueValuesSet) {
+                if (typeof existingValue === 'string' && existingValue.toLowerCase() === value.toLowerCase()) {
+                  found = true
+                  break
+                }
+              }
+              if (!found) {
+                uniqueValuesSet.add(value)
+              }
+            } else {
+              uniqueValuesSet.add(value)
+            }
+          }
+        }
+      })
+    } else {
+      // Find the matching key based on case sensitivity
+      let matchingKey = tagToUse
+      if (!caseSensitive) {
+        const lowerCaseTag = tagToUse.toLowerCase()
+        matchingKey = Object.keys(note.frontmatterAttributes).find((key) => key.toLowerCase() === lowerCaseTag) || tagToUse
+      }
+
+      // Get the value for this key in this note
+      const value = note.frontmatterAttributes[matchingKey]
+
+      // Only add non-null values
+      if (value !== null && value !== undefined) {
+        // Handle string values with case sensitivity
+        if (!caseSensitive && typeof value === 'string') {
+          // Check if this value (case-insensitive) is already in the set
+          let found = false
+          for (const existingValue of uniqueValuesSet) {
+            if (typeof existingValue === 'string' && existingValue.toLowerCase() === value.toLowerCase()) {
+              found = true
+              break
+            }
+          }
+          if (!found) {
+            uniqueValuesSet.add(value)
+          }
+        } else {
+          // For non-string values or case-sensitive matching, just add the value
+          uniqueValuesSet.add(value)
+        }
+      }
+    }
+  })
+
+  // Convert the set to an array and return
+  logDebug(
+    `getValuesForFrontmatterTag: Found ${uniqueValuesSet.size} unique values for tag "${tagToUse}" - ` +
+      `[${[...uniqueValuesSet].slice(0, 3).join(', ')}${uniqueValuesSet.size > 3 ? ', ...' : ''}]`,
+  )
+  return Array.from(uniqueValuesSet)
+}
+
+/**
+ * Analyze a template's structure to determine various characteristics
+ * @param {string} templateData - The template content to analyze
+ * @returns {Object} Analysis results with the following properties:
+ *   - hasNewNoteTitle: boolean - Whether template has 'newNoteTitle' in frontmatter
+ *   - hasOutputFrontmatter: boolean - Whether template has frontmatter in the output note (after the template frontmatter)
+ *   - hasOutputTitle: boolean - Whether template has a 'title' field in the output note's frontmatter
+ *   - hasInlineTitle: boolean - Whether template has an inline title (first non-frontmatter line starts with single #)
+ *   - templateFrontmatter: Object - The template's frontmatter attributes
+ *   - outputFrontmatter: Object - The output note's frontmatter attributes (if any)
+ *   - bodyContent: string - The template body content (after template frontmatter)
+ *   - inlineTitleText: string - The text of the inline title (if any)
+ */
+export function analyzeTemplateStructure(templateData: string): {
+  hasNewNoteTitle: boolean,
+  hasOutputFrontmatter: boolean,
+  hasOutputTitle: boolean,
+  hasInlineTitle: boolean,
+  templateFrontmatter: { [string]: string },
+  outputFrontmatter: { [string]: string },
+  bodyContent: string,
+  inlineTitleText: string,
+} {
+  try {
+    logDebug('analyzeTemplateStructure', `Analyzing template structure for template with ${templateData.length} characters`)
+
+    // Initialize return object
+    const result = {
+      hasNewNoteTitle: false,
+      hasOutputFrontmatter: false,
+      hasOutputTitle: false,
+      hasInlineTitle: false,
+      templateFrontmatter: {},
+      outputFrontmatter: {},
+      bodyContent: '',
+      inlineTitleText: '',
+    }
+
+    // Extract template frontmatter and body using helper functions
+    const lines = templateData.split('\n')
+    let templateFrontmatterEnd = -1
+
+    // Find the end of template frontmatter (first --- block)
+    if (lines.length >= 2 && lines[0].trim() === '---') {
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim() === '---') {
+          templateFrontmatterEnd = i
+          break
+        }
+      }
+    }
+
+    if (templateFrontmatterEnd > 0) {
+      // Extract and parse template frontmatter
+      const { attributes, isValid } = extractAndParseFrontmatter(lines, 0, templateFrontmatterEnd)
+
+      if (isValid) {
+        result.templateFrontmatter = attributes
+        result.bodyContent = lines.slice(templateFrontmatterEnd + 1).join('\n')
+        logDebug(
+          'analyzeTemplateStructure',
+          `Extracted body content (${result.bodyContent.length} chars): "${result.bodyContent ? result.bodyContent.substring(0, 200) : ''}${
+            result.bodyContent ? (result.bodyContent.length > 200 ? '...' : '') : ''
+          }..."`,
+        )
+      } else {
+        // Not valid YAML, treat the entire content as body
+        result.templateFrontmatter = {}
+        result.bodyContent = templateData
+        logDebug(
+          'analyzeTemplateStructure',
+          `Invalid template frontmatter found, using whole content as body (${result.bodyContent.length} chars): "${result.bodyContent.substring(0, 200)}..."`,
+        )
+      }
+    } else {
+      // No template frontmatter, use the whole content as body
+      result.bodyContent = templateData
+      logDebug(
+        'analyzeTemplateStructure',
+        `No template frontmatter found, using whole content as body (${result.bodyContent.length} chars): "${result.bodyContent ? result.bodyContent.substring(0, 200) : ''}${
+          result.bodyContent ? (result.bodyContent.length > 200 ? '...' : '') : ''
+        }..."`,
+      )
+    }
+
+    // Check for newNoteTitle in template frontmatter
+    result.hasNewNoteTitle = 'newNoteTitle' in result.templateFrontmatter
+
+    // Check for output frontmatter in the body content
+    if (result.bodyContent) {
+      const bodyLines = result.bodyContent.split('\n')
+
+      // Find separator positions using helper function
+      const { startIndex: startBlock, endIndex: endBlock } = findSeparatorPositions(bodyLines)
+
+      // Only process as frontmatter if we actually found separator markers
+      if (startBlock >= 0 && endBlock >= 0) {
+        // Extract and parse output frontmatter
+        const { attributes, isValid } = extractAndParseFrontmatter(bodyLines, startBlock, endBlock)
+
+        if (isValid) {
+          result.outputFrontmatter = attributes
+          result.hasOutputFrontmatter = Object.keys(result.outputFrontmatter).length > 0
+          result.hasOutputTitle = 'title' in result.outputFrontmatter
+        } else {
+          // Not valid frontmatter, so no output frontmatter
+          result.outputFrontmatter = {}
+          result.hasOutputFrontmatter = false
+          result.hasOutputTitle = false
+        }
+      } else {
+        // No frontmatter separators found, so no output frontmatter
+        result.outputFrontmatter = {}
+        result.hasOutputFrontmatter = false
+        result.hasOutputTitle = false
+      }
+    }
+
+    // Check for inline title in the body content
+    const inlineTitleResult = detectInlineTitle(result.bodyContent)
+    result.hasInlineTitle = inlineTitleResult.hasInlineTitle
+    result.inlineTitleText = inlineTitleResult.inlineTitleText
+
+    logDebug(
+      'analyzeTemplateStructure',
+      `Analysis complete:
+      - hasNewNoteTitle: ${String(result.hasNewNoteTitle)}
+      - hasOutputFrontmatter: ${String(result.hasOutputFrontmatter)}
+      - hasOutputTitle: ${String(result.hasOutputTitle)}
+      - hasInlineTitle: ${String(result.hasInlineTitle)}
+      - templateFrontmatter keys: ${Object.keys(result.templateFrontmatter).join(', ')}
+      - outputFrontmatter keys: ${Object.keys(result.outputFrontmatter).join(', ')}
+      - bodyContent length: ${result.bodyContent.length}
+      - inlineTitleText: "${result.inlineTitleText}"`,
+    )
+
+    return result
+  } catch (error) {
+    logError('analyzeTemplateStructure', JSP(error))
+    return {
+      hasNewNoteTitle: false,
+      hasOutputFrontmatter: false,
+      hasOutputTitle: false,
+      hasInlineTitle: false,
+      templateFrontmatter: {},
+      outputFrontmatter: {},
+      bodyContent: '',
+      inlineTitleText: '',
+    }
+  }
+}
+
+/**
+ * Helper function to find separator positions in an array of lines
+ * Looks for both -- and --- separators
+ * @param {Array<string>} lines - Array of lines to search
+ * @param {number} startIndex - Index to start searching from (default: 0)
+ * @returns {{startIndex: number, endIndex: number}} - Object with start and end indices, or {-1, -1} if not found
+ */
+function findSeparatorPositions(lines: Array<string>, startIndex: number = 0): { startIndex: number, endIndex: number } {
+  // First try to find -- separators
+  let startPos = lines.indexOf('--', startIndex)
+  let endPos = startPos >= 0 ? lines.indexOf('--', startPos + 1) : -1
+
+  // If no -- separators found, try to find --- separators
+  if (startPos === -1) {
+    startPos = lines.indexOf('---', startIndex)
+    endPos = startPos >= 0 ? lines.indexOf('---', startPos + 1) : -1
+  }
+
+  return { startIndex: startPos, endIndex: endPos }
+}
+
+/**
+ * Helper function to extract content between separators and parse it as frontmatter
+ * @param {Array<string>} lines - Array of lines to process
+ * @param {number} startIndex - Start index of the separator block
+ * @param {number} endIndex - End index of the separator block
+ * @returns {{attributes: {[string]: string}, isValid: boolean}} - Parsed attributes and validity flag
+ */
+function extractAndParseFrontmatter(lines: Array<string>, startIndex: number, endIndex: number): { attributes: { [string]: string }, isValid: boolean } {
+  if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex) {
+    return { attributes: {}, isValid: false }
+  }
+
+  // Extract the content between separators
+  const frontmatterLines = lines.slice(startIndex + 1, endIndex)
+  const frontmatterContent = frontmatterLines.join('\n')
+
+  // Check if frontmatter is empty (valid) or has valid YAML content
+  const isEmptyFrontmatter = !frontmatterContent || frontmatterContent.trim() === ''
+  const hasValidYaml = isValidYamlContent(frontmatterContent)
+
+  if (isEmptyFrontmatter || hasValidYaml) {
+    const attributes: { [string]: string } = {}
+
+    // Parse the frontmatter lines manually
+    for (const line of frontmatterLines) {
+      const trimmedLine = line.trim()
+      if (trimmedLine) {
+        // Skip empty lines
+        const colonIndex = trimmedLine.indexOf(':')
+        if (colonIndex > 0) {
+          const key = trimmedLine.substring(0, colonIndex).trim()
+          const value = trimmedLine.substring(colonIndex + 1).trim()
+          // Remove quotes if present, but always return as string
+          const cleanValue = value.replace(/^["'](.*)["']$/, '$1')
+          attributes[key] = String(cleanValue)
+        }
+      }
+    }
+
+    return { attributes, isValid: true }
+  }
+
+  return { attributes: {}, isValid: false }
+}
+
+/**
+ * Helper function to get the folder path array from a note's filename
+ * @param {string} filename - The note's filename
+ * @returns {Array<string>} - Array of folder names in the path
+ */
+function getFolderPathFromFilename(filename: string): Array<string> {
+  if (!filename) return []
+  const parts = filename.split('/')
+  // If there's only one part, there are no folders
+  if (parts.length <= 1) return []
+  // Return all parts except the last one (which is the filename)
+  return parts.slice(0, -1)
+}
+
+/**
+ * Helper function to filter notes based on folder criteria
+ * @param {Array<TNote>} notes - The notes to filter
+ * @param {string} folderString - The string to match in the path
+ * @param {boolean} fullPathMatch - Whether to match the full path
+ * @returns {Array<TNote>} - Filtered notes
+ */
+function filterNotesByFolder(notes: Array<TNote>, folderString?: string, fullPathMatch: boolean = false): Array<TNote> {
+  // If no folderString specified, return all notes
+  if (!folderString) return notes
+
+  return notes.filter((note) => {
+    const filename = note.filename || ''
+
+    if (fullPathMatch) {
+      // For full path match, the note's path should start with the folderString
+      // and should match all the way to the filename
+      return filename.startsWith(folderString) && (filename === folderString || filename.substring(folderString.length).startsWith('/'))
+    } else {
+      // For partial path match, any folder in the path can match
+      const folders = getFolderPathFromFilename(filename)
+      // Check if any folder contains the folderString
+      if (folders.some((folder) => folder.includes(folderString))) return true
+      // Also check if the full path contains the folderString
+      return filename.includes(`/${folderString}/`) || filename.startsWith(`${folderString}/`)
+    }
+  })
+}
+
+/**
+ * Helper function to check if a line is a heading
+ * @param {string} line - The line to check
+ * @returns {{isHeading: boolean, titleText: string}} - Whether it's a heading and the title text
+ */
+function isHeadingLine(line: string): { isHeading: boolean, titleText: string } {
+  const trimmedLine = line.trim()
+  if (trimmedLine && trimmedLine.match(/^#{1,6}\s+/)) {
+    const titleText = trimmedLine.replace(/^#{1,6}\s+/, '').trim()
+    return { isHeading: true, titleText }
+  }
+  return { isHeading: false, titleText: '' }
+}
+
+/**
+ * Helper function to find the next heading after a given index
+ * @param {Array<string>} lines - Array of lines to search
+ * @param {number} startIndex - Index to start searching from
+ * @returns {{found: boolean, titleText: string, index: number}} - Search results
+ */
+function findNextHeading(lines: Array<string>, startIndex: number): { found: boolean, titleText: string, index: number } {
+  for (let i = startIndex; i < lines.length; i++) {
+    const { isHeading, titleText } = isHeadingLine(lines[i])
+    if (isHeading) {
+      return { found: true, titleText, index: i }
+    }
+  }
+  return { found: false, titleText: '', index: -1 }
+}
+
+/**
+ * Helper function to find frontmatter blocks in the body content
+ * Since this is called on bodyContent (after first frontmatter is peeled off),
+ * we only need to look for additional frontmatter blocks that can use -- or ---
+ * @param {Array<string>} lines - Array of lines to search
+ * @returns {Array<{startIndex: number, endIndex: number, isValid: boolean}>} - Array of frontmatter blocks
+ */
+function findNoteFrontmatterBlock(lines: Array<string>): Array<{ startIndex: number, endIndex: number, isValid: boolean }> {
+  const blocks = []
+  let currentIndex = 0
+
+  while (currentIndex < lines.length) {
+    const startLine = lines[currentIndex].trim()
+
+    // Look for frontmatter separators (-- or ---)
+    if (startLine === '--' || startLine === '---') {
+      // Found start of potential frontmatter block
+      const { startIndex: startBlock, endIndex: endBlock } = findSeparatorPositions(lines, currentIndex)
+
+      if (startBlock >= 0 && endBlock >= 0) {
+        // Extract and validate the frontmatter content
+        const { isValid } = extractAndParseFrontmatter(lines, startBlock, endBlock)
+        blocks.push({ startIndex: startBlock, endIndex: endBlock, isValid })
+        currentIndex = endBlock + 1
+      } else {
+        currentIndex++
+      }
+    } else {
+      currentIndex++
+    }
+  }
+
+  return blocks
+}
+
+/**
+ * Helper function to find inline title after processing all frontmatter blocks
+ * @param {Array<string>} lines - Array of lines to search
+ * @param {Array<{startIndex: number, endIndex: number, isValid: boolean}>} frontmatterBlocks - All frontmatter blocks found
+ * @returns {{hasInlineTitle: boolean, inlineTitleText: string}} - Search results
+ */
+function findInlineTitleAfterFrontmatter(
+  lines: Array<string>,
+  frontmatterBlocks: Array<{ startIndex: number, endIndex: number, isValid: boolean }>,
+): { hasInlineTitle: boolean, inlineTitleText: string } {
+  if (frontmatterBlocks.length === 0) {
+    // No complete frontmatter blocks found - check for malformed frontmatter
+    if (lines.length > 0 && (lines[0].trim() === '--' || lines[0].trim() === '---')) {
+      // Malformed frontmatter - don't look for titles
+      logDebug('detectInlineTitle', 'Malformed frontmatter detected, not looking for titles')
+      return { hasInlineTitle: false, inlineTitleText: '' }
+    } else {
+      // No frontmatter at all - check only the first non-empty line
+      for (let i = 0; i < lines.length; i++) {
+        const trimmedLine = lines[i].trim()
+        if (trimmedLine === '') continue
+
+        const { isHeading, titleText } = isHeadingLine(trimmedLine)
+        if (isHeading) {
+          logDebug('detectInlineTitle', `Found inline title in first line: "${titleText}"`)
+          return { hasInlineTitle: true, inlineTitleText: titleText }
+        }
+        break // Stop at first non-empty line
+      }
+    }
+    return { hasInlineTitle: false, inlineTitleText: '' }
+  }
+
+  // Find the first (and only) frontmatter block in body content
+  const frontmatterBlock = frontmatterBlocks[0]
+
+  // Only look for titles after frontmatter if the block is valid
+  if (frontmatterBlock.isValid) {
+    // Look for heading immediately after the frontmatter block
+    const searchStartIndex = frontmatterBlock.endIndex + 1
+    if (searchStartIndex < lines.length) {
+      const firstLineAfterFrontmatter = lines[searchStartIndex].trim()
+      if (firstLineAfterFrontmatter) {
+        const { isHeading, titleText } = isHeadingLine(firstLineAfterFrontmatter)
+        if (isHeading) {
+          logDebug('detectInlineTitle', `Found inline title after frontmatter block: "${titleText}"`)
+          return { hasInlineTitle: true, inlineTitleText: titleText }
+        }
+      }
+    }
+  } else {
+    // Invalid frontmatter - don't look for titles
+    logDebug('detectInlineTitle', 'Invalid frontmatter detected, not looking for titles')
+    return { hasInlineTitle: false, inlineTitleText: '' }
+  }
+
+  return { hasInlineTitle: false, inlineTitleText: '' }
+}
+
+/**
+ * Robust helper function to detect inline title in template body content
+ * Handles malformed frontmatter, multiple consecutive separators, and multiple frontmatter blocks
+ * @param {string} bodyContent - The template body content
+ * @returns {{hasInlineTitle: boolean, inlineTitleText: string}}
+ */
+export function detectInlineTitle(bodyContent: string): { hasInlineTitle: boolean, inlineTitleText: string } {
+  if (!bodyContent) {
+    logDebug('detectInlineTitle', 'No body content provided')
+    return { hasInlineTitle: false, inlineTitleText: '' }
+  }
+
+  const lines = bodyContent.split('\n')
+  logDebug('detectInlineTitle', `Processing ${lines.length} lines of rendered body content`)
+
+  // Find any note frontmatter blocks in the content
+  const frontmatterBlocks = findNoteFrontmatterBlock(lines)
+  logDebug('detectInlineTitle', `Found ${frontmatterBlocks.length} frontmatter blocks`)
+
+  // Find inline title after processing all frontmatter blocks
+  const result = findInlineTitleAfterFrontmatter(lines, frontmatterBlocks)
+
+  if (!result.hasInlineTitle) {
+    logDebug('detectInlineTitle', 'No inline title found')
+  }
+
+  return result
+}
+
+/**
+ * Extract the note title from a template using analyzeTemplateStructure
+ * Checks for newNoteTitle in frontmatter first, then falls back to inline title if newNoteTitle is not found
+ * @param {string} templateData - The template content to analyze
+ * @returns {string} - The note title to use, or empty string if none found
+ */
+export function getNoteTitleFromTemplate(templateData: string): string {
+  try {
+    logDebug('getNoteTitleFromTemplate', `Analyzing template with ${templateData.length} characters`)
+    const analysis = analyzeTemplateStructure(templateData)
+
+    logDebug(
+      'getNoteTitleFromTemplate',
+      `Analysis results:
+      - hasNewNoteTitle: ${String(analysis.hasNewNoteTitle)}
+      - hasInlineTitle: ${String(analysis.hasInlineTitle)}
+      - templateFrontmatter keys: ${Object.keys(analysis.templateFrontmatter).join(', ')}
+      - inlineTitleText: "${analysis.inlineTitleText}"`,
+    )
+
+    // First check for newNoteTitle in template frontmatter
+    if (analysis.hasNewNoteTitle && analysis.templateFrontmatter.newNoteTitle) {
+      logDebug('getNoteTitleFromTemplate', `Found newNoteTitle in template frontmatter: "${analysis.templateFrontmatter.newNoteTitle}"`)
+      return analysis.templateFrontmatter.newNoteTitle
+    }
+
+    // If no newNoteTitle found, check for inline title
+    if (analysis.hasInlineTitle && analysis.inlineTitleText) {
+      logDebug('getNoteTitleFromTemplate', `Found inline title: "${analysis.inlineTitleText}"`)
+      return analysis.inlineTitleText
+    }
+
+    logDebug('getNoteTitleFromTemplate', 'No note title found in template')
+    return ''
+  } catch (error) {
+    logError('getNoteTitleFromTemplate', JSP(error))
+    return ''
+  }
+}
+
+/**
+ * Extract the note title from rendered content by detecting inline titles
+ * This function works with rendered content (no template tags) to find inline titles
+ * @param {string} renderedContent - The rendered content to analyze
+ * @returns {string} - The note title to use, or empty string if none found
+ */
+export function getNoteTitleFromRenderedContent(renderedContent: string): string {
+  try {
+    logDebug('getNoteTitleFromRenderedContent', `Analyzing rendered content with ${renderedContent.length} characters`)
+
+    if (!renderedContent) {
+      logDebug('getNoteTitleFromRenderedContent', 'No rendered content provided')
+      return ''
+    }
+
+    const lines = renderedContent.split('\n')
+    logDebug('getNoteTitleFromRenderedContent', `Processing ${lines.length} lines of rendered content`)
+
+    // Look for the first heading (H1-H6) in the content
+    // Skip frontmatter blocks (lines starting with ---)
+    let i = 0
+    while (i < lines.length && lines[i].trim() === '---') {
+      // Skip to the end of the frontmatter block
+      i++
+      while (i < lines.length && lines[i].trim() !== '---') {
+        i++
+      }
+      if (i < lines.length) i++ // Skip the closing ---
+    }
+
+    // Now look for the first heading after any frontmatter
+    for (; i < lines.length; i++) {
+      const trimmedLine = lines[i].trim()
+      if (trimmedLine === '') continue
+
+      if (trimmedLine.match(/^#{1,6}\s+/)) {
+        const titleText = trimmedLine.replace(/^#{1,6}\s+/, '').trim()
+        logDebug('getNoteTitleFromRenderedContent', `Found inline title: "${titleText}"`)
+        return titleText
+      }
+      break // Stop at first non-empty line that's not a heading
+    }
+
+    logDebug('getNoteTitleFromRenderedContent', 'No inline title found in rendered content')
+    return ''
+  } catch (error) {
+    logError('getNoteTitleFromRenderedContent', JSP(error))
+    return ''
+  }
+}
+
+/**
+ * Extract the note title from a template using analyzeTemplateStructure
+ * NOTE: This function should only be used for analyzing templates, not for extracting titles from rendered content
+ * For rendered content, use getNoteTitleFromRenderedContent instead
+ * @param {string} templateData - The template content to analyze
+ * @returns {string} - The note title to use, or empty string if none found
+ */
+
+/**
+ * Check if content between --- markers is valid YAML-like content
+ * @param {string} content - The content to validate
+ * @returns {boolean} - Whether the content is valid YAML-like frontmatter
+ */
+export function isValidYamlContent(content: string): boolean {
+  if (!content || content.trim() === '') {
+    logDebug('isValidYamlContent', 'Content is empty or whitespace only')
+    return false
+  }
+
+  const lines = content.split('\n')
+  let hasValidYamlLine = false
+
+  for (const line of lines) {
+    const trimmedLine = line.trim()
+    if (trimmedLine === '') continue // Skip empty lines
+
+    // Check for valid YAML patterns:
+    // 1. key: value (with optional spaces) - allows hyphens and spaces in key names
+    // 2. key: (empty value) - allows hyphens and spaces in key names
+    // 3. - item (list item)
+    const yamlPatterns = [
+      /^[a-zA-Z_\#][a-zA-Z0-9_\-\s\#]*\s*:\s*/, // key: value (allows hyphens and spaces and pound signs)
+      /^[a-zA-Z_][a-zA-Z0-9_\-\s]*\s*:$/, // key: (empty value, allows hyphens and spaces)
+      /^\s*-\s+/, // - item (list item)
+    ]
+
+    const isValidLine = yamlPatterns.some((pattern) => pattern.test(trimmedLine))
+    if (isValidLine) {
+      hasValidYamlLine = true
+    } else {
+      logDebug('isValidYamlContent', `FYI: This line is not strictly valid YAML: "${trimmedLine}"`)
+    }
+  }
+
+  return hasValidYamlLine
 }

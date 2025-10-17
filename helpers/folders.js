@@ -1,32 +1,47 @@
 // @flow
 //-------------------------------------------------------------------------------
 // Folder-level Functions
+// Really should be called 'NPFolders' as it relies on DataStore.folders.
+//-------------------------------------------------------------------------------
 
+import yaml from 'yaml'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { caseInsensitiveMatch, caseInsensitiveStartsWith, caseInsensitiveSubstringMatch } from '@helpers/search'
-// import { getRegularNotesInFolder } from '@helpers/note'
+import { TEAMSPACE_INDICATOR } from '@helpers/regex'
+import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from '@helpers/NPTeamspace'
+import { getFilenameWithoutTeamspaceID, getTeamspaceIDFromFilename, isTeamspaceNoteFromFilename } from '@helpers/teamspace'
 
 /**
- * Return a list of folders (and any sub-folders) that contain one of the strings on the inclusions list (if given).
+ * Return a list of folders (and any sub-folders) that contain one of the strings on the inclusions list (if given). 
+ * It now returns the list in the order displayed in NotePlan's sidebar.
+ * If no inclusions are given, then use all folders.
  * Then excludes those items that are on the exclusions list.
  * The Root folder can be excluded by adding '/' to the exclusions list; this doesn't affect any sub-folders.
- * To just return the Root folder, then send just '/' as an inclusion.
+ * To just return the Root folder, then send just '/' as an inclusion. (But then why bother using this function?!)
  * Where there is a conflict exclusions will take precedence over inclusions.
  * Optionally exclude all special @... folders as well [this overrides inclusions]
  * Note: these are partial matches ("contains" not "equals").
  * Note: now clarified that this is a case-insensitive match.
  * @author @jgclark
  * @tests in jest file
+ *
  * @param {Array<string>} inclusions - if not empty, use these (sub)strings to match folder items
- * @param {boolean} excludeSpecialFolders? (default: true)
- * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder. Optional: if none given then will treat as an empty list.
+ * @param {boolean?} excludeSpecialFolders? (default: true)
+ * @param {Array<string>?} exclusions - if these (sub)strings match then exclude this folder. Optional: if none given then will treat as an empty list.
+ * @param {boolean?} excludeTeamspaces? If it is set then filter out teamspace folders from being returned. Default false.
+ * @param {boolean?} sortOutput? If true (which is the default) then sort the output list to the order displayed in NotePlan's sidebar.
  * @returns {Array<string>} array of folder names
  */
-export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFolders: boolean = true, exclusions: Array<string> = []): Array<string> {
+export function getFoldersMatching(
+  inclusions: Array<string>,
+  excludeSpecialFolders: boolean = true,
+  exclusions: Array<string> = [],
+  excludeTeamspaces: boolean = false,
+  sortOutput: boolean = true,
+): Array<string> {
   try {
     // Get all folders as array of strings (other than @Trash).
-    const fullFolderList = DataStore.folders.slice() // slice to make not $ReadOnly
-
+    let fullFolderList = DataStore.folders.slice() // slice to make not $ReadOnly
     logDebug(
       'getFoldersMatching',
       `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions: [${inclusions.toString()}] and exclusions [${exclusions.toString()}]. ESF? ${String(
@@ -34,48 +49,73 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
       )}`,
     )
 
-    // if requested filter fullFolderList to only folders that don't start with the character '@' (special folders)
-    const reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
-    // logDebug('getFoldersMatching', `- after specials filter ->  ${reducedFolderList.length} reducedFolderList: [${reducedFolderList.toString()}]`)
+    if (sortOutput) {
+      fullFolderList = orderFolders(fullFolderList)
+    }
+
+    // Note: the API call DataStore.folders does not return the teamspace root folders until it was fixed in b1417, so we need to add them manually here, from position 1.
+    if (NotePlan.environment.buildVersion <= 1416) {
+      const teamspaceDefs = getAllTeamspaceIDsAndTitles()
+      teamspaceDefs.forEach((teamspaceDef) => {
+        // Next line avoids auto-formatting errors from prettier
+        // eslint-disable-next-line
+        fullFolderList.splice(1, 0, TEAMSPACE_INDICATOR + '/' + teamspaceDef.id + '/')
+        logDebug('folders / getFoldersMatching', `- adding root for teamspaceDef.id ${teamspaceDef.id}(${teamspaceDef.title}) to work around bug pre v3.18.0`)
+      })
+    }
+    // logDebug('folders / getFoldersMatching', `fullFolderList: [${fullFolderList.toString()}]`)
+
+    // if requested filter to only folders that don't start with the character '@' (special folders)
+    let reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
+    // logDebug('folders / getFoldersMatching', `- after specials filter ->  ${reducedFolderList.length} reducedFolderList: [${reducedFolderList.toString()}]`)
+
+    // Remove all Teamspace folders if wanted
+    if (excludeTeamspaces) {
+      reducedFolderList = reducedFolderList.filter((f) => !f.startsWith(TEAMSPACE_INDICATOR))
+    }
 
     // If no inclusions or exclusions, make life easier and return all straight away
     if (inclusions.length === 0 && exclusions.length === 0) {
-      return reducedFolderList ? reducedFolderList : fullFolderList
+      logDebug('folders / getFoldersMatching', `- no inclusions or exclusions, so returning all folders`)
+      return reducedFolderList
     }
 
     // Also now delete '/' from reducedList (added back later if wanted)
     reducedFolderList.splice(reducedFolderList.indexOf('/'), 1)
 
     // To aid partial matching, terminate all folder strings with a trailing /.
-    let reducedTerminatedWithSlash: Array<string> = reducedFolderList.map((f) => f.endsWith('/') ? f : `${f}/`)
-    // logDebug('getFoldersMatching', `- after termination ->  ${reducedTerminatedWithSlash.length} reducedTWS:[${reducedTerminatedWithSlash.toString()}]`)
+    let reducedTerminatedWithSlash: Array<string> = reducedFolderList.map((f) => (f.endsWith('/') ? f : `${f}/`))
+    // logDebug('folders / getFoldersMatching', `- after termination ->  ${reducedTerminatedWithSlash.length} reducedTWS:[${reducedTerminatedWithSlash.toString()}]`)
 
     // const rootIncluded = true // inclusions.some((f) => f === '/')
     const rootExcluded = exclusions.some((f) => f === '/')
-    // logDebug('getFoldersMatching', `- rootIncluded=${String(rootIncluded)}, rootExcluded=${String(rootExcluded)}`)
+    // logDebug('folders / getFoldersMatching', `- rootIncluded=${String(rootIncluded)}, rootExcluded=${String(rootExcluded)}`)
 
     // Deal with special case of inclusions just '/'
     if (inclusions.length === 1 && inclusions[0] === '/') {
-      // logDebug('getFoldersMatching', 'Special Case: Inclusions just /')
+      // logDebug('folders / getFoldersMatching', 'Special Case: Inclusions just /')
       return rootExcluded ? [] : ['/']
     }
 
-    // Remove root to make rest of processing easier
+    // Temporarily remove root to make rest of processing easier
     const inclusionsWithoutRoot = inclusions.filter((f) => f !== '/')
     const exclusionsWithoutRoot = exclusions.filter((f) => f !== '/')
-    // logDebug('getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)}`)
-    // logDebug('getFoldersMatching', `- exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`)
+    // logDebug('folders / getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)}`)
+    // logDebug('folders / getFoldersMatching', `- exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`)
 
     // filter reducedTerminatedWithSlash to exclude items in the exclusions list (if non-empty). Note: now case insensitive.
+    // Note: technically this fails if the exclusion is any part of '%%NotePlanCloud%%/' but that's unlikely.
     if (exclusionsWithoutRoot.length > 0) {
       reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => !exclusionsWithoutRoot.some((f) => caseInsensitiveSubstringMatch(f, folder)))
-      // logDebug('getFoldersMatching',`- after exclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
+      // logDebug('folders / getFoldersMatching',`- after exclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
     }
 
     // filter reducedTerminatedWithSlash to only folders that start with an item in the inclusionsTerminatedWithSlash list (if non-empty). Note: now case insensitive.
+    // Note: technically this fails if the exclusion is any part of '%%NotePlanCloud%%/' but that's unlikely.
+
     if (inclusionsWithoutRoot.length > 0) {
       reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => inclusionsWithoutRoot.some((f) => caseInsensitiveSubstringMatch(f, folder)))
-      // logDebug('getFoldersMatching',`- after inclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
+      // logDebug('folders / getFoldersMatching',`- after inclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
     }
 
     // now remove trailing slash characters
@@ -85,17 +125,62 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     if (!rootExcluded) {
       outputList.unshift('/')
     }
-    // logDebug('getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
+    // logDebug('folders / getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
     return outputList
   } catch (error) {
-    logError('getFoldersMatching', error.message)
+    logError('folders / getFoldersMatching', error.message)
     return ['(error)']
   }
 }
 
 /**
+ * Order the list of folders for display in the same way NP does:
+ * Return list of folders ordered alphanumerically in ascending order. Sort ones starting _ first, and @ last. Ignore case.
+ * TODO: ideally also sort by Teamspace title, not its ID.
+ * @author @jgclark
+ * @tests in jest file
+ *
+ * @param {Array<string>} folders - all available folders
+ * @returns {Array<string>}
+ */
+export function orderFolders(
+  folders: Array<string>,
+): Array<string> {
+  return folders.sort((a, b) => {
+    // Helper to check if a string starts with a number
+    const startsWithNumber = (str: string) => /^\d/.test(str)
+
+    // Root always first
+    if (a === '/') return -1
+    if (b === '/') return 1
+
+    // Numeric folders next
+    const aIsNum = startsWithNumber(a)
+    const bIsNum = startsWithNumber(b)
+    if (aIsNum && !bIsNum) return -1
+    if (!aIsNum && bIsNum) return 1
+
+    // @Templates and @Archive always last
+    if (a.startsWith('@Templates')) return 1
+    if (b.startsWith('@Templates')) return -1
+    if (a.startsWith('@Archive')) return 1
+    if (b.startsWith('@Archive')) return -1
+
+    // _... folders before @... folders before normal folders
+    if (a.startsWith('_') && !b.startsWith('_')) return -1
+    if (!a.startsWith('_') && b.startsWith('_')) return 1
+    if (a.startsWith('@') && !b.startsWith('@')) return -1
+    if (!a.startsWith('@') && b.startsWith('@')) return 1
+
+    // Default: localeCompare, case-insensitive, numeric
+    return a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })
+  })
+}
+
+/**
  * Return a list of subfolders of a given folder. Includes the given folder itself.
  * @tests in jest file.
+ *
  * @author @jgclark
  * @param {string} folderpath - e.g. "some/folder". Leading or trailing '/' will be removed.
  * @returns {Array<string>} array of subfolder names
@@ -127,20 +212,36 @@ export function getSubFolders(parentFolderPathArg: string): Array<string> {
  *   - always exclude '@Trash' folder (as the API doesn't return it).
  * @author @jgclark
  * @tests in jest file
+ *
  * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder -- can be empty
- * @param {boolean} excludeSpecialFolders? (default: true)
- * @param {boolean} forceExcludeRootFolder? (default: false)
+ * @param {boolean?} excludeSpecialFolders? (default: true)
+ * @param {boolean?} forceExcludeRootFolder? (default: false)
+ * @param {boolean?} excludeTrash? (default true) only used if excludeSpecialFolders is false
  * @returns {Array<string>} array of folder names
  */
-export function getFolderListMinusExclusions(exclusions: Array<string>, excludeSpecialFolders: boolean = true, forceExcludeRootFolder: boolean = false): Array<string> {
+export function getFolderListMinusExclusions(
+  exclusions: Array<string>,
+  excludeSpecialFolders: boolean = true,
+  forceExcludeRootFolder: boolean = false,
+  excludeTrash: boolean = true,
+): Array<string> {
   try {
     // Get all folders as array of strings (other than @Trash). Also remove root as a special case
     const fullFolderList = DataStore.folders
     let excludeRoot = forceExcludeRootFolder
-    // logDebug('folders / filteredFolderList', `Starting to filter the ${fullFolderList.length} DataStore.folders with exclusions [${exclusions.toString()}] and forceExcludeRootFolder ${String(forceExcludeRootFolder)}`)
+    logDebug(
+      'folders / getFolderListMinusExclusions',
+      `Starting to filter the ${fullFolderList.length} DataStore.folders with exclusions [${exclusions.toString()}] and forceExcludeRootFolder ${String(forceExcludeRootFolder)}`,
+    )
 
     // if excludeSpecialFolders, filter fullFolderList to only folders that don't start with the character '@' (special folders)
-    const reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
+    let reducedFolderList = fullFolderList
+    if (excludeSpecialFolders) {
+      reducedFolderList = fullFolderList.filter((folder) => !folder.startsWith('@'))
+    } else if (excludeTrash) {
+      reducedFolderList = reducedFolderList.filter((folder) => !folder.startsWith('@Trash'))
+    }
+    // logDebug('folders / getFolderListMinusExclusions', `-> after specials filtering: ${reducedFolderList.length} items: [${reducedFolderList.toString()}]`)
 
     // To aid partial matching, terminate all folder strings with a trailing /
     let reducedTerminatedWithSlash: Array<string> = []
@@ -182,10 +283,12 @@ export function getFolderListMinusExclusions(exclusions: Array<string>, excludeS
 }
 
 /**
- * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
+ * Get the folder name from the regular note filename, without leading or trailing slash.
  * Except for items in root folder -> '/'.
+ * Note: for Teamspace notes, this returns the Teamspace indicator + teamspace ID + folder path. See getFolderDisplayName() for a more useful display name.
  * @author @jgclark
  * @tests in jest file
+ *
  * @param {string} fullFilename - full filename to get folder name part from
  * @returns {string} folder/subfolder name
  */
@@ -211,11 +314,50 @@ export function getFolderFromFilename(fullFilename: string): string {
 }
 
 /**
+ * Get a useful folder name from the folder path (*not* filename). Returns without leading or trailing slash, and with Teamspace name if applicable.
+ * Note: Not needed before Teamspaces.
+ * @author @jgclark
+ * @tests in jest file
+ *
+ * @param {string} folderPath - as returned by DataStore.folders. Note: not full filename.
+ * @param {boolean?} includeTeamspaceEmoji? (default true) include a Teamspace emoji in the display name
+ * @returns {string} folder name for display (including Teamspace name if applicable)
+ */
+export function getFolderDisplayName(folderPath: string, includeTeamspaceEmoji: boolean = true): string {
+  try {
+    // If folderPath is empty, warn and return '(error)'
+    if (!folderPath) {
+      throw new Error(`Empty folderPath given. Returning '(error)'.`)
+    }
+    // logDebug('folders/getFolderDisplayName', `folderPath: ${folderPath}`)
+
+    if (isTeamspaceNoteFromFilename(folderPath)) {
+      const teamspaceID = getTeamspaceIDFromFilename(folderPath)
+      // logDebug('folders/getFolderDisplayName', `teamspaceID: ${teamspaceID}`)
+      const teamspaceName = getTeamspaceTitleFromID(teamspaceID)
+      // logDebug('folders/getFolderDisplayName', `teamspaceName: ${teamspaceName}`)
+      let folderPart = getFilenameWithoutTeamspaceID(folderPath)
+      // logDebug('folders/getFolderDisplayName', `folderPart: ${folderPart} from ${folderPath}`)
+      if (folderPart === '') {
+        folderPart = '/'
+      }
+      return `[${includeTeamspaceEmoji ? '👥 ' : ''}${teamspaceName}] ${folderPart}`
+    } else {
+      return folderPath
+    }
+  } catch (error) {
+    logError('folders/getFolderDisplayName', `Error getting folder display name from '${folderPath}: ${error.message}`)
+    return '(error)'
+  }
+}
+
+/**
  * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
  * Optionally remove file extension.
  * Note: does not handle hidden files (starting with a dot, e.g. '.gitignore').
  * @author @jgclark
  * @tests in jest file
+ *
  * @param {string} fullFilename - full filename to get folder name part from
  * @param {boolean} removeExtension? (default: false)
  * @returns {string} folder/subfolder name
@@ -238,8 +380,9 @@ export function getJustFilenameFromFullFilename(fullFilename: string, removeExte
 
 /**
  * Get the lowest-level (subfolder) part of the folder name from the full NP (project) note filename, without leading or trailing slash.
- * @tests available in jest file
  * @author @jgclark
+ * @tests available in jest file
+ *
  * @param {string} fullFilename - full filename to get folder name part from
  * @returns {string} subfolder name
  */
@@ -342,11 +485,7 @@ export function notesInFolderSortedByTitle(folder: string, alsoSubFolders: boole
  * @param {boolean?} ignoreSpecialFolders (default true) ignore folders whose folder path starts with '@' (e.g. @Templates)
  * @returns {$ReadOnlyArray<TNote>} array of notes in the folder
  */
-export function getRegularNotesInFolder(
-  forFolder: string = '',
-  ignoreSpecialFolders: boolean = true,
-  foldersToIgnore: Array<string> = [],
-): $ReadOnlyArray<TNote> {
+export function getRegularNotesInFolder(forFolder: string = '', ignoreSpecialFolders: boolean = true, foldersToIgnore: Array<string> = []): $ReadOnlyArray<TNote> {
   const notes: $ReadOnlyArray<TNote> = DataStore.projectNotes
   let filteredNotes: Array<TNote> = []
   if (forFolder === '') {
@@ -378,40 +517,43 @@ export function getRegularNotesInFolder(
  * WARNING: Deprecated: use renamed function 'getRegularNotesFromFilteredFolders' instead.
  * Return array of all project notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
  * @author @jgclark
+ * 
  * @param {Array<string>} foldersToExclude
  * @param {boolean} excludeSpecialFolders?
  * @returns {Array<TNote>} wanted notes
  */
-export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
-  // Get list of wanted folders
-  const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders)
+// export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
+//   // Get list of wanted folders
+//   const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders, false, true)
 
-  // Iterate over all project notes and keep the notes in the wanted folders ...
-  const allProjectNotes = DataStore.projectNotes
-  const projectNotesToInclude = []
-  for (const pn of allProjectNotes) {
-    const thisFolder = getFolderFromFilename(pn.filename)
-    if (filteredFolders.includes(thisFolder)) {
-      projectNotesToInclude.push(pn)
-    } else {
-      // logDebug(pluginJson, `  excluded note '${pn.filename}'`)
-    }
-  }
-  return projectNotesToInclude
-}
+//   // Iterate over all project notes and keep the notes in the wanted folders ...
+//   const allProjectNotes = DataStore.projectNotes
+//   const projectNotesToInclude = []
+//   for (const pn of allProjectNotes) {
+//     const thisFolder = getFolderFromFilename(pn.filename)
+//     if (filteredFolders.includes(thisFolder)) {
+//       projectNotesToInclude.push(pn)
+//     } else {
+//       // logDebug(pluginJson, `  excluded note '${pn.filename}'`)
+//     }
+//   }
+//   return projectNotesToInclude
+// }
 
 /**
- * Return array of all regular notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
+ * Return array of all regular notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders (other than trash), and (if requested) from @Trash.
  * Note: this is a newer version of getRegularNotesInFolder() that reflects Eduard's updated naming.
  * @author @jgclark
+ * 
  * @param {Array<string>} foldersToExclude
  * @param {boolean} excludeSpecialFolders?
+ * @param {boolean?} excludeTrash? (default true)
  * @returns {Array<TNote>} wanted notes
  */
-export function getRegularNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
+export function getRegularNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean, excludeTrash: boolean = true): Array<TNote> {
   try {
     // Get list of wanted folders
-    const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders)
+    const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders, false, excludeTrash)
 
     // Iterate over all project notes and keep the notes in the wanted folders ...
     const allProjectNotes = DataStore.projectNotes
@@ -421,7 +563,7 @@ export function getRegularNotesFromFilteredFolders(foldersToExclude: Array<strin
       if (filteredFolders.includes(thisFolder)) {
         projectNotesToInclude.push(pn)
       } else {
-        logDebug('note/getRegularNotesFromFilteredFolders', `- excluded note '${pn.filename}'`)
+        // logDebug('note/getRegularNotesFromFilteredFolders', `- excluded note '${pn.filename}'`)
       }
     }
     return projectNotesToInclude
@@ -432,7 +574,9 @@ export function getRegularNotesFromFilteredFolders(foldersToExclude: Array<strin
 }
 
 /**
- * Check for invalid characters <>:"\|?* in filename, covering APFS and NTFS rules, but still allowing '/'
+ * Check for invalid characters <>:"\|?* in filename, covering APFS and NTFS rules, but still allowing '/'.
+ * @author @jgclark
+ * 
  * @param {string} path - The path to check.
  * @returns {boolean} - Whether the filename has invalid characters.
  */
@@ -446,6 +590,8 @@ export function doesFilenameHaveInvalidCharacters(path: string): boolean {
 
 /**
  * Check if a filename exists in the same folder, but with a different case.
+ * @author @jgclark
+ * 
  * @param {string} filepath - The filepath to check.
  * @returns {boolean} - Whether the filename exists in the same folder, but with a different case.
  */
@@ -463,4 +609,231 @@ export function doesFilenameExistInFolderWithDifferentCase(filepath: string): bo
   }
   // logDebug(`doesFilenameExistInFolderWithDifferentCase`, `different case version of "${filename}" does NOT exist`)
   return false
+}
+
+/**
+ * Read and parse the folder view data from NotePlan's datastore.
+ * @author @dwertheimer
+ * 
+ * @returns {Object|null} Parsed folder view data or null if not available
+ */
+export function getFolderViewData(): Object | null {
+  try {
+    // Load the folder views data from the standard location
+    const folderData = DataStore.loadData('../../../Filters/folders.views', true)
+    if (!folderData) {
+      logWarn('folders/getFolderViewData', 'No folder views data found at standard location')
+      return null
+    }
+
+    // Check if the data is already parsed (object) or needs parsing (string)
+    if (typeof folderData === 'object' && folderData !== null) {
+      // Data is already parsed, return it directly
+      logDebug('folders/getFolderViewData', 'Data already parsed, returning directly')
+      return folderData
+    } else if (typeof folderData === 'string') {
+      // Data is a string, parse it as YAML
+      logDebug('folders/getFolderViewData', 'Data is string, parsing as YAML')
+      const parsedData = yaml.parse(folderData)
+
+      if (!parsedData || typeof parsedData !== 'object') {
+        logWarn('folders/getFolderViewData', 'Failed to parse folder views YAML data')
+        return null
+      }
+
+      return parsedData
+    } else {
+      logWarn('folders/getFolderViewData', `Unexpected data type: ${typeof folderData}`)
+      return null
+    }
+  } catch (error) {
+    logError('folders/getFolderViewData', `Error reading folder view data: ${error.message}`)
+    return null
+  }
+}
+
+/**
+ * Parse and organize folder views from the folder YAML data.
+ * @author @dwertheimer
+ * 
+ * @param {Object} folderYaml - The raw folder YAML data from DataStore
+ * @returns {Object} Object with folder paths as keys and arrays of named views as values
+ */
+export function organizeFolderViews(folderYaml: Object): Object {
+  try {
+    const folderViews = {}
+
+    if (!folderYaml.views || !Array.isArray(folderYaml.views)) {
+      logWarn('folders/organizeFolderViews', 'No views array found in folder YAML data')
+      return folderViews
+    }
+
+    folderYaml.views.forEach((viewItem, index) => {
+      try {
+        let view
+
+        // Handle different data formats - the view might be a string or already an object
+        if (typeof viewItem === 'string') {
+          // It's a JSON string, parse it
+          view = JSON.parse(viewItem)
+        } else if (typeof viewItem === 'object' && viewItem !== null) {
+          // It's already an object, use it directly
+          view = viewItem
+        } else {
+          logWarn('folders/organizeFolderViews', `Unexpected view item type at index ${index}: ${typeof viewItem}`)
+          return
+        }
+
+        const folderPath = view.folderPath
+        const viewName = view.name
+
+        // Skip default views (name === "View")
+        if (viewName === 'View') return
+
+        // Initialize folder if it doesn't exist
+        if (!folderViews[folderPath]) {
+          folderViews[folderPath] = []
+        }
+
+        // Add the named view to the folder
+        folderViews[folderPath].push({
+          name: viewName,
+          dataLevel: view.dataLevel,
+          layout: view.layout,
+          folderPath: view.folderPath,
+          group_by: view.group_by,
+          group_sort: view.group_sort,
+          sort: view.sort,
+          fields: view.fields,
+          fixedGroups: view.fixedGroups,
+          isSelected: view.isSelected,
+          // Include the original parsed view object for any other properties
+          original: view,
+        })
+      } catch (error) {
+        logWarn('folders/organizeFolderViews', `Error parsing view at index ${index}: ${error.message}`)
+        // Log the actual content for debugging
+        logDebug('folders/organizeFolderViews', `View item at index ${index}: ${JSON.stringify(viewItem)}`)
+      }
+    })
+
+    logDebug('folders/organizeFolderViews', `Organized ${Object.keys(folderViews).length} folders with named views`)
+    return folderViews
+  } catch (error) {
+    logError('folders/organizeFolderViews', `Error organizing folder views: ${error.message}`)
+    return {}
+  }
+}
+
+/**
+ * Get a list of folders that have named views (excluding default "View" entries).
+ * @author @dwertheimer
+ * 
+ * @param {Object} folderYaml - The raw folder YAML data from DataStore
+ * @returns {Array<string>} Array of folder paths that have named views
+ */
+export function getFoldersWithNamedViews(folderYaml: Object): Array<string> {
+  try {
+    const organizedViews = organizeFolderViews(folderYaml)
+    return Object.keys(organizedViews).sort()
+  } catch (error) {
+    logError('folders/getFoldersWithNamedViews', `Error getting folders with named views: ${error.message}`)
+    return []
+  }
+}
+
+/**
+ * Get all named views for a specific folder.
+ * @author @dwertheimer
+ * 
+ * @param {Object} folderYaml - The raw folder YAML data from DataStore
+ * @param {string} folderPath - The folder path to get views for
+ * @returns {Array<Object>} Array of named view objects for the specified folder
+ */
+export function getNamedViewsForFolder(folderYaml: Object, folderPath: string): Array<Object> {
+  try {
+    const organizedViews = organizeFolderViews(folderYaml)
+    return organizedViews[folderPath] || []
+  } catch (error) {
+    logError('folders/getNamedViewsForFolder', `Error getting named views for folder '${folderPath}': ${error.message}`)
+    return []
+  }
+}
+
+/**
+ * Get a specific named view by folder and view name.
+ * @author @dwertheimer
+ * 
+ * @param {Object} folderYaml - The raw folder YAML data from DataStore
+ * @param {string} folderPath - The folder path
+ * @param {string} viewName - The name of the view to find
+ * @returns {Object|null} The named view object or null if not found
+ */
+export function getNamedView(folderYaml: Object, folderPath: string, viewName: string): Object | null {
+  try {
+    const folderViews = getNamedViewsForFolder(folderYaml, folderPath)
+    return folderViews.find((view) => view.name === viewName) || null
+  } catch (error) {
+    logError('folders/getNamedView', `Error getting named view '${viewName}' for folder '${folderPath}': ${error.message}`)
+    return null
+  }
+}
+
+/**
+ * Get all named views across all folders, organized by data level.
+ * @author @dwertheimer
+ * 
+ * @param {Object} folderYaml - The raw folder YAML data from DataStore
+ * @returns {Object} Object with dataLevel as keys and arrays of views as values
+ */
+export function getNamedViewsByDataLevel(folderYaml: Object): Object {
+  try {
+    const organizedViews = organizeFolderViews(folderYaml)
+    const viewsByLevel = {}
+
+    Object.values(organizedViews)
+      .flat()
+      .forEach((view) => {
+        const level = view.dataLevel || 'unknown'
+        if (!viewsByLevel[level]) {
+          viewsByLevel[level] = []
+        }
+        viewsByLevel[level].push(view)
+      })
+
+    return viewsByLevel
+  } catch (error) {
+    logError('folders/getNamedViewsByDataLevel', `Error organizing views by data level: ${error.message}`)
+    return {}
+  }
+}
+
+/**
+ * Example function demonstrating how to use the folder view helper functions.
+ * This function shows how to get all named views and display them in a user-friendly way.
+ * @author @dwertheimer
+ * 
+ * @returns {Object} Summary of all folders and their named views
+ */
+export function getFolderViewsSummary(): Object {
+  try {
+    const folderYaml = getFolderViewData()
+    if (!folderYaml) {
+      return { error: 'No folder YAML data available' }
+    }
+
+    const organizedViews = organizeFolderViews(folderYaml)
+    const summary = {
+      totalFolders: Object.keys(organizedViews).length,
+      totalNamedViews: Object.values(organizedViews).reduce((sum, views) => sum + views.length, 0),
+      folders: organizedViews,
+      viewsByLevel: getNamedViewsByDataLevel(folderYaml),
+    }
+
+    logDebug('folders/getFolderViewsSummary', `Found ${summary.totalFolders} folders with ${summary.totalNamedViews} named views`)
+    return summary
+  } catch (error) {
+    logError('folders/getFolderViewsSummary', `Error getting folder views summary: ${error.message}`)
+    return { error: error.message }
+  }
 }
