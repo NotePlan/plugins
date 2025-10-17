@@ -2,7 +2,6 @@
 // @flow
 //---------------------------------------------------------------------
 // Regex definitions for NotePlan and its plugins
-// Last updated 2024-11-09 by @jgclark
 //---------------------------------------------------------------------
 //
 // This file holds definitions that don't live in more specific helper files, and also lists other files with useful regexes.
@@ -16,6 +15,8 @@
 //
 // Note: some have 'g' (global) or 'i' (case insensitive) flags set
 //---------------------------------------------------------------------
+
+import { RE_DATE_TIME } from '@helpers/dateTime'
 
 // Times, Dates
 export const RE_SCHEDULED_DATES_G: RegExp = />(today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?))/g // from Eduard, but tweaked to ignore ones that start with @ rather than >
@@ -107,7 +108,7 @@ export const RE_NOTELINK_CAPTURE_TITLE_G: RegExp = /\[\[([^\[]+)\]\]/g
 // URLs and Links
 export const RE_MARKDOWN_LINKS_CAPTURE_G: RegExp = /\[([^\]]+)\]\(([^\)]+)\)/g
 export const RE_MARKDOWN_LINK_PATH_CAPTURE: RegExp = /\[.+?\]\(([^\)]*?)\)/
-export const RE_MARKDOWN_LINK_PATH_CAPTURE_G: RegExp = /\[.+?\]\(([^\)]*?)\)/g
+export const RE_MARKDOWN_LINK_PATH_CAPTURE_G: RegExp = /\[(.+?)\]\([^\)]*?\)/g
 export const RE_SIMPLE_URI_MATCH: RegExp = /([\w-]+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/
 export const RE_SIMPLE_URI_MATCH_G: RegExp = /([\w-]+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/g
 // FIXME: this is not picking 'spark-mail' protocols
@@ -125,7 +126,16 @@ export const RE_BARE_URI_MATCH_G: RegExp = /(?:^|[\s\.,;!?:])((www\.[^\s\[\](),;
 // Synced lines
 export const RE_SYNC_MARKER: RegExp = /\^[A-Za-z0-9]{6}(?![A-Za-z0-9])/
 
+// Teamspace notes
+// Note: used to live in teamspace.js, but moved here to avoid circular dependency
+const UUID_PATTERN = '([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
+export const RE_UUID: RegExp = new RegExp(`(${UUID_PATTERN})`, 'i') // match[1] is the UUID.
+export const TEAMSPACE_INDICATOR = '%%NotePlanCloud%%'
+export const RE_TEAMSPACE_INDICATOR_AND_ID: RegExp = new RegExp(`^${TEAMSPACE_INDICATOR}\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`, 'i') // match[1] is the teamspace ID
+export const RE_TEAMSPACE_NOTE_UUID: RegExp = new RegExp(`[^%]/(${UUID_PATTERN})`, 'i') // match[1] is the teamspace UUID. It can't come directly after %%NotePlanCloud%%/ for that is the teamspace ID.
+
 // Misc
+export const RE_DONE_MENTION: RegExp = new RegExp(`@done\\(${RE_DATE_TIME}\\)`, 'i')
 export const PUNCT_CLASS_STR = `[\[\]!"#\$%&'\(\)\*\+,\-\.\/:;<=>\?@\\\^_\`\{\|\}~]` // using info from https://stackoverflow.com/questions/39967107/regular-expression-using-punct-function-in-java
 export const PUNCT_CLASS_STR_QUOTED = '[\\[\\]!"#\\$%&\'\\(\\)\\*\\+,\\-\\.\\/:;<=>\\?@\\\\\\^_\\`\\{\\|\\}~]' // version suitable for including in larger regexes
 

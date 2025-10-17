@@ -8,7 +8,10 @@ import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
 import { formatISO9075, eachDayOfInterval, eachWeekendOfInterval, format, add } from 'date-fns'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
-import { parseTeamspaceFilename } from './teamspace'
+// Note: TEAMSPACE_INDICATOR defined locally to avoid circular dependency with regex.js
+const TEAMSPACE_INDICATOR = '%%NotePlanCloud%%'
+const TEAMSPACE_INDICATOR_AND_ID = `${TEAMSPACE_INDICATOR}\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})` // string version
+const RE_TEAMSPACE_INDICATOR_AND_ID = new RegExp(`^${TEAMSPACE_INDICATOR}\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`, 'i') // proper regex version
 
 //-----------------------------------------------------------
 // CONSTANTS
@@ -36,8 +39,10 @@ export const RE_DATE_TIME = `${RE_DATE} ${RE_TIME}` // YYYY-MM-DD HH:MM[AM|PM]
 export const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}` // an ISO date without a digit or ( or < or / or - before it. Note: > is allowed.
 export const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})` // capturing date in above
 export const RE_FILE_EXTENSIONS_GROUP = `\\.(md|txt)$` // and tie to end of string
+
+// Day regex strings
 export const RE_NP_DAY_SPEC = RE_YYYYMMDD_DATE
-export const RE_DAILY_NOTE_FILENAME = `(^|\\/)${RE_YYYYMMDD_DATE}${RE_FILE_EXTENSIONS_GROUP}`
+export const RE_DAILY_NOTE_FILENAME = `(^|${TEAMSPACE_INDICATOR_AND_ID}\\/)${RE_YYYYMMDD_DATE}${RE_FILE_EXTENSIONS_GROUP}`
 export const RE_SCHEDULED_DAILY_NOTE_LINK: RegExp = />\d{4}-[01]\d-[0123]\d/ // Note: finds '>RE_DATE'
 
 // Week regex strings
@@ -45,7 +50,7 @@ export const RE_NP_WEEK_SPEC = '\\d{4}\\-W[0-5]\\d' // find dates of form YYYY-W
 export const WEEK_NOTE_LINK = `[\<\>]${RE_NP_WEEK_SPEC}`
 export const SCHEDULED_WEEK_NOTE_LINK = '\\s+>\\d{4}\\-W[0-5]\\d'
 export const RE_SCHEDULED_WEEK_NOTE_LINK: RegExp = />\d{4}\-W[0-5]\d/ // Note: finds '>RE_NP_WEEK_SPEC'
-export const RE_WEEKLY_NOTE_FILENAME = `(^|\\/)${RE_NP_WEEK_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
+export const RE_WEEKLY_NOTE_FILENAME = `(^|${TEAMSPACE_INDICATOR_AND_ID}\\/)${RE_NP_WEEK_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 export const RE_BARE_WEEKLY_DATE = `[^\d(<\/-]${RE_NP_WEEK_SPEC}` // a YYYY-Www date without a digit or ( or < or / or - before it. Note: > is allowed.
 export const RE_BARE_WEEKLY_DATE_CAPTURE = `[^\d(<\/-](${RE_NP_WEEK_SPEC})` // capturing date in above
 
@@ -55,14 +60,14 @@ export const RE_NP_MONTH_SPEC = '\\d{4}-[01]\\d(?![\\d-])' // find dates of form
 export const MONTH_NOTE_LINK = `[\<\>]${RE_NP_MONTH_SPEC}`
 export const SCHEDULED_MONTH_NOTE_LINK = `>${RE_NP_MONTH_SPEC}`
 export const RE_SCHEDULED_MONTH_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_MONTH_SPEC}`)
-export const RE_MONTHLY_NOTE_FILENAME = `(^|\\/)${RE_NP_MONTH_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
+export const RE_MONTHLY_NOTE_FILENAME = `(^|${TEAMSPACE_INDICATOR_AND_ID}\\/)${RE_NP_MONTH_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
 // Quarters
 export const RE_NP_QUARTER_SPEC = '\\d{4}\\-Q[1-4](?!\\d)' // find dates of form YYYY-Qn not followed by digit
 export const QUARTER_NOTE_LINK = `[\<\>]${RE_NP_QUARTER_SPEC}`
 export const SCHEDULED_QUARTERLY_NOTE_LINK = `>${RE_NP_QUARTER_SPEC}`
 export const RE_SCHEDULED_QUARTERLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_QUARTER_SPEC}`)
-export const RE_QUARTERLY_NOTE_FILENAME = `(^|\\/)${RE_NP_QUARTER_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
+export const RE_QUARTERLY_NOTE_FILENAME = `(^|${TEAMSPACE_INDICATOR_AND_ID}\\/)${RE_NP_QUARTER_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
 // Years
 export const RE_NP_YEAR_SPEC = '\\d{4}(?![\\d-])' // find years of form YYYY without leading or trailing - or digit [fails if I add negative start or negative lookbehinds]
@@ -70,7 +75,7 @@ export const RE_BARE_YEAR_SPEC = '^\\d{4}$' // find years of form YYYY without a
 export const YEAR_NOTE_LINK = `[\<\>]${RE_NP_YEAR_SPEC}`
 export const SCHEDULED_YEARLY_NOTE_LINK = `>${RE_NP_YEAR_SPEC}`
 export const RE_SCHEDULED_YEARLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_YEAR_SPEC}`)
-export const RE_YEARLY_NOTE_FILENAME = `(^|\\/)${RE_NP_YEAR_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
+export const RE_YEARLY_NOTE_FILENAME = `(^|${TEAMSPACE_INDICATOR_AND_ID}\\/)${RE_NP_YEAR_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
 // Tests for all calendar period types
 export const RE_ANY_DUE_DATE_TYPE: RegExp = new RegExp(`\\s+>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`)
@@ -136,36 +141,48 @@ export function getJSDateStartOfToday(): Date {
 // Note: there are others in NPdateTime.js that use locale settings
 
 // Get current time in various ways
-export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
+export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => {
+  if (format.includes('%')) {
+    return strftime(format)
+  }
+  return moment().format(format)
+}
 
 // Note: there are others in NPdateTime.js that use locale settings
 
 // return datetime in UTC ISO format
 export const nowUTCShortDateTimeISOString: string = moment().toISOString().replace('T', ' ').slice(0, 16)
 
-// Note: See getNoteType in note.js to get the type of a note
+// Note: getNoteType() in note.js gets the period of a calendar note (e.g. 'Weekly') or whether its a 'Regular' note.
+// Note: the getSimpleNoteTypeFromFilename) just works on filename, deliberately not using DataStore calls.
 export function isDailyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // TEST: removal of this function call. (Which was trying (but failing) to remove a circular dependency.)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_DAILY_NOTE_FILENAME).test(filename)
 }
 
 export function isWeeklyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_WEEKLY_NOTE_FILENAME).test(filename)
 }
 
 export function isMonthlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_MONTHLY_NOTE_FILENAME).test(filename)
 }
 
 export function isQuarterlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_QUARTERLY_NOTE_FILENAME).test(filename)
 }
 
 export function isYearlyNote(note: CoreNoteFields): boolean {
-  const { filename } = parseTeamspaceFilename(note.filename)
+  // const { filename } = parseTeamspaceFilename(note.filename)
+  const filename = note.filename
   return new RegExp(RE_YEARLY_NOTE_FILENAME).test(filename)
 }
 
@@ -185,7 +202,7 @@ export function getCalendarNoteTimeframe(note: TNote): false | 'day' | 'week' | 
   return false // all other cases
 }
 
-export const isDailyDateStr = (dateStr: string): boolean => (new RegExp(RE_DATE).test(dateStr) || new RegExp(RE_NP_DAY_SPEC).test(dateStr))
+export const isDailyDateStr = (dateStr: string): boolean => new RegExp(RE_DATE).test(dateStr) || new RegExp(RE_NP_DAY_SPEC).test(dateStr)
 
 export const isWeeklyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_WEEK_SPEC).test(dateStr)
 
@@ -257,10 +274,7 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
   }
   // logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith ? replaceWith : 'null'}, repl=${repl ? repl : 'null'}`)
   while (str && isScheduled(str)) {
-    str = str
-      .replace(RE_SCHEDULED_DATES_G, '')
-      .replace(/ {2,}/g, ' ')
-      .trim()
+    str = str.replace(RE_SCHEDULED_DATES_G, '').replace(/ {2,}/g, ' ').trim()
   }
   // logDebug(`replaceArrowDatesInString: AFTER will return ${repl && repl.length > 0 ? `${str} ${repl}` : str}`)
   return repl && repl.length > 0 ? `${str} ${repl}` : str
@@ -296,7 +310,7 @@ export type HourMinObj = { h: number, m: number }
  * Change YYYY-MM-DD to YYYYMMDD, if needed. Leave the rest of the string (which is expected to be a filename) unchanged.
  * Note: updated in Apr 2025 to cope with Teamspace Calendar notes (with leading %%NotePlanCloud%%/UUID/) as well as private daily notes.
  * @param {string} dailyNoteFilename
- * @returns {string} with YYYYMMDD in place of YYYY-MM-DD where found. 
+ * @returns {string} with YYYYMMDD in place of YYYY-MM-DD where found.
  */
 export function convertISODateFilenameToNPDayFilename(dailyNoteFilename: string): string {
   const matches = dailyNoteFilename.match(RE_ISO_DATE)
@@ -478,9 +492,25 @@ export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
 }
 
 /**
+ * Remove the Teamspace ID from a filename, if it has one.
+ * Note: Deliberately not using DataStore calls.
+ * Note: This is a copy of the function in teamspace.js, to avoid a circular dependency.
+ * @param {string} filenameIn
+ * @returns {string} filename without Teamspace ID
+ */
+function getFilenameWithoutTeamspaceID(filenameIn: string): string {
+  const possibleTeamspaceFilename = filenameIn.match(RE_TEAMSPACE_INDICATOR_AND_ID)
+  if (possibleTeamspaceFilename) {
+    return filenameIn.replace(possibleTeamspaceFilename[0], '')
+  } else {
+    return filenameIn
+  }
+}
+
+/**
  * Returns the NP string representation of a Calendar note's date, from its filename. Covers daily to yearly notes.
- * Extended in Apr 2025 to cover teamspace notes, which are prefixed with '[%%Supabase%%|%%NotePlanCloud%%]/<teamspaceID>/'
- * e.g. %%Supabase%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md
+ * Extended in Apr 2025 to cover teamspace notes, which are prefixed with '%%NotePlanCloud%%/<teamspaceID>/'
+ * e.g. %%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md
  * Note: see related getDateStrForStartofPeriodFromCalendarFilename().
  * @param {string} filenameIn
  * @param {boolean} returnISODate - returns ISO daily note YYYY-MM-DD not actual filename YYYYMMDD
@@ -490,8 +520,11 @@ export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
 export function getDateStringFromCalendarFilename(filenameIn: string, returnISODate: boolean = false): string {
   try {
     // logDebug('gDSFCF', `for ${filenameIn} ...`)
-    const parsedDetails = parseTeamspaceFilename(filenameIn)
-    const filenameWithoutTeamspaceID = parsedDetails.filename
+    let filenameWithoutTeamspaceID = getFilenameWithoutTeamspaceID(filenameIn)
+    // If it starts with a slash, remove it
+    if (filenameWithoutTeamspaceID.startsWith('/')) {
+      filenameWithoutTeamspaceID = filenameWithoutTeamspaceID.slice(1)
+    }
     // logDebug('gDSFCF', `filenameWithoutTeamspaceID = ${filenameWithoutTeamspaceID}`)
 
     // Check for daily notes
@@ -569,12 +602,12 @@ export function getISODateStringFromYYYYMMDD(filename: string): string {
  * @param {string} input
  * @returns {string} output
  */
-export function removeDateTags(content: string): string {
-  return content
-    .replace(/<\d{4}-\d{2}-\d{2}/g, '')
-    .replace(/>\d{4}-\d{2}-\d{2}/g, '')
-    .trimEnd()
-}
+// export function removeDateTags(content: string): string {
+//   return content
+//     .replace(/<\d{4}-\d{2}-\d{2}/g, '')
+//     .replace(/>\d{4}-\d{2}-\d{2}/g, '')
+//     .trimEnd()
+// }
 
 /**
  * Remove all >date -related things from a line (and optionally >week, >month, >quarter etc. ones also)
@@ -584,22 +617,22 @@ export function removeDateTags(content: string): string {
  * @param {boolean} removeAllSpecialNoteLinks - if true remove >week, >month, >quarter, >year references too
  * @returns
  */
-export function removeDateTagsAndToday(tag: string, removeAllSpecialNoteLinks: boolean = false): string {
-  let newString = tag,
-    lastPass = tag
-  do {
-    lastPass = newString
-    newString = removeDateTags(tag)
-      .replace(removeAllSpecialNoteLinks ? new RegExp(WEEK_NOTE_LINK, 'g') : '', '')
-      .replace(removeAllSpecialNoteLinks ? new RegExp(MONTH_NOTE_LINK, 'g') : '', '')
-      .replace(removeAllSpecialNoteLinks ? new RegExp(QUARTER_NOTE_LINK, 'g') : '', '')
-      .replace(removeAllSpecialNoteLinks ? new RegExp(YEAR_NOTE_LINK, 'g') : '', '')
-      .replace(/>today/, '')
-      .replace(/\s{2,}/g, ' ')
-      .trimEnd()
-  } while (newString !== lastPass)
-  return newString
-}
+// export function removeDateTagsAndToday(tag: string, removeAllSpecialNoteLinks: boolean = false): string {
+//   let newString = tag,
+//     lastPass = tag
+//   do {
+//     lastPass = newString
+//     newString = removeDateTags(tag)
+//       .replace(removeAllSpecialNoteLinks ? new RegExp(WEEK_NOTE_LINK, 'g') : '', '')
+//       .replace(removeAllSpecialNoteLinks ? new RegExp(MONTH_NOTE_LINK, 'g') : '', '')
+//       .replace(removeAllSpecialNoteLinks ? new RegExp(QUARTER_NOTE_LINK, 'g') : '', '')
+//       .replace(removeAllSpecialNoteLinks ? new RegExp(YEAR_NOTE_LINK, 'g') : '', '')
+//       .replace(/>today/, '')
+//       .replace(/\s{2,}/g, ' ')
+//       .trimEnd()
+//   } while (newString !== lastPass)
+//   return newString
+// }
 
 /**
  * Remove repeats from a string (e.g. @repeat(1/3) or @repeat(2/3) or @repeat(3/3) or @repeat(1/1) or @repeat(2/2) etc.)
@@ -849,7 +882,7 @@ export function relativeDateFromDate(date: Date): string {
  * @test - available in jest file
  */
 export function getWeek(inDate: Date): number {
-  // New method using 'moment' library, with Monday first day of week
+  // New method using 'moment/min/moment-with-locales' library, with Monday first day of week
   const dateMoment = moment(inDate)
   return Number(dateMoment.format('W'))
 
@@ -889,7 +922,7 @@ export function getWeek(inDate: Date): number {
  * @returns {string}
  */
 export function getNPWeekStr(inDate: Date): string {
-  // Using 'moment' library, with Monday first day of week
+  // Using 'moment/min/moment-with-locales' library, with Monday first day of week
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_WEEK)
 }
@@ -899,7 +932,7 @@ export function getNPWeekStr(inDate: Date): string {
  * @returns {string}
  */
 export function getNPMonthStr(inDate: Date): string {
-  // Using 'moment' library instead of NP calls
+  // Using 'moment/min/moment-with-locales' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_MONTH)
 }
@@ -909,7 +942,7 @@ export function getNPMonthStr(inDate: Date): string {
  * @returns {string}
  */
 export function getNPQuarterStr(inDate: Date): string {
-  // Using 'moment' library instead of NP calls
+  // Using 'moment/min/moment-with-locales' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_QUARTER)
 }
@@ -919,7 +952,7 @@ export function getNPQuarterStr(inDate: Date): string {
  * @returns {string}
  */
 export function getNPYearStr(inDate: Date): string {
-  // Using 'moment' library instead of NP calls
+  // Using 'moment/min/moment-with-locales' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_YEAR)
 }
@@ -1032,14 +1065,14 @@ export function getNPDateFormatForFilenameFromOffsetUnit(unit: string): string {
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_DAY // = YYYYMMDD not display format
       : unit === 'w'
-        ? MOMENT_FORMAT_NP_WEEK
-        : unit === 'm'
-          ? MOMENT_FORMAT_NP_MONTH
-          : unit === 'q'
-            ? MOMENT_FORMAT_NP_QUARTER
-            : unit === 'y'
-              ? MOMENT_FORMAT_NP_WEEK
-              : ''
+      ? MOMENT_FORMAT_NP_WEEK
+      : unit === 'm'
+      ? MOMENT_FORMAT_NP_MONTH
+      : unit === 'q'
+      ? MOMENT_FORMAT_NP_QUARTER
+      : unit === 'y'
+      ? MOMENT_FORMAT_NP_WEEK
+      : ''
   return momentDateFormat
 }
 
@@ -1054,14 +1087,14 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_ISO // = YYYY-MM-DD not filename format
       : unit === 'w'
-        ? MOMENT_FORMAT_NP_WEEK
-        : unit === 'm'
-          ? MOMENT_FORMAT_NP_MONTH
-          : unit === 'q'
-            ? MOMENT_FORMAT_NP_QUARTER
-            : unit === 'y'
-              ? MOMENT_FORMAT_NP_YEAR
-              : ''
+      ? MOMENT_FORMAT_NP_WEEK
+      : unit === 'm'
+      ? MOMENT_FORMAT_NP_MONTH
+      : unit === 'q'
+      ? MOMENT_FORMAT_NP_QUARTER
+      : unit === 'y'
+      ? MOMENT_FORMAT_NP_YEAR
+      : ''
   return momentDateFormat
 }
 
@@ -1093,7 +1126,7 @@ export function getPeriodOfNPDateStr(dateStr: string): string {
 
 /**
  * Calculate an offset date of a NP Daily/Weekly/Monthly/Quarterly/Yearly date string, and return as a JS Date.
- * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for  strings as well. Docs: https://momentjs.com/docs/#/get-set/
+ * v5 method, using 'moment/min/moment-with-locales' library to avoid using NP calls, now extended to allow for  strings as well. Docs: https://momentjs.com/docs/#/get-set/
  * @author @jgclark
  *
  * @param {string} baseDateStrIn is type ISO Date (i.e. YYYY-MM-DD), NP's filename format YYYYMMDD, or NP Weekly/Monthly/Quarterly/Yearly date strings
@@ -1163,7 +1196,7 @@ export function splitIntervalToParts(intervalStr: string): { number: number, typ
 
 /**
  * Calculate an offset date of any date interval NP supports, and return _in whichever format was supplied_.
- * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly, Monthly etc. strings as well.
+ * v5 method, using 'moment/min/moment-with-locales' library to avoid using NP calls, now extended to allow for Weekly, Monthly etc. strings as well.
  * WARNING: don't use when you want the output to be in week format, as the moment library doesn't understand different start-of-weeks. Use NPdateTime::getNPWeekData() instead.
  * Moment docs: https://momentjs.com/docs/#/get-set/
  * - 'baseDateIn' the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
@@ -1315,7 +1348,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
 /**
  * Calculate an offset date of a NP daily date (ISO format YYYY-MM-DD), and return _in whichever of the NotePlan date string formats were supplied in 'offsetInterval' (YYYY-MM-DD / YYYY-Wnn / YYYY-MM / YYYY-Qn / YYYY)_.
  * If the date to offset isn't supplied, today's date will be used.
- * (Uses 'moment' library to avoid using NP calls. Docs: https://momentjs.com/docs/#/get-set/)
+ * (Uses 'moment/min/moment-with-locales' library to avoid using NP calls. Docs: https://momentjs.com/docs/#/get-set/)
  * @author @jgclark
  * @param {string} offsetInterval of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
  * @param {string?} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type. If not given then today's date is used.
@@ -1442,7 +1475,9 @@ export function includesScheduledFurtherFutureDate(line: string, futureStartsInD
  */
 export function filenameIsInFuture(filename: string, fromYYYYMMDDDateStringFromDate: string = getTodaysDateUnhyphenated()): boolean {
   const today = new Date(
-    parseInt(fromYYYYMMDDDateStringFromDate.slice(0, 4)), parseInt(fromYYYYMMDDDateStringFromDate.slice(4, 6), 10) - 1, parseInt(fromYYYYMMDDDateStringFromDate.slice(6, 8), 10)
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(0, 4)),
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(4, 6), 10) - 1,
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(6, 8), 10),
   )
 
   // Test for daily notes
@@ -1558,17 +1593,25 @@ export const isReallyAllDay = (parseDateReturnObj: any): boolean => {
 /**
  * Validate if a string could be used to pull up any calendar note (of all NP allowed calendar note durations)
  * Note: This is just a regex test: it doesn't test if such a note actually exists.
- * @param {string} text
- * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYY-MM-DD not YYYYMMDD), week, month, quarter or year.
+ * Note: It will fail if the date string has other text before or after it.
+ * @author @jgclark
+ * @tests available in jest file
+ * @param {string} input
+ * @param {boolean} allowYYYYMMDDFormat - whether to allow the YYYYMMDD format as well as the ISO format (default: false)
+ * @returns {boolean} whether it passes the @jgclark RegEx tests for day (note YYY-MM-DD not YYYYMMDD), week, month, quarter or year.
  */
-export function isValidCalendarNoteTitleStr(text: string): boolean {
-  const combinedRE = new RegExp(`^(${RE_ISO_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})$`)
-  return combinedRE.test(text)
+export function isValidCalendarNoteTitleStr(input: string, allowYYYYMMDDFormat: boolean = false): boolean {
+  const combinedRE = allowYYYYMMDDFormat
+    ? new RegExp(`^(${RE_ISO_DATE}|${RE_YYYYMMDD_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})$`)
+    : new RegExp(`^(${RE_ISO_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})$`)
+  return combinedRE.test(input)
 }
 
 /**
  * Validate if a filename could be used to pull up any calendar note (of all NP allowed calendar note durations)
  * Note: This is just a regex test: it doesn't test if such a note actually exists.
+ * TODO: Expect this will need modifications for Teamspaces
+ * @author @jgclark
  * @param {string} text
  * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYYYMMDD not ISO), week, month, quarter or year.
  */
@@ -1580,6 +1623,8 @@ export function isValidCalendarNoteFilename(text: string): boolean {
 /**
  * Validate if a filename could be used to pull up any calendar note (of all NP allowed calendar note durations)
  * Note: This is just a regex test: it doesn't test if such a note actually exists.
+ * TODO: Expect this will need modifications for Teamspaces
+ * @author @jgclark
  * @param {string} text
  * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYYYMMDD not ISO), week, month, quarter or year.
  */
@@ -1709,4 +1754,32 @@ export function convertISOToYYYYMMDD(dateStr: string): string {
     return dateStr.replace(/-/g, '')
   }
   return dateStr
+}
+
+/**
+ * Calculate the number of days until due for a given date (negative if overdue)
+ * TODO: tests!
+ * @author @dwertheimer
+ * @param {string|Date} fromDate (in YYYY-MM-DD format if string)
+ * @param {string|Date} toDate (in YYYY-MM-DD format if string)
+ * @returns {number}
+ */
+export function calculateDaysOverdue(fromDate: string | Date, toDate: string | Date): number {
+  if (!fromDate || !toDate) {
+    return 0
+  }
+
+  const fromDateMom = moment(fromDate, 'YYYY-MM-DD')
+  const toDateMom = moment(toDate, 'YYYY-MM-DD')
+  const diffDays = fromDateMom.diff(toDateMom, 'days', true) // negative for overdue
+
+  const floor = Math.floor(diffDays)
+  // const ceil = Math.ceil(diffDays)
+
+  // overdue
+  if (diffDays < 0) {
+    return Object.is(floor, -0) ? -1 : floor
+  }
+  // not overdue
+  return Object.is(floor, -0) ? 0 : floor
 }

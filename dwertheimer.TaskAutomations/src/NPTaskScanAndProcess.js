@@ -88,7 +88,7 @@ export async function processCmdKey(para: TParagraph, userChoice: RescheduleUser
       date = date.replace(/-/g, '') // convert 8601 date to daily note filename
     }
     let filename = `${date}.${DataStore.defaultFileExtension}`
-    const nType = noteType(filename)
+    const nType = getSimpleNoteTypeFromFilenamefilename)
     if (nType === 'Calendar' && !new RegExp(`^${RE_WEEKLY_NOTE_FILENAME}(md|txt)$`).test(filename)) filename = filename.replace(/-/g, '')
     // MOVE TASK TO SPECIFIED NOTE
     const note = await DataStore.noteByFilename(filename, nType)

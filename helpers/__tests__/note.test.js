@@ -1,5 +1,6 @@
+/* eslint-disable import/no-duplicates */
 /* global describe, test, expect, beforeAll, jest, beforeEach */
-import colors from 'chalk'
+// import colors from 'chalk'
 import * as n from '../note'
 import { Note, DataStore, Calendar } from '@mocks/index'
 import { hyphenatedDateString } from '@helpers/dateTime'
@@ -144,6 +145,101 @@ describe(`${PLUGIN_NAME}`, () => {
       const options = { openOnly: true, plusOnlyTypes: false, replaceDate: false }
       const result = n.updateDatePlusTags(note, options)
       expect(result[0].content).toEqual(`foo >2020-01-01 >today`) //make no change
+    })
+  })
+
+  /*
+   * getSimpleNoteTypeFromFilename()
+   */
+  describe('getSimpleNoteTypeFromFilename()' /* function */, () => {
+    describe('should return Notes', () => {
+      test('standard regular root note', () => {
+        const input = 'foo.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Notes')
+      })
+      test('standard regular note', () => {
+        const input = 'test/foo.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Notes')
+      })
+      test('a regular note but with year form', () => {
+        const input = 'test/2025.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Notes')
+      })
+      test('a regular Teamspace note', () => {
+        const input = '%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/foo.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Notes')
+      })
+      test('a regular Teamspace note but with year form', () => {
+        const input = '%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/test/2025.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Notes')
+      })
+      test('daily note filename with invalid date', () => {
+        const input = '2025-01-01.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Notes')
+      })
+    })
+    describe('should return Calendar', () => {
+      test('daily note with md extension', () => {
+        const input = '20230127.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Calendar')
+      })
+      test('daily note with txt extension', () => {
+        const input = '20230127.txt'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Calendar')
+      })
+      test('daily Teamspace note', () => {
+        const input = '%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250101.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Calendar')
+      })
+      test('Weekly note', () => {
+        const input = '2000-W51.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Calendar')
+      })
+      test('weekly Teamspace note', () => {
+        const input = '%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-W51.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Calendar')
+      })
+      test('Monthly note', () => {
+        const input = '2000-01.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Calendar')
+      })
+      test('Monthly Teamspace note', () => {
+        const input = '%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-01.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Calendar')
+      })
+      test('Quarterly note', () => {
+        const input = '2000-Q4.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Calendar')
+      })
+      test('Quarterly Teamspace note', () => {
+        const input = '%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-Q4.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Calendar')
+      })
+      test('Yearly note', () => {
+        const input = '2000.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Calendar')
+      })
+      test('Yearly Teamspace note', () => {
+        const input = '%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025.md'
+        const result = n.getSimpleNoteTypeFromFilename(input)
+        expect(result).toEqual('Calendar')
+      })
     })
   })
 

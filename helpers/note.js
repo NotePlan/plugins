@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------
 import moment from 'moment/min/moment-with-locales'
 import {
+  convertISOToYYYYMMDD,
   hyphenatedDate,
   hyphenatedDateString,
   // toLocaleDateString,
@@ -20,15 +21,14 @@ import {
   RE_YEARLY_NOTE_FILENAME,
   isValidCalendarNoteFilename,
   isValidCalendarNoteTitleStr,
-  convertISOToYYYYMMDD,
 } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFolderListMinusExclusions, getFolderFromFilename, getRegularNotesInFolder, projectNotesFromFilteredFolders } from '@helpers/folders'
+import { getFolderListMinusExclusions, getFolderFromFilename, getRegularNotesFromFilteredFolders } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
-import { noteHasFrontMatter, getFrontMatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { noteHasFrontMatter, getFrontmatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { formRegExForUsersOpenTasks } from '@helpers/regex'
+import { formRegExForUsersOpenTasks, TEAMSPACE_INDICATOR } from '@helpers/regex'
 import { sortListBy } from '@helpers/sorting'
 import { isOpen } from '@helpers/utils'
 
@@ -43,11 +43,12 @@ export function setTitle(note: CoreNoteFields, title: string): void {
   logDebug('note/setTitle', `Setting title to ${title} for note ${note.filename} isFrontmatter=${String(isFrontmatterNote)}`)
   let titleIsChanged = false
   if (isFrontmatterNote) {
-    const fmFields = getFrontMatterAttributes(note)
+    const fmFields = getFrontmatterAttributes(note)
     if (fmFields) {
       if (fmFields.hasOwnProperty('title')) {
         const newFmFields = { ...fmFields }
         newFmFields.title = title
+        // $FlowIgnore(incompatible-call)
         updateFrontMatterVars(note, newFmFields, true)
         titleIsChanged = true
       } else {
@@ -72,13 +73,19 @@ export function setTitle(note: CoreNoteFields, title: string): void {
 }
 
 /**
- * Return simply 'Calendar' or 'Notes' from note's filename.
- * Note: getNoteType() is more detailed.
- * Note: But use note.type when you have note object available.
+ * Return simply 'Calendar' or 'Notes' just from the form of a note's filename. Works on Teamspace notes as well as private notes.
+ * Note: Use note.type when you have note object available, as it's more reliable.
+ * Note: used to be called getSimpleNoteTypeFromFilename) but renamed to be more specific, and to avoid confusion with getNoteType() which is more detailed.
+ * @author @jgclark
+ * TODO: @tests jest tests in note.test.js
+ * 
  * @param {string} filename
- * @returns {NoteType}
+ * @returns {NoteType} 'Calendar' | 'Notes'
  */
-export function noteType(filename: string): NoteType {
+export function getSimpleNoteTypeFromFilename(filename: string): NoteType {
+  if (!filename || filename === '') {
+    throw new Error('getSimpleNoteTypeFromFilename: filename is required')
+  }
   return filename.match(RE_DAILY_NOTE_FILENAME) ||
     filename.match(RE_WEEKLY_NOTE_FILENAME) ||
     filename.match(RE_MONTHLY_NOTE_FILENAME) ||
@@ -89,9 +96,8 @@ export function noteType(filename: string): NoteType {
 }
 
 /**
- * All day, month, quarter, yearly notes are type "Calendar" notes, so we when we need
- * to know the type of calendar note, we can use this function.
- * We allow note.type to not exist so we can look up the note based just on the filename
+ * All day, month, quarter, yearly notes are type "Calendar" notes, so when we need to know the type of calendar note, we can use this function.
+ * We allow note.type to not exist.
  * @author @dwertheimer
  * @param {TNote} note - the note to look at
  * @returns false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project'
@@ -118,7 +124,7 @@ export function getNoteType(note: TNote): false | 'Daily' | 'Weekly' | 'Monthly'
  * @returns {string}
  */
 export function getNoteLinkForDisplay(filename: string, dateStyle: string): string {
-  const note = DataStore.noteByFilename(filename, noteType(filename))
+  const note = DataStore.noteByFilename(filename, getSimpleNoteTypeFromFilename(filename))
   if (!note) {
     return '<error>'
   }
@@ -149,9 +155,11 @@ export function getNoteLinkForDisplay(filename: string, dateStyle: string): stri
  * - a title with a path (e.g. "myFolder/myNote")
  * - an ISO date (YYYY-MM-DD or YYYYMMDD) of a calendar note
  * @author @dwertheimer
- * @param {string} name - The note identifier, can be:
+ * @param {string|Date} name - The note identifier, can be:
+ *   - An empty string, in which case the current note in the Editorwill be returned
  *   - A filename with extension (e.g., "myNote.md" or "20240101.md")
  *   - A title without extension (e.g., "My Note" or "January 1, 2024")
+ *   - A date (to get calendar date)
  *   - A path and title (e.g., "folder/My Note")
  *   - An ISO date string (e.g., "2024-01-01") which will be converted to "20240101" for lookup
  * @param {boolean} [onlyLookInRegularNotes=false] - If true, will use projectNoteByFilename instead of noteByFilename (which will look at Calendar notes as well). This is useful if you have project notes that have titles that look like calendar notes (e.g. "2024-01-01"). If you leave this false, blank, or null, the type will be inferred from the name/filename.
@@ -173,7 +181,15 @@ export function getNoteLinkForDisplay(filename: string, dateStyle: string): stri
  * // Get a note with a specific path and title, ensuring it's in a specific folder
  * const note = await getNote('Snippets/Import Item', false, '@Templates');
  */
-export async function getNote(name: string, onlyLookInRegularNotes: boolean | null = null, filePathStartsWith: string = ''): Promise<?TNote> {
+export async function getNote(
+  name: string,
+  onlyLookInRegularNotes?: boolean | null,
+  filePathStartsWith?: string
+): Promise<?TNote> {
+  try {
+    if (!name || name === '') {
+      throw new Error(`getNote: no name provided.`)
+    }
   // formerly noteOpener
   // Convert ISO date format (YYYY-MM-DD) to NotePlan format (YYYYMMDD) if needed
   let noteName = name
@@ -183,14 +199,19 @@ export async function getNote(name: string, onlyLookInRegularNotes: boolean | nu
     noteName = convertedName
   }
 
-  const hasExtension = noteName.endsWith('.md') || noteName.endsWith('.txt')
-  const hasFolder = noteName.includes('/')
+  const hasExtension = noteName ? noteName.endsWith('.md') || noteName.endsWith('.txt') : false
+  const hasFolder = noteName.includes('/')  
   const isCalendarNote = isValidCalendarNoteFilename(noteName) || isValidCalendarNoteTitleStr(noteName)
   logDebug(
     'note/getNote',
-    `  Will try to open filename: "${noteName}" using ${onlyLookInRegularNotes ? 'projectNoteByFilename' : 'noteByFilename'} ${hasExtension ? '' : ' (no extension)'} ${
-      hasFolder ? '' : ' (no folder)'
-    } ${isCalendarNote ? ' (calendar note)' : ''}`,
+    `  isCalendarNote=${String(isCalendarNote)} isValidCalendarNoteFilename=${String(isValidCalendarNoteFilename(noteName))} isValidCalendarNoteTitleStr=${String(
+      isValidCalendarNoteTitleStr(noteName),
+    )}`,
+  )
+  logDebug(
+    'note/getNote',
+    `  Will try to open: "${name}${noteName !== name ? `(${noteName})` : ''}" using ${onlyLookInRegularNotes ? 'projectNoteByFilename' : 'noteByFilename'} ${hasExtension ? '' : ' (no extension)'
+    } ${hasFolder ? '' : ' (no folder)'} ${isCalendarNote ? ' (calendar note)' : ''}`,
   )
   if (!noteName) {
     logError('note/getNote', `  Empty name`)
@@ -205,21 +226,30 @@ export async function getNote(name: string, onlyLookInRegularNotes: boolean | nu
     }
   } else {
     // not a filename, so try to find a note by title
+    logDebug('note/getNote', `  Trying to find note by title "${noteName}" ${isCalendarNote ? ' (calendar note)' : ''}`)
     if (isCalendarNote) {
+      logDebug('note/getNote', `  Trying to find calendar note by title "${noteName}"`)
       if (onlyLookInRegularNotes) {
+        logDebug('note/getNote', `  Trying to find calendar note by title ${name}`)
         // deal with the edge case of someone who has a project note with a title that could be a calendar note
         const potentialNotes = DataStore.projectNoteByTitle(name)
         if (potentialNotes && potentialNotes.length > 0) {
-          theNote = potentialNotes.find((n) => n.filename.startsWith(filePathStartsWith))
+          theNote = potentialNotes.find((n) => n.filename.startsWith(filePathStartsWith || ''))
         }
       } else {
+        logDebug('note/getNote', `  Trying to find calendar note by date string ${noteName}`)
         theNote = await DataStore.calendarNoteByDateString(noteName)
+        if (!theNote) {
+          logDebug('note/getNote', `  Trying to find calendar note by date string ${name}`)
+          theNote = await DataStore.calendarNoteByDateString(name)
+        }
       }
     } else {
       const pathParts = noteName.split('/')
       const titleWithoutPath = pathParts.pop() || ''
       const pathWithoutTitle = pathParts.join('/') || ''
       const potentialNotes = DataStore.projectNoteByTitle(titleWithoutPath)
+      logDebug('note/getNote', `  Found ${potentialNotes?.length || '0'} notes by title "${noteName}"`)
       if (potentialNotes && potentialNotes.length > 0) {
         // Apply both path filters differently depending on the use case
         let filteredNotes = potentialNotes
@@ -237,11 +267,8 @@ export async function getNote(name: string, onlyLookInRegularNotes: boolean | nu
         theNote = filteredNotes.length > 0 ? filteredNotes[0] : null
 
         logDebug(
-          `  Found ${potentialNotes.length} notes by title "${noteName}"; ${
-            filteredNotes.length
-          } matched path "${pathWithoutTitle}" and filePathStartsWith "${filePathStartsWith}" (${theNote?.filename || ''}); others were: [${potentialNotes
-            .map((n) => n.filename)
-            .join(', ')}]`,
+          ` >> getNote Found ${potentialNotes.length} notes by title "${noteName}"; ${filteredNotes.length} matched path "${pathWithoutTitle}" and filePathStartsWith "${filePathStartsWith || ''
+          }" (${theNote?.filename || ''}); ${potentialNotes.length > 1 ? `others were: [${potentialNotes.map((n) => n.filename).join(', ')}]` : ''}`,
         )
       }
     }
@@ -256,6 +283,10 @@ export async function getNote(name: string, onlyLookInRegularNotes: boolean | nu
         hasFolder,
       )} hasExtension=${String(hasExtension)} isCalendarNote=${String(isCalendarNote)}. Check for typos or missing folder path.`,
     )
+    return null
+    }
+  } catch (err) {
+    logError('note/getNote', err.message)
     return null
   }
 }
@@ -279,77 +310,9 @@ export function getNoteByFilename(filename: string): ?TNote {
   }
 }
 
-/**
- * Get the noteType of a note from its filename
- * Probably FIXME: need to update to support Teamspace notes
- * @author @jgclark
- * @param {string} filename of either Calendar or Notes type
- * @returns {NoteType} Calendar | Notes
- */
-export function getNoteTypeByFilename(filename: string): ?NoteType {
-  // logDebug('note/getNoteTypeByFilename', `Started for '${filename}'`)
-  const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
-  if (newNote != null) {
-    // logDebug('note/getNoteTypeByFilename', `-> note '${displayTitle(newNote)}`)
-    return newNote.type
-  } else {
-    logWarn('note/getNoteTypeByFilename', `-> couldn't find a note in either Notes or Calendar`)
-    return null
-  }
-}
+// Note: getNoteByFilename has moved to NPnote.js. Import from '@helpers/NPnote' instead.
 
-/**
- * Get or create the relevant regular note in the given folder (not calendar notes)
- * Now extended to cope with titles with # characters: these are stripped out first, as they are stripped out by NP when reporting a note.title
- * If it makes a new note, it will add the title first.
- * @author @jgclark
- *
- * @param {string} noteTitle - title of note to look for
- * @param {string} noteFolder - folder to look in (must be full path or "/")
- * @param {boolean?} partialTitleToMatch - optional partial note title to use with a starts-with not exact match
- * @return {Promise<TNote>} - note object
- */
-export async function getOrMakeNote(noteTitle: string, noteFolder: string, partialTitleToMatch: string = ''): Promise<?TNote> {
-  logDebug('note / getOrMakeNote', `starting with noteTitle '${noteTitle}' / folder '${noteFolder}' / partialTitleToMatch ${partialTitleToMatch}`)
-  let existingNotes: $ReadOnlyArray<TNote> = []
-
-  // If we want to do a partial match, see if matching note(s) have already been created (ignoring @Archive and @Trash)
-  if (partialTitleToMatch) {
-    const partialTestString = partialTitleToMatch.split('#').join('')
-    const allNotesInFolder = getRegularNotesInFolder(noteFolder)
-    existingNotes = allNotesInFolder.filter((f) => f.title?.startsWith(partialTestString))
-    logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing partial '${partialTestString}' note matches`)
-  } else {
-    // Otherwise do an exact match on noteTitle
-    const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
-    // now filter out wrong folders
-    existingNotes = potentialNotes && noteFolder !== '/' ? potentialNotes.filter((n) => n.filename.startsWith(noteFolder)) : potentialNotes
-    logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing '${noteTitle}' note(s)`)
-  }
-
-  if (existingNotes.length > 0) {
-    logDebug('note / getOrMakeNote', `- first matching note filename = '${existingNotes[0].filename}'`)
-    return existingNotes[0] // return the only or first match (if more than one)
-  } else {
-    logDebug('note / getOrMakeNote', `- found no existing notes, so will try to make one`)
-    // no existing note, so need to make a new one
-    const noteFilename = await DataStore.newNote(noteTitle, noteFolder)
-    // NB: filename here = folder + filename
-    if (noteFilename != null && noteFilename !== '') {
-      logDebug('note / getOrMakeNote', `- newNote filename: ${String(noteFilename)}`)
-      const note = await DataStore.projectNoteByFilename(noteFilename)
-      if (note != null) {
-        return note
-      } else {
-        logError('note / getOrMakeNote', `can't read new ${noteTitle} note`)
-        return
-      }
-    } else {
-      logError('note / getOrMakeNote', `empty filename of new ${noteTitle} note`)
-      return
-    }
-  }
-}
+// Note: getOrMakeRegularNoteInFolder has moved to NPnote.js. Import from '@helpers/NPnote' instead.
 
 /**
  * Find a unique note title for the given text (e.g. "Title", "Title 01" (if "Title" exists, etc.))
@@ -382,12 +345,25 @@ export function getUniqueNoteTitle(title: string): string {
  * @return {Array<TNote>} array of notes
  */
 export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Array<TNote> {
-  const projectNotes = projectNotesFromFilteredFolders(foldersToIgnore, true)
+  const projectNotes = getRegularNotesFromFilteredFolders(foldersToIgnore, true)
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
   // $FlowIgnore(unsafe-arithmetic)
   const allNotesSorted = allNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
   return allNotesSorted
+}
+
+/**
+ * Return list of all regular notes, apart from those in special '@...' folders, sorted by changed date (newest to oldest)
+ * @author @jgclark
+ * @param {Array<string>} foldersToExclude? (default: [])
+ * @return {Array<TNote>} array of notes
+ */
+export function allRegularNotesSortedByChanged(foldersToIgnore: Array<string> = []): Array<TNote> {
+  const regularNotes = getRegularNotesFromFilteredFolders(foldersToIgnore, true)
+  // $FlowIgnore(unsafe-arithmetic)
+  const regularNotesSorted = regularNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  return regularNotesSorted
 }
 
 /**
@@ -415,12 +391,25 @@ export function calendarNotesSortedByChanged(): Array<TNote> {
 }
 
 /**
- * Return list of calendar notes, sorted by their date (oldest to newest)
+ * Return list of calendar notes, sorted by date (oldest to newest, based on their filename)
+ * Will include future calendar notes if includeFutureCalendarNotes is true.
+ * WARNING: Not tested with Teamspace notes, and will likely fail, as it relies on filenames.
  * @author @jgclark
+ * @param {boolean} includeFutureCalendarNotes? (optional: default = false)
+ * @param {boolean} includeTeamspaceNotes? (optional: default = false)
  * @return {Array<TNote>} array of notes
  */
-export function calendarNotesSortedByDate(): Array<TNote> {
-  return DataStore.calendarNotes.slice().sort(function (first, second) {
+export function calendarNotesSortedByDate(includeFutureCalendarNotes: boolean = false, includeTeamspaceNotes: boolean = false): Array<TNote> {
+  let notes = (includeFutureCalendarNotes)
+    ? DataStore.calendarNotes.slice()
+    : pastCalendarNotes()
+
+  // Remove Teamspace calendar notes if requested
+  if (!includeTeamspaceNotes) {
+    notes = notes.filter((note) => !note.filename.startsWith(TEAMSPACE_INDICATOR))
+  }
+
+  return notes.sort(function (first, second) {
     const a = first.filename
     const b = second.filename
     if (a < b) {
@@ -436,6 +425,8 @@ export function calendarNotesSortedByDate(): Array<TNote> {
 /**
  * Return list of past calendar notes, of any duration.
  * Note: the date that's checked is the *start* of the period. I.e. test on 30th June will match 2nd Quarter as being in the past.
+ * Note: A version of this function exists in helpers/NPdateTime.js::getEarliestCalendarNoteDate(), but it's not imported because it would create a circular dependency.
+
  * @author @jgclark
  * @return {Array<TNote>} array of notes
  */
@@ -481,7 +472,7 @@ export function projectNotesSortedByChanged(): Array<TNote> {
  */
 export function projectNotesSortedByTitle(foldersToExclude: Array<string> = [], excludeSpecialFolders: boolean = true): Array<TNote> {
   try {
-    const projectNotes = projectNotesFromFilteredFolders(foldersToExclude, excludeSpecialFolders)
+    const projectNotes = getRegularNotesFromFilteredFolders(foldersToExclude, excludeSpecialFolders)
     const notesSorted = projectNotes.sort(function (first, second) {
       const a = first.title?.toUpperCase() ?? '' // ignore upper and lowercase
       const b = second.title?.toUpperCase() ?? '' // ignore upper and lowercase
@@ -554,8 +545,9 @@ export const clearNote = (note: TNote) => {
 
 /**
  * Replace all paragraphs in the section of a note with new supplied content.
- * Note: A section is defined (here at least) as all the lines between the heading, and the next heading of that same or higher level, or the end of the file if that's sooner.
- * Note: Parameter 'headingOfSectionToReplace' needs to match from start of line but not necessarily the end.
+ * A section is defined (here at least) as all the lines between the heading,
+ * and the next heading of that same or higher level, or the end of the file
+ * if that's sooner.
  * If no existing section is found, then append.
  * @author @jgclark
  *
@@ -748,6 +740,7 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
  * Filter a list of paras against a list of folders to ignore (and the @... special folders) and return the filtered list.
  * Obviously requires going via the notes array and not the paras array
  * @author @jgclark building on @dwertheimer's work
+ *
  * @param {Array<TNote>} notes - array of notes to review
  * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
  * @param {boolean} includeCalendar? - whether to include Calendar notes (default: true)
@@ -764,7 +757,7 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
     // logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
 
     if (dedupedNoteFilenameList.length > 0) {
-      const wantedFolders = getFolderListMinusExclusions(excludedFolders, true)
+      const wantedFolders = getFolderListMinusExclusions(excludedFolders, true, false, true)
       // filter out paras not in these notes
       const parasFiltered = paras.filter((p) => {
         const thisNoteFilename = p.note?.filename ?? 'error'
@@ -794,17 +787,17 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
  */
 export function isNoteFromAllowedFolder(note: TNote, allowedFolderList: Array<string>, allowAllCalendarNotes: boolean = true): boolean {
   try {
-  // Calendar note check
-  if (note.type === 'Calendar') {
-    // logDebug('isNoteFromAllowedFolder', `-> Calendar note ${allowAllCalendarNotes ? 'allowed' : 'NOT allowed'} as a result of allowAllCalendarNotes`)
-    return allowAllCalendarNotes
-  }
+    // Calendar note check
+    if (note.type === 'Calendar') {
+      // logDebug('isNoteFromAllowedFolder', `-> Calendar note ${allowAllCalendarNotes ? 'allowed' : 'NOT allowed'} as a result of allowAllCalendarNotes`)
+      return allowAllCalendarNotes
+    }
 
-  // Is regular note's filename in allowedFolderList?
-  const noteFolder = getFolderFromFilename(note.filename)
-  // Test if allowedFolderList includes noteFolder
-  const matchFound = allowedFolderList.includes(noteFolder)
-  // logDebug('isNoteFromAllowedFolder', `- ${matchFound ? 'match' : 'NO match'} to '${note.filename}' folder '${noteFolder}' from ${String(allowedFolderList.length)} folders`)
+    // Is regular note's filename in allowedFolderList?
+    const noteFolder = getFolderFromFilename(note.filename)
+    // Test if allowedFolderList includes noteFolder
+    const matchFound = allowedFolderList.includes(noteFolder)
+    // logDebug('isNoteFromAllowedFolder', `- ${matchFound ? 'match' : 'NO match'} to '${note.filename}' folder '${noteFolder}' from ${String(allowedFolderList.length)} folders`)
     return matchFound
   } catch (err) {
     logError('note/isNoteFromAllowedFolder', err)
