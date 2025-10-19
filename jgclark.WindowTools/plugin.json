@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/CHANGELOG.md",
-  "plugin.version": "1.3.0",
-  "plugin.lastUpdateInfo": "v1.3.0: Improve note and heading pickers. Support for Teamspace notes in /open note... commands. Fix to window set selection.\nv1.2.1: update list of plugin windows it knows about\nv1.2.0: new command 'swap splits', plus positioning bug fix\nv1.1.2: Bug fixes.\nv1.1.1: improve migration from previous plugin ('WindowSets')\nv1.1.0: added x-callbacks for /open window set, /open note in new split and /open note in new window commands.\nv1.0.0: 3 new commands, and renamed plugin from 'Window Sets'. Also moved 3 window-related commands from 'Note Helpers' plugin.\nv0.4.0: First public release, and requires NP v3.9.8.",
+  "plugin.version": "1.4.0",
+  "plugin.lastUpdateInfo": "v1.4.0: New '/reset windows' command.\nNow can save sidebar width in window sets, and open to that width (requires NP v3.19.2).\nv1.3.0: Improve note and heading pickers. Support for Teamspace notes in /open note... commands. Fix to window set selection.\nv1.2.1: update list of plugin windows it knows about\nv1.2.0: new command 'swap splits', plus positioning bug fix\nv1.1.2: Bug fixes.\nv1.1.1: improve migration from previous plugin ('WindowSets')\nv1.1.0: added x-callbacks for /open window set, /open note in new split and /open note in new window commands.\nv1.0.0: 3 new commands, and renamed plugin from 'Window Sets'. Also moved 3 window-related commands from 'Note Helpers' plugin.\nv0.4.0: First public release, and requires NP v3.9.8.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -40,6 +40,14 @@
       ],
       "description": "Constrain main window, so it actually all shows on the screen",
       "jsFunction": "constrainMainWindow"
+    },
+    {
+      "name": "reset main window",
+      "alias": [
+        "rmw"
+      ],
+      "description": "Resets the main NotePlan window to default widths, including the main (left) sidebar (requires NP v3.19.2 or later).",
+      "jsFunction": "resetMainWindow"
     },
     {
       "name": "move split to main",
@@ -199,6 +207,37 @@
       "description": "Folder where Window Set definitions are visible.",
       "type": "string",
       "default": "@Window Sets",
+      "required": true
+    },
+    {
+      "key": "saveMainSidebarWidth",
+      "title": "Save main sidebar width?",
+      "description": "Whether to save the width of the main sidebar when saving a window set.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "'/reset windows' settings"
+    },
+    {
+      "key": "defaultMainSidebarWidth",
+      "title": "Default main sidebar width",
+      "description": "Default width of the main sidebar when resetting windows. (Requires NP v3.19.2 or later.) Set to 0 to hide the sidebar. If not set, the sidebar will be left as is.",
+      "type": "number",
+      "default": 250,
+      "required": false
+    },
+    {
+      "key": "defaultEditorWidth",
+      "title": "Default editor width",
+      "description": "Default width of the editor when resetting windows. (Requires NP v3.19.2 or later.) In practice NotePlan will not go below about 300 pixels.",
+      "type": "number",
+      "default": 500,
       "required": true
     },
     {

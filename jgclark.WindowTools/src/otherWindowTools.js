@@ -14,6 +14,8 @@ import { getNoteTitleFromFilename } from '@helpers/NPnote'
 import {
   closeWindowFromId,
   constrainWindowSizeAndPosition,
+  MAIN_SIDEBAR_CONTROL_BUILD_VERSION,
+  FOLDER_VIEWS_CONTROL_BUILD_VERSION,
   openNoteInNewSplitIfNeeded,
   rectToString,
 } from '@helpers/NPWindows'
@@ -41,6 +43,45 @@ export function constrainMainWindow(): void {
     logDebug(pluginJson, `- updatedRect: ${rectToString(updatedRect)}`)
 
     NotePlan.editors[0].windowRect = updatedRect
+  } catch (error) {
+    logError(pluginJson, error.message)
+  }
+}
+
+/**
+ * Reset main window to default size and position, and main sidebar width
+ * (Requires NP v3.19.2 or later.)
+ * @author @jgclark
+ */
+export async function resetMainWindow(): Promise<void> {
+  try {
+    if (NotePlan.environment.platform !== 'macOS') {
+      logInfo(pluginJson, `'reset main window'command can only run on macOS. Stopping.`)
+      return
+    }
+
+    const settings = await wth.getPluginSettings()
+    wth.setMainSidebarWidth(settings)
+
+    // Set Editor main window and all other split windows to default width
+    const defaultEditorWidth = settings.defaultEditorWidth
+    logDebug(pluginJson, `- defaultEditorWidth: ${String(defaultEditorWidth)}`)
+    if (defaultEditorWidth) {
+      // Set Editor main window width
+      logDebug(pluginJson, `- Setting main window width to ${String(defaultEditorWidth)}`)
+      NotePlan.editors[0].windowRect.width = defaultEditorWidth
+      // Set all other split windows to default width
+      for (let i = 1; i < NotePlan.editors.length; i++) {
+        const editor = NotePlan.editors[i]
+        if (editor.windowType === 'split') {
+          logDebug(pluginJson, `- Setting split window #${String(i)} width to ${String(defaultEditorWidth)}`)
+          editor.windowRect.width = defaultEditorWidth
+        }
+      }
+    }
+    else {
+      logWarn(pluginJson, `- No default editor width set, so will leave as is`)
+    }
   } catch (error) {
     logError(pluginJson, error.message)
   }

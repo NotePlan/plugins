@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 2025-08-15 for v1.3.0 by @jgclark
+// last update 2025-10-19 for v1.4.0 by @jgclark
 //---------------------------------------------------------------
 // ARCHITECTURE:
 // - 1 local preference 'windowSets' that contains JS Array<WindowSet>
@@ -12,11 +12,11 @@
 //   - writeWSsToNote() sends pref to note -- and can be run manually by /wpn
 // - if no window sets found in pref, plugin offers to write 2 example sets
 //
-// Minimum version 3.9.8
+// Minimum NP version 3.9.8
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import * as wsh from './WTHelpers'
+import * as wth from './WTHelpers'
 import { checkPluginCommandNameAvailable } from '@helpers/NPConfiguration'
 import {
   calcOffsetDateStr,
@@ -40,7 +40,8 @@ import {
   findEditorWindowByFilename,
   isHTMLWindowOpen,
   getNonMainWindowIds,
-  rectToString
+  MAIN_SIDEBAR_CONTROL_BUILD_VERSION,
+  rectToString,
 } from '@helpers/NPWindows'
 import { chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
 
@@ -52,24 +53,27 @@ import { chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessa
  * V3: writes to prefs
  * TODO: Support saving folder views as well as note. API support added somewhere around v3.17 it seems. Done all that's needed (I think) in OWS but will need to check once API bug is fixed, and then update this as well. 
  * Note: limitation that folder views only seem to be able to be opened in the (first) main Editor window.
+ * Note: Plugin declares minimum NP version 3.9.8.
  * @author @jgclark
  */
 export async function saveWindowSet(): Promise<void> {
   try {
-    if (NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 1100) {
-      logInfo(pluginJson, `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
+    if (NotePlan.environment.platform !== 'macOS') {
+      logInfo(pluginJson, `Window Sets commands can only run on macOS. Stopping.`)
       return
     }
 
-    const config = await wsh.getPluginSettings()
+    const config = await wth.getPluginSettings()
     const thisMachineName = NotePlan.environment.machineName
+    const foldersList: $ReadOnlyArray<string> = DataStore.folders
 
     // Form this set from open windows
     // Note: needs to use a cut-down set of attributes available in the window objects
-    const editorWinDetails: Array<wsh.EditorWinDetails> = NotePlan.editors.map((win) => {
+    const editorWinDetails: Array<wth.EditorWinDetails> = NotePlan.editors.map((win) => {
       const winRect = win.windowRect
+      const isFolder = foldersList.includes(win.filename) // TEST: when @EM fixes win.filename being blank or null for folder views
       return {
-        noteType: win.type,
+        noteType: isFolder ? 'Folder' : win.type,
         windowType: win.windowType,
         filename: win.filename,
         title: undefined, // gets set later
@@ -80,7 +84,7 @@ export async function saveWindowSet(): Promise<void> {
       }
     })
 
-    const htmlWinDetails: Array<wsh.HTMLWinDetails> = NotePlan.htmlWindows.map((win) => {
+    const htmlWinDetails: Array<wth.HTMLWinDetails> = NotePlan.htmlWindows.map((win) => {
       const winRect = win.windowRect
       return {
         type: win.type,
@@ -103,7 +107,7 @@ export async function saveWindowSet(): Promise<void> {
     }
 
     // Get current saved set names
-    const savedWindowSets = await wsh.readWindowSetDefinitions()
+    const savedWindowSets = await wth.readWindowSetDefinitions()
     // clo(savedWindowSets, 'savedWindowSets')
     let choice = 0
     let setName = ''
@@ -147,13 +151,13 @@ export async function saveWindowSet(): Promise<void> {
       isNewSet = true
     }
 
-    // Start making WS object to save
-    let thisWSToSave: wsh.WindowSet = {
+    // Start making WS object to save (for now without mainSidebarWidth)
+    let thisWSToSave: wth.WindowSet = {
       name: setName,
       closeOtherWindows: true,
       editorWindows: [],
       htmlWindows: [],
-      machineName: thisMachineName
+      machineName: thisMachineName,
     }
 
     // First process Editor windows
@@ -164,6 +168,10 @@ export async function saveWindowSet(): Promise<void> {
       // TODO(later): Try to support open folder as well as note. As of v3.16.3 it requires EM to add support for this in the API.
       let tempFilename = ew.filename
       const thisNote = DataStore.projectNoteByFilename(tempFilename)
+      if (!thisNote) {
+        logWarn('saveWindowSet', `- unable to find note with filename '${tempFilename}' for WS '${setName}'. Skipping.`)
+        continue
+      }
       let tempTitle = ''
 
       // Check to see if any editor windows are calendar dates
@@ -198,7 +206,7 @@ export async function saveWindowSet(): Promise<void> {
         : editorWinDetails[ewCount].windowType
 
       // Create EW object to save with the other details
-      const thisEWToSave: wsh.EditorWinDetails = {
+      const thisEWToSave: wth.EditorWinDetails = {
         noteType: ew.noteType,
         filename: tempFilename ?? '?',
         title: tempTitle ?? '?',
@@ -217,7 +225,7 @@ export async function saveWindowSet(): Promise<void> {
     for (const thisHtmlWinDetails of htmlWinDetails) {
       const thisWindowId = thisHtmlWinDetails.customId ?? '?'
       logDebug('saveWindowSet', `- plugin: ${thisWindowId}`)
-      const thisPWAC = wsh.pluginWindowsAndCommands.filter((p) => thisWindowId === p.pluginWindowId)[0]
+      const thisPWAC = wth.pluginWindowsAndCommands.filter((p) => thisWindowId === p.pluginWindowId)[0]
       const thisHWPluginID = (thisPWAC?.pluginID)
         // take from a match in the lookup list
         ? thisPWAC?.pluginID
@@ -269,9 +277,14 @@ export async function saveWindowSet(): Promise<void> {
       }
       clo(thisWSToSave, `saveWindowSet: thisWSToSave after dealing with EW splits`)
 
+    // TEST: If we can find out the main sidebar width, and we want to save it, then add it to the WS object
+    if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION && config.saveMainSidebarWidth) {
+      const mainSidebarWidth = NotePlan.getSidebarWidth()
+      thisWSToSave.mainSidebarWidth = mainSidebarWidth
+    }
 
     // Check window bounds make sense
-    thisWSToSave = wsh.checkWindowSetBounds(thisWSToSave)
+    thisWSToSave = wth.checkWindowSetBounds(thisWSToSave)
     // clo(thisWSToSave, 'saveWindowSet: after bounds check')
 
     // Save to preferences store
@@ -302,8 +315,8 @@ export async function saveWindowSet(): Promise<void> {
 
     DataStore.setPreference('windowSets', WSsToSave)
     logDebug('saveWindowSet', `Saved window sets to local pref`)
-    await wsh.logWindowSets()
-    const res = await wsh.writeWSsToNote(config.folderForDefinitions, config.noteTitleForDefinitions, WSsToSave)
+    await wth.logWindowSets()
+    const res = await wth.writeWSsToNote(config.folderForDefinitions, config.noteTitleForDefinitions, WSsToSave)
     logDebug('saveWindowSet', `Saved window sets to note, with result ${String(res)}`)
 
     // If we have htmlWindows not in our lookup list, then ask the user to update the list with the plugin command Name
@@ -311,7 +324,7 @@ export async function saveWindowSet(): Promise<void> {
     for (const thisHtmlWinDetails of htmlWinDetails) {
       const thisWindowId = thisHtmlWinDetails.customId ?? 'n/a'
       logDebug('saveWindowSet', `for thisHtmlWinDetails: ${thisWindowId}`)
-      const thisPWAC = wsh.pluginWindowsAndCommands.filter((p) => thisWindowId === p.pluginWindowId)[0]
+      const thisPWAC = wth.pluginWindowsAndCommands.filter((p) => thisWindowId === p.pluginWindowId)[0]
       if (!thisPWAC || thisPWAC?.pluginID?.startsWith('?')) {
         askUserToComplete = true
       }
@@ -337,19 +350,18 @@ export async function saveWindowSet(): Promise<void> {
  */
 export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
   try {
-    if (NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 1100) {
-      logInfo(pluginJson, `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
+    if (NotePlan.environment.platform !== 'macOS') {
+      logInfo(pluginJson, `Window Sets commands can only run on macOS. Stopping.`)
       return false
     }
     logDebug(pluginJson, `openWindowSet starting with param setNameArg '${setNameArg}'`)
 
-    // const config = await wsh.getPluginSettings()
     const thisMachineName = NotePlan.environment.machineName
     // let success = false
-    let thisWS: wsh.WindowSet
-    let res: wsh.WindowSet | null
+    let thisWS: wth.WindowSet
+    let res: wth.WindowSet | null
     if (setNameArg !== '') {
-      res = await wsh.getDetailedWindowSetByName(setNameArg)
+      res = await wth.getDetailedWindowSetByName(setNameArg)
     }
     if (res) {
       // Use this one
@@ -359,7 +371,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
     else {
       // Form list of window sets to choose from
       // Get all available windowSets for this machine
-      const savedWindowSets = await wsh.readWindowSetDefinitions(thisMachineName)
+      const savedWindowSets = await wth.readWindowSetDefinitions(thisMachineName)
       if (savedWindowSets.length === 0) {
         logInfo('logWindowSets', `No saved windowSets object found for machine '${thisMachineName}', so stopping`)
         const res = await showMessage(`Sorry: you have no saved Window Sets for machine '${thisMachineName}'.`, 'OK', 'Window Sets', false)
@@ -449,7 +461,6 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
     logDebug('openWindowSet', `Attempting to open ${String(thisWS.editorWindows.length)} note window(s)`)
     let mainRect: Rect // to save whatever the 'main' Editor is in this WS
     for (const ew of thisWS.editorWindows) {
-      // TODO: Support open folder as well as note. API support added somewhere around v3.17 it seems. Done all that's needed (I think) in OWS but will need to check once API bug is fixed, and then update SWS as well.
       if (ew.filename === '') {
         logWarn('openWindowSet', `- WS '${thisWS.name}' has an empty Editor filename: ignoring. Please check the definitions in the Window Set note.`)
         continue
@@ -486,7 +497,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
             if (!thisEditorWindow) {
               logWarn('openWindowSet', `  - unable to find new Editor window with filename ${resourceFilenameToOpen} so cannot set its size/position.`)
             } else {
-              const thisRect = wsh.formRectFromWindowDetails(ew, resourceFilenameToOpen)
+              const thisRect = wth.formRectFromWindowDetails(ew, resourceFilenameToOpen)
               logDebug('openWindowSet', `  - applying Rect definition ${rectToString(thisRect)} to new floating Editor window`)
               thisEditorWindow.windowRect = thisRect
               // FIXME(Eduard): following shows that it doesn't seem to set correctly
@@ -517,7 +528,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
             if (!thisEditorWindow) {
               logWarn('openWindowSet', `  - unable to find new Editor window with filename ${resourceFilenameToOpen} so cannot set its size/position.`)
             } else {
-              const thisRect = wsh.formRectFromWindowDetails(ew, resourceFilenameToOpen)
+              const thisRect = wth.formRectFromWindowDetails(ew, resourceFilenameToOpen)
               logDebug('openWindowSet', `  - applying Rect definition ${rectToString(thisRect)} to new floating Editor window`)
               thisEditorWindow.windowRect = thisRect
               // FIXME(Eduard): following shows that it doesn't seem to set correctly
@@ -532,8 +543,9 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
       else {
         // Open in a main or split window. (Main only for the first one.)
         if (ew.windowType === 'main') {
-          mainRect = wsh.formRectFromWindowDetails(ew, ew.filename)
+          mainRect = wth.formRectFromWindowDetails(ew, ew.filename)
         }
+        // logDebug('openWindowSet', `- ew.noteType = ${ew.noteType}`)
 
         switch (ew.noteType) {
           case 'Calendar': {
@@ -564,10 +576,9 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
             break
           }
           case 'Folder': { // supported from ~v3.17
-            logDebug('openWindowSet', `- opening Folder '${resourceFilenameToOpen}' in first Editor window`)
+            // TODO: use NPOpenFolders::openFolderView() instead? Though it will ask user questions
             const res = await Editor.openNoteByFilename(resourceFilenameToOpen, false, 0, 0, false, false)
-            // FIXME(Eduard): never gets here whatever I try, and no notification in NP's own log. #waiting since 15.8.25
-            logDebug('openWindowSet', `- openNoteByFilename -> ${typeof res} ${String(res)}`)
+            // logDebug('openWindowSet', `- openNoteByFilename -> ${typeof res} ${String(res)}`)
             if (res) {
               logDebug('openWindowSet', `- opened Folder ${resourceFilenameToOpen} in main Editor window. openCount -> ${openCount}`)
               openCount++
@@ -587,9 +598,13 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
             break
           }
         }
-        logDebug('openWindowSet', `- [loop] openCount -> ${openCount}`)
+        // logDebug('openWindowSet', `- [loop] openCount -> ${openCount}`)
       }
     }
+
+    // TEST: Now set main (left) sidebar width if requested
+    const settings = await wth.getPluginSettings()
+    wth.setMainSidebarWidth(settings)
 
     // Now set windowRect for whole main Editor, using saved x,y,w,h from the 'main' part of this WS
       if (mainRect && !isObjectEmpty(mainRect)) {
@@ -617,7 +632,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
 export async function deleteWindowSet(setNameArg: string): Promise<boolean> {
   try {
     let thisWSNum: number = NaN
-    const windowSets = await wsh.readWindowSetDefinitions()
+    const windowSets = await wth.readWindowSetDefinitions()
     const allWSNames = windowSets.map((sws) => sws.name)
 
     if (setNameArg !== '') {
@@ -653,7 +668,7 @@ export async function deleteWindowSet(setNameArg: string): Promise<boolean> {
     windowSets.splice(Number(thisWSNum), 1)
     DataStore.setPreference('windowSets', windowSets)
     // logDebug('deleteWindowSet', `Deleted WS '${thisWS}'`)
-    const res = await wsh.writeWSsToNote()
+    const res = await wth.writeWSsToNote()
 
     return true
   }
@@ -669,7 +684,7 @@ export async function deleteWindowSet(setNameArg: string): Promise<boolean> {
  */
 export async function deleteAllSavedWindowSets(): Promise<void> {
   try {
-    const config = await wsh.getPluginSettings()
+    const config = await wth.getPluginSettings()
     unsetPreference('windowSets')
     logInfo('deleteAllSavedWindowSets', `Deleted all Window Sets`)
     const res = await showMessage(`Deleted all saved Window Sets. Note that this doesn't delete the visible version of them in note ${config.folderForDefinitions}/${config.noteTitleForDefinitions}.`, 'OK', 'Window Sets', false)

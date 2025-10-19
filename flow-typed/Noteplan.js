@@ -433,8 +433,10 @@ declare interface TEditor extends CoreNoteFields {
    *   rect.height -= 50
    *   Editor.windowRect = rect
    *
-   * Note: from JGC: for split & main windows, x/y returns the position and size of the whole window
+   * WARNING: from JGC: for main Editor window, x/y are the position and size of the whole window (including the main sidebar and any split windows).
+   * WARNING: from JGC: for split Editor windows, x/y are 0,0, but width/height are accurate.
    * WARNING: from JGC: for split & main windows, height is reliable, but width doesn't always seem to be consistent.
+   * WARNING: from JGC: trying to set this for a split window doesn't seem to do anything.
    * WARNING: from JGC: for floating Editor windows, setting this doesn't seem reliable
    * Note: Available with v3.9.1 build 1020
    */
@@ -1483,11 +1485,13 @@ declare interface Paragraph {
   +contentRange: TRange | void;
   /**
    * Paragraph.lineIndex
-   * Get the line index of the paragraph.
+   * Get or set the line index of the paragraph.
    * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    * WARNING: this can be different in `Editor` and `Note` contexts, even for the same paragraph, because frontmatter lines are not included in the `Editor` context since ~v3.16.3.
+   * WARNING: the same paragraph can have different values of this property for `Editor.selectedParagraphs` and `Editor.paragraphs`, because frontmatter lines are not included in the `Editor.selectedParagraphs` context since ~v3.16.3.
+   * Note: this is settable from v3.19.2 (build 1440 onwards), to help deal with the issue mentioned above.
    */
-  +lineIndex: number;
+lineIndex: number;
   /**
    * Paragraph.date
    * Get the date of the paragraph, if any (in case of scheduled tasks).

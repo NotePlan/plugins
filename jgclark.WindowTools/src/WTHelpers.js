@@ -2,31 +2,29 @@
 //---------------------------------------------------------------
 // Helper functions for WindowTools plugin
 // Jonathan Clark
-// last update 2025-08-15 for v1.3.0 by @jgclark
+// last update 2025-10-19 for v1.3.1 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  // getCodeBlocks,
-  getCodeBlocksOfType
-} from '@helpers/codeBlocks'
+import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import { toLocaleDateTimeString } from '@helpers/dateTime'
 import { clo, isObjectEmpty, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 // import { addTrigger } from '@helpers/NPFrontMatter'
-import { constrainWindowSizeAndPosition } from '@helpers/NPWindows'
+import { MAIN_SIDEBAR_CONTROL_BUILD_VERSION, constrainWindowSizeAndPosition } from '@helpers/NPWindows'
 import { caseInsensitiveMatch } from '@helpers/search'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 
 //-----------------------------------------------------------------
+// Constants
 
 const previousPluginID = 'jgclark.WindowSets'
 const pluginID = 'jgclark.WindowTools'
 
 //-----------------------------------------------------------------
-// Types and constants
+// Types
 
 const WINDOW_SET_PREF_KEY = 'windowSets'
 
@@ -78,10 +76,11 @@ export type HTMLWinDetails = {
 
 export type WindowSet = {
   name: string,
+  machineName: string,
   closeOtherWindows: boolean,
   editorWindows: Array<EditorWinDetails>, // really 'editorWinDetails'
   htmlWindows: Array<HTMLWinDetails>,// really 'htmlWinDetails'
-  machineName: string
+  mainSidebarWidth?: number, // macOS only. Optional: if not set then current main sidebar state wont be touched.
 }
 
 //---------------------------------------------------------------
@@ -90,6 +89,9 @@ export type WindowSet = {
 export type WindowSetsConfig = {
   folderForDefinitions: string,
   noteTitleForDefinitions: string,
+  saveMainSidebarWidth: boolean,
+  defaultMainSidebarWidth: ?number, // only valid for macOS
+  defaultEditorWidth: ?number, // only valid for macOS
   _logDebug: string,
 }
 
@@ -130,6 +132,9 @@ export async function getPluginSettings(): Promise<WindowSetsConfig> {
     return {
       folderForDefinitions: '@Window Sets',
       noteTitleForDefinitions: 'Window Sets',
+      saveMainSidebarWidth: true,
+      defaultMainSidebarWidth: 250,
+      defaultEditorWidth: 500,
       _logDebug: 'DEBUG',
     } // for completeness
   }
@@ -167,9 +172,9 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     // outputLines.push(`Last updated at ${currentDateTime} by WindowSets plugin`)
     outputLines.push(`triggers: onEditorWillSave => jgclark.WindowTools.onEditorWillSave`)
     outputLines.push(`---`)
-    outputLines.push(`These are the definitions of your currently available **Window Sets**, for use with the WindowTools plugin. You can update the settings if you wish.`)
+    outputLines.push(`These are the definitions of your currently available **Window Sets**, for use with the [🖥️ WindowTools plugin](https://noteplan.co/plugins/jgclark.WindowTools). You can update the settings if you wish.`)
     outputLines.push(`They are specified in JSON, which has to be well-formatted to be usable. In particular check that there aren't any extra commas after the final item of any section.`)
-    outputLines.push(`Note: please leave the trigger in the frontmatter above, or changes will not be saved behind the scenes. (See the documentation for more detail on this.)`)
+    outputLines.push(`Note: please leave the trigger in the frontmatter above, or changes will not be saved behind the scenes. (See the [documentation](https://noteplan.co/plugins/jgclark.WindowTools) for more detail on this.)`)
     outputLines.push(``)
     outputLines.push('```json')
     outputLines.push('{')
@@ -432,6 +437,31 @@ export async function getDetailedWindowSetByName(name: string): Promise<WindowSe
   } catch (error) {
     logError(pluginJson, `${error.name}: ${error.message}`)
     return null
+  }
+}
+
+/**
+ * Set the main sidebar width (if we can control it -- requires NP v3.19.2 or later.)
+ * Uses the defaultMainSidebarWidth setting; if not set then don't do anything.
+ * @param {WindowSetsConfig} settings - the plugin settings
+ */
+export function setMainSidebarWidth(settings: WindowSetsConfig): void {
+  // Set main sidebar width if we can control it
+  if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION) {
+    const defaultMainSidebarWidth = settings.defaultMainSidebarWidth ?? NaN
+    logDebug(pluginJson, `- Setting main sidebar width to ${String(defaultMainSidebarWidth)}`)
+    if (isNaN(defaultMainSidebarWidth)) {
+      logDebug(pluginJson, `- Default main sidebar width is not set, so will leave as is`)
+    } else {
+      if (defaultMainSidebarWidth === 0) {
+        logDebug(pluginJson, `- Default main sidebar width is 0, so will hide it`)
+        NotePlan.toggleSidebar(true, false, true)
+      } else {
+        logDebug(pluginJson, `- Default main sidebar width is ${String(defaultMainSidebarWidth)}, so will show it and set width`)
+        NotePlan.toggleSidebar(false, true, true)
+        NotePlan.setSidebarWidth(defaultMainSidebarWidth)
+      }
+    }
   }
 }
 

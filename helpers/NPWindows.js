@@ -11,9 +11,16 @@ import { inputIntegerBounded } from '@helpers/userInput'
 // ----------------------------------------------------------------------------
 // CONSTANTS
 
-export type TWindowType = 'Editor' | 'HTMLView'
+export const MAIN_SIDEBAR_CONTROL_BUILD_VERSION = 1440 // v3.19.2
+export const FOLDER_VIEWS_CONTROL_BUILD_VERSION = 1340 // v3.18???
 
 // ----------------------------------------------------------------------------
+// TYPES
+
+export type TWindowType = 'Editor' | 'HTMLView' | 'FolderView'
+
+// ----------------------------------------------------------------------------
+// FUNCTIONS
 
 /**
  * Return string version of Rect's x/y/width/height attributes
@@ -47,23 +54,83 @@ export function logWindowsList(): void {
   logInfo('logWindowsList', outputLines.join('\n'))
 }
 
-export async function setEditorSplitWidth(editorWinIn: number, widthIn: number): Promise<void> {
+/**
+ * TEST: me
+ * Set the width of the main Editor window (including the main sidebar and all other split windows.)
+ * If mainSidebarWidth is provided, then it will also set the width of the main sidebar. Pass 0 to hide the sidebar.
+ * @author @jgclark
+ * 
+ * @param {number?} widthIn - width to set for the main Editor window (including the main sidebar and all other split windows)
+ * @param {number?} mainSidebarWidth - width to set for the main sidebar (or 0 to hide it)
+ */
+export async function setEditorWidth(widthIn?: number, mainSidebarWidth?: number): Promise<void> {
+  try {
+    if (NotePlan.environment.platform !== 'macOS') {
+      throw new Error(`Platform is ${NotePlan.environment.platform}, so will stop.`)
+    }
+
+    const width = widthIn
+      ? widthIn
+      : await inputIntegerBounded('Set Width for main NP Window', `Width? (300-${String(NotePlan.environment.screenWidth)})`, NotePlan.environment.screenWidth, 300)
+    if (isNaN(width)) {
+      logWarn('setEditorWidth', `User didn't provide a width, so will stop.`)
+      return
+    }
+
+    logDebug('setEditorWidth', `Attempting to set width for main NP Window to ${String(width)}`)
+    if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION && mainSidebarWidth && !isNaN(mainSidebarWidth)) {
+      if (mainSidebarWidth === 0) {
+        logDebug('setEditorWidth', `- will hide main sidebar`)
+        NotePlan.toggleSidebar(true, false, true)
+      } else {
+        logDebug('setEditorWidth', `- will show main sidebar and set its width to ${String(mainSidebarWidth)}`)
+        NotePlan.toggleSidebar(false, true, true)
+        NotePlan.setSidebarWidth(mainSidebarWidth)
+        logDebug('setEditorWidth', `- now main sidebar width = ${String(mainSidebarWidth)}`)
+      }
+    }
+
+    const mainWindowRect = NotePlan.editors[0].windowRect
+    mainWindowRect.width = width
+    NotePlan.editors[0].windowRect = mainWindowRect
+    logDebug('setEditorWidth', `- now width = ${String(mainWindowRect.width)}`)
+  } catch (error) {
+    logError('setEditorWidth', `'setEditorWidth(): ${error.message}`)
+    return
+  }
+}
+
+/**
+ * WARNING: this doesn't seem to work in practice. Only works for the main Editor window, and not for split windows.
+ * Set the width of an open Editor split window.
+ * @author @jgclark
+
+ * @param {number?} editorWinIn - index into open .editors array
+ * @param {number?} widthIn - width to set
+ */
+export async function setEditorSplitWidth(editorWinIn?: number, widthIn?: number): Promise<void> {
   try {
     const editorWinIndex = editorWinIn
       ? editorWinIn
-      : await inputIntegerBounded('Set Width', 'Which open Editor number to set width for? (0-${String(NotePlan.editors.length - 1)})', NotePlan.editors.length - 1, 0)
+      : await inputIntegerBounded('Set Width', `Which open Editor number to set width for? (0-${String(NotePlan.editors.length - 1)})`, NotePlan.editors.length - 1, 0)
     const editorWin = NotePlan.editors[editorWinIndex]
-    logDebug('setEditorSplitWidth', '- Rect: '.concat(rectToString(editorWin.windowRect)))
-    const width = widthIn
-      ? widthIn
-      : await inputIntegerBounded('Set Width', 'Width? (300-'.concat(String(NotePlan.environment.screenWidth), ')'), NotePlan.environment.screenWidth, 300)
+    logDebug('setEditorSplitWidth', `- Rect: ${rectToString(editorWin.windowRect)}`)
     const thisWindowRect = getLiveWindowRectFromWin(editorWin)
     if (!thisWindowRect) {
-      logError('setEditorSplitWidth', "Can't get window rect for editor ".concat(String(editorWinIn)))
+      logError('setEditorSplitWidth', `Can't get window rect for editor ${String(editorWinIn)}`)
       return
     }
+
+    const width = widthIn
+      ? widthIn
+      : await inputIntegerBounded('Set Width', `Width? (300-${String(NotePlan.environment.screenWidth)})`, NotePlan.environment.screenWidth, 300)
+    if (isNaN(width)) {
+      logWarn('setEditorSplitWidth', `User didn't provide a width, so will stop.`)
+      return
+    }
+
     const existingWidth = thisWindowRect.width
-    logDebug('setEditorSplitWidth', 'Attempting to set width for editor #'.concat(String(editorWinIndex), ' from ').concat(String(existingWidth), ' to ').concat(String(width)))
+    logDebug('setEditorSplitWidth', `Attempting to set width for editor #${String(editorWinIndex)} from ${String(existingWidth)} to ${String(width)}`)
     thisWindowRect.width = width
     editorWin.windowRect = thisWindowRect
     const newWidth = thisWindowRect.width
