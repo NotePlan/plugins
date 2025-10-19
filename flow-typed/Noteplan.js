@@ -1601,7 +1601,18 @@ declare interface Note extends CoreNoteFields {
    * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
    * Note: Available from v3.2.0
    */
-  +datedTodos: $ReadOnlyArray<TParagraph>;
++datedTodos: $ReadOnlyArray < TParagraph >;
+/**
+ * Note.frontmatterAttributesArray
+* Getter that returns the ordered frontmatter key-value pairs inside the note as individual objects inside an array with two values: "key" and "value". Ordered means they are ordered as they appear in the same order as inside the note.
+* @returns {Array<{ key: string, value: string }>}
+* @example
+*   const note = DataStore.projectNoteByTitle("Stoicism")[0]
+*   for (const attribute of note.frontmatterAttributesArray) {
+*     console.log(attribute.key + ": " + attribute.value)
+*   }
+*/
++frontmatterAttributesArray: $ReadOnlyArray < { key: string, value: string } >;
 }
 
 /**
