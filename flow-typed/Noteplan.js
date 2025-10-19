@@ -67,7 +67,7 @@ declare interface TEditor extends CoreNoteFields {
    * Note: not all of the paragraph object data is complete, e.g. "headingLevel", "heading" and other properties may not be set properly.
    * Use the result and a map to get all the correct data, e.g.:
    * const selectedParagraphs = Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex])
-   * WARNING: remember this will not include the frontmatter lines in the 'lineIndex' count (since ~v3.16.3)
+   * WARNING: this does not include the frontmatter lines in the 'lineIndex' count (since ~v3.16.3). JGC has attempted to find a way around this, but quickly hit "Attempted to assign to readonly property" runtime errors.
    */
   +selectedParagraphs: $ReadOnlyArray<TParagraph>;
   /**
@@ -2366,28 +2366,6 @@ declare class NotePlan {
    */
   static +environment: Object;
   /**
-   * NotePlan.ai()
-   * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result.
-   * Optionally send the content of notes as well to process by specifying them in the list 'filenames', which is an array. For example ["note1.md", "folder/note2.md"]. This needs to be the exact path to the note. Your note extension might differ, the default is .txt, if you haven't changed it.
-   * For calendar notes, you can use YYYYMMDD.md, like 20241101.md, or 2024-W10.md for weeks, etc. Natural language input is also supported like "this week", "today", "tomorrow", "this month", "next year", etc.
-   * If you need to send a relative list of calendar notes, every note of the "last 7 days", you can use exactly this as the filename. The structure is as followed:
-   *  1. use "next" or "last",
-   *  2. define a number, like "7",
-   *  3. define one of the timeframes: "days", "weeks", "months", "quarters", "years".
-   * The timeframe also defines what kind of note is being accessed. Use "weeks" if you want to send weekly notes, "days" for daily notes etc.
-   * You can also define a folder to send all the notes inside this folder. Use the path of the folder prefixed with "/", like "/Projects/Work".
-   * To use a note titled 'this week' set useStrictFilenames = true.
-   * If you are using your own Open AI API key, you can define a model, for example "o1", or "o3-mini". By default NotePlan uses GPT-4o.
-   * More details at https://help.noteplan.co/article/233-ai-prompts-in-templates
-   * Note: Available from v3.15.1
-   * @param {string} prompt
-   * @param {Array<string>} filenames
-   * @param {boolean} useStrictFilenames
-   * @param {string} model (available from v3.16.3)
-   * @returns {Promise<string>}
-   */
-  static ai(prompt: string, filenames: Array<string>, useStrictFilenames: boolean, model?: string): Promise<string>;
-  /**
    * NotePlan.selectedSidebarFolder
    * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)
    * Note: available from v3.5.1
@@ -2434,19 +2412,89 @@ declare class NotePlan {
    * Note: Available from v3.8.1 build 973
    * @returns {Array<HTMLView>}
    */
-  static +htmlWindows: Array<HTMLView>;
+static + htmlWindows: Array < HTMLView >;
+  /**
+   * NotePlan.setSidebarWidth()
+  * Sets the width of the sidebar in pixels.
+  * The width is persisted and will be applied when the sidebar is visible.
+  * Note: Available from v3.19.2 (macOS only).
+  * @param {number} width - The width in pixels (e.g., 250)
+  *
+  * @example
+  * // Set sidebar width to 300 pixels
+  * NotePlan.setSidebarWidth(300);
+  * 
+  * @example
+  * // Set sidebar to a narrow width
+  * NotePlan.setSidebarWidth(200);
+  */
+  static setSidebarWidth(width: number): void;
+  /**
+   * NotePlan.getSidebarWidth()
+   * Gets the current width of the sidebar in pixels.
+   * Returns 0 on iOS/iPadOS or if the sidebar is not available.
+   * Note: Available from v3.19.2 (macOS only).
+   * @returns {number} The current sidebar width in pixels
+   * 
+   * @example
+   * // Get the current sidebar width
+   * const currentWidth = NotePlan.getSidebarWidth();
+   * console.log(`Sidebar width: ${currentWidth}px`);
+   * 
+   * @example
+   * // Double the sidebar width
+   * const currentWidth = NotePlan.getSidebarWidth();
+   * NotePlan.setSidebarWidth(currentWidth * 2);
+   */
+  static getSidebarWidth(): number;
+  /**
+   * NotePlan.toggleSidebar()
+  * Toggles the sidebar visibility on iOS and macOS.
+  * Note: Available from v3.19.2.
+  * @param {boolean} forceCollapse - If true, forces the sidebar to hide/collapse.
+  * @param {boolean} forceOpen - If true, forces the sidebar to show/expand.
+  * @param {boolean} animated - If true (default), animates the sidebar toggle. If false, instantly shows/hides without animation (macOS only).
+  * Note: If both forceCollapse and forceOpen are true, forceOpen takes precedence on macOS.
+  * 
+  * @example
+  * // Toggle the sidebar (show if hidden, hide if shown)
+  * NotePlan.toggleSidebar(false, false, true);
+  * 
+  * @example
+  * // Force show/open the sidebar with animation
+  * NotePlan.toggleSidebar(false, true, true);
+  * 
+  * @example
+  * // Force hide/collapse the sidebar with animation
+  * NotePlan.toggleSidebar(true, false, true);
+  * 
+  * @example
+  * // Force hide the sidebar without animation (macOS only)
+  * NotePlan.toggleSidebar(true, false, false);
+  */
+  static toggleSidebar(forceCollapse: boolean, forceOpen: boolean, animated: boolean): void;
   /**
    * NotePlan.ai()
-   * Note: Available from v3.15.1 (macOS build 1300)
    * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result.
    * Optionally send the content of notes as well to process by specifying them in the list 'filenames', which is an array. For example ["note1.md", "folder/note2.md"]. This needs to be the exact path to the note. Your note extension might differ, the default is .txt, if you haven't changed it.
    * For calendar notes, you can use YYYYMMDD.md, like 20241101.md, or 2024-W10.md for weeks, etc. Natural language input is also supported like "this week", "today", "tomorrow", "this month", "next year", etc.
+   * If you need to send a relative list of calendar notes, every note of the "last 7 days", you can use exactly this as the filename. The structure is as followed:
+   *  1. use "next" or "last",
+   *  2. define a number, like "7",
+   *  3. define one of the timeframes: "days", "weeks", "months", "quarters", "years".
+   * The timeframe also defines what kind of note is being accessed. Use "weeks" if you want to send weekly notes, "days" for daily notes etc.
+   * You can also define a folder to send all the notes inside this folder. Use the path of the folder prefixed with "/", like "/Projects/Work".
+   * To use a note titled 'this week' set useStrictFilenames = true.
+   * If you are using your own Open AI API key, you can define a model, for example "o1", or "o3-mini". By default NotePlan uses GPT-4o.
+   * More details at https://help.noteplan.co/article/233-ai-prompts-in-templates
+   * Note: Available from v3.15.1
    * @param {string} prompt
-   * @param {Arraystring> } filenames
-   * @param {boolean} useStrictFilenames?
+   * @param {Array<string>} filenames
+   * @param {boolean} useStrictFilenames
+   * @param {string} model (available from v3.16.3)
    * @returns {Promise<string>}
    */
-  static ai(prompt: string, filenames: Array<string>, useStrictFilenames: boolean): Promise<string>;
+  static ai(prompt: string, filenames: Array < string >, useStrictFilenames: boolean, model ?: string): Promise < string >;
 }
 
 declare class HTMLView {
