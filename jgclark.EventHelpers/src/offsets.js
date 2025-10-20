@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets and Shifts
 // @jgclark
-// Last updated 2025-08-22 for v0.23.0, by @jgclark
+// Last updated 2025-10-20 for v0.23.1, by @jgclark
 // ----------------------------------------------------------------------------
 // Note: Potential TODOs
 // * [Allow other date styles in /process date offsets](https://github.com/NotePlan/plugins/issues/221) from Feb 2021 -- but much harder than it looks.
@@ -21,9 +21,11 @@ import {
   RE_NP_WEEK_SPEC,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
+  splitIntervalToParts,
 } from '@helpers/dateTime'
 import { clo, log, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
+import { getNPWeekData } from '@helpers/NPdateTime'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { stripBlockIDsFromString } from '@helpers/stringTransforms'
 import { isTimeBlockPara } from '@helpers/timeblocks'
@@ -61,9 +63,9 @@ export async function shiftDates(): Promise<void> {
       // Use the whole note
       pArr = paragraphs.slice(0, findEndOfActivePartOfNote(note))
     }
-    logDebug(pluginJson, `shiftDates starting for ${pArr.length} lines`)
+    logDebug('shiftDates', `shiftDates starting for ${pArr.length} lines`)
     if (pArr.length === 0) {
-      logError(pluginJson, `Empty selection found. Stopping.`)
+      logError('shiftDates', `Empty selection found. Stopping.`)
       await showMessage('Please select some lines to process.', 'OK', 'Shift Dates')
       return
     }
@@ -71,11 +73,11 @@ export async function shiftDates(): Promise<void> {
     // Get interval to use
     const interval = await askDateInterval("{question:'What interval would you like me to shift these dates by?'}")
     if (interval === '') {
-      logError(pluginJson, `No valid interval supplied. Stopping.`)
+      logError('shiftDates', `No valid interval supplied. Stopping.`)
       await showMessage(`Sorry, that was not a valid date interval.`)
       return
     }
-    // const intervalParts = splitIntervalToParts(interval)
+    const intervalParts = splitIntervalToParts(interval)
 
     // Main loop
     let updatedCount = 0
@@ -91,7 +93,7 @@ export async function shiftDates(): Promise<void> {
 
         // If wanted, remove @done(...) part
         const doneDatePart = updatedContent.match(RE_DONE_DATE_OPT_TIME) ?? ['']
-        // logDebug(pluginJson, `>> ${String(doneDatePart)}`)
+        // logDebug('shiftDates', `>> ${String(doneDatePart)}`)
         if (config.removeDoneDates && doneDatePart[0] !== '') {
           updatedContent = updatedContent.replace(doneDatePart[0], '')
         }
@@ -104,27 +106,27 @@ export async function shiftDates(): Promise<void> {
         // If wanted, set any complete or cancelled tasks/checklists to not complete
         if (config.uncompleteTasks) {
           if (p.type === 'done') {
-            // logDebug(pluginJson, `>> changed done -> open`)
+            // logDebug('shiftDates', `>> changed done -> open`)
             p.type = 'open'
           } else if (p.type === 'cancelled') {
-            // logDebug(pluginJson, `>> changed cancelled -> open`)
+            // logDebug('shiftDates', `>> changed cancelled -> open`)
             p.type = 'open'
           } else if (p.type === 'scheduled') {
-            // logDebug(pluginJson, `>> changed scheduled -> open`)
+            // logDebug('shiftDates', `>> changed scheduled -> open`)
             p.type = 'open'
           } else if (p.type === 'checklistDone') {
-            // logDebug(pluginJson, `>> changed checklistDone -> checklist`)
+            // logDebug('shiftDates', `>> changed checklistDone -> checklist`)
             p.type = 'checklist'
           } else if (p.type === 'checklistScheduled') {
-            // logDebug(pluginJson, `>> changed checklistScheduled -> checklist`)
+            // logDebug('shiftDates', `>> changed checklistScheduled -> checklist`)
             p.type = 'checklist'
           } else if (p.type === 'checklistCancelled') {
-            // logDebug(pluginJson, `>> changed checklistCancelled -> checklist`)
+            // logDebug('shiftDates', `>> changed checklistCancelled -> checklist`)
             p.type = 'checklist'
           }
         }
 
-        // logDebug(pluginJson, `${origContent}`)
+        // logDebug('shiftDates', `${origContent}`)
         // For any YYYY-MM-DD dates in the line (can make sense in metadata lines to have multiples)
         let shiftedDateStr = ''
         if (updatedContent.match(RE_ISO_DATE)) {
@@ -135,10 +137,10 @@ export async function shiftDates(): Promise<void> {
             shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
             // Replace date part with the new shiftedDateStr
             updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
-            logDebug(pluginJson, `- ${originalDateStr}: match found -> ${shiftedDateStr} from interval ${interval}`)
+            logDebug('shiftDates', `- ${originalDateStr}: day match found -> ${shiftedDateStr} from interval ${interval}`)
             updatedCount += 1
           }
-          logDebug(pluginJson, `-> ${updatedContent}`)
+          logDebug('shiftDates', `-> ${updatedContent}`)
         }
         // For any YYYY-Wnn dates in the line (might in future make sense in metadata lines to have multiples)
         if (updatedContent.match(RE_NP_WEEK_SPEC)) {
@@ -150,13 +152,14 @@ export async function shiftDates(): Promise<void> {
             // shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
 
             // v2: using NPdateTime::getNPWeekData instead
-            // const thisWeekInfo = getNPWeekData(originalDateStr, intervalParts.number, intervalParts.type)
+            const thisWeekInfo = getNPWeekData(originalDateStr, intervalParts.number, intervalParts.type)
+            shiftedDateStr = thisWeekInfo?.weekString ?? '(error)'
             // Replace date part with the new shiftedDateStr
             updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
-            logDebug(pluginJson, `- ${originalDateStr}: match found -> ${shiftedDateStr} from interval ${interval}`)
+            logDebug('shiftDates', `- ${originalDateStr}: week match found -> ${shiftedDateStr} from interval ${interval}`)
             updatedCount += 1
           }
-          logDebug(pluginJson, `-> ${updatedContent}`)
+          logDebug('shiftDates', `-> ${updatedContent}`)
         }
         // else {
         // Note: This would be the place to assess another date format, but it's much harder than it looks.
@@ -167,7 +170,7 @@ export async function shiftDates(): Promise<void> {
 
         // Update the paragraph content
         p.content = updatedContent.trimEnd()
-        // logDebug(pluginJson, `-> '${p.content}'`)
+        // logDebug('shiftDates', `-> '${p.content}'`)
       }
     })
     // Write all paragraphs to the note
@@ -176,10 +179,10 @@ export async function shiftDates(): Promise<void> {
     Editor.highlightByIndex(startingCursorPos, 0)
 
     // Notify user
-    logDebug(pluginJson, `Shifted ${updatedCount} dates in ${pArr.length} lines`)
+    logDebug('shiftDates', `Shifted ${updatedCount} dates in ${pArr.length} lines`)
     await showMessage(`Shifted ${updatedCount} dates in ${pArr.length} lines`, 'OK', 'Shift Dates')
   } catch (err) {
-    logError(pluginJson, err.message)
+    logError(pluginJson, `Error in shiftDates(): ${err.message}`)
   }
 }
 
@@ -212,7 +215,7 @@ export async function processDateOffsets(): Promise<void> {
       return
     }
     const noteTitle = displayTitle(note)
-    logDebug(pluginJson, `processDateOffsets() for note '${noteTitle}'`)
+    logDebug(pluginJson, `Starting processDateOffsets() for note '${noteTitle}'`)
     const config = await getEventsSettings()
 
     let currentTargetDate = ''
@@ -225,7 +228,7 @@ export async function processDateOffsets(): Promise<void> {
     // Look through this open note to find date offsets
     const dateOffsetParas = paragraphs.filter((p) => p.content.match(RE_DATE_INTERVAL) && p.lineIndex < endOfActive)
     if (dateOffsetParas.length > 0) {
-      logDebug(pluginJson, `Found ${dateOffsetParas.length} date offsets in '${noteTitle}'`)
+      logDebug('processDateOffsets', `Found ${dateOffsetParas.length} date offsets in '${noteTitle}'`)
 
       // Go through each line in the active part of the file
       // Keep track of the indent level when a suitable date is found, so we know
@@ -348,6 +351,6 @@ export async function processDateOffsets(): Promise<void> {
       await showMessage(`No date offset patterns found.`, `OK`, `Process Date Offsets`)
     }
   } catch (err) {
-    logError(pluginJson, err.message)
+    logError(pluginJson, `Error in processDateOffsets(): ${err.message}`)
   }
 }
