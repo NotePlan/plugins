@@ -941,3 +941,24 @@ export function addParagraphsToNote(
     logError('paragraph/addParagraphsToNote', err.message)
   }
 }
+
+/**
+ * Set any complete or cancelled task/checklist paragraph to not complete. Will leave other paragraph types unchanged.
+ * @author @jgclark
+ * @param {TParagraph} paragraph to set to incomplete
+ */
+export function setParagraphToIncomplete(p: TParagraph): void {
+  if (p.type === 'done') {
+    logDebug('setParagraphToIncomplete', `>> changed done -> open`)
+    p.type = 'open'
+  } else if (p.type === 'cancelled') {
+    logDebug('setParagraphToIncomplete', `>> changed cancelled -> open`)
+    p.type = 'open'
+  } else if (p.type === 'checklistDone') {
+    logDebug('setParagraphToIncomplete', `>> changed checklistDone -> checklist`)
+    p.type = 'checklist'
+  } else if (p.type === 'checklistCancelled') {
+    logDebug('setParagraphToIncomplete', `>> changed checklistCancelled -> checklist`)
+    p.type = 'checklist'
+  }
+}

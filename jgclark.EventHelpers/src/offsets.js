@@ -4,9 +4,6 @@
 // @jgclark
 // Last updated 2025-10-20 for v0.23.1, by @jgclark
 // ----------------------------------------------------------------------------
-// Note: Potential TODOs
-// * [Allow other date styles in /process date offsets](https://github.com/NotePlan/plugins/issues/221) from Feb 2021 -- but much harder than it looks.
-// * Also allow other date styles in /shift? -- as above
 
 import pluginJson from '../plugin.json'
 import { getEventsSettings } from './eventsHelpers'
@@ -26,7 +23,7 @@ import {
 import { clo, log, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getNPWeekData } from '@helpers/NPdateTime'
-import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { findEndOfActivePartOfNote, setParagraphToIncomplete } from '@helpers/paragraph'
 import { stripBlockIDsFromString } from '@helpers/stringTransforms'
 import { isTimeBlockPara } from '@helpers/timeblocks'
 import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@helpers/userInput'
@@ -43,8 +40,6 @@ import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@hel
 export async function shiftDates(): Promise<void> {
   try {
     const config = await getEventsSettings()
-    const RE_ISO_DATE_ALL = new RegExp(RE_ISO_DATE, 'g')
-    const RE_NP_WEEK_ALL = new RegExp(RE_NP_WEEK_SPEC, 'g')
 
     // Get working selection as an array of paragraphs
     const { paragraphs, selection, note } = Editor
@@ -83,8 +78,6 @@ export async function shiftDates(): Promise<void> {
     let updatedCount = 0
     pArr.forEach((p) => {
       const origContent = p.content
-      let dates: Array<string> = []
-      let originalDateStr = ''
 
       // Work on lines with dates
       if (origContent.match(RE_ISO_DATE) || origContent.match(RE_NP_WEEK_SPEC)) {
@@ -92,75 +85,25 @@ export async function shiftDates(): Promise<void> {
         let updatedContent = stripBlockIDsFromString(origContent)
 
         // If wanted, remove @done(...) part
-        const doneDatePart = updatedContent.match(RE_DONE_DATE_OPT_TIME) ?? ['']
-        // logDebug('shiftDates', `>> ${String(doneDatePart)}`)
-        if (config.removeDoneDates && doneDatePart[0] !== '') {
-          updatedContent = updatedContent.replace(doneDatePart[0], '')
-        }
+        updatedContent = maybeRemoveDoneDatePart(updatedContent, config)
 
         // If wanted, remove any processedTagName
-        if (config.removeProcessedTagName && updatedContent.includes(config.processedTagName)) {
-          updatedContent = updatedContent.replace(config.processedTagName, '')
-        }
+        updatedContent = maybeRemoveProcessedTagName(updatedContent, config)
 
         // If wanted, set any complete or cancelled tasks/checklists to not complete
-        if (config.uncompleteTasks) {
-          if (p.type === 'done') {
-            // logDebug('shiftDates', `>> changed done -> open`)
-            p.type = 'open'
-          } else if (p.type === 'cancelled') {
-            // logDebug('shiftDates', `>> changed cancelled -> open`)
-            p.type = 'open'
-          } else if (p.type === 'scheduled') {
-            // logDebug('shiftDates', `>> changed scheduled -> open`)
-            p.type = 'open'
-          } else if (p.type === 'checklistDone') {
-            // logDebug('shiftDates', `>> changed checklistDone -> checklist`)
-            p.type = 'checklist'
-          } else if (p.type === 'checklistScheduled') {
-            // logDebug('shiftDates', `>> changed checklistScheduled -> checklist`)
-            p.type = 'checklist'
-          } else if (p.type === 'checklistCancelled') {
-            // logDebug('shiftDates', `>> changed checklistCancelled -> checklist`)
-            p.type = 'checklist'
-          }
-        }
+        if (config.uncompleteTasks) { setParagraphToIncomplete(p) }
 
         // logDebug('shiftDates', `${origContent}`)
         // For any YYYY-MM-DD dates in the line (can make sense in metadata lines to have multiples)
-        let shiftedDateStr = ''
-        if (updatedContent.match(RE_ISO_DATE)) {
-          // Process all YYYY-MM-DD dates in the line
-          dates = updatedContent.match(RE_ISO_DATE_ALL) ?? []
-          for (const thisDate of dates) {
-            originalDateStr = thisDate
-            shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
-            // Replace date part with the new shiftedDateStr
-            updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
-            logDebug('shiftDates', `- ${originalDateStr}: day match found -> ${shiftedDateStr} from interval ${interval}`)
-            updatedCount += 1
-          }
-          logDebug('shiftDates', `-> ${updatedContent}`)
-        }
-        // For any YYYY-Wnn dates in the line (might in future make sense in metadata lines to have multiples)
-        if (updatedContent.match(RE_NP_WEEK_SPEC)) {
-          // Process all YYYY-Www dates in the line
-          dates = updatedContent.match(RE_NP_WEEK_ALL) ?? []
-          for (const thisDate of dates) {
-            originalDateStr = thisDate
-            // v1: but doesn't handle different start-of-week settings
-            // shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
+        const shiftedIso = shiftIsoDatesInContent(updatedContent, interval)
+        updatedContent = shiftedIso.content
+        updatedCount += shiftedIso.updates
 
-            // v2: using NPdateTime::getNPWeekData instead
-            const thisWeekInfo = getNPWeekData(originalDateStr, intervalParts.number, intervalParts.type)
-            shiftedDateStr = thisWeekInfo?.weekString ?? '(error)'
-            // Replace date part with the new shiftedDateStr
-            updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
-            logDebug('shiftDates', `- ${originalDateStr}: week match found -> ${shiftedDateStr} from interval ${interval}`)
-            updatedCount += 1
-          }
-          logDebug('shiftDates', `-> ${updatedContent}`)
-        }
+        // For any YYYY-Wnn dates in the line (might in future make sense in metadata lines to have multiples)
+        const shiftedWeek = shiftWeekDatesInContent(updatedContent, intervalParts)
+        updatedContent = shiftedWeek.content
+        updatedCount += shiftedWeek.updates
+
         // else {
         // Note: This would be the place to assess another date format, but it's much harder than it looks.
         // Method probably to define new settings "regex" and "format".
@@ -184,6 +127,164 @@ export async function shiftDates(): Promise<void> {
   } catch (err) {
     logError(pluginJson, `Error in shiftDates(): ${err.message}`)
   }
+}
+
+// Helper: optionally remove @done(...) part
+function maybeRemoveDoneDatePart(content: string, config: any): string {
+  const doneDatePart = content.match(RE_DONE_DATE_OPT_TIME) ?? ['']
+  // logDebug('shiftDates', `>> ${String(doneDatePart)}`)
+  if (config.removeDoneDates && doneDatePart[0] !== '') {
+    return content.replace(doneDatePart[0], '')
+  }
+  return content
+}
+
+// Helper: optionally remove any processedTagName
+function maybeRemoveProcessedTagName(content: string, config: any): string {
+  if (config.removeProcessedTagName && content.includes(config.processedTagName)) {
+    return content.replace(config.processedTagName, '')
+  }
+  return content
+}
+
+// Helper: process all YYYY-MM-DD dates in the line (can make sense in metadata lines to have multiples)
+function shiftIsoDatesInContent(content: string, interval: string): { content: string, updates: number } {
+  const RE_ISO_DATE_ALL = new RegExp(RE_ISO_DATE, 'g')
+  let updatedContent = content
+  let updates = 0
+  if (updatedContent.match(RE_ISO_DATE)) {
+    const dates = updatedContent.match(RE_ISO_DATE_ALL) ?? []
+    for (const thisDate of dates) {
+      const originalDateStr = thisDate
+      const shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
+      // Replace date part with the new shiftedDateStr
+      updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
+      logDebug('shiftDates', `- ${originalDateStr}: day match found -> ${shiftedDateStr} from interval ${interval}`)
+      updates += 1
+    }
+    logDebug('shiftDates', `-> ${updatedContent}`)
+  }
+  return { content: updatedContent, updates }
+}
+
+// Helper: process all YYYY-Wnn dates in the line (might in future make sense in metadata lines to have multiples)
+function shiftWeekDatesInContent(
+  content: string,
+  intervalParts: { number: number, type: string },
+): { content: string, updates: number } {
+  const RE_NP_WEEK_ALL = new RegExp(RE_NP_WEEK_SPEC, 'g')
+  let updatedContent = content
+  let updates = 0
+  if (updatedContent.match(RE_NP_WEEK_SPEC)) {
+    const dates = updatedContent.match(RE_NP_WEEK_ALL) ?? []
+    for (const thisDate of dates) {
+      const originalDateStr = thisDate
+      // v1: but doesn't handle different start-of-week settings
+      // const shiftedDateStr = calcOffsetDateStr(originalDateStr, `${intervalParts.number}${intervalParts.type}`)
+
+      // v2: using NPdateTime::getNPWeekData instead
+      const thisWeekInfo = getNPWeekData(originalDateStr, intervalParts.number, intervalParts.type)
+      const shiftedDateStr = thisWeekInfo?.weekString ?? '(error)'
+      // Replace date part with the new shiftedDateStr
+      updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
+      logDebug('shiftDates', `- ${originalDateStr}: week match found -> ${shiftedDateStr} from interval ${intervalParts.number}${intervalParts.type}`)
+      updates += 1
+    }
+    logDebug('shiftDates', `-> ${updatedContent}`)
+  }
+  return { content: updatedContent, updates }
+}
+
+// Helper (offset processing): determine section boundary
+function isSectionBoundary(levelNow: number, prevLevel: number, content: string, type: string): boolean {
+  // Specifically: clear on lower indent or heading or blank line or separator line
+  return levelNow < prevLevel || levelNow === -1 || content === '' || type === 'separator'
+}
+
+// Helper (offset processing): append computed final date to heading if wanted
+function appendComputedFinalDateIfWanted(
+  hadCTD: boolean,
+  lastCalcDate: string,
+  ctdLine: number,
+  config: any,
+  paragraphs: $ReadOnlyArray<TParagraph>,
+  note: CoreNoteFields,
+): void {
+  if (!hadCTD) return
+  // If we had a current target date, and want to add the computed final date, do so
+  if (config.addComputedFinalDate && lastCalcDate !== '' && ctdLine > 0) {
+    paragraphs[ctdLine].content = `${paragraphs[ctdLine].content} to ${lastCalcDate}`
+    note.updateParagraph(paragraphs[ctdLine])
+  }
+}
+
+// Helper (offset processing): set CTD if a bare date is found
+function setCurrentTargetDateIfBareDate(
+  content: string,
+  thisLevel: number,
+  prevLevel: number,
+  lineIndex: number,
+): { ctd: string, ctdLine: number, prevLevel: number } {
+  // Try matching for the standard YYYY-MM-DD date pattern on its own
+  // (check it's not got various characters before it, to defeat common usage in middle of things like URLs)
+  // TODO: make a different type of CTD for in-line vs in-heading dates
+
+  // Note: Somewhere around would be the place to assess another date format, but it's much harder than it looks. (See more detail in shiftDates() above.)
+
+  if (content.match(RE_BARE_DATE) && !content.match(RE_DONE_DATE_OPT_TIME)) {
+    const dateISOStrings = content.match(RE_BARE_DATE_CAPTURE) ?? ['']
+    const dateISOString = dateISOStrings[1] // first capture group
+    // We have a date string to use for any offsets in this line, and possibly following lines
+    logDebug('processDateOffsets', `- Found CTD ${dateISOString} on line ${lineIndex}`)
+    return { ctd: dateISOString, ctdLine: lineIndex, prevLevel: thisLevel }
+  }
+  return { ctd: '', ctdLine: 0, prevLevel }
+}
+
+// Helper (offset processing): ensure a base date exists (possibly prompt user)
+async function ensureBaseDate(
+  content: string,
+  currentTargetDate: string,
+  lastCalcDate: string,
+): Promise<string> {
+  if (currentTargetDate !== '' || lastCalcDate !== '') return currentTargetDate
+  // This is currently an orphaned date offset
+  logInfo(
+    processDateOffsets,
+    `Line orphan: offset date is an orphan, as no currentTargetDate or lastCalcDate is set. Will ask user for a date.`,
+  )
+  // now ask for the date to use instead
+  const res: string | false = await datePicker(`{ question: 'Please enter a base date to use to offset against for "${content}"' }`, {})
+  if (res === '' || res === false) {
+    logError(processDateOffsets, `- Still no valid CTD, so stopping.`)
+    return ''
+  }
+  logDebug('processDateOffsets', `- User supplied CTD ${res}`)
+  return res
+}
+
+// Helper (offset processing): apply an offset in a single line
+function applyOffsetInLine(
+  content: string,
+  dateOffsetString: string,
+  baseDate: string,
+  lastCalcDate: string,
+): { content: string, lastCalcDate: string } {
+  let calcDate = ''
+  logDebug('processDateOffsets', `  cTD=${baseDate}; lCD=${lastCalcDate}`)
+  if (dateOffsetString.startsWith('^')) {
+    calcDate = calcOffsetDateStr(lastCalcDate, dateOffsetString.slice(1))
+  } else {
+    calcDate = calcOffsetDateStr(baseDate, dateOffsetString)
+  }
+  if (calcDate == null || calcDate === '') {
+    logError(processDateOffsets, `Error while parsing date '${baseDate}' for ${dateOffsetString}`)
+    return { content, lastCalcDate }
+  }
+  // Continue, and replace offset with the new calcDate
+  // Remove the offset text (e.g. {-3d}) by finding first '{' and '}' characters in the line
+  const nextContent = content.replace(`{${dateOffsetString}}`, ` >${calcDate} `)
+  return { content: nextContent, lastCalcDate: calcDate }
 }
 
 /**
@@ -251,16 +352,10 @@ export async function processDateOffsets(): Promise<void> {
         // logDebug('processDateOffsets', `  Line ${n} (${thisLevel}) '${content}'`)
 
         // Decide whether to clear CTD
-        // Specifically: clear on lower indent or heading or blank line or separator line
-        if (thisLevel < previousFoundLevel || thisLevel === -1 || content === '' || paragraphs[n].type === 'separator') {
+        if (isSectionBoundary(thisLevel, previousFoundLevel, content, paragraphs[n].type)) {
           if (currentTargetDate !== '') {
             logDebug('processDateOffsets', `- Cleared CTD`)
-
-            // If we had a current target date, and want to add the computed final date, do so
-            if (config.addComputedFinalDate &&lastCalcDate !== '' && currentTargetDateLine > 0) {
-              paragraphs[currentTargetDateLine].content = `${paragraphs[currentTargetDateLine].content} to ${lastCalcDate}`
-              note.updateParagraph(paragraphs[currentTargetDateLine])
-            }
+            appendComputedFinalDateIfWanted(true, lastCalcDate, currentTargetDateLine, config, paragraphs, note)
           }
           currentTargetDate = ''
           currentTargetDateLine = 0
@@ -269,69 +364,32 @@ export async function processDateOffsets(): Promise<void> {
         }
 
         // Try matching for the standard YYYY-MM-DD date pattern on its own
-        // (check it's not got various characters before it, to defeat common usage in middle of things like URLs)
-        // TODO: make a different type of CTD for in-line vs in-heading dates
-
-        // Note: Somewhere around would be the place to assess another date format, but it's much harder than it looks. (See more detail in shiftDates() above.)
-
-        if (content.match(RE_BARE_DATE) && !content.match(RE_DONE_DATE_OPT_TIME)) {
-          const dateISOStrings = content.match(RE_BARE_DATE_CAPTURE) ?? ['']
-          const dateISOString = dateISOStrings[1] // first capture group
-          // We have a date string to use for any offsets in this line, and possibly following lines
-          currentTargetDate = dateISOString
-          currentTargetDateLine = n
-          logDebug('processDateOffsets', `- Found CTD ${currentTargetDate} on line ${currentTargetDateLine}`)
-          previousFoundLevel = thisLevel
+        const ctdInfo = setCurrentTargetDateIfBareDate(content, thisLevel, previousFoundLevel, n)
+        if (ctdInfo.ctd !== '') {
+          currentTargetDate = ctdInfo.ctd
+          currentTargetDateLine = ctdInfo.ctdLine
+          previousFoundLevel = ctdInfo.prevLevel
         }
 
         // find lines with {+3d} or {-4w} or {^3b} etc. plus {0d} special case
         // NB: this only deals with the first on any line; it doesn't make sense to have more than one.
-        let dateOffsetString = ''
         if (content.match(RE_OFFSET_DATE)) {
           logDebug('processDateOffsets', `    - Found line '${content}'`)
           const dateOffsetStrings = content.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
-          dateOffsetString = dateOffsetStrings[1] // first capture group
-          let calcDate = ''
+          const dateOffsetString = dateOffsetStrings[1] // first capture group
           if (dateOffsetString !== '') {
             // We have a date offset in the line
-            if (currentTargetDate === '' && lastCalcDate === '') {
-              // This is currently an orphaned date offset
-              logInfo(
-                processDateOffsets,
-                `Line ${paragraphs[n].lineIndex}: offset date '${dateOffsetString}' is an orphan, as no currentTargetDate or lastCalcDate is set. Will ask user for a date.`,
-              )
+            const ensuredCTD = await ensureBaseDate(content, currentTargetDate, lastCalcDate)
+            if (ensuredCTD === '') return
+            currentTargetDate = ensuredCTD
 
-              // now ask for the date to use instead
-              const res: string | false = await datePicker(`{ question: 'Please enter a base date to use to offset against for "${content}"' }`, {})
-              if (res === '' || res === false) {
-                logError(processDateOffsets, `- Still no valid CTD, so stopping.`)
-                return
-              }
-              currentTargetDate = res
-              logDebug('processDateOffsets', `- User supplied CTD ${currentTargetDate}`)
-            }
-
-            logDebug('processDateOffsets', `  cTD=${currentTargetDate}; lCD=${lastCalcDate}`)
-            if (dateOffsetString.startsWith('^')) {
-              calcDate = calcOffsetDateStr(lastCalcDate, dateOffsetString.slice(1))
-            } else {
-              calcDate = calcOffsetDateStr(currentTargetDate, dateOffsetString)
-            }
-            if (calcDate == null || calcDate === '') {
-              logError(processDateOffsets, `Error while parsing date '${currentTargetDate}' for ${dateOffsetString}`)
-            } else {
-              lastCalcDate = calcDate
-              // Continue, and replace offset with the new calcDate
-              // Remove the offset text (e.g. {-3d}) by finding first '{' and '}' characters in the line
-              // const labelStart = content.indexOf('{')
-              // const labelEnd = content.indexOf('}')
-              // content = `${content.slice(0, labelStart)} >${calcDate} ${content.slice(labelEnd + 1)}`
-              content = content.replace(`{${dateOffsetString}}`, ` >${calcDate} `)
-              // now trim off any trailing whitespace
-              paragraphs[n].content = content.trimEnd()
-              note.updateParagraph(paragraphs[n])
-              logDebug('processDateOffsets', `    -> '${content.trimEnd()}'`)
-            }
+            const result = applyOffsetInLine(content, dateOffsetString, currentTargetDate, lastCalcDate)
+            lastCalcDate = result.lastCalcDate
+            content = result.content
+            // now trim off any trailing whitespace
+            paragraphs[n].content = content.trimEnd()
+            note.updateParagraph(paragraphs[n])
+            logDebug('processDateOffsets', `    -> '${content.trimEnd()}'`)
           } else {
             logWarn('processDateOffsets', `No date offset found in '${content}'`)
           }
@@ -339,7 +397,7 @@ export async function processDateOffsets(): Promise<void> {
         n += 1
       }
 
-      // If we've noticed any time blocks, offer to run timeblocks creation command
+      // If we found any time blocks, offer to create new events from them
       if (numFoundTimeblocks > 0) {
         const res = await showMessageYesNo(`I spotted ${String(numFoundTimeblocks)} time blocks: shall I create new events from them?`, ['Yes', 'No'], 'Process Date Offsets')
         if (res === 'Yes') {
