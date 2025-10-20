@@ -309,7 +309,7 @@ The relevant settings for these commands are:
 At this stage, I don't expect to extend the plugin to cover Teamspace calendar notes as well. To do so would be possible, but more work than I think warrants the potential benefit.
 
 ## Support
-If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
@@ -318,7 +318,7 @@ If you would like to support my late-night work extending NotePlan through writi
 Thanks!
 
 ## History
-Please see the [CHANGELOG](CHANGELOG.md).
+Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md).
 
 ## Thanks
 Thanks to GitHub user @zz85 whose code for the [ASCII art sparklines](https://github.com/zz85/ascii-graphs.js) I adapted and improved in v0.12.

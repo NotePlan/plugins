@@ -60,7 +60,7 @@ $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
 To the people who've spend the time to create and maintain [Mermaid](https://mermaid.js.org), [MathJax](https://www.mathjax.org/) and the [showdown library](https://github.com/showdownjs/showdown).
 
 ## Support
-If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
 
@@ -69,4 +69,4 @@ If you would like to support my late-night work extending NotePlan through writi
 Thanks!
 
 ## Changes
-Please see the [CHANGELOG](CHANGELOG.md).
+Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/np.Preview/CHANGELOG.md).

@@ -264,4 +264,4 @@ I'm not part of the NotePlan team, but I've spent at least 3.5 working weeks on 
 Thanks!
 
 ## Changes
-Please see the [CHANGELOG](CHANGELOG.md).
+Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md).

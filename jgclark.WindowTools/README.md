@@ -1,6 +1,6 @@
 # 🖥️ Window Tools
 
-This plugin (which requires NotePlan version 3.9.8 or higher) gives some tools to help manage NotePlan's windows more easily:
+This plugin gives some tools to help manage NotePlan's windows more easily:
 - **save different layouts** ('Window Sets') of your NotePlan windows on macOS, and then **restore them** in just a few clicks. This includes ordinary notes, calendar notes and special 'html' windows created by some Plugins. (See more detail below.)
 - **swap split to main** command (alias: **swap**) swaps the currently-selected split to main, or if no split is currently selected, asks the user which to swap
 - **move split to main** command (alias: **mstm**) moves the currently-selected split pane to be the first one in the main window.
@@ -11,6 +11,8 @@ This plugin (which requires NotePlan version 3.9.8 or higher) gives some tools t
 - **open current in new window**: (alias: /ocnw) opens the current note again in a new floating window
 
 (*) these were originally released in the Note Helpers plugin.
+
+Note: this plugin requires NotePlan version 3.9.8 or higher.
 
 ## Window Set commands
 There are two main commands:
@@ -58,7 +60,7 @@ Similarly for the **/open note in new window** command, for example `noteplan://
 You can trigger the **/delete window set** command for a particular named Window Set, for example `noteplan://x-callback-url/runPlugin?pluginID=jgclark.WindowTools&command=delete%20window%20nset&arg0=WS%20Name`.
 
 ## Support
-If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
@@ -132,3 +134,15 @@ For example, filenames of `{-1w}`, `{0w}`,`{1w}` respectively means last week, t
 
 ### Specifying Plugin Windows
 It will do its best to identify the plugin command used to create the window, however this is based on a lookup list, and so may not include everything. It will tell you if you need to manually update the Window Set definition: just search for the `?` which tell you where the command name needs adding.
+
+## Support
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).
+
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
+
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
+
+Thanks!
+
+## History
+Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/CHANGELOG.md).

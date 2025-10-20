@@ -150,7 +150,7 @@ Notes:
 When commands are called this way, then it all works in the background without user interaction, except for the 'quickSearch' call, or when the destination type is 'quick'.
 
 ## Support
-If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues). Note that it's particularly difficult to test, so please give as much context as possible.
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues). Note that it's particularly difficult to test, so please give as much context as possible.
 
 I have spent at least 3.5 weeks of my time off on this plugin. If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
 
@@ -159,4 +159,4 @@ I have spent at least 3.5 weeks of my time off on this plugin. If you would like
 Thanks!
 
 ## History
-Please see the [CHANGELOG](CHANGELOG.md).
+Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md).

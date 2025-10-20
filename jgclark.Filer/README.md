@@ -91,7 +91,7 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=move%20note%2
 This command allows settings to be changed on iOS/iPadOS.
 
 ## Support
-If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
@@ -100,4 +100,4 @@ If you would like to support my late-night work extending NotePlan through writi
 Thanks!
 
 ## History
-Please see the [CHANGELOG](CHANGELOG.md).
+Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md).

@@ -84,7 +84,7 @@ Mood: 😇 Blessed
 Tip: you can also avoid answering like in Thought 3/3 - then there is also no bullet point in the final note.
 
 ## Support
-If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
@@ -93,4 +93,4 @@ If you would like to support my late-night work extending NotePlan through writi
 Thanks!
 
 ## History
-Please see the [CHANGELOG](CHANGELOG.md).
+Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md).

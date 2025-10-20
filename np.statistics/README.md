@@ -8,8 +8,8 @@ This plugin provides some simple statistics:
 
 The calculated stats are shown in the command bar, and a copy written to the plugin console.
 
-## History
-Please see the [CHANGELOG](CHANGELOG.md).
-
 ## Configuration
 None required.
+
+## History
+Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/np.statistics/CHANGELOG.md).

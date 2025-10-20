@@ -361,4 +361,4 @@ Do join the excellent Discord community around NotePlan, where the plugins and m
 iOS/iPadOS users: if you need support, and we ask for more logs, you can change the logging level by running the "/Change Logging levels" command. For technical reasons, this is not available through the main Settings menu inside the Dashboard.
 
 ## History
-Please see the [CHANGELOG](CHANGELOG.md).
+Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md).

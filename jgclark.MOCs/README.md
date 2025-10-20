@@ -18,7 +18,7 @@ On macOS, click the gear button on the 'MOCs' line in the Plugin Preferences pan
 On iOS/iPadOS run the **/MOC: update plugin settings** command instead.
 
 ## Support
-If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
@@ -27,4 +27,4 @@ If you would like to support my late-night work extending NotePlan through writi
 Thanks!
 
 ## History
-Please see the [CHANGELOG](CHANGELOG.md).
+Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md).
