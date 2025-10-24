@@ -31,7 +31,7 @@ import {
   RE_YYYYMMDD_DATE,
   todaysDateISOString,
   toISOShortDateTimeString,
-  YYYYMMDDDateStringFromDate,
+  // YYYYMMDDDateStringFromDate,
 } from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import {getFolderFromFilename} from './folders'
@@ -103,7 +103,7 @@ export type NotePlanYearInfo = {
   endDate: Date,
 }
 
-export type TPeriodCode = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'YYYY-MMDD' | 'all' | 'lw' | 'last2w' | 'last4w' | 'last7d' | 'wtd' | 'userwtd' | 'ow' | 'lm' | 'mtd' | 'om' | 'lq' | 'qtd' | 'oq' | 'ly' | 'ytd' | 'oy'
+export type TPeriodCode = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'YYYY-MMDD' | 'lw' | 'last2w' | 'last4w' | 'last7d' | 'wtd' | 'userwtd' | 'ow' | 'lm' | 'mtd' | 'om' | 'lq' | 'qtd' | 'oq' | 'ly' | 'ytd' | 'oy' | 'all' | 'custom'
 
 
 //--------------------------------------------------------------------------------
@@ -262,6 +262,25 @@ export function getUsersFirstDayOfWeekUTC(): number {
 }
 
 /**
+ * Ask for an ISO-formatted date from user (YYYY-MM-DD)
+ * Note: Used to live in userInput.js, but moved here to avoid a circular dependency.
+ * @author @jgclark
+ *
+ * @param {string} question - string to put in the command bar
+ * @return {string} - the returned ISO date as a string, or empty if an invalid string given
+ */
+async function askForISODate(question: string): Promise<string> {
+  // logDebug('askForISODate', `starting ...`)
+  const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
+  const reply2 = reply.replace('>', '').trim() // remove any '>' and trim
+  if (reply2.match(RE_DATE) == null) {
+    await CommandBar.prompt('Search', `Sorry: '${reply2}' isn't a valid date of form YYYY-MM-DD`, [`OK`])
+    return ''
+  }
+  return reply2
+}
+
+/**
  * Array of period types and their descriptions, as used by getPeriodStartEndDates() when we need to ask user for a period.
  * (Not dependent on NotePlan functions, but easier to keep it with the function that uses it.)
  */
@@ -328,27 +347,38 @@ export const periodTypesAndDescriptions = [
  * - {string} periodString  (e.g. '2022 Q2 (Apr-June)')
  * - {string} periodAndPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
  * - {number} periodNumber (e.g. 1 for first month/quarter etc.) or NaN if not valid.
- * Normally does this by asking user, unless param 'periodShortCode' is supplied.
+ * Normally does this by asking user, unless param 'periodShortCodeArg' is supplied.
+ * If 'periodShortCodeArg' is supplied, then 'excludeToday' parameter can be used to exclude today's date from the period.
+ * If 'offerCustomDateRange' is true, then an additional option will be shown where the user will be asked to specify a YYYY-MM-DD to YYYY-MM-DD date range.
  * @author @jgclark
  *
  * @param {string?} question to show user
  * @param {boolean?} excludeToday? (default true)
- * @param {TPeriodCode?} periodShortCodeArg? lm | mtd | om etc. | today | a YYYY-MM-DD date. If not provided ask user.
+ * @param {TPeriodCode | ''} periodShortCodeArg: lm | mtd | om etc. | today | a YYYY-MM-DD date. If not provided, or blank, ask user.
+ * @param {boolean?} offerCustomDateRange? (default: false)
  * @returns {[Date, Date, TPeriodCode, string, string, number]}
  */
 export async function getPeriodStartEndDates(
   question: string = 'Create stats for which period?',
-  excludeToday: boolean = true /* currently only used when a date is passed through as periodShortCode */,
-  periodShortCodeArg?: TPeriodCode,
+  excludeToday: boolean = true /* currently only used when a date is passed through as periodShortCodeArg */,
+  periodShortCodeArg: TPeriodCode | '' = '',
+  offerCustomDateRange: boolean = false,
 ): Promise<[Date, Date, TPeriodCode, string, string, number]> {
   let periodShortCode: TPeriodCode
   // If we're passed the period, then use that, otherwise ask user
-  if (periodShortCodeArg && periodShortCodeArg !== '') {
+  if (periodShortCodeArg !== '') {
     // It may come with surrounding quotes, so remove those
     // $FlowIgnore[incompatible-type]
     periodShortCode = trimAnyQuotes(periodShortCodeArg)
   } else {
-    // Ask user what date interval to do tag counts for
+    if (offerCustomDateRange) {
+      // Add additional option to offer date range
+      periodTypesAndDescriptions.unshift({
+        label: 'Custom Date Range (YYYY-MM-DD to YYYY-MM-DD) …',
+        value: 'custom',
+      })
+    }
+    // Ask user for date interval
     periodShortCode = await chooseOption(question, periodTypesAndDescriptions, 'mtd')
   }
   let fromDateMom = new moment()
@@ -381,6 +411,24 @@ export async function getPeriodStartEndDates(
       toDateMom = moment(toDateMom).endOf('day')
       periodString = `all dates`
       periodAndPartStr = `all dates`
+      break
+    }
+    case 'custom': {
+      // Ask user for from date and to date
+      const fromReply: string = await askForISODate('Enter from date (YYYY-MM-DD)')
+      const toReply: string = await askForISODate('Enter to date (YYYY-MM-DD)')
+      if (fromReply === '' || toReply === '') {
+        throw new Error('No valid date range given')
+      }
+      const fromDateStr = fromReply
+      const toDateStr = toReply
+      if (fromDateStr > toDateStr) {
+        throw new Error('From date is after to date')
+      }
+      fromDate = moment(fromDateStr).toDate()
+      toDate = moment(toDateStr).toDate()
+      periodString = `${fromDateStr} - ${toDateStr}`
+      periodAndPartStr = `${fromDateStr} - ${toDateStr}`
       break
     }
     case 'ly': {

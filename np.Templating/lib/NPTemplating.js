@@ -1312,7 +1312,7 @@ export default class NPTemplating {
 
           let response = ''
           if (tag.includes('promptDate(')) {
-            response = await datePicker(JSON.stringify({ question: promptMessage }), {})
+            response = await datePicker(JSON.stringify({ question: promptMessage }))
           } else if (tag.includes('promptDateInterval(')) {
             response = await askDateInterval(JSON.stringify({ question: promptMessage }))
           } else {

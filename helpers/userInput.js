@@ -906,41 +906,20 @@ export async function askDateInterval(dateParams: string): Promise<string> {
   return trimmedReply
 }
 
-/**
- * Ask for a date from user (very simple: they need to enter an ISO date).
- * TODO: in time @EduardMe should produce a native API call that can improve this.
- * Note: No longer used by its author (or anyone else as of 2022-08-01)
- * @author @jgclark
- *
- * @param {string} question - string to put in the command bar
- * @return {string} - the returned ISO date as a string, or empty if an invalid string given
+/** 
+ * Note: there was a simple askForISODate() function here, but it was moved to NPdateTime.js to avoid a circular dependency.
  */
-export async function askForISODate(question: string): Promise<string> {
-  // logDebug('askForISODate', `starting ...`)
-  const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
-  const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
-  if (reply2.match(RE_DATE) == null) {
-    await showMessage(`Sorry: ${reply2} wasn't a valid date of form YYYY-MM-DD`, `OK`, 'Error')
-    return ''
-  }
-  return reply2
-}
 
 /**
- * Ask for a date from user (very simple: they need to enter an ISO date)
+ * Ask for an ISO-formatted date from user (YYYY-MM-DD)
  * TODO: in time @EduardMe should produce a native API call that can improve this.
  * @author @jgclark, based on @nmn code
  *
  * @param {string|object} dateParams - given parameters -- currently only looks for {question:'question test'} and {defaultValue:'YYYY-MM-DD'} and {canBeEmpty: false} parameters
- * @param {[string]: ?mixed} config - previously used as settings from _configuration note; now ignored
- * @return {string} - the returned ISO date as a string, or empty if an invalid string given
+ * @returns {string} - the returned ISO date as a string, or empty if an invalid string given
  */
-export async function datePicker(dateParams: string | Object, config?: { [string]: ?mixed } = {}): Promise<string | false> {
+export async function datePicker(dateParams: string | Object): Promise<string | false> {
   try {
-    const dateConfig = config.date ?? {}
-    // $FlowIgnore[incompatible-call]
-    // $FlowIgnore[not-an-object]
-    clo(dateConfig, `userInput / datePicker dateParams="${JSON.stringify(dateParams)}" dateConfig typeof="${typeof dateConfig}" keys=${Object.keys(dateConfig || {}).toString()}`)
     let paramConfig = dateParams
     if (typeof dateParams === 'string') {
       // JSON stringified string
@@ -960,8 +939,6 @@ export async function datePicker(dateParams: string | Object, config?: { [string
     const allSettings: { [string]: mixed } = {
       // $FlowIgnore[exponential-spread] known to be very small objects
       // $FlowIgnore[not-an-object]
-      ...dateConfig,
-      // $FlowIgnore[not-an-object]
       ...paramConfig,
     }
     // logDebug('userInput / datePicker', allSettings.toString())
@@ -978,7 +955,7 @@ export async function datePicker(dateParams: string | Object, config?: { [string
       if (!allSettings.canBeEmpty) {
         const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
         if (!reply2.match(RE_DATE)) {
-          await showMessage(`FYI: ${reply2} wasn't a date in the preferred form YYYY-MM-DD`, `OK`, 'Warning')
+          await showMessage(`FYI: ${reply2} wasn't a date in the form YYYY-MM-DD`, `OK`, 'Warning')
           return ''
         }
       }

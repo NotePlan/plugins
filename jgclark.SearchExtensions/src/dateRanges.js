@@ -53,34 +53,28 @@ import { getPeriodStartEndDates } from '@helpers/NPdateTime'
  * Work out time period to cover, including asking user if necessary.
  */
 export function getDateRangeFromSearchOptions(searchOptions: TSearchOptions): [string, string, string, string] {
-  try {
-    let periodString = ''
-    let periodAndPartStr = ''
-    // let periodType = ''
-    let fromDateStr = ''
-    let toDateStr = ''
-    
+  try {    
     // Try using supplied arguments (may not exist, and don't want to supply a default yet)
     const fromDateArg = searchOptions.fromDateStr
     const toDateArg = searchOptions.toDateStr
     const todayMom = new moment().startOf('day')
 
-    fromDateStr = (fromDateArg && fromDateArg !== '')
+    const fromDateStr = (fromDateArg && fromDateArg !== '')
       ? (fromDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
         ? convertISODateFilenameToNPDayFilename(fromDateArg)
         : fromDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
           ? fromDateArg
           : 'error')
       : todayMom.subtract(91, 'days').format('YYYYMMDD') // 91 days ago
-    toDateStr = (toDateArg && toDateArg !== '')
+    const toDateStr = (toDateArg && toDateArg !== '')
       ? (toDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
         ? convertISODateFilenameToNPDayFilename(toDateArg)
         : toDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
           ? toDateArg
           : 'error')
       : todayMom.format('YYYYMMDD') // today
-    periodString = `${fromDateStr} - ${toDateStr}`
-    periodAndPartStr = periodString
+    const periodString = `${fromDateStr} - ${toDateStr}`
+    const periodAndPartStr = periodString
     
     return [fromDateStr, toDateStr, periodString, periodAndPartStr]
   } catch (error) {
@@ -95,25 +89,17 @@ export function getDateRangeFromSearchOptions(searchOptions: TSearchOptions): [s
  */
 export async function getDateRangeFromUser(): Promise<[string, string, string, string]> {
   try {
-    let fromDate: Date
-    let toDate: Date
-    let periodString = ''
-    let periodAndPartStr = ''
-    let periodType = ''
-    let fromDateStr = ''
-    let toDateStr = ''
-    let _periodNumber: number
-    // eslint-disable-next-line no-unused-vars
-    [fromDate, toDate, periodType, periodString, periodAndPartStr, _periodNumber] = await getPeriodStartEndDates(`What period shall I search over?`, false)
+    const [fromDate, toDate, _periodType, periodString, periodAndPartStr, _periodNumber] = await getPeriodStartEndDates(`What period shall I search over?`, false, '', true)
     if (fromDate == null || toDate == null) {
       throw new Error('Dates could not be parsed for requested time period')
     }
-    fromDateStr = hyphenatedDateString(fromDate)
-    toDateStr = hyphenatedDateString(toDate)
+    const fromDateStr = hyphenatedDateString(fromDate)
+    const toDateStr = hyphenatedDateString(toDate)
+    let periodAndPartStrToUse = periodAndPartStr
     if (periodAndPartStr === '') {
-      periodAndPartStr = periodString
+      periodAndPartStrToUse = periodString
     }
-    return [fromDateStr, toDateStr, periodString, periodAndPartStr]
+    return [fromDateStr, toDateStr, periodString, periodAndPartStrToUse]
   } catch (error) {
     logError('getDateRangeFromUser', `${error.message}`)
     return ['', '', '', '']

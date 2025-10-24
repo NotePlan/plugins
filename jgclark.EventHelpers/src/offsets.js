@@ -303,7 +303,11 @@ export async function processDateOffsets(): Promise<void> {
               logInfo(processDateOffsets, `Line ${paragraphs[n].lineIndex}: offset date '${dateOffsetString}' is an orphan, as no currentTargetDate or lastCalcDate is set. Will ask user for a date.`)
 
               // now ask for the date to use instead
-              currentTargetDate = await datePicker(`{ question: 'Please enter a base date to use to offset against for "${content}"' }`, {})
+              const response: string | false = await datePicker(`{ question: 'Please enter a base date to use to offset against for "${content}"' }`)
+              if (response === false) {
+                throw new Error(`User cancelled date input.`)
+              }
+              currentTargetDate = response
               if (currentTargetDate === '') {
                 logError(processDateOffsets, `- Still no valid CTD, so stopping.`)
                 return
