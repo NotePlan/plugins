@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 2025-10-19 for v1.4.0 by @jgclark
+// last update 2025-10-26 for v1.4.0 by @jgclark
 //---------------------------------------------------------------
 // ARCHITECTURE:
 // - 1 local preference 'windowSets' that contains JS Array<WindowSet>
@@ -12,7 +12,9 @@
 //   - writeWSsToNote() sends pref to note -- and can be run manually by /wpn
 // - if no window sets found in pref, plugin offers to write 2 example sets
 //
-// Minimum NP version 3.9.8
+// Minimum NP versions:
+// - 3.9.8  (generally)
+// - 3.19.2 (for main sidebar width control -- macOS only)
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -36,11 +38,14 @@ import {
 } from '@helpers/NPdateTime'
 import {
   applyRectToHTMLWindow,
+  closeSidebar,
   closeWindowFromId,
   findEditorWindowByFilename,
   isHTMLWindowOpen,
   getNonMainWindowIds,
+  logSidebarWidth,
   MAIN_SIDEBAR_CONTROL_BUILD_VERSION,
+  openSidebar,
   rectToString,
 } from '@helpers/NPWindows'
 import { chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
@@ -73,7 +78,7 @@ export async function saveWindowSet(): Promise<void> {
       const winRect = win.windowRect
       const isFolder = foldersList.includes(win.filename) // TEST: when @EM fixes win.filename being blank or null for folder views
       return {
-        noteType: isFolder ? 'Folder' : win.type,
+        resourceType: isFolder ? 'Folder' : win.type,
         windowType: win.windowType,
         filename: win.filename,
         title: undefined, // gets set later
@@ -164,18 +169,22 @@ export async function saveWindowSet(): Promise<void> {
     let ewCount = 0
     // const firstWindow = editorWinDetails[0]
     for (const ew of editorWinDetails) {
-      // clo(ew, String(ewCount))
-      // TODO(later): Try to support open folder as well as note. As of v3.16.3 it requires EM to add support for this in the API.
       let tempFilename = ew.filename
-      const thisNote = DataStore.projectNoteByFilename(tempFilename)
+      // Get note from filename, first trying Notes, then Calendar
+      let thisNote = DataStore.noteByFilename(tempFilename, 'Notes')
       if (!thisNote) {
-        logWarn('saveWindowSet', `- unable to find note with filename '${tempFilename}' for WS '${setName}'. Skipping.`)
+        thisNote = DataStore.noteByFilename(tempFilename, 'Calendar')
+      }
+      if (!thisNote) {
+        logWarn('saveWindowSet', `- can't find note with filename '${tempFilename}' for WS '${setName}'. Skipping window ${String(ewCount)} of ${String(editorWinDetails.length)}.`)
+        clo(ew, `editorWinDetails for the window that can't be found`)
         continue
       }
+      // TODO(later): Try to support open folder as well as note. As of v3.16.3 (and still at 3.19.2) it requires EM to add support for this in the API.
       let tempTitle = ''
 
       // Check to see if any editor windows are calendar dates
-      if (ew.noteType === 'Calendar') {
+      if (ew.resourceType === 'Calendar') {
         // Offer to make them a relative date to today/this week etc.
         // Turn this into a daily date at start of period
         const thisDateStr = getDateStringFromCalendarFilename(ew.filename, true)
@@ -207,7 +216,7 @@ export async function saveWindowSet(): Promise<void> {
 
       // Create EW object to save with the other details
       const thisEWToSave: wth.EditorWinDetails = {
-        noteType: ew.noteType,
+        resourceType: ew.resourceType,
         filename: tempFilename ?? '?',
         title: tempTitle ?? '?',
         windowType: windowType,
@@ -279,7 +288,9 @@ export async function saveWindowSet(): Promise<void> {
 
     // TEST: If we can find out the main sidebar width, and we want to save it, then add it to the WS object
     if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION && config.saveMainSidebarWidth) {
+      // FIXME(Eduard): doesn't set to 0 when sidebar is hidden! And no other way to tell.
       const mainSidebarWidth = NotePlan.getSidebarWidth()
+      logSidebarWidth()
       thisWSToSave.mainSidebarWidth = mainSidebarWidth
     }
 
@@ -315,7 +326,7 @@ export async function saveWindowSet(): Promise<void> {
 
     DataStore.setPreference('windowSets', WSsToSave)
     logDebug('saveWindowSet', `Saved window sets to local pref`)
-    await wth.logWindowSets()
+    wth.logWindowSet(thisWSToSave, thisMachineName)
     const res = await wth.writeWSsToNote(config.folderForDefinitions, config.noteTitleForDefinitions, WSsToSave)
     logDebug('saveWindowSet', `Saved window sets to note, with result ${String(res)}`)
 
@@ -470,7 +481,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
 
       if (ew.windowType === 'floating') {
         // Open in a full window pane
-        switch (ew.noteType) {
+        switch (ew.resourceType) {
           case 'Calendar': {
             // We need to have a related dateString as well as calendar note filename:
             let resourceDateStrToOpen = resourceFilenameToOpen
@@ -547,7 +558,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
         }
         // logDebug('openWindowSet', `- ew.noteType = ${ew.noteType}`)
 
-        switch (ew.noteType) {
+        switch (ew.resourceType) {
           case 'Calendar': {
             // We need to have a related dateString as well as calendar note filename:
             let resourceDateStrToOpen = resourceFilenameToOpen
@@ -602,16 +613,24 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
       }
     }
 
-    // TEST: Now set main (left) sidebar width if requested
-    const settings = await wth.getPluginSettings()
-    wth.setMainSidebarWidth(settings)
+    // Now set main (left) sidebar width if requested
+    const requestedMainSidebarWidth = thisWS.mainSidebarWidth ?? NaN
+    if (isNaN(requestedMainSidebarWidth)) {
+      logDebug('openWindowSet', `- no main sidebar width requested, so will leave as is`)
+    } else if (requestedMainSidebarWidth === 0) {
+      logDebug('openWindowSet', `- main sidebar width requested is 0, so will hide it`)
+      closeSidebar()
+    } else {
+      logDebug('openWindowSet', `- main sidebar width requested is ${String(requestedMainSidebarWidth)}, so will show it and set its width to ${String(requestedMainSidebarWidth)}`)
+      openSidebar(requestedMainSidebarWidth)
+    }
 
     // Now set windowRect for whole main Editor, using saved x,y,w,h from the 'main' part of this WS
       if (mainRect && !isObjectEmpty(mainRect)) {
-        logDebug('openWindowSet', `  - applying Rect definition ${rectToString(mainRect)} to whole main Editor window`)
+        logDebug('openWindowSet', `- applying Rect definition ${rectToString(mainRect)} to whole main Editor window`)
         Editor.windowRect = mainRect
       } else {
-        logWarn('openWindowSet', `Couldn't find rect details for main window to apply to whole Editor, so won't.`)
+        logWarn('openWindowSet', `- couldn't find rect details for main window to apply to whole Editor, so won't.`)
       }
 
     return true

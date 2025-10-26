@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for WindowTools plugin
 // Jonathan Clark
-// last update 2025-10-19 for v1.3.1 by @jgclark
+// last update 2025-10-26 for v1.4.0 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,8 +11,7 @@ import { toLocaleDateTimeString } from '@helpers/dateTime'
 import { clo, isObjectEmpty, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
-// import { addTrigger } from '@helpers/NPFrontMatter'
-import { MAIN_SIDEBAR_CONTROL_BUILD_VERSION, constrainWindowSizeAndPosition } from '@helpers/NPWindows'
+import { MAIN_SIDEBAR_CONTROL_BUILD_VERSION, closeSidebar, openSidebar, constrainWindowSizeAndPosition } from '@helpers/NPWindows'
 import { caseInsensitiveMatch } from '@helpers/search'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -38,20 +37,19 @@ export type PluginWindowCommand = {
 /**
  * Plugin command name lookup list (note: all values are case sensitive!)
  * Note: used by saveWindowSet to help automatically identify plugins' HTMLWindows
- * TODO: really should live somewhere else?
  */
 export const pluginWindowsAndCommands: Array<PluginWindowCommand> = [
   { pluginWindowId: 'jgclark.Dashboard.main', pluginID: 'jgclark.Dashboard', pluginCommandName: 'Show Dashboard' },
   { pluginWindowId: 'jgclark.Reviews.rich-review-list', pluginID: 'jgclark.Reviews', pluginCommandName: 'project lists' },
-  { pluginWindowId: 'rich-review-list', pluginID: 'jgclark.Reviews', pluginCommandName: 'project lists' },
   { pluginWindowId: 'jgclark.Summaries.heatmap', pluginID: 'jgclark.Summaries', pluginCommandName: 'heatmap for task completion' },
 ]
 
 // Data types
 // Note: x/y/w/h are available on all window types since v3.9.1 build 1020
 // Note: noteType extended to include 'Folder' at plugin v1.3.0
+// Note: noteType renamed to resourceType at plugin v1.4.0
 export type EditorWinDetails = {
-  noteType: string, // NP NoteType "Calendar" | "Notes" | "Folder" // TODO: change name to 'resourceType' once we've checked we can open folders
+  resourceType: string, // NP noteType "Calendar" | "Notes" + "Folder"
   filename: string,
   windowType: string, // "main" | "floating" | "split"
   title?: string, // optional, but persist it where used
@@ -80,7 +78,7 @@ export type WindowSet = {
   closeOtherWindows: boolean,
   editorWindows: Array<EditorWinDetails>, // really 'editorWinDetails'
   htmlWindows: Array<HTMLWinDetails>,// really 'htmlWinDetails'
-  mainSidebarWidth?: number, // macOS only. Optional: if not set then current main sidebar state wont be touched.
+  mainSidebarWidth?: number, // macOS only. Optional: if not set then current main sidebar state won't be touched. If set to 0 then the sidebar will be hidden.
 }
 
 //---------------------------------------------------------------
@@ -306,6 +304,7 @@ export async function onEditorWillSave(): Promise<void> {
 /**
  * Read current WindowSet definitions
  * V3: read JSON from local preferences
+ * 
  * @returns {Array<WindowSet>} JSON configuration object for all window sets
  * @param {string?} machineName to match
  * @return {Promise<Array<WindowSet>>} window sets
@@ -332,8 +331,7 @@ export async function readWindowSetDefinitions(forMachineName: string = ''): Pro
     // Note: windowSetsObject can be non-null, but empty!
     // clo(windowSetsObject, 'windowSetsObject')
     // logDebug('JSON version', JSON.stringify(windowSetsObject))
-
-    if (!windowSetsObject || isObjectEmpty(windowSetsObject)) { // should never happen
+    if (!windowSetsObject || isObjectEmpty(windowSetsObject)) {
       throw new Error(`Still no saved windowSets object found in local 'windowSets' pref on ${thisMachineName}`)
     }
 
@@ -346,6 +344,12 @@ export async function readWindowSetDefinitions(forMachineName: string = ''): Pro
     }
     if (windowSets.length > 0) {
       logDebug('readWindowSetDefinitions V3', `Read ${String(windowSets.length)} window sets from local pref ${machineDisplayName}`)
+
+      // Update object keys for v1.4.0+
+      // Note: would normally live in onUpdateOrInstall() but the WSs aren't stored in the usual place.
+      for (let i = 0; i < windowSets.length; i++) {
+        windowSets[i] = updateWSObjectKeys(windowSets[i])
+      }
     } else {
       logWarn('readWindowSetDefinitions V3', `No window sets found in local pref ${machineDisplayName}: please check the machineName entries in your Window Sets note.`)
       const res = await showMessage(`No window sets found ${machineDisplayName}: please check 'machineName' entries in your Window Sets note.`, 'OK', 'No window sets found', false)
@@ -355,6 +359,42 @@ export async function readWindowSetDefinitions(forMachineName: string = ''): Pro
     logError('readWindowSetDefinitions V3', `${err.name}: ${err.message} `)
     return [] // for completeness
   }
+}
+
+/**
+ * Log details of a single WindowSet to console
+ * @param {WindowSet} windowSet - The window set to log
+ * @param {string} machineName - The machine name for display
+ * @author @jgclark
+ */
+export function logWindowSet(windowSet: WindowSet, machineName: string): void {
+  const outputLines = []
+  let c = 0
+
+  // Format editorWindows details
+  outputLines.push(`${windowSet.name} (for ${machineName}):`)
+  if (windowSet.editorWindows && windowSet.editorWindows.length > 0) {
+    for (const ew of windowSet.editorWindows) {
+      outputLines.push(`- EW${String(c)}: ${ew.resourceType}, ${ew.windowType}: title:'${ew.title ?? ''}' filename:${ew.filename ?? ''} x:${ew.x ?? '-'} y:${ew.y ?? '-'} w:${ew.width ?? '-'} h:${ew.height ?? '-'}`)
+      c++
+    }
+  } else {
+    logDebug('logWindowSet', `windowSet '${windowSet.name}' has no editorWindows array`)
+  }
+
+  // Format htmlWindows details
+  c = 0
+  if (windowSet.htmlWindows && windowSet.htmlWindows.length > 0) {
+    for (const hw of windowSet.htmlWindows) {
+      outputLines.push(`- HW${String(c)}: ${hw.type}: customId:'${hw.customId ?? ''}' pluginID:${hw.pluginID ?? '?'} pluginCommandName:${hw.pluginCommandName ?? '?'} x:${hw.x ?? '-'} y:${hw.y ?? '-'} w:${hw.width ?? '-'} h:${hw.height ?? '-'}`)
+      c++
+    }
+  }
+
+  outputLines.push(`- mainSidebarWidth: ${String(windowSet.mainSidebarWidth ?? 'not defined')}`)
+  outputLines.push(`- closeOtherWindows: ${String(windowSet.closeOtherWindows)}`)
+
+  logInfo('logWindowSet', outputLines.join('\n'))
 }
 
 /**
@@ -368,7 +408,6 @@ export async function logWindowSets(): Promise<void> {
       logWarn('logWindowSets', `Window Sets only runs on macOS. Stopping.`)
       return
     }
-    // const config = await getPluginSettings()
     const thisMachineName = NotePlan.environment.machineName
 
     const windowSets: Array<WindowSet> = await readWindowSetDefinitions()
@@ -377,35 +416,12 @@ export async function logWindowSets(): Promise<void> {
       return
     }
     logInfo('logWindowSets', `${String(windowSets.length)} saved windowSets found in local pref.`)
-    const outputLines = []
-    outputLines.push(`Window Sets:`)
-    for (const set of windowSets) {
-      let c = 0
-      // Format editorWindows details
-      outputLines.push(`${set.name} (for ${thisMachineName}):`)
-      if (set.editorWindows && set.editorWindows.length > 0) {
-        for (const ew of set.editorWindows) {
-          outputLines.push(`- EW${String(c)}: ${ew.noteType}, ${ew.windowType}: title:'${ew.title ?? ''}' filename:${ew.filename ?? ''} x:${ew.x ?? '-'} y:${ew.y ?? '-'} w:${ew.width ?? '-'} h:${ew.height ?? '-'}`)
-          c++
-        }
-      } else {
-        logDebug('logWindowSets', `windowSet '${set.name}' has no editorWindows array`)
-      }
 
-      // Format htmlWindows details
-      c = 0
-      if (set.htmlWindows && set.htmlWindows.length > 0) {
-        for (const hw of set.htmlWindows) {
-          outputLines.push(`- HW${String(c)}: ${hw.type}: customId:'${hw.customId ?? ''}' pluginID:${hw.pluginID ?? '?'} pluginCommandName:${hw.pluginCommandName ?? '?'} x:${hw.x ?? '-'} y:${hw.y ?? '-'} w:${hw.width ?? '-'} h:${hw.height ?? '-'}`)
-          c++
-        }
-      } else {
-        logDebug('logWindowSets', `windowSet '${set.name}' has no htmlWindows array`)
-      }
+    logInfo('logWindowSets', `Window Sets:`)
+    for (const set of windowSets) {
+      logWindowSet(set, thisMachineName)
     }
-    logInfo('logWindowSets', (outputLines.length > 0) ? outputLines.join('\n') : 'Window Sets: **none**')
-  }
-  catch (error) {
+  } catch (error) {
     logError('logWindowSets', JSP(error))
   }
 }
@@ -443,9 +459,10 @@ export async function getDetailedWindowSetByName(name: string): Promise<WindowSe
 /**
  * Set the main sidebar width (if we can control it -- requires NP v3.19.2 or later.)
  * Uses the defaultMainSidebarWidth setting; if not set then don't do anything.
+ * If the defaultMainSidebarWidth is set to 0 then the sidebar will be hidden.
  * @param {WindowSetsConfig} settings - the plugin settings
  */
-export function setMainSidebarWidth(settings: WindowSetsConfig): void {
+export function setMainSidebarWidthFromSettings(settings: WindowSetsConfig): void {
   // Set main sidebar width if we can control it
   if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION) {
     const defaultMainSidebarWidth = settings.defaultMainSidebarWidth ?? NaN
@@ -455,10 +472,10 @@ export function setMainSidebarWidth(settings: WindowSetsConfig): void {
     } else {
       if (defaultMainSidebarWidth === 0) {
         logDebug(pluginJson, `- Default main sidebar width is 0, so will hide it`)
-        NotePlan.toggleSidebar(true, false, true)
+        closeSidebar()
       } else {
         logDebug(pluginJson, `- Default main sidebar width is ${String(defaultMainSidebarWidth)}, so will show it and set width`)
-        NotePlan.toggleSidebar(false, true, true)
+        openSidebar()
         NotePlan.setSidebarWidth(defaultMainSidebarWidth)
       }
     }
@@ -563,13 +580,32 @@ export async function offerToAddExampleWSs(): Promise<number> {
   }
 }
 
+
+/**
+ * For each EditorWinDetails object in the editorWindows array, rename the noteType key to resourceType -- needed at v1.4.0+
+ * @param {WindowSet} ws
+ * @returns {WindowSet}
+ */
+export function updateWSObjectKeys(ws: WindowSet): WindowSet {
+  for (const ew of ws.editorWindows) {
+    // If we have a noteType key then rename it to resourceType
+    // $FlowIgnore[prop-missing]
+    if (ew.noteType) {
+      ew.resourceType = ew.noteType
+      logInfo('updateWSObjectKeys', `- renamed noteType '${ew.noteType}' to resourceType '${ew.resourceType}' in WS '${ws.name}'`)
+      delete ew.noteType
+    }
+  }
+  return ws
+}
+
 const exampleWSs: Array<WindowSet> = [
   {
     "name": "Days (Yesterday+Today+Tomorrow)",
     "closeOtherWindows": true,
     "editorWindows": [
       {
-        "noteType": "Calendar",
+        "resourceType": "Calendar",
         "windowType": "main",
         "filename": "{-1d}",
         "title": "yesterday",
@@ -579,7 +615,7 @@ const exampleWSs: Array<WindowSet> = [
         "height": 600
       },
       {
-        "noteType": "Calendar",
+        "resourceType": "Calendar",
         "windowType": "split",
         "filename": "{0d}",
         "title": "today",
@@ -589,7 +625,7 @@ const exampleWSs: Array<WindowSet> = [
         "height": 600
       },
       {
-        "noteType": "Calendar",
+        "resourceType": "Calendar",
         "windowType": "split",
         "filename": "{+1d}",
         "title": "tomorrow",
@@ -615,7 +651,7 @@ const exampleWSs: Array<WindowSet> = [
     "closeOtherWindows": true,
     "editorWindows": [
       {
-        "noteType": "Calendar",
+        "resourceType": "Calendar",
         "windowType": "main",
         "filename": "{-1w}",
         "title": "last week",
@@ -625,7 +661,7 @@ const exampleWSs: Array<WindowSet> = [
         "height": 600
       },
       {
-        "noteType": "Calendar",
+        "resourceType": "Calendar",
         "windowType": "split",
         "filename": "{0w}",
         "title": "this week",
@@ -635,7 +671,7 @@ const exampleWSs: Array<WindowSet> = [
         "height": 600
       },
       {
-        "noteType": "Calendar",
+        "resourceType": "Calendar",
         "windowType": "split",
         "filename": "{+1w}",
         "title": "next week",

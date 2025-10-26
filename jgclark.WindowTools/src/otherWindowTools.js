@@ -61,7 +61,7 @@ export async function resetMainWindow(): Promise<void> {
     }
 
     const settings = await wth.getPluginSettings()
-    wth.setMainSidebarWidth(settings)
+    wth.setMainSidebarWidthFromSettings(settings)
 
     // Set Editor main window and all other split windows to default width
     const defaultEditorWidth = settings.defaultEditorWidth

@@ -167,7 +167,7 @@
       "jsFunction": "deleteAllSavedWindowSets"
     },
     {
-      "name": "test:log preference",
+      "name": "test: log preference",
       "alias": [
         "lp"
       ],
@@ -175,7 +175,7 @@
       "jsFunction": "logPreferenceAskUser"
     },
     {
-      "name": "test:unset preference",
+      "name": "test: unset preference",
       "alias": [
         "up"
       ],
@@ -183,9 +183,52 @@
       "jsFunction": "unsetPreferenceAskUser"
     },
     {
-      "name": "test:updatePlugin",
+      "name": "test: updatePlugin",
       "description": "Test migration to newer name",
       "jsFunction": "testUpdate"
+    },
+    {
+      "name": "test: log sidebar width",
+      "description": "Log the current sidebar width (requires NP v3.19.2 or later)",
+      "alias": [
+        "lsbw"
+      ],
+      "jsFunction": "logSidebarWidth"
+    },
+    {
+      "name": "test: set sidebar width",
+      "description": "Set the sidebar width (requires NP v3.19.2 or later)",
+      "alias": [
+        "ssbw"
+      ],
+      "arguments": [
+        "width (optional)"
+      ],
+      "jsFunction": "setSidebarWidth"
+    },
+    {
+      "name": "test: toggle sidebar",
+      "description": "Toggle the sidebar (requires NP v3.19.2 or later)",
+      "alias": [
+        "tsb"
+      ],
+      "jsFunction": "toggleSidebar"
+    },
+    {
+      "name": "test: open sidebar",
+      "description": "Open the sidebar (requires NP v3.19.2 or later)",
+      "alias": [
+        "osb"
+      ],
+      "jsFunction": "openSidebar"
+    },
+    {
+      "name": "test: close sidebar",
+      "description": "Close the sidebar (requires NP v3.19.2 or later)",
+      "alias": [
+        "csb"
+      ],
+      "jsFunction": "closeSidebar"
     }
   ],
   "plugin.settings": [
@@ -229,7 +272,7 @@
       "title": "Default main sidebar width",
       "description": "Default width of the main sidebar when resetting windows. (Requires NP v3.19.2 or later.) Set to 0 to hide the sidebar. If not set, the sidebar will be left as is.",
       "type": "number",
-      "default": 250,
+      "default": 300,
       "required": false
     },
     {

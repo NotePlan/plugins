@@ -2429,9 +2429,24 @@ declare class NotePlan {
    */
 static + htmlWindows: Array < HTMLView >;
   /**
+   * NotePlan.getSidebarWidth()
+   * Gets the current width of the sidebar in pixels.
+   * Returns 0 on iOS/iPadOS or if the sidebar is not available.
+   * Note: Available from v3.19.2 (macOS only).
+   * Note: @jgclark reports this can return fractional widths!
+   * @returns {number} The current sidebar width in pixels
+   * 
+   * @example
+   * // Get the current sidebar width
+   * const currentWidth = NotePlan.getSidebarWidth();
+   * console.log(`Sidebar width: ${String(currentWidth)}px`);
+   */
+  static getSidebarWidth(): number;
+  /**
    * NotePlan.setSidebarWidth()
   * Sets the width of the sidebar in pixels.
-  * The width is persisted and will be applied when the sidebar is visible.
+  * The width is persisted and will be applied when the sidebar is visible. (@jgclark reports this has failed to work in practice.)
+  * Note: @jgclark reports the minimum width that works is 200 pixels. Therefore setting to 0 pixels does _not_ hide the sidebar.
   * Note: Available from v3.19.2 (macOS only).
   * @param {number} width - The width in pixels (e.g., 250)
   *
@@ -2444,24 +2459,6 @@ static + htmlWindows: Array < HTMLView >;
   * NotePlan.setSidebarWidth(200);
   */
   static setSidebarWidth(width: number): void;
-  /**
-   * NotePlan.getSidebarWidth()
-   * Gets the current width of the sidebar in pixels.
-   * Returns 0 on iOS/iPadOS or if the sidebar is not available.
-   * Note: Available from v3.19.2 (macOS only).
-   * @returns {number} The current sidebar width in pixels
-   * 
-   * @example
-   * // Get the current sidebar width
-   * const currentWidth = NotePlan.getSidebarWidth();
-   * console.log(`Sidebar width: ${currentWidth}px`);
-   * 
-   * @example
-   * // Double the sidebar width
-   * const currentWidth = NotePlan.getSidebarWidth();
-   * NotePlan.setSidebarWidth(currentWidth * 2);
-   */
-  static getSidebarWidth(): number;
   /**
    * NotePlan.toggleSidebar()
   * Toggles the sidebar visibility on iOS and macOS.

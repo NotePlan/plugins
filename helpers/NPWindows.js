@@ -688,3 +688,45 @@ export async function constrainMainWindow(): Promise<void> {
     return
   }
 }
+
+export function logSidebarWidth(): void {
+  if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION) {
+    const sidebarWidth = NotePlan.getSidebarWidth()
+    logInfo('logSidebarWidth', `Sidebar width: ${sidebarWidth} -- WARNING: This cannot tell if the sidebar is actually visible or not!`)
+  } else {
+    logWarn('logSidebarWidth', `Cannot get Sidebar width before NP v3.19.2`)
+  }
+}
+
+// eslint-disable-next-line require-await
+export async function setSidebarWidth(widthIn?: number): Promise<void> {
+  if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION) {
+    const width = widthIn ?? await inputIntegerBounded('Set Width for main NP Window', `Width (pixels)? (up to ${String(NotePlan.environment.screenWidth)})`, NotePlan.environment.screenWidth)
+    NotePlan.setSidebarWidth(width)
+    logDebug('setSidebarWidth', `Sidebar width set to ${width}`)
+  } else {
+    logWarn('setSidebarWidth', `Cannot Sidebar width before NP v3.19.2`)
+  }
+}
+
+export function toggleSidebar(): void {
+  NotePlan.toggleSidebar(false, false, true)
+}
+
+/**
+ * Open the sidebar, and optionally set its width
+ * Note: Available from v3.19.2 (macOS only).
+ * @author @jgclark
+ * 
+ * @param {number?} widthIn - width to set for the sidebar (pixels)
+ */
+export function openSidebar(widthIn?: number): void {
+  NotePlan.toggleSidebar(false, true, true)
+  if (widthIn && !isNaN(widthIn)) {
+    NotePlan.setSidebarWidth(widthIn)
+  }
+}
+
+export function closeSidebar(): void {
+  NotePlan.toggleSidebar(true, false, true)
+}
