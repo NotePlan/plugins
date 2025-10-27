@@ -14,6 +14,7 @@
 //
 // Minimum NP versions:
 // - 3.9.8  (generally)
+// - 3.18.0 (for decorated command bar options)
 // - 3.19.2 (for main sidebar width control -- macOS only)
 //---------------------------------------------------------------
 
@@ -48,7 +49,12 @@ import {
   openSidebar,
   rectToString,
 } from '@helpers/NPWindows'
-import { chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
+import { chooseDecoratedOptionWithModifiers, chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
+
+//---------------------------------------------------------------
+// Constants
+
+const SUPPORTS_DECORATED_COMMAND_BAR_OPTIONS = 1413 // v3.18.0
 
 //---------------------------------------------------------------
 // WindowSet functions
@@ -114,37 +120,58 @@ export async function saveWindowSet(): Promise<void> {
     // Get current saved set names
     const savedWindowSets = await wth.readWindowSetDefinitions()
     // clo(savedWindowSets, 'savedWindowSets')
-    let choice = 0
-    let setName = ''
+
+    let setName: string = ''
     let isNewSet = false
 
     // Offer current set names and/or offer to create new one
     if (savedWindowSets.length > 0) {
       logDebug('saveWindowSet', `found ${String(savedWindowSets.length)} existing windowSets`)
-      const nameOptions: Array<Object> = []
-      nameOptions.push({ value: 0, label: "+ New window set" })
-      for (let i = 0; i < savedWindowSets.length; i++) {
-        const thisWindowSet = savedWindowSets[i]
-        nameOptions.push({ value: i + 1, label: thisWindowSet.name ?? '(error)' })
-      }
-      const res: $FlowFixMe = await chooseOption('Select window set', nameOptions, 0)
-      if (typeof res === 'boolean' && !res) {
-        logInfo('saveWindowSet', `User cancelled operation: ${String(res)}.`)
-        return
-      }
-      choice = res
-      if (choice === 0) {
-        const newName = await getInputTrimmed('Enter name for new Window Set', 'OK', 'New Window Set name')
-        if (!newName) {
+      let chosenSetIndex = -1
+
+      if (NotePlan.environment.buildVersion >= SUPPORTS_DECORATED_COMMAND_BAR_OPTIONS) { // = 3.18.0
+        const decoratedSetChoices: Array<TCommandBarOptionObject> = makeDecoratedWSChoices(savedWindowSets)
+        // Prepare a new window set option
+        const newWSChoice = ({
+          text: 'Add new Window Set',
+          icon: 'plus',
+          color: 'orange-500',
+          shortDescription: `New`,
+          alpha: 0.8,
+          darkAlpha: 0.8,
+        })
+        const chosenOption = await chooseDecoratedOptionWithModifiers(`Select Window Set to add or update for ${thisMachineName}?`, decoratedSetChoices, newWSChoice)
+        chosenSetIndex = chosenOption.index
+        if (chosenSetIndex === -1) {
+          isNewSet = true
+          setName = chosenOption.value ?? 'New Window Set'
+        } else {
+          setName = savedWindowSets[chosenSetIndex - 1]?.name ?? '(error)'
+          isNewSet = false
+          logDebug('saveWindowSet', `chosen WS '${setName}' from chosenSetIndex = ${String(chosenSetIndex)}`)
+        }
+      } else {
+        const simpleSetChoices = makeSimpleWSChoices(savedWindowSets, true)
+        const res: number | boolean = await chooseOption(`Select Window Set to add or update for ${thisMachineName}?`, simpleSetChoices)
+        if (typeof res !== 'number') {
           logInfo('saveWindowSet', `User cancelled operation.`)
           return
         }
-        setName = String(newName) // to satisfy flow
-        isNewSet = true
-      } else {
-        setName = nameOptions[res].label
-        logDebug('saveWindowSet', `User selected existing WS '${setName}' from ${String(res)} to update`)
+        const WSNum: number = res
+        if (WSNum === -1) {
+          const newName = await getInputTrimmed('Enter name for new Window Set', 'OK', 'New Window Set name')
+          if (!newName) {
+            logInfo('saveWindowSet', `User cancelled operation.`)
+            return
+          }
+          setName = String(newName) // to satisfy flow
+          isNewSet = true
+        } else {
+          setName = savedWindowSets[WSNum]?.name ?? '(error)'
+          logDebug('saveWindowSet', `User selected existing WS '${setName}' from ${String(WSNum)} to update`)
+        }
       }
+
     } else {
       // No current saved window sets
       const newName = await getInputTrimmed('Enter name for new Window Set', 'OK', 'New Window Set name')
@@ -381,6 +408,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
     }
     else {
       // Form list of window sets to choose from
+
       // Get all available windowSets for this machine
       const savedWindowSets = await wth.readWindowSetDefinitions(thisMachineName)
       if (savedWindowSets.length === 0) {
@@ -389,23 +417,27 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
         return false
       }
 
-      let c = -1
-      const setChoices = savedWindowSets.map((sws) => {
-        c++
-        return {
-          label: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} note${sws.htmlWindows?.length > 0 ? ` + ${String(sws.htmlWindows?.length)} plugin` : ''} windows)`, value: c
+      let chosenSetIndex: number = -1
+      if (NotePlan.environment.buildVersion >= SUPPORTS_DECORATED_COMMAND_BAR_OPTIONS) { // = 3.18.0
+        const decoratedSetChoices: Array<TCommandBarOptionObject> = makeDecoratedWSChoices(savedWindowSets)
+        const chosenOption = await chooseDecoratedOptionWithModifiers(`Select Window Set to open on ${thisMachineName}?`, decoratedSetChoices)
+        chosenSetIndex = chosenOption.index
+        // logDebug('openWindowSet', `chosenSetIndex = ${String(chosenSetIndex)}`)
+      } else {
+        const simpleSetChoices = makeSimpleWSChoices(savedWindowSets, false)
+        const chosenOption = await chooseOption(`Select Window Set to open on ${thisMachineName}?`, simpleSetChoices)
+        if (typeof chosenOption !== 'number') {
+          logInfo('saveWindowSet', `User cancelled operation.`)
+          return false
         }
-      })
-      const num = await chooseOption(`Which Window Set to open on ${thisMachineName}?`, setChoices)
-      if (isNaN(num)) {
-        logInfo(pluginJson, `No valid set chosen, so stopping.`)
-        return false
+        chosenSetIndex = chosenOption
       }
-      thisWS = savedWindowSets[Number(num)]
+      thisWS = savedWindowSets[chosenSetIndex]
+      // clo(thisWS, `Chosen WindowSet '${thisWS.name}'`)
     }
 
-    const setName = thisWS.name
-    clo(thisWS, `Chosen WindowSet '${setName}'`)
+    // const setName = thisWS.name
+    wth.logWindowSet(thisWS, thisMachineName)
 
     // First close other windows (if requested)
     if (thisWS.closeOtherWindows) {
@@ -663,24 +695,27 @@ export async function deleteWindowSet(setNameArg: string): Promise<boolean> {
     }
 
     if (isNaN(thisWSNum)) {
-      // Get list of window sets to choose from
-
       logDebug(pluginJson, `deleteWindowSet: Found ${windowSets.length} window sets`)
 
-      let c = -1
-      const setChoices = windowSets.map((sws) => {
-        c++
-        return {
-          label: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} note${sws.htmlWindows?.length > 0 ? ` + ${String(sws.htmlWindows?.length)} plugin` : ''} windows)`, value: c
+      // Get list of window sets to choose from
+      if (NotePlan.environment.buildVersion >= SUPPORTS_DECORATED_COMMAND_BAR_OPTIONS) { // = 3.18.0
+        const decoratedSetChoices: Array<TCommandBarOptionObject> = makeDecoratedWSChoices(windowSets)
+        const chosenOption = await chooseDecoratedOptionWithModifiers(`Select Window Set to delete?`, decoratedSetChoices)
+        thisWSNum = chosenOption.index
+        if (isNaN(thisWSNum)) {
+          logInfo(pluginJson, `No valid set chosen, so stopping.`)
+          return false
         }
-      })
-      const num: number = await chooseOption("Which Window Set to delete?", setChoices)
-      if (isNaN(num)) {
-        logInfo(pluginJson, `No valid set chosen, so stopping.`)
-        return false
+      } else {
+        const simpleSetChoices = makeSimpleWSChoices(windowSets, false)
+        const chosenOption = await chooseOption(`Select Window Set to delete?`, simpleSetChoices)
+        if (typeof chosenOption !== 'number') {
+          logInfo('deleteWindowSet', `User cancelled operation.`)
+          return false
+        }
       }
-      const setName: $FlowFixMe = windowSets[num].name
-      logInfo('deleteWindowSet', `You have asked to delete window set #${String(num)} '${setName}'`)
+      const setName: string = windowSets[thisWSNum]?.name ?? '(error)'
+      logInfo('deleteWindowSet', `You have asked to delete window set #${String(thisWSNum)} '${setName}'`)
     }
 
     // Delete this window set, and save back to preferences store
@@ -711,4 +746,33 @@ export async function deleteAllSavedWindowSets(): Promise<void> {
   catch (error) {
     logError('deleteAllSavedWindowSets', JSP(error))
   }
+}
+
+function makeSimpleWSChoices(savedWindowSets: Array<wth.WindowSet>, includeNewWindowSet: boolean = false): Array<{ label: string, value: number }> {
+  const choices: Array<{ label: string, value: number }> = []
+  if (includeNewWindowSet) {
+    choices.push({ label: '🆕 Add new Window Set', value: -1 })
+  }
+  for (let i = 0; i < savedWindowSets.length; i++) {
+    const sws = savedWindowSets[i]
+    choices.push({
+      label: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} note${sws.htmlWindows?.length > 0 ? ` + ${String(sws.htmlWindows?.length)} plugin` : ''} windows)`,
+      value: i,
+    })
+  }
+  return choices
+}
+
+function makeDecoratedWSChoices(savedWindowSets: Array<wth.WindowSet>): Array<TCommandBarOptionObject> {
+  const choices: Array<TCommandBarOptionObject> = savedWindowSets.map((sws) => {
+    return {
+      text: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} note${sws.htmlWindows?.length > 0 ? ` + ${String(sws.htmlWindows?.length)} plugin` : ''} windows)`,
+      icon: sws.icon ? sws.icon : 'window-restore',
+      color: sws.iconColor ? sws.iconColor : 'teal-600',
+      shortDescription: ``,
+      alpha: 0.8,
+      darkAlpha: 0.8,
+    }
+  })
+  return choices
 }

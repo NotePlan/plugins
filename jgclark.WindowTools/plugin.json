@@ -255,7 +255,7 @@
     {
       "key": "saveMainSidebarWidth",
       "title": "Save main sidebar width?",
-      "description": "Whether to save the width of the main sidebar when saving a window set.",
+      "description": "Whether to save the width of the main sidebar when saving a Window Set.",
       "type": "bool",
       "default": true,
       "required": true

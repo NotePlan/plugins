@@ -3,12 +3,15 @@ _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/ma
 
 <!-- Started: support for Folders in WS. Waiting now for @EM to address a problem found in openNoteByFilename() calls.  -->
 
-## [1.4.0] - 2025-10-???
+## [1.4.0.b1] - 2025-10-26 (unreleased)
 ### New
 - TODO: New **reset main window** command. This resets the main NP window to default widths, including the main (left) sidebar (requires NP v3.19.2 or later). Alias: /rmw.
-- TODO: Can now save sidebar width in window sets, and open to that width (requires NP v3.19.2).
+- Window Sets can now save the (open) main sidebar's width, and open to that width (requires NP v3.19.2).
+- TODO: Extend to deal with closed main sidebars.
 - Can now open a folder as part of a window set. Note it will only open in the first Editor window.
 - TODO: Can now save a folder as part of a window set. (Note: not yet a particular 'folder view'.)
+- Allows Window Set definitions to include an `icon` and `iconColor`. (These need to be set manually in your Window Sets definition note.)
+- Made a newer, more decorated, chooser for Window Sets, that uses icons where defined.
 
 ## [1.3.0] - 2025-08-15
 - updated **open note in new split** and **open note in new window** to support Teamspace notes

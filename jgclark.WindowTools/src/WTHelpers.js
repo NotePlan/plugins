@@ -79,6 +79,8 @@ export type WindowSet = {
   editorWindows: Array<EditorWinDetails>, // really 'editorWinDetails'
   htmlWindows: Array<HTMLWinDetails>,// really 'htmlWinDetails'
   mainSidebarWidth?: number, // macOS only. Optional: if not set then current main sidebar state won't be touched. If set to 0 then the sidebar will be hidden.
+  icon?: string, // optional, for use in CommandBar
+  iconColor?: string, // optional, for use in CommandBar
 }
 
 //---------------------------------------------------------------
