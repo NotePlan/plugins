@@ -13,6 +13,7 @@ import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
 import { runPluginExtendedSyntaxSearches, validateAndTypeSearchTerms, } from './pluginExtendedSyntaxHelpers'
 import { clo, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
+import { getNoteFromFilename } from '@helpers/NPnote'
 // import { getSearchOperators, quoteTermsInSearchString, removeSearchOperators } from '@helpers/search'
 import {
   getInput,
@@ -199,19 +200,19 @@ export async function replace(
     //---------------------------------------------------------
     // Do the replace
     const startTime = new Date() // for timing
-    logDebug('replace', `Will now replace with '${replaceExpression}'`)
+    logDebug('replace', `------------ Will now replace with '${replaceExpression}' -------------`)
     // Use updateParagraph() multiple times. (Can't really use updateParagraphs() as it only works on a single note at a time.)
     for (let c = 0; c < searchResults.resultNoteAndLineArr.length; c++) {
       const nal = searchResults.resultNoteAndLineArr[c]
       const thisFilename = nal.noteFilename
-      const thisNote = DataStore.noteByFilename(thisFilename, 'Calendar')
+      const thisNote = getNoteFromFilename(thisFilename)
       if (!thisNote) {
-        logWarn('replace', `Couldn't find note for ${thisFilename} to update`)
+        logWarn('replace', `Couldn't find note for '${thisFilename}' to update`)
         continue
       }
       const thisPara = findParaFromStringAndFilename(thisFilename, nal.line)
       if (!thisPara) {
-        logWarn('replace', `Couldn't find paragraph {${nal.line}} in ${thisFilename} to update`)
+        logWarn('replace', `Couldn't find paragraph {${nal.line}} in '${thisFilename}' to update`)
         continue
       }
       // JS .replaceAll() is always case-sensitive with simple strings. So we need to use it via a regex.
@@ -225,13 +226,14 @@ export async function replace(
       thisNote.updateParagraph(thisPara)
     }
     logTimer('replace', startTime, `replace() finished.`)
+    logDebug('replace', `----------------------------------------------------------`)
 
     // Confirmatory check: run search again and see if it is zero
     const checkResults: resultOutputV3Type = (NPAdvancedSyntaxAvailable)
-      ? await runNPExtendedSyntaxSearches(String(searchTerm), config, searchOptions) 
+      ? await runNPExtendedSyntaxSearches(searchStr, config, searchOptions) 
       : await runPluginExtendedSyntaxSearches([searchTerm], config, searchOptions)
     if (checkResults.resultCount > 0) {
-      logWarn('replace', `I've double-checked the replace, and found that there are still ${checkResults.resultCount} unchanged copies of '${searchStr}'`)
+      logWarn('replace', `I've double-checked the replace, and found that there are ${checkResults.resultCount} unchanged copies of '${searchStr}'`)
     } else {
       logDebug('replace', `I've double-checked the replace, and it has changed all the copies.`)
     }

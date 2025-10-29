@@ -1265,7 +1265,7 @@ export async function getNoteFromParamOrUser(
 ): Promise<TNote | null> {
   // Note: deliberately no try/catch so that failure can stop processing
   const startTime = new Date()
-  let note: TNote | null
+  let note: ?TNote
   let noteTitleArgIsCalendarNote: boolean = false
   logDebug('getNoteFromParamOrUser', `starting with purpose '${purpose}' / noteTitleArg '${noteTitleArg}' / with ${notesIn?.length ?? 0} notesIn`)
 
@@ -1345,12 +1345,9 @@ function getNotesToCheck(notesIn?: Array<TNote>): Array<TNote> {
 }
 
 /**
- * Get or create the relevant regular note in the given folder (not calendar notes)
- * Note: titles with # characters are stripped out first, as they are stripped out by NP when reporting a note.title
- * If it makes a new note, it will add the title first.
- * TODO: is this teamspace-aware?
+ * Get or create the relevant regular note in the 'noteFolder' (so not calendar notes). If 'partialTitleToMatch' is supplied, then do a starts-with match from the start of the note title, not an exact match.
  * @author @jgclark
- *
+ * 
  * @param {string} noteTitle - title of note to look for
  * @param {string} noteFolder - folder to look in (must be full path or "/")
  * @param {boolean?} partialTitleToMatch - optional partial note title to use with a starts-with not exact match

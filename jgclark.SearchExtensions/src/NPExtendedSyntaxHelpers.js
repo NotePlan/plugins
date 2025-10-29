@@ -56,6 +56,8 @@ import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
  * Run an extended search over all search terms in 'searchTermsStr' over the set of notes determined by the parameters.
  * V4 of this function, which uses NP's extended search syntax available from 3.18.1.
  * Note: To get 'fullWord' matches, the syntax is now to surround a word with quotes. Example: "sun" returns lines where sun appears as a word, not as part of sunlight. So the fullWordSearching parameter is now ignored.
+ * FIXME: failing to run with "date:2025-01-02-2025-03-03 Gratitude" when it comes through from /SIP. 
+ * FIXME: failing to write results correctly with "date:2025-01-02-2025-03-03 Gratitude" when called from /SS.
  *
  * @param {Array<string>} searchStringIn
  * @param {SearchConfig} config object for various settings - Note: there are two overrides later in these parameters
@@ -68,9 +70,9 @@ export async function runNPExtendedSyntaxSearches(
   searchOptions: TSearchOptions,
 ): Promise<resultOutputV3Type> {
   try {
-    // clo(searchOptions, 'searchOptions:')
+    // clo(searchOptions, 'runNPExtendedSyntaxSearches starting with searchOptions:')
     const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
-    // logDebug('runNPExtendedSyntaxSearches', `noteTypesToInclude: ${String(noteTypesToInclude)}`)
+    logDebug('runNPExtendedSyntaxSearches', `noteTypesToInclude: ${String(noteTypesToInclude)}`)
     const foldersToInclude = searchOptions.foldersToInclude || []
     // logDebug('runNPExtendedSyntaxSearches', `foldersToInclude: ${String(foldersToInclude)}`)
     const foldersToExclude = searchOptions.foldersToExclude || []
@@ -94,7 +96,7 @@ export async function runNPExtendedSyntaxSearches(
     // let resultParas: Array<TParagraph> = []
     let wildcardedSearch = false
     const caseSensitive: boolean = config.caseSensitiveSearching
-    let fullResultCount = 0
+    let preLimitResultCount = 0
 
     let searchString = searchStringIn
     const searchOperators = getSearchOperators(searchString)
@@ -121,11 +123,11 @@ export async function runNPExtendedSyntaxSearches(
 
     //-------------------------------------------------------
     // And now, the actual Search API Call!
-
+    // const basicResponse = await DataStore.search(searchString, [], [], [], false)
+    // logInfo('runNPExtendedSyntaxSearches', `🔷 API response ${String(basicResponse.length)} results for [${searchString}] with no further params`)
     const response = await DataStore.search(searchString, noteTypesToInclude, foldersToInclude, foldersToExclude, false)
+    logInfo('runNPExtendedSyntaxSearches', `🔶 API response ${String(response.length)} results for [${searchString}] with params noteTypesToInclude: [${String(noteTypesToInclude)}], foldersToInclude: [${String(foldersToInclude)}], foldersToExclude: [${String(foldersToExclude)}]`)
     const initialResult: Array<TParagraph> = response.slice() // to convert from $ReadOnlyArray to $Array
-
-    // CommandBar.showLoading(false)
     //-------------------------------------------------------
 
     const noteAndLineArr: Array<noteAndLine> = []
@@ -134,6 +136,7 @@ export async function runNPExtendedSyntaxSearches(
       logDebug('runNPExtendedSyntaxSearches', `- Found ${initialResult.length} results for [${searchString}]`)
 
       // Try creating much smaller data sets, without full Note or Para. Use filename for disambig later.
+      // $FlowIgnore[prop-missing]
       let resultReducedParas: Array<reducedFieldSet> = initialResult.map((p) => {
         const note = p.note
         // const tempDate = note ? toISOShortDateTimeString(note.createdDate) : '?'
@@ -147,18 +150,39 @@ export async function runNPExtendedSyntaxSearches(
           // modify rawContent slightly by turning ## headings into **headings** to make output nicer
           rawContent: (p.type === 'title') ? `**${p.content}**` : p.rawContent,
           lineIndex: p.lineIndex,
+          // TODO: remove this after testing the source:calendar API bug below (and FlowIgnore line above)
+          noteType: note?.type,
         }
         return fieldSet
       })
 
+      // Drop out search results with the wrong note type (if any given), because of API bug that ignores 'source:' operator, it seems.
+      // Note: see https://discord.com/channels/763107030223290449/1431240275505713182
+      // TODO(later): remove me after testing a fix to API.
+      if (noteTypesToInclude && noteTypesToInclude.length === 1) {
+        const preFilterCount = resultReducedParas.length
+        // logDebug('runNPExtendedSyntaxSearches', `- before note types filter to [${String(noteTypesToInclude)}]`)
+        // $FlowFixMe[prop-missing]
+        resultReducedParas = resultReducedParas.filter((p) => noteTypesToInclude.includes(p.noteType?.toLowerCase() ?? ''))
+        // logDebug('runNPExtendedSyntaxSearches', `  - after note types filter = ${resultReducedParas.length} results`)
+        // TEST: Check whether the API is not doing the right thing
+        if (resultReducedParas.length !== preFilterCount) {
+          logWarn('runNPExtendedSyntaxSearches', `- confirmatory noteType filter shows ${String(preFilterCount-resultReducedParas.length)} results not matching noteType [${String(noteTypesToInclude)}] (${String(preFilterCount)} / ${String(resultReducedParas.length)})`)
+        }
+      }
+
       // Drop out search results with the wrong paragraph type (if any given)
       // TODO(later): optimise by pulling this filtering in the search call?
       if (paraTypesToInclude && paraTypesToInclude.length > 0) {
-        logDebug('runNPExtendedSyntaxSearches', `- before types filter (${paraTypesToInclude.length} = '${String(paraTypesToInclude)}'), ${resultReducedParas.length} results`)
+        const preFilterCount = resultReducedParas.length
+        logDebug('runNPExtendedSyntaxSearches', `- before para types filter (${paraTypesToInclude.length} = '${String(paraTypesToInclude)}'), ${resultReducedParas.length} results`)
         resultReducedParas = resultReducedParas.filter((p) => paraTypesToInclude.includes(p.type))
-        logDebug('runNPExtendedSyntaxSearches', `- after types filter (to ${String(paraTypesToInclude)}), ${resultReducedParas.length} results`)
-      } else {
-        logDebug('runNPExtendedSyntaxSearches', `- no type filtering requested`)
+        logDebug('runNPExtendedSyntaxSearches', `  - after para types filter = ${resultReducedParas.length} results`)
+
+        // TEST: Check whether the API is not doing the right thing
+        if (resultReducedParas.length !== preFilterCount) {
+          logWarn('runNPExtendedSyntaxSearches', `- confirmatory para type filter shows ${String(preFilterCount-resultReducedParas.length)} results not matching para type [${String(noteTypesToInclude)}] (${String(preFilterCount)} / ${String(resultReducedParas.length)})`)
+        }
       }
 
       // TODO(later): update this for search phrases not single terms
@@ -167,20 +191,18 @@ export async function runNPExtendedSyntaxSearches(
       // - replace * with [^\s]*? (i.e. any anything within the same 'word')
       // if (wildcardedSearch) {
       //   const regexSearchTerm = new RegExp('\\b' + searchString.replace(/\?/g, '.').replace(/\*/g, '[^\\s]*?') + '\\b')
-      //   logDebug('runNPExtendedSyntaxSearches', `wildcard: before regex filtering with ${String(regexSearchTerm)}: ${String(resultParas.length)}`)
-      //   resultParas = resultParas.filter(tr => regexSearchTerm.test(tr.content))
-      //   logDebug('runNPExtendedSyntaxSearches', `wildcard: after filtering: ${String(resultParas.length)}`)
+      //   logDebug('runNPExtendedSyntaxSearches', `- before wildcard filtering with [${String(regexSearchTerm)}] = ${String(resultReducedParas.length)}`)
+      //   resultReducedParas = resultReducedParas.filter(tr => regexSearchTerm.test(tr.content))
+      //   logDebug('runNPExtendedSyntaxSearches', `  - after wildcard filtering = ${String(resultReducedParas.length)}`)
       // }
 
-      fullResultCount = resultReducedParas.length
-
       // Drop out search results found only in a URL or the path of a [!][link](path)
-      const numberOfResultsBeforeURLPathFiltering = resultReducedParas.length
+      const preURLPathFilteringResultCount = resultReducedParas.length
       resultReducedParas = resultReducedParas
         .filter((f) => !isTermInURL(searchString, f.content))
         .filter((f) => !isTermInMarkdownPath(searchString, f.content))
-      if (numberOfResultsBeforeURLPathFiltering !== resultReducedParas.length) {
-        logDebug('runNPExtendedSyntaxSearches', `  - URL/path filtering removed ${String(numberOfResultsBeforeURLPathFiltering - resultReducedParas.length)} results`)
+      if (preURLPathFilteringResultCount !== resultReducedParas.length) {
+        logDebug('runNPExtendedSyntaxSearches', `  - URL/path filtering removed ${String(preURLPathFilteringResultCount - resultReducedParas.length)} results`)
       }
       
       // If we want case-sensitive searching, then filter the results to only those that contains the exact search string
@@ -198,14 +220,15 @@ export async function runNPExtendedSyntaxSearches(
       }
 
       // Dedupe identical synced lines
-      logDebug('runNPExtendedSyntaxSearches', `- Before dedupe, ${resultReducedParas.length} results for [${searchString}]`)
+      logDebug('runNPExtendedSyntaxSearches', `- before dedupe = ${resultReducedParas.length} results`)
       // $FlowFixMe[prop-missing]
       // $FlowFixMe[incompatible-exact]
       resultReducedParas = eliminateDuplicateSyncedParagraphs(resultReducedParas, 'most-recent', true)
-      logDebug('runNPExtendedSyntaxSearches', `- After dedupe, ${resultReducedParas.length} results for [${searchString}]`)
+      logDebug('runNPExtendedSyntaxSearches', `  - after dedupe = ${resultReducedParas.length} results`)
+      preLimitResultCount = resultReducedParas.length
 
       // Now check to see if we have more than config.resultLimit: if so only use the first amount to return
-      if (resultLimit > 0 && resultReducedParas.length > resultLimit) {
+      if (resultLimit > 0 && preLimitResultCount > resultLimit) {
         // First make a note of the total (to display later)
         logWarn('runNPExtendedSyntaxSearches', `We have more than ${resultLimit} results, so will discard all the ones beyond that limit.`)
         // $FlowFixMe[prop-missing]
@@ -255,7 +278,7 @@ export async function runNPExtendedSyntaxSearches(
       resultNoteAndLineArr: noteAndLineArr,
       resultCount: resultCount,
       resultNoteCount: numberOfUniqueFilenames(noteAndLineArr),
-      fullResultCount: fullResultCount,
+      fullResultCount: preLimitResultCount
     }
     return returnObject
   }
@@ -292,6 +315,7 @@ export function resultCounts(resultSet: resultOutputV3Type): string {
  * @returns {Array<string>} array of subset search terms that could be highlighted
  */
 export function getNonNegativeSearchTermsFromNPExtendedSyntax(searchString: string): Array<string> {
+  logDebug('getNonNegativeSearchTermsFromNPExtendedSyntax', `starting for [${searchString}]`)
   let searchTermsStr = removeSearchOperators(searchString)
 
   // Remove all "-(A OR B ...)" patterns and collect the terms inside

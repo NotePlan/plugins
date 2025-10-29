@@ -582,6 +582,18 @@ describe('search.js tests', () => {
       const result = s.isSearchOperator('term1:this-and-that')
       expect(result).toEqual(true)
     })
+    test('should return true for underscore in key', () => {
+      const result = s.isSearchOperator('key_one:value')
+      expect(result).toEqual(true)
+    })
+    test('should return true for numeric value', () => {
+      const result = s.isSearchOperator('k1:2')
+      expect(result).toEqual(true)
+    })
+    test('should return false for unclosed quoted value', () => {
+      const result = s.isSearchOperator('term1:"Holy')
+      expect(result).toEqual(false)
+    })
   })
 
   
@@ -610,6 +622,26 @@ describe('search.js tests', () => {
       const result = s.getSearchOperators('term1:xxx term2:"Holy Spirit" term3:zzz')
       expect(result).toEqual(['term1:xxx', 'term2:Holy Spirit', 'term3:zzz'])
     })
+    test('should include operator with underscore in key', () => {
+      const result = s.getSearchOperators('key_one:val term')
+      expect(result).toEqual(['key_one:val'])
+    })
+    test('should handle quoted operator and normal operator order', () => {
+      const result = s.getSearchOperators('heading:"Project A" is:open')
+      expect(result).toEqual(['heading:Project A', 'is:open'])
+    })
+    test('should ignore escaped operator', () => {
+      const result = s.getSearchOperators('term1:xxx \\term2:yyy')
+      expect(result).toEqual(['term1:xxx'])
+    })
+    test('should handle multiple spaces between tokens', () => {
+      const result = s.getSearchOperators('term1:xxx   term2:yyy')
+      expect(result).toEqual(['term1:xxx', 'term2:yyy'])
+    })
+    test('should ignore valid-looking operators after non-operators', () => {
+      const result = s.getSearchOperators('term1:xxx (alpha OR beta) -gamma term2:"Holy Spirit"')
+      expect(result).toEqual(['term1:xxx'])
+    })
   })
 
   describe('removeSearchOperators', () => {
@@ -636,6 +668,18 @@ describe('search.js tests', () => {
     test('should remove single leading search operator and leave others after search terms', () => {
       const result = s.removeSearchOperators('operatorA:xxx term2 operatorB:yyy operatorC:zzz')
       expect(result).toEqual('term2 operatorB:yyy operatorC:zzz')
+    })
+    test('should leave escaped colon in operator at start untouched', () => {
+      const result = s.removeSearchOperators('\\term1:xxx term2')
+      expect(result).toEqual('\\term1:xxx term2')
+    })
+    test('should remove quoted operator at start', () => {
+      const result = s.removeSearchOperators('heading:"Project A" term')
+      expect(result).toEqual('term')
+    })
+    test('should not remove when first token is not operator', () => {
+      const result = s.removeSearchOperators('term operatorA:xxx')
+      expect(result).toEqual('term operatorA:xxx')
     })
   })
   

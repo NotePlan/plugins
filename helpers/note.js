@@ -585,6 +585,44 @@ export function replaceSection(
 }
 
 /**
+ * Add a new section heading + content to the end of the note.
+ * Or, if insertAfterLineIndex is given, then insert after that line index.
+ * @author @jgclark
+ *
+ * @param {TNote} note to use
+ * @param {string} newSectionHeading
+ * @param {number} newSectionHeadingLevel
+ * @param {string} newSectionContent Note: without Heading text!
+ * @param {number} insertAfterLineIndex? (optional: default = 0)
+ */
+export function appendSection(
+  note: TNote,
+  newSectionHeading: string,
+  newSectionHeadingLevel: headingLevelType,
+  newSectionContent: string,
+  insertAfterLineIndex: ?number,
+): void {
+  try {
+    logDebug(
+      'note / appendSection',
+      `Starting for note '${displayTitle(note)}', with newSectionHeading '${newSectionHeading}' level ${newSectionHeadingLevel}`,
+    )
+    // Set place to insert either at insertAfterLineIndex if given, or at end of note
+    const insertionLineIndex = (insertAfterLineIndex && !isNaN(insertAfterLineIndex))
+      ? insertAfterLineIndex
+      : findEndOfActivePartOfNote(note) + 1
+    logDebug('note / appendSection', `- insertionLineIndex = ${insertionLineIndex}`)
+    logDebug('note / appendSection', `- before insertHeading() call there are ${note.paragraphs.length} paras`)
+    note.insertHeading(newSectionHeading, insertionLineIndex, newSectionHeadingLevel)
+    logDebug('note / appendSection', `- after insertHeading() call there are ${note.paragraphs.length} paras`)
+    note.insertParagraph(newSectionContent, insertionLineIndex + 1, 'text')
+    logDebug('note / appendSection', `- after insertParagraph() call there are ${note.paragraphs.length} paras`)
+  } catch (error) {
+    logError('note / appendSection', error.message)
+  }
+}
+
+/**
  * Remove all paragraphs in the section of a note, given:
  * - Note to use
  * - Section heading line to look for (needs to match from start of line but not necessarily the end)
@@ -613,21 +651,13 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
     }
     logDebug('note / removeSection', `Trying to remove '${headingOfSectionToRemove}' from note '${displayTitle(note)}' with ${paras.length} paras`)
 
-    let matchedHeadingIndex: number // undefined
-    let sectionHeadingLevel = 2
-    // Find the title/headingOfSectionToRemove whose start matches 'heading', and is in the active part of the note
-    // But start after title or frontmatter.
-    for (let i = startOfActive; i <= endOfActive; i++) {
-      const p = paras[i]
-      if (p.type === 'title' && p.content.startsWith(headingOfSectionToRemove) && p.lineIndex <= endOfActive) {
-        matchedHeadingIndex = p.lineIndex
-        sectionHeadingLevel = p.headingLevel
-        break
-      }
-    }
+    // Find the L2+ heading that matches 'headingOfSectionToRemove', in the active part of the note
+    const matchedHeadingIndex = findFirstHeadingAfterTitleMatchingStartsWith(note, headingOfSectionToRemove, 2)
 
-    if (matchedHeadingIndex !== undefined && matchedHeadingIndex <= endOfActive) {
-      logDebug('note / removeSection', `  - headingIndex ${String(matchedHeadingIndex)} level ${String(sectionHeadingLevel)} endOfActive ${String(endOfActive)}`)
+    if (matchedHeadingIndex !== -1) {
+      const thisHeadingPara = paras[matchedHeadingIndex]
+      const sectionHeadingLevel = thisHeadingPara.headingLevel
+      logDebug('note / removeSection', `  - matched {${thisHeadingPara.rawContent}} line ${String(matchedHeadingIndex)} (endOfActive ${String(endOfActive)})`)
       // Work out the set of paragraphs to remove
       const parasToRemove = []
       // Start by removing the heading line itself
@@ -650,13 +680,60 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
       return matchedHeadingIndex
     } else {
       // return the line after the end of the active part of the file (zero-based line index)
-      logDebug('note / removeSection', `-> heading not found; will go after end of active part of file instead (line ${endOfActive + 1}).`)
+      logDebug('note / removeSection', `-> heading not found; will return lineIndex of endOfActive+1 (${endOfActive + 1}).`)
       return endOfActive + 1
     }
   } catch (error) {
     logError('note / removeSection', error.message)
     return NaN // for completeness
   }
+}
+
+/**
+ * Find the first heading after the title that is at least the given level. Also needs to be in the active part of the note.
+ * @author @jgclark
+ * @param {TNote} note
+ * @param {number} minSectionHeadingLevelToMatch (default: 2)
+ * @returns {number} lineIndex of the found heading, or -1 if not found
+ */
+export function findFirstHeadingOfMinimumLevel(note: TNote, minSectionHeadingLevelToMatch: number = 2): number {
+  const startOfActive = findStartOfActivePartOfNote(note)
+  const endOfActive = findEndOfActivePartOfNote(note)
+  const paras = note.paragraphs ?? []
+  let headingIndex: number = -1 // i.e. 'not found'
+
+  for (let i = startOfActive; i <= endOfActive; i++) {
+    const p = paras[i]
+    if (p.type === 'title' && p.headingLevel >= minSectionHeadingLevelToMatch) {
+      headingIndex = p.lineIndex
+      break
+    }
+  }
+  return headingIndex
+}
+
+/**
+ * Find the first heading after the title that matches the startsWith string. Also needs to be in the active part of the note.
+ * @author @jgclark
+ * @param {TNote} note
+ * @param {string} startsWith
+ * @param {number} minSectionHeadingLevelToMatch (default: 2)
+ * @returns {number} lineIndex of the found heading, or -1 if not found
+ */
+export function findFirstHeadingAfterTitleMatchingStartsWith(note: TNote, startsWith: string, minSectionHeadingLevelToMatch: number = 2): number {
+  const startOfActive = findStartOfActivePartOfNote(note)
+  const endOfActive = findEndOfActivePartOfNote(note)
+  const paras = note.paragraphs ?? []
+  let matchedHeadingIndex: number = -1 // i.e. 'not found'
+
+  for (let i = startOfActive; i <= endOfActive; i++) {
+    const p = paras[i]
+    if (p.type === 'title' && p.content.startsWith(startsWith) && p.headingLevel >= minSectionHeadingLevelToMatch) {
+      matchedHeadingIndex = p.lineIndex
+      break
+    }
+  }
+  return matchedHeadingIndex
 }
 
 /**

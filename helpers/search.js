@@ -136,7 +136,7 @@ export function caseSensitiveSubstringLocaleMatch(
   } catch (error) {
     logError(
       'search/caseSensitiveSubstringLocaleMatch',
-      `Error matching '${needles}' to '${haystack}': ${error.message}`
+      `Error matching '${String(needles)}' to '${haystack}': ${error.message}`
     )
     return false
   }
@@ -469,7 +469,7 @@ export function trimAndHighlightTermInLine(
         const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}(${termsForRE}).{0,${String(maxChars - LRSplit)}})\\b(?:\\w+|$)`, "gi")
         // logDebug('trimAndHighlight', `- RE: ${String(RE_FIND_TEXT_AROUND_THE_TERMS)}`)
         const textAroundTerms = mainPart.match(RE_FIND_TEXT_AROUND_THE_TERMS) ?? [] // multiple matches
-        logDebug('trimAndHighlight', `- textAroundTerms = ${String(textAroundTerms)}`)
+        // logDebug('trimAndHighlight', `- textAroundTerms = ${String(textAroundTerms)}`)
         if (textAroundTerms.length > 0) {
           // If we have more than 1 match in the line, join the results together with '...'
           output = textAroundTerms.join(' ...')
@@ -480,7 +480,7 @@ export function trimAndHighlightTermInLine(
           }
           // If we now have a shortened string, then append '...' unless search term is at the end of the line
           if (!caseInsensitiveEndsWith(output, mainPart, false)) {
-            logDebug('trimAndHighlight', `- have shortened end of line`)
+            // logDebug('trimAndHighlight', `- have shortened end of line`)
             output = `${output} ...`
           }
           //
@@ -551,16 +551,26 @@ export function isSearchOperator(term: string): boolean {
 /**
  * Get array of search operators (e.g. date:2025-09-28 or is:open or heading:"Project A") from a search terms string. 
  * Note: does not check validity of the search operators, just the form of the a:b string.
+ * But does ignore valid-looking operators after non-operators.
+ * Example: "term1:xxx (alpha OR beta) -gamma term2:"Holy Spirit"" returns just ["term1:xxx"]
  * Suitable for use with extended search API from v3.18.1.
  * @author @jgclark
  * @tests in jest file
- * @param {string} searchTermsStr string of search terms
+ * @param {string} searchStr that may contain search operator(s) as well as search term(s)
  * @returns {Array<string>} array of search operators
  */
-export function getSearchOperators(searchTermsStr: string): Array<string> {
+export function getSearchOperators(searchStr: string): Array<string> {
   // Split on spaces that are not inside double quotes
-  const searchTerms = searchTermsStr.match(/(?:[^\s"]+|"[^"]*")+/g) || []
-  const searchOperators = searchTerms.filter(isSearchOperator)
+  const searchTerms = searchStr.match(/(?:[^\s"]+|"[^"]*")+/g) || []
+  // Only keep the search operators that are valid and come before any non-operators
+  const searchOperators = []
+  for (const term of searchTerms) {
+    if (isSearchOperator(term)) {
+      searchOperators.push(term)
+    } else {
+      break
+    }
+  }
   // Also return the values of the search operators without the quotes
   const searchOperatorsWithUnquotedValues = searchOperators.map((op) => {
     const key = op.split(':')[0]
@@ -581,10 +591,11 @@ export function getSearchOperators(searchTermsStr: string): Array<string> {
  * @returns {string} result
  */
 export function removeSearchOperators(searchTermsStr: string): string {
-  const searchTerms = searchTermsStr.split(' ')
-  // Iterate over the searchTerms noting which are search operators. Remove all up until the first searchTerms that isn't a search operator.
+  // Tokenize on spaces but keep quoted substrings intact
+  const tokens = searchTermsStr.match(/(?:[^\s"]+|"[^"]*")+/g) || []
+  // Iterate over the tokens noting which are search operators. Remove all up until the first token that isn't a search operator.
   let firstNonOperatorIndex = 0
-  for (const term of searchTerms) {
+  for (const term of tokens) {
     if (isSearchOperator(term)) {
       // logDebug('removeSearchOperators', `- removed search operator: ${term}`)
       firstNonOperatorIndex++
@@ -592,8 +603,8 @@ export function removeSearchOperators(searchTermsStr: string): string {
       break
     }
   }
-  const result = searchTerms.slice(firstNonOperatorIndex).join(' ')
-  logDebug('removeSearchOperators', `-> search terms without operators: ${result}`)
+  const result = tokens.slice(firstNonOperatorIndex).join(' ')
+  logDebug('removeSearchOperators', `-> search terms without operators: '${result}'`)
   return result
 }
 

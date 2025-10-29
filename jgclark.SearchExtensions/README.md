@@ -1,11 +1,11 @@
 # 🔎 Search Extensions plugin
-NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.  This plugin adds some extra power and usability to searching. It:
-- lets you have keep special notes that lists all open tasks for @colleagueX that you can update in place!
-- extends the search syntax to allow more control, including wildcards
-- allows you to set certain folders to ignore
+NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.  This plugin adds some extra power and usability to searching:
 - by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
-- these saved searches can be refreshed automatically when you open the note to consult it.
-- (v2) lets you **replace** as well as search.
+- this opens the possibility of having notes that lists all open tasks with a particular phrase, for example `@colleagueX`
+- further, this note can be automatically updated every time you access it
+- extends the search syntax to allow more control, including wildcards
+- allows you to set notes to ignore in particular folders
+- lets you **replace** as well as search.
 
 ![demo](qs+refresh-demo.gif)
 
@@ -15,7 +15,7 @@ NotePlan can search over your notes, but it is currently not very flexible or ea
 
   <img width="450px" alt="FlexiSearch" src="flexiSearch-dialog1@2x.png"/>
   
-  Note: when /flexiSearch is run on iPhone or iPad you will need to close the dialog box by pressing the X in the top right-hand corner after the search has run. (I'm trying to find a way around this limitation.)
+  Note: when /flexiSearch is run on iPhone or iPad, there's a limitation that means you will need to close the dialog box by pressing the X in the top right-hand corner after the search has run.
 
 - **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
 - **/search** searches across **all notes**  (both calendar and regular notes). (Alias: **/ss**.)
@@ -29,6 +29,12 @@ NotePlan can search over your notes, but it is currently not very flexible or ea
 All notes in the special Trash folder are ignored.  Others can be excluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
 
 You can also set default search terms in the 'Default Search terms' setting; if set you can still always override them on individual searches.
+
+### Major Changes from v2 to v3
+As there's a much richer search syntax to use in NotePlan v3.18.1, the following commands are now deprecated (and will be removed in time):
+- "/searchOpenTasks": Instead start your search term with `is:open` (or `is:open,checklist` etc.)
+- "/searchOverCalendar": Instead start your search term with `source:calendar`.
+- "/searchOverNotes": Instead start your search term with `source:notes`.
 
 ### Results Display
 The results are always **saved to a note** with the search terms as its title in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  You also are given the option of saving to the current note, or to the plugin console.  _The exception is /quickSearch, which always saves to the same "Quick Search Results" note._
@@ -53,12 +59,13 @@ There are further display options you can set:
 - the ordering of the results by the title, created date or changed date of the note the search term is found in.
 - the commands to automatically decides the name of the note to save the search results to based on the search term, which avoids the final prompt, by the 'Automatically save?' setting.
 
-### Refreshing Results
+### Refreshing Results manually
 Each results note has a ` [🔄 Refresh results for ...]` pseudo-button under the title of the note. Clicking that runs the search again, and replaces the earlier set of results:
 
 ![refresh results](highlight-refresh-in-search-results.png)
 
-A saved search can be **automatically refreshed when opening it**. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'refreshSavedSearch'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the note's properties.
+### Refreshing Results automatically
+A saved search can be refreshed **automatically when opening it**. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'refreshSavedSearch'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the note's properties.
 
 ## Extended search syntax
 NotePlan v3.18.1 added much new power and flexibility for its searches, [documented here](https://help.noteplan.co/article/269-advanced-search). The Plugin now works differently depending which version of NotePlan you're running.

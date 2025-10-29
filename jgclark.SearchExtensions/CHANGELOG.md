@@ -2,9 +2,9 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-## [3.0.0.b1] - 2025-09-26
+## [3.0.0.b1] - 2025-09-29
 ### Main Changes
-The Plugin now supports the significant [new native search capabilities](https://help.noteplan.co/article/269-advanced-search) available from NotePlan v3.18.1. Compared to v2 It's now much faster for multi-term searches. Unless you turn off the new setting "Use native search?", the plugin's previous extended syntax for boolean operators is turned off, and all the new NP syntax is supported instead.  For example: 
+The Plugin now supports the significant [new native search capabilities](https://help.noteplan.co/article/269-advanced-search) available from NotePlan v3.18.1. Compared to v2 the plugin is now much faster for multi-term searches. Unless you turn off the new setting "Use native search?", the plugin's previous extended syntax for boolean operators is turned off, and all the new NP syntax is supported instead.  For example: 
 - the previous search terms  `+must may could -cannot` is now expressed as `must (may OR could) -cannot`.
 - `+meeting -work -meetup` is now `meeting -(work meetup)`
 
@@ -17,7 +17,7 @@ Note: The existing functionality is retained for users not able to run v3.18.1 o
 ### Other changes
 - added 2 new options for sorting results
 - now adds 🔍 icon to result notes
-- the trigger name has been changed to **automatically refresh** a saved search when opening its note. To enable this, run "/add trigger" on the saved search note, and now select "🔎 Search Extensions: 'onOpen'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the frontmatter. (Existing set triggers should still work.)
+- the trigger has been changed to **automatically refresh** a saved search when opening its note. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'onOpen'" from the list.  To turn off this trigger, just remove the line starting `triggers: onOpen` from the frontmatter. (Existing set triggers should still work.)
 ### Dev notes
 - runExtendedSearches() now forked to runPluginExtendedSyntaxSearches() and runNPExtendedSyntaxSearches().
 

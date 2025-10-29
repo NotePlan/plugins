@@ -4,20 +4,21 @@
 // Search Extensions helpers, for both older and newer methods of running searches.
 // Search Extensions helpers, for both older and newer methods of running searches.
 // Jonathan Clark
-// Last updated 2025-10-05 for v3.0.0, @jgclark
+// Last updated 2025-10-25 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
+import { stringToTailwindColorName } from '@helpers/colors'
 import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import {
   displayTitle,
   type headingLevelType,
 } from '@helpers/general'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
-import { getNoteByFilename, getNoteLinkForDisplay,
-  replaceSection, setIconForNote } from '@helpers/note'
+import { findFirstHeadingOfMinimumLevel, getNoteByFilename, getNoteLinkForDisplay, removeSection, replaceSection, setIconForNote } from '@helpers/note'
+import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getOrMakeRegularNoteInFolder, getNoteTitleFromFilename } from '@helpers/NPnote'
+import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { showMessageYesNo } from '@helpers/userInput'
 
@@ -275,11 +276,24 @@ export function formSearchResultsHeadingLine(resultSet: resultOutputV3Type): str
   return `[${searchTermsRepStr}]`
 }
 
+/**
+ * Form the metadata line for the search results note.
+ * @author @jgclark
+ * @param {resultOutputV3Type} resultSet
+ * @param {string} xCallbackURL
+ * @returns {string}
+ */
 export function formSearchResultsMetadataLine(resultSet: resultOutputV3Type, xCallbackURL: string): string {
   const resultCountsStr = resultCounts(resultSet)
-  const searchTermsRepStr = resultSet.searchTermsStr ?? '?'
-  const searchOperatorsRepStr = resultSet.searchOperatorsStr ? `, with operators _${resultSet.searchOperatorsStr}_` : ''
-  const xCallbackText = (xCallbackURL !== '') ? `[🔄 Refresh results for '${searchTermsRepStr}'](${xCallbackURL})` : ''
+  const searchOperatorsRepStr = resultSet.searchOperatorsStr ? `, with operators [${resultSet.searchOperatorsStr}]` : ''
+
+  // V1
+  // const searchTermsRepStr = resultSet.searchTermsStr ?? '?'
+  // const xCallbackText = (xCallbackURL !== '') ? `[🔄 Refresh '${searchTermsRepStr}' search](${xCallbackURL})` : ''
+  // return `${resultCountsStr}${searchOperatorsRepStr} at ${nowLocaleShortDateTime()}\n${xCallbackText}`
+
+  // V2
+  const xCallbackText = (xCallbackURL !== '') ? `[🔄 Re-run search](${xCallbackURL})` : ''
   return `${resultCountsStr}${searchOperatorsRepStr} at ${nowLocaleShortDateTime()} ${xCallbackText}`
 }
 
@@ -287,6 +301,7 @@ export function formSearchResultsMetadataLine(resultSet: resultOutputV3Type, xCa
  * Write results set to a note, reusing it where it already exists.
  * Note: It's now possible to give a 'justReplaceThisSection' parameter: if it's given then just that section will be replaced, otherwise the whole contents will be deleted first. This allows for some preamble text to be left between runs.
  * Note: A heading is also needed for QuickSearch note, as otherwise the search terms aren't given.
+ * Note: If doNotCreateNoteIfNoResults is true, and there are no results, then a new note will not be created. But if it already exists, then it will be updated, to be accurate to the current results.
  * @author @jgclark
  *
  * @param {SearchConfig} config
@@ -294,7 +309,7 @@ export function formSearchResultsMetadataLine(resultSet: resultOutputV3Type, xCa
  * @param {string} requestedTitle requested note title to use/make
  * @param {string?} xCallbackURL URL to cause a 'refresh' of this command
  * @param {boolean?} justReplaceThisSection if set, will just replace this justReplaceThisSection's section, not replace the whole note (default: false)
- * @param {boolean?} createNoteIfNoResults if set, will create a note even if there are no results
+ * @param {boolean?} doNotCreateNoteIfNoResults? (default: true)
  * @returns {string} filename of note we've written to
  */
 export async function writeSearchResultsToNote(
@@ -303,12 +318,11 @@ export async function writeSearchResultsToNote(
   requestedTitle: string,
   xCallbackURL: string = '',
   justReplaceThisSection: boolean = false,
-  createNoteIfNoResults: boolean = false,
+  doNotCreateNoteIfNoResults: boolean = true,
 ): Promise<string> {
   try {
     logDebug('writeSearchResultsToNote', `Starting with ${resultSet.resultCount} results to write to note ${requestedTitle}, ${justReplaceThisSection ? 'just replacing this section' : 'replacing the whole note'}`)
     let noteFilename = ''
-    // TEST:
     const searchTermsRepStr = resultSet.searchTermsStr ?? '?'
     const headingMarker = '#'.repeat(config.headingLevel)
 
@@ -322,11 +336,11 @@ export async function writeSearchResultsToNote(
     const headingLine = formSearchResultsHeadingLine(resultSet)
     const metadataLine = formSearchResultsMetadataLine(resultSet, xCallbackURL)
     // Prepend the results part with the timestamp+refresh line
-    resultsContent = `${metadataLine}${resultsContent}`
+    // resultsContent = `${metadataLine}${resultsContent}`
 
     // If there are no results, and we would be creating a note, then stop
     const possExistingNotes = DataStore.projectNoteByTitle(requestedTitle)
-    if (resultSet.resultCount === 0 && !createNoteIfNoResults && (!possExistingNotes || possExistingNotes.length === 0)) {
+    if (resultSet.resultCount === 0 && doNotCreateNoteIfNoResults && (!possExistingNotes || possExistingNotes.length === 0)) {
       logDebug('writeSearchResultsToNote', `- no results, and no existing results note '${requestedTitle}', so stopping.`)
       return ''
     }
@@ -335,42 +349,63 @@ export async function writeSearchResultsToNote(
     // Note: in theory could now use the 'content' parameter on Editor.openNoteByFilename() via NPNote/openNoteByFilename() helper here.
     const outputNote = await getOrMakeRegularNoteInFolder(requestedTitle, config.folderToStore)
 
-    if (outputNote) {
-      // If the relevant note has more than just a title line, decide whether to replace all contents, or just replace a given heading section
-      if (justReplaceThisSection && outputNote.paragraphs.length > 1) {
-        // Just replace the heading section, to allow for some text to be left between runs
-        logDebug('writeSearchResultsToNote', `- just replacing section '${searchTermsRepStr}' in ${outputNote.filename}`)
-        replaceSection(outputNote, searchTermsRepStr, headingLine, config.headingLevel, resultsContent)
+    // TODO: Try to write different OR parts to separate sections.
 
-        // Because of a change in where the timestamp is displayed, we potentially need to remove it from line 1 of the note
-        const line1 = outputNote.paragraphs[1].content
-        if (line1.startsWith('at ') && line1.includes('Refresh results for ')) {
-          logDebug('writeSearchResultsToNote', `- removing timestamp from line 1 of ${outputNote.filename}. This should be one-time-only operation.`)
-          outputNote.removeParagraphAtIndex(1)
-        }
-      }
-      else {
-        // Replace all note contents
-        logDebug('writeSearchResultsToNote', `- replacing note content in ${outputNote.filename}`)
-        const newContent = `${titleLine}\n${headingMarker} ${headingLine}\n${resultsContent}`
-        // logDebug('', `${newContent} = ${newContent.length} bytes`)
-        outputNote.content = newContent
-      }
-
-      // Set note's icon
-      setIconForNote(outputNote, "magnifying-glass")
-
-      noteFilename = outputNote.filename ?? '<error>'
-      logDebug('writeSearchResultsToNote', `written resultSet for ${searchTermsRepStr} to the note ${noteFilename} (${displayTitle(outputNote)})`)
-      return noteFilename
-    }
-    else {
+    if (!outputNote) {
       throw new Error(`Couldn't find or make note for ${requestedTitle}. Stopping.`)
     }
+
+    // If the relevant note has more than just a title line, decide whether to replace all contents, or just replace a given heading section
+    if (justReplaceThisSection && outputNote.paragraphs.length > 1) {
+      insertOrReplaceMetadataLine(outputNote, config, metadataLine)
+
+      // Remove section from note using an older possible heading format
+      const olderResultHeadingStart1 = `'${searchTermsRepStr}'`
+      logDebug('writeSearchResultsToNote', `Will remove section '${olderResultHeadingStart1}' from current note`)
+      const _res = removeSection(outputNote, olderResultHeadingStart1)
+
+      // Replace the results section
+      logDebug('writeSearchResultsToNote', `- just replacing section '${searchTermsRepStr}' in ${outputNote.filename}`)
+      replaceSection(outputNote, searchTermsRepStr, headingLine, config.headingLevel, resultsContent)
+
+    } else {
+      // Replace all note contents
+      logDebug('writeSearchResultsToNote', `- replacing note content in ${outputNote.filename}`)
+      const newContent = `${titleLine}\n${metadataLine}\n${headingMarker} ${headingLine}\n${resultsContent}`
+      // logDebug('', `${newContent} = ${newContent.length} bytes`)
+      outputNote.content = newContent
+    }
+
+    // Set note's icon
+    setIconForNote(outputNote, "magnifying-glass", stringToTailwindColorName(requestedTitle))
+
+    noteFilename = outputNote.filename ?? '<error>'
+    logDebug('writeSearchResultsToNote', `written resultSet for ${searchTermsRepStr} to the note ${noteFilename} (${displayTitle(outputNote)})`)
+    return noteFilename
   }
   catch (err) {
     logError('writeSearchResultsToNote', err.message)
     return 'error' // for completeness
+  }
+}
+
+export function insertOrReplaceMetadataLine(outputNote: TNote, config: SearchConfig, metadataLine: string): void {
+  // Replace contents of an existing line with the metadata in it, if it exists ...
+  let firstSectionHeadingLineIndex = findFirstHeadingOfMinimumLevel(outputNote, config.headingLevel)
+  if (firstSectionHeadingLineIndex === -1) {
+    firstSectionHeadingLineIndex = outputNote.paragraphs.length
+  }
+  logDebug('insertOrReplaceMetadataLine', `- firstSectionHeadingLineIndex = ${firstSectionHeadingLineIndex}`)
+  const metadataLineIndex = outputNote.paragraphs.findIndex(p => p.content.includes('🔄') && p.lineIndex < firstSectionHeadingLineIndex) ?? -1
+  logDebug('insertOrReplaceMetadataLine', `- metadataLineIndex = ${metadataLineIndex}`)
+  if (metadataLineIndex !== -1) {
+    logDebug('insertOrReplaceMetadataLine', `- replacing metadata at line ${String(metadataLineIndex)}`)
+    outputNote.paragraphs[metadataLineIndex].content = metadataLine
+  } else {
+    // ... otherwise insert it at start of active part of note + 1 (i.e. past any frontmatter and title)
+    const startOfActive = findStartOfActivePartOfNote(outputNote)
+    logDebug('insertOrReplaceMetadataLine', `- inserting metadata line at startOfActive + 1 = ${String(startOfActive+1)}`)
+    outputNote.insertParagraph(metadataLine, startOfActive+1, 'text')
   }
 }
 
@@ -531,4 +566,16 @@ export async function makeAnySyncs(input: resultOutputV3Type): Promise<resultOut
     // $FlowFixMe[incompatible-return]
     return null
   }
+}
+
+/**
+ * Hash a string to an RGB color
+ * @param {string} str 
+ * @returns {string} RGB color as #RRGGBB
+ */
+function hashStringToRGBColor(str: string): string {
+  const hash = str.split('').reduce((acc, char) => {
+    return ((acc << 5) - acc) + char.charCodeAt(0)
+  }, 0)
+  return `#${hash.toString(16).padStart(6, '0')}`
 }

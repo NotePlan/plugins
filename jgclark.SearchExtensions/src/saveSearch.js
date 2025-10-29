@@ -4,7 +4,7 @@
 // Interactive commands for SearchExtensions plugin.
 // Create list of occurrences of note paragraphs with specified strings, which can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2025-10-05 for v3.0.0, @jgclark
+// Last updated 2025-10-25 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -22,15 +22,17 @@ import {
   getParaTypesFromString,
   getParaTypesAsString,
   getSearchSettings,
+  insertOrReplaceMetadataLine,
   OPEN_PARA_TYPES,
   writeSearchResultsToNote,
 } from './searchHelpers'
 import { runPluginExtendedSyntaxSearches, validateAndTypeSearchTerms
 } from './pluginExtendedSyntaxHelpers'
 import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
+import { stringToTailwindColorName } from '@helpers/colors'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
-import { removeSection,replaceSection, setIconForNote } from '@helpers/note'
+import { appendSection, removeSection, replaceSection, setIconForNote } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { getSearchOperators } from '@helpers/search'
 import {
@@ -235,29 +237,15 @@ export async function saveSearch(
   try {
     const config = await getSearchSettings()
     const NPAdvancedSyntaxAvailable = NotePlan.environment.buildVersion >= 1429
-    const searchOperators = (searchTermsArg) ? getSearchOperators(searchTermsArg) : []
     logDebug(pluginJson, `Starting saveSearch() with searchTermsArg '${searchTermsArg ?? '(not supplied)'}', on NP build version ${String(NotePlan.environment.buildVersion)} and useNativeSearch? ${String(config.useNativeSearch)}`)
-    clo(searchOptions, 'searchOptions:')
+    // clo(searchOptions, 'saveSearch starting with searchOptions:')
 
     // destructure the searchOptions object, the long way
     // Get the noteTypes to include
-    let noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
-    if (searchOperators) {
-      // Now check the searchOperators and use those to set noteTypesToInclude if present.
-      // - source:notes - Notes only
-      if (searchOperators.includes('source:notes')) {
-        noteTypesToInclude = ['notes']
-      }
-      // - source:calendar - Calendar notes only
-      if (searchOperators.includes('source:calendar')) {
-        noteTypesToInclude = ['calendar']
-      }
-      // - source:notes,calendar - Notes and Calendar notes
-      if (searchOperators.includes('source:notes,calendar') || searchOperators.includes('source:calendar,notes')) {
-        noteTypesToInclude = ['notes', 'calendar']
-      }
-    }
-    logDebug('saveSearch', `- note types -> '${noteTypesToInclude.toString()}'`)
+    let noteTypesToInclude = searchOptions.noteTypesToInclude || ['calendar', 'notes']
+    // Note: may be updated later if searchOperators are present
+    
+    // Set other searchOptions
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
     if (!('caseSensitiveSearching' in searchOptions)) {
       searchOptions.caseSensitiveSearching = config.caseSensitiveSearching
@@ -320,9 +308,39 @@ export async function saveSearch(
     // Now do the relevant processing for different versions of NP
     if (config.useNativeSearch && NPAdvancedSyntaxAvailable) {
       logDebug('saveSearch', `Will use newer NP extended syntax`)
+      const searchOperators = (termsToMatchStr)
+        ? getSearchOperators(termsToMatchStr) // Note: this will include any date: range operators
+        : []
 
+      if (searchOperators) {
+        logDebug('saveSearch', `- searchOperators: ${String(searchOperators)}`)
+        // Check searchOperators for source: terms, and if found set noteTypesToInclude accordingly
+        // - source:notes,calendar - Notes and Calendar notes
+        if (searchOperators.includes('source:notes,calendar') || searchOperators.includes('source:calendar,notes')) {
+          noteTypesToInclude = ['notes', 'calendar']
+        } else 
+        // - source:notes - Notes only
+        if (searchOperators.includes('source:notes')) {
+          noteTypesToInclude = ['notes']
+        } else 
+        // - source:calendar - Calendar notes only
+        if (searchOperators.includes('source:calendar')) {
+          noteTypesToInclude = ['calendar']
+        }
+        searchOptions.noteTypesToInclude = noteTypesToInclude
+        // logDebug('saveSearch', `- note types updated -> '${noteTypesToInclude.toString()}'`)
+
+        // Check searchOperators for is: terms, and if found set paraTypesToInclude accordingly
+        // Possible ones are: is:open|done|scheduled|cancelled|checklist|checklist-done|checklist-scheduled|checklist-cancelled|not-task
+        const paraTypeOperator: string = searchOperators.filter(op => op.startsWith('is:'))[0] ?? ''
+        if (paraTypeOperator.length > 0) {
+          searchOptions.paraTypesToInclude = paraTypeOperator.replace('is:', '').split(',')
+          logDebug('saveSearch', `- searchOperators -> paraTypesToInclude: ${String(searchOptions.paraTypesToInclude)}`)
+        }
+      }
+    
+      // If we have a date range passed in (rather than specified as search operators in the search string), then add it to the search terms
       logDebug('saveSearch', `- ${String('fromDateStr' in searchOptions)} and ${String('toDateStr' in searchOptions)}`)
-      // If we have a date range, then add it to the search terms
       if (('fromDateStr' in searchOptions) && ('toDateStr' in searchOptions)) {
         termsToMatchStr = `date:${String(searchOptions.fromDateStr)}-${String(searchOptions.toDateStr)} ${termsToMatchStr}`
       } else if ('fromDateStr' in searchOptions) {
@@ -343,7 +361,7 @@ export async function saveSearch(
       await CommandBar.onMainThread()
     }
 
-    if (!config.useNativeSearch ||config._runComparison || !NPAdvancedSyntaxAvailable) {
+    if (!config.useNativeSearch || config._runComparison || !NPAdvancedSyntaxAvailable) {
       // NP Advanced Syntax not available, or we want to compare results
       logDebug('saveSearch', `Will use older Plugin extended syntax`)
 
@@ -370,15 +388,8 @@ export async function saveSearch(
 
       // Work out time period to cover (if wanted)
       if (('fromDateStr' in searchOptions) || ('toDateStr' in searchOptions)) {
-        // Note: can't reliably tell if called non-interactively
-        // if (calledNonInteractively) {
-        //   [fromDateStr, toDateStr, periodString, periodAndPartStr] = getDateRangeFromSearchOptions(searchOptions)
-        //   logDebug('saveSearch', `arg1/2 -> ${periodString}`)
-        // }
-        // else {
-          [fromDateStr, toDateStr, periodString, periodAndPartStr] = await getDateRangeFromUser()
-          logDebug('saveSearch', `Time period for search: ${periodAndPartStr}`)
-        // }
+        [fromDateStr, toDateStr, periodString, periodAndPartStr] = await getDateRangeFromUser()
+        logDebug('saveSearch', `Time period for search: ${periodAndPartStr}`)
         if (fromDateStr > toDateStr) {
           throw new Error(`Stopping: fromDate ${fromDateStr} is after toDate ${toDateStr}`)
         }
@@ -517,7 +528,7 @@ export async function saveSearch(
     }
   }
   catch (err) {
-    logError(pluginJson, JSP(err))
+    logError('saveSearch', JSP(err))
   }
 }
 
@@ -530,18 +541,22 @@ async function writeToSearchSpecificNote(
   // Note: If no results, and the search results note hasn't already been created, then don't create it just for empty results. But do update it if it already exists.
   const searchTermsRepStr = resultSetToUse.searchTermsStr ?? '?'
   // const searchOperatorsRepStr = resultSetToUse.searchOperatorsStr ? ` (${resultSetToUse.searchOperatorsStr})` : ''
-  const requestedTitle = `${searchTermsRepStr} ${config.searchHeading}${periodAndPartStr ? ` for ${periodAndPartStr}` : ''}`
+  const requestedTitle = `[${searchTermsRepStr}] ${config.searchHeading}${periodAndPartStr ? ` for ${periodAndPartStr}` : ''}`
 
   // Get/make note, and then replace the search term's block (if already present) or append.
-  const noteFilename = await writeSearchResultsToNote(config, resultSetToUse, requestedTitle, xCallbackURL, true, false)
+  const noteFilename = await writeSearchResultsToNote(config, resultSetToUse, requestedTitle, xCallbackURL, true, true)
+  logDebug('saveSearch/writeToSearchSpecificNote', `- written to filename '${noteFilename}'`)
 
-  logDebug('saveSearch', `- filename to write to (and potentially show in split): '${noteFilename}'`)
-  if (noteOpenInEditor(noteFilename)) {
-    logDebug('saveSearch', `- note ${noteFilename} already open in an editor window`)
+  if (resultSetToUse.resultCount === 0) {
+    logDebug('saveSearch/writeToSearchSpecificNote', `- no results, so not opening results note ${noteFilename}`)
   } else {
-    // Open the results note in a new split window, unless we can tell
-    logDebug('saveSearch', `- opening note ${noteFilename} in a split window`)
-    await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
+    if (noteOpenInEditor(noteFilename)) {
+      logDebug('saveSearch/writeToSearchSpecificNote', `- note ${noteFilename} already open in an editor window`)
+    } else {
+      // Open the results note in a new split window
+      logDebug('saveSearch/writeToSearchSpecificNote', `- opening note ${noteFilename} in a split window`)
+      await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
+    }
   }
 }
 
@@ -551,15 +566,15 @@ async function writeToQuickSearchNote(
   // Write to the same 'Quick Search Results' note (or whatever the user's setting is)
   // Delete the note's contents and re-write each time.
   // *Does* need to include a subhead with search term + result count, as title is fixed.
-  const requestedTitle = config.quickSearchResultsTitle
-  const noteFilename = await writeSearchResultsToNote(config, resultSetToUse, requestedTitle, xCallbackURL, false, false)
+  const noteFilename = await writeSearchResultsToNote(config, resultSetToUse, config.quickSearchResultsTitle, xCallbackURL, false, false)
 
-  logDebug('saveSearch', `- filename to open in split: ${noteFilename}`)
+  // Open the results note in a split window, even if there are no results
+  logDebug('saveSearch/writeToQuickSearchNote', `- filename to open in split: ${noteFilename}`)
   if (noteOpenInEditor(noteFilename)) {
-    logDebug('saveSearch', `- note ${noteFilename} already open in an editor window`)
+    logDebug('saveSearch/writeToQuickSearchNote', `- note ${noteFilename} already open in an editor window`)
   } else {
     // Open the results note in a new split window, unless we can tell
-    logDebug('saveSearch', `- opening note ${noteFilename} in a split window`)
+    logDebug('saveSearch/writeToQuickSearchNote', `- opening note ${noteFilename} in a split window`)
     await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
   }
 }
@@ -569,41 +584,57 @@ function writeToLog(
 ): void {
   const headingMarker = '#'.repeat(config.headingLevel)
   const resultOutputLines: Array<string> = createFormattedResultLines(resultSetToUse, config)
-  logInfo('saveSearch', `${headingMarker} ${searchTermsRepStr} (${resultSetToUse.resultCount} results)`)
-  logInfo('saveSearch', resultOutputLines.join('\n'))
+  logInfo('saveSearch/writeToLog', `${headingMarker} ${searchTermsRepStr} (${resultSetToUse.resultCount} results)`)
+  logInfo('saveSearch/writeToLog', resultOutputLines.join('\n'))
 }
 
+/**
+ * Update search results in the current Editor note. We won't write an overarching title, but will add a section heading.
+ * For each search term result set, replace the search term's block (if already present) or append.
+ * @author @jgclark
+ *
+ * @param {SearchConfig} config
+ * @param {resultOutputV3Type} resultSet object
+ * @param {string} xCallbackURL URL to cause a 'refresh' of this command
+ */
 function writeToCurrentNote(
   config: SearchConfig, resultSetToUse: resultOutputV3Type, xCallbackURL: string
 ): void {
-  if (resultSetToUse.resultCount === 0) {
-    logInfo('saveSearch', `No results found for search [${resultSetToUse.searchTermsStr}].`)
-    return
+  try {
+    if (resultSetToUse.resultCount === 0) {
+      logInfo('saveSearch/writeToCurrentNote', `No results found for search [${resultSetToUse.searchTermsStr}].`)
+      return
+    }
+
+    const currentNote = Editor.note
+    if (currentNote == null) {
+      throw new Error(`No note is open to save search results to.`)
+    }
+
+    const thisResultHeading = formSearchResultsHeadingLine(resultSetToUse)
+    const thisMetadataLine = formSearchResultsMetadataLine(resultSetToUse, xCallbackURL)
+
+    insertOrReplaceMetadataLine(currentNote, config, thisMetadataLine)
+    // FIXME: Ensure that H1 or frontmatter is present
+
+
+    // Remove section from note using 2 different possible formats
+    const olderResultHeadingStart1 = `'${resultSetToUse.searchTermsStr}'`
+    logDebug('saveSearch/writeToCurrentNote', `Will try to remove section '${olderResultHeadingStart1}' from current note`)
+    const _res1 = removeSection(currentNote, olderResultHeadingStart1)
+    const olderResultHeadingStart2 = `${resultSetToUse.searchTermsStr}`
+    logDebug('saveSearch/writeToCurrentNote', `Will try to remove section '${olderResultHeadingStart2}' from current note`)
+    const _res2 = removeSection(currentNote, olderResultHeadingStart2)
+
+    logDebug('saveSearch/writeToCurrentNote', `Will replace section '${thisResultHeading}' with new content`)
+    const resultOutputLines: Array<string> = createFormattedResultLines(resultSetToUse, config)
+    replaceSection(currentNote, thisResultHeading, thisResultHeading,config.headingLevel, `${resultOutputLines.join('\n')}`)
+
+    // Set note's icon
+    setIconForNote(currentNote, "magnifying-glass", stringToTailwindColorName(thisResultHeading))
+    logDebug('saveSearch/writeToCurrentNote', `Finished writing to current note.`)
   }
-
-  // We won't write an overarching title, but will add a section heading.
-  // For each search term result set, replace the search term's block (if already present) or append.
-  const currentNote = Editor.note
-  if (currentNote == null) {
-    throw new Error(`No note is open to save search results to.`)
+  catch (err) {
+    logError('saveSearch/writeToCurrentNote', err.message)
   }
-
-  const thisResultHeading = formSearchResultsHeadingLine(resultSetToUse)
-  const thisMetadataLine = formSearchResultsMetadataLine(resultSetToUse, xCallbackURL)
-  
-  // First, remove section from note using earlier formats (from v2)
-  const olderResultHeadingStart1 = `'${resultSetToUse.searchTermsStr}'`
-  logDebug('saveSearch', `Will remove section '${olderResultHeadingStart1}' from current note`)
-  let _res = removeSection(currentNote, olderResultHeadingStart1)
-  const olderResultHeadingStart2 = `${resultSetToUse.searchTermsStr}`
-  logDebug('saveSearch', `Will remove section '${olderResultHeadingStart2}' from current note`)
-  _res = removeSection(currentNote, olderResultHeadingStart2)
-  
-  logDebug('saveSearch', `Will write update/append section '${thisResultHeading}' to current note (${currentNote.filename ?? ''})`)
-  const resultOutputLines: Array<string> = createFormattedResultLines(resultSetToUse, config)
-  replaceSection(currentNote, thisResultHeading, thisResultHeading, config.headingLevel, `${thisMetadataLine}\n${resultOutputLines.join('\n')}`)
-
-  // Set note's icon
-  setIconForNote(currentNote, "magnifying-glass", "blue-500")
-  logDebug('saveSearch', `saveSearch() finished writing to current note.`)
 }

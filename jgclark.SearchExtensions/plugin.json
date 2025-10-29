@@ -9,7 +9,8 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
   "plugin.version": "3.0.0.b1",
-  "plugin.lastUpdateInfo": "3.0.0: Significant changes to align with welcome new native search capabilities in NotePlan  v3.18.1.\nIn particular, when you are running v3.18.1 it will assume you're using the new native search syntax.\nPlease see the README to learn more!",
+  "plugin.releaseStatus": "beta",
+  "plugin.lastUpdateInfo": "3.0.0: Significant changes to align with welcome new native search capabilities in NotePlan v3.18.1.\nIf you are running this newer version, the plugin assumes you're using the new native search syntax.\nPlease see the README to learn more.\nNote: this is a beta release, so please report any issues you find.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -303,6 +304,14 @@
       "required": true
     },
     {
+      "key": "searchHeading",
+      "title": "Saved Search heading",
+      "description": "Optional text to append to headings in saved search result notes. (Does not affect /quickSearch results.)",
+      "type": "string",
+      "default": "Search results",
+      "required": false
+    },
+    {
       "type": "separator"
     },
     {
@@ -336,14 +345,6 @@
       "type": "number",
       "default": 2,
       "required": true
-    },
-    {
-      "key": "searchHeading",
-      "title": "Saved Search heading",
-      "description": "Text to append to headings in search results (optional).",
-      "type": "string",
-      "default": "(Search Results)",
-      "required": false
     },
     {
       "key": "sortOrder",
