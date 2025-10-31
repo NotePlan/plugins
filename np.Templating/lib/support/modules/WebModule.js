@@ -8,13 +8,12 @@
 import { getVerse } from './verse'
 import { getWOTD } from './wotd'
 import { getAdvice } from './advice'
-import { getWeather } from './weather'
 import { getService } from './data/service'
 import { getDailyQuote } from './quote'
 import { getAffirmation } from './affirmation'
 import { getStoicQuote } from './stoicQuotes'
-import { getWeatherSummary } from './weatherSummary'
 import { journalingQuestion } from './journal'
+import { getNotePlanWeather } from './notePlanWeather'
 
 export default class WebModule {
   async advice(): Promise<string> {
@@ -33,12 +32,12 @@ export default class WebModule {
     return await getStoicQuote()
   }
 
-  async weather(templateConfig: any, params: string = ''): Promise<string> {
+  async weather(templateConfig: any, params: string = '', units: string = 'metric', latitude: number = 0, longitude: number = 0): Promise<string | any> {
     let weatherFormat = params.length > 0 ? params : ''
     // eslint-disable-next-line
     weatherFormat = weatherFormat.length === 0 && templateConfig?.weatherFormat?.length > 0 ? templateConfig?.weatherFormat : weatherFormat
     // eslint-disable-next-line
-    return weatherFormat.length === 0 ? await (await getWeather()).trim() : await (await getWeatherSummary(weatherFormat)).trim()
+    return await getNotePlanWeather(weatherFormat, units, latitude, longitude)
   }
 
   async verse(): Promise<string> {

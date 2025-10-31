@@ -6,6 +6,21 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.2.0] 2025-10-28 @dwertheimer
+- switch weather service to use NotePlan's new weather API (` <%- NotePlan.getWeather(units, latitude, longitude) %> `)
+- templateInsert and templateAppend now add a reload of the Editor in case any templating code changed the note underneath and we are reloading the note to get the new content before inserting the rendered template. to solve a but where plugin was writing to note but Editor was overwriting
+- check clayrussell's bug with folder selection
+- allow images in templates -- absolute paths get copied
+- add debugging to template rendering to show session data and user options to try to find issues with template rendering
+
+## [2.1.3] 2025-10-15 @dwertheimer
+- Add debugging to chooseFolder() to show the actual index in the folders array that was chosen to try to find the ipad bug for clay russell
+- fix clay russell's edge case of inline title not being detected when you have multiple sections that look like frontmatter but some aren't
+
+## [2.1.2] 2025-10-07 @dwertheimer (was never released, just included in 2.1.3)
+- allow passing of templateRunner body content via xcallback with blank template title
+
+
 ## [2.1.1] 2025-09-08 @dwertheimer
 - fix using button on empty template, especially with teamspace notes
 - use chooseFolder() to include teamspaces in folder selection of templateNew command

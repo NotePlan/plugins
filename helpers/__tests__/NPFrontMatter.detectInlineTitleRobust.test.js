@@ -248,12 +248,8 @@ Content`
   })
 
   describe('Real-world scenarios', () => {
-    it('should handle meeting notes template', () => {
-      const content = `---
-template: meeting
-category: work
----
---
+    it('should handle template with output frontmatter and inline title', () => {
+      const content = `--
 date: 2024-01-15
 attendees: John, Jane
 --
@@ -263,40 +259,6 @@ attendees: John, Jane
 - Discuss blockers`
       const result = detectInlineTitle(content)
       expect(result).toEqual({ hasInlineTitle: true, inlineTitleText: 'Weekly Team Meeting' })
-    })
-
-    it('should handle daily journal template', () => {
-      const content = `---
-template: journal
-type: daily
----
---
-date: 2024-01-15
-mood: good
---
-# January 15, 2024
-## What I accomplished today
-- Worked on project X
-- Had lunch with colleague`
-      const result = detectInlineTitle(content)
-      expect(result).toEqual({ hasInlineTitle: true, inlineTitleText: 'January 15, 2024' })
-    })
-
-    it('should handle project notes template', () => {
-      const content = `---
-template: project
-status: active
----
---
-project: MyApp
-version: 1.0
---
-# Project Update: MyApp v1.0
-## Recent Changes
-- Fixed bug #123
-- Added new feature`
-      const result = detectInlineTitle(content)
-      expect(result).toEqual({ hasInlineTitle: true, inlineTitleText: 'Project Update: MyApp v1.0' })
     })
   })
 

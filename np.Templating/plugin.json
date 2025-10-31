@@ -1,10 +1,10 @@
 {
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.18.2",
+  "noteplan.minAppVersion": "3.19.2",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "2.1.1",
-  "plugin.lastUpdateInfo": "2.1.1: - add chooseFolder using new chooseFolder() helper function including teamspaces",
+  "plugin.version": "2.2.0",
+  "plugin.lastUpdateInfo": "2.2.0: - allow images in templates -- absolute paths get copied",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson ( codedungeon)",
   "plugin.dependencies": [],

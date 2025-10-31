@@ -8,25 +8,13 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  gatherOccurrences,
-  generateProgressUpdate,
-  getSummariesSettings,
-  type OccurrencesToLookFor,
-  type SummariesConfig,
-} from './summaryHelpers'
+import { gatherOccurrences, generateProgressUpdate, getSummariesSettings, type OccurrencesToLookFor, type SummariesConfig } from './summaryHelpers'
 import { hyphenatedDate } from '@helpers/dateTime'
-import {
-  clo, logDebug, logError, logInfo, logWarn, timer,
-  overrideSettingsWithEncodedTypedArgs
-} from '@helpers/dev'
-import {
-  createPrettyRunPluginLink,
-  formatWithFields, getTagParamsFromString
-} from '@helpers/general'
+import { clo, logDebug, logError, logInfo, logWarn, timer, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
+import { createPrettyRunPluginLink, formatWithFields, getTagParamsFromString } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { getDateStrForEndofPeriodFromCalendarFilename, getPeriodStartEndDates } from '@helpers/NPdateTime'
-import { showMessage } from "@helpers/userInput"
+import { showMessage } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
 // Main entry points
@@ -47,13 +35,11 @@ import { showMessage } from "@helpers/userInput"
  */
 export async function progressUpdate(params: any = '', sourceIn: string = ''): Promise<string> {
   try {
-    logDebug(pluginJson, `progressUpdate (from template or callback): Starting with params '${params}' and source '${sourceIn}'`)
-    const source = (sourceIn !== '') ? sourceIn
-      : (typeof params === 'string')
-        ? 'callback'
-        : (typeof params === 'object')
-          ? 'template'
-          : ''
+    logDebug(
+      pluginJson,
+      `progressUpdate (from template or callback): Starting with params '${typeof params === 'string' ? params : JSON.stringify(params)}' and source '${sourceIn}'`,
+    )
+    const source = sourceIn !== '' ? sourceIn : typeof params === 'string' ? 'callback' : typeof params === 'object' ? 'template' : ''
     logDebug('progressUpdate', `- source determined to be '${source}'`)
     if (source === 'refresh') {
       // Work out what note we're called from
@@ -68,9 +54,8 @@ export async function progressUpdate(params: any = '', sourceIn: string = ''): P
     }
 
     // If run from a template, then return the output string. Otherwise there is no return value.
-    return await makeProgressUpdate(params, source) ?? ''
-  }
-  catch (err) {
+    return (await makeProgressUpdate(params, source)) ?? ''
+  } catch (err) {
     logError(pluginJson, `progressUpdate (for template) Error: ${err.message}`)
     return '❗️ Error: please open Plugin Console and re-run to see more details.' // for completeness
   }
@@ -86,16 +71,14 @@ export async function progressUpdate(params: any = '', sourceIn: string = ''): P
  * @param {string?} source of this call: 'callback', 'template', 'refresh' or 'command' (the default)
  * @returns {string|void} - either return string to Template, or void to plugin
  */
-export async function makeProgressUpdate(
-  paramsIn: any = '',
-  source: string = 'command',
-): Promise<string | void> {
+export async function makeProgressUpdate(paramsIn: any = '', source: string = 'command'): Promise<string | void> {
   try {
-    logDebug(pluginJson, `makeProgressUpdate: Starting with params '${paramsIn}' from source '${source}'`)
+    logDebug(pluginJson, `makeProgressUpdate: Starting with params '${typeof paramsIn === 'string' ? paramsIn : JSON.stringify(paramsIn)}' from source '${source}'`)
 
     let config: SummariesConfig = await getSummariesSettings()
     const paramsStr = normalizeParams(paramsIn)
-    const paramsObj = (paramsStr.length >= 2) ? JSON.parse(paramsStr) : {}
+    logDebug('makeProgressUpdate', `- paramsStr (${typeof paramsStr === 'string' ? 'string' : 'object'}) unquoted: ${paramsStr}`)
+    const paramsObj = paramsStr.length >= 2 ? JSON.parse(paramsStr) : {}
     config = await applyParamOverrides(config, paramsStr)
 
     const period = await resolvePeriod(config, paramsStr)
@@ -122,15 +105,7 @@ export async function makeProgressUpdate(
 
     const { thisHeading, headingAndXCBStr } = buildHeadingAndLink(config, period, periodString, periodAndPartStr, fromDateStr, toDateStr, paramsObj)
 
-    const routed = await routeOutput(
-      source,
-      config,
-      output,
-      thisHeading,
-      headingAndXCBStr,
-      periodString,
-      periodAndPartStr
-    )
+    const routed = await routeOutput(source, config, output, thisHeading, headingAndXCBStr, periodString, periodAndPartStr)
     return routed
   } catch (error) {
     logError('makeProgressUpdate', error.message)
@@ -141,11 +116,7 @@ export async function makeProgressUpdate(
 // Small helpers extracted from makeProgressUpdate for readability and testability
 
 function normalizeParams(paramsIn: any): string {
-  const params = (paramsIn)
-    ? (typeof paramsIn === 'object')
-      ? JSON.stringify(paramsIn)
-      : paramsIn
-    : ''
+  const params = paramsIn ? (typeof paramsIn === 'object' ? JSON.stringify(paramsIn) : paramsIn) : ''
   return params
 }
 
@@ -180,7 +151,15 @@ async function buildSettingsForGatherOccurrences(config: SummariesConfig, params
   const paramProgressMentionsAverage = await getTagParamsFromString(params, 'progressMentionsAverage', '')
   const paramProgressRefNote = await getTagParamsFromString(params, 'progressChecklistReferenceNote', '')
 
-  const useParamTerms = (paramProgressYesNo || paramProgressHashtags || paramProgressHashtagsTotal || paramProgressHashtagsAverage || paramProgressMentions || paramProgressMentionsTotal || paramProgressMentionsAverage || paramProgressRefNote)
+  const useParamTerms =
+    paramProgressYesNo ||
+    paramProgressHashtags ||
+    paramProgressHashtagsTotal ||
+    paramProgressHashtagsAverage ||
+    paramProgressMentions ||
+    paramProgressMentionsTotal ||
+    paramProgressMentionsAverage ||
+    paramProgressRefNote
   if (useParamTerms) {
     return {
       GOYesNo: paramProgressYesNo,
@@ -205,9 +184,7 @@ async function buildSettingsForGatherOccurrences(config: SummariesConfig, params
   }
 }
 
-async function computeDateRange(
-  config: SummariesConfig, period: any
-): Promise<{ fromDateStr: string, toDateStr: string, periodString: string, periodAndPartStr: string }> {
+async function computeDateRange(config: SummariesConfig, period: any): Promise<{ fromDateStr: string, toDateStr: string, periodString: string, periodAndPartStr: string }> {
   const [fromDate, toDate, _periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('', config.excludeToday, period)
   if (fromDate == null || toDate == null) {
     throw new Error(`Error: failed to calculate period start and end dates`)
@@ -220,27 +197,26 @@ async function computeDateRange(
   return { fromDateStr, toDateStr, periodString, periodAndPartStr }
 }
 
-async function createProgressOutput(
-  settingsForGO: OccurrencesToLookFor, periodString: string, fromDateStr: string, toDateStr: string, config: SummariesConfig
-): Promise<string> {
+async function createProgressOutput(settingsForGO: OccurrencesToLookFor, periodString: string, fromDateStr: string, toDateStr: string, config: SummariesConfig): Promise<string> {
   const startTime = new Date()
   CommandBar.showLoading(true, `Creating Progress Update`)
   await CommandBar.onAsyncThread()
-  const tmOccurrencesArray = await gatherOccurrences(
-    periodString,
-    fromDateStr,
-    toDateStr,
-    settingsForGO
-  )
+  const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, settingsForGO)
   CommandBar.showLoading(false)
   await CommandBar.onMainThread()
   const output = (await generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, false)).join('\n')
-  logDebug('makeProgressUpdate', `- created progress update in ${timer(startTime)}`)
+  logDebug('createProgressOutput', `- created progress update in ${timer(startTime)}`)
   return output
 }
 
 function buildHeadingAndLink(
-  config: SummariesConfig, period: string, periodString: string, periodAndPartStr: string, fromDateStr: string, toDateStr: string, paramsObjIn: any
+  config: SummariesConfig,
+  period: string,
+  periodString: string,
+  periodAndPartStr: string,
+  fromDateStr: string,
+  toDateStr: string,
+  paramsObjIn: any,
 ): { thisHeading: string, headingAndXCBStr: string } {
   // Create params string from paramsIn with date range information added
   // V1
@@ -252,9 +228,7 @@ function buildHeadingAndLink(
   // clo(paramsObjIn, 'buildHeadingAndLink: paramsObjIn:')
   const params: any = { ...paramsObjIn, period, periodString, fromDateStr, toDateStr }
   // Remove duplicate keys in params
-  const paramsUniqueByKey = Object.fromEntries(
-    new Map(Object.entries(params))
-  )
+  const paramsUniqueByKey = Object.fromEntries(new Map(Object.entries(params)))
   // clo(paramsUniqueByKey, 'buildHeadingAndLink: paramsUniqueByKey:')
 
   const paramsStr = JSON.stringify(paramsUniqueByKey)
@@ -266,7 +240,13 @@ function buildHeadingAndLink(
 }
 
 async function routeOutput(
-  source: string, config: SummariesConfig, output: string, thisHeading: string, headingAndXCBStr: string, periodString: string, periodAndPartStr: string
+  source: string,
+  config: SummariesConfig,
+  output: string,
+  thisHeading: string,
+  headingAndXCBStr: string,
+  periodString: string,
+  periodAndPartStr: string,
 ): Promise<string | void> {
   // if (source === 'template') {
   //   // FIXME: currently this means a template call has to route its output to the current note, which doesn't match when used as a command.

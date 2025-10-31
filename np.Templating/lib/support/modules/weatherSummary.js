@@ -4,6 +4,20 @@
 import pluginJson from '../../../plugin.json'
 import { logError, logDebug } from '../../../../helpers/dev'
 import { stringReplace } from '../../../../helpers/general'
+import { WEATHER_API_FALLBACK_MESSAGE } from './weather'
+
+/**
+ * DEPRECATED: 2025-10-31
+ *
+ * This file is kept for historical reference only.
+ * The wttr.in weather service was unreliable (frequent timeouts and service outages),
+ * so we switched to using NotePlan's built-in OpenWeatherMap API via NotePlan.getWeather().
+ *
+ * The weather() function now calls getNotePlanWeather() from notePlanWeather.js
+ * All functionality has been consolidated into the weather() function.
+ *
+ * See: np.Templating/lib/support/modules/notePlanWeather.js
+ */
 
 /**
  * Using WTTR.IN for lookups. It appears to have IP geolocation, as well as manual methods.
@@ -84,7 +98,7 @@ export async function getWeatherSummary(format: string): Promise<string> {
         allWeatherData = JSON.parse(jsonIn)
       } catch (error) {
         logError(`'${error.message}' parsing Weather data lookup`)
-        return `**Error '${error.message}' parsing Weather data lookup.**`
+        return `**Error '${error.message}' parsing Weather data lookup.**${WEATHER_API_FALLBACK_MESSAGE}`
       }
       // Work out some specific values from harder-to-reach parts of the JSON
       const areaName = areaNameOverride(allWeatherData.nearest_area[0]?.areaName[0]?.value ?? '(no nearest_area returned)')
@@ -132,10 +146,10 @@ export async function getWeatherSummary(format: string): Promise<string> {
       return output
     } else {
       logError(pluginJson, 'Null JSON returned from Weather data lookup.')
-      return `_Error: got no data back from Weather data lookup._`
+      return `_Error: got no data back from Weather data lookup._${WEATHER_API_FALLBACK_MESSAGE}`
     }
   } catch (error) {
     logError(pluginJson, `'${error.message}' in weather data lookup from ${getWeatherURL}`)
-    return `**Error '${error.message}' occurred in weather data lookup from ${getWeatherURL}.**`
+    return `**Error '${error.message}' occurred in weather data lookup from ${getWeatherURL}.**${WEATHER_API_FALLBACK_MESSAGE}`
   }
 }

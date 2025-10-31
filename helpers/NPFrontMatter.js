@@ -1370,8 +1370,7 @@ export function analyzeTemplateStructure(templateData: string): {
   inlineTitleText: string,
 } {
   try {
-    logDebug('analyzeTemplateStructure', `Analyzing template structure for template with ${templateData.length} characters`)
-
+    logDebug('analyzeTemplateStructure', `Analyzing template structure for template with ${templateData.length} characters, starting with "${templateData.substring(0, 20)}..."`)
     // Initialize return object
     const result = {
       hasNewNoteTitle: false,
@@ -1397,6 +1396,7 @@ export function analyzeTemplateStructure(templateData: string): {
         }
       }
     }
+    logDebug('analyzeTemplateStructure', `templateFrontmatterEnd: ${templateFrontmatterEnd}`)
 
     if (templateFrontmatterEnd > 0) {
       // Extract and parse template frontmatter
@@ -1435,29 +1435,39 @@ export function analyzeTemplateStructure(templateData: string): {
     result.hasNewNoteTitle = 'newNoteTitle' in result.templateFrontmatter
 
     // Check for output frontmatter in the body content
+    // Output frontmatter is ONLY valid if the body content STARTS with a separator (--- or --)
     if (result.bodyContent) {
       const bodyLines = result.bodyContent.split('\n')
+      const firstLine = bodyLines[0]?.trim() || ''
 
-      // Find separator positions using helper function
-      const { startIndex: startBlock, endIndex: endBlock } = findSeparatorPositions(bodyLines)
+      // Only look for output frontmatter if the first line is a separator
+      if (firstLine === '---' || firstLine === '--') {
+        // Find separator positions using helper function
+        const { startIndex: startBlock, endIndex: endBlock } = findSeparatorPositions(bodyLines)
 
-      // Only process as frontmatter if we actually found separator markers
-      if (startBlock >= 0 && endBlock >= 0) {
-        // Extract and parse output frontmatter
-        const { attributes, isValid } = extractAndParseFrontmatter(bodyLines, startBlock, endBlock)
+        // Only process as frontmatter if we actually found separator markers
+        if (startBlock >= 0 && endBlock >= 0) {
+          // Extract and parse output frontmatter
+          const { attributes, isValid } = extractAndParseFrontmatter(bodyLines, startBlock, endBlock)
 
-        if (isValid) {
-          result.outputFrontmatter = attributes
-          result.hasOutputFrontmatter = Object.keys(result.outputFrontmatter).length > 0
-          result.hasOutputTitle = 'title' in result.outputFrontmatter
+          if (isValid) {
+            result.outputFrontmatter = attributes
+            result.hasOutputFrontmatter = Object.keys(result.outputFrontmatter).length > 0
+            result.hasOutputTitle = 'title' in result.outputFrontmatter
+          } else {
+            // Not valid frontmatter, so no output frontmatter
+            result.outputFrontmatter = {}
+            result.hasOutputFrontmatter = false
+            result.hasOutputTitle = false
+          }
         } else {
-          // Not valid frontmatter, so no output frontmatter
+          // No frontmatter separators found, so no output frontmatter
           result.outputFrontmatter = {}
           result.hasOutputFrontmatter = false
           result.hasOutputTitle = false
         }
       } else {
-        // No frontmatter separators found, so no output frontmatter
+        // Body doesn't start with a separator, so no output frontmatter
         result.outputFrontmatter = {}
         result.hasOutputFrontmatter = false
         result.hasOutputTitle = false
@@ -1732,7 +1742,7 @@ function findInlineTitleAfterFrontmatter(
 }
 
 /**
- * Robust helper function to detect inline title in template body content
+ * Robust helper function to detect inline title in template body content (after first frontmatter is peeled off)
  * Handles malformed frontmatter, multiple consecutive separators, and multiple frontmatter blocks
  * @param {string} bodyContent - The template body content
  * @returns {{hasInlineTitle: boolean, inlineTitleText: string}}
@@ -1746,9 +1756,24 @@ export function detectInlineTitle(bodyContent: string): { hasInlineTitle: boolea
   const lines = bodyContent.split('\n')
   logDebug('detectInlineTitle', `Processing ${lines.length} lines of rendered body content`)
 
-  // Find any note frontmatter blocks in the content
-  const frontmatterBlocks = findNoteFrontmatterBlock(lines)
-  logDebug('detectInlineTitle', `Found ${frontmatterBlocks.length} frontmatter blocks`)
+  // Check if body content starts with output frontmatter (--- or --)
+  // Output frontmatter is ONLY valid if it starts at the beginning of body content
+  const firstLine = lines[0]?.trim() || ''
+  let frontmatterBlocks = []
+
+  if (firstLine === '---' || firstLine === '--') {
+    // Find the output frontmatter block ONLY at the start
+    const { startIndex: startBlock, endIndex: endBlock } = findSeparatorPositions(lines, 0)
+    if (startBlock === 0 && endBlock >= 0) {
+      const { isValid } = extractAndParseFrontmatter(lines, startBlock, endBlock)
+      if (isValid) {
+        frontmatterBlocks = [{ startIndex: startBlock, endIndex: endBlock, isValid: true }]
+        logDebug('detectInlineTitle', `Found output frontmatter block at start: lines ${startBlock}-${endBlock}`)
+      }
+    }
+  }
+
+  logDebug('detectInlineTitle', `Found ${frontmatterBlocks.length} valid frontmatter blocks`)
 
   // Find inline title after processing all frontmatter blocks
   const result = findInlineTitleAfterFrontmatter(lines, frontmatterBlocks)

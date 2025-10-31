@@ -325,7 +325,7 @@ export async function chooseFolder(
       alpha: 0.5,
       darkAlpha: 0.5,
     }
-    logDebug('userInput / chooseFolder', `creating with folder path, starting at "${startFolder}"`)
+    logDebug('userInput / chooseFolder', `starting with startFolder: ${startFolder ? `"${startFolder}"` : 'none (/)'}`)
 
     // Get all folders, excluding @Trash
     // V2
@@ -346,9 +346,9 @@ export async function chooseFolder(
     if (folders.length > 0) {
       // Create folder options for display (without new folder option at this point)
       const [simpleFolderOptions, decoratedFolderOptions] = createFolderOptions(folders, teamspaceDefs, includeFolderPath)
-      // for(let i = 0; i < 15; i++) {
-      //   console.log(`- ${i}: ${folders[i]}`)
-      // }
+      for (let i = 0; i < (folders.length > 15 ? 15 : folders.length); i++) {
+        logDebug('userInput / chooseFolder', `- ${i}: ${folders[i]} simpleOption: ${simpleFolderOptions[i].label} decoratedOption: ${decoratedFolderOptions[i].text}`)
+      }
 
       // Get user selection. Use newer CommandBar.showOptions() from v3.18 if available.
       let result: TCommandBarOptionObject | any
@@ -366,6 +366,7 @@ export async function chooseFolder(
         // ✅ for folder creation to a Teamspace root opt-click
         // ✅ for folder creation to a Teamspace subfolder opt-click
 
+        let actualIndex = -1
         if (includeNewFolderOption) {
           // Add in the new folder option just for newer CommandBar use
           decoratedFolderOptions.unshift(addDecoratedNewFolderOption)
@@ -379,12 +380,20 @@ export async function chooseFolder(
             // i.e. new folder wanted, but no name given yet
             folder = ''
             newFolderWanted = true
+            logDebug('userInput / chooseFolder CHOSE NEW FOLDER CREATE OPTION', `- result.index: ${result.index}`)
           } else if (optClickedOnFolder) {
+            logDebug('userInput / chooseFolder CHOSEN OPT CLICKED ON FOLDER', `- optClickedOnFolder: true`)
             // i.e. new folder wanted, and parent folder chosen
-            folder = folders[result.index - 1] // to ignore the added new folder option if present
+            actualIndex = result.index - 1
+            folder = folders[actualIndex] // to ignore the added new folder option if present
             newFolderWanted = true
           } else {
-            folder = folders[result.index - 1] // to ignore the added new folder option if present
+            actualIndex = result.index - 1
+            folder = folders[actualIndex] // to ignore the added new folder option if present
+            logDebug('userInput / chooseFolder CHOSEN FOLDER', `- decoratedFolderOptions[${result.index}]: ${decoratedFolderOptions[result.index].text}`)
+            logDebug('userInput / chooseFolder CHOSEN FOLDER', `- simpleFolderOptions[${result.index}]: ${simpleFolderOptions[result.index].label}`)
+            logDebug('userInput / chooseFolder CHOSEN FOLDER', `- folders[${result.index}]: ${folders[result.index]} (using result index)`)
+            logDebug('userInput / chooseFolder CHOSEN FOLDER', `- actualIndex: ${actualIndex} folders[${actualIndex}]: ${folders[actualIndex]} (using actualIndex)`)
           }
 
           // Handle new folder creation, if requested
@@ -402,7 +411,23 @@ export async function chooseFolder(
           // not including add new folder option
           result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions)
           clo(result, 'chooseFolder chooseDecoratedOptionWithModifiers result') // ✅
-          value = folders[result.index]
+          actualIndex = result.index
+          value = folders[actualIndex]
+        }
+        logDebug(
+          'userInput / chooseFolder',
+          `User chose: result.index:${result.index} ${
+            includeNewFolderOption ? `(actualIndex in folders array: ${actualIndex} because running with includeNewFolderOption),` : ''
+          } optClickedOnFolder: ${String(optClickedOnFolder)} / folders: ${folders.length}`,
+        )
+        // logDebug output a map of the folders arrray with 3 items on either side of the chosen index
+        // realizing that folder index could be 0, so we need to handle that
+        if (actualIndex > -1) {
+          const foldersSample = folders.map((f, i) => ({ ...(typeof f === 'string' ? { label: f, value: f } : f), index: i })).slice(Math.max(0, actualIndex - 3), actualIndex + 3)
+          logDebug('userInput / chooseFolder', `foldersSample +/- 3 of chosen index`)
+          foldersSample.forEach((folder) => {
+            logDebug('userInput / chooseFolder', `  [${folder.index}]: ${folder.label}${folder.index === actualIndex ? ' <== (chosen)' : ''}`)
+          })
         }
       } else {
         // ✅ for both private + teamspace
@@ -463,7 +488,7 @@ export async function chooseFolder(
       folder = '/'
     }
 
-    logDebug(`userInput / chooseFolder`, ` -> "${folder}"`)
+    logDebug(`userInput / chooseFolder`, ` -> returning "${folder}"`)
     return folder
   } catch (error) {
     logError('userInput / chooseFolder', error.message)

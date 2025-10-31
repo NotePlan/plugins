@@ -388,9 +388,7 @@ export function calendarNotesSortedByChanged(): Array<TNote> {
  * @return {Array<TNote>} array of notes
  */
 export function calendarNotesSortedByDate(includeFutureCalendarNotes: boolean = false, includeTeamspaceNotes: boolean = false): Array<TNote> {
-  let notes = (includeFutureCalendarNotes)
-    ? DataStore.calendarNotes.slice()
-    : pastCalendarNotes()
+  let notes = includeFutureCalendarNotes ? DataStore.calendarNotes.slice() : pastCalendarNotes()
 
   // Remove Teamspace calendar notes if requested
   if (!includeTeamspaceNotes) {
@@ -553,9 +551,14 @@ export function replaceSection(
   newSectionContent: string,
 ): void {
   try {
+    // $FlowIgnore
+    const editorNote = note?.note
+    const isEditor = editorNote !== undefined
     logDebug(
       'note / replaceSection',
-      `Starting for note '${displayTitle(note)}'. Will remove '${headingOfSectionToReplace}' -> '${newSectionHeading}' level ${newSectionHeadingLevel}`,
+      `Starting for note '${displayTitle(note)}' ${
+        isEditor ? '(Editor)' : '(not in Editor)'
+      }. Will remove '${headingOfSectionToReplace}' -> '${newSectionHeading}' level ${newSectionHeadingLevel}`,
     )
     // First remove existing heading (the start of the heading text will probably be right, but the end will probably need to be changed)
     const insertionLineIndex = removeSection(note, headingOfSectionToReplace)
@@ -826,12 +829,12 @@ export function numberOfOpenItemsInNote(note: CoreNoteFields): number {
 export function setIconForNote(note: TNote, icon: string, iconColor: ?string, iconStyle: ?string): void {
   // To set icon in frontmatter, first read existing frontmatter, then update.
   const noteFrontmatter = note.frontmatterAttributes
-  noteFrontmatter["icon"] = icon
+  noteFrontmatter['icon'] = icon
   if (iconColor) {
-    noteFrontmatter["icon-color"] = iconColor
+    noteFrontmatter['icon-color'] = iconColor
   }
   if (iconStyle) {
-    noteFrontmatter["icon-style"] = iconStyle
+    noteFrontmatter['icon-style'] = iconStyle
   }
   // $FlowIgnore[cannot-write] documentation says this particular usage *is* safe
   note.frontmatterAttributes = noteFrontmatter

@@ -17,7 +17,7 @@ const warning = colors.yellow
 const info = colors.white
 
 // Array of web API calls to test
-const webCalls = [{ name: 'journalingQuestion' }, { name: 'advice' }, { name: 'affirmation' }, { name: 'quote' }, { name: 'verse' }, { name: 'weather' }]
+const webCalls = [{ name: 'journalingQuestion' }, { name: 'advice' }, { name: 'affirmation' }, { name: 'quote' }, { name: 'verse' }]
 
 /**
  * Checks for internet connectivity by pinging a reliable API.

@@ -5,8 +5,8 @@
  * @fileoverview Tests for smart quote replacement functionality
  */
 
-import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { replaceSmartQuotes } from '../lib/utils/stringUtils'
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 
 // Make DataStore and Editor available globally for the source code
 global.DataStore = DataStore
@@ -135,17 +135,17 @@ describe('importTemplates with smart quotes', () => {
     let newTemplateData = templateData
     const importRegex = /<%[-\s]*import\(['"]([^'"]+)['"]\)[\s-]*%>/g
     let match
-    
+
     while ((match = importRegex.exec(templateData)) !== null) {
       const fullTag = match[0]
       const templateName = match[1]
-      
+
       // Mock template content with smart quotes
       const mockTemplateContent = {
         'weather-template': `const ampm = hours >= 12 ? \u2018PM\u2019 : \u2018AM\u2019;
-const minutesStr = minutes < 10 ? \u20180\u2019 + minutes : minutes;`
+const minutesStr = minutes < 10 ? \u20180\u2019 + minutes : minutes;`,
       }
-      
+
       const content = mockTemplateContent[templateName]
       if (content) {
         // Apply smart quote replacement (this is what we fixed)
@@ -153,14 +153,14 @@ const minutesStr = minutes < 10 ? \u20180\u2019 + minutes : minutes;`
         newTemplateData = newTemplateData.replace(fullTag, normalizedContent)
       }
     }
-    
+
     return newTemplateData
   }
 
   test('should replace smart quotes in imported template content', async () => {
     const templateWithImport = `<% import("weather-template") %>`
     const result = await mockImportTemplates(templateWithImport)
-    
+
     // The imported content should have smart quotes replaced
     expect(result).toContain("const ampm = hours >= 12 ? 'PM' : 'AM';")
     expect(result).toContain("const minutesStr = minutes < 10 ? '0' + minutes : minutes;")

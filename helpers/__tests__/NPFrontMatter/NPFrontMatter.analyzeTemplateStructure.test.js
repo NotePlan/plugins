@@ -790,4 +790,72 @@ Some content here`
       expect(result).toBe('This is an H2 title')
     })
   })
+
+  describe('inline title before output frontmatter blocks', () => {
+    test('should detect inline title when it comes before output frontmatter (bug case)', () => {
+      const template = `---
+bg-color-dark: 
+icon: 
+icon-color: 
+icon-style: regular
+area: 
+category: 
+topic: 
+---
+# mytitle
+---
+⌫ unpublish: [[<%- date.now("YYYY-MM-DD", +28) %>]]
+⌫ archive: [[<%- date.now("YYYY-MM-DD", +28) %>]] 
+---
+#### ✔︎ Tasks
++ review: [[<%- date.now("YYYY-MM-DD", +1) %>]]
+---
+#### ✆ Connections
++ No connections
+---
+#### ✪ Keywords 
++ No keywords
+---
+#### ⤷ Links
++ No links
+---
+#### ✎ Notes
++ No notes
+---
+#### ⁂ Details 
++ No details
+---
+#### ☰ References 
++ No references
+---`
+
+      const result = analyzeTemplateStructure(template)
+
+      // This test documents the current bug: inline title is NOT detected
+      // when it appears before output frontmatter blocks
+      expect(result.hasInlineTitle).toBe(true) // This will likely fail, showing the bug
+      expect(result.inlineTitleText).toBe('mytitle')
+    })
+
+    test('should use inline title when calling getNoteTitleFromTemplate', () => {
+      const template = `---
+bg-color-dark: 
+icon: 
+icon-color: 
+icon-style: regular
+area: 
+category: 
+topic: 
+---
+# mytitle
+---
+⌫ unpublish: [[<%- date.now("YYYY-MM-DD", +28) %>]]
+⌫ archive: [[<%- date.now("YYYY-MM-DD", +28) %>]] 
+---`
+
+      const result = getNoteTitleFromTemplate(template)
+
+      expect(result).toBe('mytitle')
+    })
+  })
 })
