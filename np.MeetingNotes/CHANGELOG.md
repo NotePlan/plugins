@@ -4,6 +4,12 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [2.1.0] - 2025-10-31 @dwertheimer
+
+- Use getContentWithLinks() for template content reads to properly handle attachment paths
+- Update to use getTemplateContent() (renamed from getTemplate)
+- Ensures templates with file/image links use absolute attachment paths
+
 ## [2.0.6] - 2025-09-11 @dwertheimer
 
 - Fix using button on empty template, especially with teamspace notes
