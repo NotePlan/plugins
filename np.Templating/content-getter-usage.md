@@ -235,3 +235,165 @@ If you're planning to replace direct `.content` access with a function call or d
    - Used for filtering and matching operations
    - May not need to be changed if note/Editor changes are made
 
+---
+
+## Changes Made: Using `getContentWithLinks()` for Template Content
+
+### Changed (Template Content Reads) ✅
+
+The following locations were updated to use `getContentWithLinks()` because they read template content:
+
+1. **[Line 120](src/Templating.js#L120)** in `src/Templating.js` - `templateInsert()`
+   - **Before**: `templateData = Editor.content`
+   - **After**: `templateData = getContentWithLinks(Editor.note)`
+   - **Reason**: Using `<current>` note as a template (edge case: template open in Editor)
+ 
+2. **[Line 123](src/Templating.js#L123)** in `src/Templating.js` - `templateInsert()`
+   - **Before**: `templateData = templateNote?.content || ''`
+   - **After**: `templateData = getContentWithLinks(templateNote)`
+   - **Reason**: Loading template content from template note file
+
+3. **[Line 170](src/Templating.js#L170)** in `src/Templating.js` - `templateAppend()`
+   - **Before**: `templateData = Editor.content`
+   - **After**: `templateData = getContentWithLinks(Editor.note)`
+   - **Reason**: Using `<current>` note as a template (edge case: template open in Editor)
+
+4. **[Line 173](src/Templating.js#L173)** in `src/Templating.js` - `templateAppend()`
+   - **Before**: `templateData = templateNote?.content || ''`
+   - **After**: `templateData = getContentWithLinks(templateNote)`
+   - **Reason**: Loading template content from template note file
+
+5. **[Line 361](src/NPTemplateRunner.js#L361)** in `src/NPTemplateRunner.js` - `getTemplateData()`
+   - **Before**: `templateData = selectedTemplate ? trTemplateNote?.content || '' : ''`
+   - **After**: `templateData = selectedTemplate ? getContentWithLinks(trTemplateNote) : ''`
+   - **Reason**: Loading template content from template note
+
+### np.MeetingNotes Plugin Changes ✅
+
+The following locations in **np.MeetingNotes** were also updated to use `getContentWithLinks()`:
+
+6. **[Line 39](../np.MeetingNotes/src/NPMeetingNotes.js#L39)** in `np.MeetingNotes/src/NPMeetingNotes.js` - `insertNoteTemplate()`
+   - **Before**: `let templateContent = templateNote?.content`
+   - **After**: `let templateContent = getContentWithLinks(templateNote)`
+   - **Reason**: Loading template content from template note
+
+7. **[Line 195](../np.MeetingNotes/src/NPMeetingNotes.js#L195)** in `np.MeetingNotes/src/NPMeetingNotes.js` - `renderTemplateForEvent()`
+   - **Before**: `templateContent = DataStore.projectNoteByFilename(templateFilename)?.content || ''`
+   - **After**: `templateContent = getContentWithLinks(DataStore.projectNoteByFilename(templateFilename))`
+   - **Reason**: Loading template content from template note for event rendering
+
+8. **[Line 661](../np.MeetingNotes/src/NPMeetingNotes.js#L661)** in `np.MeetingNotes/src/NPMeetingNotes.js` - `chooseTemplateIfNeeded()`
+   - **Before**: `const attributes = getAttributes(template.content, true)`
+   - **After**: `const attributes = getAttributes(getContentWithLinks(template), true)`
+   - **Reason**: Reading template content to check its attributes/type
+
+### Not Changed (Non-Template Content Reads) ⛔
+
+The following locations were NOT changed because they read regular note content, not template content:
+
+1. **[Line 147](src/Templating.js#L147)** in `src/Templating.js` - `templateAppend()`
+   - `const content: string = Editor.content || ''`
+   - **Reason**: Getting current editor content for length calculation, not reading a template
+
+2. **[Line 196](src/Templating.js#L196)** in `src/Templating.js` - `templateInvoke()`
+   - `const content: string = Editor.content || ''`
+   - **Reason**: Unused variable, not actually reading a template
+
+3. **[Line 419](src/Templating.js#L419)** in `src/Templating.js` - `templateQuickNote()`
+   - `const content: string = Editor.content || ''`
+   - **Reason**: Unused variable, not actually reading a template
+
+4. **[Line 548](src/Templating.js#L548)** in `src/Templating.js` - `templateMeetingNote()`
+   - `const content: string = Editor.content || ''`
+   - **Reason**: Unused variable, not actually reading a template
+
+5. **[Line 844](src/Templating.js#L844)** in `src/Templating.js` - `templateConvertNote()`
+   - `const note = Editor.content || ''`
+   - **Reason**: Converting a project note to frontmatter format, not reading a template
+
+6. **[Line 272](src/NPTemplateRunner.js#L272)** in `src/NPTemplateRunner.js` - `writeNoteContents()`
+   - `note.content.includes(headingParagraph.content)`
+   - **Reason**: Debug logging to check if content includes heading, not reading a template
+
+7. **[Line 55](lib/support/modules/NoteModule.js#L55)** in `lib/support/modules/NoteModule.js` - `content()`
+   - `let content = this.getCurrentNote()?.content`
+   - **Reason**: Method to access current note's content, not reading a template
+
+8. **[Line 81](lib/support/modules/NoteModule.js#L81)** in `lib/support/modules/NoteModule.js` - `getRandomLine()`
+   - `let fullNoteContent = note.content || ''`
+   - **Reason**: Getting note content to extract a random line, not reading a template
+
+### np.MeetingNotes Non-Template Content (Not Changed) ⛔
+
+9. **[Line 63-66](../np.MeetingNotes/src/NPMeetingNotes.js#L63)** in `np.MeetingNotes/src/NPMeetingNotes.js` - `insertNoteTemplate()`
+   - `if (note.content && note.content !== '') { note.content += ...`
+   - **Reason**: Setting/modifying content on a target note after template rendering, not reading a template
+
+10. **[Line 77](../np.MeetingNotes/src/NPMeetingNotes.js#L77)** in `np.MeetingNotes/src/NPMeetingNotes.js` - `insertNoteTemplate()`
+   - `Editor.content = result`
+   - **Reason**: Setting content on the Editor after template rendering, not reading a template
+
+11. **[Line 528](../np.MeetingNotes/src/NPMeetingNotes.js#L528)** in `np.MeetingNotes/src/NPMeetingNotes.js` - `appendPrependNewNote()`
+   - `const originalContentLength = note.content?.length ?? 0`
+   - **Reason**: Getting length of regular note content, not reading a template
+
+### Summary
+
+- **Total Changes Made**: 8 locations
+  - **np.Templating**: 5 locations
+  - **np.MeetingNotes**: 3 locations
+- **Total Unchanged**: 11 locations
+  - **np.Templating**: 8 locations
+  - **np.MeetingNotes**: 3 locations
+- **Paragraph.content Usage**: 2 locations (not applicable for this change)
+
+All template content reads now use `getContentWithLinks()` which will automatically return `contentWithAbsoluteAttachmentPaths` when the template contains file or image links, ensuring that attachment paths work correctly when templates are processed.
+
+**Note**: np.MeetingNotes uses templates by calling np.Templating functions internally. However, it also has some direct template content reads for pre-rendering and attribute checking, which have been updated.
+
+---
+
+## Additional Refactoring: `getTemplate()` → `getTemplateContent()`
+
+The `getTemplate()` function has been renamed to `getTemplateContent()` throughout the codebase for clarity and consistency. This function now also uses `getContentWithLinks()` internally before returning template content.
+
+### Changes Made:
+
+**Core Template Function:**
+- **`np.Templating/lib/core/templateManager.js`**:
+  - Renamed function from `getTemplate()` to `getTemplateContent()`
+  - Updated to use `getContentWithLinks(selectedTemplate)` instead of `selectedTemplate?.content || ''`
+  - Updated all internal log messages
+
+**Wrapper Functions:**
+- **`np.Templating/lib/NPTemplating.js`**:
+  - Renamed static method from `getTemplate()` to `getTemplateContent()`
+  - Updated import and internal call
+- **`np.Templating/src/Templating.js`**:
+  - Renamed exported function from `getTemplate()` to `getTemplateContent()`
+  - Updated all calls to `NPTemplating.getTemplateContent()`
+- **`np.Templating/src/index.js`**:
+  - Updated export from `getTemplate` to `getTemplateContent`
+- **`np.Templating/plugin.json`**:
+  - Updated command registration from `getTemplate` to `getTemplateContent`
+
+**Internal Usage:**
+- **`np.Templating/lib/rendering/templateProcessor.js`**:
+  - Updated import to use `getTemplateContent`
+  - Updated all 3 internal calls to `getTemplateContent()`
+
+**External Plugin Usage:**
+- **`np.MeetingNotes/src/NPMeetingNotes.js`**: Updated import and call
+- **`jgclark.DailyJournal/src/templatesStartEnd.js`**: Updated call to `NPTemplating.getTemplateContent()`
+- **`dwertheimer.Forms/src/NPTemplateForm.js`**: Updated call to `NPTemplating.getTemplateContent()`
+
+**Test Files:**
+- **`np.Templating/__tests__/import-tag-processor.test.js`**: Updated imports and mocks
+- **`np.Templating/__tests__/include-tag-processor.test.js`**: Updated mocks
+- **`np.Templating/__tests__/getTemplate.test.js`**: Updated all references to `getTemplateContent`
+- **`np.Templating/__tests__/template-preprocessing.test.js`**: Updated mock
+- **`np.Templating/__tests__/full-pipeline-integration.test.js`**: Updated mock
+
+**Files Updated:** 16 files total
+
+This refactoring ensures that all template content retrieval goes through `getContentWithLinks()`, automatically handling file/image attachment paths correctly.
