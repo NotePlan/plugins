@@ -68,10 +68,10 @@ Each results note has a ` [🔄 Refresh results for ...]` pseudo-button under th
 A saved search can be refreshed **automatically when opening it**. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'refreshSavedSearch'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the note's properties.
 
 ## Extended search syntax
-NotePlan v3.18.1 added much new power and flexibility for its searches, [documented here](https://help.noteplan.co/article/269-advanced-search). The Plugin now works differently depending which version of NotePlan you're running.
+NotePlan v3.18.1 added much new power and flexibility for its searches, now supporting some of what this plugin had provided. The Plugin now works differently depending which version of NotePlan you're running.
 
 ### Using v3.18.1 onwards
-The Plugin now uses the app's extended syntax, with the following additions:
+The Plugin now uses the [app's extended syntax](https://help.noteplan.co/article/269-advanced-search), with the following additions:
 - like the search in NotePlan, the searches default to ignoring the case of words (i.e. `SPIRIT` will match `spirit` or `Spirit` as well as `SPIRIT`). However, you can select "**Case Sensitive searching**" option in settings and the FlexiSearch dialog.
 <!-- - two **wildcard** operators:
   -  `*` in a term means "match any number of characters (including none)" -- e.g. `pos*e` matches "possible", "posie" and "pose".
@@ -86,17 +86,18 @@ The Plugin adds all the following search syntax:
 - the searches are simple ones, matching on whole or partial words (e.g. `wind` matches `Windings` and `unwind`). This is what the search in NotePlan does. However, you set the "**Match only on full words?**" option in settings and the FlexiSearch dialog.
 - you can also use two **wildcard** operators:
   -  `*` in a term means "match any number of characters (including none)" -- e.g. `pos*e` matches "possible", "posie" and "pose".
-  -  `?` in a term means "match any single character" -- e.g. `poli?e` matches "polite" and "police".
-<!-- - normally, a search term must have at least two alphanumeric characters to be valid.  -->
+  -  `?` in a term means "match any single character" -- e.g. `poli?e` matches "police" and "polite".
 - you can use an empty search term, which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
 
-## The Replace commands
-v2.0 adds the following commands:
-- **/replace over all notes** does search and replaces across both calendar and regular notes. (Alias: **/repl**.)
-- **/replace over Regular notes** does search and replaces across all regular (non-calendar) notes. (Alias: **/replreg**.)
-- **/replace over Calendar notes** does search and replaces across calendar notes. (Alias: **/replcal**.)
+## The Replace command
+(From v3) use the **/replace** (alias: **/search and replace**) to enter a search term, and then a replace term. It first show the number of occurrences found (and writes the details of each to the Plugin console log), and checks that you wish to proceed. **Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation**. You would have to use the Versions menu item in each note to roll it back.
 
-All of them first show the number of occurrences found (and writes the details of each to the Plugin console log), and checks that you wish to proceed. **Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation**. You would have to use the Versions menu item in each note to roll it back.
+You can use search operators as part of the search string, as above. So for example you can narrow your replace to:
+- only Calendar notes by starting with `source:calendar`
+- just open tasks by starting with `is:open`
+- notes in a particular folder by starting with `path:/to/folder`.
+
+The searches also use the setting for case sensitivity (above).
 
 ## Settings
 To change the default **settings** on **macOS** click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.
@@ -149,17 +150,17 @@ Notes:
 - the number and order of arguments you pass is important
 - where an argument isn't valid, don't include it
 - as with all x-callback URLs, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.
-- the available 'note  type' to include are `calendar`, `notes` or `both`.
-- the available 'paragraph types' are from the API: 'open', 'done', 'scheduled', 'cancelled', 'checklist', 'checklistDone', 'checklistScheduled', 'checklistCancelled', 'title', 'quote', 'list', 'empty', 'text', 'code', 'separator'. To not filter by type just pass the empty string, but otherwise the items need to be comma-separated.
+- the available 'note  type' to include are `calendar`, `notes` or `both`. If not specified, then it defaults to `both`.
+- the available 'paragraph types' are from the NotePlan API: `open`, `done`, `scheduled`, `cancelled`, `checklist`, `checklistDone`, `checklistScheduled`, `checklistCancelled`, `title`, `quote`, `list`, `empty`, `text`, `code`, `separator`. To not filter by type just pass the empty string, but otherwise the items need to be comma-separated.
 - where relevant 'destination' can be `quick` (Quick Search note), `newnote` (note specific to this search), `current` (to currently open note), or `log` (just send to console log).
 - **Tip**: use the Link Creator Plugin's "/Get x-callback-url" command to do the fiddly work for you ...
 - the callback parameters have changed since v1.x
 
 | Command | encoded command name | arg0 | arg1 | arg2 | arg3 | arg4 |
 |-----|-----------|----------|----------|----------|----------|----------|
-| /replace over ... | replace| search term | replacement text | note types (see above) | paragraph types (see above) | |
+| /replace | replace | search term | replacement text | note types (see above) | paragraph types (see above) | |
 | /flexiSearch | flexiSearch<br />(this takes no args: use this just to display the dialog box) | | | | | |
-| /quickSearch | quickSearch| search term(s) ¶ | note types | paragraph types (see above) | | |
+| /quickSearch | quickSearch | search term(s) ¶ | note types | paragraph types (see above) | | |
 | /search | searchOverAll | search term(s) | | paragraph types (see above) | destination (see above) | |
 | /searchOverCalendar | searchOverCalendar| search term(s) | | paragraph types (see above) | destination (see above) | |
 | /searchOverNotes | searchOverNotes| search term(s) | | paragraph types (see above) | destination (see above) | |

@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "3.0.0.b1",
+  "plugin.version": "3.0.0.b2",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "3.0.0: Significant changes to align with welcome new native search capabilities in NotePlan v3.18.1.\nIf you are running this newer version, the plugin assumes you're using the new native search syntax.\nPlease see the README to learn more.\nNote: this is a beta release, so please report any issues you find.",
   "plugin.dependencies": [],
@@ -141,38 +141,13 @@
       "arguments": []
     },
     {
-      "name": "replace over all notes",
+      "name": "replace",
       "alias": [
-        "repl"
+        "repl",
+        "search and replace"
       ],
-      "description": "Search and Replace over all notes",
-      "jsFunction": "replaceOverAll",
-      "arguments": [
-        "search term(s) (separated by commas)",
-        "replace expression",
-        "paragraph types (separated by commas)"
-      ]
-    },
-    {
-      "name": "replace over Regular notes",
-      "alias": [
-        "replreg"
-      ],
-      "description": "Search and Replace over Project notes",
-      "jsFunction": "replaceOverNotes",
-      "arguments": [
-        "search term(s) (separated by commas)",
-        "replace expression",
-        "paragraph types (separated by commas)"
-      ]
-    },
-    {
-      "name": "replace over Calendar notes",
-      "alias": [
-        "replcal"
-      ],
-      "description": "Search and Replace over Calendar notes",
-      "jsFunction": "replaceOverCalendar",
+      "description": "Search and Replace",
+      "jsFunction": "replace",
       "arguments": [
         "search term(s) (separated by commas)",
         "replace expression",

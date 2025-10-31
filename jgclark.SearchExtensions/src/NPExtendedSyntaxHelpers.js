@@ -8,7 +8,7 @@
 
 // import pluginJson from '../plugin.json'
 import type { noteAndLine, resultOutputV3Type, reducedFieldSet, SearchConfig, TSearchOptions } from './searchHelpers'
-import { numberOfUniqueFilenames } from './searchHelpers'
+import { numberOfUniqueFilenames, SORT_MAP } from './searchHelpers'
 import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getLocale } from '@helpers/NPConfiguration'
@@ -113,7 +113,7 @@ export async function runNPExtendedSyntaxSearches(
     // }
 
     const searchTermsToHighlight = getNonNegativeSearchTermsFromNPExtendedSyntax(searchString)
-    logDebug('runNPExtendedSyntaxSearches', `searchTermsToHighlight: ${String(searchTermsToHighlight)}`)
+    logDebug('runNPExtendedSyntaxSearches', `searchTermsToHighlight: '${String(searchTermsToHighlight)}'`)
 
     // If the settings say we want only full word matches, then update the searchString to surround the search term(s) with quotes
     if (fullWordSearching) {
@@ -237,29 +237,24 @@ export async function runNPExtendedSyntaxSearches(
         logDebug('applySearchOperators', `-> now ${resultReducedParas.length} results`)
       }
 
-      // Look-up table for sort details
-      const sortMap = new Map([
-        ['note title', ['title', 'lineIndex']],
-        ['note title (descending)', ['-title', 'lineIndex']],
-        ['folder name then note title', ['filename', 'lineIndex']],
-        ['folder name then note title (descending)', ['-filename', 'lineIndex']],
-        ['updated (most recent note first)', ['-changedDate', 'lineIndex']],
-        ['updated (least recent note first)', ['changedDate', 'lineIndex']],
-        ['created (newest note first)', ['-createdDate', 'lineIndex']],
-        ['created (oldest note first)', ['createdDate', 'lineIndex']],
-      ])
-      const sortKeys = sortMap.get(config.sortOrder) ?? 'title' // get value, falling back to 'title'
-      logDebug('runNPExtendedSyntaxSearches', `- Will use sortKeys: [${String(sortKeys)}] from ${config.sortOrder}`)
-      // $FlowFixMe[prop-missing]
-      // $FlowFixMe[incompatible-exact]
-      const sortedReducedParas: Array<reducedFieldSet> = sortListBy(resultReducedParas, sortKeys)
+      // Sort results, unless the searchOptions.useNativeSortOrder is set.
+      // Note: 'asc' and 'desc' refer to date of note (though the documentation doesn't say which date this is)
+      if (!searchOptions.useNativeSortOrder) {
+        const sortKeys = SORT_MAP.get(config.sortOrder) ?? ['title'] // get value, falling back to 'title'
+        logDebug('runNPExtendedSyntaxSearches', `- Will use sortKeys: [${String(sortKeys)}] from ${config.sortOrder}`)
+        // $FlowFixMe[prop-missing]
+        // $FlowFixMe[incompatible-exact]
+        resultReducedParas = sortListBy(resultReducedParas, sortKeys)
+      } else {
+        logDebug('runNPExtendedSyntaxSearches', `- useNativeSortOrder set, so will not sort results`)
+      }
 
       // Form the return object from sortedFieldSets
-      for (let i = 0; i < sortedReducedParas.length; i++) {
+      for (let i = 0; i < resultReducedParas.length; i++) {
         noteAndLineArr.push({
-          noteFilename: sortedReducedParas[i].filename,
-          index: sortedReducedParas[i].lineIndex,
-          line: sortedReducedParas[i].rawContent,
+          noteFilename: resultReducedParas[i].filename ?? '<error>',
+          index: resultReducedParas[i].lineIndex,
+          line: resultReducedParas[i].rawContent,
         })
       }
     }

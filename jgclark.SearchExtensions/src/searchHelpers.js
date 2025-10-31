@@ -2,9 +2,8 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Search Extensions helpers, for both older and newer methods of running searches.
-// Search Extensions helpers, for both older and newer methods of running searches.
 // Jonathan Clark
-// Last updated 2025-10-25 for v3.0.0, @jgclark
+// Last updated 2025-10-30 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -90,6 +89,7 @@ export type TSearchOptions = {
   toDateStr?: string,
   originatorCommand?: string,
   commandNameToDisplay?: string,
+  useNativeSortOrder?: boolean, // from v3.0.0, set when a 'sort:asc' or 'sort:desc' operator is found in the search string
   destinationArg?: string,// optional output desination indicator: 'current', 'newnote', 'log'
 }
 
@@ -98,6 +98,18 @@ export type TSearchOptions = {
 
 export const OPEN_PARA_TYPES = ['open', 'scheduled', 'checklist', 'checklistScheduled']
 export const SYNCABLE_PARA_TYPES = ['open', 'scheduled', 'checklist', 'checklistScheduled']
+
+// Look-up table for sort details
+export const SORT_MAP: Map<string, Array<string>> = new Map([
+  ['note title', ['title', 'lineIndex']], // ascending
+  ['note title (descending)', ['-title', 'lineIndex']], // descending
+  ['folder name then note title', ['filename', 'lineIndex']], // ascending
+  ['folder name then note title (descending)', ['-filename', 'lineIndex']], // descending
+  ['updated (most recent note first)', ['-changedDate', 'lineIndex']], // descending
+  ['updated (least recent note first)', ['changedDate', 'lineIndex']], // ascending
+  ['created (newest note first)', ['-createdDate', 'lineIndex']], // descending
+  ['created (oldest note first)', ['createdDate', 'lineIndex']], // ascending
+])
 
 //------------------------------------------------------------------------------
 // Config for SearchExtensions plugin
@@ -502,6 +514,46 @@ export function logBasicResultLines(resultSet: resultOutputV3Type, config: Searc
   catch (err) {
     logError('logBasicResultLines', err.message)
     clo(resultSet)
+  }
+}
+
+/**
+ * Apply supported search operators to mutate the given searchOptions
+ * Supports:
+ * - source:notes|calendar|notes,calendar
+ * - is:open|done|scheduled|cancelled|checklist|checklist-done|checklist-scheduled|checklist-cancelled|not-task
+ * @param {Array<string>} searchOperators
+ * @param {any} searchOptions
+ */
+export function applySearchOperatorsToOptions(searchOperators: Array<string>, searchOptions: any): void {
+  try {
+    if (!Array.isArray(searchOperators) || searchOperators.length === 0 || !searchOptions) return
+
+    // Handle 'source:' operator -> noteTypesToInclude
+    if (searchOperators.includes('source:notes,calendar') || searchOperators.includes('source:calendar,notes')) {
+      searchOptions.noteTypesToInclude = ['notes', 'calendar']
+    } else if (searchOperators.includes('source:notes')) {
+      searchOptions.noteTypesToInclude = ['notes']
+    } else if (searchOperators.includes('source:calendar')) {
+      searchOptions.noteTypesToInclude = ['calendar']
+    }
+
+    // Handle 'is:' operator -> paraTypesToInclude
+    const paraTypeOperator = searchOperators.find(op => op.startsWith('is:')) ?? ''
+    if (paraTypeOperator.length > 0) {
+      // $FlowFixMe[incompatible-type]
+      searchOptions.paraTypesToInclude = paraTypeOperator.replace('is:', '').split(',')
+      logDebug('applySearchOperatorsToOptions', `- paraTypesToInclude: ${String(searchOptions.paraTypesToInclude)}`)
+    }
+
+    // Handle 'sort:' operator -> sortOrder
+    const sortOperator = searchOperators.find(op => op.startsWith('sort:')) ?? ''
+    if (sortOperator.length > 0) {
+      searchOptions.useNativeSortOrder = true
+      logDebug('applySearchOperatorsToOptions', `- operator  '${sortOperator}' found. useNativeSortOrder -> ${String(searchOptions.useNativeSortOrder)}`)
+    }
+  } catch (error) {
+    logError('searchHelpers/applySearchOperatorsToOptions', error.message)
   }
 }
 

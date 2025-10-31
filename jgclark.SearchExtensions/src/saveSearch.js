@@ -4,16 +4,14 @@
 // Interactive commands for SearchExtensions plugin.
 // Create list of occurrences of note paragraphs with specified strings, which can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2025-10-25 for v3.0.0, @jgclark
+// Last updated 2025-10-30 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  // getDateRangeFromSearchOptions,
-  getDateRangeFromUser
-} from './dateRanges'
+import { getDateRangeFromUser } from './dateRanges'
 import type { resultOutputV3Type, SearchConfig, TSearchOptions } from './searchHelpers'
 import {
+  applySearchOperatorsToOptions,
   createFormattedResultLines,
   formSearchResultsHeadingLine,
   formSearchResultsMetadataLine,
@@ -32,12 +30,12 @@ import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
 import { stringToTailwindColorName } from '@helpers/colors'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
-import { appendSection, removeSection, replaceSection, setIconForNote } from '@helpers/note'
+import { removeSection, replaceSection, setIconForNote } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
-import { getSearchOperators } from '@helpers/search'
+import { getSearchOperators, isNPAdvancedSyntaxAvailable } from '@helpers/search'
 import {
   chooseOption,
-  getInput,
+  getInputTrimmed,
   showMessage,
   showMessageYesNo
 } from '@helpers/userInput'
@@ -67,7 +65,7 @@ export async function searchOverAll(
     foldersToInclude: [],
     paraTypesToInclude: getParaTypesFromString(paraTypesAsStr),
     originatorCommand: 'searchOverAll',
-    commandNameToDisplay: 'Searching all',
+    commandNameToDisplay: 'Search over all notes',
   }
   await saveSearch(
     searchOptions,
@@ -208,6 +206,7 @@ export async function searchPeriod(
     destinationArg: destinationArg,
     fromDateStr: fromDateStr,
     toDateStr: toDateStr,
+    useNativeSortOrder: false
   }
   await saveSearch(
     searchOptions,
@@ -236,7 +235,7 @@ export async function saveSearch(
 ): Promise<void> {
   try {
     const config = await getSearchSettings()
-    const NPAdvancedSyntaxAvailable = NotePlan.environment.buildVersion >= 1429
+    const NPAdvancedSyntaxAvailable = isNPAdvancedSyntaxAvailable()
     logDebug(pluginJson, `Starting saveSearch() with searchTermsArg '${searchTermsArg ?? '(not supplied)'}', on NP build version ${String(NotePlan.environment.buildVersion)} and useNativeSearch? ${String(config.useNativeSearch)}`)
     // clo(searchOptions, 'saveSearch starting with searchOptions:')
 
@@ -246,7 +245,6 @@ export async function saveSearch(
     // Note: may be updated later if searchOperators are present
     
     // Set other searchOptions
-    const paraTypesToInclude = searchOptions.paraTypesToInclude || []
     if (!('caseSensitiveSearching' in searchOptions)) {
       searchOptions.caseSensitiveSearching = config.caseSensitiveSearching
     }
@@ -285,16 +283,21 @@ export async function saveSearch(
     else {
       // ask user
       const newTerms = (NPAdvancedSyntaxAvailable)
-        ? await getInput(`Enter search term(s)`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
-        : await getInput(`Enter search term(s) separated by spaces or commas. (You can use +term, -term and !term as well, and search for phrases by enclosing them in double-quotes.)`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
+        ? await getInputTrimmed(`Enter search term(s)`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
+        : await getInputTrimmed(`Enter search term(s) separated by spaces or commas. (You can use +term, -term and !term as well, and search for phrases by enclosing them in double-quotes.)`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
       if (typeof newTerms === 'boolean') {
         // i.e. user has cancelled
         logInfo('saveSearch', `User has cancelled operation.`)
+        CommandBar.showLoading(false)
         return
       }
       termsToMatchStr = newTerms
       logDebug('saveSearch', `user -> search terms [${termsToMatchStr}]`)
     }
+
+    // Get the paraTypes to include
+    const paraTypesToInclude: Array<ParagraphType> = searchOptions.paraTypesToInclude || []
+    logDebug('saveSearch', `- arg3 -> para types '${paraTypesToInclude.toString()}'`)
 
     // Set up shared variables
     let searchTermsRepStr = ''
@@ -313,34 +316,13 @@ export async function saveSearch(
         : []
 
       if (searchOperators) {
-        logDebug('saveSearch', `- searchOperators: ${String(searchOperators)}`)
-        // Check searchOperators for source: terms, and if found set noteTypesToInclude accordingly
-        // - source:notes,calendar - Notes and Calendar notes
-        if (searchOperators.includes('source:notes,calendar') || searchOperators.includes('source:calendar,notes')) {
-          noteTypesToInclude = ['notes', 'calendar']
-        } else 
-        // - source:notes - Notes only
-        if (searchOperators.includes('source:notes')) {
-          noteTypesToInclude = ['notes']
-        } else 
-        // - source:calendar - Calendar notes only
-        if (searchOperators.includes('source:calendar')) {
-          noteTypesToInclude = ['calendar']
-        }
-        searchOptions.noteTypesToInclude = noteTypesToInclude
-        // logDebug('saveSearch', `- note types updated -> '${noteTypesToInclude.toString()}'`)
-
-        // Check searchOperators for is: terms, and if found set paraTypesToInclude accordingly
-        // Possible ones are: is:open|done|scheduled|cancelled|checklist|checklist-done|checklist-scheduled|checklist-cancelled|not-task
-        const paraTypeOperator: string = searchOperators.filter(op => op.startsWith('is:'))[0] ?? ''
-        if (paraTypeOperator.length > 0) {
-          searchOptions.paraTypesToInclude = paraTypeOperator.replace('is:', '').split(',')
-          logDebug('saveSearch', `- searchOperators -> paraTypesToInclude: ${String(searchOptions.paraTypesToInclude)}`)
-        }
+        logDebug('saveSearch', `- searchOperators: [${String(searchOperators)}]`)
+        applySearchOperatorsToOptions(searchOperators, searchOptions)
+        noteTypesToInclude = searchOptions.noteTypesToInclude || noteTypesToInclude
       }
     
       // If we have a date range passed in (rather than specified as search operators in the search string), then add it to the search terms
-      logDebug('saveSearch', `- ${String('fromDateStr' in searchOptions)} and ${String('toDateStr' in searchOptions)}`)
+      logDebug('saveSearch', `- date range? ${String('fromDateStr' in searchOptions)} and ${String('toDateStr' in searchOptions)}`)
       if (('fromDateStr' in searchOptions) && ('toDateStr' in searchOptions)) {
         termsToMatchStr = `date:${String(searchOptions.fromDateStr)}-${String(searchOptions.toDateStr)} ${termsToMatchStr}`
       } else if ('fromDateStr' in searchOptions) {
@@ -382,9 +364,6 @@ export async function saveSearch(
       }
     
       searchTermsRepStr = `'${validatedSearchTerms.map(term => term.termRep).join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
-
-      // Get the paraTypes to include. Can take string (which needs turning into an array), or array (which is fine).
-      logDebug('saveSearch', `- arg3 -> para types '${paraTypesToInclude.toString()}'`)
 
       // Work out time period to cover (if wanted)
       if (('fromDateStr' in searchOptions) || ('toDateStr' in searchOptions)) {

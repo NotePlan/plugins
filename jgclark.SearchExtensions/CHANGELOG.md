@@ -2,6 +2,14 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b2] - 2025-09-31
+### Changes
+- '/replace' command now works with new search operators in the search string
+- removed '/replace over Calendar' and '/replace over Notes' commands, as they can be handled by starting with the search operator `source:calendar` or `source:notes` instead.
+- added '/replace over all notes' as an alias of the '/replace' command.
+- the `sort:asc` and `sort:desc` operators are now taken into account in the output
+- fix for iOS not using newer syntax
+
 ## [3.0.0.b1] - 2025-09-29
 ### Main Changes
 The Plugin now supports the significant [new native search capabilities](https://help.noteplan.co/article/269-advanced-search) available from NotePlan v3.18.1. Compared to v2 the plugin is now much faster for multi-term searches. Unless you turn off the new setting "Use native search?", the plugin's previous extended syntax for boolean operators is turned off, and all the new NP syntax is supported instead.  For example: 

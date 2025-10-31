@@ -4,11 +4,11 @@
 // Helpers for Plugin Extended Syntax
 // Note: some types + funcs in @helpers/extendedSearch.js
 // Jonathan Clark
-// Last updated 2025-10-03 for v3.0.0, @jgclark
+// Last updated 2025-10-30 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import type { noteAndLine, typedSearchTerm, resultObjectType, resultOutputType, resultOutputV3Type, reducedFieldSet, SearchConfig, TSearchOptions } from './searchHelpers'
-import { makeAnySyncs } from './searchHelpers'
+import { makeAnySyncs, SORT_MAP } from './searchHelpers'
 import { getDateStrForStartofPeriodFromCalendarFilename, withinDateRange } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import {
@@ -779,18 +779,8 @@ export async function runPluginExtendedSearch(
       resultReducedParas = eliminateDuplicateSyncedParagraphs(resultReducedParas, 'most-recent', true)
       logDebug('runPluginExtendedSearch', `- After dedupe, ${resultReducedParas.length} results for '${searchTerm}'`)
 
-      // Look-up table for sort details
-      const sortMap = new Map([
-        ['note title', ['title', 'lineIndex']],
-        ['note title (descending)', ['-title', 'lineIndex']],
-        ['folder name then note title', ['filename', 'lineIndex']],
-        ['folder name then note title (descending)', ['-filename', 'lineIndex']],
-        ['updated (most recent note first)', ['-changedDate', 'lineIndex']],
-        ['updated (least recent note first)', ['changedDate', 'lineIndex']],
-        ['created (newest note first)', ['-createdDate', 'lineIndex']],
-        ['created (oldest note first)', ['createdDate', 'lineIndex']],
-      ])
-      const sortKeys = sortMap.get(config.sortOrder) ?? 'title' // get value, falling back to 'title'
+      // Sort results
+      const sortKeys = SORT_MAP.get(config.sortOrder) ?? 'title' // get value, falling back to 'title'
       logDebug('runPluginExtendedSearch', `- Will use sortKeys: [${String(sortKeys)}] from ${config.sortOrder}`)
       // $FlowIgnore[incompatible-exact]
       // $FlowIgnore[prop-missing]

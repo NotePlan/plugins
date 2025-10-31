@@ -9,6 +9,26 @@ import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { RE_SYNC_MARKER } from '@helpers/regex'
 
 /**
+ * Return whether NP advanced search syntax is available (build >= 1429)
+ * @returns {boolean}
+ */
+export function isNPAdvancedSyntaxAvailable(): boolean {
+  try {
+    // NP v3.18.1+
+    if (!NotePlan?.environment?.platform === 'macOS') {
+      // $FlowFixMe[prop-missing]
+      return (NotePlan?.environment?.buildVersion ?? 0) >= 1426 
+    } else {
+      // $FlowFixMe[prop-missing]
+      return (NotePlan?.environment?.buildVersion ?? 0) >= 1344 // approximately v3.18.1
+    }
+  } catch (error) {
+    logError('search/isNPAdvancedSyntaxAvailable', error.message)
+    return false
+  }
+}
+
+/**
  * Case insensitive array.includes() match
  * @author @jgclark
  * @param {string} searchTerm
@@ -549,6 +569,42 @@ export function isSearchOperator(term: string): boolean {
 }
 
 /**
+ * Tokenize a search string by spaces while preserving quoted substrings
+ * @param {string} input
+ * @returns {Array<string>}
+ */
+function tokenizeRespectingQuotes(input: string): Array<string> {
+  return input.match(/(?:[^\s"]+|"[^"]*")+/g) || []
+}
+
+/**
+ * Normalize operator by unquoting value if wrapped in double quotes
+ * @param {string} op
+ * @returns {string}
+ */
+function normalizeOperator(op: string): string {
+  const idx = op.indexOf(':')
+  if (idx === -1) return op
+  const key = op.slice(0, idx)
+  const value = op.slice(idx + 1)
+  return (value.startsWith('"') && value.endsWith('"')) ? `${key}:${value.slice(1, -1)}` : op
+}
+
+/**
+ * Collect valid leading operators from token list
+ * @param {Array<string>} tokens
+ * @returns {Array<string>}
+ */
+function collectLeadingSearchOperators(tokens: Array<string>): Array<string> {
+  const ops = []
+  for (const term of tokens) {
+    if (isSearchOperator(term)) ops.push(term)
+    else break
+  }
+  return ops
+}
+
+/**
  * Get array of search operators (e.g. date:2025-09-28 or is:open or heading:"Project A") from a search terms string. 
  * Note: does not check validity of the search operators, just the form of the a:b string.
  * But does ignore valid-looking operators after non-operators.
@@ -560,24 +616,9 @@ export function isSearchOperator(term: string): boolean {
  * @returns {Array<string>} array of search operators
  */
 export function getSearchOperators(searchStr: string): Array<string> {
-  // Split on spaces that are not inside double quotes
-  const searchTerms = searchStr.match(/(?:[^\s"]+|"[^"]*")+/g) || []
-  // Only keep the search operators that are valid and come before any non-operators
-  const searchOperators = []
-  for (const term of searchTerms) {
-    if (isSearchOperator(term)) {
-      searchOperators.push(term)
-    } else {
-      break
-    }
-  }
-  // Also return the values of the search operators without the quotes
-  const searchOperatorsWithUnquotedValues = searchOperators.map((op) => {
-    const key = op.split(':')[0]
-    const value = op.split(':')[1]
-    return (value.startsWith('"') && value.endsWith('"')) ? `${key}:${value.slice(1, -1)}` : op
-  })
-  return searchOperatorsWithUnquotedValues
+  const tokens = tokenizeRespectingQuotes(searchStr)
+  const leadingOps = collectLeadingSearchOperators(tokens)
+  return leadingOps.map(normalizeOperator)
 }
 
 /**
@@ -591,22 +632,26 @@ export function getSearchOperators(searchStr: string): Array<string> {
  * @returns {string} result
  */
 export function removeSearchOperators(searchTermsStr: string): string {
-  // Tokenize on spaces but keep quoted substrings intact
-  const tokens = searchTermsStr.match(/(?:[^\s"]+|"[^"]*")+/g) || []
-  // Iterate over the tokens noting which are search operators. Remove all up until the first token that isn't a search operator.
+  const tokens = tokenizeRespectingQuotes(searchTermsStr)
   let firstNonOperatorIndex = 0
   for (const term of tokens) {
-    if (isSearchOperator(term)) {
-      // logDebug('removeSearchOperators', `- removed search operator: ${term}`)
-      firstNonOperatorIndex++
-    } else {
-      break
-    }
+    if (isSearchOperator(term)) firstNonOperatorIndex++
+    else break
   }
   const result = tokens.slice(firstNonOperatorIndex).join(' ')
   logDebug('removeSearchOperators', `-> search terms without operators: '${result}'`)
   return result
 }
+
+/**
+ * Apply supported search operators to mutate the given searchOptions
+ * Supports:
+ * - source:notes|calendar|notes,calendar
+ * - is:open|done|scheduled|cancelled|checklist|checklist-done|checklist-scheduled|checklist-cancelled|not-task
+ * @param {Array<string>} searchOperators
+ * @param {any} searchOptions
+ */
+// moved to jgclark.SearchExtensions/src/searchHelpers.js
 
 /**
  * Return a searchString with each term surrounded by double-quotes.
