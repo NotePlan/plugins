@@ -1742,7 +1742,7 @@ function findInlineTitleAfterFrontmatter(
 }
 
 /**
- * Robust helper function to detect inline title in template body content
+ * Robust helper function to detect inline title in template body content (after first frontmatter is peeled off)
  * Handles malformed frontmatter, multiple consecutive separators, and multiple frontmatter blocks
  * @param {string} bodyContent - The template body content
  * @returns {{hasInlineTitle: boolean, inlineTitleText: string}}
