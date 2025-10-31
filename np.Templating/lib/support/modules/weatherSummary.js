@@ -7,6 +7,19 @@ import { stringReplace } from '../../../../helpers/general'
 import { WEATHER_API_FALLBACK_MESSAGE } from './weather'
 
 /**
+ * DEPRECATED: 2025-10-31
+ *
+ * This file is kept for historical reference only.
+ * The wttr.in weather service was unreliable (frequent timeouts and service outages),
+ * so we switched to using NotePlan's built-in OpenWeatherMap API via NotePlan.getWeather().
+ *
+ * The weather() function now calls getNotePlanWeather() from notePlanWeather.js
+ * All functionality has been consolidated into the weather() function.
+ *
+ * See: np.Templating/lib/support/modules/notePlanWeather.js
+ */
+
+/**
  * Using WTTR.IN for lookups. It appears to have IP geolocation, as well as manual methods.
  * The detailed JSON structure that is returned from https://wttr.in/?format=j1 has this outline structure:
  * - current_condition [{single}]

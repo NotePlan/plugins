@@ -21,8 +21,7 @@ import { getDailyQuote } from './support/modules/quote'
 import { getStoicQuote } from './support/modules/stoicQuotes'
 import { getVerse } from './support/modules/verse'
 import { getWOTD } from './support/modules/wotd'
-import { getWeather } from './support/modules/weather'
-import { getWeatherSummary } from './support/modules/weatherSummary'
+import { getNotePlanWeather } from './support/modules/notePlanWeather'
 import { parseJSON5 } from '@helpers/general'
 import { getSetting } from '../../helpers/NPConfiguration'
 import { log, logError, clo, logDebug } from '@helpers/dev'
@@ -85,13 +84,14 @@ const globals = {
     return await invokePluginCommandByName('jgclark.Summaries', 'todayProgressFromTemplate', [JSON.stringify(params)])
   },
 
-  weather: async (formatParam: string = ''): Promise<string> => {
+  weather: async (formatParam: string = '', units: string = 'metric', latitude: number = 0, longitude: number = 0): Promise<string | any> => {
+    // Get format from settings or param (backward compatible)
     let weatherFormat = (await getSetting(pluginJson['plugin.id'], 'weatherFormat', '')) || ''
     if (formatParam.length > 0) {
       weatherFormat = formatParam
     }
-    logDebug(`weather format: "${weatherFormat}", will call ${weatherFormat.length === 0 ? 'getWeather' : 'getWeatherSummary'}`)
-    return weatherFormat.length === 0 ? await getWeather() : await getWeatherSummary(weatherFormat)
+    logDebug(`weather format: "${weatherFormat}", units: "${units}", lat: ${latitude}, lon: ${longitude}`)
+    return await getNotePlanWeather(weatherFormat, units, latitude, longitude)
   },
 
   date8601: async (): Promise<string> => {

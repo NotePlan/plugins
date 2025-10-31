@@ -5,6 +5,19 @@
 
 // @flow
 
+/**
+ * DEPRECATED: 2025-10-31
+ *
+ * This file is kept for historical reference only.
+ * The wttr.in weather service was unreliable (frequent timeouts and service outages),
+ * so we switched to using NotePlan's built-in OpenWeatherMap API via NotePlan.getWeather().
+ *
+ * The weather() function now calls getNotePlanWeather() from notePlanWeather.js
+ * All functionality has been consolidated into the weather() function.
+ *
+ * See: np.Templating/lib/support/modules/notePlanWeather.js
+ */
+
 export const WEATHER_API_FALLBACK_MESSAGE =
   '; The external weather service has been having issues lately. You may want to try the new API: ` <%- NotePlan.getWeather(units, latitude, longitude) %> `'
 
