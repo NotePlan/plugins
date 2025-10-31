@@ -2429,6 +2429,14 @@ declare class NotePlan {
    */
 static + htmlWindows: Array < HTMLView >;
   /**
+   * NotePlan.isSidebarCollapsed()
+   * Note: Available from v3.19.2 (macOS only)
+   * Checks whether the sidebar is currently collapsed.
+   * Returns false on iOS/iPadOS or if the sidebar is not available.
+   * @returns {boolean}
+   */
+  static isSidebarCollapsed(): boolean;
+  /**
    * NotePlan.getSidebarWidth()
    * Gets the current width of the sidebar in pixels.
    * Returns 0 on iOS/iPadOS or if the sidebar is not available.
@@ -2507,6 +2515,76 @@ static + htmlWindows: Array < HTMLView >;
    * @returns {Promise<string>}
    */
   static ai(prompt: string, filenames: Array < string >, useStrictFilenames: boolean, model ?: string): Promise < string >;
+  /**
+  * NotePlan.getWeather()
+  * Fetches current weather data and forecast using OpenWeatherMap API.
+  * Automatically detects location via IP geolocation or uses provided coordinates.
+  * Returns formatted weather information with emojis and detailed weather data.
+  * Note: Available from v3.19.2 (build 1441/1362 on macOS/iOS)
+  * 
+  * @param {string} units - Temperature units: "metric" (Celsius, m/s) or "imperial" (Fahrenheit, mph)
+  * @param {number} latitude - Latitude coordinate (use 0 for IP-based location detection)
+  * @param {number} longitude - Longitude coordinate (use 0 for IP-based location detection)
+  * @return {Promise<Object>} Promise that resolves to weather data object with formatted output and detailed information
+  * 
+  * @example
+  * // Get weather for current location (IP-based) using await
+  * const weather = await NotePlan.getWeather("metric", 0, 0);
+  * console.log(weather.formatted);
+  * // Output:
+  * // ### San Francisco Weather for Tue, 2025-10-28
+  * // ☀️ **Clear Sky** - High: **18°C**, Low: **12°C**, Wind: **8m/s**, Visibility: **10km**
+  * // 🌅 Sunrise: **7:15 AM**, Sunset: **6:30 PM**, Peak UVI: **5**
+  * 
+  * @example
+  * // Get weather for specific location (New York City) with error handling
+  * try {
+  *   const weather = await NotePlan.getWeather("imperial", 40.7128, -74.0060);
+  *   console.log(`${weather.emoji} ${weather.condition}`);
+  *   console.log(`Temperature: ${weather.temperature}${weather.temperatureUnit}`);
+  *   console.log(`High: ${weather.highTemp}, Low: ${weather.lowTemp}`);
+  *   console.log(`Humidity: ${weather.humidity}%`);
+  *   console.log(`Wind: ${weather.windSpeed}${weather.windSpeedUnit}`);
+  * } catch (error) {
+  *   console.log("Error fetching weather:", error);
+  * }
+  * 
+  * @example
+  * // Get weather for London and insert into editor
+  * const weather = await NotePlan.getWeather("metric", 51.5074, -0.1278);
+  * Editor.insertTextAtCursor(weather.formatted);
+  * 
+  * @example
+  * // Simple usage - just get and display formatted weather
+  * const weather = await NotePlan.getWeather("imperial", 0, 0);
+  * console.log(weather.formatted);
+  * 
+  * @returns {Object} weather - Weather data object
+  * @returns {string} weather.formatted - Pre-formatted markdown weather output with emojis
+  * @returns {string} weather.cityName - City name (from IP location or reverse geocoding)
+  * @returns {number} weather.temperature - Current temperature
+  * @returns {string} weather.temperatureUnit - Temperature unit symbol (°C or °F)
+  * @returns {number} weather.apparentTemperature - Feels-like temperature
+  * @returns {number} weather.humidity - Humidity percentage
+  * @returns {number} weather.windSpeed - Wind speed
+  * @returns {string} weather.windSpeedUnit - Wind speed unit (m/s or mph)
+  * @returns {number} weather.windDirection - Wind direction in degrees
+  * @returns {number} weather.uvIndex - UV index
+  * @returns {string} weather.condition - Weather condition description
+  * @returns {string} weather.emoji - Weather emoji based on condition
+  * @returns {string} weather.iconCode - OpenWeatherMap icon code
+  * @returns {number} weather.visibility - Visibility distance
+  * @returns {string} weather.visibilityUnit - Visibility unit (km)
+  * @returns {number} weather.highTemp - Today's high temperature
+  * @returns {number} weather.lowTemp - Today's low temperature
+  * @returns {string} weather.sunrise - Sunrise time (formatted as h:mm AM/PM)
+  * @returns {string} weather.sunset - Sunset time (formatted as h:mm AM/PM)
+  * @returns {Object} weather.location - Location coordinates
+  * @returns {number} weather.location.latitude - Latitude
+  * @returns {number} weather.location.longitude - Longitude
+  * @returns {string} weather.location.cityName - City name
+  */
+  static getWeather(units: string, latitude: number, longitude: number): Promise < Object >;
 }
 
 declare class HTMLView {
