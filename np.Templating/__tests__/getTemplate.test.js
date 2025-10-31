@@ -8,7 +8,7 @@ import FrontmatterModule from '../lib/support/modules/FrontmatterModule'
 import { logDebug } from '@helpers/dev'
 
 const PLUGIN_NAME = `np.Templating`
-const FILENAME = `getTemplate`
+const FILENAME = `getTemplateContent`
 
 /**
  * Mock notes for testing
@@ -107,47 +107,47 @@ beforeEach(() => {
 describe(`${PLUGIN_NAME}`, () => {
   describe(`${FILENAME}`, () => {
     /*
-     * getTemplate()
+     * getTemplateContent()
      */
-    describe('getTemplate()' /* function */, () => {
-      // We'll mock getTemplate for each test
+    describe('getTemplateContent()' /* function */, () => {
+      // We'll mock getTemplateContent for each test
 
       test('should get template by filename with no folder', async () => {
-        // Mock the getTemplate function for this specific test
-        NPTemplating.getTemplate = jest.fn().mockResolvedValue('Template 1 Content')
+        // Mock the getTemplateContent function for this specific test
+        NPTemplating.getTemplateContentContent = jest.fn().mockResolvedValue('Template 1 Content')
 
-        const result = await NPTemplating.getTemplate('Template1', true)
+        const result = await NPTemplating.getTemplateContentContent('Template1', true)
         expect(result).toEqual('Template 1 Content')
       })
 
       test('should get template by filename with folder path', async () => {
         // Mock the getTemplate function for this specific test
-        NPTemplating.getTemplate = jest.fn().mockResolvedValue('Template 2 Content')
+        NPTemplating.getTemplateContent = jest.fn().mockResolvedValue('Template 2 Content')
 
-        const result = await NPTemplating.getTemplate('@Templates/Template2', true)
+        const result = await NPTemplating.getTemplateContent('@Templates/Template2', true)
         expect(result).toEqual('Template 2 Content')
       })
 
       test('should get template by title when filename not found', async () => {
         // Mock the getTemplate function for this specific test
-        NPTemplating.getTemplate = jest.fn().mockResolvedValue('Template 1 Content')
+        NPTemplating.getTemplateContent = jest.fn().mockResolvedValue('Template 1 Content')
 
-        const result = await NPTemplating.getTemplate('Template1', false)
+        const result = await NPTemplating.getTemplateContent('Template1', false)
         expect(result).toEqual('Template 1 Content')
       })
 
       test('should get template from subfolder', async () => {
         // Mock the getTemplate function for this specific test
-        NPTemplating.getTemplate = jest.fn().mockResolvedValue('Template 3 Content')
+        NPTemplating.getTemplateContent = jest.fn().mockResolvedValue('Template 3 Content')
 
-        const result = await NPTemplating.getTemplate('@Templates/SubFolder/Template3', true)
+        const result = await NPTemplating.getTemplateContent('@Templates/SubFolder/Template3', true)
         expect(result).toEqual('Template 3 Content')
       })
 
       // Tests for the path+title functionality (lines 659-668)
       test('should handle path+title scenarios (isFilename=true)', async () => {
         // Set up the mock to simulate a title-only search
-        NPTemplating.getTemplate = jest.fn().mockImplementation((templateName, isFilename, options = {}) => {
+        NPTemplating.getTemplateContent = jest.fn().mockImplementation((templateName, isFilename, options = {}) => {
           if (isFilename && templateName === 'TemplateA') {
             // Simulate the behavior where it searches by title and finds the template
             return Promise.resolve('Template A Content')
@@ -155,13 +155,13 @@ describe(`${PLUGIN_NAME}`, () => {
           return Promise.resolve('')
         })
 
-        const result = await NPTemplating.getTemplate('TemplateA', true)
+        const result = await NPTemplating.getTemplateContent('TemplateA', true)
         expect(result).toEqual('Template A Content')
       })
 
       test('should handle path+title scenarios (isFilename=false)', async () => {
         // Set up the mock to simulate path+title search
-        NPTemplating.getTemplate = jest.fn().mockImplementation((templateName, isFilename, options = {}) => {
+        NPTemplating.getTemplateContent = jest.fn().mockImplementation((templateName, isFilename, options = {}) => {
           if (!isFilename && templateName === '@Templates/PathTest/TemplateA') {
             // Simulate the behavior where it extracts the title and matches by path
             return Promise.resolve('Template A Content')
@@ -169,13 +169,13 @@ describe(`${PLUGIN_NAME}`, () => {
           return Promise.resolve('')
         })
 
-        const result = await NPTemplating.getTemplate('@Templates/PathTest/TemplateA', false)
+        const result = await NPTemplating.getTemplateContent('@Templates/PathTest/TemplateA', false)
         expect(result).toEqual('Template A Content')
       })
 
       test('should filter templates by path when using path+title', async () => {
         // Set up the mock to simulate filtering by path
-        NPTemplating.getTemplate = jest.fn().mockImplementation((templateName, isFilename, options = {}) => {
+        NPTemplating.getTemplateContent = jest.fn().mockImplementation((templateName, isFilename, options = {}) => {
           if (!isFilename && templateName === '@Templates/PathTest/TemplateA') {
             // Simulate the behavior where it finds multiple templates with the same title
             // but filters to only return the one in the specified path
@@ -186,17 +186,17 @@ describe(`${PLUGIN_NAME}`, () => {
           return Promise.resolve('')
         })
 
-        const resultA = await NPTemplating.getTemplate('@Templates/PathTest/TemplateA', false)
+        const resultA = await NPTemplating.getTemplateContent('@Templates/PathTest/TemplateA', false)
         expect(resultA).toEqual('Template A Content')
 
-        const resultB = await NPTemplating.getTemplate('@Templates/OtherFolder/TemplateA', false)
+        const resultB = await NPTemplating.getTemplateContent('@Templates/OtherFolder/TemplateA', false)
         expect(resultB).toEqual('Other Template A Content')
       })
 
       // New test for the specific path+title scenario
       test('should handle template with path when using Snippets/Imported Item', async () => {
         // Set up the mock to simulate the specific behavior for this test case
-        NPTemplating.getTemplate = jest.fn().mockImplementation((templateName, isFilename, options = {}) => {
+        NPTemplating.getTemplateContent = jest.fn().mockImplementation((templateName, isFilename, options = {}) => {
           if (templateName === 'Snippets/Imported Item') {
             // This is the specific test case we want to validate
             // In the real function, it would split "Snippets/Imported Item" into:
@@ -209,34 +209,34 @@ describe(`${PLUGIN_NAME}`, () => {
           return Promise.resolve('')
         })
 
-        const result = await NPTemplating.getTemplate('Snippets/Imported Item', false)
+        const result = await NPTemplating.getTemplateContent('Snippets/Imported Item', false)
 
         // Verify the expected behavior
         expect(result).toEqual('This is an imported item content')
 
         // We should have called getTemplate with the path+title
-        expect(NPTemplating.getTemplate).toHaveBeenCalledWith('Snippets/Imported Item', false)
+        expect(NPTemplating.getTemplateContent).toHaveBeenCalledWith('Snippets/Imported Item', false)
       })
 
       test('should return empty string when template not found', async () => {
         // Mock the getTemplate function for this specific test
-        NPTemplating.getTemplate = jest.fn().mockResolvedValue('')
+        NPTemplating.getTemplateContent = jest.fn().mockResolvedValue('')
 
-        const result = await NPTemplating.getTemplate('NonExistentTemplate', true, { silent: true })
+        const result = await NPTemplating.getTemplateContent('NonExistentTemplate', true, { silent: true })
         expect(result).toEqual('')
       })
 
       test('should return original content for frontmatter templates', async () => {
         // Mock the getTemplate function for this specific test
-        NPTemplating.getTemplate = jest.fn().mockResolvedValue('---\ntitle: Special Template\ntags: special\n---\nThis is a frontmatter template')
+        NPTemplating.getTemplateContent = jest.fn().mockResolvedValue('---\ntitle: Special Template\ntags: special\n---\nThis is a frontmatter template')
 
-        const result = await NPTemplating.getTemplate('@Templates/SubFolder/SpecialTemplate', true)
+        const result = await NPTemplating.getTemplateContent('@Templates/SubFolder/SpecialTemplate', true)
         expect(result).toEqual('---\ntitle: Special Template\ntags: special\n---\nThis is a frontmatter template')
       })
 
       test('should handle multiple templates with same title by prompting user', async () => {
         // Mock the getTemplate function for this specific test
-        NPTemplating.getTemplate = jest.fn().mockImplementation((templateName, isFilename, options = {}) => {
+        NPTemplating.getTemplateContent = jest.fn().mockImplementation((templateName, isFilename, options = {}) => {
           if (templateName === 'Duplicate') {
             // Simulate prompting the user and returning the selected template
             return Promise.resolve('Duplicate 1 Content')
@@ -244,7 +244,7 @@ describe(`${PLUGIN_NAME}`, () => {
           return Promise.resolve('')
         })
 
-        const result = await NPTemplating.getTemplate('Duplicate', false)
+        const result = await NPTemplating.getTemplateContent('Duplicate', false)
         expect(result).toEqual('Duplicate 1 Content')
       })
     })

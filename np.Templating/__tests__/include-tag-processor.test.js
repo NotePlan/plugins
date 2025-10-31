@@ -29,7 +29,7 @@ jest.mock('../lib/support/modules/FrontmatterModule', () => {
 
 // Use jest.mock to mock the modules instead of spyOn
 jest.mock('../lib/core', () => ({
-  getTemplate: jest.fn(),
+  getTemplateContent: jest.fn(),
   isCommentTag: jest.fn().mockImplementation((tag) => tag.includes('<%#')),
   getNote: jest.fn().mockImplementation(() => Promise.resolve('Mocked note content')),
   getTags: jest.fn().mockImplementation(() => Promise.resolve([])),
@@ -143,7 +143,7 @@ describe('Template processIncludeTag', () => {
     }
 
     // Set up mock implementations
-    coreModule.getTemplate.mockImplementation(getTemplateMock)
+    coreModule.getTemplateContent.mockImplementation(getTemplateMock)
     renderingModule.processFrontmatterTags.mockImplementation(processFrontmatterTagsMock)
     renderingModule.render.mockImplementation(renderMock)
     renderingModule.preProcessNote.mockImplementation(preProcessNoteMock)

@@ -4,7 +4,7 @@
 
 import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { importTemplates } from '../lib/rendering/templateProcessor'
-import { getTemplate, getTags, isCommentTag } from '../lib/core'
+import { getTemplateContent, getTags, isCommentTag } from '../lib/core'
 
 // Make DataStore and Editor available globally for the source code
 global.DataStore = DataStore
@@ -14,7 +14,7 @@ global.NotePlan = NotePlan
 
 // Mock the core module functions
 jest.mock('../lib/core', () => ({
-  getTemplate: jest.fn(),
+  getTemplateContent: jest.fn(),
   getTags: jest.fn(),
   isCommentTag: jest.fn(),
 }))
@@ -23,7 +23,7 @@ describe('Import tag processing with template strings', () => {
   let getTemplateMock, getTagsMock, isCommentTagMock
 
   beforeEach(() => {
-    getTemplateMock = getTemplate
+    getTemplateMock = getTemplateContent
     getTagsMock = getTags
     isCommentTagMock = isCommentTag
 

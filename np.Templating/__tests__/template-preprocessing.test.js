@@ -60,7 +60,7 @@ const importTemplates = async (templateData) => {
 // Mock core module
 jest.mock('../lib/core', () => {
   return {
-    getTemplate: jest.fn().mockImplementation((templateName) => {
+    getTemplateContent: jest.fn().mockImplementation((templateName) => {
       return Promise.resolve(TEMPLATE_CONTENT[templateName] || '')
     }),
     getTemplateFolder: jest.fn().mockResolvedValue('@Templates'),
