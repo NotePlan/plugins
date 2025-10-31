@@ -10,27 +10,18 @@ import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { displayTitleWithRelDate } from './NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
 import { getFoldersMatching } from './folders'
+import { isDecoratedCommandBarAvailable } from './general'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
 import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 import { parseTeamspaceFilename } from './teamspace'
-
-//-------------------------------- Types --------------------------------------
-
-type TFolderIcon = {
-  firstLevelFolder: string,
-  icon: string,
-  emoji: string, // fallback to use before v3.18 (
-  color: string,
-  alpha?: number,
-  darkAlpha?: number,
-}
 
 //------------------------------ Constants ------------------------------------
 
 const TEAMSPACE_ICON_COLOR = 'green-700'
 
 //--------------------------- Local functions ---------------------------------
+
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 function parseJSON5(contents: string): ?{ [string]: ?mixed } {
   try {
@@ -92,7 +83,7 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
     displayOptions = [{ label: '➕ Add new ' + addCreateItemDescriptor, value: '__ADD_NEW__' }, ...options]
   }
 
-  logDebug('userInput / chooseOptionWithModifiers()', `displayOptions: ${displayOptions.length} options`)
+  // logDebug('userInput / chooseOptionWithModifiers()', `displayOptions: ${ displayOptions.length } options`)
 
   // $FlowFixMe[prop-missing]
   const { index, keyModifiers } = await CommandBar.showOptions(
@@ -154,8 +145,8 @@ export async function chooseDecoratedOptionWithModifiers(
   // Use newer CommandBar.showOptions() from v3.18
   const result = await CommandBar.showOptions(displayOptions, message, '')
   const { index, keyModifiers } = result
-  clo(result, `chooseDecoratedOptionWithModifiers chosen result`)
-  clo(displayOptions[index], `from relevant displayOption`)
+  // clo(result, `chooseDecoratedOptionWithModifiers chosen result`)
+  // clo(displayOptions[index], `from relevant displayOption`)
 
   // Check if the user selected "Add new item"
   if (additionalCreateNewOption && index === 0) {
@@ -361,7 +352,7 @@ export async function chooseFolder(
 
       // Get user selection. Use newer CommandBar.showOptions() from v3.18 if available.
       let result: TCommandBarOptionObject | any
-      if (NotePlan.environment.buildVersion >= 1413 && !forceOriginalCommandBar) {
+      if (isDecoratedCommandBarAvailable() && !forceOriginalCommandBar) {
         // ✅ for list with add new option
         // ✅ for list without add new option
         // ✅ for both private + teamspace
@@ -481,7 +472,7 @@ export async function chooseFolder(
 }
 
 /**
- * Create folder options for display (private function).
+ * Create folder options for display.
  * Note: can't just have opt-click to create a new folder, because this doesn't work on iOS/iPadOS.
  * @param {Array} folders to create options for
  * @param {Array} teamspaceDefs - teamspace definitions
@@ -490,7 +481,7 @@ export async function chooseFolder(
  *
  * @returns {Array<{ label: string, value: string }> | Array<TCommandBarOptionObject>} formatted folder options
  */
-function createFolderOptions(
+export function createFolderOptions(
   folders: Array<string>,
   teamspaceDefs: Array<TTeamspace>,
   includeFolderPath: boolean,
@@ -741,8 +732,8 @@ export async function chooseHeadingV2(
   headingLevel: number = 2,
 ): Promise<string> {
   try {
-    // If running on v3.17 or earlier, use the older chooseHeading() function
-    if (NotePlan.environment.buildVersion < 1413) {
+    // If running on v3.18 or earlier, use the older chooseHeading() function
+    if (!isDecoratedCommandBarAvailable()) {
       return await chooseHeading(note, optionAddAtTopAndBottom, optionCreateNewHeading, includeArchive, headingLevel)
     }
 

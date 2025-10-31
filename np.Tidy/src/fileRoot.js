@@ -2,16 +2,17 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-10-14 for v1.15.1, @jgclark
+// Last updated 2025-10-31 for v1.15.1+, @jgclark
 //-----------------------------------------------------------------------------
 
 import { getSettings, type TidyConfig } from './tidyHelpers'
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderListMinusExclusions, getProjectNotesInFolder } from '@helpers/folders'
+import { isDecoratedCommandBarAvailable } from '@helpers/general'
 import { appendStringToSettingArray } from '@helpers/NPSettings'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
-import { chooseOption, chooseHeading, chooseDecoratedOption, createFolderOptions, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { chooseOption, chooseHeading, chooseDecoratedOptionWithModifiers, createFolderOptions, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 /**
  * For each root-level note, asks user which folder to move it to. (There's a setting for ones to ignore.)
@@ -40,7 +41,7 @@ export async function fileRootNotes(): Promise<void> {
     // Form options to present to user for each root note.
     // Form both simple and decorated options, ready for both versions of CommandBar.showOptions()
     const [simpleFolderOptions, decoratedFolderOptions] = createFolderOptions(allRelevantFolders, teamspaceDefs, true)
-    if (NotePlan.environment.buildVersion >= 1413) {
+    if (isDecoratedCommandBarAvailable()) {
       // Prepend some special items
       decoratedFolderOptions.unshift({icon: 'folder-plus', text: `Move to a new folder`, color: 'orange-500', shortDescription: 'Add new', alpha: 0.8, darkAlpha: 0.8})
       decoratedFolderOptions.unshift({icon: 'trash-can', text: `Delete this note`, color: 'red-500', shortDescription: 'Delete', alpha: 0.8, darkAlpha: 0.8})
@@ -76,8 +77,8 @@ export async function fileRootNotes(): Promise<void> {
 
       // Ask user which folder to move to. Use newer CommandBar.showOptions() from v3.18 if available.
       let chosenOption: string = ''
-      if (NotePlan.environment.buildVersion >= 1413) {
-        const chosenDecoratedOption = await chooseDecoratedOption(`Move '${thisTitle}' to which folder?`, decoratedFolderOptions)
+      if (isDecoratedCommandBarAvailable()) {
+        const chosenDecoratedOption = await chooseDecoratedOptionWithModifiers(`Move '${thisTitle}' to which folder?`, decoratedFolderOptions)
         chosenOption = chosenDecoratedOption.value
       } else {
         chosenOption = await chooseOption(`Move '${thisTitle}' to which folder?`, simpleFolderOptions)

@@ -5,15 +5,15 @@
 
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment/min/moment-with-locales'
-import { getBlockUnderHeading } from './NPParagraph'
 import * as dt from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderDisplayName, getFolderFromFilename, getRegularNotesInFolder } from '@helpers/folders'
-import { displayTitle, isValidUUID } from '@helpers/general'
+import { displayTitle, isDecoratedCommandBarAvailable, isValidUUID } from '@helpers/general'
 import { calendarNotesSortedByChanged,noteType } from '@helpers/note'
 import { displayTitleWithRelDate, getDateStrFromRelativeDateString, getRelativeDates } from '@helpers/NPdateTime'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes, getFrontmatterAttribute } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { getBlockUnderHeading, getSelectedParagraphsWithCorrectLineIndex } from '@helpers/NPParagraph'
 import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
@@ -81,7 +81,7 @@ export async function chooseNoteV2(
   const sortedNoteList = noteList.sort((first, second) => second.changedDate - first.changedDate) // most recent first
 
   // Form the options to give to the CommandBar
-  // Note: We will set up the more advanced options for the `CommandBar.showOptions` call, but downgrade them if we're not running v3.18+ (b1413)
+  // Note: We will set up the more advanced options for the `CommandBar.showOptions` call, but downgrade them if we're not running v3.18+
   /**
    * type TCommandBarOptionObject = {
    * text: string,
@@ -180,7 +180,7 @@ export async function chooseNoteV2(
 
   // Now show the options to the user
   let noteToReturn = null
-  if (NotePlan.environment.buildVersion >= 1413) {
+  if (isDecoratedCommandBarAvailable()) {
     // logDebug('chooseNoteV2', `Using 3.18.0's advanced options for CommandBar.showOptions call`)
     // use the more advanced options to the `CommandBar.showOptions` call
     const { index } = await CommandBar.showOptions(opts, promptText)
@@ -211,8 +211,10 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
       logWarn('note/printNote()', `No valid note found. Stopping.`)
       return
     }
+    const usingEditor = (noteIn == null || note.filename === Editor.filename)
 
-    console.log(`# ${note.type} Note: '${displayTitle(note)}'${noteIn == null ? ' from Editor' : ''}:`)
+    console.log(`# '${displayTitle(note)}'${usingEditor ? ' (from Editor)' : ''}:`)
+    console.log(`- type ${note.type}`)
     // If it's a Teamspace note, show some details
     if (note.isTeamspaceNote) {
       // $FlowIgnore[incompatible-type]
@@ -225,7 +227,7 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     if (note.type === 'Notes') {
       const startOfActive = findStartOfActivePartOfNote(note)
       const endOfActive = findEndOfActivePartOfNote(note)
-      console.log(`- # paragraphs: ${note.paragraphs.length} (Active part: ${String(startOfActive)} -${String(endOfActive)})`)
+      console.log(`- # paragraphs: ${note.paragraphs.length} (Active part: ${String(startOfActive)}-${String(endOfActive)})`)
     } else {
       // Calendar note
       console.log(dt.getDateStringFromCalendarFilename(note.filename))
@@ -237,10 +239,6 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     console.log(`- hashtags: ${note.hashtags?.join(', ') ?? '-'}`)
     console.log(`- mentions: ${note.mentions?.join(', ') ?? '-'}`)
 
-    // Get frontmatter details
-    const FMAttribs = getFrontmatterAttributes(note)
-    console.log(`- has ${Object.keys(FMAttribs).length} frontmatter keys: ${Object.keys(FMAttribs).join('\n    ')}`)
-
     if (note.paragraphs.length > 0) {
       const open = note.paragraphs.filter((p) => isOpen(p)).length
       const done = note.paragraphs.filter((p) => isDone(p)).length
@@ -248,7 +246,7 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
       const scheduled = note.paragraphs.filter((p) => isScheduled(p)).length
       console.log(`- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`)
       if (alsoShowParagraphs) {
-        console.log(`Paragraphs`)
+        console.log(`Paragraphs:`)
         note.paragraphs.map((p) => {
           const referencedParas = DataStore.referencedBlocks(p)
           console.log(`  ${p.lineIndex}: ${p.type} ${p.rawContent}${ (referencedParas.length >= 1) ? ` 🆔 has ${referencedParas.length} sync copies` : ''}`)
@@ -256,10 +254,23 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
       }
     }
 
+    // Get frontmatter details
+    const FMAttribs = getFrontmatterAttributes(note)
+    console.log(`- ${String(Object.keys(FMAttribs).length)} frontmatter keys:     ${Object.keys(FMAttribs).join('\n    ')}`)
+
+    // If using the Editor, now show the selection and selected paragraphs
+    if (usingEditor) {
+      console.log(`Selection: start: ${String(Editor.selection?.start)}, end: ${String(Editor.selection?.end)} {${Editor.selectedText ?? '-'}}`)
+      console.log(`Rendered Selection: start: ${String(Editor.renderedSelection?.start)}, end: ${String(Editor.renderedSelection?.end)}`)
+      console.log(`${Editor.selectedParagraphs.length} Selected paragraph(s):\n${String(Editor.selectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
+      const correctedSelectedParagraphs = getSelectedParagraphsWithCorrectLineIndex()
+      console.log(`${correctedSelectedParagraphs.length} Corrected selected paragraph(s) with lineIndex taking into account frontmatter lines:\n${String(correctedSelectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
+    }
+
     // Now show .backlinks
     if (note.backlinks?.length > 0) {
-      console.log(`Backlinks`)
-      console.log(`- ${String(note.backlinks.length)} backlinked notes`)
+      console.log(`Backlinks:`)
+      console.log(`- ${String(note.backlinks.length)} backlinked note(s)`)
       // $FlowIgnore[prop-missing]
       const flatBacklinkParas = getFlatListOfBacklinks(note) ?? [] // Note: this requires DataStore
       console.log(`- ${String(flatBacklinkParas.length)} backlink paras:`)
@@ -342,7 +353,11 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
       foundNote = DataStore.noteByFilename(filenameIn, 'Notes', teamspaceID)
         ?? DataStore.noteByFilename(filenameIn, 'Calendar', teamspaceID)
         ?? null
-      logDebug('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
+      if (foundNote != null) {
+        logDebug('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
+      } else {
+        throw new Error(`No teamspace note found for ${filenameIn}`)
+      }
     } else {
       // Check for private notes
       foundNote = DataStore.projectNoteByFilename(filenameIn) ?? null
@@ -1262,10 +1277,10 @@ export async function getNoteFromParamOrUser(
   purpose: string,
   noteTitleArg: string = '',
   notesIn?: Array<TNote>,
-): Promise<TNote | null> {
+): Promise<?TNote> {
   // Note: deliberately no try/catch so that failure can stop processing
   const startTime = new Date()
-  let note: TNote | null
+  let note: ?TNote
   let noteTitleArgIsCalendarNote: boolean = false
   logDebug('getNoteFromParamOrUser', `starting with purpose '${purpose}' / noteTitleArg '${noteTitleArg}' / with ${notesIn?.length ?? 0} notesIn`)
 
@@ -1276,8 +1291,9 @@ export async function getNoteFromParamOrUser(
     const possDateStr = getDateStrFromRelativeDateString(noteTitleArg)
     if (possDateStr) {
       noteTitleArgIsCalendarNote = true
+      // $FlowFixMe[incompatible-type]
       note = getOrMakeCalendarNote(possDateStr)
-      if (note) {
+      if (note != null) {
         logDebug('getNoteFromParamOrUser', `Found match with relative date '${noteTitleArg}' = filename ${note?.filename ?? '(error)'}`)
         return note
       }
@@ -1317,8 +1333,9 @@ export async function getNoteFromParamOrUser(
     // Preferably we'll use the last parameter, but if not calculate the list of notes to check
     // const notesToCheck = getNotesToCheck(notesIn)
     const result = await chooseNoteV2(`Select note for new ${purpose}`, notesIn, true, true, false, false)
-    if (typeof result !== 'boolean') {
+    if (note != null && typeof result !== 'boolean') {
       note = result
+      // $FlowIgnore[incompatible-call] tested note is not null here
       logDebug('getNoteFromParamOrUser', `- found note '${displayTitle(note)}'`)
     }
   }

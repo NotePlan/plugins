@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 2025-10-07 for v1.0.0 by @jgclark
+// Last updated 2025-10-30 for v1.0.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -30,7 +30,7 @@ import { getPeriodStartEndDates, getPeriodStartEndDatesFromPeriodCode } from '@h
 import type { TPeriodCode } from '@helpers/NPdateTime'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { noteOpenInEditor, openNoteInNewSplitIfNeeded } from '@helpers/NPWindows'
-import { chooseDecoratedOptionWithModifiers, chooseOption, showMessage } from '@helpers/userInput'
+import { chooseDecoratedOptionWithModifiers, chooseOption, isDecoratedCommandBarAvailable, showMessage } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
 // Main function
@@ -274,7 +274,7 @@ async function selectOutputDestination(
     return 'current'
   }
   let result = ''
-  if (NotePlan.environment.buildVersion >= 1413) { // = 3.18.0
+  if (isDecoratedCommandBarAvailable()) {
     // Start by tailoring the set of options to present
     const decoratedOutputOptions: Array<TCommandBarOptionObject> = [
       { text: `Add/Update the ${calendarTimeframe}ly calendar note '${periodString}'`, icon: 'calendar-days', color: 'gray-500', shortDescription: ``, alpha: 0.8, darkAlpha: 0.8 },
