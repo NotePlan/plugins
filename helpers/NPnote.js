@@ -9,7 +9,7 @@ import * as dt from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderDisplayName, getFolderFromFilename, getRegularNotesInFolder } from '@helpers/folders'
 import { displayTitle, isDecoratedCommandBarAvailable, isValidUUID } from '@helpers/general'
-import { calendarNotesSortedByChanged,noteType } from '@helpers/note'
+import { calendarNotesSortedByChanged, noteType } from '@helpers/note'
 import { displayTitleWithRelDate, getDateStrFromRelativeDateString, getRelativeDates } from '@helpers/NPdateTime'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes, getFrontmatterAttribute } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
@@ -54,7 +54,7 @@ const pluginJson = 'NPnote.js'
  * Note: no try-catch, so that failure can stop processing.
  * Note: This used to live in helpers/userInput.js, but was moved here to avoid a circular dependency.
  * @author @jgclark, heavily extending earlier function by @dwertheimer
- * 
+ *
  * @param {string?} promptText - text to display in the CommandBar
  * @param {Array<TNote>?} regularNotes - a list of regular notes to choose from. If not provided, all regular notes will be used.
  * @param {boolean?} includeCalendarNotes - include calendar notes in the list
@@ -115,7 +115,7 @@ export async function chooseNoteV2(
       icon: userSetIcon ? userSetIcon : folderIconDetails.icon,
       // Note: icon-color isn't used by NP in CommandBar, so I won't use it either for now. But if that changes, here's the line:
       // color: (possTeamspaceDetails.isTeamspace) ? TEAMSPACE_ICON_COLOR : userSetIconColor ? userSetIconColor : folderIconDetails.color,
-      color: (possTeamspaceDetails.isTeamspace) ? TEAMSPACE_ICON_COLOR : folderIconDetails.color,
+      color: possTeamspaceDetails.isTeamspace ? TEAMSPACE_ICON_COLOR : folderIconDetails.color,
       shortDescription: note.type === 'Notes' ? getFolderDisplayName(getFolderFromFilename(note.filename) ?? '') : '',
       alpha: folderIconDetails.alpha ?? 0.7,
       darkAlpha: folderIconDetails.darkAlpha ?? 0.7,
@@ -206,12 +206,12 @@ export async function chooseNoteV2(
 // eslint-disable-next-line require-await
 export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): Promise<void> {
   try {
-    const note = (noteIn == null) ? Editor.note : noteIn
+    const note = noteIn == null ? Editor.note : noteIn
     if (!note) {
       logWarn('note/printNote()', `No valid note found. Stopping.`)
       return
     }
-    const usingEditor = (noteIn == null || note.filename === Editor.filename)
+    const usingEditor = noteIn == null || note.filename === Editor.filename
 
     console.log(`# '${displayTitle(note)}'${usingEditor ? ' (from Editor)' : ''}:`)
     console.log(`- type ${note.type}`)
@@ -231,8 +231,7 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     } else {
       // Calendar note
       console.log(dt.getDateStringFromCalendarFilename(note.filename))
-      console.log(`- # paragraphs: ${note.paragraphs.length
-        }`)
+      console.log(`- # paragraphs: ${note.paragraphs.length}`)
     }
     console.log(`- created: ${String(note.createdDate) ?? '(not set!)'}`)
     console.log(`- changed: ${String(note.changedDate) ?? '(not set!'}`)
@@ -249,7 +248,7 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
         console.log(`Paragraphs:`)
         note.paragraphs.map((p) => {
           const referencedParas = DataStore.referencedBlocks(p)
-          console.log(`  ${p.lineIndex}: ${p.type} ${p.rawContent}${ (referencedParas.length >= 1) ? ` 🆔 has ${referencedParas.length} sync copies` : ''}`)
+          console.log(`  ${p.lineIndex}: ${p.type} ${p.rawContent}${referencedParas.length >= 1 ? ` 🆔 has ${referencedParas.length} sync copies` : ''}`)
         })
       }
     }
@@ -309,7 +308,10 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
  */
 export function getTeamspaceDetailsFromNote(note: TNote): TTeamspace | null {
   try {
-    if ((NotePlan.environment.buildVersion < 1366 && NotePlan.environment.platform === 'macOS') || (NotePlan.environment.buildVersion < 1295 && NotePlan.environment.platform !== 'macOS')) {
+    if (
+      (NotePlan.environment.buildVersion < 1366 && NotePlan.environment.platform === 'macOS') ||
+      (NotePlan.environment.buildVersion < 1295 && NotePlan.environment.platform !== 'macOS')
+    ) {
       return null
     }
     if (note.isTeamspaceNote) {
@@ -351,9 +353,7 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
       }
       // FIXME(Eduard): projectNoteByFilename() is not working for teamspace notes
       // So we have to do it this way ...
-      foundNote = DataStore.noteByFilename(filenameIn, 'Notes', teamspaceID)
-        ?? DataStore.noteByFilename(filenameIn, 'Calendar', teamspaceID)
-        ?? null
+      foundNote = DataStore.noteByFilename(filenameIn, 'Notes', teamspaceID) ?? DataStore.noteByFilename(filenameIn, 'Calendar', teamspaceID) ?? null
       if (foundNote != null) {
         logDebug('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
       } else {
@@ -626,8 +626,11 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
     backlinkParas.forEach((para) => {
       // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
       if (!para) {
-        logWarn('getReferencedParagraphs', `  - referenced para is null. Found in one of ${backlinkParas.length} backlink paras for note '${displayTitle(calNote)}' at ${calNote.filename}.`)
-      } 
+        logWarn(
+          'getReferencedParagraphs',
+          `  - referenced para is null. Found in one of ${backlinkParas.length} backlink paras for note '${displayTitle(calNote)}' at ${calNote.filename}.`,
+        )
+      }
       if (includeHeadings) {
         // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
       } else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
@@ -637,7 +640,7 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
         }
         wantedParas.push(para)
       } else {
-      // logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
+        // logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
       }
     })
 
@@ -795,11 +798,9 @@ export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar
     let notesToReturn: Array<TNote> = []
     if (noteTypesToInclude.includes('Calendar') && noteTypesToInclude.includes('Notes')) {
       notesToReturn = DataStore.calendarNotes.slice().concat(DataStore.projectNotes.slice())
-    }
-    else if (noteTypesToInclude.includes('Calendar')) {
+    } else if (noteTypesToInclude.includes('Calendar')) {
       notesToReturn = DataStore.calendarNotes.slice()
-    }
-    else if (noteTypesToInclude.includes('Notes')) {
+    } else if (noteTypesToInclude.includes('Notes')) {
       notesToReturn = DataStore.projectNotes.slice()
     }
     return notesToReturn
@@ -832,7 +833,9 @@ export function getNotesChangedInInterval(numDays: number, noteTypesToInclude: A
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
     matchingNotes = allNotesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
-    logTimer('getNotesChangedInInterval', startTime,
+    logTimer(
+      'getNotesChangedInInterval',
+      startTime,
       `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}:`,
     )
     return matchingNotes
@@ -964,9 +967,7 @@ export function findNotesMatchingHashtagOrMention(
     } else {
       notesWithItem = notesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
-        return isHashtag
-          ? correctedHashtags.includes(item)
-          : n.mentions.includes(item)
+        return isHashtag ? correctedHashtags.includes(item) : n.mentions.includes(item)
       })
     }
     if (notesWithItem.length === 0) {
@@ -979,7 +980,10 @@ export function findNotesMatchingHashtagOrMention(
     // Restrict to certain para types, if wanted
     if (wantedParaTypes.length > 0) {
       notesWithItem = notesWithItem.filter((n) => filterTagsOrMentionsInNoteByWantedParaTypes(n, [item], wantedParaTypes, includeInFrontmatterValues).length > 0)
-      logDebug('NPnote/findNotesMatchingHashtagOrMention', `After filtering to only include notes with wanted para types [${String(wantedParaTypes)}] -> ${String(notesWithItem.length)} notes`)
+      logDebug(
+        'NPnote/findNotesMatchingHashtagOrMention',
+        `After filtering to only include notes with wanted para types [${String(wantedParaTypes)}] -> ${String(notesWithItem.length)} notes`,
+      )
       // logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(notesWithItem.map((n) => n.title))}`)
     }
 
@@ -1018,17 +1022,17 @@ function filterTagsOrMentionsInNoteByWantedParaTypes(
 ): Array<string> {
   try {
     // Filter items based on paragraph types and note tags
-    const filteredItems = tagsOrMentions.filter(item => {
-      const paragraphsWithItem = note.paragraphs.filter(p => caseInsensitiveSubstringMatch(item, p.content))
+    const filteredItems = tagsOrMentions.filter((item) => {
+      const paragraphsWithItem = note.paragraphs.filter((p) => caseInsensitiveSubstringMatch(item, p.content))
       // logDebug('NPnote/filterTagsOMINBWPT', `Found ${paragraphsWithItem.length} paragraphs with item ${item} in ${note.filename}:`)
       if (includeInFrontmatterValues) {
         const noteTagAttribute = getFrontmatterAttribute(note, 'note-tag') ?? ''
-        if (tagsOrMentions.some(tm => noteTagAttribute.includes(tm))) {
+        if (tagsOrMentions.some((tm) => noteTagAttribute.includes(tm))) {
           logDebug('NPNote/filterTagsOMINBWPT', `Found matching noteTag(s) in '${noteTagAttribute}' in ${note.filename}`)
           return true
         }
       }
-      const hasValidParagraphType = paragraphsWithItem.some(p => wantedParaTypes.includes(p.type))
+      const hasValidParagraphType = paragraphsWithItem.some((p) => wantedParaTypes.includes(p.type))
       return hasValidParagraphType
     })
 
@@ -1251,9 +1255,7 @@ export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
   // Replace multiple underscores with a single underscore
   filesystemSafeTitle = filesystemSafeTitle.replace(/_+/g, '_')
   if (filesystemSafeTitle !== '') {
-    const newName = justFolderName !== '/'
-      ? `${justFolderName}/${filesystemSafeTitle}.${defaultFileExtension}`
-      : `${filesystemSafeTitle}.${defaultFileExtension}`
+    const newName = justFolderName !== '/' ? `${justFolderName}/${filesystemSafeTitle}.${defaultFileExtension}` : `${filesystemSafeTitle}.${defaultFileExtension}`
     return newName
   } else {
     logWarn('NPnote.js', `getFSSafeFilenameFromNoteTitle(): No title found in note ${note.filename}. Returning empty string.`)
@@ -1274,11 +1276,7 @@ export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
  * @param {Array<TNote>?} notesIn
  * @returns {TNote} note
  */
-export async function getNoteFromParamOrUser(
-  purpose: string,
-  noteTitleArg: string = '',
-  notesIn?: Array<TNote>,
-): Promise<?TNote> {
+export async function getNoteFromParamOrUser(purpose: string, noteTitleArg: string = '', notesIn?: Array<TNote>): Promise<?TNote> {
   // Note: deliberately no try/catch so that failure can stop processing
   const startTime = new Date()
   let note: ?TNote
@@ -1485,7 +1483,7 @@ export function getNoteTypeByFilename(filename: string): ?NoteType {
  * Archive a note using its current folder, replicating the folder structure if needed.
  * If 'archiveRootFolder' is supplied, archive under that folder, otherwise default to the built-in @Archive folder.
  * @author @jgclark
- * 
+ *
  * @param {TNote} noteIn
  * @param {string?} archiveRootFolder optional; if not given, then use the built-in @Archive folder
  * @returns {string | void} newFilename, if success
@@ -1523,8 +1521,7 @@ export function archiveNoteUsingFolder(note: TNote, archiveRootFolder?: string):
     } else {
       throw new Error(`archiveNoteUsingFolder(): Failed when moving '${displayTitle(note)}' to folder ${archiveFolderToMoveTo}`)
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, error.message)
     return
   }
