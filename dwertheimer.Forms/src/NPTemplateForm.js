@@ -146,7 +146,7 @@ export async function getTemplateFormData(templateTitle?: string): Promise<void>
         return
       }
     }
-    const templateData = await NPTemplating.getTemplate(selectedTemplate)
+    const templateData = await NPTemplating.getTemplateContent(selectedTemplate)
     const templateFrontmatterAttributes = await NPTemplating.getTemplateAttributes(templateData)
     clo(templateData, `getTemplateFormData templateData=`)
     clo(templateFrontmatterAttributes, `getTemplateFormData templateFrontmatterAttributes=`)

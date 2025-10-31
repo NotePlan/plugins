@@ -153,9 +153,9 @@
       "hidden": true
     },
     {
-      "name": "getTemplate",
-      "description": "NPTemplating.getTemplate export",
-      "jsFunction": "getTemplate",
+      "name": "getTemplateContent",
+      "description": "NPTemplating.getTemplateContent export",
+      "jsFunction": "getTemplateContent",
       "hidden": true
     },
     {

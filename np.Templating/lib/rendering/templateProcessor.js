@@ -16,7 +16,7 @@ import {
   getCodeBlocks,
   getIgnoredCodeBlocks,
   convertTemplateJSBlocksToControlTags,
-  getTemplate,
+  getTemplateContent,
   getNote,
   codeBlockHasComment,
   blockIsJavaScript,
@@ -506,7 +506,7 @@ export async function processIncludeTag(tag: string, context: { templateData: st
   templateName = evaluateTemplateStrings(templateName, context.sessionData)
 
   logDebug(`processIncludeTag templateName: ${templateName}`)
-  const templateContent = await getTemplate(templateName, { silent: true })
+  const templateContent = await getTemplateContent(templateName, { silent: true })
   const hasFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateContent)
   const isCalendarNote = /^\d{8}|\d{4}-\d{2}-\d{2}$/.test(templateName)
 
@@ -992,10 +992,10 @@ export async function importTemplates(templateData: string = '', sessionData: Ob
         // Evaluate template strings in the template name if they exist
         noteNamePath = evaluateTemplateStrings(noteNamePath, sessionData)
 
-        const content = await getTemplate(noteNamePath)
+        const content = await getTemplateContent(noteNamePath)
         // Ensure content is a string
         if (typeof content !== 'string') {
-          logDebug(pluginJson, `importTemplates: getTemplate returned non-string content: ${typeof content} - ${String(content).substring(0, 100)}`)
+          logDebug(pluginJson, `importTemplates: getTemplateContent returned non-string content: ${typeof content} - ${String(content).substring(0, 100)}`)
           newTemplateData = newTemplateData.replace(tag, `**Error importing "${noteNamePath}": Invalid content type**`)
           continue
         }
@@ -1647,7 +1647,7 @@ export async function render(inputTemplateData: string, userData: any = {}, user
  */
 export async function renderTemplateByName(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
   try {
-    const templateData = await getTemplate(templateName)
+    const templateData = await getTemplateContent(templateName)
     const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(templateData)
     const data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes }, ...userData }
     const renderedData = await render(frontmatterBody, data, userOptions)

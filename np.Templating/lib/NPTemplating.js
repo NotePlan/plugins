@@ -14,7 +14,7 @@ import pluginJson from '../plugin.json'
 import { templateErrorMessage as templateErrorMessageHandler } from './utils'
 
 // Import from core
-import { chooseTemplate, getTemplateList, getTemplate, getTemplateAttributes, createTemplate, getFolder } from './core'
+import { chooseTemplate, getTemplateList, getTemplateContent, getTemplateAttributes, createTemplate, getFolder } from './core'
 
 // Import from config
 import { heartbeat, setup as configSetup } from './config'
@@ -125,13 +125,13 @@ class NPTemplating {
    * @param {Object} [options={ showChoices: true, silent: false }] - Options for template retrieval
    * @returns {Promise<string>} A promise that resolves to the template content
    */
-  static async getTemplate(templateName: string = '', options: any = { showChoices: true, silent: false }): Promise<string> {
+  static async getTemplateContent(templateName: string = '', options: any = { showChoices: true, silent: false }): Promise<string> {
     try {
       await this.setup()
-      return getTemplate(templateName, options)
+      return getTemplateContent(templateName, options)
     } catch (error) {
-      logError(pluginJson, `getTemplate error: ${error}`)
-      return this.templateErrorMessage('NPTemplating.getTemplate', error)
+      logError(pluginJson, `getTemplateContent error: ${error}`)
+      return this.templateErrorMessage('NPTemplating.getTemplateContent', error)
     }
   }
 

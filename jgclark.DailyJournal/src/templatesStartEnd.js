@@ -162,7 +162,7 @@ async function applyTemplateToNote(
       throw new Error(`There is no ${noteType} template specified in the plugin settings, so can't continue.`)
     }
     
-    const templateData = await NPTemplating.getTemplate(templateTitle)
+    const templateData = await NPTemplating.getTemplateContent(templateTitle)
     if (templateData == null || templateData === '') {
       throw new Error(`Cannot find Template '${templateTitle}' so can't continue.`)
     }

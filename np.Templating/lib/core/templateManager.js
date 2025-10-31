@@ -13,6 +13,7 @@ import FrontmatterModule from '../support/modules/FrontmatterModule'
 import { normalizeToNotePlanFilename } from '../utils'
 import { getTemplateFolder } from '../config'
 import { clo } from '@helpers/dev'
+import { getContentWithLinks } from '@helpers/content'
 
 /**
  * Helper function to get filtered template list by attribute (type or tags).
@@ -70,7 +71,8 @@ export async function getFilteredTemplateList(
       if (note.title == null) continue
 
       // Get attributes efficiently
-      const attrs = useFrontmatterAttributes && note.frontmatterAttributes ? note.frontmatterAttributes : await new FrontmatterModule().attributes(await getTemplate(note.filename))
+      const attrs =
+        useFrontmatterAttributes && note.frontmatterAttributes ? note.frontmatterAttributes : await new FrontmatterModule().attributes(await getTemplateContent(note.filename))
 
       const attributeValue = attrs?.[attributeName] || ''
       const attributeValues = parseAttributeValues(attributeValue)
@@ -197,7 +199,7 @@ export async function chooseTemplate(tags?: any = '*', promptMessage: string = '
     }
 
     // $FlowIgnore
-    logDebug(pluginJson, `getTemplate: pulled together ${options.length} templates in ${timer(start)}`)
+    logDebug(pluginJson, `getTemplateContent: pulled together ${options.length} templates in ${timer(start)}`)
     clo(options[0], 'chooseTemplate options[0]:')
     // TODO: use chooseNoteV2 instead of chooseOption
     return await chooseOption<TNote, void>(promptMessage, options)
@@ -276,7 +278,7 @@ export async function getTemplateListByTags(tags: any = '*'): Promise<any> {
  * @param {boolean} [options.silent] - Whether to suppress error messages
  * @returns {Promise<string>} A promise that resolves to the template content
  */
-export async function getTemplate(templateName: string = '', options: any = { showChoices: true, silent: false }): Promise<string> {
+export async function getTemplateContent(templateName: string = '', options: any = { showChoices: true, silent: false }): Promise<string> {
   const startTime = new Date()
   const isFilename = templateName.endsWith('.md') || templateName.endsWith('.txt')
 
@@ -314,15 +316,15 @@ export async function getTemplate(templateName: string = '', options: any = { sh
       // we don't have a template yet, so we need to find one using title
       let templates: Array<TNote> = []
       if (isFilename) {
-        logDebug(pluginJson, `getTemplate: Searching for template by title without path "${originalFilename}" isFilename=${String(isFilename)}`)
+        logDebug(pluginJson, `getTemplateContent: Searching for template by title without path "${originalFilename}" isFilename=${String(isFilename)}`)
         const foundTemplates = await DataStore.projectNoteByTitle(originalFilename, true, false)
         templates = foundTemplates ? Array.from(foundTemplates) : []
       } else {
         // if it was a path+title, we need to look for just the name part without the path
-        logDebug(pluginJson, `getTemplate: Searching for template by title without path "${filename || ''}" isFilename=${String(isFilename)}`)
+        logDebug(pluginJson, `getTemplateContent: Searching for template by title without path "${filename || ''}" isFilename=${String(isFilename)}`)
         const foundTemplates = filename ? await DataStore.projectNoteByTitle(filename, true, false) : null
         templates = foundTemplates ? Array.from(foundTemplates) : []
-        logDebug(pluginJson, `getTemplate: Found ${templates.length} notes in DataStore matching title: ${filename || ''}`)
+        logDebug(pluginJson, `getTemplateContent: Found ${templates.length} notes in DataStore matching title: ${filename || ''}`)
         if (parts.length > 0 && templates && templates.length > 0) {
           // ensure the path part matched
           let path = parts.join('/')
@@ -330,11 +332,11 @@ export async function getTemplate(templateName: string = '', options: any = { sh
             path = templateFolderName + (path.startsWith('/') ? path : `/${path}`)
           }
           templates = templates.filter((template) => template.filename.startsWith(path)) || []
-          logDebug(pluginJson, `getTemplate: Found ${templates.length} notes matching title: ${filename || ''} and path: ${path}`)
+          logDebug(pluginJson, `getTemplateContent: Found ${templates.length} notes matching title: ${filename || ''} and path: ${path}`)
         }
       }
       if (templates && templates.length > 1) {
-        logWarn(pluginJson, `getTemplate: Multiple templates found for "${templateFilename || ''}"`)
+        logWarn(pluginJson, `getTemplateContent: Multiple templates found for "${templateFilename || ''}"`)
         let templatesSecondary = []
         for (const template of templates) {
           if (template && template.filename.startsWith(templateFolderName)) {
@@ -346,7 +348,7 @@ export async function getTemplate(templateName: string = '', options: any = { sh
         }
 
         if (templatesSecondary.length > 1) {
-          logDebug(pluginJson, `getTemplate: pulled together ${templatesSecondary.length} templates in ${timer(startTime)}`)
+          logDebug(pluginJson, `getTemplateContent: pulled together ${templatesSecondary.length} templates in ${timer(startTime)}`)
           // TODO: use chooseNoteV2 instead of chooseOption
           // $FlowIgnore
           let selectedItem = (await chooseOption<TNote, void>('Choose Template', templatesSecondary)) || null
@@ -358,7 +360,7 @@ export async function getTemplate(templateName: string = '', options: any = { sh
           // $FlowIgnore
           selectedTemplate = await DataStore.projectNoteByFilename(templatesSecondary[0].value)
         } else {
-          logError(pluginJson, `getTemplate: No templates found for ${templateFilename}`)
+          logError(pluginJson, `getTemplateContent: No templates found for ${templateFilename}`)
         }
       } else {
         selectedTemplate = Array.isArray(templates) && templates.length > 0 ? templates[0] : null
@@ -369,11 +371,11 @@ export async function getTemplate(templateName: string = '', options: any = { sh
     if (!selectedTemplate && !options.silent) {
       const errMsg = `Unable to locate "${originalFilename}"`
       await CommandBar.prompt('Template Error', errMsg)
-      logError(pluginJson, `getTemplate: Unable to locate ${originalFilename}`)
+      logError(pluginJson, `getTemplateContent: Unable to locate ${originalFilename}`)
       return `***Template Error: ${errMsg}***`
     }
 
-    let templateContent = selectedTemplate?.content || ''
+    let templateContent = getContentWithLinks(selectedTemplate)
 
     let isFrontmatterTemplate = templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent) : false
 
@@ -397,8 +399,8 @@ export async function getTemplate(templateName: string = '', options: any = { sh
 
     return templateContent
   } catch (error) {
-    logError(pluginJson, `getTemplate: Error="${error.message}"`)
-    return templateErrorMessage('getTemplate', error)
+    logError(pluginJson, `getTemplateContent: Error="${error.message}"`)
+    return templateErrorMessage('getTemplateContent', error)
   }
 }
 
