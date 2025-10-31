@@ -13,7 +13,7 @@ import { calendarNotesSortedByChanged,noteType } from '@helpers/note'
 import { displayTitleWithRelDate, getDateStrFromRelativeDateString, getRelativeDates } from '@helpers/NPdateTime'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes, getFrontmatterAttribute } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
-import { getBlockUnderHeading, getSelectedParagraphsWithCorrectLineIndex } from '@helpers/NPParagraph'
+import { getBlockUnderHeading } from '@helpers/NPParagraph'
 import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
@@ -263,8 +263,9 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
       console.log(`Selection: start: ${String(Editor.selection?.start)}, end: ${String(Editor.selection?.end)} {${Editor.selectedText ?? '-'}}`)
       console.log(`Rendered Selection: start: ${String(Editor.renderedSelection?.start)}, end: ${String(Editor.renderedSelection?.end)}`)
       console.log(`${Editor.selectedParagraphs.length} Selected paragraph(s):\n${String(Editor.selectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
-      const correctedSelectedParagraphs = getSelectedParagraphsWithCorrectLineIndex()
-      console.log(`${correctedSelectedParagraphs.length} Corrected selected paragraph(s) with lineIndex taking into account frontmatter lines:\n${String(correctedSelectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
+      // NOTE: getSelectedParagraphsWithCorrectLineIndex() function is not yet implemented in NPParagraph.js
+      // const correctedSelectedParagraphs = getSelectedParagraphsWithCorrectLineIndex()
+      // console.log(`${correctedSelectedParagraphs.length} Corrected selected paragraph(s) with lineIndex taking into account frontmatter lines:\n${String(correctedSelectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
     }
 
     // Now show .backlinks
