@@ -322,7 +322,7 @@ export async function getTemplate(templateName: string = '', options: any = { sh
         logDebug(pluginJson, `getTemplate: Searching for template by title without path "${filename || ''}" isFilename=${String(isFilename)}`)
         const foundTemplates = filename ? await DataStore.projectNoteByTitle(filename, true, false) : null
         templates = foundTemplates ? Array.from(foundTemplates) : []
-        logDebug(pluginJson, `getTemplate ${filename || ''}: Found ${templates.length} templates`)
+        logDebug(pluginJson, `getTemplate: Found ${templates.length} notes in DataStore matching title: ${filename || ''}`)
         if (parts.length > 0 && templates && templates.length > 0) {
           // ensure the path part matched
           let path = parts.join('/')
@@ -330,6 +330,7 @@ export async function getTemplate(templateName: string = '', options: any = { sh
             path = templateFolderName + (path.startsWith('/') ? path : `/${path}`)
           }
           templates = templates.filter((template) => template.filename.startsWith(path)) || []
+          logDebug(pluginJson, `getTemplate: Found ${templates.length} notes matching title: ${filename || ''} and path: ${path}`)
         }
       }
       if (templates && templates.length > 1) {
@@ -368,7 +369,7 @@ export async function getTemplate(templateName: string = '', options: any = { sh
     if (!selectedTemplate && !options.silent) {
       const errMsg = `Unable to locate "${originalFilename}"`
       await CommandBar.prompt('Template Error', errMsg)
-      logDebug(pluginJson, `getTemplate: Unable to locate ${originalFilename}`)
+      logError(pluginJson, `getTemplate: Unable to locate ${originalFilename}`)
       return `***Template Error: ${errMsg}***`
     }
 

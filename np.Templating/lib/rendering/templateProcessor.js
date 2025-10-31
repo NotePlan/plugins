@@ -1563,6 +1563,13 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       const enhancedTemplatingEngine = new TemplatingEngine(templateConfig, inputTemplateData, frontmatterErrors)
 
       try {
+        logDebug('================================')
+        logDebug(pluginJson, `_renderWithConfig: Rendering template: "${protectedTemplate}"`)
+        logDebug('--------------------------------')
+        clo(sessionData, `_renderWithConfig: Session data`)
+        logDebug('--------------------------------')
+        clo(userOptions, `_renderWithConfig: User options`)
+        logDebug('================================')
         renderedData = await enhancedTemplatingEngine.renderWithFallback(protectedTemplate, sessionData, userOptions)
       } catch (templateEngineError) {
         logError(pluginJson, `TemplatingEngine.renderWithFallback failed with error:`)
@@ -1600,7 +1607,7 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     if (errorMentioned) {
       logDebug(pluginJson, `_renderWithConfig: Error mentioned in final result:\n*****\n\t${errorMentioned}`)
     }
-
+    logDebug(`returning finalResult: "${finalResult}"`)
     return finalResult
   } catch (error) {
     clo(error, `render found error`)
@@ -1624,7 +1631,10 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
  * @returns {Promise<string>} A promise that resolves to the rendered template content
  */
 export async function render(inputTemplateData: string, userData: any = {}, userOptions: any = {}, templateConfig: any = {}): Promise<string> {
-  return await _renderWithConfig(inputTemplateData, userData, userOptions, templateConfig)
+  logDebug(pluginJson, `templateProcessor.render: Starting with inputTemplateData: "${inputTemplateData.substring(0, 100)}..."`)
+  const result = await _renderWithConfig(inputTemplateData, userData, userOptions, templateConfig)
+  logDebug(pluginJson, `templateProcessor.render: Returning result: "${result.substring(0, 100)}..."`)
+  return result
 }
 
 /**
