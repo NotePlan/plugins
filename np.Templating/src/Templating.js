@@ -17,6 +17,7 @@ import { helpInfo } from '../lib/helpers'
 import { getSetting } from '@helpers/NPConfiguration'
 import { smartPrependPara, smartAppendPara } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
+import { getContentWithLinks } from '@helpers/content'
 
 // helpers
 import { getNotePlanWeather } from '../lib/support/modules/notePlanWeather'
@@ -116,10 +117,10 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
           return
         }
         templateNote = Editor.note
-        templateData = Editor.content
+        templateData = getContentWithLinks(Editor.note)
       } else {
         templateNote = await getNote(selectedTemplate, true, `@Templates`)
-        templateData = templateNote?.content || ''
+        templateData = getContentWithLinks(templateNote)
       }
       const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
@@ -166,10 +167,10 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
           return
         }
         templateNote = Editor.note
-        templateData = Editor.content
+        templateData = getContentWithLinks(Editor.note)
       } else {
         templateNote = await getNote(selectedTemplate, true, `@Templates`)
-        templateData = templateNote?.content || ''
+        templateData = getContentWithLinks(templateNote)
       }
 
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
@@ -234,7 +235,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
       }
       // $FlowIgnore
       const selectedTemplate = selectedTemplateFilename ?? (await NPTemplating.chooseTemplate())
-      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      const templateData = await NPTemplating.getTemplateContent(selectedTemplate)
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
 
       // Create frontmatter object that includes BOTH the attributes AND the methods
@@ -311,7 +312,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       logDebug(pluginJson, `templateNew: about to chooseTemplate`)
       selectedTemplate = await NPTemplating.chooseTemplate()
     }
-    const templateData = await NPTemplating.getTemplate(selectedTemplate)
+    const templateData = await NPTemplating.getTemplateContent(selectedTemplate)
     const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
 
     let folder = _folder ?? ''
@@ -462,7 +463,7 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
     }
 
     if (selectedTemplate) {
-      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      const templateData = await NPTemplating.getTemplateContent(selectedTemplate)
       const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
       const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
 
@@ -917,8 +918,8 @@ export async function templateExecute(templateName?: string, userData?: any): Pr
   }
 }
 
-export async function getTemplate(templateName: string = '', options: any = { showChoices: true }): Promise<string> {
-  return await NPTemplating.getTemplate(templateName, options)
+export async function getTemplateContent(templateName: string = '', options: any = { showChoices: true }): Promise<string> {
+  return await NPTemplating.getTemplateContent(templateName, options)
 }
 
 export async function renderFrontmatter(templateData: string = '', userData: any = {}): Promise<any> {

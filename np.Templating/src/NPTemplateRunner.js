@@ -16,6 +16,7 @@ import { getNote } from '@helpers/note'
 import { chooseNote } from '@helpers/userInput'
 import { getNoteTitleFromTemplate } from '@helpers/NPFrontMatter'
 import { replaceDoubleDashes } from '../lib/engine/templateRenderer'
+import { getContentWithLinks } from '@helpers/content'
 
 import NPTemplating from '../lib/NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
@@ -357,7 +358,7 @@ export async function getTemplateData(selectedTemplate: string, isRunFromCode: b
   if (selectedTemplate && !trTemplateNote) {
     failed = true
   } else {
-    templateData = selectedTemplate ? trTemplateNote?.content || '' : ''
+    templateData = selectedTemplate ? getContentWithLinks(trTemplateNote) : ''
   }
 
   return { templateData, trTemplateNote, failed }
