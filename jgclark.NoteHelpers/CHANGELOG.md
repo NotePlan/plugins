@@ -2,8 +2,11 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
 
+## [1.2.3] - 2025-10-31
+- Fix to **moveNote** command for iOS/iPadOS
+
 ## [1.2.2] - 2025-09-22
-- Fix regression in folder picker.
+- Fix regression in folder picker
 
 ## [1.2.1] - 2025-09-19
 - improve and fix folder picker in various commands (including updating the sort order to match the app -- thanks for pointing this out, @tastapod)
