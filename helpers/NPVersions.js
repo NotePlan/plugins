@@ -3,7 +3,7 @@
 // Version-related helper functions for NotePlan plugins
 //-------------------------------------------------------------------------------
 
-import { clo, JSP, logError, logDebug } from './dev'
+import { clo, JSP, logError, logDebug, logWarn } from './dev'
 import { semverVersionToNumber } from './utils'
 
 /**
@@ -14,7 +14,7 @@ import { semverVersionToNumber } from './utils'
 export function usersVersionHas(feature: string): boolean {
   logDebug('usersVersionHas', `NotePlan v${NotePlan.environment.version}`)
   // Note: this ignores any non-numeric, non-period characters (e.g., "-beta3")
-  const userVersionNumber:number = semverVersionToNumber(NotePlan.environment.version) || 0
+  const userVersionNumber: number = semverVersionToNumber(NotePlan.environment.version) || 0
   // logDebug('usersVersionHas', `userVersionNumber: ${String(userVersionNumber)}`)
   
   function v(input: string): number { return semverVersionToNumber(input) }
@@ -34,6 +34,10 @@ export function usersVersionHas(feature: string): boolean {
     mainSidebarControl: userVersionNumber >= v("3.19.2"), // Nov 2025
     contentDeduplicator: userVersionNumber >= v("3.19.2"), // Nov 2025
   }
-  // logDebug('usersVersionHas', `-> ${String(versionHas[feature] ?? false)} for ${feature}`)
+  !versionHas[feature] &&
+    logWarn(
+      'usersVersionHas',
+      `NotePlan version ${NotePlan.environment.version} (${String(userVersionNumber)}) does not have requested feature: "${feature}"; ${versionHas.hasOwnProperty(feature) ? `feature *is* listed in function usersVersionHas()` : 'feature *is not* listed in function usersVersionHas()'
+      }. Returning false.`)
   return versionHas[feature] ?? false
 }
