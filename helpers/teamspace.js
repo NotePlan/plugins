@@ -15,7 +15,8 @@ import { RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME, RE_MONTHLY_NOTE_FILENA
 // Following moved from teamspace.js to regex.js to avoid circular dependency
 import { RE_TEAMSPACE_INDICATOR_AND_ID, RE_UUID } from './regex'
 
-export const TEAMSPACE_FA_ICON = 'fa-regular fa-screen-users'
+// export const TEAMSPACE_FA_ICON = 'fa-regular fa-screen-users' // used in v3.18 
+export const TEAMSPACE_FA_ICON = 'fa-regular fa-cube' // used from v3.19
 
 //-----------------------------------------------------------
 // FUNCTIONS
