@@ -16,15 +16,6 @@ import { parseTeamspaceFilename } from './teamspace'
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
 
 //-------------------------------------------------------------------------------
-// Version-related functions
-
-export function isDecoratedCommandBarAvailable(): boolean {
-  // From a v3.18.0 beta
-  return ((NotePlan.environment.platform === 'macOS' && NotePlan.environment.buildVersion >= 1413)
-    || (NotePlan.environment.platform !== 'macOS' && NotePlan.environment.buildVersion >= 1338))
-}
-
-//-------------------------------------------------------------------------------
 
 /**
  * Case Insensitive version of Map

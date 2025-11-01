@@ -1,7 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2025-06-20 for v0.13.0+ by @jgclark
+// Last updated 2025-11-01 for v0.13.0+ by @jgclark
+// Minimum NP version: 3.9.3
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -30,9 +31,8 @@ import {
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
-import {
-  allNotesSortedByTitle,
-} from '@helpers/note'
+import { allNotesSortedByTitle } from '@helpers/note'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { noteOpenInEditor, openNoteInNewSplitIfNeeded } from '@helpers/NPWindows'
 import { contentRangeToString } from '@helpers/paragraph'
 import { showMessage } from "@helpers/userInput"
@@ -62,7 +62,7 @@ type conflictDetails = {
 */
 async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise<Array<conflictDetails>> {
   try {
-    if (NotePlan.environment.buildVersion < 1053) {
+    if (!usersVersionHas('noteVersions')) {
       await showMessage("Command '/List conflicted notes' is only available from NP 3.9.3")
       return []
     }
@@ -241,8 +241,8 @@ export async function resolveConflictWithCurrentVersion(noteType: NoteType, file
     // Attempt to get spinner to appear, to show that something is happening.
     CommandBar.showLoading(true, 'Deleting other note version')
     logDebug('resolveConflictWithCurrentVersion', `starting for file '${filename}'`)
-    if (NotePlan.environment.buildVersion < 1053) {
-      logWarn('resolveConflictWithCurrentVersion', `can't be run until NP v3.9.3`)
+    if (!usersVersionHas('noteVersions')) {
+      logWarn('resolveConflictWithCurrentVersion', `Requires NotePlan v3.9.3 or later`)
       return
     }
     // Need to handle Calendar and project notes differently
@@ -270,8 +270,8 @@ export async function resolveConflictWithOtherVersion(noteType: NoteType, filena
   try {
     CommandBar.showLoading(true, 'Deleting main note version')
     logDebug('resolveConflictWithOtherVersion', `starting for file '${filename}'`)
-    if (NotePlan.environment.buildVersion < 1053) {
-      logWarn('resolveConflictWithOtherVersion', `can't be run until NP v3.9.3`)
+    if (!usersVersionHas('noteVersions')) {
+      logWarn('resolveConflictWithOtherVersion', `Requires NotePlan v3.9.3 or later`)
       return
     }
     // Need to handle Calendar and project notes differently

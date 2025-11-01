@@ -10,9 +10,9 @@ import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { displayTitleWithRelDate } from './NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
 import { getFoldersMatching } from './folders'
-import { isDecoratedCommandBarAvailable } from './general'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
 import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
+import { usersVersionHas } from './NPVersions'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 import { parseTeamspaceFilename } from './teamspace'
 
@@ -352,7 +352,7 @@ export async function chooseFolder(
 
       // Get user selection. Use newer CommandBar.showOptions() from v3.18 if available.
       let result: TCommandBarOptionObject | any
-      if (isDecoratedCommandBarAvailable() && !forceOriginalCommandBar) {
+      if (usersVersionHas('decoratedCommandBar') && !forceOriginalCommandBar) {
         // ✅ for list with add new option
         // ✅ for list without add new option
         // ✅ for both private + teamspace
@@ -758,7 +758,7 @@ export async function chooseHeadingV2(
 ): Promise<string> {
   try {
     // If running on v3.18 or earlier, use the older chooseHeading() function
-    if (!isDecoratedCommandBarAvailable()) {
+    if (!usersVersionHas('decoratedCommandBar')) {
       return await chooseHeading(note, optionAddAtTopAndBottom, optionCreateNewHeading, includeArchive, headingLevel)
     }
 

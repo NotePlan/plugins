@@ -8,12 +8,13 @@ import moment from 'moment/min/moment-with-locales'
 import * as dt from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderDisplayName, getFolderFromFilename, getRegularNotesInFolder } from '@helpers/folders'
-import { displayTitle, isDecoratedCommandBarAvailable, isValidUUID } from '@helpers/general'
+import { displayTitle, isValidUUID } from '@helpers/general'
 import { calendarNotesSortedByChanged, noteType } from '@helpers/note'
 import { displayTitleWithRelDate, getDateStrFromRelativeDateString, getRelativeDates } from '@helpers/NPdateTime'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes, getFrontmatterAttribute } from '@helpers/NPFrontMatter'
-import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { getBlockUnderHeading } from '@helpers/NPParagraph'
+import { usersVersionHas } from '@helpers/NPVersions'
+import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
@@ -180,7 +181,7 @@ export async function chooseNoteV2(
 
   // Now show the options to the user
   let noteToReturn = null
-  if (isDecoratedCommandBarAvailable()) {
+  if (usersVersionHas('decoratedCommandBar')) {
     // logDebug('chooseNoteV2', `Using 3.18.0's advanced options for CommandBar.showOptions call`)
     // use the more advanced options to the `CommandBar.showOptions` call
     const { index } = await CommandBar.showOptions(opts, promptText)
@@ -308,10 +309,8 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
  */
 export function getTeamspaceDetailsFromNote(note: TNote): TTeamspace | null {
   try {
-    if (
-      (NotePlan.environment.buildVersion < 1366 && NotePlan.environment.platform === 'macOS') ||
-      (NotePlan.environment.buildVersion < 1295 && NotePlan.environment.platform !== 'macOS')
-    ) {
+    if (!usersVersionHas('teamspaceNotes')) {
+      logWarn('NPnote/getTeamspaceDetailsFromNote', `NotePlan version ${NotePlan.environment.version} does not support teamspace notes. Returning null.`)
       return null
     }
     if (note.isTeamspaceNote) {

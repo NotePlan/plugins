@@ -1,6 +1,7 @@
 // @flow
 // shared functions that can be imported and used in helpers without creating circular dependencies
 
+import { logDebug, logError } from '@helpers/dev'
 import { RE_IS_SCHEDULED } from './dateTime'
 import { RE_ARROW_DATES_G } from './regex'
 
@@ -128,3 +129,43 @@ export function removeDuplicates(arr: Array<{ [string]: any }>, keys: Array<stri
  */
 export const findLongestStringInArray = (arr: Array<string>): string =>
   arr.length ? arr.reduce((a, b) => (a.length > b.length ? a : b)) : ''
+/**
+ * Convert semver string to number, ignoring any non-numeric, non-period characters (e.g., "-beta3").
+ * The generated number is a base-1024 number, so the maximum version is 1023.1023.1023 (1024^3 - 1). Not useful in itself, but it's a good way to compare versions.
+ * @param {string} version - semver version string
+ * @returns {number} Numeric representation of version
+ * @throws {Error} If version string is invalid
+ */
+
+export function semverVersionToNumber(version: string): number {
+  try {
+    // Trim the version string at the first non-numeric, non-period character
+    const trimmedVersion = version.split(/[^0-9.]/)[0]
+
+    const parts = trimmedVersion.split('.').map((part) => {
+      const numberPart = parseInt(part, 10)
+      if (isNaN(numberPart) || numberPart < 0) {
+        throw new Error(`Invalid version part: version=${version} part=${part}`)
+      }
+      return numberPart
+    })
+
+    if (parts.length !== 3) {
+      throw new Error(`Version string must have exactly three parts: version=${version} parts=${parts.length}`)
+    }
+
+    let numericVersion = 0
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i] > 1023) {
+        throw new Error(`Version string invalid, ${parts[i]} is too large`)
+      }
+      numericVersion += parts[i] * Math.pow(1024, 2 - i)
+    }
+    logDebug('semverVersionToNumber', `-> ${String(numericVersion)}`)
+    return numericVersion
+  }
+  catch (error) {
+    logError('NPConfiguration/semverVersionToNumber', `Error converting version string to number: ${error}`)
+    return 0
+  }
+}

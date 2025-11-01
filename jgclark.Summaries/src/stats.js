@@ -29,8 +29,9 @@ import { replaceSection, setIconForNote } from '@helpers/note'
 import { getPeriodStartEndDates, getPeriodStartEndDatesFromPeriodCode } from '@helpers/NPdateTime'
 import type { TPeriodCode } from '@helpers/NPdateTime'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { noteOpenInEditor, openNoteInNewSplitIfNeeded } from '@helpers/NPWindows'
-import { chooseDecoratedOptionWithModifiers, chooseOption, isDecoratedCommandBarAvailable, showMessage } from '@helpers/userInput'
+import { chooseDecoratedOptionWithModifiers, chooseOption, showMessage } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
 // Main function
@@ -274,7 +275,7 @@ async function selectOutputDestination(
     return 'current'
   }
   let result = ''
-  if (isDecoratedCommandBarAvailable()) {
+  if (usersVersionHas('decoratedCommandBar')) {
     // Start by tailoring the set of options to present
     const decoratedOutputOptions: Array<TCommandBarOptionObject> = [
       { text: `Add/Update the ${calendarTimeframe}ly calendar note '${periodString}'`, icon: 'calendar-days', color: 'gray-500', shortDescription: ``, alpha: 0.8, darkAlpha: 0.8 },

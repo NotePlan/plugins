@@ -9,7 +9,7 @@ import { getSettings, type TidyConfig } from './tidyHelpers'
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderListMinusExclusions, getProjectNotesInFolder } from '@helpers/folders'
-import { isDecoratedCommandBarAvailable } from '@helpers/general'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { appendStringToSettingArray } from '@helpers/NPSettings'
 import { getAllTeamspaceIDsAndTitles } from '@helpers/NPTeamspace'
 import { chooseOption, chooseHeading, chooseDecoratedOptionWithModifiers, createFolderOptions, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
@@ -41,7 +41,7 @@ export async function fileRootNotes(): Promise<void> {
     // Form options to present to user for each root note.
     // Form both simple and decorated options, ready for both versions of CommandBar.showOptions()
     const [simpleFolderOptions, decoratedFolderOptions] = createFolderOptions(allRelevantFolders, teamspaceDefs, true)
-    if (isDecoratedCommandBarAvailable()) {
+    if (usersVersionHas('decoratedCommandBar')) {
       // Prepend some special items
       decoratedFolderOptions.unshift({icon: 'folder-plus', text: `Move to a new folder`, color: 'orange-500', shortDescription: 'Add new', alpha: 0.8, darkAlpha: 0.8})
       decoratedFolderOptions.unshift({icon: 'trash-can', text: `Delete this note`, color: 'red-500', shortDescription: 'Delete', alpha: 0.8, darkAlpha: 0.8})
@@ -77,7 +77,7 @@ export async function fileRootNotes(): Promise<void> {
 
       // Ask user which folder to move to. Use newer CommandBar.showOptions() from v3.18 if available.
       let chosenOption: string = ''
-      if (isDecoratedCommandBarAvailable()) {
+      if (usersVersionHas('decoratedCommandBar')) {
         const chosenDecoratedOption = await chooseDecoratedOptionWithModifiers(`Move '${thisTitle}' to which folder?`, decoratedFolderOptions)
         chosenOption = chosenDecoratedOption.value
       } else {

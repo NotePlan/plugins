@@ -13,6 +13,7 @@ import { castStringFromMixed } from '@helpers/dataManipulation'
 import { logDebug, logWarn, logError, logInfo, JSP, clo, copyObject, timer } from '@helpers/dev'
 import { caseInsensitiveMatch } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
+import { semverVersionToNumber } from '@helpers/utils'
 
 /**
  * Returns ISO formatted date time
@@ -207,39 +208,6 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
       `Failed to parse your _configuration note, it seems to be malformed (e.g. a missing comma).\n\nPlease correct it, delete the plugin (click on the plugin name in the preferences to see the 'delete' button), and redownload it.\n\nError: ${error}`,
     )
   }
-}
-
-/**
- * Convert semver string to number, ignoring any non-numeric, non-period characters (e.g., "-beta3")
- * @param {string} version - semver version string
- * @returns {number} Numeric representation of version
- * @throws {Error} If version string is invalid
- */
-export function semverVersionToNumber(version: string): number {
-  // Trim the version string at the first non-numeric, non-period character
-  const trimmedVersion = version.split(/[^0-9.]/)[0]
-
-  const parts = trimmedVersion.split('.').map((part) => {
-    const numberPart = parseInt(part, 10)
-    if (isNaN(numberPart) || numberPart < 0) {
-      logError(`Invalid version part: version=${version} part=${part}`)
-    }
-    return numberPart
-  })
-
-  if (parts.length !== 3) {
-    logError('Version string must have exactly three parts')
-    return 0
-  }
-
-  let numericVersion = 0
-  for (let i = 0; i < parts.length; i++) {
-    if (parts[i] > 1023) {
-      throw new Error(`Version string invalid, ${parts[i]} is too large`)
-    }
-    numericVersion += parts[i] * Math.pow(1024, 2 - i)
-  }
-  return numericVersion
 }
 
 /**
