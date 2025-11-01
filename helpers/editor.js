@@ -1,8 +1,8 @@
 // @flow
 
-import { logDebug } from './dev'
+import { logDebug, logError, logInfo, logWarn } from './dev'
 import { showMessageYesNo, showMessage, chooseFolder } from './userInput'
-import { getNoteTitleFromTemplate, getNoteTitleFromRenderedContent } from './NPFrontMatter'
+import { endOfFrontmatterLineIndex, getNoteTitleFromTemplate, getNoteTitleFromRenderedContent } from './NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
 
 /**

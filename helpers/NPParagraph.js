@@ -27,7 +27,7 @@ import { displayTitle } from '@helpers/general'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
 import { getFirstDateInPeriod, getNPWeekData, getMonthData, getQuarterData, getYearData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
-// import { getNoteFromFilename } from '@helpers/NPnote'
+import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { caseInsensitiveMatch, caseInsensitiveSubstringMatch, caseInsensitiveStartsWith, getLineMainContentPos } from '@helpers/search'
@@ -1637,6 +1637,7 @@ export function cancelItem(filenameIn: string, content: string): boolean {
  * TODO: extend to delete sub-items as well if wanted.
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * @author @jgclark
+ * 
  * @param {string} filenameIn to look in
  * @param {string} content to find
  * @returns {boolean} true if succesful, false if unsuccesful
@@ -1827,4 +1828,32 @@ export function removeAllDueDates(filename: string): boolean {
     logError('removeAllDueDates', error.message)
     return false
   }
+}
+
+/**
+ * WARNING: This was an attempt to work around the issue that .lineIndex in Editor.paragraphs includes frontmatter lines, but in Editor.selectedParagraphs it doesn't.
+ * WARNING: However, it doesn't work, as it throws up "Attempted to assign to readonly property" errors.
+ * Get the selected paragraphs with the correct line index, taking into account the frontmatter lines.
+ * Note: should really live in editor.js, but putting here to avoid a circular dependency.
+ * @author @jgclark
+ * 
+ * @returns {Array<TParagraph>} the selected paragraphs with the correct line index
+ */
+export function getSelectedParagraphsWithCorrectLineIndex(): Array<TParagraph> {
+  const note = Editor.note
+  if (!note) {
+    logInfo('getSelectedParagraphsWithCorrectLineIndex', 'No note open, so returning empty array.')
+    return []
+  }
+  const numberOfFrontmatterLines = endOfFrontmatterLineIndex(note) || 0
+  const selectedParagraphs = Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex]) ?? []
+  const correctedSelectedParagraphs: Array<TParagraph> = selectedParagraphs.slice()
+  correctedSelectedParagraphs.forEach((p) => {
+    // $FlowIgnore[cannot-write]
+    p.lineIndex += numberOfFrontmatterLines
+  })
+
+  logDebug('getSelectedParagraphsWithCorrectLineIndex', `${correctedSelectedParagraphs.length} Corrected selected paragraph(s) with lineIndex taking into account frontmatter lines:\n${String(correctedSelectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
+
+  return correctedSelectedParagraphs
 }
