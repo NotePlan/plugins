@@ -129,6 +129,7 @@ export function removeDuplicates(arr: Array<{ [string]: any }>, keys: Array<stri
  */
 export const findLongestStringInArray = (arr: Array<string>): string =>
   arr.length ? arr.reduce((a, b) => (a.length > b.length ? a : b)) : ''
+
 /**
  * Convert semver string to number, ignoring any non-numeric, non-period characters (e.g., "-beta3").
  * The generated number is a base-1024 number, so the maximum version is 1023.1023.1023 (1024^3 - 1). Not useful in itself, but it's a good way to compare versions.

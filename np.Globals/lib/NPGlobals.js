@@ -6,8 +6,8 @@
  * -----------------------------------------------------------------------------------------*/
 import pluginJson from '../plugin.json'
 
-import { semverVersionToNumber } from '@helpers/general'
 import { clo, log } from '@helpers/dev'
+import { semverVersionToNumber } from '@helpers/utils'
 
 type GlobalsConfig = $ReadOnly<{
   locale?: string,

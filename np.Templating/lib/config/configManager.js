@@ -6,8 +6,8 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { semverVersionToNumber } from '@helpers/general'
 import { log, logError } from '@helpers/dev'
+import { semverVersionToNumber } from '@helpers/utils'
 import pluginJson from '../../plugin.json'
 
 /**
