@@ -8,8 +8,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md",
-  "plugin.version": "1.15.1",
-  "plugin.lastUpdateInfo": "v1.15.1: Add support for '<boolean>' in review questions.\nv1.15.0: Rename to 'Journalling Helpers Plugin'. Add new '/dayEnd', '/todayEnd' and '/weekEnd' commands, that run pre-set Templates for Reviews, Summaries or Tidy Up.\nv0.15.1: New 'Journalling: update plugin settings' command for use on iOS/iPadOS. v0.15: Added support for Monthly, Quarterly and Yearly review questions. v0.14: Added /weekStart command. \nv0.13: Added support for /weekReview, /monthReview and /quarterlyReview, each of which have settings for their different Review Questions. /dayStart now uses the template's location field to determine where in the note to insert.",
+  "plugin.version": "1.16.0",
+  "plugin.releaseStatus": "full",
+  "plugin.lastUpdateInfo": "v1.16.0: Can now have multiple review questions per line.\nAdd logging settings.\nv1.15.1: Add support for '<boolean>' in review questions.\nv1.15.0: Rename to 'Journalling Helpers Plugin'. Add new '/dayEnd', '/todayEnd' and '/weekEnd' commands, that run pre-set Templates for Reviews, Summaries or Tidy Up.\nv0.15.1: New 'Journalling: update plugin settings' command for use on iOS/iPadOS. v0.15: Added support for Monthly, Quarterly and Yearly review questions. v0.14: Added /weekStart command. \nv0.13: Added support for /weekReview, /monthReview and /quarterlyReview, each of which have settings for their different Review Questions. /dayStart now uses the template's location field to determine where in the note to insert.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -247,6 +248,28 @@
       "type": "string",
       "default": "Goals met: <string>\nNew goals identified: <string>\nProjects finished: <string>\nNew projects identified: <string>",
       "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "INFO",
+      "required": true
     }
   ]
 }

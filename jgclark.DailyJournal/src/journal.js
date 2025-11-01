@@ -104,7 +104,7 @@ export async function yearlyJournalQuestions(): Promise<void> {
  * Ensure the correct period note is open, or open it if user requests.
  * @param {string} period for journal questions: 'day', 'week', 'month', 'quarter', 'year'
  * @param {string} periodAdjective adjective for period: 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'
- * @return {Promise<boolean>} true if we should continue, false if cancelled
+ * @returns {Promise<boolean>} true if we should continue, false if cancelled
  */
 async function ensureCorrectPeriodNote(period: string, periodAdjective: string): Promise<boolean> {
   // Open current calendar note if wanted
@@ -133,32 +133,33 @@ async function ensureCorrectPeriodNote(period: string, periodAdjective: string):
 }
 
 /**
- * Get question lines for the given period from config.
+ * Get raw question lines for the given period from config. 
+ * From v1.16, these may now contain multiple questions per line, separated by '||'.
  * @param {JournalConfigType} config the journal configuration
  * @param {string} period for journal questions: 'day', 'week', 'month', 'quarter', 'year'
- * @return {Promise<Array<string>>} array of question lines, or empty array if unsupported
+ * @returns {Promise<Array<string>>} array of question lines, or empty array if unsupported
  */
 async function getQuestionsForPeriod(config: JournalConfigType, period: string): Promise<Array<string>> {
-  let questionLines: Array<string> = []
+  let rawQuestionLines: Array<string> = []
   switch (period) {
     case 'day': {
-      questionLines = config.dailyReviewQuestions.split('\n')
+      rawQuestionLines = config.dailyReviewQuestions.split('\n')
       break
     }
     case 'week': {
-      questionLines = config.weeklyReviewQuestions.split('\n')
+      rawQuestionLines = config.weeklyReviewQuestions.split('\n')
       break
     }
     case 'month': {
-      questionLines = config.monthlyReviewQuestions.split('\n')
+      rawQuestionLines = config.monthlyReviewQuestions.split('\n')
       break
     }
     case 'quarter': {
-      questionLines = config.quarterlyReviewQuestions.split('\n')
+      rawQuestionLines = config.quarterlyReviewQuestions.split('\n')
       break
     }
     case 'year': {
-      questionLines = config.yearlyReviewQuestions.split('\n')
+      rawQuestionLines = config.yearlyReviewQuestions.split('\n')
       break
     }
     default: {
@@ -167,25 +168,34 @@ async function getQuestionsForPeriod(config: JournalConfigType, period: string):
       return []
     }
   }
-  return questionLines
+  logDebug(pluginJson, `rawQuestionLines: ${String(rawQuestionLines)}`)
+  return rawQuestionLines
 }
 
 /**
  * Parse question lines to extract questions and their types.
+ * Supports multiple questions per line separated by '||'.
  * @param {Array<string>} questionLines raw question lines from config
- * @return {Array<{question: string, type: string, originalLine: string}>} parsed questions with types
+ * @returns {Array<{question: string, type: string, originalLine: string, lineIndex: number}>} parsed questions with types and line index
  */
-function parseQuestions(questionLines: Array<string>): Array<{ question: string, type: string, originalLine: string }> {
+function parseQuestions(questionLines: Array<string>): Array<{ question: string, type: string, originalLine: string, lineIndex: number }> {
   const parsed = []
   const typeRE = new RegExp('<(.*)>')
 
-  // remove type indicators from the question string
-  for (let i = 0; i < questionLines.length; i++) {
-    const question = questionLines[i].replace(/:|\(|\)|<string>|<int>|<number>|<boolean>|<mood>|<subheading>/g, '').trim()
-    const reArray = questionLines[i].match(typeRE)
-    const questionType = reArray?.[1] ?? '<error in question type>'
-    // logDebug(pluginJson, '- ' + i + ': ' + question + ' / ' + questionType)
-    parsed.push({ question, type: questionType, originalLine: questionLines[i] })
+  // Process each line, splitting by '||' to support multiple questions per line
+  for (let lineIndex = 0; lineIndex < questionLines.length; lineIndex++) {
+    const line = questionLines[lineIndex]
+    // Split the line by '||' to get individual questions (allowing optional whitespace around ||)
+    const questionParts = line.split(/\s*\|\|\s*/).map(part => part.trim()).filter(part => part !== '')
+
+    for (const questionPart of questionParts) {
+      // remove type indicators from the question string
+      const question = questionPart.replace(/:|\(|\)|<string>|<int>|<number>|<boolean>|<mood>|<subheading>/g, '').trim()
+      const reArray = questionPart.match(typeRE)
+      const questionType = reArray?.[1] ?? '<error in question type>'
+      // logDebug(pluginJson, '- Line ' + lineIndex + ', Q: ' + question + ' / ' + questionType)
+      parsed.push({ question, type: questionType, originalLine: questionPart, lineIndex })
+    }
   }
 
   return parsed
@@ -194,7 +204,7 @@ function parseQuestions(questionLines: Array<string>): Array<{ question: string,
 /**
  * Handle a boolean question type.
  * @param {string} questionText the question text
- * @return {Promise<string>} the answer line, or empty string if not answered
+ * @returns {Promise<string>} the answer line, or empty string if not answered
  */
 async function handleBooleanQuestion(questionText: string): Promise<string> {
   const reply = await showMessageYesNoCancel(`Was '${questionText}' done?`, ['Yes', 'No', 'Cancel'])
@@ -213,7 +223,7 @@ async function handleBooleanQuestion(questionText: string): Promise<string> {
  * Handle an integer question type.
  * @param {string} questionText the question text
  * @param {string} originalLine the original question line from config
- * @return {Promise<string>} the answer line, or empty string if invalid
+ * @returns {Promise<string>} the answer line, or empty string if invalid
  */
 async function handleIntQuestion(questionText: string, originalLine: string): Promise<string> {
   const reply = await getInputTrimmed(`Please enter an integer`, 'OK', `Journal Q: ${questionText}?`)
@@ -236,7 +246,7 @@ async function handleIntQuestion(questionText: string, originalLine: string): Pr
  * Handle a number question type.
  * @param {string} questionText the question text
  * @param {string} originalLine the original question line from config
- * @return {Promise<string>} the answer line, or empty string if invalid
+ * @returns {Promise<string>} the answer line, or empty string if invalid
  */
 async function handleNumberQuestion(questionText: string, originalLine: string): Promise<string> {
   const reply = await getInputTrimmed(`Please enter a number`, 'OK', `Journal Q: ${questionText}?`)
@@ -259,7 +269,7 @@ async function handleNumberQuestion(questionText: string, originalLine: string):
  * Handle a string question type.
  * @param {string} questionText the question text
  * @param {string} originalLine the original question line from config
- * @return {Promise<string>} the answer line, or empty string if invalid
+ * @returns {Promise<string>} the answer line, or empty string if invalid
  */
 async function handleStringQuestion(questionText: string, originalLine: string): Promise<string> {
   const reply = await getInputTrimmed(`Please enter text`, 'OK', `Journal Q: ${questionText}?`)
@@ -283,7 +293,7 @@ async function handleStringQuestion(questionText: string, originalLine: string):
  * Handle a mood question type.
  * @param {string} originalLine the original question line from config
  * @param {JournalConfigType} config the journal configuration
- * @return {Promise<string>} the answer line, or empty string if invalid
+ * @returns {Promise<string>} the answer line, or empty string if invalid
  */
 async function handleMoodQuestion(originalLine: string, config: JournalConfigType): Promise<string> {
   // Some confusion as to which type is coming through from ConfigV1 and ConfigV2. 
@@ -302,7 +312,7 @@ async function handleMoodQuestion(originalLine: string, config: JournalConfigTyp
 /**
  * Handle a subheading question type.
  * @param {string} question the question text
- * @return {string} the formatted subheading line
+ * @returns {string} the formatted subheading line
  */
 function handleSubheadingQuestion(question: string): string {
   return '\n### '.concat(question.replace(/<subheading>/, ''))
@@ -310,16 +320,20 @@ function handleSubheadingQuestion(question: string): string {
 
 /**
  * Process a single question and get its answer.
- * @param {Object} parsedQuestion parsed question object with question, type, and originalLine
+ * @param {Object} parsedQuestion parsed question object with question, type, originalLine, and lineIndex
  * @param {number} index the question index
  * @param {JournalConfigType} config the journal configuration
- * @return {Promise<string>} the answer line, or empty string if skipped/invalid
+ * @returns {Promise<string>} the answer fragment, or empty string if skipped/invalid (doesn't include newline or || separator)
  */
-async function processQuestion(parsedQuestion: { question: string, type: string, originalLine: string }, index: number, config: JournalConfigType): Promise<string> {
+async function processQuestion(
+  parsedQuestion: { question: string, type: string, originalLine: string, lineIndex: number },
+  index: number,
+  config: JournalConfigType
+): Promise<string> {
   // Each question type is handled slightly differently, but in all cases a blank
   // or invalid answer means the question is ignored.
   let reviewLine = ''
-  logDebug(pluginJson, `Q${index}: ${parsedQuestion.question} / ${parsedQuestion.type}`)
+  logDebug(pluginJson, `Q${index} (line ${parsedQuestion.lineIndex}): ${parsedQuestion.question} / ${parsedQuestion.type}`)
 
   // Look to see if this question has already been put into the note with something following it.
   // If so, skip this question.
@@ -358,7 +372,7 @@ async function processQuestion(parsedQuestion: { question: string, type: string,
     }
   }
   logDebug(pluginJson, `- A${index} = ${reviewLine}`)
-  return reviewLine !== '' ? `${reviewLine}\n` : ''
+  return reviewLine
 }
 
 /**
@@ -409,14 +423,43 @@ async function processJournalQuestions(period: string, periodAdjective: string =
 
     logDebug(pluginJson, `Found ${numQs} question lines for ${period}`)
 
-    // Parse questions
+    // Parse questions (may result in multiple questions per line if '||' is used)
     const parsedQuestions = parseQuestions(questionLines)
 
-    // Process all questions and collect answers
-    let output = ''
+    // Group questions by line index to handle multiple questions per line
+    const questionsByLine: { [number]: Array<{ question: string, type: string, originalLine: string, lineIndex: number }> } = {}
     for (let i = 0; i < parsedQuestions.length; i++) {
-      const answerLine = await processQuestion(parsedQuestions[i], i, config)
-      output += answerLine
+      const q = parsedQuestions[i]
+      if (!questionsByLine[q.lineIndex]) {
+        questionsByLine[q.lineIndex] = []
+      }
+      questionsByLine[q.lineIndex].push(q)
+    }
+
+    // Process all questions, grouping by line and combining answers with '||'
+    let output = ''
+    const lineIndices = Object.keys(questionsByLine).map(Number).sort((a, b) => a - b)
+
+    for (const lineIndex of lineIndices) {
+      const lineQuestions = questionsByLine[lineIndex]
+      const lineAnswers: Array<string> = []
+
+      // Process each question in this line
+      for (let i = 0; i < lineQuestions.length; i++) {
+        const globalIndex = parsedQuestions.findIndex(q => q === lineQuestions[i])
+        const answer = await processQuestion(lineQuestions[i], globalIndex, config)
+        if (answer !== '') {
+          lineAnswers.push(answer)
+        }
+      }
+
+      // If any questions in this line were answered, combine them with a single space
+      if (lineAnswers.length > 0) {
+        let combinedLine = lineAnswers.join(' ')
+        // change any runs of multiple spaces to a single space
+        combinedLine = combinedLine.replace(/\s+/g, ' ')
+        output += `${combinedLine}\n`
+      }
     }
 
     // Write answers to note
@@ -438,7 +481,7 @@ async function processJournalQuestions(period: string, periodAdjective: string =
  * @author @jgclark
  * 
  * @param {string} question
- * @return {string} found answered question, or empty string
+ * @returns {string} found answered question, or empty string
  */
 function returnAnsweredQuestion(question: string): string {
   const RE_Q = `${question}.+`

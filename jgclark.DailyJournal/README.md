@@ -1,11 +1,10 @@
 # 💭 Journalling Helpers Plugin
-<img width="196px" src="calendar-notes-319@2x.png" align="right"/>
 This plugin gives support for journalling in NotePlan, including making it easier to apply start-of-day Templates, and end-of-day/week Reviews, Summaries or Tidy Up.
 
 ### Configuration
 To use this plugin on weekly/monthly/quarterly/yearly notes, you first need to have them turned on in **NotePlan Settings** > Calendar pane:
 
-<img src="calendar-settings@2x.png"/>
+<img src="calendar-settings@2x.png" width="600px"/>
 
 All the available commands require some **configuration** first. On Mac click the gear button on the 'Journalling' line in the Plugin Preferences panel, and fill in the settings according to which of the following commands you want to use.  If you only use iPhone or iPad, you'll need to use the separate **/Journalling: update plugin settings** command instead.
 
@@ -42,18 +41,20 @@ The name of an existing markdown heading after which the review answers are adde
 
 #### Daily / Weekly / Monthly / Quarterly / Year Journal Questions
 This string includes both the questions and how to lay out the answers in the note. There are several possible question types:
+- `<boolean>` shows the text as a question, and if you answer "Yes" to the question, the text is included. If you answer "No" it isn't included.
 - `<int>` asks for an integer number
 - `<number>` asks for a number (which may include fractional part)
 - `<string>` asks for a string
-- You can also add bulletpoints with an identifier e.g. `-(thoughts) <string>` where the identifier doesn't get rendered. (The identifier is there to work out which question the user currently is on.)
 - `<mood>`select one of the configured moods
 - `<done>` will include the rest of the text in the line and will be included in the output if you answer "Yes" to the "Yes"/"No" question about it
 - `<subheading>` includes the given string as `### Subheading`.
 
 Other notes:
 - You can includes line breaks ('new lines') with `\n` characters.
+- You can have multiple questions on a line by separating them with `||` (with or without extra spaces) in the settings string. The answers will also be placed on the one line, but with the `||` removed, and with a space separating them.
+- You can hide the question text by starting it with a dash e.g. `-(thoughts) <string>`. This will just output the entered text. (The identifier is there to work out which question the user currently is on.) ???
 - If a particular question isn't answered (i.e. no input entered), then that question isn't included in the output.
-- If a particular question has already been answered in the note, it won't be asked again, or over-ridden.
+- If a particular question has already been answered in the note (i.e. if a line starts with the same question text), it won't be asked again.
 
 #### Moods
 A comma-separated list of possible moods to select from.  They don't have to have emoji, but I rather like them.
@@ -61,15 +62,26 @@ A comma-separated list of possible moods to select from.  They don't have to hav
 ### Example for /dayReview
 The following `reviewQuestions` string:
 ```
-@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nSignificant Thoughts <subheading>\n- (Thought 1/3) <string>\n- (Thought 2/3) <string>\n
-- (Thought 3/3) <string>\nGratitude <subheading>\n- (Gratitude 1/3) <string>\n- (Gratitude 2/3) <string>\n- (Gratitude 3/3) <string>\n
+@sleep(<number>) || @work(<int>)
+@fruitveg(<int>) || #stretches<boolean> || #closedRings<boolean>
+Mood: <mood>
+
+Significant Thoughts <subheading>
+- (Thought 1/3) <string>
+- (Thought 2/3) <string>
+- (Thought 3/3) <string>
+
+Gratitude <subheading>
+- (Gratitude 1/3) <string>
+- (Gratitude 2/3) <string>
+- (Gratitude 3/3) <string>
 ```
 after answering the questions, would produce something like this in today's note:
 
 ```markdown
 ## Journal
-@work(7)
-@fruitveg(4)
+@sleep(6.8) @work(7)
+@fruitveg(4) #stretches
 Mood: 😇 Blessed
 
 ### Significant Thoughts

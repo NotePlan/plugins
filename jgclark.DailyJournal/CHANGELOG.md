@@ -1,9 +1,9 @@
 # What's changed in 💭 Journalling Helpers Plugin?
-_Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md)._
+_Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.DailyJournal/)._
 
-<!-- TODO: improved flexibility of questions -->
-
-## [1.15.2] - 2025-11-01???
+## [1.16.0] - 2025-11-01
+### Added
+- Can now have multiple review questions per line. To separate the questions on the same line, use `||`. See documentation for more details.
 ### Dev notes
 - further refactored the journal.js code
 

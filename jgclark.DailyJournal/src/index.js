@@ -3,7 +3,7 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2025-10-10 for v1.0.0 by @jgclark
+// last update 2025-10-10 for v1.15.0 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -51,8 +51,8 @@ export async function onUpdateOrInstall(): Promise<void> {
     logDebug(pluginJson, `onUpdateOrInstall() ...`)
     const initialSettings = (await DataStore.loadJSON(`../${pluginID}/settings.json`)) || DataStore.settings
 
-    // Migrate any necessary settings from v0.15 to v1.0
-    // TODO(later): remove when all users have updated to v1.0
+    // Migrate any necessary settings from v0.15 to v1.x
+    // TODO(later): remove when all users have updated to v1.x
     await backupSettings(pluginID, `before_onUpdateOrInstall-v${pluginJson['plugin.version']}`)
     const keysToChange = {
       // oldKey: newKey

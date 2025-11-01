@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Add Templates to Periodic notes at start and end of period
 // Jonathan Clark
-// last update 2025-10-10 for v1.0.0 by @jgclark
+// last update 2025-11-01 for v1.15.2 by @jgclark
 //---------------------------------------------------------------
 
 import { type JournalConfigType, getJournalSettings } from './journalHelpers'
@@ -176,7 +176,8 @@ async function applyTemplateToNote(
     
   } catch (error) {
     logError('applyTemplateToNote', error.message)
-    await showMessage(`Journalling error: ${error.message}`)
+    // Turning off error message for now, as I'm getting "No result from running Template 'Daily Shutdown'. Stopping." messages when it just does background work.
+    // await showMessage(`Error: ${error.message}`)
   }
 }
 
@@ -189,11 +190,7 @@ export async function dayStart(workToday: boolean = false): Promise<void> {
 
 // Apply user's (start) Daily Note Template to today's daily note
 export async function todayStart(): Promise<void> {
-  try {
-    await dayStart(true)
-  } catch (error) {
-    await showMessage(error)
-  }
+  await dayStart(true)
 }
 
 // Apply user's (start) Weekly Note Template to the open weekly note 
@@ -213,11 +210,7 @@ export async function dayEnd(workToday: boolean = false): Promise<void> {
 
 // Apply user's (end) Daily Note Template to today's daily note
 export async function todayEnd(): Promise<void> {
-  try {
-    await dayEnd(true)
-  } catch (error) {
-    await showMessage(error)
-  }
+  await dayEnd(true)
 }
 
 // Apply user's (end) Weekly Note Template to the currently open weekly note 
