@@ -3,6 +3,10 @@ _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/ma
 
 <!-- TODO: improved flexibility of questions -->
 
+## [1.15.2] - 2025-11-01???
+### Dev notes
+- further refactored the journal.js code
+
 ## [1.15.1] - 2025-10-16
 ### Added
 - review questions can include `<boolean>`s, e.g. `#closedRings<boolean>`. The text gets included in the output if you answer "Yes" to the question "Was '#closedRings' done?'
