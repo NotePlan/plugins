@@ -12,7 +12,7 @@ import { semverVersionToNumber } from './utils'
  * @returns {boolean} true if the user's version of NotePlan has the feature, false otherwise
  */
 export function usersVersionHas(feature: string): boolean {
-  logDebug('usersVersionHas', `NotePlan.environment.version: ${NotePlan.environment.version}`)
+  logDebug('usersVersionHas', `NotePlan v${NotePlan.environment.version}`)
   // Note: this ignores any non-numeric, non-period characters (e.g., "-beta3")
   const userVersionNumber:number = semverVersionToNumber(NotePlan.environment.version) || 0
   // logDebug('usersVersionHas', `userVersionNumber: ${String(userVersionNumber)}`)
@@ -28,9 +28,11 @@ export function usersVersionHas(feature: string): boolean {
     teamspaceNotes: userVersionNumber >= v("3.17.0"),
     decoratedCommandBar: userVersionNumber >= v("3.18.0"),
     updateFrontmatterAttributes: userVersionNumber >= v("3.18.1"), // NotePlan.frontmatterAttributes is available from v3.16.3, but extended in v3.18.1
+    advancedSearch: userVersionNumber >= v("3.18.1"),
     trashNote: userVersionNumber >= v("3.18.2"),
     getWeather: userVersionNumber >= v("3.19.2"), // Nov 2025
     mainSidebarControl: userVersionNumber >= v("3.19.2"), // Nov 2025
+    contentDeduplicator: userVersionNumber >= v("3.19.2"), // Nov 2025
   }
   // logDebug('usersVersionHas', `-> ${String(versionHas[feature] ?? false)} for ${feature}`)
   return versionHas[feature] ?? false

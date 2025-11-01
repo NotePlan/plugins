@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2025-10-12 for v1.0.0 by @jgclark
+// Last updated 2025-11-01 for v1.15.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -24,13 +24,20 @@ import {
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
+import { setIconForNote } from '@helpers/note'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { showMessage } from "@helpers/userInput"
 
+//----------------------------------------------------------------------------
+// Constants
+
 const pluginID = 'np.Tidy'
+const OUTPUT_TITLE = 'Duplicate notes'
+const FALLBACK_OUTPUT_FILENAME = 'Duplicate Notes.md'
 
 //----------------------------------------------------------------------------
+// Type definitions
 
 type dupeDetails = {
   title: string,
@@ -52,7 +59,7 @@ function findDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDet
 
     const outputArray: Array<dupeDetails> = []
     let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, false, false)
-    logDebug('findDuplicateNotes', `- Found ${relevantFolderList.length} folders to check: ${relevantFolderList.join('\n')}`)
+    logDebug('findDuplicateNotes', `- Found ${relevantFolderList.length} folders to check`)
     // Get all the notes in those folders to check
     let notes: Array<TNote> = []
     for (const thisFolder of relevantFolderList) {
@@ -89,7 +96,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
   try {
     logDebug(pluginJson, `listDuplicates: Starting with params '${params}'`)
     let config = await getSettings()
-    const outputFilename = config.duplicateNoteFilename ?? 'Duplicate Notes.md'
+    const outputFilename = config.duplicateNoteFilename ?? FALLBACK_OUTPUT_FILENAME
 
     // Decide whether to run silently
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
@@ -122,7 +129,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
     const outputArray = []
 
     // Start with an x-callback link under the title to allow this to be refreshed easily
-    outputArray.push(`# Duplicate notes`)
+    outputArray.push(`# ${OUTPUT_TITLE}`)
     const xCallbackRefreshButton = createPrettyRunPluginLink('🔄 Click to refresh', 'np.Tidy', 'List duplicate notes', [])
 
     const summaryLine = `Found ${dupes.length} potential duplicates at ${nowLocaleShortDateTime()}. ${xCallbackRefreshButton}`
@@ -147,7 +154,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
         const deleteMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', true)
         // Write out all details for this dupe
         const teamspaceAwareFolderAndTitle = displayFolderAndTitle(n, false)
-        outputArray.push(`${String(i)}. ${teamspaceAwareFolderAndTitle}: [open note](${openMe}) [delete note ❌](${deleteMe})`)
+        outputArray.push(`${String(i)}. ${teamspaceAwareFolderAndTitle}  [Open note](${openMe}) [Delete note ❌](${deleteMe})`)
         outputArray.push(`\t- ${String(n.paragraphs?.length ?? 0)} lines, ${String(n.content?.length ?? 0)} bytes, created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}`)
 
         // For all but the first of the duplicate set, show some comparison stats
@@ -170,10 +177,12 @@ export async function listDuplicates(params: string = ''): Promise<void> {
     // If note is not open in an editor already, write to and open the note. Otherwise just update note.
     if (!noteOpenInEditor(outputFilename)) {
       const resultingNote = await Editor.openNoteByFilename(outputFilename, false, 0, 0, true, true, outputArray.join('\n'))
+      setIconForNote(noteToUse, 'code-branch', 'orange-500')
     } else {
       const noteToUse = DataStore.projectNoteByFilename(outputFilename)
       if (noteToUse) {
         noteToUse.content = outputArray.join('\n')
+        setIconForNote(noteToUse, 'code-branch', 'orange-500')
       } else {
         throw new Error(`Couldn't find note '${outputFilename}' to write to`)
       }

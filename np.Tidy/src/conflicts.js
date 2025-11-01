@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2025-11-01 for v0.13.0+ by @jgclark
+// Last updated 2025-11-01 for v1.15.2 by @jgclark
 // Minimum NP version: 3.9.3
 //-----------------------------------------------------------------------------
 
@@ -31,7 +31,7 @@ import {
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
-import { allNotesSortedByTitle } from '@helpers/note'
+import { allNotesSortedByTitle, setIconForNote } from '@helpers/note'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { noteOpenInEditor, openNoteInNewSplitIfNeeded } from '@helpers/NPWindows'
 import { contentRangeToString } from '@helpers/paragraph'
@@ -211,10 +211,12 @@ export async function listConflicts(params: string = ''): Promise<void> {
     // If conflict list note is not open in an editor already, write to and open the note. Otherwise just update note.
     if (!noteOpenInEditor(outputFilename)) {
       const resultingNote = await Editor.openNoteByFilename(outputFilename, false, 0, 0, true, true, outputArray.join('\n'))
+      setIconForNote(noteToUse, 'hand-fist', 'red-500', 'solid')
     } else {
       const noteToUse = DataStore.projectNoteByFilename(outputFilename)
       if (noteToUse) {
         noteToUse.content = outputArray.join('\n')
+        setIconForNote(noteToUse, 'hand-fist', 'red-500', 'solid')
       } else {
         throw new Error(`Couldn't find note '${outputFilename}' to write to`)
       }
