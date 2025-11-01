@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2025-09-06, for v1.3.2
+// last updated 2025-10-18, for v1.3.3
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -13,12 +13,10 @@ import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
-import { addParagraphsToNote, findHeading, parasToText, smartAppendPara, smartPrependPara } from '@helpers/paragraph'
+import { addParagraphsToNote, findHeading } from '@helpers/paragraph'
 import { chooseNoteV2 } from '@helpers/NPnote'
-import { getParagraphBlock, selectedLinesIndex } from '@helpers/NPParagraph'
-import { chooseHeadingV2, showMessage, } from '@helpers/userInput'
-
-// const pluginID = pluginJson['plugin.id']
+import { getParagraphBlock, getSelectedParagraphsWithCorrectLineIndex, selectedLinesIndex } from '@helpers/NPParagraph'
+import { chooseHeadingV2, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
@@ -44,34 +42,38 @@ export async function moveParaBlock(): Promise<void> {
  */
 export async function moveParas(withBlockContext: boolean = false): Promise<void> {
   try {
-    const { note, content, selection, selectedParagraphs } = Editor
+    const { note, content, selectedParagraphs } = Editor
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
       logWarn(pluginJson, 'moveParas: No note open, so stopping.')
       return
     }
     // Get current selection, and its range
-    if (selection == null) {
-      // Really a belt-and-braces check that the editor is active
-      logError(pluginJson, 'moveParas: No selection found, so stopping.')
-      return
-    }
+    // // First a belt-and-braces check that the editor is active and selection is valid
+    // if (selection == null) {
+    //   logError(pluginJson, 'moveParas: No selection found, so stopping.')
+    //   return
+    // }
     const config = await getFilerSettings()
-    // const origNumParas = note.paragraphs.length
     const origNumParas = Editor.paragraphs.length
 
+    // Get the paragraphs to use for the selection. 
     // v1: use Editor.selection. However, we found an issue with this and frontmatter.
     // v2: use Editor.selectedParagraphs instead
-    const firstSelLineIndex = selectedParagraphs[0].lineIndex
-    const lastSelLineIndex = selectedParagraphs[selectedParagraphs.length - 1].lineIndex
-    logDebug(pluginJson, `moveParas(): Starting with selected lineIndexes ${firstSelLineIndex}-${lastSelLineIndex}`)
+    // See note in API about why this is required.
+    const selectedParagraphsToUse = Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex]) ?? []
+    // v3: use getSelectedParagraphsWithCorrectLineIndex() instead, which is settable from v3.19.2 (build 1440 onwards), to help deal with the issue mentioned above. FIXME: waiting for build 1440 to try again with this.
+    // const selectedParagraphsToUse = getSelectedParagraphsWithCorrectLineIndex()
+    logDebug('moveParas', `moveParas: selectedParagraphsToUse:\n${selectedParagraphsToUse.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n')}`)
+    const firstSelLineIndex = selectedParagraphsToUse[0].lineIndex
+    const lastSelLineIndex = selectedParagraphsToUse[selectedParagraphsToUse.length - 1].lineIndex
+    logDebug(pluginJson, `moveParas(): Starting with selected lineIndexes ${firstSelLineIndex}-${lastSelLineIndex} `)
 
     // Get paragraphs for the selectionToUse or block
-    // let firstStartCharIndex = 0
     let parasInBlock: Array<TParagraph>
     if (lastSelLineIndex !== firstSelLineIndex) {
       // use only the selected paras
-      logDebug('moveParas', `moveParas: user has selected lineIndexes ${firstSelLineIndex}-${lastSelLineIndex}`)
+      logDebug('moveParas', `moveParas: user selection`)
       parasInBlock = selectedParagraphs.slice() // copy to avoid $ReadOnlyArray problem
     } else {
       // there is no user selection
@@ -79,17 +81,18 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
       if (withBlockContext) {
         // user has requested working on the surrounding block
         parasInBlock = getParagraphBlock(note, firstSelLineIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
-        logDebug('moveParas', `moveParas: move block of ${parasInBlock.length} paras`)
+        logDebug('moveParas', `moveParas: no user selection: move block of ${parasInBlock.length} paras.`)
       } else {
         // user just wants to move the current line
-        parasInBlock = selectedParagraphs.slice(0, 1) // just first para
-        logDebug('moveParas', `moveParas: move current para only. lineIndex ${firstSelLineIndex}`)
+        parasInBlock = selectedParagraphsToUse.slice(0, 1) // just first para
+        logDebug('moveParas', `moveParas: no user selection: move current para only`)
       }
 
       // Attempt to highlight them to help user check all is well
       // $FlowIgnore[incompatible-call] just a readonly array issue
       highlightSelectionInEditor(parasInBlock)
     }
+    logDebug('moveParas', `moveParas: parasInBlock:\n${parasInBlock.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n')}`)
 
     // If this is a calendar note we've moving from, and the user wants to
     // create a date backlink, then append backlink to the first selectedPara in parasInBlock
@@ -107,16 +110,6 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     const selectedNumLines = parasInBlock.length
 
     // Decide where to move to
-    // Ask for the note we want to add the selectedParas
-    // V1
-    // const allNotes = allNotesSortedByChanged()
-    // const res = await CommandBar.showOptions(
-    //   allNotes.map((n) => n.title ?? 'untitled'),
-    //   `Select note to move ${(parasInBlock.length > 1) ? parasInBlock.length + ' lines' : 'current line'} to`,
-    // )
-    // const destNote = allNotes[res.index]
-    // Note: showOptions returns the first item if something else is typed. And I can't see a way to distinguish between the two.
-    // V2
     const destNote = await chooseNoteV2(`Select note to move ${(parasInBlock.length > 1) ? parasInBlock.length + ' lines' : 'current line'} to`, allRegularNotesSortedByChanged(), true, true, false, true)
     if (!destNote) {
       logWarn('addIDAndAddToOtherNote', `- No note chosen. Stopping.`)
@@ -126,22 +119,16 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     // Ask to which heading to add the selectedParas
     let headingToFind = await chooseHeadingV2(destNote, true, true, false)
     logDebug('moveParas', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
-    if (headingToFind === '<<top of note>>') {
-      // add to top of note
-      smartPrependPara(destNote, parasToText(parasInBlock), 'text')
-    } else if (headingToFind === '<<bottom of note>>') {
-      // add to bottom of note
-      smartAppendPara(destNote, parasToText(parasInBlock), 'text')
-    } else {
-      if (/\s$/.test(headingToFind)) {
-        logWarn('moveParas', `Heading to move to ('${headingToFind}') has trailing whitespace. Will pre-emptively remove them to try to avoid problems.`)
-        const headingPara = findHeading(destNote, headingToFind)
-        if (headingPara) {
-          headingPara.content = headingPara.content.trim()
-          destNote.updateParagraph(headingPara)
-          logDebug('moveParas', `- now headingPara in destNote is '${headingPara.content}'`)
-          headingToFind = headingPara.content
-        }
+
+    // Handle trailing whitespace in heading names
+    if (headingToFind !== '<<top of note>>' && headingToFind !== '<<bottom of note>>' && /\s$/.test(headingToFind)) {
+      logWarn('moveParas', `Heading to move to ('${headingToFind}') has trailing whitespace. Will pre-emptively remove them to try to avoid problems.`)
+      const headingPara = findHeading(destNote, headingToFind)
+      if (headingPara) {
+        headingPara.content = headingPara.content.trim()
+        destNote.updateParagraph(headingPara)
+        logDebug('moveParas', `- now headingPara in destNote is '${headingPara.content}'`)
+        headingToFind = headingPara.content
       }
     }
 
