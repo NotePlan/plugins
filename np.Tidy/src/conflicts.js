@@ -211,7 +211,9 @@ export async function listConflicts(params: string = ''): Promise<void> {
     // If conflict list note is not open in an editor already, write to and open the note. Otherwise just update note.
     if (!noteOpenInEditor(outputFilename)) {
       const resultingNote = await Editor.openNoteByFilename(outputFilename, false, 0, 0, true, true, outputArray.join('\n'))
-      setIconForNote(noteToUse, 'hand-fist', 'red-500', 'solid')
+      if (resultingNote) {
+        setIconForNote(resultingNote, 'hand-fist', 'red-500', 'solid')
+      }
     } else {
       const noteToUse = DataStore.projectNoteByFilename(outputFilename)
       if (noteToUse) {

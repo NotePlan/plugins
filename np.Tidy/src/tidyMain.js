@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-08-30 for v0.14.9, @jgclark
+// Last updated 2025-11-01 for v1.15.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -129,7 +129,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     if (params) {
       logDebug(pluginJson, `removeDoneMarkers: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
-      clo(config, `config after overriding with params '${params}'`)
+      // clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
       logDebug(pluginJson, `removeDoneMarkers: Starting with no params`)
@@ -233,7 +233,7 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     if (params) {
       logDebug(pluginJson, `removeDoneTimeParts: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
-      clo(config, `config after overriding with params '${params}'`)
+      // clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
       logDebug(pluginJson, `removeDoneTimeParts: Starting with no params`)
@@ -335,7 +335,7 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
     if (params) {
       logDebug(pluginJson, `removeTriggersFromRecentCalendarNotes: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
-      clo(config, `config after overriding with params '${params}'`)
+      // clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from user'sconfig).
       logDebug(pluginJson, `removeTriggersFromRecentCalendarNotes: Starting with no params`)
@@ -398,7 +398,7 @@ export async function logNotesChangedInInterval(params: string = ''): Promise<vo
     if (params) {
       logDebug(pluginJson, `logNotesChangedInInterval: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
-      clo(config, `config after overriding with params '${params}'`)
+      // clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
       logDebug(pluginJson, `logNotesChangedInInterval: Starting with no params`)

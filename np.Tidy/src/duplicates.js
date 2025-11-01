@@ -177,7 +177,9 @@ export async function listDuplicates(params: string = ''): Promise<void> {
     // If note is not open in an editor already, write to and open the note. Otherwise just update note.
     if (!noteOpenInEditor(outputFilename)) {
       const resultingNote = await Editor.openNoteByFilename(outputFilename, false, 0, 0, true, true, outputArray.join('\n'))
-      setIconForNote(noteToUse, 'code-branch', 'orange-500')
+      if (resultingNote) {
+        setIconForNote(resultingNote, 'code-branch', 'orange-500')
+      }
     } else {
       const noteToUse = DataStore.projectNoteByFilename(outputFilename)
       if (noteToUse) {

@@ -30,7 +30,7 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
     if (params) {
       logDebug(pluginJson, `generateRepeatsFromRecentNotes() Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
-      clo(config, `config after overriding with params '${params}'`)
+      // clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
       logDebug(pluginJson, `generateRepeatsFromRecentNotes() Starting with no params`)

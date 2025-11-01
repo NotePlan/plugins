@@ -42,6 +42,7 @@ export async function generateRepeats(
       noteToUse = noteArg
       logDebug(pluginJson, `generateRepeats() starting with noteArg -> ${noteToUse.filename}`)
     } else if (Editor && Editor.note) {
+      // $FlowIgnore[prop-missing]
       noteToUse = Editor
       noteIsOpenInEditor = true
       logDebug(pluginJson, `generateRepeats() starting with EDITOR -> ${noteToUse.filename}`)
@@ -71,7 +72,7 @@ export async function generateRepeats(
       logDebug(pluginJson, `generateRepeats() starting for '${filename}' but no active lines so won't process`)
       return 0
     } else {
-      logDebug(pluginJson, `generateRepeats() starting for '${filename}' for ${config.dontLookForRepeatsInDoneOrArchive ? 'ACTIVE' : 'ALL'} ${lastLineIndexToCheck} lines`)
+      // logDebug(pluginJson, `generateRepeats() starting for '${filename}' for ${config.dontLookForRepeatsInDoneOrArchive ? 'ACTIVE' : 'ALL'} ${lastLineIndexToCheck} lines`)
     }
 
     let repeatCount = 0
@@ -100,7 +101,7 @@ export async function generateRepeats(
 
     // Report if no repeats were found, and stop.
     if (repeatCount === 0) {
-      logDebug('generateRepeats', 'No suitable completed repeats were found')
+      // logDebug('generateRepeats', 'No suitable completed repeats were found')
       if (!runSilently) {
         await showMessage('No suitable completed repeats were found', 'OK', 'Repeat Extensions')
       }

@@ -162,7 +162,7 @@ export function semverVersionToNumber(version: string): number {
       }
       numericVersion += parts[i] * Math.pow(1024, 2 - i)
     }
-    logDebug('semverVersionToNumber', `-> ${String(numericVersion)}`)
+    // logDebug('semverVersionToNumber', `-> ${String(numericVersion)}`)
     return numericVersion
   }
   catch (error) {

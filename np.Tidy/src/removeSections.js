@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-09-23 for v1.0.0, @jgclark
+// Last updated 2025-11-01 for v1.15.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -32,7 +32,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     if (params) {
       logDebug(pluginJson, `removeSectionFromRecentNotes: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
-      clo(config, `config after overriding with params '${params}'`)
+      // clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
       logDebug(pluginJson, `removeSectionFromRecentNotes: Starting with no params`)
@@ -139,7 +139,7 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     if (params) {
       logDebug(pluginJson, `removeSectionFromAllNotes: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
-      clo(config, `config after overriding with params '${params}'`)
+      // clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
       logDebug(pluginJson, `removeSectionFromAllNotes: Starting with no params`)

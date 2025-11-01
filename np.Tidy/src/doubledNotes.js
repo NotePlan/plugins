@@ -47,7 +47,7 @@ function findPotentialDoubledNotes(): Array<DoubleDetails> {
     let outputArray: Array<DoubleDetails> = [] // of NP filenames
 
     // Get all Calendar notes to check (that are at least 4 lines long)
-    const calendarNotes = DataStore.calendarNotes.slice().filter(n => n.content.length >= 20)
+    const calendarNotes = DataStore.calendarNotes.slice().filter(n => n.content?.length ?? 0 >= 20)
 
     // Look at each and see if it looks doubled
     let i = 0
@@ -141,7 +141,9 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
     // If note is not open in an editor already, write to and open the note. Otherwise just update note.
     if (!noteOpenInEditor(outputFilename)) {
       const resultingNote = await Editor.openNoteByFilename(outputFilename, false, 0, 0, true, true, outputArray.join('\n'))
-      setIconForNote(noteToUse, 'code-branch', 'orange-500')
+      if (resultingNote) {
+        setIconForNote(resultingNote, 'code-branch', 'orange-500')
+      }
     } else {
       const noteToUse = DataStore.projectNoteByFilename(outputFilename)
       if (noteToUse) {
