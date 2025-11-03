@@ -6,9 +6,10 @@
 
 import pluginJson from '../plugin.json'
 import { getSettings } from './tidyHelpers'
-import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { displayTitle } from '@helpers/general'
-import { getNoteFromFilename } from '@helpers/NPnote'
+import { JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
+import { displayTitle, getTagParamsFromString } from '@helpers/general'
+import { getAllNotesOfType, getNoteFromFilename, getNotesChangedInInterval } from '@helpers/NPnote'
+import { showMessage } from '@helpers/userInput'
 
 /**
  * PASS 1: Removes empty list items, quotes, and headings with no content
@@ -316,5 +317,66 @@ export async function removeEmptyElements(filenameIn: string = 'Editor', stripAl
     }
   } catch (error) {
     logError('tidy/removeEmptyElements', JSP(error))
+  }
+}
+
+/**
+ * Run removeEmptyElements on all recently-updated notes
+ * Can be passed parameters to override defaults through an x-callback call
+ * Supported params: { numDays?: number, runSilently?: boolean, stripAllEmptyLines?: boolean, preserveHeadingStructure?: boolean }
+ * @author @jgclark
+ * @param {string?} params optional JSON string
+ */
+export async function removeEmptyElementsFromRecentNotes(params: string = ''): Promise<void> {
+  try {
+    // Get plugin settings (config)
+    let config = await getSettings()
+    if (params) {
+      logDebug(pluginJson, `removeEmptyElementsFromRecentNotes() starting with params '${params}'`)
+      config = overrideSettingsWithEncodedTypedArgs(config, params)
+    } else {
+      logDebug(pluginJson, `removeEmptyElementsFromRecentNotes() starting with no params`)
+    }
+
+    // Resolve params
+    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays ?? 0)
+    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
+    const stripAllEmptyLines: boolean = await getTagParamsFromString(params ?? '', 'stripAllEmptyLines', config.stripAllEmptyLines ?? false)
+    const preserveHeadingStructure: boolean = await getTagParamsFromString(params ?? '', 'preserveHeadingStructure', false)
+
+    const startTime = new Date()
+    CommandBar.showLoading(true, `Finding recent notes`)
+    await CommandBar.onAsyncThread()
+
+    // Find notes changed in interval (or all when numDays === 0)
+    const recentNotes = numDays > 0 ? getNotesChangedInInterval(numDays, ['Notes', 'Calendar']) : getAllNotesOfType(['Notes', 'Calendar'])
+
+    if (recentNotes.length === 0) {
+      if (!runSilently) {
+        await showMessage('No recently-changed notes found to process')
+      } else {
+        logInfo('removeEmptyElementsFromRecentNotes', `No recently-changed notes found to process`)
+      }
+      return
+    }
+    logDebug('removeEmptyElementsFromRecentNotes', `- found ${String(recentNotes.length)} notes to process`)
+
+    let numChanged = 0
+    for (const note of recentNotes) {
+      const before = note.paragraphs.map((p) => p.rawContent).join('\n')
+      await removeEmptyElements(note.filename, stripAllEmptyLines, preserveHeadingStructure)
+      const afterNote = await getNoteFromFilename(note.filename)
+      const after = afterNote?.paragraphs.map((p) => p.rawContent).join('\n') ?? ''
+      if (before !== after) numChanged++
+    }
+    await CommandBar.onMainThread()
+    CommandBar.showLoading(false)
+
+    logInfo('removeEmptyElementsFromRecentNotes', `Removed empty elements in ${String(numChanged)} of ${String(recentNotes.length)} recent notes, in ${timer(startTime)}`)
+    if (!runSilently) {
+      await showMessage(`Removed empty elements in ${String(numChanged)} of ${String(recentNotes.length)} recent notes`)
+    }
+  } catch (error) {
+    logError('removeEmptyElementsFromRecentNotes', JSP(error))
   }
 }
