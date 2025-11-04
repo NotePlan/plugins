@@ -131,6 +131,11 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel.push(`font-size: ${baseFontSize}px`)
       output.push(makeCSSSelector('body, .body', tempSel))
       rootSel.push(`--fg-main-color: ${thisColor}`)
+      // Also add RGB version for use in rgba() functions
+      const rgbValues = hexToRgb(thisColor)
+      if (rgbValues) {
+        rootSel.push(`--fg-main-color-rgb: ${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b}`)
+      }
       if (styleObj?.lineSpacing) {
         // borrowed from convertStyleObjectBlock()
         const lineSpacingRem = (Number(styleObj?.lineSpacing) * 1.5).toPrecision(3) // some fudge factor seems to be needed
@@ -402,6 +407,34 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
     output.push(makeCSSSelector('.timeBlock', tempSel))
 
+    // Set table styling with subtle borders based on foreground color
+    tempSel = []
+    tempSel.push('border-collapse: collapse')
+    tempSel.push('width: 100%')
+    tempSel.push('margin: 1rem 0')
+    output.push(makeCSSSelector('table', tempSel))
+
+    tempSel = []
+    tempSel.push('border: 1px solid rgba(var(--fg-main-color-rgb), 0.2)')
+    tempSel.push('padding: 0.5rem')
+    output.push(makeCSSSelector('th, td', tempSel))
+
+    tempSel = []
+    tempSel.push('text-align: left')
+    tempSel.push('font-weight: 600')
+    tempSel.push('background-color: rgba(var(--fg-main-color-rgb), 0.05)')
+    output.push(makeCSSSelector('th', tempSel))
+
+    // Set list item spacing for better readability
+    tempSel = []
+    tempSel.push('margin-bottom: 0.5rem')
+    tempSel.push('padding-bottom: 0.25rem')
+    output.push(makeCSSSelector('li', tempSel))
+
+    tempSel = []
+    tempSel.push('margin-bottom: 0.75rem')
+    output.push(makeCSSSelector('ul, ol', tempSel))
+
     // Now put the important info and rootSel at the start of the output
     output.unshift(makeCSSSelector(':root', rootSel))
     output.unshift(`/* Generated from theme '${themeName}' by @jgclark's generateCSSFromTheme */`)
@@ -624,6 +657,39 @@ export function RGBColourConvert(RGBIn: string): string {
   } catch (error) {
     logError('RGBColourConvert', `${error.message} for RGBIn '${RGBIn}'`)
     return '#888888' // for completeness
+  }
+}
+
+/**
+ * Convert a hex color to RGB values
+ * @param {string} hex - Hex color string (e.g., '#ff0000')
+ * @returns {?{r: number, g: number, b: number}} RGB values or null if invalid
+ */
+export function hexToRgb(hex: string): ?{ r: number, g: number, b: number } {
+  try {
+    // Remove # if present
+    const cleanHex = hex.replace('#', '')
+
+    // Handle 6-digit hex
+    if (cleanHex.length === 6) {
+      const r = parseInt(cleanHex.substring(0, 2), 16)
+      const g = parseInt(cleanHex.substring(2, 4), 16)
+      const b = parseInt(cleanHex.substring(4, 6), 16)
+      return { r, g, b }
+    }
+
+    // Handle 3-digit hex
+    if (cleanHex.length === 3) {
+      const r = parseInt(cleanHex[0] + cleanHex[0], 16)
+      const g = parseInt(cleanHex[1] + cleanHex[1], 16)
+      const b = parseInt(cleanHex[2] + cleanHex[2], 16)
+      return { r, g, b }
+    }
+
+    return null
+  } catch (error) {
+    logError('hexToRgb', `${error.message} for hex '${hex}'`)
+    return null
   }
 }
 

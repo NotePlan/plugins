@@ -153,6 +153,24 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       }
     }
 
+    // Ensure horizontal rules have a blank line before them (required by showdown)
+    // Track which HRs already had blank lines for extra padding
+    // HR patterns: ---, ___, *** (with optional spaces between)
+    const HR_REGEX = /^(\s*)([-_*])\s*\2\s*\2\s*$/
+    const HR_MARKER = '<!--HR_WITH_SPACE-->'
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].match(HR_REGEX)) {
+        if (lines[i - 1].trim() === '') {
+          // Already has blank line - mark it for extra padding
+          lines[i] = `${HR_MARKER}${lines[i]}`
+        } else {
+          // Insert blank line before HR if previous line isn't already blank
+          lines.splice(i, 0, '')
+          i++ // skip the newly inserted blank line
+        }
+      }
+    }
+
     // Make this proper Markdown -> HTML via showdown library
     // Set some options to turn on various more advanced HTML conversions (see actual code at https://github.com/showdownjs/showdown/blob/master/src/options.js#L109):
     const converterOptions = {
@@ -168,7 +186,17 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
     }
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
-    body = `<style>img { background: white; max-width: 100%; max-height: 100%; }</style>${body}` // fix for bug in showdown
+    
+    // Add CSS for HR styling with baseline and extra padding options
+    const hrStyles = `<style>
+img { background: white; max-width: 100%; max-height: 100%; }
+hr { margin-top: 1.5em; margin-bottom: 1em; }
+hr.with-extra-space { margin-top: 3em; }
+</style>`
+    body = hrStyles + body
+    
+    // Replace markers for HRs that had blank lines with classed HRs
+    body = body.replace(/<!--HR_WITH_SPACE--><hr \/>/g, '<hr class="with-extra-space" />')
     
     const imgTagRegex = /<img src=\"(.*?)\"/g
     const matches = [...body.matchAll(imgTagRegex)]

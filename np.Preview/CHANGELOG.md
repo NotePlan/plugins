@@ -1,6 +1,10 @@
 # What's Changed in 🖥️ Previews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/np.Preview), and how to configure it.
 
+## [0.5.0] - 2025-11-04 @dwertheimer
+- improved styling of tables (border and title left justified)
+- fixed HRs that did not display if they were not preceded by a blank line
+
 ## [0.4.5] - 2025-03-14
 - upgraded to use Mermaid v11.x
 
