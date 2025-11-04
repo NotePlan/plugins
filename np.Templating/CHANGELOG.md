@@ -12,6 +12,7 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 - check clayrussell's bug with folder selection
 - allow images in templates -- absolute paths get copied
 - add debugging to template rendering to show session data and user options to try to find issues with template rendering
+- fix edge case where template frontmatter was not working with trailing space behind "-- " for @ThatDwayne
 
 ## [2.1.3] 2025-10-15 @dwertheimer
 - Add debugging to chooseFolder() to show the actual index in the folders array that was chosen to try to find the ipad bug for clay russell

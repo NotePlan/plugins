@@ -1,7 +1,7 @@
 /* global describe, it, expect */
 
-import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { replaceDoubleDashes, convertToDoubleDashesIfNecessary } from '../lib/engine/templateRenderer'
+import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 
 // Make DataStore and Editor available globally for the source code
 global.DataStore = DataStore
@@ -250,6 +250,112 @@ This is the body of the note.`
       // Convert double back to triple
       const backToTriple = replaceDoubleDashes(withDouble)
       expect(backToTriple).toBe(originalWithTriple)
+    })
+  })
+
+  describe('Edge case: Double dashes with trailing spaces', () => {
+    it('should handle double dashes with trailing spaces in replaceDoubleDashes', () => {
+      const templateData = `-- 
+title: Test Note
+date: 2024-01-01
+-- 
+
+# Test Content
+This is the body of the note.`
+
+      const result = replaceDoubleDashes(templateData)
+
+      expect(result).toBe(`--- 
+title: Test Note
+date: 2024-01-01
+--- 
+
+# Test Content
+This is the body of the note.`)
+    })
+
+    it('should handle double dashes with leading spaces in replaceDoubleDashes', () => {
+      const templateData = ` --
+title: Test Note
+date: 2024-01-01
+ --
+
+# Test Content`
+
+      const result = replaceDoubleDashes(templateData)
+
+      expect(result).toBe(` ---
+title: Test Note
+date: 2024-01-01
+ ---
+
+# Test Content`)
+    })
+
+    it('should handle double dashes with both leading and trailing spaces in replaceDoubleDashes', () => {
+      const templateData = ` -- 
+title: Test Note
+date: 2024-01-01
+ -- 
+
+# Test Content`
+
+      const result = replaceDoubleDashes(templateData)
+
+      expect(result).toBe(` --- 
+title: Test Note
+date: 2024-01-01
+ --- 
+
+# Test Content`)
+    })
+
+    it('should handle triple dashes with trailing spaces in convertToDoubleDashesIfNecessary', () => {
+      const templateData = `--- 
+title: Test Note
+date: 2024-01-01
+--- 
+
+# Test Content`
+
+      const result = convertToDoubleDashesIfNecessary(templateData)
+
+      expect(result).toBe(`-- 
+title: Test Note
+date: 2024-01-01
+-- 
+
+# Test Content`)
+    })
+
+    it('should handle triple dashes with leading spaces in convertToDoubleDashesIfNecessary', () => {
+      const templateData = ` ---
+title: Test Note
+date: 2024-01-01
+ ---
+
+# Test Content`
+
+      const result = convertToDoubleDashesIfNecessary(templateData)
+
+      // Note: convertToDoubleDashesIfNecessary only processes if it starts with "---\n"
+      // So this should NOT be converted since it starts with a space
+      expect(result).toBe(templateData)
+    })
+
+    it('should handle triple dashes with both leading and trailing spaces in convertToDoubleDashesIfNecessary', () => {
+      const templateData = ` --- 
+title: Test Note
+date: 2024-01-01
+ --- 
+
+# Test Content`
+
+      const result = convertToDoubleDashesIfNecessary(templateData)
+
+      // Note: convertToDoubleDashesIfNecessary only processes if it starts with "---\n"
+      // So this should NOT be converted since it starts with a space
+      expect(result).toBe(templateData)
     })
   })
 })

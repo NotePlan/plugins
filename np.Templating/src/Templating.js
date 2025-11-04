@@ -660,12 +660,13 @@ export async function templateMeetingNote(templateName: string = '', templateDat
           await Editor.openNoteByFilename(filename)
 
           const lines = finalRenderedData.split('\n')
-          const startBlock = lines.indexOf('--')
-          const endBlock = startBlock === 0 ? lines.indexOf('--', startBlock + 1) : -1
+          const startBlock = lines.findIndex((line) => line.trim() === '--')
+          const endBlock = startBlock === 0 ? lines.findIndex((line, idx) => idx > startBlock && line.trim() === '--') : -1
 
           if (startBlock >= 0 && endBlock >= 0) {
-            lines[startBlock] = '---'
-            lines[endBlock] = '---'
+            // Replace -- with --- while preserving any leading/trailing whitespace
+            lines[startBlock] = lines[startBlock].replace(/--/, '---')
+            lines[endBlock] = lines[endBlock].replace(/--/, '---')
             const newContent = lines.join('\n')
             Editor.content = newContent
             logDebug(
