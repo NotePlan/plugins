@@ -9,7 +9,7 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 ## [2.2.0] 2025-10-28 @dwertheimer
 - switch weather service to use NotePlan's new weather API (` <%- NotePlan.getWeather(units, latitude, longitude) %> `)
 - templateInsert and templateAppend now add a reload of the Editor in case any templating code changed the note underneath and we are reloading the note to get the new content before inserting the rendered template. to solve a but where plugin was writing to note but Editor was overwriting
-- check clayrussell's bug with folder selection
+- includes fix for iPad/iOS folder selection
 - allow images in templates -- absolute paths get copied
 - add debugging to template rendering to show session data and user options to try to find issues with template rendering
 - fix edge case where template frontmatter was not working with trailing space behind "-- " for @ThatDwayne
