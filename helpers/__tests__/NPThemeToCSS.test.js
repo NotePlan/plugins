@@ -4,6 +4,7 @@
 
 import colors from 'chalk'
 import * as t from '../NPThemeToCSS'
+import { hexToRgb, mixHexColors } from '../colors'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
 
 beforeAll(() => {
@@ -98,40 +99,62 @@ describe(`${FILE}`, () => {
     })
   })
 
-  /** mixHexColors() */
+  /** mixHexColors() - now in colors.js */
   describe('mixHexColors()', () => {
-    test('should throw error on no inputs', () => {
-      expect(t.mixHexColors).toThrow('Invalid hex color format')
-    })
-    test('should throw error on bad inputs', () => {
+    test('should throw error on missing color inputs', () => {
       expect(() => {
-        t.mixHexColors('#333', '#444')
-      }).toThrow('Invalid hex color format')
+        mixHexColors(null, null)
+      }).toThrow('Both colors required')
     })
-    test('should throw error on bad inputs', () => {
+    test('should handle 3-digit hex codes (chroma.js normalizes them)', () => {
+      // chroma.js handles 3-digit hex codes properly, so this should work
+      const res = mixHexColors('#333', '#444')
+      expect(res).toMatch(/^#[0-9a-f]{6}$/)
+    })
+    test('should throw error on invalid single input', () => {
       expect(() => {
-        t.mixHexColors('#333444')
-      }).toThrow('Invalid hex color format')
+        mixHexColors('#333444', null)
+      }).toThrow('Both colors required')
     })
     test('should return #808080', () => {
-      const res = t.mixHexColors('#000000', '#FFFFFF')
+      const res = mixHexColors('#000000', '#ffffff')
       expect(res).toEqual('#808080')
     })
     test('should return #f8f8f8', () => {
-      const res = t.mixHexColors('#F0F0F0', '#FFFFFF')
+      const res = mixHexColors('#f0f0f0', '#ffffff')
       expect(res).toEqual('#f8f8f8')
     })
-    test('should return #f8f8f8', () => {
-      const res = t.mixHexColors('#FFFFFF', '#F0F0F0')
+    test('should return #f8f8f8 (order independent)', () => {
+      const res = mixHexColors('#ffffff', '#f0f0f0')
       expect(res).toEqual('#f8f8f8')
     })
     test('should return #f7f7f7', () => {
-      const res = t.mixHexColors('#F0F0F0', '#FEFEFE')
+      const res = mixHexColors('#f0f0f0', '#fefefe')
       expect(res).toEqual('#f7f7f7')
     })
-    test('should return #f7f7f7', () => {
-      const res = t.mixHexColors('#F0F0F0', '#FEFEFE')
-      expect(res).toEqual('#f7f7f7')
+  })
+
+  /** hexToRgb() - now in colors.js */
+  describe('hexToRgb()', () => {
+    test('should return null for invalid input', () => {
+      const res = hexToRgb('invalid')
+      expect(res).toBeNull()
+    })
+    test('should return null for empty input', () => {
+      const res = hexToRgb('')
+      expect(res).toBeNull()
+    })
+    test('should convert 6-digit hex to RGB', () => {
+      const res = hexToRgb('#ff0000')
+      expect(res).toEqual({ r: 255, g: 0, b: 0 })
+    })
+    test('should convert 3-digit hex to RGB', () => {
+      const res = hexToRgb('#f00')
+      expect(res).toEqual({ r: 255, g: 0, b: 0 })
+    })
+    test('should handle hex without #', () => {
+      const res = hexToRgb('00ff00')
+      expect(res).toEqual({ r: 0, g: 255, b: 0 })
     })
   })
 })

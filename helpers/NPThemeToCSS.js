@@ -5,6 +5,7 @@
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
+import { hexToRgb, mixHexColors } from '@helpers/colors'
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -660,79 +661,7 @@ export function RGBColourConvert(RGBIn: string): string {
   }
 }
 
-/**
- * Convert a hex color to RGB values
- * @param {string} hex - Hex color string (e.g., '#ff0000')
- * @returns {?{r: number, g: number, b: number}} RGB values or null if invalid
- */
-export function hexToRgb(hex: string): ?{ r: number, g: number, b: number } {
-  try {
-    // Remove # if present
-    const cleanHex = hex.replace('#', '')
-
-    // Handle 6-digit hex
-    if (cleanHex.length === 6) {
-      const r = parseInt(cleanHex.substring(0, 2), 16)
-      const g = parseInt(cleanHex.substring(2, 4), 16)
-      const b = parseInt(cleanHex.substring(4, 6), 16)
-      return { r, g, b }
-    }
-
-    // Handle 3-digit hex
-    if (cleanHex.length === 3) {
-      const r = parseInt(cleanHex[0] + cleanHex[0], 16)
-      const g = parseInt(cleanHex[1] + cleanHex[1], 16)
-      const b = parseInt(cleanHex[2] + cleanHex[2], 16)
-      return { r, g, b }
-    }
-
-    return null
-  } catch (error) {
-    logError('hexToRgb', `${error.message} for hex '${hex}'`)
-    return null
-  }
-}
-
-/**
- * Note: in future it should be possible to do this in CSS with `color-mix(in srgb, <color-A>, <color-B>)`
- * From https://stackoverflow.com/a/66402402/3238281
- */
-/**
- * Mixes two hex color strings by averaging their RGB components.
- *
- * @param {string} color1 - The first hex color string (e.g., '#ff0000').
- * @param {string} color2 - The second hex color string (e.g., '#0000ff').
- * @returns {string} The resulting hex color string after mixing (e.g., '#800080').
- */
-export function mixHexColors(color1: string, color2: string): string {
-  const RE_RGB6 = /^#[0-9a-fA-F]{6}$/
-  if (!RE_RGB6.test(color1) || !RE_RGB6.test(color2)) throw new Error('Invalid hex color format')
-  // Remove the '#' and split the hex color into RGB components
-  const valuesColor1 =
-    color1
-      .replace('#', '')
-      .match(/.{2}/g)
-      ?.map((value) => parseInt(value, 16)) || []
-  const valuesColor2 =
-    color2
-      .replace('#', '')
-      .match(/.{2}/g)
-      ?.map((value) => parseInt(value, 16)) || []
-
-  // Ensure both colors have valid RGB components
-  if (valuesColor1.length !== 3 || valuesColor2.length !== 3) {
-    throw new Error('Invalid hex color format')
-  }
-
-  // Mix the RGB components by averaging
-  const mixedValues = valuesColor1.map((value, index) =>
-    Math.round((value + valuesColor2[index]) / 2)
-      .toString(16)
-      .padStart(2, '0'),
-  )
-
-  return `#${mixedValues.join('')}`
-}
+// hexToRgb and mixHexColors functions now imported from @helpers/colors
 
 /**
  * Translate from the font name, as used in the NP Theme file,

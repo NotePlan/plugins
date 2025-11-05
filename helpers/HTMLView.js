@@ -187,13 +187,39 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
     
-    // Add CSS for HR styling with baseline and extra padding options
-    const hrStyles = `<style>
-img { background: white; max-width: 100%; max-height: 100%; }
-hr { margin-top: 1.5em; margin-bottom: 1em; }
-hr.with-extra-space { margin-top: 3em; }
+    // Add CSS for proper spacing and layout
+    const inlineStyles = `<style>
+body { 
+  line-height: var(--body-line-height, 1.6); 
+}
+p { 
+  line-height: var(--body-line-height, 1.6); 
+  margin-bottom: 0.8em; 
+}
+/* Add extra spacing after line breaks - creates visual gap between explicit line breaks */
+br::after {
+  content: "";
+  display: block;
+  margin-bottom: 0.75em;
+}
+/* Also add top margin to elements that follow a br tag */
+br + * {
+  margin-top: 0.5em;
+}
+img { 
+  background: white; 
+  max-width: 100%; 
+  max-height: 100%; 
+}
+hr { 
+  margin-top: 1.5em; 
+  margin-bottom: 1em; 
+}
+hr.with-extra-space { 
+  margin-top: 3em; 
+}
 </style>`
-    body = hrStyles + body
+    body = inlineStyles + body
     
     // Replace markers for HRs that had blank lines with classed HRs
     body = body.replace(/<!--HR_WITH_SPACE--><hr \/>/g, '<hr class="with-extra-space" />')
