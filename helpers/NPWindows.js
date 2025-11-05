@@ -5,14 +5,9 @@
 // ----------------------------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search'
 import { inputIntegerBounded } from '@helpers/userInput'
-
-// ----------------------------------------------------------------------------
-// CONSTANTS
-
-export const MAIN_SIDEBAR_CONTROL_BUILD_VERSION = 1440 // v3.19.2
-export const FOLDER_VIEWS_CONTROL_BUILD_VERSION = 1340 // v3.18???
 
 // ----------------------------------------------------------------------------
 // TYPES
@@ -78,7 +73,7 @@ export async function setEditorWidth(widthIn?: number, mainSidebarWidth?: number
     }
 
     logDebug('setEditorWidth', `Attempting to set width for main NP Window to ${String(width)}`)
-    if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION && mainSidebarWidth && !isNaN(mainSidebarWidth)) {
+    if (usersVersionHas('mainSidebarControl') && mainSidebarWidth && !isNaN(mainSidebarWidth)) {
       if (mainSidebarWidth === 0) {
         logDebug('setEditorWidth', `- will hide main sidebar`)
         NotePlan.toggleSidebar(true, false, true)
@@ -690,7 +685,7 @@ export async function constrainMainWindow(): Promise<void> {
 }
 
 export function logSidebarWidth(): void {
-  if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION) {
+  if (usersVersionHas('mainSidebarControl')) {
     const sidebarWidth = NotePlan.getSidebarWidth()
     logInfo('logSidebarWidth', `Sidebar width: ${sidebarWidth} -- WARNING: This cannot tell if the sidebar is actually visible or not!`)
   } else {
@@ -700,7 +695,7 @@ export function logSidebarWidth(): void {
 
 // eslint-disable-next-line require-await
 export async function setSidebarWidth(widthIn?: number): Promise<void> {
-  if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION) {
+  if (usersVersionHas('mainSidebarControl')) {
     const width = widthIn ?? await inputIntegerBounded('Set Width for main NP Window', `Width (pixels)? (up to ${String(NotePlan.environment.screenWidth)})`, NotePlan.environment.screenWidth)
     NotePlan.setSidebarWidth(width)
     logDebug('setSidebarWidth', `Sidebar width set to ${width}`)

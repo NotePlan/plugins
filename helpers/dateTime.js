@@ -678,8 +678,10 @@ export function daysBetween(startDate: string | Date, endDate: string | Date, re
 }
 
 /**
- * Test if a date is within two start and end dates (inclusive)
+ * Test if a date is within two start and end dates (inclusive).
+ * Note: now first tests whether the dates are valid dates, taking into account leap days and other date validity rules.
  * @author @jgclark
+ * @tests in jest file
  *
  * @param {string} testDate - date to look for (YYYYMMDD without hyphens)
  * @param {string} fromDate - start Date (YYYYMMDD without hyphens)
@@ -687,6 +689,29 @@ export function daysBetween(startDate: string | Date, endDate: string | Date, re
  * @return {boolean}
  */
 export function withinDateRange(testDate: string, fromDate: string, toDate: string): boolean {
+  // Validate that all dates are valid YYYYMMDD dates
+  const validateDate = (dateStr: string): boolean => {
+    if (!dateStr.match(/^\d{8}$/)) {
+      return false
+    }
+    const year = parseInt(dateStr.slice(0, 4), 10)
+    const month = parseInt(dateStr.slice(4, 6), 10)
+    const day = parseInt(dateStr.slice(6, 8), 10)
+    if (month < 1 || month > 12) {
+      return false
+    }
+    const testDateObj = new Date(year, month - 1, day)
+    return (
+      testDateObj.getFullYear() === year &&
+      testDateObj.getMonth() === month - 1 &&
+      testDateObj.getDate() === day
+    )
+  }
+
+  if (!validateDate(testDate) || !validateDate(fromDate) || !validateDate(toDate)) {
+    return false
+  }
+
   return testDate >= fromDate && testDate <= toDate
 }
 
@@ -696,6 +721,7 @@ export function withinDateRange(testDate: string, fromDate: string, toDate: stri
  * If date is in the past then adds 'ago'.
  * Note: there is a newer locale-aware version of this function, using moment library at NPdateTime::localeRelativeDateFromNumber
  * @author @jgclark
+ * @tests in jest file
  * @param {number} diffIn - number of days difference (positive or negative)
  * @param {boolean?} shortStyle?
  * @returns {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
@@ -1096,6 +1122,42 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
 }
 
 /**
+ * Format a Date as an ISO week string (YYYY-Wnn format).
+ * Uses ISO 8601 week definition, which always starts on Monday.
+ * @param {Date} date - The date to format
+ * @returns {string} Week string in format YYYY-Wnn
+ */
+function formatISOWeek(date: Date): string {
+  const m = moment(date)
+  const year = m.isoWeekYear()
+  const week = m.isoWeek()
+  return `${year}-W${week < 10 ? `0${week}` : week}`
+}
+
+/**
+ * Format a Date as a week string (YYYY-Wnn format).
+ * Uses NotePlan's Calendar API when available (respects user's week start preference),
+ * otherwise falls back to ISO 8601 week definition (Monday start).
+ * @param {Date} date - The date to format
+ * @returns {string} Week string in format YYYY-Wnn
+ */
+function formatNPWeek(date: Date): string {
+  // Use NotePlan's Calendar API when available (respects user's week start preference)
+  if (typeof Calendar !== 'undefined' && Calendar && typeof Calendar.weekNumber === 'function') {
+    const weekNumber = Calendar.weekNumber(date)
+    const startDate = Calendar.startOfWeek(date)
+    const endDate = Calendar.endOfWeek(date)
+    const weekStartYear = startDate.getFullYear()
+    const weekEndYear = endDate.getFullYear()
+    // Determine week year: if week spans year boundary, use end year for week 1, otherwise start year
+    const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
+    return `${weekYear}-W${weekNumber < 10 ? `0${weekNumber}` : weekNumber}`
+  }
+  // Fallback to ISO 8601 week definition (always Monday start)
+  return formatISOWeek(date)
+}
+
+/**
  * Get the period of a given NP date string
  * @param {string} dateStr
  * @returns {string} period: 'day', 'week', 'month', 'quarter', 'year'
@@ -1199,6 +1261,8 @@ export function splitIntervalToParts(intervalStr: string): { number: number, typ
  * - 'baseDateIn' the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
  * - 'offsetInterval' of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
  * - 'adaptOutputInterval' (optional). Options: 'shorter', 'longer', 'offset', 'base', 'day', 'week', 'month', 'quarter', 'year'
+ * Note: Latest update (with help from Cursor) should suit start of week on days other than Monday. TODO: Find out how to test this in jest.
+ * TODO: This should then be moved to NPdateTime.js, as it calls formatNPWeek() which needs NotePlan.Calendar API to work properly. As far as I can tell, this is not a problem for all the places its used.
  * @author @jgclark
  * @param {string} baseDateIn the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
  * @param {string} offsetInterval of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
@@ -1257,23 +1321,21 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     } else {
       throw new Error('Invalid date string')
     }
-    const newDateStrFromBaseDateType = moment(offsetDate).format(baseDateMomentFormat)
+    // Format base date type
+    // If input was an ISO week string (YYYY-Wnn), use ISO week formatting to maintain consistency
+    // Otherwise, use NotePlan week formatting (respects user's week start preference when Calendar API available)
+    const wasISOWeekInput = baseDateIn.match(RE_NP_WEEK_SPEC)
+    const newDateStrFromBaseDateType = baseDateUnit === 'w'
+      ? (wasISOWeekInput ? formatISOWeek(offsetDate) : formatNPWeek(offsetDate))
+      : moment(offsetDate).format(baseDateMomentFormat)
     newDateStr = newDateStrFromBaseDateType
 
     // Also calculate offset's output format
     const offsetMomentFormat = offsetUnit === 'd' && baseDateIn.match(RE_YYYYMMDD_DATE) ? MOMENT_FORMAT_NP_DAY : getNPDateFormatForDisplayFromOffsetUnit(offsetUnit)
-    const newDateStrFromOffsetDateType = moment(offsetDate).format(offsetMomentFormat)
-
-    if (offsetUnit === 'w') {
-      logInfo(
-        'dateTime / cODS',
-        `- This output will only be accurate if your week start is a Monday. Please raise an issue if this is not the case. More details in DEBUG-level log.`,
-      )
-      logDebug(
-        'dateTime / cODS',
-        `  Details: ${adaptOutputInterval} adapt for ${baseDateIn} / ${baseDateUnit} / ${baseDateMomentFormat} / ${offsetMomentFormat} / ${offsetInterval} / ${newDateStrFromOffsetDateType}`,
-      )
-    }
+    // Use ISO week formatting if input was ISO week, otherwise use NotePlan week formatting
+    const newDateStrFromOffsetDateType = offsetUnit === 'w'
+      ? (wasISOWeekInput ? formatISOWeek(offsetDate) : formatNPWeek(offsetDate))
+      : moment(offsetDate).format(offsetMomentFormat)
 
     // If we want to adapt smaller
     switch (adaptOutputInterval) {
@@ -1305,9 +1367,10 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
         break
       }
       case 'week': {
-        const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('w')
-        newDateStr = moment(offsetDate).format(offsetMomentFormat)
-        logDebug('dateTime / cODS', `- 'week' output: changed format to ${offsetMomentFormat}`)
+        // If input was ISO week format, use ISO formatting; otherwise use NotePlan formatting
+        const wasISOWeekInput = baseDateIn.match(RE_NP_WEEK_SPEC)
+        newDateStr = wasISOWeekInput ? formatISOWeek(offsetDate) : formatNPWeek(offsetDate)
+        logDebug('dateTime / cODS', `- 'week' output: changed format to ${wasISOWeekInput ? 'ISO' : 'NotePlan'} week`)
         break
       }
       case 'month': {

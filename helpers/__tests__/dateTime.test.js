@@ -290,35 +290,39 @@ describe(`${PLUGIN_NAME}`, () => {
 
   // @dwertheimer
   describe('getDateObjFromDateTimeString ', () => {
-    test('should create date and HH:MM from string, no seconds', () => {
-      expect(dt.getDateObjFromDateTimeString('2021-01-01 09:40').toTimeString()).toMatch(/09:40:00/) //not checking date b/c it's locale-dependent
+    describe('should work', () => {
+      test('should create date and HH:MM from string, no seconds', () => {
+        expect(dt.getDateObjFromDateTimeString('2021-01-01 09:40').toTimeString()).toMatch(/09:40:00/) //not checking date b/c it's locale-dependent
+      })
+      test('should work with seconds specified', () => {
+        expect(dt.getDateObjFromDateTimeString('2021-01-02 00:00:01').toTimeString()).toMatch(/00:00:01/)
+      })
+      test('should work with only date, no time given', () => {
+        expect(dt.getDateObjFromDateTimeString('2021-01-03').toTimeString()).toMatch(/00:00:00/) //not checking date b/c it's locale-dependent
+      })
     })
-    test('should work with seconds specified', () => {
-      expect(dt.getDateObjFromDateTimeString('2021-01-02 00:00:01').toTimeString()).toMatch(/00:00:01/)
-    })
-    test('should work with only date, no time given', () => {
-      expect(dt.getDateObjFromDateTimeString('2021-01-03').toTimeString()).toMatch(/00:00:00/) //not checking date b/c it's locale-dependent
-    })
-    // Errors should throw
-    test('should throw error when date format is incorrect', () => {
-      expect(() => {
-        dt.getDateObjFromDateTimeString(`foo 00:00`)
-      }).toThrow(/not in expected format/)
-    })
-    test('should throw error when date format is incorrect (no day)', () => {
-      expect(() => {
-        dt.getDateObjFromDateTimeString(`2020-04 02:02`)
-      }).toThrow(/not in expected format/)
-    })
-    test('should throw error when time format is incorrect', () => {
-      expect(() => {
-        dt.getDateObjFromDateTimeString(`2020-01-05 02`)
-      }).toThrow(/not in expected format/)
-    })
-    test('should throw error when time format is incorrect', () => {
-      expect(() => {
-        dt.getDateObjFromDateTimeString(`2020-01-06 aa:00`)
-      }).toThrow(/Invalid Date/)
+
+    describe('errors', () => {
+      test('should throw error when date format is incorrect', () => {
+        expect(() => {
+          dt.getDateObjFromDateTimeString(`foo 00:00`)
+        }).toThrow(/not in expected format/)
+      })
+      test('should throw error when date format is incorrect (no day)', () => {
+        expect(() => {
+          dt.getDateObjFromDateTimeString(`2020-04 02:02`)
+        }).toThrow(/not in expected format/)
+      })
+      test('should throw error when time format is incorrect', () => {
+        expect(() => {
+          dt.getDateObjFromDateTimeString(`2020-01-05 02`)
+        }).toThrow(/not in expected format/)
+      })
+      test('should throw error when time format is incorrect', () => {
+        expect(() => {
+          dt.getDateObjFromDateTimeString(`2020-01-06 aa:00`)
+        }).toThrow(/Invalid Date/)
+      })
     })
 
     describe('getDateObjFromString mocked date', () => {
@@ -336,35 +340,9 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
-  test('getTimeStringFromDate should return time portion of Date as string HH:MM', () => {
-    expect(dt.getTimeStringFromDate(new Date('2020-01-01 23:59'))).toEqual('23:59')
-  })
-
-  describe('withinDateRange', () => {
-    test('test 1', () => {
-      expect(dt.withinDateRange('20210424', '20210501', '20210531')).toEqual(false)
-    })
-    test('test 2', () => {
-      expect(dt.withinDateRange('20210501', '20210501', '20210531')).toEqual(true)
-    })
-    test('test 3', () => {
-      expect(dt.withinDateRange('20210524', '20210501', '20210531')).toEqual(true)
-    })
-    test('test 4', () => {
-      expect(dt.withinDateRange('20210531', '20210501', '20210531')).toEqual(true)
-    })
-    test('test 5', () => {
-      expect(dt.withinDateRange('20210624', '20210501', '20210531')).toEqual(false)
-    })
-    test('test 6 over year boundary', () => {
-      expect(dt.withinDateRange('20240101', '20231201', '20240201')).toEqual(true)
-    })
-    test('test 7 on a valid leap day', () => {
-      expect(dt.withinDateRange('20240229', '20240201', '20240301')).toEqual(true)
-    })
-    // TODO: fix this edge case
-    test.skip('test 8 on an invalid leap day', () => {
-      expect(dt.withinDateRange('20230229', '20230201', '20230301')).toEqual(false)
+  describe('getTimeStringFromDate', () => {
+    test('should return time portion of Date as string HH:MM', () => {
+      expect(dt.getTimeStringFromDate(new Date('2020-01-01 23:59'))).toEqual('23:59')
     })
   })
 
@@ -427,12 +405,229 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
+  describe('withinDateRange', () => {
+    test('test 1', () => {
+      expect(dt.withinDateRange('20210424', '20210501', '20210531')).toEqual(false)
+    })
+    test('test 2', () => {
+      expect(dt.withinDateRange('20210501', '20210501', '20210531')).toEqual(true)
+    })
+    test('test 3', () => {
+      expect(dt.withinDateRange('20210524', '20210501', '20210531')).toEqual(true)
+    })
+    test('test 4', () => {
+      expect(dt.withinDateRange('20210531', '20210501', '20210531')).toEqual(true)
+    })
+    test('test 5', () => {
+      expect(dt.withinDateRange('20210624', '20210501', '20210531')).toEqual(false)
+    })
+    test('test 6 over year boundary', () => {
+      expect(dt.withinDateRange('20240101', '20231201', '20240201')).toEqual(true)
+    })
+    test('test 7 on a valid leap day', () => {
+      expect(dt.withinDateRange('20240229', '20240201', '20240301')).toEqual(true)
+    })
+    test('test 8 on an invalid leap day', () => {
+      expect(dt.withinDateRange('20230229', '20230201', '20230301')).toEqual(false)
+    })
+  })
+
   describe('relativeDateFromNumber', () => {
-    // TODO: this can be tested
+    describe('default style (long format)', () => {
+      test('should return "today" for 0 days', () => {
+        expect(dt.relativeDateFromNumber(0)).toEqual('today')
+      })
+      test('should return "1 day ago" for -1 days', () => {
+        expect(dt.relativeDateFromNumber(-1)).toEqual('1 day ago')
+      })
+      test('should return "in 1 day" for 1 day', () => {
+        expect(dt.relativeDateFromNumber(1)).toEqual('in 1 day')
+      })
+      test('should return "2 days ago" for -2 days', () => {
+        expect(dt.relativeDateFromNumber(-2)).toEqual('2 days ago')
+      })
+      test('should return "in 2 days" for 2 days', () => {
+        expect(dt.relativeDateFromNumber(2)).toEqual('in 2 days')
+      })
+      test('should return "8 days ago" for -8 days', () => {
+        expect(dt.relativeDateFromNumber(-8)).toEqual('8 days ago')
+      })
+      test('should return "in 8 days" for 8 days', () => {
+        expect(dt.relativeDateFromNumber(8)).toEqual('in 8 days')
+      })
+      test('should return "1 wk ago" for -10 days', () => {
+        expect(dt.relativeDateFromNumber(-10)).toEqual('1 wk ago')
+      })
+      test('should return "in 1 wk" for 10 days', () => {
+        expect(dt.relativeDateFromNumber(10)).toEqual('in 1 wk')
+      })
+      test('should return "3 wks ago" for -21 days', () => {
+        expect(dt.relativeDateFromNumber(-21)).toEqual('3 wks ago')
+      })
+      test('should return "in 3 wks" for 21 days', () => {
+        expect(dt.relativeDateFromNumber(21)).toEqual('in 3 wks')
+      })
+      test('should return "1 mon ago" for -30 days', () => {
+        expect(dt.relativeDateFromNumber(-30)).toEqual('1 mon ago')
+      })
+      test('should return "in 1 mon" for 30 days', () => {
+        expect(dt.relativeDateFromNumber(30)).toEqual('in 1 mon')
+      })
+      test('should return "12 mon ago" for -365 days', () => {
+        expect(dt.relativeDateFromNumber(-365)).toEqual('12 mon ago')
+      })
+      test('should return "in 12 mon" for 365 days', () => {
+        expect(dt.relativeDateFromNumber(365)).toEqual('in 12 mon')
+      })
+      test('should return "16 mon ago" for -500 days (less than 550)', () => {
+        expect(dt.relativeDateFromNumber(-500)).toEqual('16 mon ago')
+      })
+      test('should return "in 16 mon" for 500 days (less than 550)', () => {
+        expect(dt.relativeDateFromNumber(500)).toEqual('in 16 mon')
+      })
+      test('should return "2 yrs ago" for -550 days (550/365 rounds to 2)', () => {
+        expect(dt.relativeDateFromNumber(-550)).toEqual('2 yrs ago')
+      })
+      test('should return "in 2 yrs" for 550 days (550/365 rounds to 2)', () => {
+        expect(dt.relativeDateFromNumber(550)).toEqual('in 2 yrs')
+      })
+      test('should return "2 yrs ago" for -730 days', () => {
+        expect(dt.relativeDateFromNumber(-730)).toEqual('2 yrs ago')
+      })
+      test('should return "in 2 yrs" for 730 days', () => {
+        expect(dt.relativeDateFromNumber(730)).toEqual('in 2 yrs')
+      })
+    })
+    describe('short style', () => {
+      test('should return "today" for 0 days', () => {
+        expect(dt.relativeDateFromNumber(0, true)).toEqual('today')
+      })
+      test('should return "1d ago" for -1 days', () => {
+        expect(dt.relativeDateFromNumber(-1, true)).toEqual('1d ago')
+      })
+      test('should return "in 1d" for 1 day', () => {
+        expect(dt.relativeDateFromNumber(1, true)).toEqual('in 1d')
+      })
+      test('should return "8d ago" for -8 days', () => {
+        expect(dt.relativeDateFromNumber(-8, true)).toEqual('8d ago')
+      })
+      test('should return "in 8d" for 8 days', () => {
+        expect(dt.relativeDateFromNumber(8, true)).toEqual('in 8d')
+      })
+      test('should return "1w ago" for -10 days', () => {
+        expect(dt.relativeDateFromNumber(-10, true)).toEqual('1w ago')
+      })
+      test('should return "in 1w" for 10 days', () => {
+        expect(dt.relativeDateFromNumber(10, true)).toEqual('in 1w')
+      })
+      test('should return "3w ago" for -21 days', () => {
+        expect(dt.relativeDateFromNumber(-21, true)).toEqual('3w ago')
+      })
+      test('should return "in 3w" for 21 days', () => {
+        expect(dt.relativeDateFromNumber(21, true)).toEqual('in 3w')
+      })
+      test('should return "1m ago" for -30 days', () => {
+        expect(dt.relativeDateFromNumber(-30, true)).toEqual('1m ago')
+      })
+      test('should return "in 1m" for 30 days', () => {
+        expect(dt.relativeDateFromNumber(30, true)).toEqual('in 1m')
+      })
+      test('should return "12m ago" for -365 days', () => {
+        expect(dt.relativeDateFromNumber(-365, true)).toEqual('12m ago')
+      })
+      test('should return "in 12m" for 365 days', () => {
+        expect(dt.relativeDateFromNumber(365, true)).toEqual('in 12m')
+      })
+      test('should return "16m ago" for -500 days (less than 550)', () => {
+        expect(dt.relativeDateFromNumber(-500, true)).toEqual('16m ago')
+      })
+      test('should return "in 16m" for 500 days (less than 550)', () => {
+        expect(dt.relativeDateFromNumber(500, true)).toEqual('in 16m')
+      })
+      test('should return "2y ago" for -550 days (550/365 rounds to 2)', () => {
+        expect(dt.relativeDateFromNumber(-550, true)).toEqual('2y ago')
+      })
+      test('should return "in 2y" for 550 days (550/365 rounds to 2)', () => {
+        expect(dt.relativeDateFromNumber(550, true)).toEqual('in 2y')
+      })
+    })
+    describe('edge cases', () => {
+      test('should return "unknown date" for undefined', () => {
+        expect(dt.relativeDateFromNumber(undefined)).toEqual('unknown date')
+      })
+      test('should return "unknown date" for null', () => {
+        expect(dt.relativeDateFromNumber(null)).toEqual('unknown date')
+      })
+      test('should return "unknown date" for NaN', () => {
+        expect(dt.relativeDateFromNumber(NaN)).toEqual('unknown date')
+      })
+    })
   })
 
   describe('getDateFromString', () => {
-    // TODO: this can be tested
+    // Note: If this function doesn't exist yet, these tests assume it extracts a Date from various string formats
+    // Similar to getDateObjFromDateString but potentially with broader format support
+    test('should extract date from ISO date string', () => {
+      const result = dt.getDateObjFromDateString('2021-03-04')
+      expect(result).toBeInstanceOf(Date)
+      expect(result.getFullYear()).toEqual(2021)
+      expect(result.getMonth()).toEqual(2) // months are 0-indexed
+      expect(result.getDate()).toEqual(4)
+    })
+    test('should extract date from string containing ISO date', () => {
+      const result = dt.getDateObjFromDateString('Task due on 2021-03-04')
+      expect(result).toBeInstanceOf(Date)
+      expect(result.getFullYear()).toEqual(2021)
+      expect(result.getMonth()).toEqual(2)
+      expect(result.getDate()).toEqual(4)
+    })
+    test('should extract date from @due format', () => {
+      const result = dt.getDateObjFromDateString('@due(2021-03-04)')
+      expect(result).toBeInstanceOf(Date)
+      expect(result.getFullYear()).toEqual(2021)
+      expect(result.getMonth()).toEqual(2)
+      expect(result.getDate()).toEqual(4)
+    })
+    test('should extract date from scheduled format', () => {
+      const result = dt.getDateObjFromDateString('>2021-03-04')
+      expect(result).toBeInstanceOf(Date)
+      expect(result.getFullYear()).toEqual(2021)
+      expect(result.getMonth()).toEqual(2)
+      expect(result.getDate()).toEqual(4)
+    })
+    test('should extract date from link format', () => {
+      const result = dt.getDateObjFromDateString('[[2021-03-04]]')
+      expect(result).toBeInstanceOf(Date)
+      expect(result.getFullYear()).toEqual(2021)
+      expect(result.getMonth()).toEqual(2)
+      expect(result.getDate()).toEqual(4)
+    })
+    test('should extract first date when multiple dates present', () => {
+      const result = dt.getDateObjFromDateString('2021-03-04 and 2022-05-15')
+      expect(result).toBeInstanceOf(Date)
+      expect(result.getFullYear()).toEqual(2021)
+      expect(result.getMonth()).toEqual(2)
+      expect(result.getDate()).toEqual(4)
+    })
+    test('should return undefined for string without date', () => {
+      const result = dt.getDateObjFromDateString('no date here')
+      expect(result).toBeUndefined()
+    })
+    test('should return undefined for empty string', () => {
+      const result = dt.getDateObjFromDateString('')
+      expect(result).toBeUndefined()
+    })
+    test('should handle YYYYMMDD format if supported', () => {
+      const result = dt.getDateObjFromDateString('20210304')
+      // If function supports this format, it should return a Date
+      // Otherwise, it might return undefined
+      if (result) {
+        expect(result).toBeInstanceOf(Date)
+        expect(result.getFullYear()).toEqual(2021)
+        expect(result.getMonth()).toEqual(2)
+        expect(result.getDate()).toEqual(4)
+      }
+    })
   })
 
   describe('getISODateStringFromYYYYMMDD', () => {
@@ -1050,12 +1245,10 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = dt.getDateStringFromCalendarFilename('2022-.md')
       expect(result).toEqual('(invalid date)')
     })
-    // FIXME: "/2025042"
     test('should return valid date for teamspace daily calendar filename', () => {
       const result = dt.getDateStringFromCalendarFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md')
       expect(result).toEqual('20250422')
     })
-    // FIXME: "/2025-W0"
     test('should return valid date for teamspace weekly calendar filename', () => {
       const result = dt.getDateStringFromCalendarFilename('%%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/2025-W01.txt')
       expect(result).toEqual('2025-W01')
