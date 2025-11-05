@@ -59,8 +59,11 @@ export function isBrandNewNote(note: TNote | TEditor): boolean {
   if (note.isTeamspaceNote) {
     passesPattern = note.title === 'Untitled'
   } else {
-    // Regex pattern: "New Note - " followed by numbers, dot, numbers, and .md or .txt extension
-    const brandNewPattern = /^New Note - \d+\.\d+\.(md|txt)$/i
+    // Regex pattern: "[defaultNewNoteName] - " followed by numbers, dot, numbers, and .md or .txt extension
+    // Use DataStore.defaultNewNoteName to handle localized versions of "New Note"
+    const newNoteName = DataStore.defaultNewNoteName ?? 'New Note'
+    const escapedName = newNoteName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape special regex characters
+    const brandNewPattern = new RegExp(`^${escapedName} - \\d+\\.\\d+\\.(md|txt)$`, 'i')
     passesPattern = brandNewPattern.test(filenameOnly)
   }
   logDebug(`isBrandNewNote: contentsIsBlank:${String(contentsIsBlank)} filename:${filename} title:${note?.title || ''} isABrandNewNote:${String(passesPattern)}`)
