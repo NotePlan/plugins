@@ -701,11 +701,7 @@ export function withinDateRange(testDate: string, fromDate: string, toDate: stri
       return false
     }
     const testDateObj = new Date(year, month - 1, day)
-    return (
-      testDateObj.getFullYear() === year &&
-      testDateObj.getMonth() === month - 1 &&
-      testDateObj.getDate() === day
-    )
+    return testDateObj.getFullYear() === year && testDateObj.getMonth() === month - 1 && testDateObj.getDate() === day
   }
 
   if (!validateDate(testDate) || !validateDate(fromDate) || !validateDate(toDate)) {
@@ -1322,20 +1318,14 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
       throw new Error('Invalid date string')
     }
     // Format base date type
-    // If input was an ISO week string (YYYY-Wnn), use ISO week formatting to maintain consistency
-    // Otherwise, use NotePlan week formatting (respects user's week start preference when Calendar API available)
-    const wasISOWeekInput = baseDateIn.match(RE_NP_WEEK_SPEC)
-    const newDateStrFromBaseDateType = baseDateUnit === 'w'
-      ? (wasISOWeekInput ? formatISOWeek(offsetDate) : formatNPWeek(offsetDate))
-      : moment(offsetDate).format(baseDateMomentFormat)
+    // Always use NotePlan week formatting (respects user's week start preference when Calendar API available)
+    const newDateStrFromBaseDateType = baseDateUnit === 'w' ? formatNPWeek(offsetDate) : moment(offsetDate).format(baseDateMomentFormat)
     newDateStr = newDateStrFromBaseDateType
 
     // Also calculate offset's output format
     const offsetMomentFormat = offsetUnit === 'd' && baseDateIn.match(RE_YYYYMMDD_DATE) ? MOMENT_FORMAT_NP_DAY : getNPDateFormatForDisplayFromOffsetUnit(offsetUnit)
-    // Use ISO week formatting if input was ISO week, otherwise use NotePlan week formatting
-    const newDateStrFromOffsetDateType = offsetUnit === 'w'
-      ? (wasISOWeekInput ? formatISOWeek(offsetDate) : formatNPWeek(offsetDate))
-      : moment(offsetDate).format(offsetMomentFormat)
+    // Always use NotePlan week formatting for consistency
+    const newDateStrFromOffsetDateType = offsetUnit === 'w' ? formatNPWeek(offsetDate) : moment(offsetDate).format(offsetMomentFormat)
 
     // If we want to adapt smaller
     switch (adaptOutputInterval) {
@@ -1367,10 +1357,9 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
         break
       }
       case 'week': {
-        // If input was ISO week format, use ISO formatting; otherwise use NotePlan formatting
-        const wasISOWeekInput = baseDateIn.match(RE_NP_WEEK_SPEC)
-        newDateStr = wasISOWeekInput ? formatISOWeek(offsetDate) : formatNPWeek(offsetDate)
-        logDebug('dateTime / cODS', `- 'week' output: changed format to ${wasISOWeekInput ? 'ISO' : 'NotePlan'} week`)
+        // Always use NotePlan week formatting
+        newDateStr = formatNPWeek(offsetDate)
+        logDebug('dateTime / cODS', `- 'week' output: changed format to NotePlan week`)
         break
       }
       case 'month': {

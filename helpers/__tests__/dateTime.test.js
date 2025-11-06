@@ -8,7 +8,14 @@ import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFor
 
 beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
-  global.Calendar = Calendar
+  // Configure Calendar mock to use ISO weeks (Monday-start) by default for backward compatibility
+  const moment = require('moment/min/moment-with-locales')
+  global.Calendar = {
+    ...Calendar,
+    weekNumber: (date) => moment(date).isoWeek(),
+    startOfWeek: (date) => moment(date).startOf('isoWeek').toDate(),
+    endOfWeek: (date) => moment(date).endOf('isoWeek').toDate(),
+  }
   global.Clipboard = Clipboard
   global.CommandBar = CommandBar
   global.DataStore = DataStore
@@ -751,7 +758,270 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
-  describe('calcOffsetDateStr', () => {
+  describe('calcOffsetDateStr with NotePlan weeks', () => {
+    describe('NotePlan week handling with mocked Calendar API', () => {
+      const moment = require('moment/min/moment-with-locales')
+
+      // Mock Calendar API for Sunday start week (NotePlan default for some locales)
+      const mockCalendarSundayStart = {
+        weekNumber: jest.fn((date) => {
+          // Calculate week number with Sunday start
+          return moment(date).locale('en').week()
+        }),
+        startOfWeek: jest.fn((date) => {
+          return moment(date).locale('en').startOf('week').toDate()
+        }),
+        endOfWeek: jest.fn((date) => {
+          return moment(date).locale('en').endOf('week').toDate()
+        }),
+      }
+
+      // Mock Calendar API for Monday start week (ISO standard)
+      const mockCalendarMondayStart = {
+        weekNumber: jest.fn((date) => {
+          return moment(date).isoWeek()
+        }),
+        startOfWeek: jest.fn((date) => {
+          return moment(date).startOf('isoWeek').toDate()
+        }),
+        endOfWeek: jest.fn((date) => {
+          return moment(date).endOf('isoWeek').toDate()
+        }),
+      }
+
+      describe('Week offsets with Sunday start (US style)', () => {
+        let originalCalendar
+        beforeEach(() => {
+          originalCalendar = global.Calendar
+          global.Calendar = mockCalendarSundayStart
+          mockCalendarSundayStart.weekNumber.mockClear()
+          mockCalendarSundayStart.startOfWeek.mockClear()
+          mockCalendarSundayStart.endOfWeek.mockClear()
+        })
+
+        afterEach(() => {
+          global.Calendar = originalCalendar
+        })
+
+        test('2024-11-06 (Wed) +1w -> 2024-W46 (Sunday start)', () => {
+          const result = dt.calcOffsetDateStr('2024-11-06', '1w', 'week')
+          // Nov 6, 2024 is a Wednesday in week 45 (Sunday start)
+          // Adding 1 week should give us week 46
+          expect(result).toEqual('2024-W46')
+          expect(mockCalendarSundayStart.weekNumber).toHaveBeenCalled()
+        })
+
+        test('2024-W44 +1w -> 2024-W45 (Sunday start)', () => {
+          const result = dt.calcOffsetDateStr('2024-W44', '1w')
+          expect(result).toEqual('2024-W45')
+          expect(mockCalendarSundayStart.weekNumber).toHaveBeenCalled()
+        })
+
+        test('2024-W44 +0w -> 2024-W44 (no change)', () => {
+          const result = dt.calcOffsetDateStr('2024-W44', '0w')
+          expect(result).toEqual('2024-W44')
+        })
+
+        test('2024-W52 +1w -> 2025-W01 (crosses year boundary, Sunday start)', () => {
+          // Week 52 of 2024 (Sunday start) + 1 week = Week 1 of 2025
+          const result = dt.calcOffsetDateStr('2024-W52', '1w')
+          expect(result).toEqual('2025-W01')
+          expect(mockCalendarSundayStart.weekNumber).toHaveBeenCalled()
+        })
+
+        test('2025-W01 -1w -> 2024-W52 (crosses year boundary backwards, Sunday start)', () => {
+          // Week 1 of 2025 (Sunday start) - 1 week = Week 52 of 2024
+          const result = dt.calcOffsetDateStr('2025-W01', '-1w')
+          expect(result).toEqual('2024-W52')
+        })
+
+        test('2024-01-15 (Mon) +2w -> 2024-W05 (converts date to week with Sunday start)', () => {
+          // Jan 15, 2024 is in week 3 (Sunday start), adding 2 weeks = week 5
+          const result = dt.calcOffsetDateStr('2024-01-15', '2w', 'week')
+          expect(result).toEqual('2024-W05')
+          expect(mockCalendarSundayStart.weekNumber).toHaveBeenCalled()
+        })
+      })
+
+      describe('Week offsets with Monday start (ISO/European style)', () => {
+        let originalCalendar
+        beforeEach(() => {
+          originalCalendar = global.Calendar
+          global.Calendar = mockCalendarMondayStart
+          mockCalendarMondayStart.weekNumber.mockClear()
+          mockCalendarMondayStart.startOfWeek.mockClear()
+          mockCalendarMondayStart.endOfWeek.mockClear()
+        })
+
+        afterEach(() => {
+          global.Calendar = originalCalendar
+        })
+
+        test('2024-11-06 (Wed) +1w -> 2024-W46 (Monday start)', () => {
+          const result = dt.calcOffsetDateStr('2024-11-06', '1w', 'week')
+          // Nov 6, 2024 is in ISO week 45, adding 1 week = week 46
+          expect(result).toEqual('2024-W46')
+          expect(mockCalendarMondayStart.weekNumber).toHaveBeenCalled()
+        })
+
+        test('2024-W44 +1w -> 2024-W45 (Monday start)', () => {
+          const result = dt.calcOffsetDateStr('2024-W44', '1w')
+          expect(result).toEqual('2024-W45')
+          expect(mockCalendarMondayStart.weekNumber).toHaveBeenCalled()
+        })
+
+        test('2024-W52 +1w -> 2025-W01 (crosses year boundary, Monday start)', () => {
+          // ISO week 52 of 2024 + 1 week = ISO week 1 of 2025
+          const result = dt.calcOffsetDateStr('2024-W52', '1w')
+          expect(result).toEqual('2025-W01')
+        })
+
+        test('2023-W52 +1w -> 2024-W01 (year boundary)', () => {
+          const result = dt.calcOffsetDateStr('2023-W52', '1w')
+          expect(result).toEqual('2024-W01')
+        })
+
+        test('2024-W01 -1w -> 2023-W52 (crosses year boundary backwards)', () => {
+          const result = dt.calcOffsetDateStr('2024-W01', '-1w')
+          expect(result).toEqual('2023-W52')
+        })
+
+        test('2024-01-15 (Mon) +2w -> 2024-W05 (converts date to week with Monday start)', () => {
+          // Jan 15, 2024 is in ISO week 3, adding 2 weeks = week 5
+          const result = dt.calcOffsetDateStr('2024-01-15', '2w', 'week')
+          expect(result).toEqual('2024-W05')
+          expect(mockCalendarMondayStart.weekNumber).toHaveBeenCalled()
+        })
+      })
+
+      describe('Edge cases: week 53 handling', () => {
+        let originalCalendar
+        beforeEach(() => {
+          originalCalendar = global.Calendar
+          global.Calendar = mockCalendarMondayStart
+          mockCalendarMondayStart.weekNumber.mockClear()
+          mockCalendarMondayStart.startOfWeek.mockClear()
+          mockCalendarMondayStart.endOfWeek.mockClear()
+        })
+
+        afterEach(() => {
+          global.Calendar = originalCalendar
+        })
+
+        test('2020-W53 +0w -> 2020-W53 (ISO year 2020 has 53 weeks)', () => {
+          // 2020 is a leap year and has 53 ISO weeks
+          const result = dt.calcOffsetDateStr('2020-W53', '0w')
+          expect(result).toEqual('2020-W53')
+        })
+
+        test('2020-W53 +1w -> 2021-W01 (from last week of 2020 to first week of 2021)', () => {
+          const result = dt.calcOffsetDateStr('2020-W53', '1w')
+          expect(result).toEqual('2021-W01')
+        })
+
+        test('2021-W01 -1w -> 2020-W53 (back to last week of 2020)', () => {
+          // Going back from first week of 2021 should give us week 53 of 2020
+          const result = dt.calcOffsetDateStr('2021-W01', '-1w')
+          expect(result).toEqual('2020-W53')
+        })
+
+        test('2015-W53 exists (Thursday starts the year)', () => {
+          // 2015 also has 53 weeks (Jan 1, 2015 was Thursday)
+          const result = dt.calcOffsetDateStr('2015-W53', '0w')
+          expect(result).toEqual('2015-W53')
+        })
+      })
+
+      describe('Multiple week offsets', () => {
+        let originalCalendar
+        beforeEach(() => {
+          originalCalendar = global.Calendar
+          global.Calendar = mockCalendarMondayStart
+          mockCalendarMondayStart.weekNumber.mockClear()
+          mockCalendarMondayStart.startOfWeek.mockClear()
+          mockCalendarMondayStart.endOfWeek.mockClear()
+        })
+
+        afterEach(() => {
+          global.Calendar = originalCalendar
+        })
+
+        test('2024-W01 +10w -> 2024-W11 (10 weeks forward)', () => {
+          const result = dt.calcOffsetDateStr('2024-W01', '10w')
+          expect(result).toEqual('2024-W11')
+        })
+
+        test('2024-W50 +10w -> 2025-W08 (crosses into next year)', () => {
+          // Week 50 + 10 weeks = week 60, which is week 8 of next year
+          const result = dt.calcOffsetDateStr('2024-W50', '10w')
+          expect(result).toEqual('2025-W08')
+        })
+
+        test('2024-W10 -20w -> 2023-W42 (crosses into previous year)', () => {
+          // Week 10 - 20 weeks crosses back to previous year
+          // 2023 has 52 weeks, so week 10-20 = week -10, which is 52-10 = week 42 of 2023
+          const result = dt.calcOffsetDateStr('2024-W10', '-20w')
+          expect(result).toEqual('2023-W42')
+        })
+
+        test('2024-W26 +26w -> 2024-W52 (exactly half year forward)', () => {
+          // Mid-year (week 26) + 26 weeks = week 52 (end of year)
+          const result = dt.calcOffsetDateStr('2024-W26', '26w')
+          expect(result).toEqual('2024-W52')
+        })
+      })
+
+      describe('Week format with adaptOutputInterval', () => {
+        let originalCalendar
+        beforeEach(() => {
+          originalCalendar = global.Calendar
+          global.Calendar = mockCalendarMondayStart
+          mockCalendarMondayStart.weekNumber.mockClear()
+          mockCalendarMondayStart.startOfWeek.mockClear()
+          mockCalendarMondayStart.endOfWeek.mockClear()
+        })
+
+        afterEach(() => {
+          global.Calendar = originalCalendar
+        })
+
+        test("'base' format preserves week when input is week", () => {
+          const result = dt.calcOffsetDateStr('2024-W20', '1w', 'base')
+          expect(result).toEqual('2024-W21')
+        })
+
+        test("'offset' format uses week when offset is week", () => {
+          // Start with a day, offset by weeks, output as week (based on offset unit)
+          const result = dt.calcOffsetDateStr('2024-01-15', '2w', 'offset')
+          expect(result).toEqual('2024-W05')
+        })
+
+        test("'week' format converts date to week", () => {
+          // Start with a day, no offset, but output as week
+          const result = dt.calcOffsetDateStr('2024-01-15', '0d', 'week')
+          expect(result).toEqual('2024-W03')
+        })
+
+        test("'longer' format converts day to week when offset is weeks", () => {
+          // Day + week offset with 'longer' should output as week (longer than day)
+          const result = dt.calcOffsetDateStr('2024-01-15', '2w', 'longer')
+          expect(result).toEqual('2024-W05')
+        })
+
+        test("'shorter' format keeps day when offset is day", () => {
+          // Week + day offset with 'shorter' should output as day (shorter than week)
+          const result = dt.calcOffsetDateStr('2024-W20', '5d', 'shorter')
+          expect(result).toEqual('2024-05-18')
+        })
+
+        test("'longer' format keeps week when offset is day", () => {
+          // Week + day offset with 'longer' should keep week format (longer than day)
+          const result = dt.calcOffsetDateStr('2024-W20', '5d', 'longer')
+          expect(result).toEqual('2024-W20')
+        })
+      })
+    })
+
     describe('should pass', () => {
       test('20220101 +1d', () => {
         expect(dt.calcOffsetDateStr('20220101', '1d')).toEqual('20220102')
