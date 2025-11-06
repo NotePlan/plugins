@@ -59,11 +59,23 @@
 
 .rdp {
   --rdp-cell-size: '30px';
+  --rdp-caption-font-size: unset !important;
+  --rdp-caption-label-font-size: unset !important;
   box-shadow: none;
 }
 
 .rdp button {
   border: none;
+}
+
+/* NP theme has border default for tables but we don't want it for buttons in the calendar picker */
+.rdp-button_reset {
+  border: unset !important;
+  box-shadow: unset !important;
+}
+
+.dayPicker-container .dialogBody button {
+  margin-left: 0.2rem !important;
 }
 
 .calendarPickerCustom {
