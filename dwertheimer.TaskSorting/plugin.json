@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.TaskSorting",
   "plugin.name": "🥷 Task Sorting & Tools",
-  "plugin.version": "1.2.6",
-  "plugin.lastUpdateInfo": "1.2.6: Ability to pass all params using templates",
+  "plugin.version": "1.2.7",
+  "plugin.lastUpdateInfo": "1.2.7: Added user prompts and settings for task type grouping (interleaving). Fixed heading duplication bug.",
   "plugin.description": "Commands for sorting tasks in a note",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles-EDIT_ME": [
@@ -21,7 +21,7 @@
     },
     {
       "name": "Sort tasks on the page",
-      "description": "ts",
+      "description": "Interactive sort with prompts for sort order, headings, subheadings, and task grouping",
       "jsFunction": "sortTasks",
       "alias": [
         "ts"
@@ -31,7 +31,7 @@
         "sortFields (comma separated string sort order, e.g. '-priority,content')",
         "withHeadings (true/false)",
         "subHeadingCategory (true/false)",
-        "interleaveTaskTypes (true/false) - whether to interleave task types (open/checklist together) or keep them separate. Default: true (interleaved)",
+        "interleaveTaskTypes (true/false) - whether to combine related task types (open+checklist together) or keep all 8 types separate. Default: true (combined, recommended)",
         "sortInHeadings (true/false) - whether to sort tasks within each heading separately (true) or treat entire note as one unit (false). Default: null (use DataStore setting)"
       ]
     },
@@ -286,6 +286,14 @@
       "required": true
     },
     {
+      "key": "interleaveTaskTypes",
+      "title": "Combine Related Task Types?",
+      "description": "When using quick sort commands (/tsd, /tsm, /tst, /tsc), should related task types be combined together?\n\n• Checked (recommended): Combines tasks (* open) with checklists (+ checklist), scheduled with scheduled checklists, etc. - creates 4 logical groups using the 'task' headings (e.g., 'Open Tasks' includes both * and + items)\n• Unchecked (traditional): Keeps all 8 task types completely separate - uses all 8 heading types\n\nNote: Interactive mode (/ts) will prompt you each time. When combining, checklist-specific headings are not used.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
       "key": "tasksToTop",
       "title": "Put tasks at the top (before any textual items)?",
       "description": "After tasks are sorted, do you want to put all the tasks at the top of the note (or section), before any other text? Uncheck this if you want the tasks to float to the bottom beneath any other text.",
@@ -310,6 +318,14 @@
       "required": true
     },
     {
+      "key": "showEmptyTaskCategories",
+      "title": "Show Empty Task Category Headings?",
+      "description": "When using task type headings (e.g. 'Open Tasks', 'Completed Tasks'), should headings be shown even if there are no tasks in that category?\n\n• Checked: Show all category headings even if empty\n• Unchecked (recommended): Only show headings for categories that have tasks",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "key": "eliminateSpinsters",
       "title": "Eliminate Headings with No Content",
       "description": "After running this command multiple times, you may end up with widowed headings that have no content underneath. If this is checked, after tasks are sorted, the plugin will delete any third/fourth level headings with no content underneath.\nBEWARE: It's pretty smart/careful about what empty headings it deletes, but if you have other empty 4th level headings ending in a colon in your document, don't!",
@@ -324,6 +340,77 @@
       "type": "bool",
       "default": false,
       "required": true
+    },
+    {
+      "note": "================== HEADING CUSTOMIZATION ========================"
+    },
+    {
+      "type": "heading",
+      "title": "Task Type Heading Customization (for localization or personal preference)"
+    },
+    {
+      "key": "headingOpenTasks",
+      "title": "Heading: Open Tasks",
+      "description": "Text to use for 'Open Tasks' heading (without the ### markdown). Note: When combining task types, this heading will include both * tasks and + checklist items.",
+      "type": "string",
+      "default": "Open Tasks",
+      "required": false
+    },
+    {
+      "key": "headingChecklistItems",
+      "title": "Heading: Checklist Items",
+      "description": "Text to use for 'Checklist Items' heading (without the ### markdown). Note: Only used when NOT combining task types (traditional mode with 8 separate sections).",
+      "type": "string",
+      "default": "Checklist Items",
+      "required": false
+    },
+    {
+      "key": "headingScheduledTasks",
+      "title": "Heading: Scheduled Tasks",
+      "description": "Text to use for 'Scheduled Tasks' heading (without the ### markdown). Note: When combining task types, this heading will include both * [>] and + [>] items.",
+      "type": "string",
+      "default": "Scheduled Tasks",
+      "required": false
+    },
+    {
+      "key": "headingScheduledChecklistItems",
+      "title": "Heading: Scheduled Checklist Items",
+      "description": "Text to use for 'Scheduled Checklist Items' heading (without the ### markdown). Note: Only used when NOT combining task types (traditional mode with 8 separate sections).",
+      "type": "string",
+      "default": "Scheduled Checklist Items",
+      "required": false
+    },
+    {
+      "key": "headingCompletedTasks",
+      "title": "Heading: Completed Tasks",
+      "description": "Text to use for 'Completed Tasks' heading (without the ### markdown). Note: When combining task types, this heading will include both * [x] and + [x] items.",
+      "type": "string",
+      "default": "Completed Tasks",
+      "required": false
+    },
+    {
+      "key": "headingCompletedChecklistItems",
+      "title": "Heading: Completed Checklist Items",
+      "description": "Text to use for 'Completed Checklist Items' heading (without the ### markdown). Note: Only used when NOT combining task types (traditional mode with 8 separate sections).",
+      "type": "string",
+      "default": "Completed Checklist Items",
+      "required": false
+    },
+    {
+      "key": "headingCancelledTasks",
+      "title": "Heading: Cancelled Tasks",
+      "description": "Text to use for 'Cancelled Tasks' heading (without the ### markdown). Note: When combining task types, this heading will include both * [-] and + [-] items.",
+      "type": "string",
+      "default": "Cancelled Tasks",
+      "required": false
+    },
+    {
+      "key": "headingCancelledChecklistItems",
+      "title": "Heading: Cancelled Checklist Items",
+      "description": "Text to use for 'Cancelled Checklist Items' heading (without the ### markdown). Note: Only used when NOT combining task types (traditional mode with 8 separate sections).",
+      "type": "string",
+      "default": "Cancelled Checklist Items",
+      "required": false
     },
     {
       "note": "================== DEBUGGING SETTINGS ========================"

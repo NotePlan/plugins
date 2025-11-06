@@ -20,6 +20,79 @@ Commands for sorting tasks in a note
 - Marking all tasks complete (or incomplete)
 - Copying tags/mentions from previous lines when doing multiple task entry
 
+## Understanding Task Type Grouping (Interleaving)
+
+When sorting tasks, the plugin can handle task types in two ways:
+
+### Combined Mode (Recommended - Default)
+Groups related task types together and sorts them as one unit:
+- **Open Tasks**: `* open` tasks + `+ checklist` items (sorted together by priority)
+- **Scheduled Tasks**: `* [>] scheduled` + `+ [>] scheduled checklist` items
+- **Completed Tasks**: `* [x] done` + `+ [x] completed checklist` items  
+- **Cancelled Tasks**: `* [-] cancelled` + `+ [-] cancelled checklist` items
+
+**Result**: 4 logical groups that make more sense for daily use
+
+**Example output:**
+```text
+### Open Tasks:
+* !!! high priority open task
++ !! medium priority checklist item
+* ! low priority open task
++ another checklist item
+
+### Completed Tasks:
+* [x] completed task @done(2025-11-06)
++ [x] completed checklist @done(2025-11-06)
+```
+
+### Separated Mode (Traditional)
+Keeps all 8 task types completely separate:
+1. Open tasks (`*`)
+2. Checklist items (`+`)
+3. Scheduled tasks (`* [>]`)
+4. Scheduled checklists (`+ [>]`)
+5. Done tasks (`* [x]`)
+6. Done checklists (`+ [x]`)
+7. Cancelled tasks (`* [-]`)
+8. Cancelled checklists (`+ [-]`)
+
+**Result**: 8 separate sections (can be verbose for notes with mixed task types)
+
+### How to Control Task Grouping
+- **Interactive (`/ts`)**: Will prompt you to choose each time
+- **Quick Commands (`/tsd`, `/tsm`, `/tst`, `/tsc`)**: Set in Plugin Preferences → "Combine Related Task Types?"
+- **Via x-callback-url**: Pass `true` or `false` as `arg4` (interleaveTaskTypes parameter)
+- **Default**: Combined mode (interleaving enabled)
+
+## Customization Options
+
+### Localize or Rename Task Type Headings
+You can customize the text used for each task type heading in Plugin Preferences:
+
+**Headings used when COMBINING task types** (recommended mode):
+- **Open Tasks** → includes both `*` tasks and `+` checklist items (e.g., "Tareas Abiertas" in Spanish)
+- **Scheduled Tasks** → includes both `* [>]` and `+ [>]` items (e.g., "Tâches Planifiées" in French)
+- **Completed Tasks** → includes both `* [x]` and `+ [x]` items (e.g., "已完成" in Chinese)
+- **Cancelled Tasks** → includes both `* [-]` and `+ [-]` items
+
+**Additional headings used ONLY in traditional mode** (8 separate sections):
+- **Checklist Items** → for `+` items only (e.g., "Lista de Verificación")
+- **Scheduled Checklist Items** → for `+ [>]` items only
+- **Completed Checklist Items** → for `+ [x]` items only
+- **Cancelled Checklist Items** → for `+ [-]` items only
+
+**To customize:**
+1. Open Plugin Preferences for Task Sorting
+2. Scroll to "Task Type Heading Customization" section
+3. Change any heading text as desired
+4. Leave blank to use default English headings
+
+### Control Empty Category Headings
+Set "Show Empty Task Category Headings?" in Plugin Preferences:
+- **Unchecked (recommended)**: Only show headings for categories that have tasks
+- **Checked**: Show all category headings even when empty
+
 ## Sorting Tasks
 
 ### /ts - Tasks Sort (Interactively choose sort order and headings style)

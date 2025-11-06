@@ -261,8 +261,10 @@ function getLineTypeAndContent(content: string, lastHeadingLevel: number = 0): {
     type = 'separator'
   } else if (/^\s*#{1,} /.test(lineContent)) {
     type = 'title'
+    // Extract heading level BEFORE removing the # characters
+    const hashMatch = lineContent.match(/^\s*(#{1,6})/)
+    headingLevel = hashMatch ? hashMatch[1].length : 1
     lineContent = lineContent.replace(/^\s*#{1,} /, '')
-    headingLevel = lineContent.match(/^#{1,}/)?.length || 1
   } else if (lineContent.startsWith('- [x]') || lineContent.startsWith('* [x]')) {
     type = 'done'
     lineContent = lineContent.slice(5)

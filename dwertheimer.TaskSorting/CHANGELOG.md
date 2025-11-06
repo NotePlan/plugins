@@ -4,6 +4,33 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md) for details on available commands and use case.
 
+## [1.2.7] - 2025-11-06 (@dwertheimer)
+
+### New Features
+- **NEW**: Interactive mode (`/ts`) now prompts users to choose task type grouping (combine related types or keep separate)
+- **NEW**: Added plugin setting "Combine Related Task Types?" for quick sort commands (`/tsd`, `/tsm`, `/tst`, `/tsc`)
+  - When enabled (default): Combines tasks (`*`) with checklists (`+`) into 4 logical groups
+  - When disabled: Keeps all 8 task types completely separate (traditional mode)
+- **NEW**: Customizable task type headings - 8 new settings allow you to rename headings for localization or personal preference
+  - Configure in Plugin Preferences → "Task Type Heading Customization"
+  - Examples: Change "Open Tasks" to "Tareas Abiertas" (Spanish) or "任務開放" (Chinese)
+- **NEW**: Setting to control display of empty task category headings
+  - "Show Empty Task Category Headings?" (default: off)
+  - When disabled, only categories with tasks will show headings
+
+### Bug Fixes
+- **FIXED**: Task type headings (e.g. "Open Tasks:", "Completed Tasks:") no longer duplicate when running sort commands multiple times
+- **FIXED**: Headings now appear correctly in interactive mode when user selects "yes" to include headings
+- **FIXED**: Scheduled tasks now appear under "Scheduled Tasks" heading instead of being incorrectly grouped under "Open Tasks" when both headings and interleaving are enabled
+- **FIXED**: Task type sections now output in correct order (Open → Scheduled → Done → Cancelled) instead of reversed order when using headings with interleaving
+- **FIXED**: Corrected "Completed Cancelled Items" typo to "Cancelled Checklist Items"
+- **FIXED**: Empty task category headings (with no tasks underneath) are now properly removed to avoid clutter
+
+### Improvements
+- **IMPROVED**: All default sort commands now respect the new "Combine Related Task Types?" setting
+- **IMPROVED**: Better documentation and clearer command descriptions for task grouping feature
+- **IMPROVED**: Added detailed logging for interleaving choices in debug mode
+
 ## [1.2.6] - 2025-09-23 (@dwertheimer)
 
 - Add logging for jgclark to sortTasksUnderHeading
