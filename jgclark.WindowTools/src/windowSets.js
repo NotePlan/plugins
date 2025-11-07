@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 2025-10-26 for v1.4.0 by @jgclark
+// last update 2025-11-01 for v1.4.0+ by @jgclark
 //---------------------------------------------------------------
 // ARCHITECTURE:
 // - 1 local preference 'windowSets' that contains JS Array<WindowSet>
@@ -22,7 +22,6 @@ import pluginJson from '../plugin.json'
 import * as wth from './WTHelpers'
 import { checkPluginCommandNameAvailable } from '@helpers/NPConfiguration'
 import {
-  calcOffsetDateStr,
   getDateStringFromCalendarFilename,
   getFilenameDateStrFromDisplayDateStr,
   getTodaysDateHyphenated,
@@ -34,6 +33,7 @@ import { clo, isObjectEmpty, JSP, logDebug, logError, logInfo, logWarn } from '@
 import { logPreference, unsetPreference } from '@helpers/NPdev'
 import { displayTitle } from '@helpers/general'
 import {
+  calcOffsetDateStr,
   getCalendarFilenameFromDateString,
   getShortOffsetDateFromDateString
 } from '@helpers/NPdateTime'
@@ -53,8 +53,6 @@ import { chooseDecoratedOptionWithModifiers, chooseOption, getInputTrimmed, show
 
 //---------------------------------------------------------------
 // Constants
-
-const SUPPORTS_DECORATED_COMMAND_BAR_OPTIONS = 1413 // v3.18.0
 
 //---------------------------------------------------------------
 // WindowSet functions
@@ -129,7 +127,7 @@ export async function saveWindowSet(): Promise<void> {
       logDebug('saveWindowSet', `found ${String(savedWindowSets.length)} existing windowSets`)
       let chosenSetIndex = -1
 
-      if (NotePlan.environment.buildVersion >= SUPPORTS_DECORATED_COMMAND_BAR_OPTIONS) { // = 3.18.0
+      if (usersVersionHas('decoratedCommandBar')) {
         const decoratedSetChoices: Array<TCommandBarOptionObject> = makeDecoratedWSChoices(savedWindowSets)
         // Prepare a new window set option
         const newWSChoice = ({
@@ -315,10 +313,14 @@ export async function saveWindowSet(): Promise<void> {
 
     // TEST: If we can find out the main sidebar width, and we want to save it, then add it to the WS object
     if (usersVersionHas('mainSidebarControl') && config.saveMainSidebarWidth) {
-      // FIXME(Eduard): doesn't set to 0 when sidebar is hidden! And no other way to tell.
-      const mainSidebarWidth = NotePlan.getSidebarWidth()
-      logSidebarWidth()
-      thisWSToSave.mainSidebarWidth = mainSidebarWidth
+      if (NotePlan.isSidebarCollapsed()) {
+        logDebug('saveWindowSet', `- main sidebar is collapsed, so will save width as 0`)
+        thisWSToSave.mainSidebarWidth = 0
+      } else {
+        const mainSidebarWidth = NotePlan.getSidebarWidth()
+        logDebug('saveWindowSet', `- main sidebar is visible, so will save width as ${String(mainSidebarWidth)}`)
+        thisWSToSave.mainSidebarWidth = mainSidebarWidth
+      }
     }
 
     // Check window bounds make sense
@@ -418,7 +420,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
       }
 
       let chosenSetIndex: number = -1
-      if (NotePlan.environment.buildVersion >= SUPPORTS_DECORATED_COMMAND_BAR_OPTIONS) { // = 3.18.0
+      if (usersVersionHas('decoratedCommandBar')) {
         const decoratedSetChoices: Array<TCommandBarOptionObject> = makeDecoratedWSChoices(savedWindowSets)
         const chosenOption = await chooseDecoratedOptionWithModifiers(`Select Window Set to open on ${thisMachineName}?`, decoratedSetChoices)
         chosenSetIndex = chosenOption.index
@@ -650,6 +652,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
     if (isNaN(requestedMainSidebarWidth)) {
       logDebug('openWindowSet', `- no main sidebar width requested, so will leave as is`)
     } else if (requestedMainSidebarWidth === 0) {
+      // TEST: from b1441
       logDebug('openWindowSet', `- main sidebar width requested is 0, so will hide it`)
       closeSidebar()
     } else {
@@ -698,7 +701,7 @@ export async function deleteWindowSet(setNameArg: string): Promise<boolean> {
       logDebug(pluginJson, `deleteWindowSet: Found ${windowSets.length} window sets`)
 
       // Get list of window sets to choose from
-      if (NotePlan.environment.buildVersion >= SUPPORTS_DECORATED_COMMAND_BAR_OPTIONS) { // = 3.18.0
+      if (usersVersionHas('decoratedCommandBar')) {
         const decoratedSetChoices: Array<TCommandBarOptionObject> = makeDecoratedWSChoices(windowSets)
         const chosenOption = await chooseDecoratedOptionWithModifiers(`Select Window Set to delete?`, decoratedSetChoices)
         thisWSNum = chosenOption.index

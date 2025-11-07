@@ -2,8 +2,8 @@
 //---------------------------------------------------------------
 // Other windowing functions
 // Jonathan Clark
-// last update 15.3.2024 for v1.2.0 by @jgclark
-// Minimum NP version: v3.9.8
+// last update 2025-11-01 for v1.4.0+ by @jgclark
+// Minimum NP version: 3.9.8
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -92,7 +92,7 @@ export async function resetMainWindow(): Promise<void> {
  */
 export async function moveCurrentSplitToMain(): Promise<void> {
   try {
-    if (NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 1100) {
+    if (NotePlan.environment.platform !== 'macOS' || !usersVersionHas('screenDetails')) {
       logInfo(pluginJson, `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
       return
     }
@@ -114,7 +114,7 @@ export async function moveCurrentSplitToMain(): Promise<void> {
         const winRect = win.windowRect
         return {
           id: win.id,
-          noteType: win.type,
+          resourceType: win.type,
           windowType: win.windowType,
           filename: win.filename,
           x: winRect.x,
@@ -142,11 +142,11 @@ export async function moveCurrentSplitToMain(): Promise<void> {
     // Make main window the one that this was called about
     if (originalSplitNoteType === 'Notes') {
       logDebug('moveCurrentSplitToMain', `Attempting to open project note ${originalSplitFilename} in main window`)
-      let res = await Editor.openNoteByFilename(originalSplitFilename, false)
+      const res = await Editor.openNoteByFilename(originalSplitFilename, false)
     } else {
       const noteNPDate = getDateStringFromCalendarFilename(originalSplitFilename)
       logDebug('moveCurrentSplitToMain', `Attempting to open calendar date ${noteNPDate} in main window`)
-      let res = await Editor.openNoteByDateString(noteNPDate, false)
+      const res = await Editor.openNoteByDateString(noteNPDate, false)
     }
 
     // Open a split with previous main window
@@ -181,8 +181,8 @@ export async function moveCurrentSplitToMain(): Promise<void> {
  */
 export async function swapSplitWindows(): Promise<void> {
   try {
-    if (NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 1100) {
-      logInfo(pluginJson, `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
+    if (NotePlan.environment.platform !== 'macOS' || !usersVersionHas('windowDetails')) {
+      logInfo(pluginJson, `'swap split windows' command needs NotePlan v3.9.8 or later on macOS. Stopping.`)
       return
     }
 
@@ -198,7 +198,7 @@ export async function swapSplitWindows(): Promise<void> {
         const winRect = win.windowRect
         return {
           id: win.id,
-          noteType: win.type,
+          resourceType: win.type,
           windowType: win.windowType,
           filename: win.filename,
           x: winRect.x,
@@ -239,9 +239,12 @@ export async function swapSplitWindows(): Promise<void> {
         }
       }
       const res = await chooseOption('Which sub-window do you want to swap to the first position?', splitOptions)
+      if (!res || typeof res !== 'number') {
+        throw new Error(`User cancelled the choice of which sub-window to swap to the first position. Stopping.`)
+      }
       // Note: if user cancels then this stops
       splitNumberToMove = res + 1
-      logDebug('swapSplitWindows', `User selected to swap sub-window #${String(splitNumberToMove)} (${res.label})`)
+      logDebug('swapSplitWindows', `User selected to swap sub-window #${String(splitNumberToMove)}`)
     }
 
     // swap the original array to make the following easier
@@ -262,7 +265,7 @@ export async function swapSplitWindows(): Promise<void> {
 
     // Now open first sub-window as main
     const firstSubWinFilename = subWinDetails[0].filename
-    const firstSubWinNoteType = subWinDetails[0].noteType
+    const firstSubWinNoteType = subWinDetails[0].resourceType
     if (firstSubWinNoteType === 'Notes') {
       logDebug('swapSplitWindows', `Attempting to open project note ${firstSubWinFilename} as first sub-window (main)`)
       const res = await Editor.openNoteByFilename(firstSubWinFilename, false)
