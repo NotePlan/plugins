@@ -37,6 +37,7 @@ import {
   getCalendarFilenameFromDateString,
   getShortOffsetDateFromDateString
 } from '@helpers/NPdateTime'
+import { usersVersionHas } from '@helpers/NPVersions'
 import {
   applyRectToHTMLWindow,
   closeSidebar,
@@ -45,7 +46,6 @@ import {
   isHTMLWindowOpen,
   getNonMainWindowIds,
   logSidebarWidth,
-  MAIN_SIDEBAR_CONTROL_BUILD_VERSION,
   openSidebar,
   rectToString,
 } from '@helpers/NPWindows'
@@ -314,7 +314,7 @@ export async function saveWindowSet(): Promise<void> {
       clo(thisWSToSave, `saveWindowSet: thisWSToSave after dealing with EW splits`)
 
     // TEST: If we can find out the main sidebar width, and we want to save it, then add it to the WS object
-    if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION && config.saveMainSidebarWidth) {
+    if (usersVersionHas('mainSidebarControl') && config.saveMainSidebarWidth) {
       // FIXME(Eduard): doesn't set to 0 when sidebar is hidden! And no other way to tell.
       const mainSidebarWidth = NotePlan.getSidebarWidth()
       logSidebarWidth()
