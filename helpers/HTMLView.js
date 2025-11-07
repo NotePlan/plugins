@@ -5,9 +5,7 @@
 // Last updated 2025-05-31 by @jgclark
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
-import {
-  hasFrontMatter
-} from '@helpers/NPFrontMatter'
+import { hasFrontMatter } from '@helpers/NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
 import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
@@ -15,6 +13,7 @@ import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInEventLinkHiddenPart, isTermInNotelinkOrURI, isTermInMarkdownPath } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER, formRegExForUsersOpenTasks } from '@helpers/regex'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
+import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -101,7 +100,6 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
 `
 }
 
-
 /**
  * Convert a note's content to HTML and include any images as base64
  * @param {string} content
@@ -153,6 +151,24 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       }
     }
 
+    // Ensure horizontal rules have a blank line before them (required by showdown)
+    // Track which HRs already had blank lines for extra padding
+    // HR patterns: ---, ___, *** (with optional spaces between)
+    const HR_REGEX = /^(\s*)([-_*])\s*\2\s*\2\s*$/
+    const HR_MARKER = '<!--HR_WITH_SPACE-->'
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].match(HR_REGEX)) {
+        if (lines[i - 1].trim() === '') {
+          // Already has blank line - mark it for extra padding
+          lines[i] = `${HR_MARKER}${lines[i]}`
+        } else {
+          // Insert blank line before HR if previous line isn't already blank
+          lines.splice(i, 0, '')
+          i++ // skip the newly inserted blank line
+        }
+      }
+    }
+
     // Make this proper Markdown -> HTML via showdown library
     // Set some options to turn on various more advanced HTML conversions (see actual code at https://github.com/showdownjs/showdown/blob/master/src/options.js#L109):
     const converterOptions = {
@@ -164,22 +180,58 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       tasklists: true,
       metadata: false, // otherwise metadata is swallowed
       requireSpaceBeforeHeadingText: true,
-      simpleLineBreaks: true // Makes this GFM style. TODO: make an option?
+      simpleLineBreaks: true, // Makes this GFM style. TODO: make an option?
     }
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
-    body = `<style>img { background: white; max-width: 100%; max-height: 100%; }</style>${body}` // fix for bug in showdown
-    
+
+    // Add CSS for proper spacing and layout
+    const inlineStyles = `<style>
+body { 
+  line-height: var(--body-line-height, 1.6); 
+}
+p { 
+  line-height: var(--body-line-height, 1.6); 
+  margin-bottom: 0.8em; 
+}
+/* Add extra spacing after line breaks - creates visual gap between explicit line breaks */
+br::after {
+  content: "";
+  display: block;
+  margin-bottom: 0.75em;
+}
+/* Also add top margin to elements that follow a br tag */
+br + * {
+  margin-top: 0.5em;
+}
+img { 
+  background: white; 
+  max-width: 100%; 
+  max-height: 100%; 
+}
+hr { 
+  margin-top: 1.5em; 
+  margin-bottom: 1em; 
+}
+hr.with-extra-space { 
+  margin-top: 3em; 
+}
+</style>`
+    body = inlineStyles + body
+
+    // Replace markers for HRs that had blank lines with classed HRs
+    body = body.replace(/<!--HR_WITH_SPACE--><hr \/>/g, '<hr class="with-extra-space" />')
+
     const imgTagRegex = /<img src=\"(.*?)\"/g
     const matches = [...body.matchAll(imgTagRegex)]
     const noteDirPath = getFolderFromFilename(note.filename)
-    
+
     for (const match of matches) {
       const imagePath = match[1]
       try {
         // Handle both absolute and relative paths
         let fullPath = `../../../Notes/${noteDirPath}/${decodeURI(imagePath)}`
-        if(fullPath.endsWith('.drawing')) {
+        if (fullPath.endsWith('.drawing')) {
           fullPath = fullPath.replace('.drawing', '.png')
         }
         const data = await DataStore.loadData(fullPath, false)
@@ -217,14 +269,8 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       // Display highlights with .highlight style
       line = convertHighlightsToHTML(line)
 
-      // Replace [[notelinks]] with just underlined notelink
-      const captures = line.match(/\[\[(.*?)\]\]/)
-      if (captures) {
-        // clo(captures, 'results from [[notelinks]] match:')
-        for (const capturedTitle of captures) {
-          line = line.replace(`[[${capturedTitle}]]`, `~${capturedTitle}~`)
-        }
-      }
+      // Replace [[notelinks]] with HTML anchors pointing to the note
+      line = convertWikiLinksToHTML(line)
       // Display underlining with .underlined style
       line = convertUnderlinedToHTML(line)
 
@@ -237,13 +283,11 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       modifiedLines.push(line)
     }
     return modifiedLines.join('\n')
-
   } catch (error) {
     logError('getNoteContentAsHTML', error.message)
     return '<conversion error>'
   }
 }
-
 
 /**
  * This function creates the webkit console.log/error handler for HTML messages to get back to NP console.log
@@ -566,7 +610,10 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
   try {
     const screenWidth = NotePlan.environment.screenWidth
     const screenHeight = NotePlan.environment.screenHeight
-    logDebug('HTMLView / showHTMLV2', `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'} for screen dimensions ${screenWidth}x${screenHeight}`)
+    logDebug(
+      'HTMLView / showHTMLV2',
+      `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'} for screen dimensions ${screenWidth}x${screenHeight}`,
+    )
 
     // Assemble the parts of the HTML into a single string
     const fullHTMLStr = assembleHTMLParts(body, opts)
@@ -592,8 +639,8 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       winOptions = {
         x: opts.x ?? (screenWidth - (screenWidth - (opts.paddingWidth ?? 0) * 2)) / 2,
         y: opts.y ?? (screenHeight - (screenHeight - (opts.paddingHeight ?? 0) * 2)) / 2,
-        width: opts.width ?? (screenWidth - (opts.paddingWidth ?? 0) * 2),
-        height: opts.height ?? (screenHeight - (opts.paddingHeight ?? 0) * 2),
+        width: opts.width ?? screenWidth - (opts.paddingWidth ?? 0) * 2,
+        height: opts.height ?? screenHeight - (opts.paddingHeight ?? 0) * 2,
         shouldFocus: opts.shouldFocus,
         id: cId, // don't need both ... but trying to work out which is the current one for the API
         windowId: cId,
@@ -603,7 +650,6 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
         const storedRect = getStoredWindowRect(cId)
         if (storedRect) {
-
           winOptions = {
             x: storedRect.x,
             y: storedRect.y,
@@ -958,18 +1004,18 @@ export function convertBoldAndItalicToHTML(input: string): string {
 // of the form `![📅](2023-01-13 18:00:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Contact X about Y:::#63DA38)`
 export function simplifyNPEventLinksForHTML(input: string): string {
   try {
-  let output = input
-  const captures = output.match(RE_EVENT_LINK)
-  if (captures) {
-    clo(captures, 'results from NP event link matches:')
-    // Matches come in threes (plus full match), so process four at a time
-    for (let c = 0; c < captures.length; c = c + 3) {
-      const eventLink = captures[c]
-      const eventTitle = captures[c + 1]
-      const eventColor = captures[c + 2]
-      output = output.replace(eventLink, `<i class="fa-light fa-calendar" style="color: ${eventColor}"></i> <span class="event-link">${eventTitle}</span>`)
+    let output = input
+    const captures = output.match(RE_EVENT_LINK)
+    if (captures) {
+      clo(captures, 'results from NP event link matches:')
+      // Matches come in threes (plus full match), so process four at a time
+      for (let c = 0; c < captures.length; c = c + 3) {
+        const eventLink = captures[c]
+        const eventTitle = captures[c + 1]
+        const eventColor = captures[c + 2]
+        output = output.replace(eventLink, `<i class="fa-light fa-calendar" style="color: ${eventColor}"></i> <span class="event-link">${eventTitle}</span>`)
+      }
     }
-  }
     // logDebug('simplifyNPEventLinksForHTML', `{${input}} -> {${output}}`)
     return output
   } catch (error) {
@@ -982,16 +1028,16 @@ export function simplifyNPEventLinksForHTML(input: string): string {
 // (This also helps remove false positives for ! priority indicator)
 export function simplifyInlineImagesForHTML(input: string): string {
   try {
-  let output = input
-  const captures = output.match(/!\[image\]\([^\)]+\)/g)
-  if (captures) {
-    // clo(captures, 'results from embedded image match:')
-    for (const capture of captures) {
-      // logDebug(`simplifyInlineImagesForHTML`, capture)
-      output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
-      // logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
+    let output = input
+    const captures = output.match(/!\[image\]\([^\)]+\)/g)
+    if (captures) {
+      // clo(captures, 'results from embedded image match:')
+      for (const capture of captures) {
+        // logDebug(`simplifyInlineImagesForHTML`, capture)
+        output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
+        // logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
+      }
     }
-  }
     // logDebug('simplifyInlineImagesForHTML', `{${input}} -> {${output}}`)
     return output
   } catch (error) {
@@ -1020,8 +1066,14 @@ export function convertHashtagsToHTML(input: string): string {
       // logDebug('convertHashtagsToHTML', `results from hashtag matches: ${String(matches)}`)
       for (const match of matches) {
         // logDebug('convertHashtagsToHTML', `- match: ${String(match)}`)
-        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output) || isTermAColorStyleDefinition(match, output)
-        ) { continue }
+        if (
+          isTermInNotelinkOrURI(match, output) ||
+          isTermInMarkdownPath(match, output) ||
+          isTermInEventLinkHiddenPart(match, output) ||
+          isTermAColorStyleDefinition(match, output)
+        ) {
+          continue
+        }
         output = output.replace(match, `<span class="hashtag">${match}</span>`)
       }
     }
@@ -1033,9 +1085,8 @@ export function convertHashtagsToHTML(input: string): string {
   }
 }
 
-
 function isTermAColorStyleDefinition(term: string, input: string): boolean {
-  const RE_CSS_STYLE_DEFINITION = new RegExp(`style="color:\\s*${term}"`, "i")
+  const RE_CSS_STYLE_DEFINITION = new RegExp(`style="color:\\s*${term}"`, 'i')
   return RE_CSS_STYLE_DEFINITION.test(input)
 }
 
@@ -1052,7 +1103,7 @@ export function convertMentionsToHTML(input: string): string {
     // regex from @EduardMe's file
     // const RE_MENTION_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/, 'g')
     // regex from @EduardMe's file, without [:punct:]
-    // const RE_MENTION_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/, 'g') 
+    // const RE_MENTION_G = new RegExp(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/, 'g')
     // now copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
     const RE_MENTION_G = new RegExp(/\B@((?![\p{N}_]+(?:$|\s|\b))(?:[\p{L}\p{M}\p{N}_\/\-]{1,60})(\(.*?\))?)/, 'gu')
     const matches = input.match(RE_MENTION_G)
@@ -1060,7 +1111,9 @@ export function convertMentionsToHTML(input: string): string {
       // logDebug('convertMentionsToHTML', `results from mention matches: ${String(matches)}`)
       for (const match of matches) {
         // logDebug('convertMentionsToHTML', `- match: ${String(match)}`)
-        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output)) { continue }
+        if (isTermInNotelinkOrURI(match, output) || isTermInMarkdownPath(match, output) || isTermInEventLinkHiddenPart(match, output)) {
+          continue
+        }
         output = output.replace(match, `<span class="attag">${match}</span>`)
       }
     }
@@ -1102,6 +1155,82 @@ export function convertHighlightsToHTML(input: string): string {
     }
   }
   return output
+}
+
+function convertWikiLinksToHTML(input: string): string {
+  return input.replace(/\[\[(.+?)\]\]/g, (_match, content) => {
+    const { url, displayText } = buildNotePlanLinkFromWikiContent(content)
+    const safeText = escapeHTML(displayText)
+    if (!url) {
+      return safeText
+    }
+    return `<a class="internal-note-link" href="${url}">${safeText}</a>`
+  })
+}
+
+function buildNotePlanLinkFromWikiContent(content: string): { url: string | null, displayText: string } {
+  let linkTarget = content.trim()
+  let displayText = linkTarget
+
+  const aliasIndex = linkTarget.indexOf('|')
+  if (aliasIndex !== -1) {
+    displayText = linkTarget.slice(aliasIndex + 1).trim() || linkTarget.slice(0, aliasIndex).trim()
+    linkTarget = linkTarget.slice(0, aliasIndex)
+  }
+
+  let heading = ''
+  const headingIndex = linkTarget.indexOf('#')
+  if (headingIndex !== -1) {
+    heading = linkTarget.slice(headingIndex + 1).trim()
+    linkTarget = linkTarget.slice(0, headingIndex)
+  }
+
+  let blockID = ''
+  const blockIndex = linkTarget.indexOf('^')
+  if (blockIndex !== -1) {
+    blockID = linkTarget.slice(blockIndex).trim()
+    linkTarget = linkTarget.slice(0, blockIndex)
+  }
+
+  const trimmedTarget = linkTarget.trim()
+  if (trimmedTarget.length === 0) {
+    return { url: null, displayText }
+  }
+
+  const calendarMatch = trimmedTarget.match(/^(\d{4}-\d{2}-\d{2}|\d{8})$/)
+  if (calendarMatch) {
+    const dateID = trimmedTarget.includes('-') ? trimmedTarget : `${trimmedTarget.slice(0, 4)}-${trimmedTarget.slice(4, 6)}-${trimmedTarget.slice(6)}`
+    const url = createOpenOrDeleteNoteCallbackUrl(dateID, 'date', heading)
+    return { url, displayText }
+  }
+
+  const defaultExt = DataStore?.defaultFileExtension ?? 'md'
+  const possibleFilename = trimmedTarget.endsWith(`.${defaultExt}`) ? trimmedTarget : `${trimmedTarget}.${defaultExt}`
+
+  let targetNote = typeof DataStore?.projectNoteByFilename === 'function' ? DataStore.projectNoteByFilename(possibleFilename) : null
+
+  if (!targetNote) {
+    const possibleNotes = DataStore?.projectNoteByTitle?.(trimmedTarget, true, true) ?? []
+    if (possibleNotes.length > 0) {
+      targetNote = possibleNotes.find((n) => n?.title === trimmedTarget) ?? possibleNotes[0]
+    }
+  }
+
+  if (targetNote) {
+    if (blockID && targetNote?.title) {
+      const urlForBlock = createOpenOrDeleteNoteCallbackUrl(targetNote.title, 'title', null, null, false, blockID)
+      return { url: urlForBlock, displayText }
+    }
+    const urlForFilename = createOpenOrDeleteNoteCallbackUrl(targetNote.filename, 'filename', heading)
+    return { url: urlForFilename, displayText }
+  }
+
+  const fallbackUrl = createOpenOrDeleteNoteCallbackUrl(trimmedTarget, 'title', heading)
+  return { url: fallbackUrl, displayText }
+}
+
+function escapeHTML(input: string): string {
+  return input.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
 /**
