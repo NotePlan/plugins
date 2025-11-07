@@ -874,7 +874,7 @@ export function getDateFromYYYYMMDDString(inputString: string): ?Date {
  * Return rough relative string version of difference between date and today.
  * Don't return all the detail, but just the most significant unit (year, month, week, day)
  * If date is in the past then adds 'ago'.
- * TODO: Shift to moment library or move to NPdateTime.js
+ * TODO: Move to NPdateTime.js
  * @param {Date} date - calculate difference between this date and today
  * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
  */
@@ -937,6 +937,7 @@ export function getWeek(inDate: Date): number {
 
 /**
  * WARNING: Only for use where Monday is the user's first day of the week. See NPdateTime::getNPWeekData() for use with other days of the week.
+ * TODO: Remove all uses of this.
  * @param {Date} inDate
  * @returns {string}
  */
@@ -1120,6 +1121,7 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
 /**
  * Format a Date as an ISO week string (YYYY-Wnn format).
  * Uses ISO 8601 week definition, which always starts on Monday.
+ * TODO: Try to remove all uses of this, to respect user's start-of-week preference.
  * @param {Date} date - The date to format
  * @returns {string} Week string in format YYYY-Wnn
  */
@@ -1132,8 +1134,8 @@ function formatISOWeek(date: Date): string {
 
 /**
  * Format a Date as a week string (YYYY-Wnn format).
- * Uses NotePlan's Calendar API when available (respects user's week start preference),
- * otherwise falls back to ISO 8601 week definition (Monday start).
+ * Uses NotePlan's Calendar API when available (respects user's week start preference), otherwise falls back to ISO 8601 week definition (always Monday start).
+ * TODO: This should be moved to NPdateTime.js, as it calls NotePlan.Calendar API.
  * @param {Date} date - The date to format
  * @returns {string} Week string in format YYYY-Wnn
  */

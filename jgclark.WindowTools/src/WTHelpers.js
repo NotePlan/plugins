@@ -11,7 +11,8 @@ import { toLocaleDateTimeString } from '@helpers/dateTime'
 import { clo, isObjectEmpty, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
-import { MAIN_SIDEBAR_CONTROL_BUILD_VERSION, closeSidebar, openSidebar, constrainWindowSizeAndPosition } from '@helpers/NPWindows'
+import { usersVersionHas } from '@helpers/NPVersions'
+import { closeSidebar, openSidebar, constrainWindowSizeAndPosition } from '@helpers/NPWindows'
 import { caseInsensitiveMatch } from '@helpers/search'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -466,7 +467,7 @@ export async function getDetailedWindowSetByName(name: string): Promise<WindowSe
  */
 export function setMainSidebarWidthFromSettings(settings: WindowSetsConfig): void {
   // Set main sidebar width if we can control it
-  if (NotePlan.environment.buildVersion >= MAIN_SIDEBAR_CONTROL_BUILD_VERSION) {
+  if (usersVersionHas('mainSidebarControl')) {
     const defaultMainSidebarWidth = settings.defaultMainSidebarWidth ?? NaN
     logDebug(pluginJson, `- Setting main sidebar width to ${String(defaultMainSidebarWidth)}`)
     if (isNaN(defaultMainSidebarWidth)) {
