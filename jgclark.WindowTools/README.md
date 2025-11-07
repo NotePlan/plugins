@@ -1,19 +1,19 @@
 # 🖥️ Window Tools
 
 This plugin gives some tools to help manage NotePlan's windows more easily:
-- **save different layouts** ('Window Sets') of your NotePlan windows on macOS, and then **restore them** in just a few clicks. This includes ordinary notes, calendar notes and special 'html' windows created by some Plugins. (See more detail below.)
-- **swap split to main** command (alias: **swap**) swaps the currently-selected split to main, or if no split is currently selected, asks the user which to swap
-- **move split to main** command (alias: **mstm**) moves the currently-selected split pane to be the first one in the main window.
-- **constrain main window** command (alias: **cmw**) moves the main window to make sure its fully in the screen area, shrinking it if it needs to.
-- **open note in new split**: (alias: **onns**) opens a user-selected note in a new split of the main window (*)
-- **open note in new window** (alias: **onnw**) opens a user-selected note in a new window (*)
-- **open current in new split**: (alias: **ocns**) opens the current note again in a new split of the main window (*)
-- **open current in new window**: (alias: **ocnw**) opens the current note again in a new floating window
-- **/reset main window** (alias **rmw**): (from Plugin v1.4) This resets the main NP window to default widths, including the main (left) sidebar (requires NP v3.19.2 or later)
+- **save different layouts** ('Window Sets') of your NotePlan windows on macOS, and then **restore them** in just a few clicks. This includes ordinary notes, calendar notes, folder views, special 'html' windows created by some Plugins, and the size of the main app sidebar. ([More details below](#window-set-commands).)
+- **/constrain main window** command (alias: **cmw**) moves the main window to make sure its fully in the screen area, shrinking it if it needs to.
+- **/open note in new split**: (alias: **onns**) opens a user-selected note in a new split of the main window
+- **/open note in new window** (alias: **onnw**) opens a user-selected note in a new window
+- **/open current in new split**: (alias: **ocns**) opens the current note again in a new split of the main window
+- **/open current in new window**: (alias: **ocnw**) opens the current note again in a new floating window
+- **/move split to main** command (alias: **mstm**) moves the currently-selected split pane to be the first one in the main window.
+- **/swap split to main** command (alias: **swap**) swaps the currently-selected split to main, or if no split is currently selected, asks the user which to swap
+- **/reset main window** (alias **rmw**): This resets the main NP window to default widths, including the main (left) sidebar. It will bring as much of the window to be visible on the screen as possible, but will always include the top and left.
 
-(*) these were originally released in the Note Helpers plugin.
+Note: this plugin requires NotePlan version 3.9.8 or higher, and parts require v3.19.2.
 
-Note: this plugin requires NotePlan version 3.9.8 or higher.
+[<img width="160px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 ## Window Set commands
 There are two main commands:
@@ -22,29 +22,30 @@ There are two main commands:
 
 As monitor dimensions vary widely, a window set layout is specific to the particular Mac computer you've defined it on. If you have more than one then it will only show you the ones for the machine you're currently using.
 
-Note: these commands require NP vv3.19.2 or higher for control of the main sidebar.
+Note: these commands require NP v3.19.2 or higher for control of the main sidebar.
 
 You can also **delete Window Set** (alias **dws**): You are shown a list of all existing window sets to choose from. Or you can **delete all saved Window Sets**.
 
-[<img width="160px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
-
 ### Known limitations
-Unfortunately because of limitations in the API that plugins use, WindowSets:
-1. can't control the width of split windows within the main NotePlan window.
+Unfortunately because of limitations in the API that plugins use, Window Sets:
+1. can't control the width of most of the split windows within the main NotePlan window.
 2. can't control the order of windows that overlap, as the API doesn't supply the z-order of windows when saving a set. (Nor can it control the z-order of windows when opening a set.)
 3. doesn't seem to be able to set size/position of floating Editor windows.
+4. can't tell when a folder view is showing, so it can't be written into a Window Set. However, there is a workaround in place, as it will ask you which folder you're viewing. Or you can set it manually, using [advanced configuration (see example below)](#advanced-configuration).
+
+If these affect you, please write to the developer (hello@noteplan.co or on Discord).
 
 ### FAQ
 Q: Why does this plugin create a new folder for me called @WindowSet?
-A: This is the way that all the details of a saved set can be displayed to users who want to be able to do advanced configuration.
+A: This is the way that all the details of a saved set can be displayed to users who want to be able to do [advanced configuration](#advanced-configuration).
 
 Q: I run on multiple Macs: when can't I see some Window Sets on some Macs? 
 A: Different Macs tend to have different screen dimensions, and therefore need different Window Sets. For this reason, each Window Set is tied to the 'machineName' that it was created on. (This picks up the name you set in macOS' System Settings > General > Sharing > Local hostname.) The plugin is smart enough to only show you the Window Sets created on the same machine.
 
 Q: Can I delete this folder or re-organise it?
-A: Yes, you can delete it or move it (say to the Archive) if you don't intend to be doing advanced configuration (see below).
+A: Yes, you can delete it or move it (say to the Archive) if you don't intend to be doing  [advanced configuration](#advanced-configuration).
 
-Q: How can I change the icon used in the Window Set menus?
+Q: How can I change the icon for Window Set names, as used in the Window Set menus?
 A: From plugin v1.4, you can manually update the Window Set definition note to set it -- see Advanced Configuration below.
 
 ## Configuration
@@ -93,20 +94,29 @@ In more detail here is an annotated example of the code block in the special not
 [ // array of sets
   {
     "name": "Some relative dates", // name you give the set. Should be unique per machine
-    "machineName": "mba2.local",
-    "htmlWindows": [], // empty array
+    "machineName": "mba2.local", // name from macOS
     "editorWindows": [
-      { // define first note
+      { // define first note, in this case actually a folder
+        "x": 684, // window starts 684 pixels from left
+        "y": 0, //  and 0 pixels from bottom
+        "height": 623, // window height
+        "width": 652, // window width
+        "noteType": "Folder",
+        "title": "Projects", // folder name
+        "windowType": "main", // the first ('main') window in NP
+        "filename": "Projects" // folder path
+      },
+      { // define second note: the ordering of elements doesn't matter, and tends not to be maintained
         "x": 684, // window starts 684 pixels from left
         "y": 0, //  and 0 pixels from bottom
         "height": 623, // window height
         "width": 652, // window width
         "noteType": "Calendar",
-        "title": "today", // a name just to help you identify it
-        "windowType": "main", // the first ('main') window in NP
+        "title": "today", // relative or specific calendar date
+        "windowType": "split", // a 'split' pane in the main NP window
         "filename": "{0d}" // i.e. 0 days from today
       },
-      { // define second note: the ordering of elements doesn't matter, and tends not to be maintained
+      { // define third note
         "noteType": "Notes",
         "x": 966,
         "height": 623,
@@ -125,6 +135,18 @@ In more detail here is an annotated example of the code block in the special not
         "windowType": "floating", // a separate, 'floating' window
         "width": 450,
         "filename": "@WindowSets/Window Sets.md"
+      }
+    ],
+    "htmlWindows": [ // array can be empty
+      {
+        "type": "html",
+        "pluginID": "jgclark.Dashboard",
+        "pluginCommandName": "Show Dashboard",
+        "customId": "jgclark.Dashboard.main",
+        "x": 1617,
+        "y": 780,
+        "width": 941,
+        "height": 596
       }
     ],
     "closeOtherWindows": true, // when opening this window set, should existing windows/splits be closed?

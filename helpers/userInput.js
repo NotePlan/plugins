@@ -429,6 +429,7 @@ export async function chooseFolder(
             logDebug('userInput / chooseFolder', `  [${folder.index}]: ${folder.label}${folder.index === actualIndex ? ' <== (chosen)' : ''}`)
           })
         }
+folder = value
       } else {
         // ✅ for both private + teamspace
         // ✅ for excluding Archive

@@ -10,12 +10,12 @@ import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import { toLocaleDateTimeString } from '@helpers/dateTime'
 import { clo, isObjectEmpty, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
+import { setIconForNote } from '@helpers/note'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { closeSidebar, openSidebar, constrainWindowSizeAndPosition } from '@helpers/NPWindows'
 import { caseInsensitiveMatch } from '@helpers/search'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
-
 
 //-----------------------------------------------------------------
 // Constants
@@ -187,6 +187,7 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
 
     // Write out to note
     WSNote.content = outputLines.join('\n')
+    setIconForNote(WSNote, 'window-restore', 'yellow-500')
 
     // Add trigger for update pref when note is updated
     // Note: commented out for now, as addTrigger doesn't always seem to work on the right note. Instead it's included in the above.

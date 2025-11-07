@@ -1,17 +1,19 @@
 # What's changed in 🖥️  Window Tools?
-_Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md)._
+_Please see the [Plugin documentation](https://noteplan.co/plugins/jgclark.WindowSets/) for more details._
 
-<!-- Started: support for Folders in WS. Waiting now for @EM to address a problem found in openNoteByFilename() calls.  -->
+<!-- - TODO: Extend to deal with closed main sidebars.
+- TODO: Can now save a folder as part of a window set. (Note: not yet a particular 'folder view'.) -->
 
-## [1.4.0.b1] - 2025-10-26 (unreleased)
+## [1.4.0] - 2025-11-07
 ### New
-- TODO: New **reset main window** command. This resets the main NP window to default widths, including the main (left) sidebar (requires NP v3.19.2 or later). Alias: /rmw.
-- Window Sets can now save the (open) main sidebar's width, and open to that width (requires NP v3.19.2).
-- TODO: Extend to deal with closed main sidebars.
-- Can now open a folder as part of a window set. Note it will only open in the first Editor window.
-- TODO: Can now save a folder as part of a window set. (Note: not yet a particular 'folder view'.)
+- New **reset main window** command. This resets the main NP window to default widths, including the main (left) sidebar (requires NP v3.19.2 or later). Alias: /rmw.
+- Can now open a **folder** as part of a **Window Set**. Note it will only open in the first Editor window.
+- Window Sets can now save the (open) **main sidebar's width**, and open to that width (requires NP v3.19.2).
 - Allows Window Set definitions to include an `icon` and `iconColor`. (These need to be set manually in your Window Sets definition note.)
 - Made a newer, more decorated, chooser for Window Sets, that uses icons where defined.
+- Fix (hopefully) for saving and opening Week notes for users with Sunday as start of week (thanks @oak86 for tip off and @dwertheimer for helping test)
+
+See the documentation (README) for more on how to use these new features.
 
 ## [1.3.0] - 2025-08-15
 - updated **open note in new split** and **open note in new window** to support Teamspace notes

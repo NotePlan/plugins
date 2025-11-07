@@ -109,7 +109,7 @@ export async function setEditorSplitWidth(editorWinIn?: number, widthIn?: number
       ? editorWinIn
       : await inputIntegerBounded('Set Width', `Which open Editor number to set width for? (0-${String(NotePlan.editors.length - 1)})`, NotePlan.editors.length - 1, 0)
     const editorWin = NotePlan.editors[editorWinIndex]
-    logDebug('setEditorSplitWidth', `- Rect: ${rectToString(editorWin.windowRect)}`)
+    logDebug('setEditorSplitWidth', `- ew#${String(editorWinIndex)} currently Rect: ${rectToString(editorWin.windowRect)}`)
     const thisWindowRect = getLiveWindowRectFromWin(editorWin)
     if (!thisWindowRect) {
       logError('setEditorSplitWidth', `Can't get window rect for editor ${String(editorWinIn)}`)
@@ -125,14 +125,30 @@ export async function setEditorSplitWidth(editorWinIn?: number, widthIn?: number
     }
 
     const existingWidth = thisWindowRect.width
-    logDebug('setEditorSplitWidth', `Attempting to set width for editor #${String(editorWinIndex)} from ${String(existingWidth)} to ${String(width)}`)
+    logDebug('setEditorSplitWidth', `- attempting to set width for ew#${String(editorWinIndex)} from ${String(existingWidth)}px to ${String(width)}px`)
     thisWindowRect.width = width
     editorWin.windowRect = thisWindowRect
     const newWidth = thisWindowRect.width
-    logDebug('setEditorSplitWidth', '- now width = '.concat(String(newWidth)))
+    logDebug('setEditorSplitWidth', `- now width = ${String(newWidth)}px`)
   } catch (error) {
     logError('setEditorSplitWidth', error.message)
     return
+  }
+}
+
+/**
+ * Set the width of all main + split windows to the given width.
+ * @param {number} width to set (px)
+ * @author @jgclark
+ */
+export async function setAllMainAndSplitWindowWidths(width: number): Promise<void> {
+  logDebug('setAllMainAndSplitWindowWidths', `Attempting to set width for all split windows to ${String(width)}px`)
+  for (let i = 0; i < NotePlan.editors.length; i++) {
+    const editor = NotePlan.editors[i]
+    if (editor.windowType !== 'floating') {
+      logDebug('setAllMainAndSplitWindowWidths', `- setting width for split window #${String(i)} to ${String(width)}px`)
+      await setEditorSplitWidth(i, width)
+    }
   }
 }
 

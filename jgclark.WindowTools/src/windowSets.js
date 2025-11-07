@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 2025-11-01 for v1.4.0+ by @jgclark
+// last update 2025-11-07 for v1.4.0 by @jgclark
 //---------------------------------------------------------------
 // ARCHITECTURE:
 // - 1 local preference 'windowSets' that contains JS Array<WindowSet>
@@ -12,7 +12,7 @@
 //   - writeWSsToNote() sends pref to note -- and can be run manually by /wpn
 // - if no window sets found in pref, plugin offers to write 2 example sets
 //
-// Minimum NP versions:
+// Minimum NP versions for the features in this plugin:
 // - 3.9.8  (generally)
 // - 3.18.0 (for decorated command bar options)
 // - 3.19.2 (for main sidebar width control -- macOS only)
@@ -49,7 +49,7 @@ import {
   openSidebar,
   rectToString,
 } from '@helpers/NPWindows'
-import { chooseDecoratedOptionWithModifiers, chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
+import { chooseDecoratedOptionWithModifiers, chooseFolder, chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
 
 //---------------------------------------------------------------
 // Constants
@@ -60,8 +60,8 @@ import { chooseDecoratedOptionWithModifiers, chooseOption, getInputTrimmed, show
 /**
  * Save detailed set of windows/panes as a set to the preference store for the current machine.
  * V3: writes to prefs
- * TODO: Support saving folder views as well as note. API support added somewhere around v3.17 it seems. Done all that's needed (I think) in OWS but will need to check once API bug is fixed, and then update this as well. 
- * Note: limitation that folder views only seem to be able to be opened in the (first) main Editor window.
+ * Note: Includes a workaround for the inability to read the open folder, by asking the user which folder they are viewing. (TODO: When @EM adds support to read the open folder, then the workaround can be removed.)
+ * Note: Folder views only seem to be able to be opened in the (first) main Editor window.
  * Note: Plugin declares minimum NP version 3.9.8.
  * @author @jgclark
  */
@@ -192,21 +192,31 @@ export async function saveWindowSet(): Promise<void> {
 
     // First process Editor windows
     let ewCount = 0
-    // const firstWindow = editorWinDetails[0]
     for (const ew of editorWinDetails) {
       let tempFilename = ew.filename
+      let tempTitle = ''
       // Get note from filename, first trying Notes, then Calendar
       let thisNote = DataStore.noteByFilename(tempFilename, 'Notes')
       if (!thisNote) {
         thisNote = DataStore.noteByFilename(tempFilename, 'Calendar')
       }
       if (!thisNote) {
-        logWarn('saveWindowSet', `- can't find note with filename '${tempFilename}' for WS '${setName}'. Skipping window ${String(ewCount)} of ${String(editorWinDetails.length)}.`)
-        clo(ew, `editorWinDetails for the window that can't be found`)
-        continue
+        // As still can't get the note, it's very likely in practice that this is a folder view, which as of v3.19.2 isn't returned by the API.
+        // Workaround: Ask the user which folder they are viewing, and use that as the filename.
+        // TODO(later): When @EM fixes the weakness in the API, this workaround can be removed.
+        const res = await showMessage('I will now ask for the name of the folder open in your main window. (This is a workaround for a bug since NotePlan v3.17).')
+        const folderName = await chooseFolder(`Which folder are you viewing in the first Editor window?`, false, false, '', true, false)
+        if (folderName && folderName !== '') {
+          logInfo('saveWindowSet', `- Using workaround: user supplies folder name '${folderName}' to use`)
+          tempFilename = folderName
+          tempTitle = folderName
+          ew.resourceType = 'Folder'
+        } else {
+          logWarn('saveWindowSet', `- can't find note with filename '${tempFilename}' for WS '${setName}'. Skipping window ${String(ewCount)} of ${String(editorWinDetails.length)}.`)
+          clo(ew, `editorWinDetails for the window that can't be found`)
+          continue
+        }
       }
-      // TODO(later): Try to support open folder as well as note. As of v3.16.3 (and still at 3.19.2) it requires EM to add support for this in the API.
-      let tempTitle = ''
 
       // Check to see if any editor windows are calendar dates
       if (ew.resourceType === 'Calendar') {
@@ -228,12 +238,14 @@ export async function saveWindowSet(): Promise<void> {
           logInfo('saveWindowSet', `User cancelled operation.`)
           return
         }
-      } else {
-        tempTitle = displayTitle(thisNote)
+      } else if (ew.resourceType === 'Notes') {
+        tempTitle = thisNote ? displayTitle(thisNote) : '?'
       }
+
       if (tempFilename === '') {
         logWarn('saveWindowSet', `blank filename for WS '${setName}' title '${tempTitle}'`)
       }
+
       // Get type of window (ensuring the first will always be 'main')
       const windowType = (ewCount === 0)
         ? 'main'
@@ -311,7 +323,7 @@ export async function saveWindowSet(): Promise<void> {
       }
       clo(thisWSToSave, `saveWindowSet: thisWSToSave after dealing with EW splits`)
 
-    // TEST: If we can find out the main sidebar width, and we want to save it, then add it to the WS object
+    // If we can find out the main sidebar width, and we want to save it, then add it to the WS object
     if (usersVersionHas('mainSidebarControl') && config.saveMainSidebarWidth) {
       if (NotePlan.isSidebarCollapsed()) {
         logDebug('saveWindowSet', `- main sidebar is collapsed, so will save width as 0`)

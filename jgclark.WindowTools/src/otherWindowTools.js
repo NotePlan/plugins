@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Other windowing functions
 // Jonathan Clark
-// last update 2025-11-01 for v1.4.0+ by @jgclark
+// last update 2025-11-07 for v1.4.0 by @jgclark
 // Minimum NP version: 3.9.8
 //---------------------------------------------------------------
 
@@ -12,12 +12,7 @@ import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getNoteTitleFromFilename } from '@helpers/NPnote'
 import { usersVersionHas } from '@helpers/NPVersions'
-import {
-  closeWindowFromId,
-  constrainWindowSizeAndPosition,
-  openNoteInNewSplitIfNeeded,
-  rectToString,
-} from '@helpers/NPWindows'
+import * as npw from '@helpers/NPWindows'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
@@ -35,11 +30,11 @@ export function constrainMainWindow(): void {
   try {
     // Get current editor window details
     const mainWindowRect: Rect = NotePlan.editors[0].windowRect
-    logDebug(pluginJson, `- mainWindowRect: ${rectToString(mainWindowRect)}`)
+    logDebug(pluginJson, `- mainWindowRect: ${npw.rectToString(mainWindowRect)}`)
 
     // Constrain into the screen area
-    const updatedRect = constrainWindowSizeAndPosition(mainWindowRect)
-    logDebug(pluginJson, `- updatedRect: ${rectToString(updatedRect)}`)
+    const updatedRect = npw.constrainWindowSizeAndPosition(mainWindowRect)
+    logDebug(pluginJson, `- updatedRect: ${npw.rectToString(updatedRect)}`)
 
     NotePlan.editors[0].windowRect = updatedRect
   } catch (error) {
@@ -60,27 +55,28 @@ export async function resetMainWindow(): Promise<void> {
     }
 
     const settings = await wth.getPluginSettings()
-    wth.setMainSidebarWidthFromSettings(settings)
+    const currentMainWindowWidth = NotePlan.editors[0].windowRect.width
+    const numPanesInMainWindow = NotePlan.editors.filter((win) => win.windowType !== 'floating').length
+    const mainSidebarWidth = settings.defaultMainSidebarWidth ?? 300
+    const defaultPaneWidth = settings.defaultEditorWidth ?? 500
+    const minPaneWidth = 300
+    const screenWidth = NotePlan.environment.screenWidth
+    const idealMainWindowWidth = mainSidebarWidth + (numPanesInMainWindow * defaultPaneWidth)
+    const minimumMainWindowWidth = mainSidebarWidth + (numPanesInMainWindow * minPaneWidth)
 
-    // Set Editor main window and all other split windows to default width
-    const defaultEditorWidth = settings.defaultEditorWidth
-    logDebug(pluginJson, `- defaultEditorWidth: ${String(defaultEditorWidth)}`)
-    if (defaultEditorWidth) {
-      // Set Editor main window width
-      logDebug(pluginJson, `- Setting main window width to ${String(defaultEditorWidth)}`)
-      NotePlan.editors[0].windowRect.width = defaultEditorWidth
-      // Set all other split windows to default width
-      for (let i = 1; i < NotePlan.editors.length; i++) {
-        const editor = NotePlan.editors[i]
-        if (editor.windowType === 'split') {
-          logDebug(pluginJson, `- Setting split window #${String(i)} width to ${String(defaultEditorWidth)}`)
-          editor.windowRect.width = defaultEditorWidth
-        }
-      }
+    // Set Editor main window and all other split windows to default width if there's sufficient space on the screen for them all
+    if (idealMainWindowWidth > screenWidth) {
+      logWarn(pluginJson, `- Total width of windows is ${String(currentMainWindowWidth)}px, but screen width is ${String(screenWidth)}px. Will try to reduce window width to minimum width that will fit all the windows.`)
+      await npw.setEditorWidth(minimumMainWindowWidth, mainSidebarWidth)
+      await npw.setAllMainAndSplitWindowWidths(minPaneWidth)
+    } else if (currentMainWindowWidth > idealMainWindowWidth) {
+      logDebug(pluginJson, `- Total width of windows is ${String(currentMainWindowWidth)}px, which is less than screen width ${String(screenWidth)}px, but more than user's ideal. Will adjust.`)
+      await npw.setEditorWidth(idealMainWindowWidth, mainSidebarWidth)
+      await npw.setAllMainAndSplitWindowWidths(defaultPaneWidth)
     }
-    else {
-      logWarn(pluginJson, `- No default editor width set, so will leave as is`)
-    }
+
+    // Lastly, constrain the window to be fully on the screen, if possible
+    await constrainMainWindow()
   } catch (error) {
     logError(pluginJson, error.message)
   }
@@ -132,12 +128,12 @@ export async function moveCurrentSplitToMain(): Promise<void> {
     for (const ew of subWinDetails) {
       if (ew.windowType === 'split') {
         logDebug('moveCurrentSplitToMain', `Closing split window with id ${ew.id ?? '?'}`)
-        closeWindowFromId(ew.id ?? '?')
+        npw.closeWindowFromId(ew.id ?? '?')
       }
     }
 
     // Constrain window to be fully on the screen while we're at it
-    await constrainMainWindow()
+    await npw.constrainMainWindow()
 
     // Make main window the one that this was called about
     if (originalSplitNoteType === 'Notes') {
@@ -152,14 +148,14 @@ export async function moveCurrentSplitToMain(): Promise<void> {
     // Open a split with previous main window
     const originalFirstWindow = subWinDetails[0]
     logDebug('moveCurrentSplitToMain', `Attempting to open project note ${originalSplitFilename} in first split`)
-    let res = openNoteInNewSplitIfNeeded(originalFirstWindow.filename)
+    let res = npw.openNoteInNewSplitIfNeeded(originalFirstWindow.filename)
 
     // Open any other remaining split windows
     if ((subWinDetails.length) > 2) {
       for (let i = 2; i < subWinDetails.length; i++) {
         const ew = subWinDetails[i]
         if (ew.windowType === 'split') {
-          res = openNoteInNewSplitIfNeeded(ew.filename)
+          res = npw.openNoteInNewSplitIfNeeded(ew.filename)
         } else {
           throw new Error(`Unexpected window type ${ew.windowType} for what should be split #${String(i)}`)
         }
@@ -256,7 +252,7 @@ export async function swapSplitWindows(): Promise<void> {
     for (const wd of subWinDetails) {
       if (wd.windowType === 'split') {
         logDebug('swapSplitWindows', `Closing split window with id ${wd.id ?? '?'}`)
-        closeWindowFromId(wd.id ?? '?')
+        npw.closeWindowFromId(wd.id ?? '?')
       }
     }
 
@@ -280,7 +276,7 @@ export async function swapSplitWindows(): Promise<void> {
       for (let i = 1; i < subWinDetails.length; i++) {
         const wd = subWinDetails[i]
         // logDebug('swapSplitWindows', `Attempting to open  ${wd.filename} in sub-window #${i} (split)`)
-        const res = openNoteInNewSplitIfNeeded(wd.filename)
+        const res = npw.openNoteInNewSplitIfNeeded(wd.filename)
       }
     }
   }
