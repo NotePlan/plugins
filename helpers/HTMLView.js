@@ -169,6 +169,8 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       }
     }
 
+    lines = addParagraphBreakHints(lines)
+
     // Make this proper Markdown -> HTML via showdown library
     // Set some options to turn on various more advanced HTML conversions (see actual code at https://github.com/showdownjs/showdown/blob/master/src/options.js#L109):
     const converterOptions = {
@@ -1155,6 +1157,44 @@ export function convertHighlightsToHTML(input: string): string {
     }
   }
   return output
+}
+
+function addParagraphBreakHints(lines: Array<string>): Array<string> {
+  const output: Array<string> = []
+  for (let i = 0; i < lines.length; i++) {
+    const currentLine = lines[i]
+    output.push(currentLine)
+
+    const trimmedCurrent = currentLine.trim()
+    if (trimmedCurrent === '') {
+      continue
+    }
+
+    const nextLine = lines[i + 1]
+    if (nextLine == null) {
+      continue
+    }
+    const trimmedNext = nextLine.trim()
+    if (trimmedNext === '') {
+      continue
+    }
+
+    const currentIsList = isListLine(trimmedCurrent)
+    const nextIsList = isListLine(trimmedNext)
+
+    if ((currentIsList && !nextIsList) || isIsolatedWikiLink(trimmedCurrent)) {
+      output.push('')
+    }
+  }
+  return output
+}
+
+function isListLine(line: string): boolean {
+  return /^([*\-+]|\d+\.)\s+/.test(line)
+}
+
+function isIsolatedWikiLink(line: string): boolean {
+  return /^\[\[[^\]]+\]\]$/.test(line)
 }
 
 function convertWikiLinksToHTML(input: string): string {

@@ -226,6 +226,38 @@ describe('getNoteContentAsHTML()', () => {
       `<a class="internal-note-link" href="${expectedUrl}">Rehearsal Setup for Playback Tracks</a>`,
     )
   })
+
+  test('keeps wiki-link paragraph separate from following text', async () => {
+    const targetNote = {
+      filename: 'Library/Example.md',
+      title: 'Example',
+    }
+    DataStore.projectNoteByTitle = jest.fn().mockReturnValue([targetNote])
+    DataStore.projectNoteByFilename = jest.fn().mockReturnValue(targetNote)
+
+    const result = await h.getNoteContentAsHTML('[[Example]]\nFollow up text', {
+      filename: 'Projects/Test/Test Note.md',
+      title: 'Test Note',
+      type: 'Notes',
+    })
+
+    expect(result).toContain('<p>Follow up text</p>')
+    expect(result).not.toMatch(/<a class="internal-note-link"[^>]*>Example<\/a><br \/>Follow up text/)
+  })
+
+  test('ensures text following a list is not captured inside the list item', async () => {
+    const note = {
+      filename: 'Projects/Test/Test Note.md',
+      title: 'Test Note',
+      type: 'Notes',
+    }
+
+    const markdown = '- Item one\n- Item two\nFollow up text'
+    const result = await h.getNoteContentAsHTML(markdown, note)
+
+    expect(result).toContain('<p>Follow up text</p>')
+    expect(result).not.toMatch(/<li>[^<]*Follow up text/)
+  })
 })
 
 /*

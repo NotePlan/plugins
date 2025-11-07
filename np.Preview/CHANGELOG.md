@@ -8,6 +8,7 @@ Arbitrary elevation to 1.0.0
 ### General HTML Helper Change
 - convert `[[wikilinks]]` in HTML output to be real NotePlan callback URLs rather than just underlined text that does nothing
 - fix bug in showdown relative to NP to ensure horizontal rules have a blank line before them so they render properly
+- add paragraph break hints so isolated wikilinks and text following lists render in their own paragraphs
 
 ### Preview-specific Changes
 - move preview-specific spacing and typography to `previewStyles` file, with:
