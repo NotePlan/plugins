@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 2025-08-25 for v1.0.0 by @jgclark
+// last update 2025-11-07 for v1.0.1 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,21 +10,15 @@ import { getQuickCaptureSettings} from './quickCaptureHelpers'
 import {
   getDisplayDateStrFromFilenameDateStr,
   getTodaysDateUnhyphenated,
-  // RE_ISO_DATE,
-  // convertISODateFilenameToNPDayFilename,
 } from '@helpers/dateTime'
 import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import {
   allNotesSortedByChanged,
-  // calendarNotesSortedByChanged,
   projectNotesSortedByChanged, weeklyNotesSortedByChanged
 } from '@helpers/note'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
-import {
-  displayTitleWithRelDate,
-  // getDateStrFromRelativeDateString
-} from '@helpers/NPdateTime'
+import { displayTitleWithRelDate } from '@helpers/NPdateTime'
 import { chooseNoteV2, getNoteFromParamOrUser, getOrMakeCalendarNote } from '@helpers/NPnote'
 import {
   findEndOfActivePartOfNote,
@@ -200,17 +194,17 @@ export async function addChecklistToNoteHeading(
     // } else {
     //   const regularNotes = await regularNotesProm // here's where we resolve the promise and have the sorted list
     //   // Ask user to pick a note
-    //   note = await chooseNoteV2(`Select note for new checklist`, regularNotes, true, true, false, false)
+    //   note = await chooseNoteV2(`new checklist`, regularNotes, true, true, false, false)
     // }
     // if (note == null) {
     //   throw new Error(`Couldn't get a valid note, Stopping.`)
     // }
     // V2:
-    const note = await getNoteFromParamOrUser('Select note for new checklist', noteTitleArg, regularNotes)
+    const note = await getNoteFromParamOrUser('new checklist', noteTitleArg, regularNotes)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
-    logDebug('addTaskToNoteHeading(qath)', `Will use note '${displayTitle(note)}' for new checklist`)
+    logDebug('addTaskToNoteHeading(qach)', `Will use note '${displayTitle(note)}' for new checklist`)
 
     // Get heading details from arg1 or user
     // If we're asking user, we use function that allows us to first add a new heading at start/end of note
@@ -268,7 +262,7 @@ export async function addTaskToNoteHeading(
     // V1:
     // const note = await chooseNoteV2(`Select note for new task`, regularNotes, true, true, false, false)
     // V2:
-    const note = await getNoteFromParamOrUser('Select note for new task', noteTitleArg, regularNotes)
+    const note = await getNoteFromParamOrUser('new task', noteTitleArg, regularNotes)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }
@@ -333,7 +327,7 @@ export async function addTextToNoteHeading(
     // V1:
     // const note = await chooseNoteV2(`Select note for new text`, regularNotes, true, true, false, false)
     // V2:
-    const note = await getNoteFromParamOrUser('Select note for new text', noteTitleArg, regularNotes)
+    const note = await getNoteFromParamOrUser('new text', noteTitleArg, regularNotes)
     if (note == null) {
       throw new Error(`Couldn't get a valid note, Stopping.`)
     }

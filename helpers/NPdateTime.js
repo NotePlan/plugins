@@ -1344,9 +1344,9 @@ export function getDateStrFromRelativeDateString(relDateStr: string): string {
  */
 export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDates: boolean = true, showFolderPath: boolean = false): string {
   if (noteIn.type === 'Calendar') {
-    let calNoteTitle = dt.getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
+    let calNoteTitle = dt.getDateStringFromCalendarFilename(noteIn.filename, true) ?? '(error)'
     if (showRelativeDates) {
-      for (const rd of relativeDatesNP) {
+      for (const rd of relativeDatesISO) {
         if (calNoteTitle === rd.dateStr) {
           // logDebug('displayTitleWithRelDate',`Found match with ${rd.dateStr} => ${rd.relName}`)
           calNoteTitle = `${rd.dateStr}\t(${rd.relName})`

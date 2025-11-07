@@ -31,15 +31,19 @@ type TFolderIcon = {
 
 //------------------------------ Constants ------------------------------------
 
-const TEAMSPACE_ICON_COLOR = 'green-700'
+const TEAMSPACE_ICON_COLOR = 'green-800'
 
 // Define icons to use in decorated CommandBar options
-const defaultNoteIconDetails = { firstLevelFolder: '<NOTE>', icon: 'file-lines', color: 'gray-500', alpha: 1.0, darkAlpha: 1.0 }
-const iconsToUseForSpecialFolders: Array<TFolderIcon> = [
-  { firstLevelFolder: '<CALENDAR>', icon: 'calendar-days', color: 'gray-500', alpha: 1.0, darkAlpha: 1.0 },
-  { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'gray-500', alpha: 1.0, darkAlpha: 1.0 },
-  { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'gray-500', alpha: 1.0, darkAlpha: 1.0 },
-  { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'gray-500', alpha: 1.0, darkAlpha: 1.0 },
+const defaultNoteIconDetails = { icon: 'file-lines', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 }
+const noteIconsToUse: Array<TFolderIcon> = [
+  { firstLevelFolder: '<DAY>', icon: 'calendar-star', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
+  { firstLevelFolder: '<WEEK>', icon: 'calendar-week', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
+  { firstLevelFolder: '<MONTH>', icon: 'calendar', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 }, // TODO: can't find the right icon for this
+  { firstLevelFolder: '<QUARTER>', icon: 'calendar-days', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
+  { firstLevelFolder: '<YEAR>', icon: 'calendar-days', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
+  { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
+  { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
+  { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
 ]
 
 // For speed, pre-compute the relative dates
@@ -99,24 +103,24 @@ export async function chooseNoteV2(
   const opts: Array<TCommandBarOptionObject> = sortedNoteList.map((note) => {
     // Show titles with relative dates, but without path
     const possTeamspaceDetails = parseTeamspaceFilename(note.filename)
-    // Work out which icon to use for this note
 
+    // Work out which icon to use for this note
     const FMAttributes = note.frontmatterAttributes
     const userSetIcon = FMAttributes && FMAttributes['icon']
-    // const userSetIconColor = FMAttributes && FMAttributes['icon-color'] // note: this is a tailwind color name, not a hex code
+    const userSetIconColor = FMAttributes && FMAttributes['icon-color'] // Note: this is a tailwind color name, not a hex code
     // Note: Teamspace notes are currently (v3.18) only regular or calendar notes, not @Templates, @Archive or @Trash.
 
-    let folderFirstLevel = getFolderFromFilename(note.filename).split('/')[0]
+    let noteTypeForIcon = getFolderFromFilename(note.filename).split('/')[0]
     if (note.type === 'Calendar') {
-      folderFirstLevel = '<CALENDAR>'
+      noteTypeForIcon = (dt.isDailyNote(note)) ? '<DAY>' : (dt.isWeeklyNote(note)) ? '<WEEK>' : (dt.isMonthlyNote(note)) ? '<MONTH>' : (dt.isQuarterlyNote(note)) ? '<QUARTER>' : '<YEAR>'
     }
-    const folderIconDetails = iconsToUseForSpecialFolders.find((details) => details.firstLevelFolder === folderFirstLevel) ?? defaultNoteIconDetails
+    const folderIconDetails = noteIconsToUse.find((details) => details.firstLevelFolder === noteTypeForIcon) ?? defaultNoteIconDetails
     return {
       text: displayTitleWithRelDate(note, true, false),
       icon: userSetIcon ? userSetIcon : folderIconDetails.icon,
-      // Note: icon-color isn't used by NP in CommandBar, so I won't use it either for now. But if that changes, here's the line:
-      // color: (possTeamspaceDetails.isTeamspace) ? TEAMSPACE_ICON_COLOR : userSetIconColor ? userSetIconColor : folderIconDetails.color,
-      color: possTeamspaceDetails.isTeamspace ? TEAMSPACE_ICON_COLOR : folderIconDetails.color,
+      // Note: icon-color isn't used by NP in CommandBar. If we want to stick to that approach then here's the line:
+      // color: possTeamspaceDetails.isTeamspace ? TEAMSPACE_ICON_COLOR : folderIconDetails.color,
+      color: (possTeamspaceDetails.isTeamspace) ? TEAMSPACE_ICON_COLOR : userSetIconColor ? userSetIconColor : folderIconDetails.color,
       shortDescription: note.type === 'Notes' ? getFolderDisplayName(getFolderFromFilename(note.filename) ?? '') : '',
       alpha: folderIconDetails.alpha ?? 0.7,
       darkAlpha: folderIconDetails.darkAlpha ?? 0.7,
@@ -193,6 +197,7 @@ export async function chooseNoteV2(
     const { index } = await CommandBar.showOptions(simpleOpts, promptText)
     noteToReturn = simpleOpts[index].includes('[New note]') ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '') : sortedNoteList[index]
   }
+  // logDebug('chooseNoteV2', `-> ${noteToReturn ? noteToReturn.filename : '(none)'}`)
   return noteToReturn
 }
 
@@ -1266,11 +1271,11 @@ export function getFSSafeFilenameFromNoteTitle(note: TNote): string {
  * Returns TNote from DataStore matching 'noteTitleArg' (if given) to titles, or else ask User to select from all note titles.
  * Now first matches against special 'relative date' (e.g. 'last month', 'next week', defined above) as well as YYYY-MM-DD (etc.) calendar dates.
  * If a desired Calendar note doesn't already exist this now attempts to create it first.
- * Note: Send param 'notesIn' if the generation of that list can be more efficiently done before now. Otherwise it will generated a sorted list of all notes.
+ * Note: Send param 'notesIn' if the generation of that list can be more efficiently done before now. Otherwise it will generated a list of all notes, sorted by most recently changed.
  * Note: There's deliberately no try/catch so that failure can stop processing.
  * See https://discord.com/channels/763107030223290449/1243973539296579686
  * TODO(Later): Hopefully @EM will allow future calendar notes to be created, and then some of this handling won't be needed.
- * @param {string} purpose to show to user in dialog title 'Select note for new X'
+ * @param {string} purpose to show to user in dialog title 'Select note for X'
  * @param {string?} noteTitleArg to match against note titles. If not given, will ask user to select from all note titles (excluding the Trash).
  * @param {Array<TNote>?} notesIn
  * @returns {TNote} note
@@ -1287,7 +1292,7 @@ export async function getNoteFromParamOrUser(purpose: string, noteTitleArg: stri
     // Is this a note title from arg?
     // First check if its a special 'relative date', e.g. 'next month'
     const possDateStr = getDateStrFromRelativeDateString(noteTitleArg)
-    if (possDateStr) {
+    if (possDateStr !== '') {
       noteTitleArgIsCalendarNote = true
       // $FlowFixMe[incompatible-type]
       note = getOrMakeCalendarNote(possDateStr)
@@ -1329,9 +1334,8 @@ export async function getNoteFromParamOrUser(purpose: string, noteTitleArg: stri
   } else {
     // We need to ask user to select from all notes
     // Preferably we'll use the last parameter, but if not calculate the list of notes to check
-    // const notesToCheck = getNotesToCheck(notesIn)
-    const result = await chooseNoteV2(`Select note for new ${purpose}`, notesIn, true, true, false, false)
-    if (note != null && typeof result !== 'boolean') {
+    const result = await chooseNoteV2(`Select note for ${purpose}`, notesIn, true, true, false, false)
+    if (result != null && typeof result !== 'boolean') {
       note = result
       // $FlowIgnore[incompatible-call] tested note is not null here
       logDebug('getNoteFromParamOrUser', `- found note '${displayTitle(note)}'`)
