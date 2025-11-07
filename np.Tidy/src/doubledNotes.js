@@ -7,7 +7,7 @@
 import pluginJson from '../plugin.json'
 import { constrainMainWindow } from '@helpers/NPWindows'
 import { getSettings, percentWithTerm } from './tidyHelpers'
-import { relativeDateFromDate } from '@helpers/dateTime'
+import { relativeDateFromDate } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, getTagParamsFromString } from '@helpers/general'
 import { setIconForNote } from '@helpers/note'

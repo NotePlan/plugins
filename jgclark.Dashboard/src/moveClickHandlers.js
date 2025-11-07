@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2025-07-18 for v2.3.0.b6
+// Last updated 2025-11-07 for v2.3.0.b6
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -15,7 +15,6 @@ import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer, timer, } from '@helpers/dev'
 import {
-  calcOffsetDateStr,
   getDateStringFromCalendarFilename,
   getTodaysDateHyphenated,
   RE_DATE,
@@ -23,7 +22,7 @@ import {
   RE_NP_WEEK_SPEC,
 } from '@helpers/dateTime'
 import { displayTitle } from '@helpers/general'
-import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
+import { calcOffsetDateStr, getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import {
   moveItemBetweenCalendarNotes,
   moveItemToRegularNote,

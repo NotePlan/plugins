@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2025-09-01 for v1.2.4, @jgclark
+// Last updated 2025-11-07 for v1.2.4+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -39,7 +39,6 @@ import {
 } from './projectClass'
 import { checkString } from '@helpers/checkType'
 import {
-  calcOffsetDateStr,
   getDateObjFromDateString,
   getTodaysDateHyphenated,
   RE_DATE, RE_DATE_INTERVAL, todaysDateISOString
@@ -54,13 +53,13 @@ import {
   showHTMLV2
 } from '@helpers/HTMLView'
 import { numberOfOpenItemsInNote } from '@helpers/note'
-import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
+import { calcOffsetDateStr, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import {
   isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId,
 } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { smartPrependPara } from '@helpers/paragraph'
+// import { smartPrependPara } from '@helpers/paragraph'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------

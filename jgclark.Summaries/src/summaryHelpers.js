@@ -10,7 +10,6 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
-  calcOffsetDateStr,
   getDateStringFromCalendarFilename,
   getISODateStringFromYYYYMMDD,
   isDailyNote,
@@ -20,6 +19,7 @@ import {
   withinDateRange,
 } from '@helpers/dateTime'
 import type { TPeriodCode } from '@helpers/NPdateTime'
+import { calcOffsetDateStr } from '@helpers/NPdateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import {
   // CaseInsensitiveMap,

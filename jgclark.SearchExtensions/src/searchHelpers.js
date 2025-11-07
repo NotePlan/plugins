@@ -8,8 +8,8 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { getDateStrForStartofPeriodFromCalendarFilename, withinDateRange } from '@helpers/dateTime'
+import { nowLocaleShortDateTime, getDateStrForStartofPeriodFromCalendarFilename } from '@helpers/NPdateTime'
+import { withinDateRange } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import {
   displayTitle,

@@ -9,7 +9,6 @@ import pluginJson from '../plugin.json'
 import { getEventsSettings } from './eventsHelpers'
 import { timeBlocksToCalendar } from './timeblocks'
 import {
-  calcOffsetDateStr,
   RE_BARE_DATE_CAPTURE,
   RE_BARE_DATE,
   RE_DATE_INTERVAL,
@@ -22,7 +21,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, log, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { getNPWeekData } from '@helpers/NPdateTime'
+import { calcOffsetDateStr, getNPWeekData } from '@helpers/NPdateTime'
 import { findEndOfActivePartOfNote, setParagraphToIncomplete } from '@helpers/paragraph'
 import { stripBlockIDsFromString } from '@helpers/stringTransforms'
 import { isTimeBlockPara } from '@helpers/timeblocks'

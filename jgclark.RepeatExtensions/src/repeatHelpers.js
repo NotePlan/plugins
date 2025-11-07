@@ -7,7 +7,6 @@
 
 import pluginJson from '../plugin.json'
 import {
-  calcOffsetDateStr,
   isDailyNote,
   isWeeklyNote,
   isMonthlyNote,
@@ -21,6 +20,7 @@ import {
   RE_SCHEDULED_YEARLY_NOTE_LINK,
   hyphenatedDateString,
 } from '@helpers/dateTime'
+import { calcOffsetDateStr } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError } from '@helpers/dev'
 
 //------------------------------------------------------------------

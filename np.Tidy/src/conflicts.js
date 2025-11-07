@@ -10,10 +10,10 @@ import { getSettings, percentWithTerm } from './tidyHelpers'
 import {
   daysBetween,
   getDateStringFromCalendarFilename,
-  relativeDateFromDate,
 } from '@helpers/dateTime'
 import {
   nowLocaleShortDateTime,
+  relativeDateFromDate,
 } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import {

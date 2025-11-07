@@ -10,14 +10,12 @@ import { getOpenItemParasForTimePeriod, getDashboardSettings } from './dashboard
 import { type MessageDataObject, type TBridgeClickHandlerResult } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer } from '@helpers/dev'
 import {
-  calcOffsetDateStr,
   getNPWeekStr,
   replaceArrowDatesInString,
 } from '@helpers/dateTime'
 import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
-import {
-  moveItemBetweenCalendarNotes,
-} from '@helpers/NPMoveItems'
+import { calcOffsetDateStr } from '@helpers/NPdateTime'
+import { moveItemBetweenCalendarNotes } from '@helpers/NPMoveItems'
 import { getParagraphFromStaticObject } from '@helpers/NPParagraph'
 import { showMessageYesNo } from '@helpers/userInput'
 

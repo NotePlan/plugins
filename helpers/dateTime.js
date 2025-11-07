@@ -2,6 +2,7 @@
 //-------------------------------------------------------------------------------
 // Date functions, that don't rely on NotePlan functions/types
 // @jgclark except where shown
+//-------------------------------------------------------------------------------
 
 import strftime from 'strftime'
 import moment from 'moment/min/moment-with-locales'
@@ -508,7 +509,7 @@ function getFilenameWithoutTeamspaceID(filenameIn: string): string {
  * Returns the NP string representation of a Calendar note's date, from its filename. Covers daily to yearly notes.
  * Extended in Apr 2025 to cover teamspace notes, which are prefixed with '%%NotePlanCloud%%/<teamspaceID>/'
  * e.g. %%NotePlanCloud%%/c484b190-77dd-4d40-a05c-e7d7144f24e1/20250422.md
- * Note: see related getDateStrForStartofPeriodFromCalendarFilename().
+ * Note: see related getDateStrForStartofPeriodFromCalendarFilename() in NPdateTime.js.
  * @param {string} filenameIn
  * @param {boolean} returnISODate - returns ISO daily note YYYY-MM-DD not actual filename YYYYMMDD
  * @returns {string} YYYYMMDD or YYYY-MM-DD depending on 2nd parameter / YYYY-Wnn / YYYY-mm / YYYY-Qn / YYYY date (some only from NP v3.7.2)
@@ -549,32 +550,6 @@ export function getDateStringFromCalendarFilename(filenameIn: string, returnISOD
     }
   } catch (err) {
     logError('dateTime / getDateStringFromCalendarFilename', err.message)
-    return '(invalid date)' // for completeness
-  }
-}
-
-/**
- * Returns a YYYYMMDD string representation of a Calendar note's first date that it covers, from its filename (e.g. '2022-Q4.md' -> '20221001').
- * Note: see related getDateStringFromCalendarFilename().
- * FIXME: Relies on DataStore -- really shouldn't be in this file.
- * WARNING: Probably not reliable as it relies on the Calendar note existing, I think.
- * @param {string} filename
- * @returns {string} YYYYMMDD for first date in period
- */
-export function getDateStrForStartofPeriodFromCalendarFilename(filename: string): string {
-  try {
-    // Trying a shortcut way first: seems to work
-    // logDebug('dateTime / gDSFSOPFCF', `for ${filename} ...`)
-    const thisNote = DataStore.noteByFilename(filename, 'Calendar')
-    if (thisNote && thisNote.date) {
-      const dateOut = YYYYMMDDDateStringFromDate(thisNote.date) ?? '(error)'
-      // logDebug('gDSFSOPFCF', `-> ${dateOut}`)
-      return dateOut
-    } else {
-      throw new Error(`Error in getting note.date from ${filename}`)
-    }
-  } catch (err) {
-    logError('dateTime / gDSFSOPFCF', err.message)
     return '(invalid date)' // for completeness
   }
 }
@@ -871,20 +846,6 @@ export function getDateFromYYYYMMDDString(inputString: string): ?Date {
 }
 
 /**
- * Return rough relative string version of difference between date and today.
- * Don't return all the detail, but just the most significant unit (year, month, week, day)
- * If date is in the past then adds 'ago'.
- * TODO: Move to NPdateTime.js
- * @param {Date} date - calculate difference between this date and today
- * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
- */
-export function relativeDateFromDate(date: Date): string {
-  // Wrapper to relativeDateFromNumber(), accepting JS date instead of number
-  const diff = Calendar.unitsBetween(date, new Date(), 'day')
-  return relativeDateFromNumber(diff)
-}
-
-/**
  * Get week number for supplied date, using the ISO 8601 definition for week:
  * 01 is the week with the first Thursday of the Gregorian year (i.e. of January) in it.
  * The following definitions based on properties of this week
@@ -1102,7 +1063,7 @@ export function getNPDateFormatForFilenameFromOffsetUnit(unit: string): string {
  * @returns {string} momentDateFormat
  * @test - available through calcOffsetDateStrUsingCalendarType() jest tests
  */
-function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
+export function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
   const momentDateFormat =
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_ISO // = YYYY-MM-DD not filename format
@@ -1116,43 +1077,6 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
       ? MOMENT_FORMAT_NP_YEAR
       : ''
   return momentDateFormat
-}
-
-/**
- * Format a Date as an ISO week string (YYYY-Wnn format).
- * Uses ISO 8601 week definition, which always starts on Monday.
- * TODO: Try to remove all uses of this, to respect user's start-of-week preference.
- * @param {Date} date - The date to format
- * @returns {string} Week string in format YYYY-Wnn
- */
-function formatISOWeek(date: Date): string {
-  const m = moment(date)
-  const year = m.isoWeekYear()
-  const week = m.isoWeek()
-  return `${year}-W${week < 10 ? `0${week}` : week}`
-}
-
-/**
- * Format a Date as a week string (YYYY-Wnn format).
- * Uses NotePlan's Calendar API when available (respects user's week start preference), otherwise falls back to ISO 8601 week definition (always Monday start).
- * TODO: This should be moved to NPdateTime.js, as it calls NotePlan.Calendar API.
- * @param {Date} date - The date to format
- * @returns {string} Week string in format YYYY-Wnn
- */
-function formatNPWeek(date: Date): string {
-  // Use NotePlan's Calendar API when available (respects user's week start preference)
-  if (typeof Calendar !== 'undefined' && Calendar && typeof Calendar.weekNumber === 'function') {
-    const weekNumber = Calendar.weekNumber(date)
-    const startDate = Calendar.startOfWeek(date)
-    const endDate = Calendar.endOfWeek(date)
-    const weekStartYear = startDate.getFullYear()
-    const weekEndYear = endDate.getFullYear()
-    // Determine week year: if week spans year boundary, use end year for week 1, otherwise start year
-    const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
-    return `${weekYear}-W${weekNumber < 10 ? `0${weekNumber}` : weekNumber}`
-  }
-  // Fallback to ISO 8601 week definition (always Monday start)
-  return formatISOWeek(date)
 }
 
 /**
@@ -1249,151 +1173,6 @@ export function splitIntervalToParts(intervalStr: string): { number: number, typ
     intervalChar === 'd' ? 'day' : intervalChar === 'w' ? 'week' : intervalChar === 'm' ? 'month' : intervalChar === 'q' ? 'quarter' : intervalChar === 'y' ? 'year' : 'error'
   const intervalParts = { number: intervalNumber, type: intervalType }
   return intervalParts
-}
-
-/**
- * Calculate an offset date of any date interval NP supports, and return _in whichever format was supplied_.
- * v5 method, using 'moment/min/moment-with-locales' library to avoid using NP calls, now extended to allow for Weekly, Monthly etc. strings as well.
- * WARNING: don't use when you want the output to be in week format, as the moment library doesn't understand different start-of-weeks. Use NPdateTime::getNPWeekData() instead.
- * Moment docs: https://momentjs.com/docs/#/get-set/
- * - 'baseDateIn' the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
- * - 'offsetInterval' of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
- * - 'adaptOutputInterval' (optional). Options: 'shorter', 'longer', 'offset', 'base', 'day', 'week', 'month', 'quarter', 'year'
- * Note: Latest update (with help from Cursor) should suit start of week on days other than Monday. TODO: Find out how to test this in jest.
- * TODO: This should then be moved to NPdateTime.js, as it calls formatNPWeek() which needs NotePlan.Calendar API to work properly. As far as I can tell, this is not a problem for all the places its used.
- * @author @jgclark
- * @param {string} baseDateIn the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
- * @param {string} offsetInterval of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
- * @param {string?} adaptOutputInterval. Options: 'shorter', 'longer', 'offset', 'base', 'day', 'week', 'month', 'quarter', 'year'
- * - 'shorter': keep the shorter of the two calendar types. E.g. a daily date + 1w -> daily date. Or '2023-07' + '2w' -> '2023-W28'.
- * - 'longer': use the longer of the two calendar types. E.g. a daily date + 1w -> weekly date.
- * - 'offset': keep type of the offsetInterval.
- * - 'base': (default)  keep the type of the base date.
- * - 'day', 'week', 'month', 'quarter', 'year': lock to that calendar type.
- * @returns {string} new date in the requested format
- * @tests - available in jest file (though not for the most recent adaptOutputInterval options)
- */
-export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, adaptOutputInterval: string = 'base'): string {
-  try {
-    if (baseDateIn === '') {
-      throw new Error('Empty baseDateIn string')
-    }
-    if (offsetInterval === '') {
-      throw new Error('Empty offsetInterval string')
-    }
-    const offsetUnit = offsetInterval.charAt(offsetInterval.length - 1) // get last character
-    // logDebug('dateTime / cODS', `Starting with ${adaptOutputInterval} adapt for ${baseDateIn} + ${offsetInterval}`)
-
-    // calc offset date
-    // (Note: library functions cope with negative nums, so just always use 'add' function)
-    const offsetDate = calcOffsetDate(baseDateIn, offsetInterval)
-    if (!offsetDate) {
-      throw new Error('Invalid return from calcOffsetDate()')
-    }
-    // Now decide how to format the new date.
-    // Start with using baseDateIn's format
-    const calendarTypeOrder = 'dbwmqy'
-    let newDateStr = ''
-    let baseDateMomentFormat = ''
-    let baseDateUnit = ''
-    if (baseDateIn.match(RE_ISO_DATE)) {
-      baseDateMomentFormat = MOMENT_FORMAT_NP_ISO
-      baseDateUnit = 'd'
-    } else if (baseDateIn.match(RE_YYYYMMDD_DATE)) {
-      baseDateMomentFormat = MOMENT_FORMAT_NP_DAY
-      baseDateUnit = 'd'
-    } else if (baseDateIn.match(RE_NP_WEEK_SPEC)) {
-      baseDateMomentFormat = MOMENT_FORMAT_NP_WEEK
-      baseDateUnit = 'w'
-    } else if (baseDateIn.match(RE_NP_MONTH_SPEC)) {
-      // NB: test has to go after ISO check
-      baseDateMomentFormat = MOMENT_FORMAT_NP_MONTH
-      baseDateUnit = 'm'
-    } else if (baseDateIn.match(RE_NP_QUARTER_SPEC)) {
-      baseDateMomentFormat = MOMENT_FORMAT_NP_QUARTER
-      baseDateUnit = 'q'
-    } else if (baseDateIn.match(RE_NP_YEAR_SPEC)) {
-      // NB: test has to go at end as it will match all longer formats
-      baseDateMomentFormat = MOMENT_FORMAT_NP_YEAR
-      baseDateUnit = 'y'
-    } else {
-      throw new Error('Invalid date string')
-    }
-    // Format base date type
-    // Always use NotePlan week formatting (respects user's week start preference when Calendar API available)
-    const newDateStrFromBaseDateType = baseDateUnit === 'w' ? formatNPWeek(offsetDate) : moment(offsetDate).format(baseDateMomentFormat)
-    newDateStr = newDateStrFromBaseDateType
-
-    // Also calculate offset's output format
-    const offsetMomentFormat = offsetUnit === 'd' && baseDateIn.match(RE_YYYYMMDD_DATE) ? MOMENT_FORMAT_NP_DAY : getNPDateFormatForDisplayFromOffsetUnit(offsetUnit)
-    // Always use NotePlan week formatting for consistency
-    const newDateStrFromOffsetDateType = offsetUnit === 'w' ? formatNPWeek(offsetDate) : moment(offsetDate).format(offsetMomentFormat)
-
-    // If we want to adapt smaller
-    switch (adaptOutputInterval) {
-      case 'offset': {
-        newDateStr = newDateStrFromOffsetDateType
-        logDebug('dateTime / cODS', `- 'offset' output: -> ${newDateStrFromOffsetDateType}`)
-        break
-      }
-      case 'shorter': {
-        if (calendarTypeOrder.indexOf(offsetUnit) < calendarTypeOrder.indexOf(baseDateUnit)) {
-          newDateStr = newDateStrFromOffsetDateType
-          logDebug('dateTime / cODS', `- 'shorter' output: changed format to ${offsetMomentFormat}`)
-        }
-        break
-      }
-      case 'longer': {
-        if (calendarTypeOrder.indexOf(offsetUnit) > calendarTypeOrder.indexOf(baseDateUnit)) {
-          newDateStr = newDateStrFromOffsetDateType
-          logDebug('dateTime / cODS', `- 'longer' output: changed format to ${offsetMomentFormat}`)
-        } else {
-          logDebug('dateTime / cODS', `- 'longer' output: NO change to format`)
-        }
-        break
-      }
-      case 'day': {
-        const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('d')
-        newDateStr = moment(offsetDate).format(offsetMomentFormat)
-        logDebug('dateTime / cODS', `- 'day' output: changed format to ${offsetMomentFormat}`)
-        break
-      }
-      case 'week': {
-        // Always use NotePlan week formatting
-        newDateStr = formatNPWeek(offsetDate)
-        logDebug('dateTime / cODS', `- 'week' output: changed format to NotePlan week`)
-        break
-      }
-      case 'month': {
-        const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('m')
-        newDateStr = moment(offsetDate).format(offsetMomentFormat)
-        logDebug('dateTime / cODS', `- 'month' output: changed format to ${offsetMomentFormat}`)
-        break
-      }
-      case 'quarter': {
-        const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('q')
-        newDateStr = moment(offsetDate).format(offsetMomentFormat)
-        logDebug('dateTime / cODS', `- 'quarter' output: changed format to ${offsetMomentFormat}`)
-        break
-      }
-      case 'year': {
-        const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('y')
-        newDateStr = moment(offsetDate).format(offsetMomentFormat)
-        logDebug('dateTime / cODS', `- 'year' output: changed format to ${offsetMomentFormat}`)
-        break
-      }
-      default: {
-        // i.e. 'base'
-        newDateStr = newDateStrFromBaseDateType
-        break
-      }
-    }
-    // logDebug('dateTime / cODS', `for '${baseDateIn}' date, offsetInterval ${offsetInterval} using type ${adaptOutputInterval} -> '${newDateStr}'`)
-    return newDateStr
-  } catch (e) {
-    logError('dateTime / cODS', `${e.message} for '${baseDateIn}' date, offsetInterval '${offsetInterval}'`)
-    return '(error)'
-  }
 }
 
 /**

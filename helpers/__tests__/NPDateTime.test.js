@@ -1,6 +1,6 @@
-/* global describe, test, expect, beforeAll, it */
+/* global describe, test, expect, beforeAll, it, beforeEach, afterEach, jest */
 import moment from 'moment/min/moment-with-locales'
-import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
+import { CustomConsole } from '@jest/console' // see note below
 import * as dt from '../dateTime'
 import * as f from '../NPdateTime'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
@@ -13,13 +13,20 @@ function isValidDate(date) {
 }
 
 beforeAll(() => {
-  global.Calendar = Calendar
+  global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
+  // Configure Calendar mock to use ISO weeks (Monday-start) by default for backward compatibility
+  const momentLib = require('moment/min/moment-with-locales')
+  global.Calendar = {
+    ...Calendar,
+    weekNumber: (date) => momentLib(date).isoWeek(),
+    startOfWeek: (date) => momentLib(date).startOf('isoWeek').toDate(),
+    endOfWeek: (date) => momentLib(date).endOf('isoWeek').toDate(),
+  }
   global.Clipboard = Clipboard
   global.CommandBar = CommandBar
   global.DataStore = DataStore
   global.Editor = Editor
-  global.NotePlan = NotePlan
-  global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
+  global.NotePlan = new NotePlan()
   DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
@@ -283,6 +290,488 @@ describe(`${FILENAME}`, () => {
       expect(f.getFirstDateInPeriod('')).toEqual('(error)')
       expect(f.getFirstDateInPeriod('bob')).toEqual('(error)')
       expect(f.getFirstDateInPeriod('24')).toEqual('(error)')
+    })
+  })
+
+  /**
+   * calcOffsetDateStr()
+   */
+  describe('calcOffsetDateStr with NotePlan weeks', () => {
+    describe('NotePlan week handling with mocked Calendar API', () => {
+      const moment = require('moment/min/moment-with-locales')
+
+      // Mock Calendar API for Sunday start week (NotePlan default for some locales)
+      const mockCalendarSundayStart = {
+        weekNumber: jest.fn((date) => {
+          // Calculate week number with Sunday start
+          return moment(date).locale('en').week()
+        }),
+        startOfWeek: jest.fn((date) => {
+          return moment(date).locale('en').startOf('week').toDate()
+        }),
+        endOfWeek: jest.fn((date) => {
+          return moment(date).locale('en').endOf('week').toDate()
+        }),
+      }
+
+      // Mock Calendar API for Monday start week (ISO standard)
+      const mockCalendarMondayStart = {
+        weekNumber: jest.fn((date) => {
+          return moment(date).isoWeek()
+        }),
+        startOfWeek: jest.fn((date) => {
+          return moment(date).startOf('isoWeek').toDate()
+        }),
+        endOfWeek: jest.fn((date) => {
+          return moment(date).endOf('isoWeek').toDate()
+        }),
+      }
+
+      describe('Week offsets with Sunday start (US style)', () => {
+        let originalCalendar
+        beforeEach(() => {
+          originalCalendar = global.Calendar
+          global.Calendar = mockCalendarSundayStart
+          mockCalendarSundayStart.weekNumber.mockClear()
+          mockCalendarSundayStart.startOfWeek.mockClear()
+          mockCalendarSundayStart.endOfWeek.mockClear()
+        })
+
+        afterEach(() => {
+          global.Calendar = originalCalendar
+        })
+
+        test('2024-11-06 (Wed) +1w -> 2024-W46 (Sunday start)', () => {
+          const result = f.calcOffsetDateStr('2024-11-06', '1w', 'week')
+          // Nov 6, 2024 is a Wednesday in week 45 (Sunday start)
+          // Adding 1 week should give us week 46
+          expect(result).toEqual('2024-W46')
+          expect(mockCalendarSundayStart.weekNumber).toHaveBeenCalled()
+        })
+
+        test('2024-W44 +1w -> 2024-W45 (Sunday start)', () => {
+          const result = f.calcOffsetDateStr('2024-W44', '1w')
+          expect(result).toEqual('2024-W45')
+          expect(mockCalendarSundayStart.weekNumber).toHaveBeenCalled()
+        })
+
+        test('2024-W44 +0w -> 2024-W44 (no change)', () => {
+          const result = f.calcOffsetDateStr('2024-W44', '0w')
+          expect(result).toEqual('2024-W44')
+        })
+
+        test('2024-W52 +1w -> 2025-W01 (crosses year boundary, Sunday start)', () => {
+          // Week 52 of 2024 (Sunday start) + 1 week = Week 1 of 2025
+          const result = f.calcOffsetDateStr('2024-W52', '1w')
+          expect(result).toEqual('2025-W01')
+          expect(mockCalendarSundayStart.weekNumber).toHaveBeenCalled()
+        })
+
+        test('2025-W01 -1w -> 2024-W52 (crosses year boundary backwards, Sunday start)', () => {
+          // Week 1 of 2025 (Sunday start) - 1 week = Week 52 of 2024
+          const result = f.calcOffsetDateStr('2025-W01', '-1w')
+          expect(result).toEqual('2024-W52')
+        })
+
+        test('2024-01-15 (Mon) +2w -> 2024-W05 (converts date to week with Sunday start)', () => {
+          // Jan 15, 2024 is in week 3 (Sunday start), adding 2 weeks = week 5
+          const result = f.calcOffsetDateStr('2024-01-15', '2w', 'week')
+          expect(result).toEqual('2024-W05')
+          expect(mockCalendarSundayStart.weekNumber).toHaveBeenCalled()
+        })
+      })
+
+      describe('Week offsets with Monday start (ISO/European style)', () => {
+        let originalCalendar
+        beforeEach(() => {
+          originalCalendar = global.Calendar
+          global.Calendar = mockCalendarMondayStart
+          mockCalendarMondayStart.weekNumber.mockClear()
+          mockCalendarMondayStart.startOfWeek.mockClear()
+          mockCalendarMondayStart.endOfWeek.mockClear()
+        })
+
+        afterEach(() => {
+          global.Calendar = originalCalendar
+        })
+
+        test('2024-11-06 (Wed) +1w -> 2024-W46 (Monday start)', () => {
+          const result = f.calcOffsetDateStr('2024-11-06', '1w', 'week')
+          // Nov 6, 2024 is in ISO week 45, adding 1 week = week 46
+          expect(result).toEqual('2024-W46')
+          expect(mockCalendarMondayStart.weekNumber).toHaveBeenCalled()
+        })
+
+        test('2024-W44 +1w -> 2024-W45 (Monday start)', () => {
+          const result = f.calcOffsetDateStr('2024-W44', '1w')
+          expect(result).toEqual('2024-W45')
+          expect(mockCalendarMondayStart.weekNumber).toHaveBeenCalled()
+        })
+
+        test('2024-W52 +1w -> 2025-W01 (crosses year boundary, Monday start)', () => {
+          // ISO week 52 of 2024 + 1 week = ISO week 1 of 2025
+          const result = f.calcOffsetDateStr('2024-W52', '1w')
+          expect(result).toEqual('2025-W01')
+        })
+
+        test('2023-W52 +1w -> 2024-W01 (year boundary)', () => {
+          const result = f.calcOffsetDateStr('2023-W52', '1w')
+          expect(result).toEqual('2024-W01')
+        })
+
+        test('2024-W01 -1w -> 2023-W52 (crosses year boundary backwards)', () => {
+          const result = f.calcOffsetDateStr('2024-W01', '-1w')
+          expect(result).toEqual('2023-W52')
+        })
+
+        test('2024-01-15 (Mon) +2w -> 2024-W05 (converts date to week with Monday start)', () => {
+          // Jan 15, 2024 is in ISO week 3, adding 2 weeks = week 5
+          const result = f.calcOffsetDateStr('2024-01-15', '2w', 'week')
+          expect(result).toEqual('2024-W05')
+          expect(mockCalendarMondayStart.weekNumber).toHaveBeenCalled()
+        })
+      })
+
+      describe('Edge cases: week 53 handling', () => {
+        let originalCalendar
+        beforeEach(() => {
+          originalCalendar = global.Calendar
+          global.Calendar = mockCalendarMondayStart
+          mockCalendarMondayStart.weekNumber.mockClear()
+          mockCalendarMondayStart.startOfWeek.mockClear()
+          mockCalendarMondayStart.endOfWeek.mockClear()
+        })
+
+        afterEach(() => {
+          global.Calendar = originalCalendar
+        })
+
+        test('2020-W53 +0w -> 2020-W53 (ISO year 2020 has 53 weeks)', () => {
+          // 2020 is a leap year and has 53 ISO weeks
+          const result = f.calcOffsetDateStr('2020-W53', '0w')
+          expect(result).toEqual('2020-W53')
+        })
+
+        test('2020-W53 +1w -> 2021-W01 (from last week of 2020 to first week of 2021)', () => {
+          const result = f.calcOffsetDateStr('2020-W53', '1w')
+          expect(result).toEqual('2021-W01')
+        })
+
+        test('2021-W01 -1w -> 2020-W53 (back to last week of 2020)', () => {
+          // Going back from first week of 2021 should give us week 53 of 2020
+          const result = f.calcOffsetDateStr('2021-W01', '-1w')
+          expect(result).toEqual('2020-W53')
+        })
+
+        test('2015-W53 exists (Thursday starts the year)', () => {
+          // 2015 also has 53 weeks (Jan 1, 2015 was Thursday)
+          const result = f.calcOffsetDateStr('2015-W53', '0w')
+          expect(result).toEqual('2015-W53')
+        })
+      })
+
+      describe('Multiple week offsets', () => {
+        let originalCalendar
+        beforeEach(() => {
+          originalCalendar = global.Calendar
+          global.Calendar = mockCalendarMondayStart
+          mockCalendarMondayStart.weekNumber.mockClear()
+          mockCalendarMondayStart.startOfWeek.mockClear()
+          mockCalendarMondayStart.endOfWeek.mockClear()
+        })
+
+        afterEach(() => {
+          global.Calendar = originalCalendar
+        })
+
+        test('2024-W01 +10w -> 2024-W11 (10 weeks forward)', () => {
+          const result = f.calcOffsetDateStr('2024-W01', '10w')
+          expect(result).toEqual('2024-W11')
+        })
+
+        test('2024-W50 +10w -> 2025-W08 (crosses into next year)', () => {
+          // Week 50 + 10 weeks = week 60, which is week 8 of next year
+          const result = f.calcOffsetDateStr('2024-W50', '10w')
+          expect(result).toEqual('2025-W08')
+        })
+
+        test('2024-W10 -20w -> 2023-W42 (crosses into previous year)', () => {
+          // Week 10 - 20 weeks crosses back to previous year
+          // 2023 has 52 weeks, so week 10-20 = week -10, which is 52-10 = week 42 of 2023
+          const result = f.calcOffsetDateStr('2024-W10', '-20w')
+          expect(result).toEqual('2023-W42')
+        })
+
+        test('2024-W26 +26w -> 2024-W52 (exactly half year forward)', () => {
+          // Mid-year (week 26) + 26 weeks = week 52 (end of year)
+          const result = f.calcOffsetDateStr('2024-W26', '26w')
+          expect(result).toEqual('2024-W52')
+        })
+      })
+
+      describe('Week format with adaptOutputInterval', () => {
+        let originalCalendar
+        beforeEach(() => {
+          originalCalendar = global.Calendar
+          global.Calendar = mockCalendarMondayStart
+          mockCalendarMondayStart.weekNumber.mockClear()
+          mockCalendarMondayStart.startOfWeek.mockClear()
+          mockCalendarMondayStart.endOfWeek.mockClear()
+        })
+
+        afterEach(() => {
+          global.Calendar = originalCalendar
+        })
+
+        test("'base' format preserves week when input is week", () => {
+          const result = f.calcOffsetDateStr('2024-W20', '1w', 'base')
+          expect(result).toEqual('2024-W21')
+        })
+
+        test("'offset' format uses week when offset is week", () => {
+          // Start with a day, offset by weeks, output as week (based on offset unit)
+          const result = f.calcOffsetDateStr('2024-01-15', '2w', 'offset')
+          expect(result).toEqual('2024-W05')
+        })
+
+        test("'week' format converts date to week", () => {
+          // Start with a day, no offset, but output as week
+          const result = f.calcOffsetDateStr('2024-01-15', '0d', 'week')
+          expect(result).toEqual('2024-W03')
+        })
+
+        test("'longer' format converts day to week when offset is weeks", () => {
+          // Day + week offset with 'longer' should output as week (longer than day)
+          const result = f.calcOffsetDateStr('2024-01-15', '2w', 'longer')
+          expect(result).toEqual('2024-W05')
+        })
+
+        test("'shorter' format keeps day when offset is day", () => {
+          // Week + day offset with 'shorter' should output as day (shorter than week)
+          const result = f.calcOffsetDateStr('2024-W20', '5d', 'shorter')
+          expect(result).toEqual('2024-05-18')
+        })
+
+        test("'longer' format keeps week when offset is day", () => {
+          // Week + day offset with 'longer' should keep week format (longer than day)
+          const result = f.calcOffsetDateStr('2024-W20', '5d', 'longer')
+          expect(result).toEqual('2024-W20')
+        })
+      })
+    })
+
+    describe('should pass', () => {
+      test('20220101 +1d', () => {
+        expect(f.calcOffsetDateStr('20220101', '1d')).toEqual('20220102')
+      })
+      test('20220101 +364d', () => {
+        expect(f.calcOffsetDateStr('20220101', '364d')).toEqual('20221231')
+      })
+      test('20220101 +4m', () => {
+        expect(f.calcOffsetDateStr('20220101', '4m')).toEqual('20220501')
+      })
+      test('2022-01-01 +1d', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '1d')).toEqual('2022-01-02')
+      })
+      test('2022-01-01 +364d', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '364d')).toEqual('2022-12-31')
+      })
+      test('2022-01-01 +4m', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '4m')).toEqual('2022-05-01')
+      })
+      test('2022-01-01 +3q', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '3q')).toEqual('2022-10-01')
+      })
+      test('2022-01-01 +2y', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '2y')).toEqual('2024-01-01')
+      })
+      test('2022-01-01 0d', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '0d')).toEqual('2022-01-01')
+      })
+      test('2022-01-01 -1d', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '-1d')).toEqual('2021-12-31')
+      })
+      test('2022-01-01 -2w', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '-2w')).toEqual('2021-12-18')
+      })
+      test('2022-01-01 -4m', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '-4m')).toEqual('2021-09-01')
+      })
+      test('2022-01-01 -3q', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '-3q')).toEqual('2021-04-01')
+      })
+      test('2022-01-01 -2y', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '-2y')).toEqual('2020-01-01')
+      })
+      test('2022-01-01 +1b', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '1b')).toEqual('2022-01-03')
+      })
+      test('2022-01-01 +2b', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '2b')).toEqual('2022-01-04')
+      })
+      test('2022-01-01 +3b', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '3b')).toEqual('2022-01-05')
+      })
+      test('2022-01-01 +4b', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '4b')).toEqual('2022-01-06')
+      })
+      test('2022-01-01 +5b', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '5b')).toEqual('2022-01-07')
+      })
+      test('2022-01-01 +6b', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '6b')).toEqual('2022-01-10')
+      })
+      test('2022-01-01 +7b', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '7b')).toEqual('2022-01-11')
+      })
+      test('2022-01-01 +8b', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '8b')).toEqual('2022-01-12')
+      })
+      test('2022-01-02 +1b', () => {
+        expect(f.calcOffsetDateStr('2022-01-02', '1b')).toEqual('2022-01-03')
+      })
+      test('2022-01-03 +1b', () => {
+        expect(f.calcOffsetDateStr('2022-01-03', '1b')).toEqual('2022-01-04')
+      })
+      test('2022-01-04 +1b', () => {
+        expect(f.calcOffsetDateStr('2022-01-04', '1b')).toEqual('2022-01-05')
+      })
+      test('2022-01-05 +1b', () => {
+        expect(f.calcOffsetDateStr('2022-01-05', '1b')).toEqual('2022-01-06')
+      })
+      test('2022-01-06 +1b', () => {
+        expect(f.calcOffsetDateStr('2022-01-06', '1b')).toEqual('2022-01-07')
+      })
+      test('2022-01-07 +1b', () => {
+        expect(f.calcOffsetDateStr('2022-01-07', '1b')).toEqual('2022-01-10')
+      })
+      test('2022-W23 +1w', () => {
+        expect(f.calcOffsetDateStr('2022-W23', '1w')).toEqual('2022-W24')
+      })
+      test('2022-W52 +1w', () => {
+        expect(f.calcOffsetDateStr('2022-W52', '1w')).toEqual('2023-W01')
+      })
+      test('2022-01-01 +2w', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '2w')).toEqual('2022-01-15')
+      })
+      test('2023-07-24 +0w', () => {
+        expect(f.calcOffsetDateStr('2023-07-24', '0w')).toEqual('2023-07-24')
+      })
+      test('2022-W23 +2w', () => {
+        expect(f.calcOffsetDateStr('2022-W23', '2w')).toEqual('2022-W25')
+      })
+      test('2022-W23 +3m', () => {
+        expect(f.calcOffsetDateStr('2022-W23', '3m')).toEqual('2022-W36')
+      })
+      test('2022-W23 -2w', () => {
+        expect(f.calcOffsetDateStr('2022-W23', '-2w')).toEqual('2022-W21')
+      })
+      test('2022-02 +3m', () => {
+        expect(f.calcOffsetDateStr('2022-02', '3m')).toEqual('2022-05')
+      })
+      test('2022-02 -3m', () => {
+        expect(f.calcOffsetDateStr('2022-02', '-3m')).toEqual('2021-11')
+      })
+      test('2022-Q2 +2q', () => {
+        expect(f.calcOffsetDateStr('2022-Q2', '2q')).toEqual('2022-Q4')
+      })
+      test('2022-Q2 -2q', () => {
+        expect(f.calcOffsetDateStr('2022-Q2', '-2q')).toEqual('2021-Q4')
+      })
+      test('2022 +2y', () => {
+        expect(f.calcOffsetDateStr('2022', '2y')).toEqual('2024')
+      })
+      test('2022 -2y', () => {
+        expect(f.calcOffsetDateStr('2022', '-2y')).toEqual('2020')
+      })
+    })
+    describe('adapting output to week timeframe', () => {
+      beforeAll(() => {
+        // DataStore.settings['_logLevel'] = "DEBUG"
+      })
+      test('2024-11-02 +1w -> 2024-W45', () => {
+        expect(f.calcOffsetDateStr('2024-11-02', '+1w', 'week')).toEqual('2024-W45')
+      })
+      test('2024-11-02 1w -> 2024-W45', () => {
+        expect(f.calcOffsetDateStr('2024-11-02', '1w', 'week')).toEqual('2024-W45')
+      })
+      test('2024-W44 +1w -> 2024-W45', () => {
+        expect(f.calcOffsetDateStr('2024-W44', '+1w', 'week')).toEqual('2024-W45')
+      })
+      test('2024-W44 1w -> 2024-W45', () => {
+        expect(f.calcOffsetDateStr('2024-W44', '1w', 'week')).toEqual('2024-W45')
+      })
+    })
+    describe('adapting output to offset durations', () => {
+      beforeAll(() => {
+        // DataStore.settings['_logLevel'] = "DEBUG"
+      })
+      test('20230101 +1d -> 20230102', () => {
+        expect(f.calcOffsetDateStr('20230101', '1d', 'offset')).toEqual('20230102')
+      })
+      test('2023-07 +14d -> 2023-07-15', () => {
+        expect(f.calcOffsetDateStr('2023-07', '14d', 'offset')).toEqual('2023-07-15')
+      })
+      test('2023-07 +10b -> 2023-07-14', () => {
+        expect(f.calcOffsetDateStr('2023-07', '10b', 'offset')).toEqual('2023-07-14')
+      })
+      test('2023-W30 0d -> 2023-07-24', () => {
+        expect(f.calcOffsetDateStr('2023-W30', '0d', 'offset')).toEqual('2023-07-24')
+      })
+      test('2023-Q3 +6w -> 2023-W32', () => {
+        expect(f.calcOffsetDateStr('2023-Q3', '6w', 'offset')).toEqual('2023-W32')
+      })
+      test('2023 +3q -> 2023-Q4', () => {
+        expect(f.calcOffsetDateStr('2023', '3q', 'offset')).toEqual('2023-Q4')
+      })
+    })
+    describe('adapting output to shorter durations than base', () => {
+      test('20230101 +1d -> 20230102', () => {
+        expect(f.calcOffsetDateStr('20230101', '1d', 'shorter')).toEqual('20230102')
+      })
+      test('2023-07 +14d -> 2023-07-15', () => {
+        expect(f.calcOffsetDateStr('2023-07', '14d', 'shorter')).toEqual('2023-07-15')
+      })
+      test('2023-07 +2w -> 2023-W28', () => {
+        expect(f.calcOffsetDateStr('2023-07', '2w', 'shorter')).toEqual('2023-W28')
+      })
+      test('2023-Q3 +6w -> 2023-W32', () => {
+        expect(f.calcOffsetDateStr('2023-Q3', '6w', 'shorter')).toEqual('2023-W32')
+      })
+      test('2023 +3q -> 2023-Q4', () => {
+        expect(f.calcOffsetDateStr('2023', '3q', 'shorter')).toEqual('2023-Q4')
+      })
+    })
+    describe('adapting output to longer durations than base', () => {
+      test('20230101 +1d -> 20230102', () => {
+        expect(f.calcOffsetDateStr('20230101', '1d', 'longer')).toEqual('20230102')
+      })
+      test('2023-07-24 +0w -> 2023-W30', () => {
+        expect(f.calcOffsetDateStr('2023-07-24', '0w', 'longer')).toEqual('2023-W30')
+      })
+      test('2023-07+24 +2w -> 2023-W32', () => {
+        expect(f.calcOffsetDateStr('2023-07-24', '2w', 'longer')).toEqual('2023-W32')
+      })
+      test('2023-W30 +1m -> 2023-W32', () => {
+        expect(f.calcOffsetDateStr('2023-W30', '1m', 'longer')).toEqual('2023-08')
+      })
+      test('2023-02 +2q -> 2023-Q3', () => {
+        expect(f.calcOffsetDateStr('2023-02', '2q', 'longer')).toEqual('2023-Q3')
+      })
+    })
+    describe('should return errors', () => {
+      test('2022-01 (invalid date)', () => {
+        expect(f.calcOffsetDateStr('2022-01', '')).toEqual('(error)')
+      })
+      test('2022-01-01 (blank interval)', () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '')).toEqual('(error)')
+      })
+      test("2022-01-01 (invalid interval) 'v'", () => {
+        expect(f.calcOffsetDateStr('2022-01-01', 'v')).toEqual('(error)')
+      })
+      test("2022-01-01 (invalid interval) '23'", () => {
+        expect(f.calcOffsetDateStr('2022-01-01', '23')).toEqual('(error)')
+      })
     })
   })
 })

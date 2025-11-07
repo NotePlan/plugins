@@ -8,8 +8,8 @@ import pluginJson from '../plugin.json'
 import { getSettings, percentWithTerm } from './tidyHelpers'
 import {
   daysBetween,
-  relativeDateFromDate,
 } from '@helpers/dateTime'
+import { relativeDateFromDate } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import {
   getFolderListMinusExclusions,

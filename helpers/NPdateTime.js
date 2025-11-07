@@ -7,35 +7,9 @@
 import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
-import {
-  convertISODateFilenameToNPDayFilename,
-  getDateStringFromCalendarFilename,
-  getWeek,
-  hyphenatedDateString,
-  isoWeekStartEndDates,
-  isDailyDateStr,
-  isMonthlyDateStr,
-  isQuarterlyDateStr,
-  isWeeklyDateStr,
-  isYearlyDateStr,
-  isValidCalendarNoteTitleStr,
-  MOMENT_FORMAT_NP_ISO,
-  MOMENT_FORMAT_NP_DAY,
-  MOMENT_FORMAT_NP_MONTH,
-  MOMENT_FORMAT_NP_QUARTER,
-  RE_DATE,
-  RE_NP_MONTH_SPEC,
-  RE_NP_QUARTER_SPEC,
-  RE_NP_WEEK_SPEC,
-  RE_NP_YEAR_SPEC,
-  RE_YYYYMMDD_DATE,
-  todaysDateISOString,
-  toISOShortDateTimeString,
-  YYYYMMDDDateStringFromDate,
-} from './dateTime'
+import * as dt from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
-import {getFolderFromFilename} from './folders'
-// import { displayTitle } from './general'
+import { getFolderFromFilename } from './folders'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE, TEAMSPACE_INDICATOR } from './regex'
 import { hasScheduledDate } from './utils'
 import { getTeamspaceTitleFromID } from './NPTeamspace'
@@ -196,7 +170,7 @@ export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [],
 }
 
 export function printDateRange(dr: DateRange) {
-  console.log(`DateRange <${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
+  console.log(`DateRange <${dt.toISOShortDateTimeString(dr.start)} - ${dt.toISOShortDateTimeString(dr.end)}>`)
 }
 
 /**
@@ -343,9 +317,10 @@ export async function getPeriodStartEndDates(
 ): Promise<[Date, Date, TPeriodCode, string, string, number]> {
   let periodShortCode: TPeriodCode
   // If we're passed the period, then use that, otherwise ask user
+  // $FlowFixMe[incompatible-type]
   if (periodShortCodeArg && periodShortCodeArg !== '') {
     // It may come with surrounding quotes, so remove those
-    // $FlowIgnore[incompatible-type]
+    // $FlowFixMe[incompatible-type]
     periodShortCode = trimAnyQuotes(periodShortCodeArg)
   } else {
     // Ask user what date interval to do tag counts for
@@ -397,7 +372,7 @@ export async function getPeriodStartEndDates(
       fromDateMom = moment().startOf('year')
       fromDate = fromDateMom.toDate()
       periodString = `${y}`
-      periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
+      periodAndPartStr = `${periodString} (to ${dt.todaysDateISOString})`
       periodNumber = y
       break
     }
@@ -425,7 +400,7 @@ export async function getPeriodStartEndDates(
       fromDateMom = moment(toDate).startOf('quarter')
       fromDate = fromDateMom.toDate()
       periodString = fromDateMom.format('YYYY [Q]Q')
-      periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
+      periodAndPartStr = `${periodString} (to ${dt.todaysDateISOString})`
       periodNumber = Number(fromDateMom.format('Q'))
       break
     }
@@ -475,7 +450,7 @@ export async function getPeriodStartEndDates(
     case 'lw': {
       // last week, using ISO 8601 date definition, which always starts on a Monday
       let theYear = y
-      const currentWeekNum = getWeek(todaysDate)
+      const currentWeekNum = dt.getWeek(todaysDate)
       // First deal with edge case: after start of ordinal year but before first week starts
       if (currentWeekNum === 52 && m === 1) {
         theYear -= 1
@@ -487,7 +462,7 @@ export async function getPeriodStartEndDates(
       } else {
         lastWeekNum = currentWeekNum - 1
       }
-      ;[fromDate, toDate] = isoWeekStartEndDates(lastWeekNum, theYear)
+      ;[fromDate, toDate] = dt.isoWeekStartEndDates(lastWeekNum, theYear)
       periodString = `${String(theYear)}-W${lastWeekNum < 10 ? `0${String(lastWeekNum)}` : String(lastWeekNum)}`
       periodNumber = lastWeekNum
       break
@@ -515,13 +490,13 @@ export async function getPeriodStartEndDates(
     case 'wtd': {
       // week to date, using ISO 8601 date definition, which always starts on a Monday
       let theYear = y
-      const currentWeekNum = getWeek(todaysDate)
+      const currentWeekNum = dt.getWeek(todaysDate)
       // First deal with edge case: after start of ordinal year but before first week starts
       if (currentWeekNum === 52 && m === 1) {
         theYear -= 1
       }
       // I don't know why the [from, to] construct doesn't work here, but using tempObj instead
-      const tempObj = isoWeekStartEndDates(currentWeekNum, theYear)
+      const tempObj = dt.isoWeekStartEndDates(currentWeekNum, theYear)
       fromDate = tempObj[0]
       toDate = tempObj[1]
       periodString = `${theYear}-W${currentWeekNum < 10 ? `0${String(currentWeekNum)}` : String(currentWeekNum)}`
@@ -570,7 +545,7 @@ export async function getPeriodStartEndDates(
       const theYear = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Week', String(y)))
       const weekNum = Number(await getInput('Choose week number, 1-53', 'OK', 'Counts for Week'))
       // I don't know why the [from, to] form doesn't work here, but using tempObj instead
-      const tempObj = isoWeekStartEndDates(weekNum, theYear)
+      const tempObj = dt.isoWeekStartEndDates(weekNum, theYear)
       fromDate = tempObj[0]
       toDate = tempObj[1]
       periodString = `${theYear}-W${weekNum < 10 ? `0${String(weekNum)}` : String(weekNum)}`
@@ -590,7 +565,7 @@ export async function getPeriodStartEndDates(
 
     default: {
       // check to see if it's an ISO8601 date instead
-      if (new RegExp(`^${RE_DATE}$`).test(periodShortCode)) {
+      if (new RegExp(`^${dt.RE_DATE}$`).test(periodShortCode)) {
         // It is, then use that as from date, and today as to date.
         toDateMom = moment(toDate).startOf('day')
         fromDateMom = moment(periodShortCode)
@@ -611,6 +586,7 @@ export async function getPeriodStartEndDates(
     toDate = toDateMom.toDate()
   }
   logDebug('getPeriodStartEndDates', `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString} / ${periodAndPartStr}`)
+  // $FlowFixMe[incompatible-return]
   return [fromDate, toDate, periodShortCode, periodString, periodAndPartStr, periodNumber]
 }
 
@@ -713,7 +689,7 @@ export function getPeriodStartEndDatesFromPeriodCode(
     }
     default: {
       // check to see if it's an ISO8601 date instead. Note: just do that one day, not as it does in the other function above
-      if (new RegExp(`^${RE_DATE}$`).test(periodCode)) {
+      if (new RegExp(`^${dt.RE_DATE}$`).test(periodCode)) {
         fromDateMom = moment(periodCode)
         toDateMom = moment(fromDateMom).endOf('day')
         periodString = periodCode
@@ -748,7 +724,7 @@ export function getDateStrForEndofPeriodFromCalendarFilename(filename: string): 
   try {
     // Trying a shortcut way first: seems to work
     // logDebug('dateTime / gDSFEOPFCF', `for ${filename} ...`)
-    const dateStr = getDateStringFromCalendarFilename(filename)
+    const dateStr = dt.getDateStringFromCalendarFilename(filename)
     if (dateStr) {
       const dateOut = getLastDateInPeriod(dateStr) ?? '(error)'
       // logDebug('gDSFEOPFCF', `${filename} -> ${dateStr} -> ${dateOut}`)
@@ -773,7 +749,7 @@ export function getEarliestCalendarNoteDate(): ?Date {
   const startOfTodayDate = moment().startOf('day').toDate()
   const calendarNotesToConsider = DataStore.calendarNotes.slice().filter((note) => {
     return (note.date < startOfTodayDate) && (!note.filename.startsWith(TEAMSPACE_INDICATOR))
-  }).sort((first, second) => first.date - second.date)
+  }).sort((first: TNote, second: TNote) => (first.date?.getTime() ?? 0) - (second.date?.getTime() ?? 0))
   const earliestCalendarNote = calendarNotesToConsider[0]
   logDebug('getEarliestCalendarNote', `Earliest calendar note: ${earliestCalendarNote.filename} from ${calendarNotesToConsider.length} calendar notes`)
   return earliestCalendarNote.date ?? null
@@ -817,8 +793,8 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
     let dateStrFormat = 'YYYY-MM-DD',
       newMom
     if (typeof dateIn === 'string') {
-      if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
-      if (new RegExp(RE_NP_WEEK_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[W]WW'
+      if (new RegExp(dt.RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+      if (new RegExp(dt.RE_NP_WEEK_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[W]WW'
       newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
     } else {
       newMom = moment(dateIn).add(offsetIncrement, offsetType)
@@ -877,8 +853,8 @@ export function getMonthData(dateIn: string | Date = new Date(), offsetIncrement
   let dateStrFormat = 'YYYY-MM-DD',
     newMom
   if (typeof dateIn === 'string') {
-    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
-    if (new RegExp(RE_NP_MONTH_SPEC).test(dateIn)) dateStrFormat = 'YYYY-MM'
+    if (new RegExp(dt.RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    if (new RegExp(dt.RE_NP_MONTH_SPEC).test(dateIn)) dateStrFormat = 'YYYY-MM'
     newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
   } else {
     newMom = moment(dateIn).add(offsetIncrement, offsetType)
@@ -913,9 +889,9 @@ export function getQuarterData(dateIn: string | Date = new Date(), offsetIncreme
   let dateStrFormat = 'YYYY-[Q]Q',
     newMom
   if (typeof dateIn === 'string') {
-    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
-    if (new RegExp(RE_DATE).test(dateIn)) dateStrFormat = 'YYYY-MM-DD'
-    if (new RegExp(RE_NP_QUARTER_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[Q]Q'
+    if (new RegExp(dt.RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    if (new RegExp(dt.RE_DATE).test(dateIn)) dateStrFormat = 'YYYY-MM-DD'
+    if (new RegExp(dt.RE_NP_QUARTER_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[Q]Q'
     newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
   } else {
     newMom = moment(dateIn).add(offsetIncrement, offsetType)
@@ -949,9 +925,9 @@ export function getYearData(dateIn: string | Date = new Date(), offsetIncrement:
   let dateStrFormat = 'YYYY',
     newMom
   if (typeof dateIn === 'string') {
-    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
-    if (new RegExp(RE_DATE).test(dateIn)) dateStrFormat = 'YYYY-MM-DD'
-    if (new RegExp(RE_NP_MONTH_SPEC).test(dateIn)) dateStrFormat = 'YYYY-MM'
+    if (new RegExp(dt.RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    if (new RegExp(dt.RE_DATE).test(dateIn)) dateStrFormat = 'YYYY-MM-DD'
+    if (new RegExp(dt.RE_NP_MONTH_SPEC).test(dateIn)) dateStrFormat = 'YYYY-MM'
     newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
   } else {
     newMom = moment(dateIn).add(offsetIncrement, offsetType)
@@ -982,25 +958,25 @@ export function getFirstDateInPeriod(NPDateStringIn: string): string {
     }
     let firstDateStr = ''
     if (NPDateString === 'today') {
-      firstDateStr = todaysDateISOString
-    } else if (isDailyDateStr(NPDateString)) {
+      firstDateStr = dt.todaysDateISOString
+    } else if (dt.isDailyDateStr(NPDateString)) {
       // logDebug('getFirstDateInPeriod', `'${NPDateString}' was already a day date`)
       firstDateStr = NPDateString
     } else {
       // It's not a day date, so need to convert to one. Take the first day of the week/month/quarter/year.
       let NPInfo: NotePlanWeekInfo | NotePlanMonthInfo | NotePlanQuarterInfo | NotePlanYearInfo | null
-      if (isWeeklyDateStr(NPDateString)) {
+      if (dt.isWeeklyDateStr(NPDateString)) {
         NPInfo = getNPWeekData(NPDateString)
-      } else if (isMonthlyDateStr(NPDateString)) {
+      } else if (dt.isMonthlyDateStr(NPDateString)) {
         NPInfo = getMonthData(NPDateString)
-      } else if (isQuarterlyDateStr(NPDateString)) {
+      } else if (dt.isQuarterlyDateStr(NPDateString)) {
         NPInfo = getQuarterData(NPDateString)
-      } else if (isYearlyDateStr(NPDateString)) {
+      } else if (dt.isYearlyDateStr(NPDateString)) {
         NPInfo = getYearData(NPDateString)
       } else {
         throw new Error(`unexpected date format ${NPDateString}, so won't use it`)
       }
-      firstDateStr = NPInfo && NPInfo.startDate ? hyphenatedDateString(NPInfo?.startDate) : ''
+      firstDateStr = NPInfo && NPInfo.startDate ? dt.hyphenatedDateString(NPInfo?.startDate) : ''
     }
     // logDebug('getFirstDateInPeriod', `first date of ${NPDateString} = '${firstDateStr}'`)
     return firstDateStr
@@ -1026,25 +1002,25 @@ export function getLastDateInPeriod(NPDateStringIn: string): string {
     }
     let lastDateStr = ''
     if (NPDateString === 'today') {
-      lastDateStr = todaysDateISOString
-    } else if (isDailyDateStr(NPDateString)) {
+      lastDateStr = dt.todaysDateISOString
+    } else if (dt.isDailyDateStr(NPDateString)) {
       // logDebug('getLastDateInPeriod', `'${NPDateString}' was already a day date`)
       lastDateStr = NPDateString
     } else {
       // It's not a day date, so need to convert to one. Take the first day of the week/month/quarter/year.
       let NPInfo: NotePlanWeekInfo | NotePlanMonthInfo | NotePlanQuarterInfo | NotePlanYearInfo | null
-      if (isWeeklyDateStr(NPDateString)) {
+      if (dt.isWeeklyDateStr(NPDateString)) {
         NPInfo = getNPWeekData(NPDateString)
-      } else if (isMonthlyDateStr(NPDateString)) {
+      } else if (dt.isMonthlyDateStr(NPDateString)) {
         NPInfo = getMonthData(NPDateString)
-      } else if (isQuarterlyDateStr(NPDateString)) {
+      } else if (dt.isQuarterlyDateStr(NPDateString)) {
         NPInfo = getQuarterData(NPDateString)
-      } else if (isYearlyDateStr(NPDateString)) {
+      } else if (dt.isYearlyDateStr(NPDateString)) {
         NPInfo = getYearData(NPDateString)
       } else {
         throw new Error(`unexpected date format ${NPDateString}, so won't use it`)
       }
-      lastDateStr = NPInfo && NPInfo.endDate ? hyphenatedDateString(NPInfo?.endDate) : ''
+      lastDateStr = NPInfo && NPInfo.endDate ? dt.hyphenatedDateString(NPInfo?.endDate) : ''
     }
     // logDebug('getLastDateInPeriod', `last date of ${NPDateString} = '${lastDateStr}'`)
     return lastDateStr
@@ -1155,18 +1131,18 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<{ rel
 
     // Calculate relative dates. Remember to clone todayMom first as moments aren't immutable!
     // Days
-    let thisDateStr = moment(todayMom).format(useISODailyDates ? MOMENT_FORMAT_NP_ISO : MOMENT_FORMAT_NP_DAY)
+    let thisDateStr = moment(todayMom).format(useISODailyDates ? dt.MOMENT_FORMAT_NP_ISO : dt.MOMENT_FORMAT_NP_DAY)
     relativeDates.push({ relName: 'today', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format(useISODailyDates ? MOMENT_FORMAT_NP_ISO : MOMENT_FORMAT_NP_DAY)
+    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format(useISODailyDates ? dt.MOMENT_FORMAT_NP_ISO : dt.MOMENT_FORMAT_NP_DAY)
     relativeDates.push({ relName: 'yesterday', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format(useISODailyDates ? MOMENT_FORMAT_NP_ISO : MOMENT_FORMAT_NP_DAY)
+    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format(useISODailyDates ? dt.MOMENT_FORMAT_NP_ISO : dt.MOMENT_FORMAT_NP_DAY)
     relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     for (let i = 6; i > 1; i--) {
-      thisDateStr = moment(todayMom).subtract(i, 'days').startOf('day').format(useISODailyDates ? MOMENT_FORMAT_NP_ISO : MOMENT_FORMAT_NP_DAY)
+      thisDateStr = moment(todayMom).subtract(i, 'days').startOf('day').format(useISODailyDates ? dt.MOMENT_FORMAT_NP_ISO : dt.MOMENT_FORMAT_NP_DAY)
       relativeDates.push({ relName: `${i} days ago`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     }
     for (let i = 2; i < 7; i++) {
-      thisDateStr = moment(todayMom).add(i, 'days').startOf('day').format(useISODailyDates ? MOMENT_FORMAT_NP_ISO : MOMENT_FORMAT_NP_DAY)
+      thisDateStr = moment(todayMom).add(i, 'days').startOf('day').format(useISODailyDates ? dt.MOMENT_FORMAT_NP_ISO : dt.MOMENT_FORMAT_NP_DAY)
       relativeDates.push({ relName: `in ${i} days`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     }
 
@@ -1203,33 +1179,33 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<{ rel
 
     // Months
     for (let i = -12; i < -1; i++) {
-      thisDateStr = moment(todayMom).add(i, 'months').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
+      thisDateStr = moment(todayMom).add(i, 'months').startOf('month').format(dt.MOMENT_FORMAT_NP_MONTH)
       relativeDates.push({ relName: `${-i} months ago`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     }
-    thisDateStr = moment(todayMom).subtract(1, 'month').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
+    thisDateStr = moment(todayMom).subtract(1, 'month').startOf('month').format(dt.MOMENT_FORMAT_NP_MONTH)
     relativeDates.push({ relName: 'last month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).startOf('month').format(MOMENT_FORMAT_NP_MONTH)
+    thisDateStr = moment(todayMom).startOf('month').format(dt.MOMENT_FORMAT_NP_MONTH)
     relativeDates.push({ relName: 'this month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'month').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
+    thisDateStr = moment(todayMom).add(1, 'month').startOf('month').format(dt.MOMENT_FORMAT_NP_MONTH)
     relativeDates.push({ relName: 'next month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     for (let i = 2; i < 12; i++) {
-      thisDateStr = moment(todayMom).add(i, 'months').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
+      thisDateStr = moment(todayMom).add(i, 'months').startOf('month').format(dt.MOMENT_FORMAT_NP_MONTH)
       relativeDates.push({ relName: `${i} months' time`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     }
 
     // Quarters
     for (let i = -4; i < -1; i++) {
-      thisDateStr = moment(todayMom).add(i, 'quarters').startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
+      thisDateStr = moment(todayMom).add(i, 'quarters').startOf('quarter').format(dt.MOMENT_FORMAT_NP_QUARTER)
       relativeDates.push({ relName: `${-i} quarters ago`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     }
-    thisDateStr = moment(todayMom).subtract(1, 'quarter').startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
+    thisDateStr = moment(todayMom).subtract(1, 'quarter').startOf('quarter').format(dt.MOMENT_FORMAT_NP_QUARTER)
     relativeDates.push({ relName: 'last quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
+    thisDateStr = moment(todayMom).startOf('quarter').format(dt.MOMENT_FORMAT_NP_QUARTER)
     relativeDates.push({ relName: 'this quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'quarter').startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
+    thisDateStr = moment(todayMom).add(1, 'quarter').startOf('quarter').format(dt.MOMENT_FORMAT_NP_QUARTER)
     relativeDates.push({ relName: 'next quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     for (let i = 2; i < 5; i++) {
-      thisDateStr = moment(todayMom).add(i, 'quarters').startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
+      thisDateStr = moment(todayMom).add(i, 'quarters').startOf('quarter').format(dt.MOMENT_FORMAT_NP_QUARTER)
       relativeDates.push({ relName: `${i} quarters' time`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     }
 
@@ -1256,11 +1232,11 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<{ rel
  */
 export function getShortOffsetDateFromDateString(dateStrA: string, dateStrBIn: string = ''): [string, string] {
   try {
-    if (!isValidCalendarNoteTitleStr(dateStrA)) {
+    if (!dt.isValidCalendarNoteTitleStr(dateStrA)) {
       throw new Error(`${dateStrA} doesn't seem to be a valid NP date`)
     }
-    const dateStrB = dateStrBIn === '' ? todaysDateISOString : dateStrBIn
-    if (!isDailyDateStr(dateStrB)) {
+    const dateStrB = dateStrBIn === '' ? dt.todaysDateISOString : dateStrBIn
+    if (!dt.isDailyDateStr(dateStrB)) {
       throw new Error(`${dateStrB} doesn't seem to be a valid YYYY-MM-DD date`)
     }
 
@@ -1270,14 +1246,14 @@ export function getShortOffsetDateFromDateString(dateStrA: string, dateStrBIn: s
     const momB = dateStrB !== '' ? moment(dateStrB) : moment()
     logDebug('NPdateTime / getShortOffsetDateFromDateString', `Starting for ${dateStrA} relative to ${dateStrB}`)
     // Need to tailor it to date type of dateStr
-    if (isDailyDateStr(dateStrA)) {
+    if (dt.isDailyDateStr(dateStrA)) {
       logDebug('NPdateTime / getShortOffsetDateFromDateString', `dailyNote`)
       const momA = moment(dateStrA)
       // diff = momB.startOf('day').diff(dateStrA, 'days')
       diff = momA.diff(momB.startOf('day'), 'days')
       codeStr = `${diff}d`
       periodStr = diff === -1 ? 'yesterday' : diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : `${diff} days`
-    } else if (isWeeklyDateStr(dateStrA)) {
+    } else if (dt.isWeeklyDateStr(dateStrA)) {
       // TODO:
       // const momA = moment(dateStrA, "YYYY-[W]WW") // not NP weeks, but as we're working with relative weeks it doesn't matter
       // diff = momB.startOf('week').diff(dateStrA, 'weeks')
@@ -1286,7 +1262,7 @@ export function getShortOffsetDateFromDateString(dateStrA: string, dateStrBIn: s
 
       // change to use moment not NP weeks, but as the output are relative weeks it doesn't matter
       const momA = moment(dateStrA, 'YYYY-[W]WW')
-      const dateStrBToUse = dateStrB ?? todaysDateISOString
+      const dateStrBToUse = dateStrB ?? dt.todaysDateISOString
       logDebug('dateTime / getShortOffsetDateFromDateString', dateStrBToUse)
       const BNPWeekData = getNPWeekData(dateStrBToUse)
       // clo(BNPWeekData, 'BNPWeekData')
@@ -1295,21 +1271,21 @@ export function getShortOffsetDateFromDateString(dateStrA: string, dateStrBIn: s
       logDebug('dateTime / getShortOffsetDateFromDateString', `weeklyNote with momA ${momA} and momB ${momB}`)
       codeStr = `${diff}w`
       periodStr = `${diff} weeks`
-    } else if (isMonthlyDateStr(dateStrA)) {
+    } else if (dt.isMonthlyDateStr(dateStrA)) {
       logDebug('dateTime / getShortOffsetDateFromDateString', `monthlyNote`)
       const momA = moment(dateStrA, 'YYYY-MM')
       // diff = momB.startOf('month').diff(dateStrA, 'months')
       diff = momA.diff(momB.startOf('month'), 'months')
       codeStr = `${diff}m`
       periodStr = `${diff} months`
-    } else if (isQuarterlyDateStr(dateStrA)) {
+    } else if (dt.isQuarterlyDateStr(dateStrA)) {
       const momA = moment(dateStrA, 'YYYY-[Q]Q')
       logDebug('dateTime / getShortOffsetDateFromDateString', `quarterlyNote`)
       // diff = Math.floor(momB.startOf('quarter').diff(dateStrA, 'months')/3.0) // moment can't diff quarters
       diff = Math.floor(momA.diff(momB.startOf('quarter'), 'months') / 3.0) // moment can't diff quarters
       codeStr = `${diff}q`
       periodStr = `${diff} quarters`
-    } else if (isYearlyDateStr(dateStrA)) {
+    } else if (dt.isYearlyDateStr(dateStrA)) {
       const momA = moment(dateStrA, 'YYYY')
       logDebug('dateTime / getShortOffsetDateFromDateString', `yearlyNote`)
       // diff = momB.startOf('year').diff(dateStrA, 'years')
@@ -1368,7 +1344,7 @@ export function getDateStrFromRelativeDateString(relDateStr: string): string {
  */
 export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDates: boolean = true, showFolderPath: boolean = false): string {
   if (noteIn.type === 'Calendar') {
-    let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
+    let calNoteTitle = dt.getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
     if (showRelativeDates) {
       for (const rd of relativeDatesNP) {
         if (calNoteTitle === rd.dateStr) {
@@ -1426,11 +1402,11 @@ export function getCalendarFilenameFromDateString(dateStr: string): string {
     const usersNoteExtension = DataStore.defaultFileExtension
     // logDebug('gCFFDS', `for ${filename} ...`)
     if (
-      dateStr.match(RE_YYYYMMDD_DATE) ||
-      dateStr.match(RE_NP_WEEK_SPEC) ||
-      dateStr.match(RE_NP_MONTH_SPEC) ||
-      dateStr.match(RE_NP_QUARTER_SPEC) ||
-      dateStr.match(RE_NP_YEAR_SPEC)
+      dateStr.match(dt.RE_YYYYMMDD_DATE) ||
+      dateStr.match(dt.RE_NP_WEEK_SPEC) ||
+      dateStr.match(dt.RE_NP_MONTH_SPEC) ||
+      dateStr.match(dt.RE_NP_QUARTER_SPEC) ||
+      dateStr.match(dt.RE_NP_YEAR_SPEC)
     ) {
       return `${dateStr}.${usersNoteExtension}`
     } else {
@@ -1490,9 +1466,228 @@ export function getDueDateOrStartOfCalendarDate(p: TParagraph, useISOFormatOutpu
       }
     }
     // logDebug('getDueDateOrStartOfCalendarDate', `dueDateStr: ${dueDateStr} in note ${note.filename}`)
-    return useISOFormatOutput ? dueDateStr : convertISODateFilenameToNPDayFilename(dueDateStr)
+    return useISOFormatOutput ? dueDateStr : dt.convertISODateFilenameToNPDayFilename(dueDateStr)
   } catch (error) {
     logError('getDueDateOrStartOfCalendarDate', error.message)
     return ''
+  }
+}
+
+/**
+ * Returns a YYYYMMDD string representation of a Calendar note's first date that it covers, from its filename (e.g. '2022-Q4.md' -> '20221001').
+ * Note: see related getDateStringFromCalendarFilename().
+ * WARNING: Probably not reliable as it relies on the Calendar note existing, I think.
+ * @param {string} filename
+ * @returns {string} YYYYMMDD for first date in period
+ */
+export function getDateStrForStartofPeriodFromCalendarFilename(filename: string): string {
+  try {
+    // Trying a shortcut way first: seems to work
+    // logDebug('dateTime / gDSFSOPFCF', `for ${filename} ...`)
+    const thisNote = DataStore.noteByFilename(filename, 'Calendar')
+    if (thisNote && thisNote.date) {
+      const dateOut = dt.YYYYMMDDDateStringFromDate(thisNote.date) ?? '(error)'
+      // logDebug('gDSFSOPFCF', `-> ${dateOut}`)
+      return dateOut
+    } else {
+      throw new Error(`Error in getting note.date from ${filename}`)
+    }
+  } catch (err) {
+    logError('dateTime / gDSFSOPFCF', err.message)
+    return '(invalid date)' // for completeness
+  }
+}
+
+/**
+ * Return rough relative string version of difference between date and today.
+ * Don't return all the detail, but just the most significant unit (year, month, week, day)
+ * If date is in the past then adds 'ago'.
+ * @param {Date} date - calculate difference between this date and today
+ * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
+ */
+export function relativeDateFromDate(date: Date): string {
+  // Wrapper to relativeDateFromNumber(), accepting JS date instead of number
+  const diff = Calendar.unitsBetween(date, new Date(), 'day')
+  return dt.relativeDateFromNumber(diff)
+}
+
+/**
+ * Format a Date as an ISO week string (YYYY-Wnn format).
+ * Uses ISO 8601 week definition, which always starts on Monday.
+ * TODO: Try to remove all uses of this, to respect user's start-of-week preference.
+ * @param {Date} date - The date to format
+ * @returns {string} Week string in format YYYY-Wnn
+ */
+function formatISOWeek(date: Date): string {
+  const m = moment(date)
+  const year = m.isoWeekYear()
+  const week = m.isoWeek()
+  return `${year}-W${week < 10 ? `0${week}` : week}`
+}
+
+/**
+ * Format a Date as a week string (YYYY-Wnn format).
+ * Uses NotePlan's Calendar API when available (respects user's week start preference), otherwise falls back to ISO 8601 week definition (always Monday start).
+ * @param {Date} date - The date to format
+ * @returns {string} Week string in format YYYY-Wnn
+ */
+export function formatNPWeek(date: Date): string {
+  // Use NotePlan's Calendar API when available (respects user's week start preference)
+  if (typeof Calendar !== 'undefined' && Calendar && typeof Calendar.weekNumber === 'function') {
+    const weekNumber = Calendar.weekNumber(date)
+    const startDate = Calendar.startOfWeek(date)
+    const endDate = Calendar.endOfWeek(date)
+    const weekStartYear = startDate.getFullYear()
+    const weekEndYear = endDate.getFullYear()
+    // Determine week year: if week spans year boundary, use end year for week 1, otherwise start year
+    const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
+    return `${weekYear}-W${weekNumber < 10 ? `0${weekNumber}` : weekNumber}`
+  }
+  // Fallback to ISO 8601 week definition (always Monday start)
+  return formatISOWeek(date)
+}
+
+
+/**
+ * Calculate an offset date of any date interval NP supports, and return _in whichever format was supplied_.
+ * v5 method, using 'moment/min/moment-with-locales' library to avoid using NP calls, now extended to allow for Weekly, Monthly etc. strings as well.
+ * WARNING: don't use when you want the output to be in week format, as the moment library doesn't understand different start-of-weeks. Use NPdateTime::getNPWeekData() instead.
+ * Moment docs: https://momentjs.com/docs/#/get-set/
+ * - 'baseDateIn' the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
+ * - 'offsetInterval' of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
+ * - 'adaptOutputInterval' (optional). Options: 'shorter', 'longer', 'offset', 'base', 'day', 'week', 'month', 'quarter', 'year'
+ * @author @jgclark with help from Cursor AI
+ * 
+ * @param {string} baseDateIn the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
+ * @param {string} offsetInterval of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
+ * @param {string?} adaptOutputInterval. Options: 'shorter', 'longer', 'offset', 'base', 'day', 'week', 'month', 'quarter', 'year'
+ * - 'shorter': keep the shorter of the two calendar types. E.g. a daily date + 1w -> daily date. Or '2023-07' + '2w' -> '2023-W28'.
+ * - 'longer': use the longer of the two calendar types. E.g. a daily date + 1w -> weekly date.
+ * - 'offset': keep type of the offsetInterval.
+ * - 'base': (default)  keep the type of the base date.
+ * - 'day', 'week', 'month', 'quarter', 'year': lock to that calendar type.
+ * @returns {string} new date in the requested format
+ * @tests - available in jest file (though not for the most recent adaptOutputInterval options)
+ */
+export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, adaptOutputInterval: string = 'base'): string {
+  try {
+    if (baseDateIn === '') {
+      throw new Error('Empty baseDateIn string')
+    }
+    if (offsetInterval === '') {
+      throw new Error('Empty offsetInterval string')
+    }
+    const offsetUnit = offsetInterval.charAt(offsetInterval.length - 1) // get last character
+    // logDebug('dateTime / cODS', `Starting with ${adaptOutputInterval} adapt for ${baseDateIn} + ${offsetInterval}`)
+
+    // calc offset date
+    // (Note: library functions cope with negative nums, so just always use 'add' function)
+    const offsetDate = dt.calcOffsetDate(baseDateIn, offsetInterval)
+    if (!offsetDate) {
+      throw new Error('Invalid return from calcOffsetDate()')
+    }
+    // Now decide how to format the new date.
+    // Start with using baseDateIn's format
+    const calendarTypeOrder = 'dbwmqy'
+    let newDateStr = ''
+    let baseDateMomentFormat = ''
+    let baseDateUnit = ''
+    if (baseDateIn.match(dt.RE_ISO_DATE)) {
+      baseDateMomentFormat = dt.MOMENT_FORMAT_NP_ISO
+      baseDateUnit = 'd'
+    } else if (baseDateIn.match(dt.RE_YYYYMMDD_DATE)) {
+      baseDateMomentFormat = dt.MOMENT_FORMAT_NP_DAY
+      baseDateUnit = 'd'
+    } else if (baseDateIn.match(dt.RE_NP_WEEK_SPEC)) {
+      baseDateMomentFormat = dt.MOMENT_FORMAT_NP_WEEK
+      baseDateUnit = 'w'
+    } else if (baseDateIn.match(dt.RE_NP_MONTH_SPEC)) {
+      // NB: test has to go after ISO check
+      baseDateMomentFormat = dt.MOMENT_FORMAT_NP_MONTH
+      baseDateUnit = 'm'
+    } else if (baseDateIn.match(dt.RE_NP_QUARTER_SPEC)) {
+      baseDateMomentFormat = dt.MOMENT_FORMAT_NP_QUARTER
+      baseDateUnit = 'q'
+    } else if (baseDateIn.match(dt.RE_NP_YEAR_SPEC)) {
+      // NB: test has to go at end as it will match all longer formats
+      baseDateMomentFormat = dt.MOMENT_FORMAT_NP_YEAR
+      baseDateUnit = 'y'
+    } else {
+      throw new Error('Invalid date string')
+    }
+    // Format base date type
+    // Always use NotePlan week formatting (respects user's week start preference when Calendar API available)
+    const newDateStrFromBaseDateType = baseDateUnit === 'w' ? formatNPWeek(offsetDate) : moment(offsetDate).format(baseDateMomentFormat)
+    newDateStr = newDateStrFromBaseDateType
+
+    // Also calculate offset's output format
+    const offsetMomentFormat = offsetUnit === 'd' && baseDateIn.match(dt.RE_YYYYMMDD_DATE) ? dt.MOMENT_FORMAT_NP_DAY : dt.getNPDateFormatForDisplayFromOffsetUnit(offsetUnit)
+    // Always use NotePlan week formatting for consistency
+    const newDateStrFromOffsetDateType = offsetUnit === 'w' ? formatNPWeek(offsetDate) : moment(offsetDate).format(offsetMomentFormat)
+
+    // If we want to adapt smaller
+    switch (adaptOutputInterval) {
+      case 'offset': {
+        newDateStr = newDateStrFromOffsetDateType
+        logDebug('dateTime / cODS', `- 'offset' output: -> ${newDateStrFromOffsetDateType}`)
+        break
+      }
+      case 'shorter': {
+        if (calendarTypeOrder.indexOf(offsetUnit) < calendarTypeOrder.indexOf(baseDateUnit)) {
+          newDateStr = newDateStrFromOffsetDateType
+          logDebug('dateTime / cODS', `- 'shorter' output: changed format to ${offsetMomentFormat}`)
+        }
+        break
+      }
+      case 'longer': {
+        if (calendarTypeOrder.indexOf(offsetUnit) > calendarTypeOrder.indexOf(baseDateUnit)) {
+          newDateStr = newDateStrFromOffsetDateType
+          logDebug('dateTime / cODS', `- 'longer' output: changed format to ${offsetMomentFormat}`)
+        } else {
+          logDebug('dateTime / cODS', `- 'longer' output: NO change to format`)
+        }
+        break
+      }
+      case 'day': {
+        const offsetMomentFormat = dt.getNPDateFormatForDisplayFromOffsetUnit('d')
+        newDateStr = moment(offsetDate).format(offsetMomentFormat)
+        logDebug('dateTime / cODS', `- 'day' output: changed format to ${offsetMomentFormat}`)
+        break
+      }
+      case 'week': {
+        // Always use NotePlan week formatting
+        newDateStr = formatNPWeek(offsetDate)
+        logDebug('dateTime / cODS', `- 'week' output: changed format to NotePlan week`)
+        break
+      }
+      case 'month': {
+        const offsetMomentFormat = dt.getNPDateFormatForDisplayFromOffsetUnit('m')
+        newDateStr = moment(offsetDate).format(offsetMomentFormat)
+        logDebug('dateTime / cODS', `- 'month' output: changed format to ${offsetMomentFormat}`)
+        break
+      }
+      case 'quarter': {
+        const offsetMomentFormat = dt.getNPDateFormatForDisplayFromOffsetUnit('q')
+        newDateStr = moment(offsetDate).format(offsetMomentFormat)
+        logDebug('dateTime / cODS', `- 'quarter' output: changed format to ${offsetMomentFormat}`)
+        break
+      }
+      case 'year': {
+        const offsetMomentFormat = dt.getNPDateFormatForDisplayFromOffsetUnit('y')
+        newDateStr = moment(offsetDate).format(offsetMomentFormat)
+        logDebug('dateTime / cODS', `- 'year' output: changed format to ${offsetMomentFormat}`)
+        break
+      }
+      default: {
+        // i.e. 'base'
+        newDateStr = newDateStrFromBaseDateType
+        break
+      }
+    }
+    // logDebug('dateTime / cODS', `for '${baseDateIn}' date, offsetInterval ${offsetInterval} using type ${adaptOutputInterval} -> '${newDateStr}'`)
+    return newDateStr
+  } catch (e) {
+    logError('dateTime / cODS', `${e.message} for '${baseDateIn}' date, offsetInterval '${offsetInterval}'`)
+    return '(error)'
   }
 }
