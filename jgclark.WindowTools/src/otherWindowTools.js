@@ -11,11 +11,10 @@ import * as wth from './WTHelpers'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getNoteTitleFromFilename } from '@helpers/NPnote'
+import { usersVersionHas } from '@helpers/NPVersions'
 import {
   closeWindowFromId,
   constrainWindowSizeAndPosition,
-  MAIN_SIDEBAR_CONTROL_BUILD_VERSION,
-  FOLDER_VIEWS_CONTROL_BUILD_VERSION,
   openNoteInNewSplitIfNeeded,
   rectToString,
 } from '@helpers/NPWindows'
