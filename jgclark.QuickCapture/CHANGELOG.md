@@ -1,5 +1,9 @@
 # What's changed in ⚡️ Quick Capture
-See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
+See [plugin documentation for more details](https://noteplan.co/plugins/jgclark.QuickCapture), and how to configure.
+
+## [1.0.2] - 2025-11-08
+### Chore
+- Rebuild to pick up improvements in updated note + folder pickers and week handling libraries
 
 ## [1.0.1] - 2025-11-07
 - Improved display of icons and calendar notes in note picker.
