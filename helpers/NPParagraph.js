@@ -1831,9 +1831,8 @@ export function removeAllDueDates(filename: string): boolean {
 }
 
 /**
- * WARNING: This was an attempt to work around the issue that .lineIndex in Editor.paragraphs includes frontmatter lines, but in Editor.selectedParagraphs it doesn't.
- * WARNING: However, it doesn't work, as it throws up "Attempted to assign to readonly property" errors.
  * Get the selected paragraphs with the correct line index, taking into account the frontmatter lines.
+ * Note: This attempts to work around the issue that .lineIndex in Editor.paragraphs includes frontmatter lines, but in Editor.selectedParagraphs it doesn't.
  * Note: should really live in editor.js, but putting here to avoid a circular dependency.
  * @author @jgclark
  * 
@@ -1846,11 +1845,13 @@ export function getSelectedParagraphsWithCorrectLineIndex(): Array<TParagraph> {
     return []
   }
   const numberOfFrontmatterLines = endOfFrontmatterLineIndex(note) || 0
+  logDebug('getSelectedParagraphsWithCorrectLineIndex', `numberOfFrontmatterLines: ${String(numberOfFrontmatterLines)}`)
   const selectedParagraphs = Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex]) ?? []
+  logDebug('getSelectedParagraphsWithCorrectLineIndex', `Editor.selectedParagraphs:\n${String(Editor.selectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
   const correctedSelectedParagraphs: Array<TParagraph> = selectedParagraphs.slice()
   correctedSelectedParagraphs.forEach((p) => {
     // $FlowIgnore[cannot-write]
-    p.lineIndex += numberOfFrontmatterLines
+    p.lineIndex += numberOfFrontmatterLines + 1
   })
 
   logDebug('getSelectedParagraphsWithCorrectLineIndex', `${correctedSelectedParagraphs.length} Corrected selected paragraph(s) with lineIndex taking into account frontmatter lines:\n${String(correctedSelectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)

@@ -741,6 +741,7 @@ export async function chooseHeading(
  * Ask user to select a heading from those in a given note (regular or calendar), or optionally create a new heading at top or bottom of note to use, or the top or bottom of the note.
  * Note: Any whitespace on the end of the heading text is left in place, as otherwise this would cause issues with NP API calls that take heading parameter.
  * V2: Can use newer CommandBar decorated options, if running on v3.18 or later.
+ * Note: Returns an empty string if no headings found and no other options requested.
  * @author @jgclark
  *
  * @param {TNote} note - note to draw headings from
@@ -763,10 +764,17 @@ export async function chooseHeadingV2(
       return await chooseHeading(note, optionAddAtTopAndBottom, optionCreateNewHeading, includeArchive, headingLevel)
     }
 
-    // Get the existing headings from the note, with markdown markers, but without any 'create new heading' options
-    const headingStrings = getHeadingsFromNote(note, true, false, false, includeArchive)
+    // Get the existing headings from the note, with markdown markers, but without any 'create new heading' options (as they get added later)
+    const headings = getHeadingsFromNote(note, true, false, false, includeArchive)
+
+    // If there are no headings, and the other options are false, then return an empty string
+    if (headings.length === 0 && !optionAddAtTopAndBottom && !optionCreateNewHeading) {
+      logDebug('userInput / chooseHeadingV2', `No headings found in note ${note.filename}, and no other options requested. So returning an empty string.`)
+      return ''
+    }
+
     const headingOptions: Array<TCommandBarOptionObject> = []
-    headingStrings.forEach((heading) => {
+    headings.forEach((heading) => {
       const headingWithoutLeadingMarkers = heading.replace(/^#{1,5}\s*/, '')
       const headingLevel = heading.match(/^#{1,5}/)?.[0]?.length ?? 2
       headingOptions.push({
@@ -787,14 +795,16 @@ export async function chooseHeadingV2(
         alpha: 0.6,
         darkAlpha: 0.6,
       })
-      headingOptions.push({
-        text: '(insert new heading at the end of the note)',
-        icon: 'h' + String(headingLevel),
-        shortDescription: 'Add new',
-        color: 'orange-500',
-        alpha: 0.6,
-        darkAlpha: 0.6,
-      })
+      if (headings.length > 0) {
+        headingOptions.push({
+          text: '(insert new heading at the end of the note)',
+          icon: 'h' + String(headingLevel),
+          shortDescription: 'Add new',
+          color: 'orange-500',
+          alpha: 0.6,
+          darkAlpha: 0.6,
+        })
+      }
     }
     if (optionAddAtTopAndBottom) {
       headingOptions.unshift({
@@ -835,64 +845,72 @@ export async function chooseHeadingV2(
  * @param {TNote} note
  * @param {string} chosenHeading - The text of the new heading to add, or 5 possible special instruction strings.
  * @param {number?} headingLevel - The level of the heading to add (1-5) where requested. If not given, will default to 2.
- * @returns {string} headingToReturn - The heading to return, or one of the special instruction strings <<top of note>>, <<bottom of note>>.
+ * @returns {string} headingToReturn - The heading to return, or one of the special instruction strings <<top of note>>, <<bottom of note>>. Or empty string if user cancelled operation.
  */
 export async function processChosenHeading(note: TNote, chosenHeading: string, headingLevel: number = 2): Promise<string> {
-  if (chosenHeading === '') {
-    throw new Error('No heading passed to processChosenHeading(). Stopping.')
-  }
+  try {
+    if (chosenHeading === '') {
+      throw new Error('No heading passed to processChosenHeading(). Stopping.')
+    }
 
-  let newHeading: string | boolean
-  let headingToReturn = chosenHeading
-  logDebug('userInput / processChosenHeading', `headingLevel: ${headingLevel} chosenHeading: '${chosenHeading}'`)
+    let newHeading: string | boolean
+    let headingToReturn = chosenHeading
+    logDebug('userInput / processChosenHeading', `headingLevel: ${headingLevel} chosenHeading: '${chosenHeading}'`)
 
-  if (headingToReturn.includes('insert new heading at the start of the note')) {
+    if (headingToReturn.includes('insert new heading at the start of the note')) {
     // ask for new heading, and insert right at top
-    newHeading = await getInput(`Enter heading to add at the start of the note`)
-    if (newHeading && typeof newHeading === 'string') {
-      const startPos = 0
-      // $FlowIgnore
-      note.insertHeading(newHeading, startPos, headingLevel)
-      logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (calendar note)`)
-      headingToReturn = newHeading
+      newHeading = await getInput(`Enter heading to add at the start of the note`, 'OK', 'New Heading')
+      if (newHeading && typeof newHeading === 'string') {
+        const startPos = 0
+        // $FlowIgnore
+        note.insertHeading(newHeading, startPos, headingLevel)
+        logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (calendar note)`)
+        headingToReturn = newHeading
+      } else {
+        logWarn('userInput / processChosenHeading', `User cancelled operation`)
+        return ''
+      }
+    } else if (headingToReturn.includes('insert new heading under the title')) {
+      // ask for new heading, find smart insertion position, and insert it
+      newHeading = await getInput(`Enter heading to add under the title`, 'OK', 'New Heading')
+      if (newHeading && typeof newHeading === 'string') {
+        const startPos = findStartOfActivePartOfNote(note)
+        // $FlowIgnore
+        note.insertHeading(newHeading, startPos, headingLevel)
+        logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
+        headingToReturn = newHeading
+      } else {
+        logWarn('userInput / processChosenHeading', `User cancelled operation`)
+        return ''
+      }
+    } else if (headingToReturn.includes('insert new heading at the end of the note')) {
+      // ask for new heading, and then append it
+      newHeading = await getInput(`Enter heading to add at the end of the note`, 'OK', 'New Heading')
+      if (newHeading && typeof newHeading === 'string') {
+        const indexEndOfActive = findEndOfActivePartOfNote(note)
+        const newLindeIndex = indexEndOfActive + 1
+        // $FlowIgnore - headingLevel is a union type, and we've already checked it's a number
+        note.insertHeading(newHeading, newLindeIndex, headingLevel || 2)
+        logDebug('userInput / processChosenHeading', `appended new heading '${newHeading}' at line ${newLindeIndex}`)
+        headingToReturn = newHeading
+      } else {
+        logWarn('userInput / processChosenHeading', `User cancelled operation`)
+        return ''
+      }
+    } else if (headingToReturn.includes('(top of note)')) {
+      logDebug('userInput / processChosenHeading', `selected top of note, rather than a heading`)
+      headingToReturn = '<<top of note>>' // hopefully won't ever be used as an actual title!
+    } else if (headingToReturn.includes('(bottom of note)')) {
+      logDebug('userInput / processChosenHeading', `selected end of note, rather than a heading`)
+      headingToReturn = '<<bottom of note>>'
     } else {
-      throw new Error(`user cancelled operation`)
+      // Nothing else to do
     }
-  } else if (headingToReturn.includes('insert new heading under the title')) {
-    // ask for new heading, find smart insertion position, and insert it
-    newHeading = await getInput(`Enter heading to add at the start of the note`)
-    if (newHeading && typeof newHeading === 'string') {
-      const startPos = findStartOfActivePartOfNote(note)
-      // $FlowIgnore
-      note.insertHeading(newHeading, startPos, headingLevel)
-      logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
-      headingToReturn = newHeading
-    } else {
-      throw new Error(`user cancelled operation`)
-    }
-  } else if (headingToReturn.includes('insert new heading at the end of the note')) {
-    // ask for new heading, and then append it
-    newHeading = await getInput(`Enter heading to add at the end of the note`)
-    if (newHeading && typeof newHeading === 'string') {
-      const indexEndOfActive = findEndOfActivePartOfNote(note)
-      const newLindeIndex = indexEndOfActive + 1
-      // $FlowIgnore - headingLevel is a union type, and we've already checked it's a number
-      note.insertHeading(newHeading, newLindeIndex, headingLevel || 2)
-      logDebug('userInput / processChosenHeading', `appended new heading '${newHeading}' at line ${newLindeIndex}`)
-      headingToReturn = newHeading
-    } else {
-      throw new Error(`user cancelled operation`)
-    }
-  } else if (headingToReturn.includes('(top of note)')) {
-    logDebug('userInput / processChosenHeading', `selected top of note, rather than a heading`)
-    headingToReturn = '<<top of note>>' // hopefully won't ever be used as an actual title!
-  } else if (headingToReturn.includes('(bottom of note)')) {
-    logDebug('userInput / processChosenHeading', `selected end of note, rather than a heading`)
-    headingToReturn = '<<bottom of note>>'
-  } else {
-    // Nothing else to do
+    return headingToReturn
+  } catch (error) {
+    logError('userInput / processChosenHeading', error.message)
+    return ''
   }
-  return headingToReturn
 }
 
 /**

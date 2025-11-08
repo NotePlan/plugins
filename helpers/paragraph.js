@@ -583,7 +583,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
     // or 'allowPreamble' is true.
     // If there is, run on to next heading or blank line (if found) otherwise, just the next line. Finding a separator or any YouTutype of task or checklist also stops the search.
     if (allowPreamble || (paras[startOfActive] && paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/))) {
-      // logDebug('paragraph/findStartOfActivePartOfNote', `- We want to allow preamble, or found a metadata line.`)
+      // logDebug('paragraph/findStartOfActivePartOfNote', `- We want to allow preamble, or there's a hashtag starting the next line.`)
       // startOfActive += 1
       for (let i = startOfActive; i < paras.length; i++) {
         const p = paras[i]

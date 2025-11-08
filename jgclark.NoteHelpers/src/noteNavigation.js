@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Navigation functions for Note Helpers plugin for NotePlan
 // Jonathan Clark
-// Last updated 2025-08-23 for v1.2.0, @jgclark
+// Last updated 2025-11-07 for v1.2.4, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -39,6 +39,10 @@ export async function jumpToHeading(heading?: string): Promise<void> {
     const headingStr = heading ?? (await chooseHeadingV2(note, false, false, true))
     // find out position of this heading, ready to set insertion point
     // (or 0 if it can't be found)
+    if (headingStr === '') {
+      logDebug('noteHelpers / jumpToHeading', `No heading chosen. Stopping.`)
+      return
+    }
     const startPos = getParaFromContent(note, headingStr)?.contentRange?.start ?? 0
     logDebug('noteHelpers / jumpToHeading', `for '${headingStr}' at position ${startPos} max ${String(note.content?.length)}`)
     Editor.select(startPos, 0)

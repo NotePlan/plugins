@@ -185,18 +185,36 @@ export async function chooseNoteV2(
 
   // Now show the options to the user
   let noteToReturn = null
+  let selectedNote: ?TNote
+  let selectedText: string
   if (usersVersionHas('decoratedCommandBar')) {
     // logDebug('chooseNoteV2', `Using 3.18.0's advanced options for CommandBar.showOptions call`)
     // use the more advanced options to the `CommandBar.showOptions` call
     const { index } = await CommandBar.showOptions(opts, promptText)
-    noteToReturn = opts[index].text.includes('[New note]') ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '') : sortedNoteList[index]
+    selectedNote = sortedNoteList[index]
+    selectedText = opts[index].text
   } else {
     // use the basic options for the `CommandBar.showOptions` call. Get this by producing a simple array from the main options array.
     // logDebug('chooseNoteV2', `Using pre-3.18.0's basic options for CommandBar.showOptions call`)
     const simpleOpts = opts.map((opt) => opt.text)
     const { index } = await CommandBar.showOptions(simpleOpts, promptText)
-    noteToReturn = simpleOpts[index].includes('[New note]') ? await getOrMakeCalendarNote(sortedNoteList[index].title ?? '') : sortedNoteList[index]
+    selectedNote = sortedNoteList[index]
+    selectedText = simpleOpts[index]
   }
+  if (selectedText.includes('[New note]')) {
+    // Handle "[New note]" option - create a new regular note
+    // Prompt user for note title
+    const noteTitle = await CommandBar.showInput('Enter title for new note:', 'New note')
+    if (noteTitle && noteTitle !== '') {
+      const newNoteFilename = await DataStore.newNote(noteTitle, '/')
+      if (newNoteFilename) {
+        noteToReturn = await DataStore.noteByFilename(newNoteFilename, 'Notes')
+      }
+    }
+  } else {
+    noteToReturn = selectedNote
+  }
+
   // logDebug('chooseNoteV2', `-> ${noteToReturn ? noteToReturn.filename : '(none)'}`)
   return noteToReturn
 }
@@ -1158,7 +1176,7 @@ export function findNotesMatchingHashtagOrMentionFromList(
  *
  * @param {TNote} note - note to get headings from
  * @param {boolean} includeMarkdown - whether to include markdown markers in the headings
- * @param {boolean} optionAddATopAndtBottom - whether to add 'top of note' and 'bottom of note' options. Default: true.
+ * @param {boolean} optionAddATopAndBottom - whether to add 'top of note' and 'bottom of note' options. Default: true.
  * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at top or bottom of note. Default: false.
  * @param {boolean} includeArchive - whether to include headings in the Archive section of the note (i.e. after 'Done'). Default: false.
  * @return {Array<string>}
@@ -1166,54 +1184,67 @@ export function findNotesMatchingHashtagOrMentionFromList(
 export function getHeadingsFromNote(
   note: TNote,
   includeMarkdown: boolean = false,
-  optionAddATopAndtBottom: boolean = true,
+  optionAddATopAndBottom: boolean = true,
   optionCreateNewHeading: boolean = false,
   includeArchive: boolean = false,
 ): Array<string> {
-  let headingStrings = []
-  const spacer = '#'
-  let headingParas: Array<TParagraph> = []
-  const indexEndOfActive = findEndOfActivePartOfNote(note)
-  if (includeArchive) {
-    headingParas = note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex < indexEndOfActive)
-  } else {
-    headingParas = note.paragraphs.filter((p) => p.type === 'title')
-  }
-
-  // If this is the title line, skip it
-  if (headingParas.length > 0) {
-    if (headingParas[0].content === note.title) {
-      headingParas = headingParas.slice(1)
-    }
-  }
-  if (headingParas.length > 0) {
-    headingStrings = headingParas.map((p) => {
-      let prefix = ''
-      for (let i = 0; i < p.headingLevel; i++) {
-        prefix += spacer
-      }
-      return `${prefix} ${p.content.trimLeft()}`
-    })
-  }
-  if (optionCreateNewHeading) {
-    if (note.type === 'Calendar') {
-      headingStrings.unshift('➕#️⃣ (first insert new heading at the start of the note)')
+  try {
+    const indexEndOfActive = findEndOfActivePartOfNote(note)
+    const MDHeadingChar = '#'
+    let headingStrings = []
+    let headingParas: Array<TParagraph> = []
+    if (includeArchive) {
+      headingParas = note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex <= indexEndOfActive)
     } else {
-      headingStrings.unshift(`➕#️⃣ (first insert new heading under the title)`)
+      headingParas = note.paragraphs.filter((p) => p.type === 'title')
     }
-    headingStrings.push(`➕#️⃣ (first insert new heading at the end of the note)`)
+
+    // If this is the title line, skip it
+    if (headingParas.length > 0) {
+      if (headingParas[0].content === note.title) {
+        headingParas = headingParas.slice(1)
+      }
+    }
+    if (headingParas.length > 0) {
+      headingStrings = headingParas.map((p) => {
+        let prefix = ''
+        for (let i = 0; i < p.headingLevel; i++) {
+          prefix += MDHeadingChar
+        }
+        return `${prefix} ${p.content.trimLeft()}`
+      })
+    }
+    if (optionCreateNewHeading) {
+      // Note: The strings here must match the strings in userInput.js::processChosenHeading()
+      if (note.type === 'Calendar') {
+        headingStrings.unshift('➕#️⃣ (first insert new heading at the start of the note)')
+      } else {
+        headingStrings.unshift(`➕#️⃣ (first insert new heading under the title)`)
+      }
+      if (headingParas.length > 0) {
+        headingStrings.push(`➕#️⃣ (first insert new heading at the end of the note)`)
+      } else {
+        logDebug('NPnote/getHeadingsFromNote', `No headings found in note ${note.filename}. So not adding 'insert new heading at the end of the note' option as well as 'first insert new heading...' option.`)
+      }
+    }
+    logDebug('NPnote/getHeadingsFromNote', `After adding 'insert new heading...' options, headingStrings: ${String(headingStrings)}`)
+    if (optionAddATopAndBottom) {
+      headingStrings.unshift('⏫ (top of note)')
+      headingStrings.push('⏬ (bottom of note)')
+    }
+    if (headingStrings.length === 0) {
+      logDebug('NPnote/getHeadingsFromNote', `No headingStrings generated for note ${note.filename}. Returning empty array.`)
+      return []
+    }
+    // Remove any markdown heading markers if requested
+    if (!includeMarkdown) {
+      headingStrings = headingStrings.map((h) => h.replace(/^#{1,5}\s*/, ''))
+    }
+    return headingStrings
+  } catch (error) {
+    logError('NPnote/getHeadingsFromNote', error.message)
+    return []
   }
-  if (optionAddATopAndtBottom) {
-    headingStrings.unshift('⏫ (top of note)')
-    headingStrings.push('⏬ (bottom of note)')
-  }
-  if (headingStrings.length === 0) {
-    return ['']
-  }
-  if (!includeMarkdown) {
-    headingStrings = headingStrings.map((h) => h.replace(/^#{1,5}\s*/, '')) // remove any markdown heading markers
-  }
-  return headingStrings
 }
 
 /**
