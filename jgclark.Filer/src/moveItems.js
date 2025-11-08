@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2025-10-18, for v1.3.3
+// last updated 2025-11-07, for v1.3.3
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -16,6 +16,7 @@ import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { addParagraphsToNote, findHeading } from '@helpers/paragraph'
 import { chooseNoteV2 } from '@helpers/NPnote'
 import { getParagraphBlock, getSelectedParagraphsWithCorrectLineIndex, selectedLinesIndex } from '@helpers/NPParagraph'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { chooseHeadingV2, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -48,22 +49,19 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
       logWarn(pluginJson, 'moveParas: No note open, so stopping.')
       return
     }
-    // Get current selection, and its range
-    // // First a belt-and-braces check that the editor is active and selection is valid
-    // if (selection == null) {
-    //   logError(pluginJson, 'moveParas: No selection found, so stopping.')
-    //   return
-    // }
     const config = await getFilerSettings()
     const origNumParas = Editor.paragraphs.length
 
     // Get the paragraphs to use for the selection. 
-    // v1: use Editor.selection. However, we found an issue with this and frontmatter.
-    // v2: use Editor.selectedParagraphs instead
-    // See note in API about why this is required.
-    const selectedParagraphsToUse = Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex]) ?? []
-    // v3: use getSelectedParagraphsWithCorrectLineIndex() instead, which is settable from v3.19.2 (build 1440 onwards), to help deal with the issue mentioned above. FIXME: waiting for build 1440 to try again with this.
-    // const selectedParagraphsToUse = getSelectedParagraphsWithCorrectLineIndex()
+    // v1: use Editor.selection. However, we found an issue with this and frontmatter. 
+    let selectedParagraphsToUse: Array<TParagraph>
+    if (usersVersionHas('settableLineIndex')) {
+      // v3: use getSelectedParagraphsWithCorrectLineIndex() instead, which is settable from v3.19.2 (build 1440 onwards), to help deal with the issue mentioned above.
+      selectedParagraphsToUse = getSelectedParagraphsWithCorrectLineIndex()
+    } else {
+      // v2: use Editor.selectedParagraphs instead
+      selectedParagraphsToUse = Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex]) ?? []
+    }
     logDebug('moveParas', `moveParas: selectedParagraphsToUse:\n${selectedParagraphsToUse.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n')}`)
     const firstSelLineIndex = selectedParagraphsToUse[0].lineIndex
     const lastSelLineIndex = selectedParagraphsToUse[selectedParagraphsToUse.length - 1].lineIndex
@@ -119,6 +117,10 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     // Ask to which heading to add the selectedParas
     let headingToFind = await chooseHeadingV2(destNote, true, true, false)
     logDebug('moveParas', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
+    if (headingToFind === '') {
+      logWarn('moveParas', `- No heading chosen. Stopping.`)
+      return
+    }
 
     // Handle trailing whitespace in heading names
     if (headingToFind !== '<<top of note>>' && headingToFind !== '<<bottom of note>>' && /\s$/.test(headingToFind)) {

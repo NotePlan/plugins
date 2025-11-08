@@ -1,8 +1,9 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
-## [1.3.3] - 2025-10-18
+## [1.3.3] - 2025-11-07
 - fix duplication in /move block (thanks for the tip, @bido_1977)
+- improved the heading picker used in some of these commands
 
 ## [1.3.2] - 2025-09-06
 - suppress notes in the special Archive and Template folders from the note chooser in **/add sync'd copy to note** and **/move ...** commands (for @chrismetcalf)
