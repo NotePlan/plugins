@@ -28,7 +28,7 @@ import { getNPWeekData } from '@helpers/NPdateTime'
 
 import { parseJSON5, getRandomUUID, createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 
-import { getNote, removeSection } from '@helpers/note'
+import { getNote, removeSection, setTitle } from '@helpers/note'
 
 import { selectFirstNonTitleLineInEditor, getNoteFromIdentifier, getFlatListOfBacklinks, getOrMakeRegularNoteInFolder, getOrMakeCalendarNote, chooseNoteV2 } from '@helpers/NPnote'
 
@@ -108,6 +108,7 @@ const helpers = {
   // Note-related helpers
   getNote,
   removeSection,
+  setTitle,
   selectFirstNonTitleLineInEditor,
   getNoteFromIdentifier,
   getFlatListOfBacklinks,

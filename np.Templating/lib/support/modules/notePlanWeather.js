@@ -6,6 +6,185 @@
 // @flow
 
 import { stringReplace } from '../../../../helpers/general'
+import { logDebug } from '@helpers/dev'
+
+const safeString = (value: any): string => {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  return String(value)
+}
+
+const toNumber = (value: any): ?number => {
+  if (value === null || value === undefined) {
+    return null
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+const formatNumber = (value: ?number, decimals: number = 0): string => {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  if (!Number.isFinite(value)) {
+    return ''
+  }
+  const factor = Math.pow(10, decimals)
+  const rounded = Math.round(value * factor) / factor
+  return decimals > 0 ? rounded.toFixed(decimals) : String(Math.round(rounded))
+}
+
+const convertTemperature = (value: ?number, fromUnit: string = '', targetUnit: string): ?number => {
+  if (value === null || value === undefined) {
+    return null
+  }
+  const normalizedFrom = fromUnit.trim()
+  if (normalizedFrom === targetUnit) {
+    return value
+  }
+  if (normalizedFrom === '°C' && targetUnit === '°F') {
+    return value * (9 / 5) + 32
+  }
+  if (normalizedFrom === '°F' && targetUnit === '°C') {
+    return (value - 32) * (5 / 9)
+  }
+  return value
+}
+
+const normalizeSpeedUnit = (unit: ?string): string => {
+  if (!unit) {
+    return ''
+  }
+  const normalized = unit.toLowerCase()
+  if (normalized === 'mph') {
+    return 'mph'
+  }
+  if (normalized === 'kph' || normalized === 'kmh' || normalized === 'km/h') {
+    return 'km/h'
+  }
+  if (normalized === 'm/s' || normalized === 'mps') {
+    return 'm/s'
+  }
+  return normalized
+}
+
+const convertSpeed = (value: ?number, fromUnit: ?string, targetUnit: string): ?number => {
+  if (value === null || value === undefined) {
+    return null
+  }
+  const from = normalizeSpeedUnit(fromUnit)
+  if (from === targetUnit) {
+    return value
+  }
+  if (from === 'm/s') {
+    if (targetUnit === 'km/h') {
+      return value * 3.6
+    }
+    if (targetUnit === 'mph') {
+      return value * 2.23693629
+    }
+  }
+  if (from === 'km/h') {
+    if (targetUnit === 'mph') {
+      return value * 0.621371
+    }
+    if (targetUnit === 'm/s') {
+      return value / 3.6
+    }
+  }
+  if (from === 'mph') {
+    if (targetUnit === 'km/h') {
+      return value * 1.60934
+    }
+    if (targetUnit === 'm/s') {
+      return value * 0.44704
+    }
+  }
+  return value
+}
+
+const convertDistance = (value: ?number, fromUnit: ?string, targetUnit: string): ?number => {
+  if (value === null || value === undefined) {
+    return null
+  }
+  const normalizedFrom = (fromUnit || '').toLowerCase()
+  if (normalizedFrom === targetUnit) {
+    return value
+  }
+  if (normalizedFrom === 'km' && targetUnit === 'miles') {
+    return value * 0.621371
+  }
+  if (normalizedFrom === 'miles' && targetUnit === 'km') {
+    return value * 1.60934
+  }
+  return value
+}
+
+const degreesToCompass = (degrees: ?number): string => {
+  const value = toNumber(degrees)
+  if (value === null || value === undefined) {
+    return ''
+  }
+  const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+  const numericValue: number = value
+  const index = Math.round(numericValue / 22.5) % 16
+  return directions[index]
+}
+
+const determineTemperatureUnits = (unitsParam: ?string, temperatureUnit: ?string): string => {
+  if (unitsParam && unitsParam.toLowerCase() === 'imperial') {
+    return 'imperial'
+  }
+  if (unitsParam && unitsParam.toLowerCase() === 'metric') {
+    return 'metric'
+  }
+  if (temperatureUnit === '°F') {
+    return 'imperial'
+  }
+  return 'metric'
+}
+
+const buildLegacyPlaceholderReplacements = (weather: any, unitsParam: ?string, windSpeedUnit: ?string, visibilityUnit: ?string): Array<{ key: string, value: string }> => {
+  const temperatureUnits = determineTemperatureUnits(unitsParam, weather?.temperatureUnit)
+  const temperatureSymbol = weather?.temperatureUnit || (temperatureUnits === 'imperial' ? '°F' : '°C')
+
+  const apparentTemp = toNumber(weather?.apparentTemperature)
+  const feelsLikeF = convertTemperature(apparentTemp, temperatureSymbol, '°F')
+  const feelsLikeC = convertTemperature(apparentTemp, temperatureSymbol, '°C')
+
+  const windSpeedValue = toNumber(weather?.windSpeed)
+  const windSpeedMiles = convertSpeed(windSpeedValue, windSpeedUnit, 'mph')
+  const windSpeedKmph = convertSpeed(windSpeedValue, windSpeedUnit, 'km/h')
+
+  const windDirectionDegrees = toNumber(weather?.windDirection)
+  const windCompass = degreesToCompass(windDirectionDegrees)
+
+  const visibilityValue = toNumber(weather?.visibility)
+  const visibilityMiles = convertDistance(visibilityValue, visibilityUnit || 'km', 'miles')
+
+  const regionName = weather?.location?.regionName ?? weather?.location?.region ?? weather?.location?.state ?? weather?.location?.administrativeArea ?? weather?.region ?? ''
+
+  const countryName = weather?.location?.country ?? weather?.country ?? ''
+
+  return [
+    { key: ':FeelsLikeF:', value: formatNumber(feelsLikeF) },
+    { key: ':FeelsLikeC:', value: formatNumber(feelsLikeC) },
+    { key: ':winddir16Point:', value: windCompass },
+    { key: ':winddirDegree:', value: formatNumber(windDirectionDegrees) },
+    { key: ':windspeedMiles:', value: formatNumber(windSpeedMiles) },
+    { key: ':windspeedKmph:', value: formatNumber(windSpeedKmph) },
+    { key: ':visibilityMiles:', value: formatNumber(visibilityMiles) },
+    { key: ':region:', value: safeString(regionName) },
+    { key: ':country:', value: safeString(countryName) },
+  ]
+}
 
 /**
  * Note: Available from NotePlan v3.19.2
@@ -52,10 +231,24 @@ import { stringReplace } from '../../../../helpers/general'
  * - :sunrise: - Sunrise time
  * - :sunset: - Sunset time
  */
-export async function getNotePlanWeather(format: string = '', units: string = 'metric', latitude: number = 0, longitude: number = 0): Promise<string | any> {
+export async function getNotePlanWeather(
+  format: string = ':cityName:, :region: :icon: :temperature::temperatureUnit:',
+  units: string | null = null,
+  latitude: number | null = null,
+  longitude: number | null = null,
+): Promise<string | any> {
   try {
     // $FlowFixMe - NotePlan global is available at runtime
-    const weather = await NotePlan.getWeather(units, latitude, longitude)
+    // work around NotePlan api bug where 0 was not doing a lookup, so sending nulls instead
+    const _latitude = !latitude && !longitude ? undefined : latitude
+    const _longitude = !latitude && !longitude ? undefined : longitude
+    const _units = !units ? undefined : units
+    const unitsLabel: string = _units ?? 'default'
+    const latitudeLabel: string = _latitude === null || _latitude === undefined ? 'auto' : String(_latitude)
+    const longitudeLabel: string = _longitude === null || _longitude === undefined ? 'auto' : String(_longitude)
+    logDebug('getNotePlanWeather', `Calling NotePlan.getWeather with units: "${unitsLabel}", latitude: "${latitudeLabel}", longitude: "${longitudeLabel}" format: "${format}"`)
+    // $FlowFixMe[incompatible-call] - NotePlan.getWeather accepts undefined/null values for auto-detection
+    const weather = await NotePlan.getWeather(_units, _latitude, _longitude)
 
     // If no format specified, return the pre-formatted output
     if (!format || format === '') {
@@ -64,50 +257,53 @@ export async function getNotePlanWeather(format: string = '', units: string = 'm
 
     // Special format to return raw object
     if (format === ':raw:' || format === ':object:') {
-      console.log('getNotePlanWeather: Returning raw weather object:', weather)
+      logDebug('getNotePlanWeather', 'Returning raw weather object')
       return weather
     }
 
     // Build replacements array with backward compatibility for old weather() placeholders
     const replacements = [
       // New NotePlan API fields
-      { key: ':cityName:', value: String(weather.cityName || '') },
-      { key: ':temperature:', value: String(weather.temperature || '') },
-      { key: ':temperatureUnit:', value: String(weather.temperatureUnit || '') },
-      { key: ':apparentTemperature:', value: String(weather.apparentTemperature || '') },
-      { key: ':humidity:', value: String(weather.humidity || '') },
-      { key: ':windSpeed:', value: String(weather.windSpeed || '') },
-      { key: ':windSpeedUnit:', value: String(weather.windSpeedUnit || '') },
-      { key: ':windDirection:', value: String(weather.windDirection || '') },
-      { key: ':uvIndex:', value: String(weather.uvIndex || '') },
-      { key: ':condition:', value: String(weather.condition || '') },
-      { key: ':emoji:', value: String(weather.emoji || '') },
-      { key: ':iconCode:', value: String(weather.iconCode || '') },
-      { key: ':visibility:', value: String(weather.visibility || '') },
-      { key: ':visibilityUnit:', value: String(weather.visibilityUnit || '') },
-      { key: ':highTemp:', value: String(weather.highTemp || '') },
-      { key: ':lowTemp:', value: String(weather.lowTemp || '') },
-      { key: ':sunrise:', value: String(weather.sunrise || '') },
-      { key: ':sunset:', value: String(weather.sunset || '') },
+      { key: ':cityName:', value: safeString(weather.cityName) },
+      { key: ':temperature:', value: safeString(weather.temperature) },
+      { key: ':temperatureUnit:', value: safeString(weather.temperatureUnit) },
+      { key: ':apparentTemperature:', value: safeString(weather.apparentTemperature) },
+      { key: ':humidity:', value: safeString(weather.humidity) },
+      { key: ':windSpeed:', value: safeString(weather.windSpeed) },
+      { key: ':windSpeedUnit:', value: safeString(weather.windSpeedUnit) },
+      { key: ':windDirection:', value: safeString(weather.windDirection) },
+      { key: ':uvIndex:', value: safeString(weather.uvIndex) },
+      { key: ':condition:', value: safeString(weather.condition) },
+      { key: ':emoji:', value: safeString(weather.emoji) },
+      { key: ':iconCode:', value: safeString(weather.iconCode) },
+      { key: ':visibility:', value: safeString(weather.visibility) },
+      { key: ':visibilityUnit:', value: safeString(weather.visibilityUnit) },
+      { key: ':highTemp:', value: safeString(weather.highTemp) },
+      { key: ':lowTemp:', value: safeString(weather.lowTemp) },
+      { key: ':sunrise:', value: safeString(weather.sunrise) },
+      { key: ':sunset:', value: safeString(weather.sunset) },
 
       // Backward compatibility with old weather() placeholders
-      { key: ':areaName:', value: String(weather.cityName || '') },
-      { key: ':description:', value: String(weather.condition || '') },
-      { key: ':icon:', value: String(weather.emoji || '') },
-      { key: ':mintempC:', value: String(weather.lowTemp || '') },
-      { key: ':maxtempC:', value: String(weather.highTemp || '') },
-      { key: ':mintempF:', value: String(weather.lowTemp || '') },
-      { key: ':maxtempF:', value: String(weather.highTemp || '') },
+      { key: ':areaName:', value: safeString(weather.cityName) },
+      { key: ':description:', value: safeString(weather.condition) },
+      { key: ':icon:', value: safeString(weather.emoji) },
+      { key: ':mintempC:', value: safeString(weather.lowTemp) },
+      { key: ':maxtempC:', value: safeString(weather.highTemp) },
+      { key: ':mintempF:', value: safeString(weather.lowTemp) },
+      { key: ':maxtempF:', value: safeString(weather.highTemp) },
 
       // Location fields
-      { key: ':latitude:', value: String(weather.location?.latitude || '') },
-      { key: ':longitude:', value: String(weather.location?.longitude || '') },
+      { key: ':latitude:', value: safeString(weather.location?.latitude) },
+      { key: ':longitude:', value: safeString(weather.location?.longitude) },
     ]
 
+    const computedReplacements = buildLegacyPlaceholderReplacements(weather, _units, weather.windSpeedUnit, weather.visibilityUnit)
+    replacements.push(...computedReplacements)
+
     // Perform replacements
-    console.log(`getNotePlanWeather: Processing format string: "${format}"`)
+    logDebug('getNotePlanWeather', `Processing format string: "${format}"`)
     let output = stringReplace(format, replacements)
-    console.log(`getNotePlanWeather: After replacements: "${output}"`)
+    logDebug('getNotePlanWeather', `After replacements: "${output}"`)
 
     // Handle any remaining placeholders that might be direct property access
     // This allows for more flexible field access like the old weather API
@@ -116,11 +312,11 @@ export async function getNotePlanWeather(format: string = '', units: string = 'm
       const key = matchedItem[1]
       if (weather[key] !== undefined) {
         output = output.replace(`:${key}:`, String(weather[key]))
-        console.log(`getNotePlanWeather: Replaced :${key}: with ${weather[key]}`)
+        logDebug('getNotePlanWeather', `Replaced :${key}: with ${weather[key]}`)
       }
     }
 
-    console.log(`getNotePlanWeather: Final output: "${output}"`)
+    logDebug('getNotePlanWeather', `Final output: "${output}"`)
     return output
   } catch (error) {
     return `**Error fetching weather data: ${error.message || 'Unknown error'}**`

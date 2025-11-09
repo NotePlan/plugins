@@ -382,7 +382,7 @@ export default class TemplatingEngine {
         verse: async () => {
           return await new WebModule().verse()
         },
-        weather: async (params: string = '', units: string = 'metric', latitude: number = 0, longitude: number = 0) => {
+        weather: async (params: string = '', units?: string | null, latitude?: number | null, longitude?: number | null) => {
           return await new WebModule().weather(this.templateConfig, params, units, latitude, longitude)
         },
         wotd: async (params: string = '') => {

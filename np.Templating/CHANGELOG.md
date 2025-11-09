@@ -6,6 +6,13 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.2.2] 2025-11-09 @dwertheimer
+- Fix default weather formatting so calling `<%- weather() %>` uses the new NotePlan format string
+
+## [2.2.1] 2025-11-09 @dwertheimer
+- Work around NotePlan weather API bug by sending null coordinates instead of `0,0` so auto-location lookup succeeds
+- Mapped legacy weather placeholders (e.g. `:FeelsLikeF:`, `:winddir16Point:`, `:region:`) to fields from NotePlan's OpenWeatherMap response
+
 ## [2.2.0] 2025-10-28 @dwertheimer
 - switch weather service to use NotePlan's new weather API (` <%- NotePlan.getWeather(units, latitude, longitude) %> `)
 - templateInsert and templateAppend now add a reload of the Editor in case any templating code changed the note underneath and we are reloading the note to get the new content before inserting the rendered template. to solve a but where plugin was writing to note but Editor was overwriting
