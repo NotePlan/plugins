@@ -38,7 +38,7 @@ const defaultNoteIconDetails = { icon: 'file-lines', color: 'gray-500', alpha: 0
 const noteIconsToUse: Array<TFolderIcon> = [
   { firstLevelFolder: '<DAY>', icon: 'calendar-star', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
   { firstLevelFolder: '<WEEK>', icon: 'calendar-week', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
-  { firstLevelFolder: '<MONTH>', icon: 'calendar', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 }, // TODO: can't find the right icon for this
+  { firstLevelFolder: '<MONTH>', icon: 'calendar-range', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
   { firstLevelFolder: '<QUARTER>', icon: 'calendar-days', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
   { firstLevelFolder: '<YEAR>', icon: 'calendar-days', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
   { firstLevelFolder: '@Archive', icon: 'box-archive', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
