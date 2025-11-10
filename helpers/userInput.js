@@ -343,133 +343,63 @@ export async function chooseFolder(
     let optClickedOnFolder = false
     let newFolderWanted = false
 
-    if (folders.length > 0) {
-      // Create folder options for display (without new folder option at this point)
-      const [simpleFolderOptions, decoratedFolderOptions] = createFolderOptions(folders, teamspaceDefs, includeFolderPath)
-      for (let i = 0; i < (folders.length > 15 ? 15 : folders.length); i++) {
-        logDebug('userInput / chooseFolder', `- ${i}: ${folders[i]} simpleOption: ${simpleFolderOptions[i].label} decoratedOption: ${decoratedFolderOptions[i].text}`)
-      }
+    if (folders.length === 0) {
+      // no Folders so just choose private root folder
+      folder = '/'
+      logDebug(`userInput / chooseFolder`, ` -> returning "${folder}"`)
+      return folder
+    }
 
-      // Get user selection. Use newer CommandBar.showOptions() from v3.18 if available.
-      let result: TCommandBarOptionObject | any
-      if (usersVersionHas('decoratedCommandBar') && !forceOriginalCommandBar) {
-        // ✅ for list with add new option
-        // ✅ for list without add new option
-        // ✅ for both private + teamspace
-        // ✅ for excluding Archive
-        // ✅ for folder creation to private area root
-        // ✅ for folder creation to private area subfolder
-        // ✅ for folder creation to private area root opt-click
-        // ✅ for folder creation to private area subfolder opt-click
-        // ✅ for folder creation to a Teamspace root
-        // ✅ for folder creation to a Teamspace subfolder
-        // ✅ for folder creation to a Teamspace root opt-click
-        // ✅ for folder creation to a Teamspace subfolder opt-click
+    // Otherwise there are folders, so create folder options for display (without new folder option at this point)
+    const [simpleFolderOptions, decoratedFolderOptions] = createFolderOptions(folders, teamspaceDefs, includeFolderPath)
 
-        let actualIndex = -1
-        if (includeNewFolderOption) {
-          // Add in the new folder option just for newer CommandBar use
-          decoratedFolderOptions.unshift(addDecoratedNewFolderOption)
-          result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions) // note disabling the add new folder option as we need to handle it with access to folders array
-          keyModifiers = result.keyModifiers || []
-          if (keyModifiers.length > 0 && keyModifiers.indexOf('opt') > -1) {
-            optClickedOnFolder = true
-          }
+    // Get user selection. Use newer CommandBar.showOptions() from v3.18 if available.
+    let result: TCommandBarOptionObject | any
+    if (usersVersionHas('decoratedCommandBar') && !forceOriginalCommandBar) {
+      // ✅ for list with add new option
+      // ✅ for list without add new option
+      // ✅ for both private + teamspace
+      // ✅ for excluding Archive
+      // ✅ for folder creation to private area root
+      // ✅ for folder creation to private area subfolder
+      // ✅ for folder creation to private area root opt-click
+      // ✅ for folder creation to private area subfolder opt-click
+      // ✅ for folder creation to a Teamspace root
+      // ✅ for folder creation to a Teamspace subfolder
+      // ✅ for folder creation to a Teamspace root opt-click
+      // ✅ for folder creation to a Teamspace subfolder opt-click
 
-          if (result.index === 0) {
-            // i.e. new folder wanted, but no name given yet
-            folder = ''
-            newFolderWanted = true
-            logDebug('userInput / chooseFolder CHOSE NEW FOLDER CREATE OPTION', `- result.index: ${result.index}`)
-          } else if (optClickedOnFolder) {
-            logDebug('userInput / chooseFolder CHOSEN OPT CLICKED ON FOLDER', `- optClickedOnFolder: true`)
-            // i.e. new folder wanted, and parent folder chosen
-            actualIndex = result.index - 1
-            folder = folders[actualIndex] // to ignore the added new folder option if present
-            newFolderWanted = true
-          } else {
-            actualIndex = result.index - 1
-            folder = folders[actualIndex] // to ignore the added new folder option if present
-            logDebug('userInput / chooseFolder CHOSEN FOLDER', `- decoratedFolderOptions[${result.index}]: ${decoratedFolderOptions[result.index].text}`)
-            logDebug('userInput / chooseFolder CHOSEN FOLDER', `- simpleFolderOptions[${result.index}]: ${simpleFolderOptions[result.index].label}`)
-            logDebug('userInput / chooseFolder CHOSEN FOLDER', `- folders[${result.index}]: ${folders[result.index]} (using result index)`)
-            logDebug('userInput / chooseFolder CHOSEN FOLDER', `- actualIndex: ${actualIndex} folders[${actualIndex}]: ${folders[actualIndex]} (using actualIndex)`)
-          }
-
-          // Handle new folder creation, if requested
-          if (newFolderWanted) {
-            const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
-            if (newFolderPath) {
-              folder = newFolderPath
-              // logInfo(`userInput / chooseFolder`, ` -> created new folder "${folder}"`)
-              return newFolderPath
-            } else {
-              throw new Error(`Failed to create new folder "${folder}"`)
-            }
-          }
-        } else {
-          // not including add new folder option
-          result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions)
-          clo(result, 'chooseFolder chooseDecoratedOptionWithModifiers result') // ✅
-          actualIndex = result.index
-          value = folders[actualIndex]
-        }
-        logDebug(
-          'userInput / chooseFolder',
-          `User chose: result.index:${result.index} ${
-            includeNewFolderOption ? `(actualIndex in folders array: ${actualIndex} because running with includeNewFolderOption),` : ''
-          } optClickedOnFolder: ${String(optClickedOnFolder)} / folders: ${folders.length}`,
-        )
-        // logDebug output a map of the folders arrray with 3 items on either side of the chosen index
-        // realizing that folder index could be 0, so we need to handle that
-        if (actualIndex > -1) {
-          const foldersSample = folders.map((f, i) => ({ ...(typeof f === 'string' ? { label: f, value: f } : f), index: i })).slice(Math.max(0, actualIndex - 3), actualIndex + 3)
-          logDebug('userInput / chooseFolder', `foldersSample +/- 3 of chosen index`)
-          foldersSample.forEach((folder) => {
-            logDebug('userInput / chooseFolder', `  [${folder.index}]: ${folder.label}${folder.index === actualIndex ? ' <== (chosen)' : ''}`)
-          })
-        }
-folder = value
-      } else {
-        // ✅ for both private + teamspace
-        // ✅ for excluding Archive
-        // ✅ for folder creation to private area root
-        // ✅ for folder creation to private area subfolder
-        // ✅ for folder creation to a Teamspace root
-        // ✅ for folder creation to a Teamspace subfolder
-        // ✅ for folder creation to private area root opt-click
-        // ✅ for folder creation to private area subfolder opt-click
-        // ✅ for folder creation to a Teamspace root opt-click
-        // ✅ for folder creation to a Teamspace subfolder opt-click
-
+      let actualIndex = -1
+      if (includeNewFolderOption) {
         // Add in the new folder option just for newer CommandBar use
-        if (includeNewFolderOption) {
-          simpleFolderOptions.unshift(addSimpleNewFolderOption)
-        }
-        // V1 used chooseOptionWithModifiers() but it just got too complicated, so using parts of its logic here
-        // V2
-        const { index, keyModifiers } = await CommandBar.showOptions(
-          simpleFolderOptions.map((option) => (typeof option === 'string' ? option : option.label)),
-          'Choose Folder',
-        )
+        decoratedFolderOptions.unshift(addDecoratedNewFolderOption)
+        result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions) // note disabling the add new folder option as we need to handle it with access to folders array
+        keyModifiers = result.keyModifiers || []
         if (keyModifiers.length > 0 && keyModifiers.indexOf('opt') > -1) {
           optClickedOnFolder = true
         }
-        logDebug('userInput / chooseFolder', `- index: ${index}, keyModifiers: ${String(keyModifiers)}`)
 
-        if (includeNewFolderOption && index === 0) {
-          // i.e. new folder wanted but no name given
+        if (result.index === 0) {
+          // i.e. new folder wanted, but no name given yet
           folder = ''
           newFolderWanted = true
+          logDebug('userInput / chooseFolder CHOSE NEW FOLDER CREATE OPTION', `- result.index: ${ result.index } `)
         } else if (optClickedOnFolder) {
+          logDebug('userInput / chooseFolder CHOSEN OPT CLICKED ON FOLDER', `- optClickedOnFolder: true`)
           // i.e. new folder wanted, and parent folder chosen
-          folder = folders[index - 1]
+          actualIndex = result.index - 1
+          folder = folders[actualIndex] // to ignore the added new folder option if present
           newFolderWanted = true
         } else {
-          folder = folders[index]
+          actualIndex = result.index - 1
+          folder = folders[actualIndex] // to ignore the added new folder option if present
+          // logDebug('userInput / chooseFolder CHOSEN FOLDER', `- decoratedFolderOptions[${ result.index }]: ${ decoratedFolderOptions[result.index].text } `)
+          // logDebug('userInput / chooseFolder CHOSEN FOLDER', `- simpleFolderOptions[${ result.index }]: ${ simpleFolderOptions[result.index].label } `)
+          // logDebug('userInput / chooseFolder CHOSEN FOLDER', `- folders[${ result.index }]: ${ folders[result.index] } (using result index)`)
+          // logDebug('userInput / chooseFolder CHOSEN FOLDER', `- actualIndex: ${ actualIndex } folders[${ actualIndex }]: ${ folders[actualIndex] } (using actualIndex)`)
         }
-        logDebug('userInput / chooseFolder', `- folder: ${folder}, newFolderWanted? ${String(newFolderWanted)}`)
-        // Handle new folder creation, if required
+
+        // Handle new folder creation, if requested
         if (newFolderWanted) {
           const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
           if (newFolderPath) {
@@ -480,16 +410,78 @@ folder = value
             throw new Error(`Failed to create new folder "${folder}"`)
           }
         }
-        value = result?.value || ''
-        newFolderWanted = result?.index === -1
+      } else {
+        // not including add new folder option
+        result = await chooseDecoratedOptionWithModifiers(msg, decoratedFolderOptions)
+        clo(result, 'chooseFolder chooseDecoratedOptionWithModifiers result') // ✅
+        actualIndex = result.index
+        value = folders[actualIndex]
       }
-      logDebug(`userInput / chooseFolder`, ` -> folder:${folder} value:${value} keyModifiers:${String(keyModifiers)}`)
+      // logDebug('userInput / chooseFolder', `User chose: result.index:${ result.index } ${ includeNewFolderOption ? `(actualIndex in folders array: ${actualIndex} because running with includeNewFolderOption),` : '' } optClickedOnFolder: ${ String(optClickedOnFolder) } `)
+      // logDebug output a map of the folders arrray with 3 items on either side of the chosen index
+      // realizing that folder index could be 0, so we need to handle that
+      if (actualIndex > -1) {
+        const foldersSample = folders.map((f, i) => ({ ...(typeof f === 'string' ? { label: f, value: f } : f), index: i })).slice(Math.max(0, actualIndex - 3), actualIndex + 3)
+        logDebug('userInput / chooseFolder', `foldersSample +/- 3 of chosen index`)
+foldersSample.forEach((folder) => {
+  logDebug('userInput / chooseFolder', `  [${folder.index}]: ${folder.label}${folder.index === actualIndex ? ' <== (chosen)' : ''}`)
+})
+      }
+logDebug(`userInput / chooseFolder`, ` -> folder:${folder} keyModifiers:${String(keyModifiers)}`)
     } else {
-      // no Folders so just choose private root folder
-      folder = '/'
-    }
+// ✅ for both private + teamspace
+// ✅ for excluding Archive
+// ✅ for folder creation to private area root
+// ✅ for folder creation to private area subfolder
+// ✅ for folder creation to a Teamspace root
+// ✅ for folder creation to a Teamspace subfolder
+// ✅ for folder creation to private area root opt-click
+// ✅ for folder creation to private area subfolder opt-click
+// ✅ for folder creation to a Teamspace root opt-click
+// ✅ for folder creation to a Teamspace subfolder opt-click
 
-    logDebug(`userInput / chooseFolder`, ` -> returning "${folder}"`)
+  // Add in the new folder option just for newer CommandBar use
+  if (includeNewFolderOption) {
+    simpleFolderOptions.unshift(addSimpleNewFolderOption)
+  }
+  // V1 used chooseOptionWithModifiers() but it just got too complicated, so using parts of its logic here
+  // V2
+  const { index, keyModifiers } = await CommandBar.showOptions(
+    simpleFolderOptions.map((option) => (typeof option === 'string' ? option : option.label)),
+    'Choose Folder',
+  )
+  if (keyModifiers.length > 0 && keyModifiers.indexOf('opt') > -1) {
+    optClickedOnFolder = true
+  }
+  logDebug('userInput / chooseFolder', `- index: ${index}, keyModifiers: ${String(keyModifiers)}`)
+
+  if (includeNewFolderOption && index === 0) {
+    // i.e. new folder wanted but no name given
+    folder = ''
+    newFolderWanted = true
+  } else if (optClickedOnFolder) {
+    // i.e. new folder wanted, and parent folder chosen
+    folder = folders[index - 1]
+    newFolderWanted = true
+  } else {
+    folder = folders[index]
+  }
+  logDebug('userInput / chooseFolder', `- folder: ${folder}, newFolderWanted? ${String(newFolderWanted)}`)
+  // Handle new folder creation, if required
+  if (newFolderWanted) {
+    const newFolderPath = await handleNewFolderCreation(folder, startFolder, includeArchive, includeFolderPath, excludeTeamspaces, forceOriginalCommandBar)
+    if (newFolderPath) {
+      folder = newFolderPath
+      // logInfo(`userInput / chooseFolder`, ` -> created new folder "${folder}"`)
+      return newFolderPath
+    } else {
+      throw new Error(`Failed to create new folder "${folder}"`)
+    }
+  }
+  value = result?.value || ''
+  newFolderWanted = result?.index === -1
+}
+logDebug(`userInput / chooseFolder`, ` -> folder:${folder} keyModifiers:${String(keyModifiers)}`)
     return folder
   } catch (error) {
     logError('userInput / chooseFolder', error.message)
