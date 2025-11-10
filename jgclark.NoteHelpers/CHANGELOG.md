@@ -1,6 +1,9 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+## [1.2.5] - 2025-11-10
+- fix regression in folder chooser (thanks, @aleemshaun)
+
 ## [1.2.4] - 2025-11-08
 - Improvements in heading picker in **jump to heading** and **jump to note's heading** commands
 
