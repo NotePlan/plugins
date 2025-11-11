@@ -32,12 +32,16 @@ export default class WebModule {
     return await getStoicQuote()
   }
 
-  async weather(templateConfig: any, params: string = '', units: string = 'metric', latitude: number = 0, longitude: number = 0): Promise<string | any> {
+  async weather(templateConfig: any, params: string = '', units?: string | null, latitude?: number | null, longitude?: number | null): Promise<string | any> {
     let weatherFormat = params.length > 0 ? params : ''
     // eslint-disable-next-line
     weatherFormat = weatherFormat.length === 0 && templateConfig?.weatherFormat?.length > 0 ? templateConfig?.weatherFormat : weatherFormat
     // eslint-disable-next-line
-    return await getNotePlanWeather(weatherFormat, units, latitude, longitude)
+    const resolvedUnits = units === undefined || units === null || units === '' ? undefined : units
+    const resolvedLatitude = latitude === undefined || latitude === null ? undefined : latitude
+    const resolvedLongitude = longitude === undefined || longitude === null ? undefined : longitude
+    const resolvedFormat = weatherFormat === undefined || weatherFormat === null || weatherFormat.trim().length === 0 ? undefined : weatherFormat
+    return await getNotePlanWeather(resolvedFormat, resolvedUnits, resolvedLatitude, resolvedLongitude)
   }
 
   async verse(): Promise<string> {

@@ -84,14 +84,18 @@ const globals = {
     return await invokePluginCommandByName('jgclark.Summaries', 'todayProgressFromTemplate', [JSON.stringify(params)])
   },
 
-  weather: async (formatParam: string = '', units: string = 'metric', latitude: number = 0, longitude: number = 0): Promise<string | any> => {
+  weather: async (formatParam: string = '', units?: string | null, latitude?: number | null, longitude?: number | null): Promise<string | any> => {
     // Get format from settings or param (backward compatible)
     let weatherFormat = (await getSetting(pluginJson['plugin.id'], 'weatherFormat', '')) || ''
     if (formatParam.length > 0) {
       weatherFormat = formatParam
     }
-    logDebug(`weather format: "${weatherFormat}", units: "${units}", lat: ${latitude}, lon: ${longitude}`)
-    return await getNotePlanWeather(weatherFormat, units, latitude, longitude)
+    const resolvedUnits = units === undefined || units === null || units === '' ? undefined : units
+    const resolvedLatitude = latitude === undefined || latitude === null ? undefined : latitude
+    const resolvedLongitude = longitude === undefined || longitude === null ? undefined : longitude
+    logDebug(`weather format: "${weatherFormat}", units: "${resolvedUnits ?? 'default'}", lat: ${resolvedLatitude ?? 'auto'}, lon: ${resolvedLongitude ?? 'auto'}`)
+    const resolvedFormat = weatherFormat === undefined || weatherFormat === null || weatherFormat.trim().length === 0 ? undefined : weatherFormat
+    return await getNotePlanWeather(resolvedFormat, resolvedUnits, resolvedLatitude, resolvedLongitude)
   },
 
   date8601: async (): Promise<string> => {

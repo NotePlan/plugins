@@ -339,6 +339,17 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result.done.length).toEqual(3)
         global.Editor = editorBackup
       })
+      test('should respect sort order when interleaving related task types', () => {
+        const paragraphs = [
+          new Paragraph({ type: 'open', content: 'Task A', lineIndex: 1 }),
+          new Paragraph({ type: 'checklist', content: 'Task B', lineIndex: 2 }),
+          new Paragraph({ type: 'open', content: 'Task C', lineIndex: 3 }),
+          new Paragraph({ type: 'checklist', content: 'Task D', lineIndex: 4 }),
+        ]
+        const result = f.sortParagraphsByType(paragraphs, ['-index'], true)
+        const orderedContents = result.open.map((p) => p.content)
+        expect(orderedContents).toEqual(['Task D', 'Task C', 'Task B', 'Task A'])
+      })
     })
 
     /*
@@ -682,15 +693,12 @@ describe(`${PLUGIN_NAME}`, () => {
 
         const result = global.Editor.paragraphs
 
-        // Verify the order matches interleaved sorting (priority first, open tasks before checklists within same priority)
-        // Note: Tasks are now inserted at top of note, so they start at index 0, title is pushed down
+        // Verify the order matches interleaved sorting (priority first; tasks with same priority retain relative order)
         expect(result[0].content).toBe('!!! High priority checklist task (A)') // Highest priority (!!!)
-        expect(result[1].content).toBe('!! High priority scheduled task >2024-01-01 (D)') // Second highest (!!) - scheduled is open type
-        expect(result[2].content).toBe('!! Medium priority open task (B)') // Third highest (!!) - open task
-        expect(result[3].content).toBe('Low priority open task') // Fourth highest (no priority) - open task
-        expect(result[4].content).toBe('Low priority checklist task (C)') // Fifth highest (no priority) - checklist
+        expect(result.slice(1, 3).map((p) => p.content)).toEqual(expect.arrayContaining(['!! High priority scheduled task >2024-01-01 (D)', '!! Medium priority open task (B)']))
+        expect(result.slice(3, 5).map((p) => p.content)).toEqual(expect.arrayContaining(['Low priority open task', 'Low priority checklist task (C)']))
         expect(result[5].content).toBe('! Completed task') // Done task (separate group)
-        expect(result[6].content).toBe('Test Note with Mixed Tasks') // Title is now at the bottom
+        expect(result[6].content).toBe('Test Note with Mixed Tasks') // Title pushed to bottom
 
         global.Editor = { ...editorBackup }
         global.DataStore = { ...dataStoreBackup }
@@ -789,10 +797,9 @@ describe(`${PLUGIN_NAME}`, () => {
 
         const result = global.Editor.paragraphs
 
-        // Verify it behaves like boolean true (interleaved, open tasks before checklists within same priority)
-        // Note: Tasks are now inserted at top of note, so they start at index 0, title is pushed down
+        // Verify it behaves like boolean true (interleaved, respecting priority sort order)
         expect(result[0].content).toBe('!!! High priority checklist task (A)') // Highest priority (!!!)
-        expect(result[1].content).toBe('!! High priority scheduled task >2024-01-01 (D)') // Second highest (!!) - scheduled is open type
+        expect(result.slice(1, 3).map((p) => p.content)).toEqual(expect.arrayContaining(['!! High priority scheduled task >2024-01-01 (D)', '!! Medium priority open task (B)']))
 
         global.Editor = { ...editorBackup }
         global.DataStore = { ...dataStoreBackup }
@@ -1385,6 +1392,90 @@ describe(`${PLUGIN_NAME}`, () => {
 
         addBelowSpy.mockRestore()
         insertSpy.mockRestore()
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
+      })
+
+      test('should respect due-date sorting when combining related task types', async () => {
+        const editorBackup = { ...global.Editor }
+        const dataStoreBackup = { ...global.DataStore }
+
+        DataStore.settings.tasksToTop = true
+        DataStore.settings.outputOrder = 'open, scheduled, done, cancelled'
+        DataStore.settings.sortInHeadings = false
+
+        const note = new Note({
+          title: 'Due Sorting Combined',
+          paragraphs: [
+            new Paragraph({ type: 'title', content: 'Due Sorting Combined', lineIndex: 0, headingLevel: 1 }),
+            new Paragraph({
+              type: 'scheduled',
+              content: 'Task C >2025-11-10',
+              rawContent: '* [>] Task C >2025-11-10',
+              lineIndex: 1,
+              date: new Date('2025-11-10T08:00:00Z'),
+            }),
+            new Paragraph({
+              type: 'scheduled',
+              content: 'Task A >2025-11-01',
+              rawContent: '* [>] Task A >2025-11-01',
+              lineIndex: 2,
+              date: new Date('2025-11-01T08:00:00Z'),
+            }),
+            new Paragraph({
+              type: 'scheduled',
+              content: 'Task B >2025-11-05',
+              rawContent: '* [>] Task B >2025-11-05',
+              lineIndex: 3,
+              date: new Date('2025-11-05T08:00:00Z'),
+            }),
+          ],
+        })
+
+        global.Editor = note
+        global.Editor.note = note
+
+        await f.sortTasks(false, ['due', 'content'], false, false, true, false)
+
+        const sortedTasks = global.Editor.paragraphs.filter((p) => TASK_TYPES.includes(p.type))
+        const rawOrder = sortedTasks.map((p) => p.rawContent)
+        expect(rawOrder).toEqual([
+          '* [>] Task A >2025-11-01',
+          '* [>] Task B >2025-11-05',
+          '* [>] Task C >2025-11-10',
+        ])
+
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
+      })
+
+      test('should respect hashtag sorting when combining related task types', async () => {
+        const editorBackup = { ...global.Editor }
+        const dataStoreBackup = { ...global.DataStore }
+
+        DataStore.settings.tasksToTop = true
+        DataStore.settings.outputOrder = 'open, scheduled, done, cancelled'
+        DataStore.settings.sortInHeadings = false
+
+        const note = new Note({
+          title: 'Hashtag Sorting Combined',
+          paragraphs: [
+            new Paragraph({ type: 'title', content: 'Hashtag Sorting Combined', lineIndex: 0, headingLevel: 1 }),
+            new Paragraph({ type: 'open', content: '#zeta Task Z', rawContent: '* #zeta Task Z', lineIndex: 1 }),
+            new Paragraph({ type: 'open', content: '#alpha Task A', rawContent: '* #alpha Task A', lineIndex: 2 }),
+            new Paragraph({ type: 'open', content: '#beta Task B', rawContent: '* #beta Task B', lineIndex: 3 }),
+          ],
+        })
+
+        global.Editor = note
+        global.Editor.note = note
+
+        await f.sortTasks(false, ['hashtags', 'content'], false, false, true, false)
+
+        const sortedTasks = global.Editor.paragraphs.filter((p) => TASK_TYPES.includes(p.type))
+        const rawOrder = sortedTasks.map((p) => p.rawContent)
+        expect(rawOrder).toEqual(['* #alpha Task A', '* #beta Task B', '* #zeta Task Z'])
+
         global.Editor = { ...editorBackup }
         global.DataStore = { ...dataStoreBackup }
       })

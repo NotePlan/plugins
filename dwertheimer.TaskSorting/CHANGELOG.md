@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md) for details on available commands and use case.
 
+## [1.2.8] - 2025-11-10 (@dwertheimer)
+
+- Fix for sorting tasks with combined/interleaved tasks and checklists
+
 ## [1.2.7] - 2025-11-06 (@dwertheimer)
 
 ### New Features

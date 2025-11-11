@@ -704,7 +704,8 @@ export async function templateWeather(): Promise<string> {
     weatherFormat = weatherFormat.length === 0 && templateConfig?.weatherFormat?.length > 0 ? templateConfig?.weatherFormat : weatherFormat
 
     // $FlowIgnore
-    const weather = await getNotePlanWeather(weatherFormat, 'metric', 0, 0)
+    const resolvedFormat = weatherFormat === undefined || weatherFormat === null || weatherFormat.trim().length === 0 ? undefined : weatherFormat
+    const weather = await getNotePlanWeather(resolvedFormat, null, null, null)
 
     Editor.insertTextAtCursor(weather)
   } catch (error) {
