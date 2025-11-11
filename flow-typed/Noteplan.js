@@ -571,7 +571,15 @@ declare class DataStore {
    * Note: these keys and values do not sync across a user's devices; they are only local.
    * The keys are case-sensitive (it uses the Apple UserDefaults mechanism).
    */
-  static +preference: (key: string) => mixed;
+  static preference(key: string): mixed;
+  /**
+   * DataStore.defaultNewNoteName
+   * Get the default name for new notes, localized to the user's language.
+   * Note: not in public API because @EM expects it only to be used in Templating plugin.
+   * Note: Available from v3.19.something.
+   * @returns {string}
+   */
+  static +defaultNewNoteName: string;
   /**
    * DataStore.setPreference()
    * Change a saved preference or create a new one.
