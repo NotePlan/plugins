@@ -512,22 +512,9 @@ export function sortParagraphsByType(
             }
           }
 
-          // Custom sort: priority first, then open tasks before checklists within same priority
-          const sortedCombined = combinedTasks.sort((a, b) => {
-            // First sort by priority (highest to lowest)
-            const priorityDiff = (b.priority || -1) - (a.priority || -1)
-            if (priorityDiff !== 0) return priorityDiff
-
-            // Within same priority, open tasks come before checklists
-            const aIsOpen = a.type === 'open' || a.type === 'scheduled' || a.type === 'done' || a.type === 'cancelled'
-            const bIsOpen = b.type === 'open' || b.type === 'scheduled' || b.type === 'done' || b.type === 'cancelled'
-
-            if (aIsOpen && !bIsOpen) return -1 // a (open) comes before b (checklist)
-            if (!aIsOpen && bIsOpen) return 1 // b (open) comes before a (checklist)
-
-            // If both are same type, sort by content
-            return a.content.localeCompare(b.content)
-          })
+          // Respect the chosen sort order when interleaving by leveraging the generic sorter
+          const combinedSortOrder = sortOrder && sortOrder.length ? sortOrder : ['content']
+          const sortedCombined = sortListBy(combinedTasks, combinedSortOrder)
 
           // For interleaved sorting, put all tasks in the first type of each group
           // This maintains the interleaved order while satisfying the output format
