@@ -10,7 +10,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
-## [2.3.0.b12] 2025-10-17
+## [2.3.0.b13] 2025-10-11???
+- When lower-priority items filter is turned on, change the move "All → ..." buttons to show "All shown → ..." instead.
+- Add new setting "" to always have the "All → ..." buttons operate on all section tasks, not just the shown ones.
+
+## [2.3.0.b12] 2025-10-10
 - Improve /backupSettings command
 - Fixed #688 edge case with multiple ellipses (for @dwertheimer)
 - Updated to use latest 'cube' icon for Teamspace

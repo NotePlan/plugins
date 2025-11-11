@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2025-08-30 for v2.3.0, @jgclark
+// Last updated 2025-11-11 for v2.3.0.b13, @jgclark
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -177,6 +177,13 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date (>YYYY-MM-DD).",
     type: 'switch',
     default: true,
+  },
+  {
+    key: 'moveOnlyShownItemsWhenFiltered',
+    label: 'Do "Move all items" buttons only move shown items when filtering?',
+    type: 'switch',
+    default: true,
+    description: 'When "Filter out lower-priority items" is enabled, if this is also enabled, the "All → ..." buttons will only move the items currently shown, excluding filtered lower-priority items. If disabled, they will move all items including filtered ones.',
   },
   {
     type: 'separator',
