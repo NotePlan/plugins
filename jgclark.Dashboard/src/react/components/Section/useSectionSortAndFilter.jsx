@@ -217,7 +217,7 @@ function getMaxPriorityInItems(items: Array<TSectionItem>): number {
     }
     if (i.para?.priority && i.para.priority > maxPrioritySeenInThisSection) {
       maxPrioritySeenInThisSection = i.para.priority
-      logDebug('useSectionSortAndFilter', `- raised max priority to ${String(maxPrioritySeenInThisSection)}`)
+      // logDebug('useSectionSortAndFilter', `- raised max priority to ${String(maxPrioritySeenInThisSection)}`)
     }
   }
   return maxPrioritySeenInThisSection

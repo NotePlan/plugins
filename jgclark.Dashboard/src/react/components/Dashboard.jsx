@@ -259,7 +259,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   useEffect(() => {
     const newMaxPriority = calculateMaxPriorityAcrossAllSections(sections)
     if (newMaxPriority !== pluginData.currentMaxPriorityFromAllVisibleSections) {
-      logInfo('Dashboard', `Recalculating max priority: ${pluginData.currentMaxPriorityFromAllVisibleSections} -> ${newMaxPriority}`)
+      logDebug('Dashboard', `Recalculating max priority: ${pluginData.currentMaxPriorityFromAllVisibleSections} -> ${newMaxPriority}`)
       updatePluginData({ ...pluginData, currentMaxPriorityFromAllVisibleSections: newMaxPriority }, `Recalculated max priority after sections changed: ${newMaxPriority}`)
     }
   }, [sections, pluginData.currentMaxPriorityFromAllVisibleSections])

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-09-08 for v2.3.0.b10, @jgclark
+// Last updated 2025-11-04 for v2.3.0.b10+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -32,6 +32,7 @@ import { isNoteFromAllowedFolder, pastCalendarNotes } from '@helpers/note'
 import { saveSettings } from '@helpers/NPConfiguration'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
 import { getNoteFromFilename, getReferencedParagraphs } from '@helpers/NPnote'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { isAChildPara } from '@helpers/parentsAndChildren'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
@@ -316,17 +317,16 @@ export function getOpenItemParasForTimePeriod(
       matchingNotes.push(possTimePeriodNote)
     }
 
-    // Stable from about b1371
-    if (NotePlan.environment.build >= 1371) {
+    if (usersVersionHas('teamspaceNotes')) {
       for (const teamspace of DataStore.teamspaces) {
         // Get note for this teamspace (if it exists)
         const note = DataStore.calendarNoteByDateString(NPCalendarFilenameStr, teamspace.filename)
         if (note) {
           matchingNotes.push(note)
-          logDebug('getOpenItemPFCTP', `Found matching note for ${NPCalendarFilenameStr} in teamspace ${teamspace.filename}`)
+          logDebug('getOpenItemPFCTP', `- found matching teamspace calendar note for ${NPCalendarFilenameStr} in ${teamspace.filename}`)
         }
       }
-      logDebug('getOpenItemPFCTP', `Found ${String(matchingNotes.length)} matching notes for ${NPCalendarFilenameStr}`)
+      // logDebug('getOpenItemPFCTP', `Found ${String(matchingNotes.length)} matching notes for ${NPCalendarFilenameStr}`)
     }
 
     //------------------------------------------------
@@ -604,6 +604,9 @@ export function filterParasByCalendarHeadingSections(
   if (!dashboardSettings.ignoreItemsWithTerms || !dashboardSettings.applyIgnoreTermsToCalendarHeadingSections) {
     return paras
   }
+  const thisNote = paras[0]?.note
+  // TEST: Does this work for Teamspace notes? Teamspace notes are reported as 'unknown' here
+  logDebug('filterParasByCalendarHeadingSections', `Starting for note ${thisNote?.filename ?? '(unknown)'}`)
 
   const filteredParas = paras.filter((p) => {
     // only apply to calendar notes

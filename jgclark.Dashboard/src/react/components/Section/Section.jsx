@@ -195,7 +195,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         { ...pluginData, currentMaxPriorityFromAllVisibleSections: maxPrioritySeenInThisSection },
         `Section ${section.sectionCode} found higher priority: ${maxPrioritySeenInThisSection}`,
       )
-      logInfo('Section', `Section ${section.sectionCode} set currentMaxPriorityFromAllVisibleSections to ${maxPrioritySeenInThisSection}`)
+      logDebug('Section', `Section ${section.sectionCode} set currentMaxPriorityFromAllVisibleSections to ${maxPrioritySeenInThisSection}`)
     }
   }, [maxPrioritySeenInThisSection, currentMaxPriorityFromAllVisibleSections, section.sectionCode])
   //----------------------------------------------------------------------

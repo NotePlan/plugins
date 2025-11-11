@@ -246,7 +246,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
     showSettingName: sectionDetail.showSettingName,
     sectionCode: thisSectionCode,
     description: sectionDescription,
-    FAIconClass: isHashtag ? 'fa-light fa-hashtag' : 'fa-light fa-at',
+    FAIconClass: isHashtag ? 'fa-regular fa-hashtag' : 'fa-regular fa-at',
     sectionTitleColorPart: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
     sectionFilename: '',
     sectionItems: items,
