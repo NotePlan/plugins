@@ -123,6 +123,18 @@ const logWithColorConsole = (logType: string, componentName: string, detail?: st
   }
 }
 
+/**
+ * Logs with flexible support for both string details and an object as the detail.
+ * If the 'detail' parameter is an object, it is appended to the args and detail becomes empty.
+ * Otherwise, if 'detail' is a string, it will be joined into the componentName for context.
+ * Delegates to the standard 'log' function.
+ *
+ * @param {string} logType - The type of log message ('DEBUG', 'ERROR', 'INFO', 'WARN', etc.)
+ * @param {string} componentName - Name of the component or context originating the log.
+ * @param {string|Object} [detail] - Optional detail as a string (will be appended to componentName) or as an object (will be logged in args).
+ * @param {...any} args - Additional arguments to include in the log call.
+ * @returns {void}
+ */
 export const logWithObjectsMaybe = (logType: string, componentName: string, detail?: string | TAnyObject, ...args: any[]): void => {
   let componentNameAndInfo = componentName
   let detailToSend = detail || ''

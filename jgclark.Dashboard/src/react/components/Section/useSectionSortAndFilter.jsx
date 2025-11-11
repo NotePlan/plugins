@@ -66,8 +66,10 @@ const useSectionSortAndFilter = (
   // Effects
   //----------------------------------------------------------------------
 
+  // This useEffect is responsible for updating the filtered and displayed items in the Dashboard section whenever the relevant inputs change (such as the section, items, dashboard settings, or priority filter).
+  // It applies filtering based on checklist/task type, special message handling, section-specific logic (like for timeblocks), and any limit or priority-based filters, then sets the resulting items to display and other related state.
   useEffect(() => {
-    logDebug(
+    logInfo(
       'useSectionSortAndFilter',
       `Section ${section.sectionCode}${section.sectionCode === 'TAG' ? ` (${section.name})` : ''} useEffect running with ${memoizedItems.length} items`,
     )
