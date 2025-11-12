@@ -10,14 +10,21 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
-## [2.3.0.b12] 2025-10-05
+## [2.3.0.b13] 2025-10-11???
+- When lower-priority items filter is turned on, change the move "All → ..." buttons to show "All shown → ..." instead.
+- Add new setting "" to always have the "All → ..." buttons operate on all section tasks, not just the shown ones.
+
+## [2.3.0.b12] 2025-10-10
 - Improve /backupSettings command
 - Fixed #688 edge case with multiple ellipses (for @dwertheimer)
+- Updated to use latest 'cube' icon for Teamspace
+- TODO: Get Calendar notes from Teamspaces included in calendar sections
+- Fix (hopefully) for Week Section on Sundays for users with Sunday as start of week (thanks @oak86 for tip off and @dwertheimer for helping test)
+- Improved note picker used by the 'add task anywhere' button (by improving QuickCapture plugin)
+- Change calendar section icons to better match newer ones used in NP
 
 ## [2.3.0.b11] 2025-10-01
 - Save a copy of settings.json if it's discovered that it doesn't contain perspectiveSettings.
-- TODO: Fix DBW can't-click-link report
-- TODO: Get Calendar notes from Teamspaces included in calendar sections
 
 ## [2.3.0.b10] 2025-09-18
 ### Changed

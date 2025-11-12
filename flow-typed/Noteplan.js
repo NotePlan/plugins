@@ -2567,30 +2567,28 @@ static + htmlWindows: Array < HTMLView >;
   * const weather = await NotePlan.getWeather("imperial", 0, 0);
   * console.log(weather.formatted);
   * 
-  * @returns {Object} weather - Weather data object
-  * @returns {string} weather.formatted - Pre-formatted markdown weather output with emojis
-  * @returns {string} weather.cityName - City name (from IP location or reverse geocoding)
-  * @returns {number} weather.temperature - Current temperature
-  * @returns {string} weather.temperatureUnit - Temperature unit symbol (°C or °F)
-  * @returns {number} weather.apparentTemperature - Feels-like temperature
-  * @returns {number} weather.humidity - Humidity percentage
-  * @returns {number} weather.windSpeed - Wind speed
-  * @returns {string} weather.windSpeedUnit - Wind speed unit (m/s or mph)
-  * @returns {number} weather.windDirection - Wind direction in degrees
-  * @returns {number} weather.uvIndex - UV index
-  * @returns {string} weather.condition - Weather condition description
-  * @returns {string} weather.emoji - Weather emoji based on condition
-  * @returns {string} weather.iconCode - OpenWeatherMap icon code
-  * @returns {number} weather.visibility - Visibility distance
-  * @returns {string} weather.visibilityUnit - Visibility unit (km)
-  * @returns {number} weather.highTemp - Today's high temperature
-  * @returns {number} weather.lowTemp - Today's low temperature
-  * @returns {string} weather.sunrise - Sunrise time (formatted as h:mm AM/PM)
-  * @returns {string} weather.sunset - Sunset time (formatted as h:mm AM/PM)
-  * @returns {Object} weather.location - Location coordinates
   * @returns {number} weather.location.latitude - Latitude
   * @returns {number} weather.location.longitude - Longitude
   * @returns {string} weather.location.cityName - City name
+  * @returns {string} weather.location.state - State/administrative area
+  * @returns {string} weather.location.region - Region/sub-administrative area
+  * @returns {string} weather.location.country - Country name
+  * @returns {string} weather.location.countryCode - ISO country code
+  * @returns {string} weather.location.postalCode - Postal/ZIP code
+  * @returns {string} weather.location.subLocality - Sub-locality
+  * @returns {string} weather.location.thoroughfare - Street address
+  * @returns {string} weather.location.ipAddress - IP address (only when using IP-based detection)
+  * @returns {number} weather.location.ipVersion - IP version (only when using IP-based detection)
+  * @returns {string} weather.location.capital - Capital city (only when using IP-based detection)
+  * @returns {Array<string>} weather.location.phoneCodes - Phone country codes (only when using IP-based detection)
+  * @returns {Array<string>} weather.location.timeZones - Time zones (only when using IP-based detection)
+  * @returns {string} weather.location.continent - Continent name (only when using IP-based detection)
+  * @returns {string} weather.location.continentCode - Continent code (only when using IP-based detection)
+  * @returns {Array<string>} weather.location.currencies - Currency codes (only when using IP-based detection)
+  * @returns {Array<string>} weather.location.languages - Language codes (only when using IP-based detection)
+  * @returns {string} weather.location.asn - Autonomous System Number (only when using IP-based detection)
+  * @returns {string} weather.location.asnOrganization - ASN organization name (only when using IP-based detection)
+  * @returns {boolean} weather.location.isProxy - Whether the IP is a proxy (only when using IP-based detection)
   */
   static getWeather(units: string, latitude: number, longitude: number): Promise < Object >;
 }

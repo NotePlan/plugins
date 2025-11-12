@@ -15,6 +15,7 @@ import { dontDedupeSectionCodes, sectionDisplayOrder, sectionPriority } from '..
 import { copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { findSectionItems } from '../../dashboardHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
+import type { TSection } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
 import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
@@ -256,11 +257,20 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }, [pluginData.startDelayedRefreshTimer])
 
   // Recalculate maximum priority when sections change (e.g., when items are removed)
+  // NOTE: This can conflict with section-level updates during initial render, so we use a ref
+  // to track if sections have actually changed (not just pluginData.currentMaxPriorityFromAllVisibleSections)
+  const prevSectionsRef = useRef < Array < TSection >> ([])
   useEffect(() => {
-    const newMaxPriority = calculateMaxPriorityAcrossAllSections(sections)
-    if (newMaxPriority !== pluginData.currentMaxPriorityFromAllVisibleSections) {
-      logInfo('Dashboard', `Recalculating max priority: ${pluginData.currentMaxPriorityFromAllVisibleSections} -> ${newMaxPriority}`)
-      updatePluginData({ ...pluginData, currentMaxPriorityFromAllVisibleSections: newMaxPriority }, `Recalculated max priority after sections changed: ${newMaxPriority}`)
+    // Only recalculate if sections array reference actually changed (items removed/added).
+    // Don't recalculate if only currentMaxPriorityFromAllVisibleSections changed (that's handled by sections).
+    const sectionsChanged = prevSectionsRef.current !== sections
+    if (sectionsChanged) {
+      const newMaxPriority = calculateMaxPriorityAcrossAllSections(sections)
+      if (newMaxPriority !== pluginData.currentMaxPriorityFromAllVisibleSections) {
+        logDebug('Dashboard', `New max priority after sections changed: ${newMaxPriority}`)
+        updatePluginData({ ...pluginData, currentMaxPriorityFromAllVisibleSections: newMaxPriority }, `Recalculated max priority after sections changed: ${newMaxPriority}`)
+      }
+      prevSectionsRef.current = sections
     }
   }, [sections, pluginData.currentMaxPriorityFromAllVisibleSections])
 
@@ -308,7 +318,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         <Header lastFullRefresh={lastFullRefresh} />
         <main>
           {sections.map((section, index) => (
-            <Section key={index} section={section} onButtonClick={() => {}} />
+            <Section key={`${section.sectionCode}-${index}`} section={section} onButtonClick={() => { }} />
           ))}
         </main>
         <Dialog

@@ -41,13 +41,13 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
   // const isFromTeamspace = item.para?.isFromTeamspace ?? false
 
   const noteIconToUse = (isDailyDateStr(filename))
-    ? 'fa-light fa-calendar-star'
+    ? 'fa-regular fa-calendar-star'
     : (isWeeklyDateStr(filename))
-      ? 'fa-light fa-calendar-week'
+      ? 'fa-regular fa-calendar-week'
       : (isMonthlyDateStr(filename))
-        ? 'fa-light fa-calendar-days'
+        ? 'fa-regular fa-calendar-days'
         : (isQuarterlyDateStr(filename))
-          ? 'fa-light fa-calendar-range'
+          ? 'fa-regular fa-calendar-range'
           : 'fa-light fa-file-lines'
   const parsedTeamspace = parseTeamspaceFilename(filename)
   const filenameWithoutTeamspacePrefix = parsedTeamspace.filename

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2025-07-08 for v2.3.0.b4
+// Last updated 2025-11-11 for v2.3.0.b13
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -50,7 +50,7 @@ import {
   doStartReviews,
 } from './projectClickHandlers'
 import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickHandlers'
-import { scheduleAllOverdueOpenToToday, scheduleAllTodayTomorrow, scheduleAllYesterdayOpenToToday } from './moveDayClickHandlers'
+import { scheduleAllOverdueOpenToToday, scheduleTodayToTomorrow, scheduleYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
 import { findSectionItems, getDashboardSettings, getListOfEnabledSections, getSectionCodeFromItemID, makeDashboardParas, setPluginData } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain' // Note: fixed circ dep here by changing to using an x-callback instead 😫
@@ -318,23 +318,43 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'moveAllTodayToTomorrow': {
-        result = await scheduleAllTodayTomorrow(data)
+        result = await scheduleTodayToTomorrow(data)
+        break
+      }
+      case 'moveOnlyShownTodayToTomorrow': {
+        result = await scheduleTodayToTomorrow(data, true) // true = move only shown items
         break
       }
       case 'moveAllYesterdayToToday': {
-        result = await scheduleAllYesterdayOpenToToday(data)
+        result = await scheduleYesterdayOpenToToday(data)
         break
       }
-      case 'scheduleAllOverdueToday': {
-        result = await scheduleAllOverdueOpenToToday(data)
+      case 'moveOnlyShownYesterdayToToday': {
+        result = await scheduleYesterdayOpenToToday(data, true) // true = move only shown items
         break
       }
       case 'moveAllLastWeekThisWeek': {
         result = await scheduleAllLastWeekThisWeek(data)
         break
       }
+      case 'moveOnlyShownLastWeekThisWeek': {
+        result = await scheduleAllLastWeekThisWeek(data, true) // true = move only shown items
+        break
+      }
       case 'moveAllThisWeekNextWeek': {
         result = await scheduleAllThisWeekNextWeek(data)
+        break
+      }
+      case 'moveOnlyShownThisWeekNextWeek': {
+        result = await scheduleAllThisWeekNextWeek(data, true) // true = move only shown items
+        break
+      }
+      case 'scheduleAllOverdueToday': {
+        result = await scheduleAllOverdueOpenToToday(data)
+        break
+      }
+      case 'scheduleOnlyShownOverdueToday': {
+        result = await scheduleAllOverdueOpenToToday(data, true) // true = move only shown items
         break
       }
       case 'commsBridgeTest': {

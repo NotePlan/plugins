@@ -6,6 +6,9 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.2.3] 2025-11-11 @dwertheimer
+- add new weather formatting fields (location.*, :formatted: etc.)
+
 ## [2.2.2] 2025-11-09 @dwertheimer
 - Fix default weather formatting so calling `<%- weather() %>` uses the new NotePlan format string
 
