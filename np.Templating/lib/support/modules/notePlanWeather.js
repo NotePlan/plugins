@@ -169,9 +169,11 @@ const buildLegacyPlaceholderReplacements = (weather: any, unitsParam: ?string, w
   const visibilityValue = toNumber(weather?.visibility)
   const visibilityMiles = convertDistance(visibilityValue, visibilityUnit || 'km', 'miles')
 
-  const regionName = weather?.location?.regionName ?? weather?.location?.region ?? weather?.location?.state ?? weather?.location?.administrativeArea ?? weather?.region ?? ''
+  const location = weather?.location ?? {}
 
-  const countryName = weather?.location?.country ?? weather?.country ?? ''
+  const regionName = location?.region ?? location?.regionName ?? location?.state ?? location?.administrativeArea ?? weather?.region ?? weather?.state ?? ''
+
+  const countryName = location?.country ?? weather?.country ?? ''
 
   return [
     { key: ':FeelsLikeF:', value: formatNumber(feelsLikeF) },
@@ -230,6 +232,24 @@ const buildLegacyPlaceholderReplacements = (weather: any, unitsParam: ?string, w
  * - :lowTemp: / :mintempC: / :mintempF: - Low temperature
  * - :sunrise: - Sunrise time
  * - :sunset: - Sunset time
+ * - :countryCode: - ISO country code
+ * - :postalCode: - Postal/ZIP code
+ * - :state: - State or administrative area
+ * - :city: - City name (alias for :cityName:)
+ * - :subLocality: - Sub-locality information
+ * - :thoroughfare: - Street address or thoroughfare
+ * - :ipAddress: - Detected IP address (IP lookup only)
+ * - :ipVersion: - IP version (IP lookup only)
+ * - :capital: - Country capital (IP lookup only)
+ * - :phoneCodes: - Phone country codes (IP lookup only)
+ * - :timeZones: - Time zones (IP lookup only)
+ * - :continent: - Continent name (IP lookup only)
+ * - :continentCode: - Continent code (IP lookup only)
+ * - :currencies: - Currency codes (IP lookup only)
+ * - :languages: - Language codes (IP lookup only)
+ * - :asn: - Autonomous system number (IP lookup only)
+ * - :asnOrganization: - ASN organization (IP lookup only)
+ * - :isProxy: - Whether IP is a proxy (IP lookup only)
  */
 export async function getNotePlanWeather(
   format: string = ':cityName:, :region: :icon: :temperature::temperatureUnit:',
@@ -249,6 +269,10 @@ export async function getNotePlanWeather(
     logDebug('getNotePlanWeather', `Calling NotePlan.getWeather with units: "${unitsLabel}", latitude: "${latitudeLabel}", longitude: "${longitudeLabel}" format: "${format}"`)
     // $FlowFixMe[incompatible-call] - NotePlan.getWeather accepts undefined/null values for auto-detection
     const weather = await NotePlan.getWeather(_units, _latitude, _longitude)
+    const location = weather?.location ?? {}
+    const cityName = weather?.cityName ?? location?.cityName ?? location?.locality ?? ''
+    const regionName = location?.region ?? location?.regionName ?? location?.state ?? location?.administrativeArea ?? weather?.region ?? weather?.state ?? ''
+    const countryName = location?.country ?? weather?.country ?? ''
 
     // If no format specified, return the pre-formatted output
     if (!format || format === '') {
@@ -264,7 +288,7 @@ export async function getNotePlanWeather(
     // Build replacements array with backward compatibility for old weather() placeholders
     const replacements = [
       // New NotePlan API fields
-      { key: ':cityName:', value: safeString(weather.cityName) },
+      { key: ':cityName:', value: safeString(cityName) },
       { key: ':temperature:', value: safeString(weather.temperature) },
       { key: ':temperatureUnit:', value: safeString(weather.temperatureUnit) },
       { key: ':apparentTemperature:', value: safeString(weather.apparentTemperature) },
@@ -284,7 +308,7 @@ export async function getNotePlanWeather(
       { key: ':sunset:', value: safeString(weather.sunset) },
 
       // Backward compatibility with old weather() placeholders
-      { key: ':areaName:', value: safeString(weather.cityName) },
+      { key: ':areaName:', value: safeString(cityName) },
       { key: ':description:', value: safeString(weather.condition) },
       { key: ':icon:', value: safeString(weather.emoji) },
       { key: ':mintempC:', value: safeString(weather.lowTemp) },
@@ -293,8 +317,41 @@ export async function getNotePlanWeather(
       { key: ':maxtempF:', value: safeString(weather.highTemp) },
 
       // Location fields
-      { key: ':latitude:', value: safeString(weather.location?.latitude) },
-      { key: ':longitude:', value: safeString(weather.location?.longitude) },
+      { key: ':latitude:', value: safeString(location?.latitude ?? weather?.latitude) },
+      { key: ':longitude:', value: safeString(location?.longitude ?? weather?.longitude) },
+      { key: ':region:', value: safeString(regionName) },
+      { key: ':country:', value: safeString(countryName) },
+      { key: ':countryCode:', value: safeString(location?.countryCode) },
+      { key: ':postalCode:', value: safeString(location?.postalCode) },
+      { key: ':state:', value: safeString(location?.state ?? location?.administrativeArea) },
+      { key: ':city:', value: safeString(cityName) },
+      { key: ':subLocality:', value: safeString(location?.subLocality) },
+      { key: ':thoroughfare:', value: safeString(location?.thoroughfare) },
+      { key: ':ipAddress:', value: safeString(location?.ipAddress) },
+      { key: ':ipVersion:', value: safeString(location?.ipVersion) },
+      { key: ':capital:', value: safeString(location?.capital) },
+      {
+        key: ':phoneCodes:',
+        value: safeString(Array.isArray(location?.phoneCodes) ? location?.phoneCodes.join(', ') : location?.phoneCodes),
+      },
+      {
+        key: ':timeZones:',
+        value: safeString(Array.isArray(location?.timeZones) ? location?.timeZones.join(', ') : location?.timeZones),
+      },
+      { key: ':continent:', value: safeString(location?.continent) },
+      { key: ':continentCode:', value: safeString(location?.continentCode) },
+      {
+        key: ':currencies:',
+        value: safeString(Array.isArray(location?.currencies) ? location?.currencies.join(', ') : location?.currencies),
+      },
+      {
+        key: ':languages:',
+        value: safeString(Array.isArray(location?.languages) ? location?.languages.join(', ') : location?.languages),
+      },
+      { key: ':asn:', value: safeString(location?.asn) },
+      { key: ':asnOrganization:', value: safeString(location?.asnOrganization) },
+      { key: ':isProxy:', value: safeString(location?.isProxy) },
+      { key: ':formatted:', value: safeString(weather.formatted) },
     ]
 
     const computedReplacements = buildLegacyPlaceholderReplacements(weather, _units, weather.windSpeedUnit, weather.visibilityUnit)
