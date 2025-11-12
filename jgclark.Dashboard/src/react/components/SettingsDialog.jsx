@@ -10,6 +10,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
+import { defaultSectionDisplayOrder } from '../../constants.js'
 import type { TSettingItem, TDashboardSettings } from '../../types'
 // import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import { renderItem } from '../support/uiElementRenderHelpers'
@@ -18,8 +19,8 @@ import { useAppContext } from './AppContext.jsx'
 // import PerspectiveSettings from './PerspectiveSettings.jsx'
 import '../css/SettingsDialog.css' // Import the CSS file
 import Modal from './Modal'
+import SectionOrderDialog from './SectionOrderDialog.jsx'
 import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
-// import { dt } from '@helpers/dev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -49,6 +50,7 @@ const SettingsDialog = ({
   // Context
   //----------------------------------------------------------------------
   const { dashboardSettings, pluginData, sendActionToPlugin, reactSettings, setReactSettings } = useAppContext()
+  const { sections } = pluginData
 
   const pluginDisplayVersion = `v${pluginData?.version || ''}`
 
@@ -58,6 +60,7 @@ const SettingsDialog = ({
   const dialogRef = useRef<?ElementRef<'dialog'>>(null)
   const dropdownRef = useRef<?{ current: null | HTMLInputElement }>(null)
   const [changesMade, setChangesMade] = useState(false)
+  const [isSectionOrderDialogOpen, setIsSectionOrderDialogOpen] = useState(false)
   const [updatedSettings, setUpdatedSettings] = useState(() => {
     const initialSettings: Settings = {}
     // logDebug('SettingsDialog/initial state', `Starting`)
@@ -83,6 +86,7 @@ const SettingsDialog = ({
 
   // Return whether the controlling setting item is checked or not
   function stateOfControllingSetting(item: TSettingItem): boolean {
+    // $FlowIgnore[invalid-computed-prop]
     return controllingSettingsState[item.dependsOnKey ?? ''] ?? false
   }
 
@@ -247,35 +251,76 @@ const SettingsDialog = ({
         </div>
         <div className="settings-dialog-content">
           {/* Iterate over all the settings */}
-          {items.map((item, index) => (
-            <div key={`sdc${index}`} data-settings-key={item.key}>
-              {renderItem({
-                index,
-                item: {
-                  ...item,
-                  type: item.type,
-                  value: typeof item.key === 'undefined' ? '' : typeof updatedSettings[item.key] === 'boolean' ? '' : updatedSettings[item.key],
-                  checked: typeof item.key === 'undefined' ? false : typeof updatedSettings[item.key] === 'boolean' ? updatedSettings[item.key] : false,
-                },
-                disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
-                handleFieldChange,
-                labelPosition,
-                showSaveButton: false, // Do not show save button
-                // $FlowFixMe[incompatible-exact] reason for suppression
-                // $FlowFixMe[incompatible-call] reason for suppression
-                inputRef: item.type === 'dropdown-select' ? dropdownRef : undefined, // Assign ref to the dropdown input
-                indent: !!item.dependsOnKey,
-                className: '', // for future use
-                showDescAsTooltips: false,
-              })}
-              {/* {item.description && (
+          {items.map((item, index) => {
+            // Handle sectionOrderPanel type specially
+            if (item.type === 'sectionOrderPanel') {
+              return (
+                <div key={`sdc${index}`} data-settings-key={item.key} className="section-order-panel-container">
+                  <div className="section-order-button-container">
+                    <button
+                      className="HAButton section-order-button"
+                      onClick={() => setIsSectionOrderDialogOpen(true)}
+                      type="button"
+                      title={item.description || 'Reorder dashboard sections'}
+                    >
+                      <i className="fa-solid fa-arrows-up-down"></i>
+                      <span>{item.label || 'Reorder Sections'}</span>
+                    </button>
+                  </div>
+                  {item.description && <div className="item-description">{item.description}</div>}
+                </div>
+              )
+            }
+
+            return (
+              <div key={`sdc${index}`} data-settings-key={item.key}>
+                {renderItem({
+                  index,
+                  item: {
+                    ...item,
+                    type: item.type,
+                    value: typeof item.key === 'undefined' ? '' : typeof updatedSettings[item.key] === 'boolean' ? '' : updatedSettings[item.key],
+                    checked: typeof item.key === 'undefined' ? false : typeof updatedSettings[item.key] === 'boolean' ? updatedSettings[item.key] : false,
+                  },
+                  disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
+                  handleFieldChange,
+                  labelPosition,
+                  showSaveButton: false, // Do not show save button
+                  // $FlowFixMe[incompatible-exact] reason for suppression
+                  // $FlowFixMe[incompatible-call] reason for suppression
+                  inputRef: item.type === 'dropdown-select' ? dropdownRef : undefined, // Assign ref to the dropdown input
+                  indent: !!item.dependsOnKey,
+                  className: '', // for future use
+                  showDescAsTooltips: false,
+                })}
+                {/* {item.description && (
 							<div className="item-description">{item.description}</div>
 						)} */}
-            </div>
-          ))}
+              </div>
+            )
+          })}
           <div className="item-description">{pluginDisplayVersion}</div>
         </div>
       </div>
+      {isSectionOrderDialogOpen && (
+        <SectionOrderDialog
+          sections={sections}
+          dashboardSettings={dashboardSettings}
+          defaultOrder={defaultSectionDisplayOrder}
+          onSave={(newOrder) => {
+            // Update the settings
+            if (onSaveChanges) {
+              // $FlowIgnore[incompatible-indexer]
+              onSaveChanges({
+                ...updatedSettings,
+                customSectionDisplayOrder: newOrder,
+              })
+            }
+            setIsSectionOrderDialogOpen(false)
+          }}
+          onCancel={() => setIsSectionOrderDialogOpen(false)}
+        />
+      )}
     </Modal>
   )
 }

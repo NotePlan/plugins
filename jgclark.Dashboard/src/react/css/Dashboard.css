@@ -176,7 +176,7 @@ button,
 }
 
 .greyedText {
-	color: rgb(from var(--fg-sidebar-color) r g b / 0.5)
+	color: rgb(from var(--fg-sidebar-color) r g b / 0.5);
 }
 
 /* --------------------------------------------------------------- */

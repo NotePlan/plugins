@@ -1,8 +1,10 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2025-11-11 for v2.3.0.b13, @jgclark
+// Last updated 2025-11-12 for v2.3.0.b14, @jgclark
 //-----------------------------------------------------------------------------
+
+import { defaultSectionDisplayOrder } from './constants.js'
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
 
@@ -209,6 +211,17 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
       'Show the number of tasks completed today at the top of the Dashboard. For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.',
     type: 'switch',
     default: true,
+  },
+  {
+    type: 'sectionOrderPanel',
+    label: 'Reorder Sections…',
+    description: 'Open a dialog where you can drag and drop Section names to change the order they are displayed.',
+  },
+  {
+    key: 'customSectionDisplayOrder',
+    label: 'Custom Section Display Order',
+    type: 'hidden',
+    default: defaultSectionDisplayOrder,
   },
   {
     key: 'autoUpdateAfterIdleTime', // aka "autoRefresh"
@@ -490,6 +503,13 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           //$FlowIgnore[incompatible-call] don't understand the error
           type: 'perspectiveList',
           dependsOnKey: setting.dependsOnKey,
+        }
+      case 'sectionOrderPanel':
+        return {
+          type: 'sectionOrderPanel',
+          label: setting.label || 'Reorder Sections',
+          description: setting.description || '',
+          key: thisKey,
         }
       default:
         return {

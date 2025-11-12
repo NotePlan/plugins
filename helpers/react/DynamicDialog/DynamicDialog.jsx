@@ -44,6 +44,7 @@ export type TSettingItemType =
   | 'button'
   | 'button-group'
   | 'calendarpicker'
+  | 'hidden'
 
 export type TSettingItem = {
   type: TSettingItemType,
