@@ -11,7 +11,7 @@
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import { defaultSectionDisplayOrder } from '../../constants.js'
-import type { TSettingItem, TDashboardSettings } from '../../types'
+import type { TSettingItem, TDashboardSettings, TSectionCode } from '../../types.js'
 // import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import { setPerspectivesIfJSONChanged } from '../../perspectiveHelpers'
@@ -79,6 +79,9 @@ const SettingsDialog = ({
 
   // Add a new state to track the controlling settings' states
   const [controllingSettingsState, setControllingSettingsState] = useState({})
+  
+  // Track section order changes separately (will be merged into updatedSettings on save)
+  const [sectionOrderChange, setSectionOrderChange] = useState<?Array<TSectionCode>>(null)
 
   if (!updatedSettings) return null // Prevent rendering before items are loaded
   logDebug('SettingsDialog/main', `Starting`)
@@ -129,11 +132,21 @@ const SettingsDialog = ({
       // Because the settings dialog has the JSON editor for perspectives, which are not technically dashboard settings,
       // we need to make sure it gets updated
       let newSettings: TDashboardSettings = { ...updatedSettings }
+      
+      // Include section order change if it exists
+      if (sectionOrderChange) {
+        newSettings.customSectionDisplayOrder = sectionOrderChange
+      }
+      
       if (updatedSettings?.perspectiveSettings) {
         newSettings = setPerspectivesIfJSONChanged(newSettings, dashboardSettings, sendActionToPlugin, `Dashboard Settings updated`)
       }
       onSaveChanges(newSettings)
     }
+    
+    // Reset section order change tracking
+    setSectionOrderChange(null)
+    
     setReactSettings((prev) => ({
       ...prev,
       settingsDialog: {
@@ -214,6 +227,8 @@ const SettingsDialog = ({
   return (
     <Modal
       onClose={() => {
+        // Discard section order changes when closing via modal backdrop
+        setSectionOrderChange(null)
         setReactSettings((prev) => ({
           ...prev,
           settingsDialog: {
@@ -228,6 +243,8 @@ const SettingsDialog = ({
           <button
             className="PCButton cancel-button"
             onClick={() => {
+              // Discard section order changes on cancel
+              setSectionOrderChange(null)
               setReactSettings((prev) => ({
                 ...prev,
                 settingsDialog: {
@@ -265,15 +282,9 @@ const SettingsDialog = ({
                     dashboardSettings={dashboardSettings}
                     defaultOrder={defaultSectionDisplayOrder}
                     onSave={(newOrder) => {
-                      // Update the settings
-                      if (onSaveChanges) {
-                        // $FlowIgnore[incompatible-indexer]
-                        onSaveChanges({
-                          ...updatedSettings,
-                          customSectionDisplayOrder: newOrder,
-                        })
-                        setChangesMade(true)
-                      }
+                      // Track the section order change (will be saved when "Save & Close" is clicked)
+                      setSectionOrderChange(newOrder)
+                      setChangesMade(true)
                     }}
                   />
                 </details>

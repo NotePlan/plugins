@@ -2,12 +2,12 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2025-09-01 for v2.3.0 by @jgclark
+// Last updated 2025-11-13 for v2.3.0 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
 //
-import React, { useRef, useEffect, useLayoutEffect, useState } from 'react'
+import React, { useRef, useLayoutEffect, useState } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from '../../types'
 import { useAppContext } from './AppContext.jsx'
@@ -219,16 +219,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     // logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
   }, [])
 
-  // Force the window to be focused on load so that we can capture clicks on hover
-  useEffect(() => {
-    if (dialogRef?.current) {
-      // dialogRef.current.style.cssText = `${dialogRef.current.style.cssText} outline: none;`
-      dialogRef.current.focus()
-    }
-  }, [])
-
+  // Trigger the 'zoom-in/out' effects when the component mounts and unmounts
   useLayoutEffect(() => {
-    // Trigger the 'effect when the component mounts
     showAnimations ? setAnimationClass('zoom-in') : null
 
     // run before the component unmounts
@@ -439,16 +431,14 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         ref={dialogRef}
       >
         <div className="dialogTitle">
+          <div className="preText">From:</div>
           <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`}>
-            <div onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
-              <span className="preText">From:</span>
-              <span style={{ fontWeight: 600 }}>
+              <div className="dialogItemNote" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
                 <ItemNoteLink
                   item={item}
                   thisSection={sectionCodes}
                   alwaysShowNoteTitle={true}
                 />
-              </span>
             </div>
           </TooltipOnKeyPress>
           <div className="dialog-top-right">
@@ -481,7 +471,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             {/* Item content line ---------------- */}
             <div className="preText">For:</div>
             <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-              {/* TEST: put an 'autofocus' attribute in here */}
+              {/* Note: 'autofocusMe' attribute does not work */}
               <EditableInput
                 // $FlowIgnore - Flow doesn't like the ref
                 ref={inputRef}

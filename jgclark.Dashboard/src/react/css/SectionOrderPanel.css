@@ -14,11 +14,6 @@
   list-style: none; /* Remove default disclosure triangle so we can have one we can work on more easily */
 }
 
-/* Hide default disclosure triangle in standard browsers */
-/* .section-order-panel-summary::marker {
-  display: none; 
-} */
-
 .section-order-panel-summary::before {
   content: '▶';
   display: inline-block;
@@ -139,9 +134,9 @@ details:not([open]) .section-order-panel-expanded {
   /* border: 1px solid var(--divider-color); */
   border: none;
   border-radius: 6px;
-  cursor: move;
+  cursor: ns-resize; /* just up and down */
   transition: all 0.2s ease;
-  user-select: none;
+  user-select: none; /* Prevents the user from accidentally highlighting/selecting the section-order-item during drag and drop. */
 }
 
 .section-order-item:hover {
@@ -150,15 +145,7 @@ details:not([open]) .section-order-panel-expanded {
 }
 
 .section-order-item.dragging {
-  opacity: 0.6;
-  cursor: grabbing;
-}
-
-.section-order-item.drag-over {
-  border: 2px solid var(--tint-color);
-  /* background: var(--bg-alt-color); */
-  transform: translateY(-3px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  opacity: 0.3;
 }
 
 .section-order-item.disabled {
@@ -166,10 +153,8 @@ details:not([open]) .section-order-panel-expanded {
 }
 
 .section-order-handle {
-  /* display: flex; */
-  /* align-items: center; */
   color: var(--tint-color);
-  cursor: grab;
+  cursor: ns-resize; /* just up and down */;
   padding-right: 0.75rem;
   font-size: 1.0rem;
 }
@@ -211,5 +196,14 @@ details:not([open]) .section-order-panel-expanded {
 
 .section-order-list::-webkit-scrollbar-thumb:hover {
   background: rgb(from var(--fg-sidebar-color) r g b / 0.3);
+}
+
+/* Drop indicator line - blue horizontal line showing where item will be dropped */
+.section-order-drop-indicator {
+  height: 2px;
+  background-color: var(--tint-color);
+  margin: 0.25rem 0;
+  border-radius: 1px;
+  /* box-shadow: 0 0 4px rgba(0, 122, 255, 0.5); */
 }
 

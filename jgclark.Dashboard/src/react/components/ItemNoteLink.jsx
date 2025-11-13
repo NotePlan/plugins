@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show Note Links after main item content
-// Last updated 2025-07-22 for v2.3.0.b by @jgclark
+// Last updated 2025-11-13 for v2.3.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
@@ -62,7 +62,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
   if (isFromTeamspace) {
     const teamspaceTitle = item.teamspaceTitle && item.teamspaceTitle !== 'Unknown Teamspace' ? item.teamspaceTitle : ''
     teamspaceIndicator = (
-      <span className='teamspaceName pad-right'>
+      <span className='pad-left teamspaceName pad-right'>
         <i className={`${TEAMSPACE_FA_ICON} pad-right`}></i>
         {teamspaceTitle}
       </span>
@@ -90,7 +90,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
       metaKey={{ text: 'Open in Floating Window' }}
       label={`${item.itemType}_${item.ID}_Open Note Link`}
       enabled={!reactSettings?.dialogData?.isOpen}>
-      <span className={`pad-left-larger folderName pad-right`}>{folderNamePart}</span>
+      {folderNamePart && <span className={`pad-left-larger folderName pad-right`}>{folderNamePart}</span>}
       <a className={`noteTitle`} onClick={handleLinkClick}>
         {/* If it's a teamspace note prepend that icon + title */}
         {isFromTeamspace && teamspaceIndicator}

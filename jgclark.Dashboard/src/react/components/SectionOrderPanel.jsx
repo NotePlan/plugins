@@ -3,15 +3,13 @@
 // SectionOrderPanel Component
 // Allows users to visually reorder dashboard sections using drag-and-drop.
 // Written by Cursor AI guided by @jgclark
-// Last updated for v2.3.0.b14, 2025-11-12, @jgclark
+// Last updated for v2.3.0.b14, 2025-11-13, @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useState, useMemo } from 'react'
 import { allSectionDetails } from '../../constants.js'
 import type { TSection, TSectionCode, TDashboardSettings } from '../../types.js'
-import { useAppContext } from './AppContext.jsx'
 import '../css/SectionOrderPanel.css'
-import { logDebug } from '@helpers/react/reactDev.js'
 
 type SectionOrderPanelProps = {
   sections: Array<TSection>,
@@ -40,7 +38,7 @@ const SectionOrderPanel = ({
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { sendActionToPlugin } = useAppContext()
+  // Removed sendActionToPlugin - parent component handles saving
 
   //----------------------------------------------------------------------
   // State
@@ -215,12 +213,37 @@ const SectionOrderPanel = ({
     const newOrder = [...sectionOrder]
     const draggedItem = newOrder[draggedIndex]
     if (draggedItem) {
+      // Remove the dragged item first (this shifts all indices after draggedIndex down by 1)
       newOrder.splice(draggedIndex, 1)
-      newOrder.splice(dropIndex, 0, draggedItem)
+      
+      // Calculate insertion index after removal
+      // When dragging up: line above item means "insert before this item"
+      // When dragging down: line below item means "insert after this item"
+      let insertIndex: number
+      
+      if (draggedIndex < dropIndex) {
+        // Dragging down: 
+        // - Before removal: item at dropIndex
+        // - After removal: that item is now at (dropIndex - 1)
+        // - To insert AFTER the item that was at dropIndex (now at dropIndex-1), we insert at dropIndex
+        insertIndex = dropIndex
+      } else {
+        // Dragging up: the item at dropIndex hasn't shifted (we removed before it)
+        // To insert before it, we insert at dropIndex
+        insertIndex = dropIndex
+      }
+      
+      // Insert at the calculated position
+      newOrder.splice(insertIndex, 0, draggedItem)
     }
 
     setSectionOrder(newOrder)
     setChangesMade(true)
+    
+    // Notify parent of the change (extract section codes)
+    const newOrderCodes: Array<TSectionCode> = newOrder.map((s) => s.sectionCode)
+    onSave(newOrderCodes)
+    
     setDraggedIndex(null)
     setDragOverIndex(null)
   }
@@ -233,32 +256,12 @@ const SectionOrderPanel = ({
   const handleReset = () => {
     setSectionOrder([...allSectionsForOrdering])
     setChangesMade(true)
+    
+    // Notify parent of the reset (extract section codes)
+    const newOrderCodes: Array<TSectionCode> = allSectionsForOrdering.map((s) => s.sectionCode)
+    onSave(newOrderCodes)
   }
 
-  const handleSave = () => {
-    // Extract section codes from the ordered list (SEARCH is excluded and always first)
-    const newOrder: Array<TSectionCode> = sectionOrder.map((s) => s.sectionCode)
-
-    logDebug('SectionOrderPanel', `Saving new order: ${newOrder.join(', ')} (SEARCH will always be first)`)
-
-    // Update the setting via the plugin
-    sendActionToPlugin(
-      'dashboardSettingsChanged',
-      {
-        actionType: 'dashboardSettingsChanged',
-        settings: {
-          ...dashboardSettings,
-          customSectionDisplayOrder: newOrder,
-        },
-        lastChange: 'Section display order changed',
-      },
-      'SectionOrderPanel save',
-      true,
-    )
-
-    onSave(newOrder)
-    setChangesMade(false)
-  }
 
   //----------------------------------------------------------------------
   // Render
@@ -271,11 +274,6 @@ const SectionOrderPanel = ({
           <span className="section-order-unsaved-indicator">* Unsaved changes</span>
         )}
         <div className="section-order-header-buttons">
-          {changesMade && (
-            <button className="PCButton section-order-save-button" onClick={handleSave} type="button">
-              Save new Order
-            </button>
-          )}
           <button className="PCButton" onClick={handleReset} type="button">
             Reset to Default
           </button>
@@ -290,27 +288,37 @@ const SectionOrderPanel = ({
             const isDragging = draggedIndex === index
             const isDragOver = dragOverIndex === index
             const isDisabled = !section.isVisible
+            const showDropIndicator = isDragOver && draggedIndex !== null && draggedIndex !== index
+            const isDraggingDown = draggedIndex !== null && draggedIndex < index
 
             return (
-              <div
-                key={`${section.sectionCode}-${index}`}
-                className={`section-order-item ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over' : ''} ${isDisabled ? 'disabled' : ''}`}
-                draggable={true}
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, index)}
-                onDragEnd={handleDragEnd}
-              >
-                <div className="section-order-handle">
-                  <i className="fa-solid fa-grip-vertical"></i>
+              <React.Fragment key={`${section.sectionCode}-${index}`}>
+                {/* Show blue drop indicator line above the item when dragging up, below when dragging down */}
+                {showDropIndicator && !isDraggingDown && (
+                  <div className="section-order-drop-indicator" />
+                )}
+                <div
+                  className={`section-order-item ${isDragging ? 'dragging' : ''} ${isDisabled ? 'disabled' : ''}`}
+                  draggable={true}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className="section-order-handle">
+                    <i className="fa-solid fa-grip-vertical"></i>
+                  </div>
+                  <div className="section-order-content">
+                    <span className="section-order-name">{section.name}</span>
+                    {isDisabled && <span className="section-order-hidden">(hidden)</span>}
+                  </div>
                 </div>
-                <div className="section-order-content">
-                  <span className="section-order-name">{section.name}</span>
-                  {isDisabled && <span className="section-order-hidden">(hidden)</span>}
-                </div>
-                {/* <div className="section-order-number">{index + 1}</div> */}
-              </div>
+                {/* Show blue drop indicator line below the item when dragging down */}
+                {showDropIndicator && isDraggingDown && (
+                  <div className="section-order-drop-indicator" />
+                )}
+              </React.Fragment>
             )
           })}
         </div>

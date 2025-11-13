@@ -33,7 +33,7 @@ dialog:modal {
   grid-template-columns: max-content auto max-content;
   /* vertically align content items in center */
   align-items: center; 
-  /* gap: 0.5rem; */
+  gap: 0.6rem;
 }
 
 .dialogTitle div:nth-last-child(1) {
@@ -70,7 +70,8 @@ dialog:modal {
 .buttonGrid div.preText {
   align-self: self-start;
   padding-block-start: 5px;
-  justify-self: end;
+  justify-self: end; /* container */
+  text-align: end; /* content */
 }
 
 /* Put very last div (Close button) on RHS -- no longer used */
