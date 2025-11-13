@@ -18,6 +18,7 @@ import { useAppContext } from '../AppContext.jsx'
 import CircularProgressBar from '../CircularProgressBar.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
 import { logDebug, logError, logInfo, JSP, clo } from '@helpers/react/reactDev'
+import { getDiff } from '@helpers/dev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import './Section.css'
 
@@ -33,7 +34,6 @@ type SectionProps = {
 // Section Component Definition
 //--------------------------------------------------------------------------
 const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
-
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
@@ -41,12 +41,36 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   // TEST: Track what's changing to debug re-renders
   const prevPluginDataRef = useRef(pluginData)
+  const prevDashboardSettingsRef = useRef(dashboardSettings)
+  const prevReactSettingsRef = useRef(reactSettings)
+  const prevSectionRef = useRef(section)
   const renderCountRef = useRef(0)
   renderCountRef.current += 1
 
+  /**
+   * Log a diff between previous and current values for easier debugging of rerenders.
+   *
+   * @param {string} label - Identifier for the value being compared.
+   * @param {any} previousValue - The previous render value.
+   * @param {any} currentValue - The current render value.
+   * @returns {void}
+   */
+  const logDiffForLabel = useCallback(
+    (label: string, previousValue: any, currentValue: any): void => {
+      if (previousValue === currentValue || previousValue == null || currentValue == null) {
+        return
+      }
+      const diff: any = getDiff(previousValue, currentValue)
+      if (diff != null) {
+        clo(diff, `Section ${section.sectionCode} ${section.name} diff for ${label}`, 2)
+      }
+    },
+    [section.sectionCode, section.name],
+  )
+
   useEffect(() => {
     if (prevPluginDataRef.current !== pluginData) {
-      const changedKeys = Object.keys(pluginData).filter(key => {
+      const changedKeys = Object.keys(pluginData).filter((key) => {
         const prevVal = prevPluginDataRef.current[key]
         const currVal = pluginData[key]
         // Deep comparison for arrays/objects
@@ -56,13 +80,35 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         return prevVal !== currVal
       })
       if (changedKeys.length > 0) {
-        logInfo('Section', `- ${section.sectionCode} render #${renderCountRef.current}: pluginData changed keys: ${changedKeys.join(', ')}`)
+        logInfo('Section', `- ${section.sectionCode} ${section.name} render #${renderCountRef.current}: pluginData changed keys: ${changedKeys.join(', ')}`)
+        logDiffForLabel('pluginData', prevPluginDataRef.current, pluginData)
       }
       prevPluginDataRef.current = pluginData
     } else {
-      logInfo('Section', `- ${section.sectionCode} render #${renderCountRef.current}: NO pluginData change: likely prop/context function reference change`)
+      logInfo('Section', `- ${section.sectionCode} ${section.name} render #${renderCountRef.current}: NO pluginData change: likely prop/context function reference change`)
     }
   })
+
+  useEffect(() => {
+    if (prevDashboardSettingsRef.current !== dashboardSettings) {
+      logDiffForLabel('dashboardSettings', prevDashboardSettingsRef.current, dashboardSettings)
+      prevDashboardSettingsRef.current = dashboardSettings
+    }
+  }, [dashboardSettings, logDiffForLabel])
+
+  useEffect(() => {
+    if (prevReactSettingsRef.current !== reactSettings) {
+      logDiffForLabel('reactSettings', prevReactSettingsRef.current, reactSettings)
+      prevReactSettingsRef.current = reactSettings
+    }
+  }, [reactSettings, logDiffForLabel])
+
+  useEffect(() => {
+    if (prevSectionRef.current !== section) {
+      logDiffForLabel('section prop', prevSectionRef.current, section)
+      prevSectionRef.current = section
+    }
+  }, [section, logDiffForLabel])
 
   // logDebug('Section', `🔸 Section: ${section.sectionCode} (${String(section.sectionItems?.length ?? 0)} items in '${section.name}')`)
 
@@ -75,7 +121,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Refs
   //----------------------------------------------------------------------
   // Track the last max priority value we updated to prevent duplicate updates
-  const lastMaxPriorityUpdateRef = useRef < number > (-1)
+  const lastMaxPriorityUpdateRef = useRef<number>(-1)
 
   //----------------------------------------------------------------------
   // Constants
@@ -95,8 +141,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   // Watch for changes to currentMaxPriorityFromAllVisibleSections and force re-render. This ensures that when one section updates the global max priority, all other sections will re-render and re-filter their items based on the new priority threshol.
   useEffect(() => {
-    logInfo('Section', `- ${section.sectionCode}: Main useEffect has pluginData changed. currentMaxPriFAVS=${currentMaxPriorityFromAllVisibleSections}`)
-  }, [currentMaxPriorityFromAllVisibleSections, section.sectionCode])
+    logInfo('Section', `- ${section.sectionCode} ${section.name}: Main useEffect has pluginData changed. currentMaxPriFAVS=${currentMaxPriorityFromAllVisibleSections}`)
+  }, [currentMaxPriorityFromAllVisibleSections, section.sectionCode, section.name])
 
   // This useEffect is responsible for preparing and updating the items in a section whenever the section or dashboard settings change.
   // It ensures that if a section has no items, an appropriate message (such as a 'congrats' or empty state indicator) is displayed,
@@ -124,9 +170,9 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         case 'M':
         case 'Q':
           if (isReferencedSection) {
-            logDebug('Section', `- ${section.sectionCode} doesn't have any sectionItems, but won't be shown, so no need to display congrats message`)
+            logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, but won't be shown, so no need to display congrats message`)
           } else {
-            logDebug('Section', `- ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
+            logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display congrats message`)
             sectionItems = [
               {
                 ID: `${section.sectionCode}-Empty`,
@@ -136,7 +182,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           }
           break
         case 'TAG':
-          logDebug('Section', `- ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
+          logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
               ID: `${section.sectionCode}-Empty`,
@@ -155,7 +201,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           break
         case 'SEARCH':
         case 'SAVEDSEARCH':
-          logDebug('Section', `- ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
+          logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
               ID: `${section.sectionCode}-Empty`,
@@ -211,7 +257,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   } = useSectionSortAndFilter(section, items, dashboardSettings, currentMaxPriorityFromAllVisibleSections)
 
   // Debug: log the values from useSectionSortAndFilter
-  logDebug('Section', `- ${section.sectionCode} after useSectionSortAndFilter: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}`)
+  logDebug('Section', `- ${section.sectionCode} ${section.name} after useSectionSortAndFilter: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}`)
 
   // Update global max priority when this section finds a higher priority
   // Use a ref to prevent duplicate updates to the same value
@@ -224,15 +270,17 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     )
 
     // Only update if we found a higher priority AND we haven't already updated to this value
-    if (maxPrioritySeenInThisSection > currentMaxPriorityFromAllVisibleSections &&
-      lastMaxPriorityUpdateRef.current !== maxPrioritySeenInThisSection) {
-      logDebug('Section', `Section ${section.sectionCode} found higher priority: ${maxPrioritySeenInThisSection} > ${currentMaxPriorityFromAllVisibleSections}, updating pluginData`)
+    if (maxPrioritySeenInThisSection > currentMaxPriorityFromAllVisibleSections && lastMaxPriorityUpdateRef.current !== maxPrioritySeenInThisSection) {
+      logDebug(
+        'Section',
+        `Section ${section.sectionCode} found higher priority: ${maxPrioritySeenInThisSection} > ${currentMaxPriorityFromAllVisibleSections}, updating pluginData`,
+      )
       lastMaxPriorityUpdateRef.current = maxPrioritySeenInThisSection
       updatePluginData(
         { ...pluginData, currentMaxPriorityFromAllVisibleSections: maxPrioritySeenInThisSection },
         `Section ${section.sectionCode} found higher priority: ${maxPrioritySeenInThisSection}`,
       )
-      logDebug('Section', `Section ${section.sectionCode} set currentMaxPriorityFromAllVisibleSections to ${maxPrioritySeenInThisSection}`)
+      logDebug('Section', `Section ${section.sectionCode} ${section.name} set currentMaxPriorityFromAllVisibleSections to ${maxPrioritySeenInThisSection}`)
     }
   }, [maxPrioritySeenInThisSection, currentMaxPriorityFromAllVisibleSections, section.sectionCode])
 
@@ -321,7 +369,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       })
     }
   }
-
 
   // Deal with special cases where we don't want to show item counts
   // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
@@ -516,10 +563,11 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
 // Memoize Section component to prevent re-renders when props haven't changed
 // This helps prevent cascading re-renders when pluginData changes but section prop is the same
-const MemoizedSection = React.memo(Section, (prevProps, nextProps) => {
+// $FlowFixMe[incompatible-type]
+const MemoizedSection = (React.memo(Section, (prevProps: SectionProps, nextProps: SectionProps): boolean => {
   // Only re-render if the section object reference changed
   // Note: This won't prevent re-renders from context changes, but will prevent prop-based re-renders
   return prevProps.section === nextProps.section && prevProps.onButtonClick === nextProps.onButtonClick
-})
+}): any)
 
 export default MemoizedSection

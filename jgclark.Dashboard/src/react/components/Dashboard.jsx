@@ -8,17 +8,17 @@
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import React, { useEffect, useRef, useMemo } from 'react'
+import React, { useEffect, useRef, useMemo, useCallback } from 'react'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import { dontDedupeSectionCodes, sectionDisplayOrder, sectionPriority } from '../../constants.js'
 import { copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { findSectionItems } from '../../dashboardHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
-import type { TSection } from '../../types.js'
+import type { TSection, TActionButton } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
-import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
+import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
 import { calculateMaxPriorityAcrossAllSections } from './Section/useSectionSortAndFilter.jsx'
 import Header from './Header'
 import IdleTimer from './IdleTimer.jsx'
@@ -98,33 +98,25 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Constants
   //----------------------------------------------------------------------
 
-  let sections = [...origSections]
-  let totalSectionItems = countTotalSectionItems(origSections, dontDedupeSectionCodes)
-  // logDebug('Dashboard:origSections', `starting with ${origSections.length} sections (${getDisplayListOfSectionCodes(origSections)}) with ${String(totalSectionItems)} items`)
-  // clof(sections, `Dashboard: origSections (length=${sections.length})`, ['sectionCode', 'name'], true)
-
-  // Memoize deduplicated sections
-  const deduplicatedSections = useMemo(() => {
-    if (sections.length >= 1 && dashboardSettings.hideDuplicates) {
+  const { sections, totalSectionItems } = useMemo(() => {
+    let workingSections = origSections
+    if (workingSections.length >= 1 && dashboardSettings?.hideDuplicates) {
       // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
       // TB and PROJ sections need to be ignored here, as they have different item types
       const dedupedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dontDedupeSectionCodes, dashboardSettings)
-      totalSectionItems = countTotalVisibleSectionItems(dedupedSections, dashboardSettings)
-
-      // logDebug('Dashboard', `deduplicatedSections: ${dedupedSections.length} sections with ${String(totalSectionItems)} items`)
-      // clof(sections, `Dashboard sections (length=${sections.length})`, ['sectionCode', 'name'], true)
-
-      return dedupedSections
+      workingSections = dedupedSections
     }
-    return sections
-  }, [sections, dashboardSettings, origSections])
 
-  // Use the memoized sections
-  sections = deduplicatedSections
+    const sortedSections = sortSections(workingSections.slice(), sectionDisplayOrder)
+    const totalVisibleAfterSort = countTotalVisibleSectionItems(sortedSections, dashboardSettings)
 
-  sections = useMemo(() => sortSections(sections, sectionDisplayOrder), [sections, sectionDisplayOrder])
-  // logDebug('Dashboard:sortSections', `after sort: ${sections.length} (${getDisplayListOfSectionCodes(sections)}) with ${String(countTotalSectionItems(sections, dontDedupeSectionCodes))} items`)
-  // clof(sections, `Dashboard: sortSections (length=${sections.length})`, ['sectionCode', 'name'], true)
+    // logDebug('Dashboard:sortSections', `after sort: ${sortedSections.length} sections with ${String(totalVisibleAfterSort)} items`)
+
+    return {
+      sections: sortedSections,
+      totalSectionItems: totalVisibleAfterSort,
+    }
+  }, [origSections, dashboardSettings, sectionDisplayOrder])
 
   const dashboardContainerStyle = {
     maxWidth: '100vw',
@@ -194,7 +186,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       // logDebug('Dashboard', `in useEffect, setting title to: ${windowTitle}`)
       document.title = windowTitle
     }
-  }, [pluginData.sections])
+  }, [pluginData.sections, totalSectionItems])
 
   // Update dialogData when pluginData changes, e.g. when the dialog is open for a task and you are changing things like priority
   useEffect(() => {
@@ -259,7 +251,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Recalculate maximum priority when sections change (e.g., when items are removed)
   // NOTE: This can conflict with section-level updates during initial render, so we use a ref
   // to track if sections have actually changed (not just pluginData.currentMaxPriorityFromAllVisibleSections)
-  const prevSectionsRef = useRef < Array < TSection >> ([])
+  const prevSectionsRef = useRef<Array<TSection>>([])
   useEffect(() => {
     // Only recalculate if sections array reference actually changed (items removed/added).
     // Don't recalculate if only currentMaxPriorityFromAllVisibleSections changed (that's handled by sections).
@@ -305,6 +297,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const showDebugPanel = (pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel) || false
   const testGroups = useMemo(() => getTestGroups(getContext), [getContext])
 
+  /**
+   * Maintain a stable button handler reference for each section to avoid unnecessary re-renders.
+   *
+   * @param {TActionButton} _button - Section action button definition.
+   * @returns {void}
+   */
+  const handleSectionButtonClick = useCallback((_button: TActionButton): void => {}, [])
+
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
       {autoUpdateEnabled && (
@@ -318,7 +318,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         <Header lastFullRefresh={lastFullRefresh} />
         <main>
           {sections.map((section, index) => (
-            <Section key={`${section.sectionCode}-${index}`} section={section} onButtonClick={() => { }} />
+            <Section key={`${section.sectionCode}-${index}`} section={section} onButtonClick={handleSectionButtonClick} />
           ))}
         </main>
         <Dialog
