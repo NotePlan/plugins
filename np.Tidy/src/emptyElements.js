@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Remove empty blocks functionality for Tidy plugin
-// Last updated 2025-09-24 for v1.0.0 by @jgclark
+// Last updated 2025-11-13 for v1.16.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -19,28 +19,25 @@ import { showMessage } from '@helpers/userInput'
  *
  * @param {TNote} note - The note to process
  * @param {boolean} preserveHeadings - Whether to preserve heading structure (skip removing empty headings)
- * @returns {boolean} - Whether any changes were made
+ * @returns {number} - Number of changes made
  *
  * @example
  * When preserveHeadings = false (default):
  * - Removes: "- " (empty list item)
  * - Removes: "> " (empty quote)
  * - Removes: "# " (empty heading)
+ * - Removes: "* " (empty task)
+ * - Removes: "+ " (empty checklist)
  * - Preserves: "- Some content" (list with content)
  * - Preserves: "> Some quote" (quote with content)
  * - Preserves: "# Some heading" (heading with content)
  *
  * When preserveHeadings = true:
- * - Removes: "- " (empty list item)
- * - Removes: "> " (empty quote)
  * - Preserves: "# " (empty heading - structure preserved)
- * - Preserves: "- Some content" (list with content)
- * - Preserves: "> Some quote" (quote with content)
- * - Preserves: "# Some heading" (heading with content)
  */
-function removeEmptyListItemsAndHeadings(note: TNote, preserveHeadings: boolean = false): boolean {
+function removeEmptyParagraphs(note: TNote, preserveHeadings: boolean = false): number {
   const paragraphs = note.paragraphs
-  let changesMade = false
+  let numChangesMade = 0
 
   for (const para of paragraphs) {
     const trimmedContent = para.content.trim()
@@ -56,18 +53,17 @@ function removeEmptyListItemsAndHeadings(note: TNote, preserveHeadings: boolean 
       // Remove empty headings when not preserving structure
       shouldRemove = isEmptyContent
     } else {
-      // For list and quote items, remove if empty
-      shouldRemove = isEmptyContent && ['list', 'quote'].includes(para.type)
+      // For most other paragraph types, remove if empty
+      shouldRemove = isEmptyContent && ['open', 'checklist', 'scheduled', 'checklistScheduled', 'list', 'quote'].includes(para.type)
     }
-
     if (shouldRemove) {
       logDebug('removeEmptyElements', `Removing empty ${para.type} para on line ${String(para.lineIndex)}`)
       note.removeParagraph(para)
-      changesMade = true
+      numChangesMade++
     }
   }
-
-  return changesMade
+  logInfo('removeEmptyElements', `Removed ${String(numChangesMade)} empty paras`)
+  return numChangesMade
 }
 
 /**
@@ -85,7 +81,7 @@ function removeEmptyListItemsAndHeadings(note: TNote, preserveHeadings: boolean 
  * - It has no content in its section AND no subheadings with content
  *
  * @param {TNote} note - The note to process
- * @returns {boolean} - Whether any changes were made
+ * @returns {number} - Number of changes made
  *
  * @example
  * // This heading is PRESERVED because its subheading has content:
@@ -98,10 +94,10 @@ function removeEmptyListItemsAndHeadings(note: TNote, preserveHeadings: boolean 
  * // ## Empty Subsection
  * // (no content)
  */
-function removeEmptySections(note: TNote): boolean {
+function removeEmptySections(note: TNote): number {
   const paragraphs = note.paragraphs
   const titleParas = paragraphs.filter((para) => para.type === 'title')
-  let changesMade = false
+  let numChangesMade = 0
 
   // First, mark which headings have content (including subheadings)
   const headingHasContent = new Map<number, boolean>()
@@ -151,11 +147,11 @@ function removeEmptySections(note: TNote): boolean {
     if (!hasContent) {
       logDebug('removeEmptyElements', `Removing heading para on line ${String(para.lineIndex)} (no content and no subheadings with content)`)
       note.removeParagraph(para)
-      changesMade = true
+      numChangesMade++
     }
   }
-
-  return changesMade
+  logInfo('removeEmptyElements', `Removed ${String(numChangesMade)} empty headings`)
+  return numChangesMade
 }
 
 /**
@@ -168,7 +164,7 @@ function removeEmptySections(note: TNote): boolean {
  * @param {TNote} note - The note to process
  * @param {boolean} stripAllEmptyLines - Whether to remove all empty lines or just consecutive ones
  * @param {boolean} preserveHeadings - Whether to preserve heading structure (skip removing empty headings)
- * @returns {boolean} - Whether any changes were made
+ * @returns {number} - Number of changes made
  *
  * @example
  * // When stripAllEmptyLines = false (default):
@@ -179,9 +175,9 @@ function removeEmptySections(note: TNote): boolean {
  * // Before: "Line 1\n\n\n\nLine 2"
  * // After:  "Line 1\nLine 2"  (removes all empty lines)
  */
-function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean, preserveHeadings: boolean = false): boolean {
+function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean, preserveHeadings: boolean = false): number {
   const paragraphs = note.paragraphs
-  let changesMade = false
+  let numChangesMade = 0
 
   if (stripAllEmptyLines) {
     // Delete *all* empty paras, but preserve headings if preserveHeadings is true
@@ -193,7 +189,7 @@ function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean, p
     for (const para of emptyParasToRemove) {
       logDebug('removeEmptyElements', `Removing empty para on line ${String(para.lineIndex)}`)
       note.removeParagraph(para)
-      changesMade = true
+      numChangesMade++
     }
   } else {
     // Delete multiple consecutive empty paras, leaving only one empty line
@@ -223,15 +219,17 @@ function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean, p
     }
 
     // Remove the marked paragraphs in reverse order to avoid index shifting
-    for (let i = parasToRemove.length - 1; i >= 0; i--) {
-      const para = parasToRemove[i]
-      logDebug('removeEmptyElements', `Removing empty para on line ${String(para.lineIndex)}`)
-      note.removeParagraph(para)
-      changesMade = true
+    if (parasToRemove.length > 0) {
+      for (let i = parasToRemove.length - 1; i >= 0; i--) {
+        const para = parasToRemove[i]
+        logDebug('removeEmptyElements', `Removing empty para on line ${String(para.lineIndex)}`)
+        note.removeParagraph(para)
+        numChangesMade++
+      }
     }
   }
-
-  return changesMade
+  logInfo('removeEmptyElements', `Removed ${String(numChangesMade)} empty paras`)
+  return numChangesMade
 }
 
 /**
@@ -300,14 +298,14 @@ export async function removeEmptyElements(filenameIn: string = 'Editor', stripAl
     logDebug(pluginJson, `preserveHeadingStructure: ${String(preserveHeadingStructure)} typeof=${typeof preserveHeadingStructure} / preserveHeadings: ${String(preserveHeadings)}`)
 
     // Execute the phases of cleanup
-    const changes1 = removeEmptyListItemsAndHeadings(note, preserveHeadings)
+    const changes1 = removeEmptyParagraphs(note, preserveHeadings)
     const changes2 = preserveHeadings ? false : removeEmptySections(note)
     const changes3 = removeConsecutiveEmptyLines(note, Boolean(stripAllEmptyLines), preserveHeadings)
 
-    const changesMade = changes1 || changes2 || changes3
+    const numChangesMade = changes1 + changes2 + changes3
 
-    if (changesMade) {
-      logInfo('removeEmptyElements', `Removed empty elements from note '${displayTitle(note)}'`)
+    if (numChangesMade > 0) {
+      logInfo('removeEmptyElements', `Removed ${String(numChangesMade)} empty elements from note '${displayTitle(note)}'`)
       // Save Editor (if that's where we're working)
       if (workingInEditor) {
         await Editor.save()

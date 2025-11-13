@@ -43,25 +43,26 @@ This command catches any such completed repeats that haven't had the next repeat
 ### Details on /Remove empty blocks
 The **/Remove empty blocks** command intelligently cleans up your notes while preserving important structure:
 
-**What it removes:**
+#### What it removes
+- Empty task or checklists (e.g. `* ` or `+ ` with no further content)
 - Empty list items (e.g., `- ` or `* ` with no content)
 - Empty quotations (e.g., `> ` with no content)  
 - Empty headings (e.g., `# ` with no text)
 - Multiple consecutive empty lines (reduces to single empty lines)
 
-**Smart heading behavior:**
+#### Smart heading behavior
 - **Preserves parent headings** when their subheadings contain content
 - **Removes headings** only when they have no content AND no subheadings with content
 - This ensures your note hierarchy stays intact when subheadings contain valuable information
 
-**Empty line handling:**
+#### Empty line handling
 - **Default behavior**: Reduces multiple consecutive empty lines to a single empty line
 - **Strip all empty lines**: Available as an x-callback setting to remove ALL empty lines completely
 ```
 noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20elements&arg0=Editor&arg1=true
 ```
 
-**Advanced options:**
+#### Advanced options
 - **Preserve heading structure**: Availabe as an x-callback setting. When arg2 is true, keeps ALL headings (even empty ones) to maintain note templates and structure
 - This is useful for note templates where you want to keep the heading hierarchy intact
 ```
