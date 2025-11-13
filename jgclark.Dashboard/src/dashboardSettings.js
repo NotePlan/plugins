@@ -50,7 +50,7 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 ]
 
 export const searchPanelSettings: Array<TSettingItem> = [
-  // TODO(laurel): fill in or drop
+  // TODO(later): fill in or remove
   {},
 ]
 
@@ -259,16 +259,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     compactDisplay: true,
   },
   {
-    key: 'overdueSortOrder',
-    label: 'Sort order for Tag/Mention and Overdue items',
-    description:
-      "The order to show items: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, 'due date' by the due date (if present), or 'most recent' changed note.",
-    type: 'dropdown-select',
-    options: ['priority', 'earliest', 'due date', 'most recent'],
-    default: 'priority',
-    compactDisplay: true,
-  },
-  {
     label: 'Hide priority markers?',
     key: 'hidePriorityMarkers',
     type: 'switch',
@@ -312,7 +302,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: 'Tag/Mention section(s)',
+    label: 'Tag/Mention settings',
   },
   {
     key: 'tagsToShow',
@@ -335,7 +325,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: 'Search section',
+    label: 'Search settings',
   },
   {
     key: 'applyCurrentFilteringToSearch',
@@ -359,7 +349,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: 'Overdue Tasks section',
+    label: 'Overdue Tasks settings',
   },
   {
     key: 'lookBackDaysForOverdue',
@@ -370,11 +360,21 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     compactDisplay: true,
   },
   {
+    key: 'overdueSortOrder',
+    label: 'Sort order for Tag/Mention and Overdue items',
+    description:
+      "The order to show items: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, 'due date' by the due date (if present), or 'most recent' changed note.",
+    type: 'dropdown-select',
+    options: ['priority', 'earliest', 'due date', 'most recent'],
+    default: 'priority',
+    compactDisplay: true,
+  },
+  {
     type: 'separator',
   },
   {
     type: 'heading',
-    label: 'Interactive Processing',
+    label: 'Interactive Processing settings',
   },
   {
     key: 'enableInteractiveProcessing',
