@@ -1,27 +1,23 @@
 /** 
  * -------------------------------------------------------------
  * SectionOrderPanel Styles
- * Last updated 2025-11-12 for v2.3.0.b14, @jgclark
+ * Panel container - using native <summary> and <details> element
+ * Last updated 2025-11-13 for v2.3.0.b14, @jgclark
  * ------------------------------------------------------------- 
  */
 
-/* Panel container - using native <details> element */
-/* .section-order-panel-container {
-  margin: 0.5rem 0;
-} */
 
 /* Summary element styling */
 .section-order-panel-summary {
-  /* display: flex; */
-  /* align-items: center; */
   padding: 0.5rem 0;
   cursor: pointer;
-  list-style: none; /* Remove default disclosure triangle -- is this needed? */
+  list-style: none; /* Remove default disclosure triangle so we can have one we can work on more easily */
 }
 
-.section-order-panel-summary::marker {
-  display: none; /* Hide default disclosure triangle in standard browsers */
-}
+/* Hide default disclosure triangle in standard browsers */
+/* .section-order-panel-summary::marker {
+  display: none; 
+} */
 
 .section-order-panel-summary::before {
   content: '▶';
@@ -44,13 +40,52 @@ details[open] .section-order-panel-summary::before {
   color: var(--tint-color);
 }
 
-.section-order-panel-heading {
-  font-weight: 500;
-  color: var(--fg-main-color);
+/* Slide down + fade animations for panel opening and closing */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+details[open] .section-order-panel-expanded {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Note: the closing animation is not working as expected because 'open' state changes immediately after summary is clicked. The following is a workaround that requires JS, which I'm not bothered to add right now. */
+/*
+<script>
+  const details = document.querySelector('details');
+
+  details.addEventListener('toggle', function() {
+    if (!details.open) {
+      details.classList.add('closing');
+      setTimeout(() => {
+        details.classList.remove('closing');
+      }, 500); // Match the CSS transition duration
+    }
+  });
+</script>
+*/
+details:not([open]) .section-order-panel-expanded {
+  animation: fadeOut 0.3s ease-in;
 }
 
 /* Expanded state */
-/* TODO: Try and make this a wipe down transition effect */
 .section-order-panel-expanded {
   border: 1px solid var(--divider-color);
   border-radius: 6px;
@@ -87,22 +122,13 @@ details[open] .section-order-panel-summary::before {
   font-size: 0.9rem;
 }
 
-.section-order-save-button {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.9rem;
-}
-
-.section-order-description {
-  margin: 0 0 0.5rem 0;
-}
-
 .section-order-list {
   display: flex;
   flex-direction: column;
   /* gap: 0.2rem; */
   /* max-height: 50vh; */
   overflow-y: auto;
-  padding: 0.6rem;
+  padding: 0.6rem 2rem;
 }
 
 .section-order-item {
@@ -144,15 +170,12 @@ details[open] .section-order-panel-summary::before {
   /* align-items: center; */
   color: var(--tint-color);
   cursor: grab;
-  padding-right: 0.5rem;
+  padding-right: 0.75rem;
+  font-size: 1.0rem;
 }
 
 .section-order-handle:active {
   cursor: grabbing;
-}
-
-.section-order-handle i {
-  font-size: 0.9rem;
 }
 
 .section-order-content {
@@ -168,28 +191,7 @@ details[open] .section-order-panel-summary::before {
 }
 
 .section-order-hidden {
-  /* font-size: 0.85rem; */
-  /* color: var(--fg-color-secondary, var(--fg-color)); */
   font-style: italic;
-}
-
-.section-order-number {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* width: 24px;
-  height: 24px;
-  border-radius: 50%; */
-  /* background: var(--bg-color-secondary, var(--bg-color));
-  color: var(--fg-color-secondary, var(--fg-color));
-  font-size: 0.85rem; */
-  font-weight: 400;
-  flex-shrink: 0;
-}
-
-.reset-button {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.9rem;
 }
 
 /* Scrollbar styling for the list */

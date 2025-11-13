@@ -10,6 +10,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
+## [2.3.0.b14] 2025-10-13
+- Can now change the displayed order of Sections, using a new panel in the Settings window. This is set per Perspective (if used). It can be reset to the default.
+ 
 ## [2.3.0.b13] 2025-10-11???
 - When lower-priority items filter is turned on, change the move "All → ..." buttons to show "All shown → ..." instead.
 - Add new setting "" to always have the "All → ..." buttons operate on all section tasks, not just the shown ones.

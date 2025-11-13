@@ -7,10 +7,10 @@
 //--------------------------------------------------------------------------
 
 import React, { useState, useMemo } from 'react'
-import type { TSection, TSectionCode, TDashboardSettings } from '../../types.js'
 import { allSectionDetails } from '../../constants.js'
+import type { TSection, TSectionCode, TDashboardSettings } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import '../css/SectionOrderDialog.css'
+import '../css/SectionOrderPanel.css'
 import { logDebug } from '@helpers/react/reactDev.js'
 
 type SectionOrderPanelProps = {
@@ -242,8 +242,7 @@ const SectionOrderPanel = ({
     logDebug('SectionOrderPanel', `Saving new order: ${newOrder.join(', ')} (SEARCH will always be first)`)
 
     // Update the setting via the plugin
-    sendActionToPlugin(
-      'dashboardSettingsChanged',
+    sendActionToPlugin('dashboardSettingsChanged',
       {
         actionType: 'dashboardSettingsChanged',
         newSettings: {
@@ -272,11 +271,11 @@ const SectionOrderPanel = ({
         )}
         <div className="section-order-header-buttons">
           {changesMade && (
-            <button className="HAButton section-order-save-button" onClick={handleSave} type="button">
+            <button className="PCButton section-order-save-button" onClick={handleSave} type="button">
               Save new Order
             </button>
           )}
-          <button className="HAButton reset-button" onClick={handleReset} type="button">
+          <button className="PCButton" onClick={handleReset} type="button">
             Reset to Default
           </button>
         </div>
@@ -309,7 +308,7 @@ const SectionOrderPanel = ({
                   <span className="section-order-name">{section.name}</span>
                   {isDisabled && <span className="section-order-hidden">(hidden)</span>}
                 </div>
-                <div className="section-order-number">{index + 1}</div>
+                {/* <div className="section-order-number">{index + 1}</div> */}
               </div>
             )
           })}
