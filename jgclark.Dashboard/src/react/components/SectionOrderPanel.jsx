@@ -242,10 +242,11 @@ const SectionOrderPanel = ({
     logDebug('SectionOrderPanel', `Saving new order: ${newOrder.join(', ')} (SEARCH will always be first)`)
 
     // Update the setting via the plugin
-    sendActionToPlugin('dashboardSettingsChanged',
+    sendActionToPlugin(
+      'dashboardSettingsChanged',
       {
         actionType: 'dashboardSettingsChanged',
-        newSettings: {
+        settings: {
           ...dashboardSettings,
           customSectionDisplayOrder: newOrder,
         },
