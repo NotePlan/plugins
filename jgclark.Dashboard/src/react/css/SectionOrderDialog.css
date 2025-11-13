@@ -1,19 +1,99 @@
 /** 
  * -------------------------------------------------------------
- * SectionOrderDialog Styles
+ * SectionOrderPanel Styles
  * Last updated 2025-11-12 for v2.3.0.b14, @jgclark
  * ------------------------------------------------------------- 
  */
 
-.section-order-dialog-content {
-  padding: 0.6rem;
+/* Panel container - using native <details> element */
+/* .section-order-panel-container {
+  margin: 0.5rem 0;
+} */
+
+/* Summary element styling */
+.section-order-panel-summary {
+  /* display: flex; */
+  /* align-items: center; */
+  padding: 0.5rem 0;
+  cursor: pointer;
+  list-style: none; /* Remove default disclosure triangle -- is this needed? */
+}
+
+.section-order-panel-summary::marker {
+  display: none; /* Hide default disclosure triangle in standard browsers */
+}
+
+.section-order-panel-summary::before {
+  content: '▶';
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 1rem;
+  color: var(--tint-color);
+  transition: all 0.2s ease;
+  transform: rotate(0deg);
+}
+
+/* Rotate triangle when details element is open */
+details[open] .section-order-panel-summary::before {
+  transform: rotate(90deg);
+  transition: all 0.3s ease;
+}
+
+/* Emphasise that this can be clicked on */
+.section-order-panel-summary:hover {
+  color: var(--tint-color);
+}
+
+.section-order-panel-heading {
+  font-weight: 500;
+  color: var(--fg-main-color);
+}
+
+/* Expanded state */
+/* TODO: Try and make this a wipe down transition effect */
+.section-order-panel-expanded {
+  border: 1px solid var(--divider-color);
+  border-radius: 6px;
+  background: var(--bg-main-color);
+  padding: 0rem;
+}
+
+.section-order-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--divider-color);
+  /* gap: 0.5rem; */
+}
+
+.section-order-header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.section-order-panel-content {
+  padding: 0rem 0.6rem;
   display: flex;
   flex-direction: column;
-  /* gap: 1rem; */
+}
+
+.section-order-unsaved-indicator {
+  color: var(--tint-color);
+  font-weight: bold;
+  margin-left: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.section-order-save-button {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
 }
 
 .section-order-description {
-  margin: 0;
+  margin: 0 0 0.5rem 0;
 }
 
 .section-order-list {
@@ -30,16 +110,17 @@
   align-items: center;
   padding: 0.25rem;
   background: var(--bg-color);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  /* border: 1px solid var(--divider-color); */
+  border: none;
+  border-radius: 6px;
   cursor: move;
   transition: all 0.2s ease;
   user-select: none;
 }
 
 .section-order-item:hover {
-  background: var(--bg-color-hover, var(--bg-color));
-  border-color: var(--border-color-hover, var(--border-color));
+  background: var(--bg-alt-color);
+  border-color: var(--divider-color);
 }
 
 .section-order-item.dragging {
@@ -48,10 +129,10 @@
 }
 
 .section-order-item.drag-over {
-  border-bottom: 2px solid var(--accent-color, #007aff);
-  background: var(--bg-color-hover, var(--bg-color));
-  transform: translateY(-2px);
-  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
+  border: 2px solid var(--tint-color);
+  /* background: var(--bg-alt-color); */
+  transform: translateY(-3px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .section-order-item.disabled {
@@ -83,7 +164,7 @@
 
 .section-order-name {
   font-weight: 500;
-  color: var(--fg-color);
+  color: var(--fg-main-color);
 }
 
 .section-order-hidden {
@@ -106,15 +187,8 @@
   flex-shrink: 0;
 }
 
-.section-order-actions {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--border-color);
-}
-
 .reset-button {
-  /* padding: 0.5rem 1rem; */
+  padding: 0.4rem 0.8rem;
   font-size: 0.9rem;
 }
 
@@ -125,12 +199,12 @@
 
 .section-order-list::-webkit-scrollbar-track {
   background: var(--divider-color);
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .section-order-list::-webkit-scrollbar-thumb {
   background: rgb(from var(--fg-sidebar-color) r g b / 0.3);
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .section-order-list::-webkit-scrollbar-thumb:hover {

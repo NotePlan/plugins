@@ -197,31 +197,23 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
       'Settings that control how the Dashboard displays information. There are also toggles that control filtering of which Sections to show in the Filters dropdown menu.',
   },
   {
-    key: 'maxItemsToShowInSection',
-    label: 'Max number of items to show in a section?',
-    description: "The Dashboard isn't designed to show very large numbers of tasks. This sets the maximum number of items that will be shown at one time in each section.",
-    type: 'number',
-    default: 24,
-    compactDisplay: true,
-  },
-  {
-    key: 'displayDoneCounts',
-    label: 'Show completed task count?',
-    description:
-      'Show the number of tasks completed today at the top of the Dashboard. For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.',
-    type: 'switch',
-    default: true,
-  },
-  {
     type: 'sectionOrderPanel',
     label: 'Reorder Sections…',
-    description: 'Open a dialog where you can drag and drop Section names to change the order they are displayed.',
+    description: 'Click heading to open panel where you can drag and drop Section names to change the order they are displayed.',
   },
   {
     key: 'customSectionDisplayOrder',
     label: 'Custom Section Display Order',
     type: 'hidden',
     default: defaultSectionDisplayOrder,
+  },
+  {
+    key: 'maxItemsToShowInSection',
+    label: 'Max number of items to show in a section?',
+    description: "The Dashboard isn't designed to show very large numbers of tasks. This sets the maximum number of items that will be shown at one time in each section.",
+    type: 'number',
+    default: 24,
+    compactDisplay: true,
   },
   {
     key: 'autoUpdateAfterIdleTime', // aka "autoRefresh"
@@ -247,6 +239,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'switch',
     default: false,
     refreshAllOnChange: true,
+  },
+  {
+    key: 'displayDoneCounts',
+    label: 'Show completed task count?',
+    description:
+      'Show the number of tasks completed today at the top of the Dashboard. For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.',
+    type: 'switch',
+    default: true,
   },
   {
     key: 'showProgressInSections',

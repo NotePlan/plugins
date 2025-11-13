@@ -1,6 +1,6 @@
 // @flow
 //--------------------------------------------------------------------------
-// SectionOrderDialog Component
+// SectionOrderPanel Component
 // Allows users to visually reorder dashboard sections using drag-and-drop.
 // Written by Cursor AI guided by @jgclark
 // Last updated for v2.3.0.b14, 2025-11-12, @jgclark
@@ -11,15 +11,13 @@ import type { TSection, TSectionCode, TDashboardSettings } from '../../types.js'
 import { allSectionDetails } from '../../constants.js'
 import { useAppContext } from './AppContext.jsx'
 import '../css/SectionOrderDialog.css'
-import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { logDebug } from '@helpers/react/reactDev.js'
 
-type SectionOrderDialogProps = {
+type SectionOrderPanelProps = {
   sections: Array<TSection>,
   dashboardSettings: TDashboardSettings,
   defaultOrder: Array<TSectionCode>,
   onSave: (newOrder: ?Array<TSectionCode>) => void,
-  onCancel: () => void,
 }
 
 type DraggableSection = {
@@ -29,14 +27,24 @@ type DraggableSection = {
   isTag: boolean,
 }
 
-const SectionOrderDialog = ({
+//--------------------------------------------------------------------------
+// Component Definition
+//--------------------------------------------------------------------------
+const SectionOrderPanel = ({
   sections,
   dashboardSettings,
   defaultOrder,
   onSave,
-  onCancel,
-}: SectionOrderDialogProps): React$Node => {
+}: SectionOrderPanelProps): React$Node => {
+
+  //----------------------------------------------------------------------
+  // Context
+  //----------------------------------------------------------------------
   const { sendActionToPlugin } = useAppContext()
+
+  //----------------------------------------------------------------------
+  // State
+  //----------------------------------------------------------------------
   const [changesMade, setChangesMade] = useState(false)
 
   // Build list of all possible sections (including hidden ones) for ordering
@@ -160,6 +168,10 @@ const SectionOrderDialog = ({
   const [draggedIndex, setDraggedIndex] = useState<?number>(null)
   const [dragOverIndex, setDragOverIndex] = useState<?number>(null)
 
+  //----------------------------------------------------------------------
+  // Handlers
+  //----------------------------------------------------------------------
+
   const handleDragStart = (e: any, index: number) => {
     setDraggedIndex(index)
     e.dataTransfer.effectAllowed = 'move'
@@ -169,10 +181,12 @@ const SectionOrderDialog = ({
       const dragImage = e.target.cloneNode(true)
       if (dragImage instanceof HTMLElement) {
         dragImage.style.opacity = '0.5'
+        // $FlowIgnore[incompatible-use]
         document.body.appendChild(dragImage)
         e.dataTransfer.setDragImage(dragImage, 0, 0)
         setTimeout(() => {
           if (document.body && dragImage.parentNode) {
+            // $FlowIgnore[incompatible-use]
             document.body.removeChild(dragImage)
           }
         }, 0)
@@ -225,7 +239,7 @@ const SectionOrderDialog = ({
     // Extract section codes from the ordered list (SEARCH is excluded and always first)
     const newOrder: Array<TSectionCode> = sectionOrder.map((s) => s.sectionCode)
 
-    logDebug('SectionOrderDialog', `Saving new order: ${newOrder.join(', ')} (SEARCH will always be first)`)
+    logDebug('SectionOrderPanel', `Saving new order: ${newOrder.join(', ')} (SEARCH will always be first)`)
 
     // Update the setting via the plugin
     sendActionToPlugin(
@@ -238,36 +252,38 @@ const SectionOrderDialog = ({
         },
         lastChange: 'Section display order changed',
       },
-      'SectionOrderDialog save',
+      'SectionOrderPanel save',
       true,
     )
 
     onSave(newOrder)
+    setChangesMade(false)
   }
 
-  const style = {
-    width: '90%',
-    maxWidth: '600px',
-    maxHeight: '80vh',
-  }
+  //----------------------------------------------------------------------
+  // Render
+  //----------------------------------------------------------------------
 
   return (
-    <DynamicDialog
-      title="Reorder Sections"
-      onSave={handleSave}
-      onCancel={onCancel}
-      isModal={true}
-      hideDependentItems={true}
-      hideHeaderButtons={false}
-      externalChangesMade={changesMade}
-      setChangesMade={setChangesMade}
-      style={style}
-      submitButtonText="Save"
-      items={[]}
-    >
-      <div className="section-order-dialog-content">
-        <p className="section-order-description">
-          Drag sections to reorder them.<br />Hidden sections are shown in gray but can still be reordered.
+    <div className="section-order-panel-expanded">
+      <div className="section-order-panel-header">
+        {changesMade && (
+          <span className="section-order-unsaved-indicator">* Unsaved changes</span>
+        )}
+        <div className="section-order-header-buttons">
+          {changesMade && (
+            <button className="HAButton section-order-save-button" onClick={handleSave} type="button">
+              Save new Order
+            </button>
+          )}
+          <button className="HAButton reset-button" onClick={handleReset} type="button">
+            Reset to Default
+          </button>
+        </div>
+      </div>
+      <div className="section-order-panel-content">
+        <p className="item-description">
+          Drag sections to reorder them. Hidden sections are shown in gray but can still be reordered.
         </p>
         <div className="section-order-list">
           {sectionOrder.map((section, index) => {
@@ -298,15 +314,10 @@ const SectionOrderDialog = ({
             )
           })}
         </div>
-        <div className="section-order-actions">
-          <button className="HAButton reset-button" onClick={handleReset} type="button">
-            Reset to Default
-          </button>
-        </div>
       </div>
-    </DynamicDialog>
+    </div>
   )
 }
 
-export default SectionOrderDialog
+export default SectionOrderPanel
 
