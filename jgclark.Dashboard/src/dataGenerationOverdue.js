@@ -98,7 +98,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     if (overdueParas.length > 0) {
       // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
       // Note: this takes ~600ms for 1,000 items
-      clo(overdueParas, 'getOverdueSectionData / overdueParas:')
+      // clo(overdueParas, 'getOverdueSectionData / overdueParas:')
       dashboardParas = makeDashboardParas(overdueParas)
       logDebug('getOverdueSectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
 

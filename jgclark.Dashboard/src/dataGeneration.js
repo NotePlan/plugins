@@ -79,7 +79,7 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean,
 ): Promise<Array<TSection>> {
   try {
-    logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
+    // logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
     const config: TDashboardSettings = await getDashboardSettings()
 
     const sections: Array<TSection> = []
