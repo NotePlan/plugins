@@ -1,5 +1,5 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated 2025-05-31 for v2.3.0.b3 */
+/* Last updated 2025-11-14 for v2.3.0.b14 by @jgclark */
 /* TODO: SearchPanel transition is not working well yet. Not sure if that's because of this file or SearchPanel.css */
 
 /* Container for header and search panel */
@@ -99,18 +99,26 @@
 	justify-content: end;
 	padding-top:1px; /* nudge down a bit */
 	float: inline-end; /* a rare use of float! */
-}
 
-/* For icon buttons in header area -- without cascading to child elements */
-.headerActionIconButtons > * {
-	/* droppdown button icons through FontAwesome */
-	i {
-		color: var(--tint-color);
-		cursor: pointer;
-		/* Make button a little darker on hover */
-		&:hover {
-			/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this */
-			filter: brightness(80%);
+	/**
+	* Styles all immediate children (typically icon buttons) of an element with the 'headerActionIconButtons' class. 
+	* This ensures that each button inside the header icon button group receives these styles, but does not cascade these styles to nested elements.
+	* Note: this in practice cascaded elsewhere in the interface.
+	*/
+	/* .headerActionIconButtons > * { */
+	/* So trying a more specific selector ... still has the same effect :-( */
+
+	/* Trying different selector to see if it works ... */
+	[class~="button"] {
+		/* droppdown button icons through FontAwesome */
+		i {
+			color: var(--tint-color);
+			cursor: pointer;
+			/* Make button a little darker on hover */
+			&:hover {
+				/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this */
+				filter: brightness(80%);
+			}
 		}
 	}
 }
