@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.16.0] - 2025-11-03 @jgclark
+- new **/Remove empty elements from recent notes** command, that uses the same settings as the existing '/Remove empty elements' command, but applies over all recent notes. (For @dwertheimer)
+
 ## [1.15.2] - 2025-11-01 @jgclark
 - updates **/List duplicated content** command to refer to the related (but simpler) new feature added to NotePlan in v3.19.2.
 - to align with that, the name of the command here is changed to **/List duplicated content**. (Note: this remains different to /List duplicate notes.)

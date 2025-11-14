@@ -6,9 +6,9 @@
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "1.15.2",
+  "plugin.version": "1.16.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "v1.15.2: update '/List doubled notes' command to refer to new built-in feature.\nv1.15.1: update '/File root notes' to improve menu display, particularly for Teamspace folders.\nv1.15.0: new '/Remove empty elements' command, and its setting 'Strip all empty lines?'. New setting 'Ignore future calendar notes?' for '/Remove section from all notes' command. Other fixes and improvements.\nv0.14.12: improvements to '/List duplicates' command.\nv0.14.11: improvements to '/List stubs' command.\nv0.14.10: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.9: update '/Generate @repeats from recent notes' and '/Remove blank notes' commands.\nv0.14.8: improvements to '/Remove section from all notes' command.\nv0.14.7: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.6: fix to allow top-level tasks to be run by template.\nv0.14.5: fix to allow top-level tasks to be run by xcallback.\nv0.14.4: fix to allow blank Calendar notes to be removed by '/remove blank notes'.\nv0.14.3: fix unwanted popups in '/generate @repeats from recent notes' command.\nv0.14.2: add new option to file root notes.\nv0.14.1: rebuild.\nv0.14.0: new '/Generate repeats' command.\nv0.13.0: '/List conflicted notes' now clears out all copies, and offers side-by-side viewing of conflicted note versions. Also bug fixes.",
+  "plugin.lastUpdateInfo": "v1.16.0: new '/Remove empty elements from recent notes' command.\nv1.15.2: update '/List doubled notes' command to refer to new built-in feature.\nv1.15.1: update '/File root notes' to improve menu display, particularly for Teamspace folders.\nv1.15.0: new '/Remove empty elements' command, and its setting 'Strip all empty lines?'. New setting 'Ignore future calendar notes?' for '/Remove section from all notes' command. Other fixes and improvements.\nv0.14.12: improvements to '/List duplicates' command.\nv0.14.11: improvements to '/List stubs' command.\nv0.14.10: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.9: update '/Generate @repeats from recent notes' and '/Remove blank notes' commands.\nv0.14.8: improvements to '/Remove section from all notes' command.\nv0.14.7: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.6: fix to allow top-level tasks to be run by template.\nv0.14.5: fix to allow top-level tasks to be run by xcallback.\nv0.14.4: fix to allow blank Calendar notes to be removed by '/remove blank notes'.\nv0.14.3: fix unwanted popups in '/generate @repeats from recent notes' command.\nv0.14.2: add new option to file root notes.\nv0.14.1: rebuild.\nv0.14.0: new '/Generate repeats' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -141,6 +141,15 @@
         "filename (or 'Editor' for the open note in the Editor) -- default: Editor",
         "stripAllEmptyLines -- default: false; By default, multiple consecutive empty lines are reduced to a single empty line. But if this is set to true, then all empty lines will be removed.",
         "preserveHeadingStructure -- default: false; When true, keeps all headings (even empty ones) to maintain note templates and structure. Useful for preserving heading hierarchy in templates."
+      ]
+    },
+    {
+      "name": "Remove empty elements from recent notes",
+      "description": "Runs 'Remove empty elements' across recently-changed notes using your settings.",
+      "jsFunction": "removeEmptyElementsFromRecentNotes",
+      "alias": [
+        "reeRecent",
+        "tidy"
       ]
     },
     {
@@ -408,6 +417,9 @@
       "required": true
     },
     {
+      "type": "separator"
+    },
+    {
       "type": "heading",
       "title": "'/Remove section from all/recent notes' commands settings"
     },
@@ -495,14 +507,6 @@
       "required": true
     },
     {
-      "title": "Run '/Remove orphaned blockIDs' command?",
-      "key": "runRemoveOrphansCommand",
-      "description": "",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
       "title": "Run '/Remove @done() markers' command?",
       "key": "runRemoveDoneMarkersCommand",
       "description": "",
@@ -513,6 +517,22 @@
     {
       "title": "Run '/Remove time parts from @done() dates' command?",
       "key": "runRemoveDoneTimePartsCommand",
+      "description": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Run '/Remove empty elements from recent notes' command?",
+      "key": "runRemoveEmptyElementsFromRecentNotesCommand",
+      "description": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Run '/Remove orphaned blockIDs' command?",
+      "key": "runRemoveOrphansCommand",
       "description": "",
       "type": "bool",
       "default": false,

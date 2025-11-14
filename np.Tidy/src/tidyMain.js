@@ -2,13 +2,14 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-11-01 for v1.15.2, @jgclark
+// Last updated 2025-11-03 for v1.16.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { listConflicts } from './conflicts'
 import { listDuplicates } from './duplicates'
+import { removeEmptyElementsFromRecentNotes } from './emptyElements'
 import { generateRepeatsFromRecentNotes } from './repeats.js'
 import { moveTopLevelTasksInNote } from './topLevelTasks'
 import { getSettings, type TidyConfig } from './tidyHelpers'
@@ -63,6 +64,11 @@ export async function tidyUpAll(): Promise<void> {
       CommandBar.showLoading(true, `Tidying up @done time parts...`, 0.5)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeDoneTimeParts(param)
+    }
+    if (config.runRemoveEmptyElementsFromRecentNotesCommand) {
+      CommandBar.showLoading(true, `Tidying up empty elements...`, 0.55)
+      logDebug('tidyUpAll', `Starting removeEmptyElementsFromRecentNotes...`)
+      await removeEmptyElementsFromRecentNotes(param)
     }
 
     // Note: Disabling this one as it can't be run silently

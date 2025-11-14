@@ -16,7 +16,8 @@ This plugin provides commands to help tidy up your notes:
 - **/List stubs**: creates a note that lists all your notes that contain "stubs" -- i.e. that caontain `[[note links]]` (aka "wikilinks") that don't lead to other notes in NotePlan.
 - **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See section below.
 - **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character. Note: this command cannot remove Teamspace notes (as of NotePlan v3.18.1), so it won't try.
-- **/Remove empty blocks** (alias: "reb"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information.
+- **/Remove empty elements** (alias: "ree"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information.
+- **/Remove empty elements from recent notes** (alias: "reeRecent"): as above, but for all recent notes. It usees the same settings as the command above.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
 - **/Remove section from recent notes** (alias "rsrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
  - **/Remove section from all notes** (alias "rsan"). Remove a given section (heading + its content block) from _all notes_. Use wisely, as this is dangerous! (original function by @dwertheimer)
@@ -42,25 +43,26 @@ This command catches any such completed repeats that haven't had the next repeat
 ### Details on /Remove empty blocks
 The **/Remove empty blocks** command intelligently cleans up your notes while preserving important structure:
 
-**What it removes:**
+#### What it removes
+- Empty task or checklists (e.g. `* ` or `+ ` with no further content)
 - Empty list items (e.g., `- ` or `* ` with no content)
 - Empty quotations (e.g., `> ` with no content)  
 - Empty headings (e.g., `# ` with no text)
 - Multiple consecutive empty lines (reduces to single empty lines)
 
-**Smart heading behavior:**
+#### Smart heading behavior
 - **Preserves parent headings** when their subheadings contain content
 - **Removes headings** only when they have no content AND no subheadings with content
 - This ensures your note hierarchy stays intact when subheadings contain valuable information
 
-**Empty line handling:**
+#### Empty line handling
 - **Default behavior**: Reduces multiple consecutive empty lines to a single empty line
 - **Strip all empty lines**: Available as an x-callback setting to remove ALL empty lines completely
 ```
 noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20elements&arg0=Editor&arg1=true
 ```
 
-**Advanced options:**
+#### Advanced options
 - **Preserve heading structure**: Availabe as an x-callback setting. When arg2 is true, keeps ALL headings (even empty ones) to maintain note templates and structure
 - This is useful for note templates where you want to keep the heading hierarchy intact
 ```

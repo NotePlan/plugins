@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 2025-10-13 for v1.0.0 by @jgclark
+// Last updated 2025-11-03 for v1.16.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -31,7 +31,7 @@ export {
 export { listConflicts, openConflictSideBySide, resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion } from './conflicts'
 export { listPotentialDoubles } from './doubledNotes'
 export { listDuplicates } from './duplicates'
-export { removeEmptyElements } from './emptyElements'
+export { removeEmptyElements, removeEmptyElementsFromRecentNotes } from './emptyElements'
 export { fileRootNotes } from './fileRoot'
 export { listMissingDailyNotes } from './missingDailyNotes'
 export { generateRepeatsFromRecentNotes } from './repeats'
