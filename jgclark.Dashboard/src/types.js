@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-11-12 for v2.3.0.b14, @jgclark
+// Last updated 2025-11-14 for v2.3.0.b14 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -410,7 +410,7 @@ export type TPluginData = {
  * - the change is picked up by the first useEffect in useSyncDashboardSettingsWithPlugin and then that var is set to false and stored locally in pluginData without sending it back to the plugin
  */
 
-export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' | 'sectionOrderPanel'
+export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' | 'orderingPanel'
 
 export type TPluginCommandSimplified = {
   commandName: string,

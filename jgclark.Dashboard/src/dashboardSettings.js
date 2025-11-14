@@ -197,7 +197,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
       'Settings that control how the Dashboard displays information. There are also toggles that control filtering of which Sections to show in the Filters dropdown menu.',
   },
   {
-    type: 'sectionOrderPanel',
+    type: 'orderingPanel',
     label: 'Reorder Sections…',
     description: 'Click heading to open panel where you can drag and drop Section names to change the order they are displayed.',
   },
@@ -504,9 +504,9 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'perspectiveList',
           dependsOnKey: setting.dependsOnKey,
         }
-      case 'sectionOrderPanel':
+      case 'orderingPanel':
         return {
-          type: 'sectionOrderPanel',
+          type: 'orderingPanel',
           label: setting.label || 'Reorder Sections',
           description: setting.description || '',
           key: thisKey,

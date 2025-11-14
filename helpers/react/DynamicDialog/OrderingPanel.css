@@ -1,38 +1,36 @@
 /** 
  * -------------------------------------------------------------
- * SectionOrderPanel Styles
+ * OrderingPanel Styles
  * Panel container - using native <summary> and <details> element
- * Last updated 2025-11-13 for v2.3.0.b14, @jgclark
+ * Last updated 2025-11-13 for Dashboard v2.3.0.b14, @jgclark
  * ------------------------------------------------------------- 
  */
 
-
 /* Summary element styling */
-.section-order-panel-summary {
+.ordering-panel-summary {
   padding: 0.5rem 0;
   cursor: pointer;
   list-style: none; /* Remove default disclosure triangle so we can have one we can work on more easily */
-}
 
-.section-order-panel-summary::before {
-  content: '▶';
-  display: inline-block;
-  margin-right: 0.5rem;
-  font-size: 1rem;
-  color: var(--tint-color);
-  transition: all 0.2s ease;
-  transform: rotate(0deg);
+  &::before {
+    content: '▶';
+    display: inline-block;
+    margin-right: 0.5rem;
+    font-size: 1rem;
+    color: var(--tint-color);
+    transition: all 0.2s ease;
+    transform: rotate(0deg);
+  }
+
+  &:hover {
+    color: var(--tint-color);
+  }
 }
 
 /* Rotate triangle when details element is open */
-details[open] .section-order-panel-summary::before {
+details[open] .ordering-panel-summary::before {
   transform: rotate(90deg);
   transition: all 0.3s ease;
-}
-
-/* Emphasise that this can be clicked on */
-.section-order-panel-summary:hover {
-  color: var(--tint-color);
 }
 
 /* Slide down + fade animations for panel opening and closing */
@@ -46,6 +44,7 @@ details[open] .section-order-panel-summary::before {
     transform: translateY(0);
   }
 }
+
 @keyframes fadeOut {
   from {
     opacity: 1;
@@ -57,7 +56,15 @@ details[open] .section-order-panel-summary::before {
   }
 }
 
-details[open] .section-order-panel-expanded {
+/* Expanded state */
+.ordering-panel-expanded {
+  border: 1px solid var(--divider-color);
+  border-radius: 6px;
+  background: var(--bg-main-color);
+  padding: 0rem;
+}
+
+details[open] .ordering-panel-expanded {
   animation: fadeIn 0.5s ease-out;
 }
 
@@ -76,19 +83,11 @@ details[open] .section-order-panel-expanded {
   });
 </script>
 */
-details:not([open]) .section-order-panel-expanded {
+details:not([open]) .ordering-panel-expanded {
   animation: fadeOut 0.3s ease-in;
 }
 
-/* Expanded state */
-.section-order-panel-expanded {
-  border: 1px solid var(--divider-color);
-  border-radius: 6px;
-  background: var(--bg-main-color);
-  padding: 0rem;
-}
-
-.section-order-panel-header {
+.ordering-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -97,36 +96,54 @@ details:not([open]) .section-order-panel-expanded {
   /* gap: 0.5rem; */
 }
 
-.section-order-header-buttons {
+.order-header-buttons {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-left: auto;
 }
 
-.section-order-panel-content {
+.ordering-panel-content {
   padding: 0rem 0.6rem;
   display: flex;
   flex-direction: column;
 }
 
-.section-order-unsaved-indicator {
+.order-unsaved-indicator {
   color: var(--tint-color);
   font-weight: bold;
   margin-left: 0.25rem;
   font-size: 0.9rem;
 }
 
-.section-order-list {
+.order-list {
   display: flex;
   flex-direction: column;
   /* gap: 0.2rem; */
   /* max-height: 50vh; */
   overflow-y: auto;
   padding: 0.6rem 2rem;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--divider-color);
+    border-radius: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgb(from var(--fg-sidebar-color) r g b / 0.3);
+    border-radius: 6px;
+
+    &:hover {
+      background: rgb(from var(--fg-sidebar-color) r g b / 0.3);
+    }
+  }
 }
 
-.section-order-item {
+.order-item {
   display: flex;
   align-items: center;
   padding: 0.25rem;
@@ -136,70 +153,51 @@ details:not([open]) .section-order-panel-expanded {
   border-radius: 6px;
   cursor: ns-resize; /* just up and down */
   transition: all 0.2s ease;
-  user-select: none; /* Prevents the user from accidentally highlighting/selecting the section-order-item during drag and drop. */
+  user-select: none; /* Prevents the user from accidentally highlighting/selecting the order-item during drag and drop. Particularly important on touch screen devices. */
+
+  &:hover {
+    background: var(--bg-alt-color);
+    border-color: var(--divider-color);
+  }
+
+  &.dragging {
+    opacity: 0.3;
+  }
+
+  &.disabled {
+    color: rgb(from var(--fg-main-color) r g b / 0.5);
+  }
 }
 
-.section-order-item:hover {
-  background: var(--bg-alt-color);
-  border-color: var(--divider-color);
-}
-
-.section-order-item.dragging {
-  opacity: 0.3;
-}
-
-.section-order-item.disabled {
-  color: rgb(from var(--fg-main-color) r g b / 0.5);
-}
-
-.section-order-handle {
+.order-handle {
   color: var(--tint-color);
   cursor: ns-resize; /* just up and down */;
   padding-right: 0.75rem;
   font-size: 1.0rem;
+
+  &:active {
+    cursor: grabbing;
+  }
 }
 
-.section-order-handle:active {
-  cursor: grabbing;
-}
-
-.section-order-content {
+.order-content {
   flex: 1;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.section-order-name {
+.order-name {
   font-weight: 500;
   color: var(--fg-main-color);
 }
 
-.section-order-hidden {
+.order-hidden {
   font-style: italic;
 }
 
-/* Scrollbar styling for the list */
-.section-order-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.section-order-list::-webkit-scrollbar-track {
-  background: var(--divider-color);
-  border-radius: 6px;
-}
-
-.section-order-list::-webkit-scrollbar-thumb {
-  background: rgb(from var(--fg-sidebar-color) r g b / 0.3);
-  border-radius: 6px;
-}
-
-.section-order-list::-webkit-scrollbar-thumb:hover {
-  background: rgb(from var(--fg-sidebar-color) r g b / 0.3);
-}
-
-/* Drop indicator line - blue horizontal line showing where item will be dropped */
-.section-order-drop-indicator {
+/* Drop indicator line - horizontal line showing where item will be dropped (when dragging) */
+.order-drop-indicator {
   height: 2px;
   background-color: var(--tint-color);
   margin: 0.25rem 0;

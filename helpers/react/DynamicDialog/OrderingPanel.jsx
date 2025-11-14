@@ -1,17 +1,19 @@
 // @flow
 //--------------------------------------------------------------------------
-// SectionOrderPanel Component
+// OrderingPanel Component
 // Allows users to visually reorder dashboard sections using drag-and-drop.
-// Written by Cursor AI guided by @jgclark
-// Last updated for v2.3.0.b14, 2025-11-13, @jgclark
+// Written 2025-11-12 for Dashboard v2.3.0.b14 by Cursor AI guided by @jgclark
+// Last updated 2025-11-13 by @jgclark
+//
+// TODO: Needs making generic so it can be used in other plugins. Requires lots of changes here and in Dashboard's SettingsDialog. JGC had one go at it, but it got complicated quickly, so backed out.
 //--------------------------------------------------------------------------
 
 import React, { useState, useMemo } from 'react'
-import { allSectionDetails } from '../../constants.js'
-import type { TSection, TSectionCode, TDashboardSettings } from '../../types.js'
-import '../css/SectionOrderPanel.css'
+import { allSectionDetails } from '../../../jgclark.Dashboard/src/constants.js'
+import type { TSection, TSectionCode, TDashboardSettings } from '../../../jgclark.Dashboard/src/types.js'
+import './OrderingPanel.css'
 
-type SectionOrderPanelProps = {
+type OrderingPanelProps = {
   sections: Array<TSection>,
   dashboardSettings: TDashboardSettings,
   defaultOrder: Array<TSectionCode>,
@@ -28,12 +30,12 @@ type DraggableSection = {
 //--------------------------------------------------------------------------
 // Component Definition
 //--------------------------------------------------------------------------
-const SectionOrderPanel = ({
+const OrderingPanel = ({
   sections,
   dashboardSettings,
   defaultOrder,
   onSave,
-}: SectionOrderPanelProps): React$Node => {
+}: OrderingPanelProps): React$Node => {
 
   //----------------------------------------------------------------------
   // Context
@@ -268,22 +270,22 @@ const SectionOrderPanel = ({
   //----------------------------------------------------------------------
 
   return (
-    <div className="section-order-panel-expanded">
-      <div className="section-order-panel-header">
+    <div className="ordering-panel-expanded">
+      <div className="ordering-panel-header">
         {changesMade && (
-          <span className="section-order-unsaved-indicator">* Unsaved changes</span>
+          <span className="order-unsaved-indicator">* Unsaved changes</span>
         )}
-        <div className="section-order-header-buttons">
+        <div className="order-header-buttons">
           <button className="PCButton" onClick={handleReset} type="button">
             Reset to Default
           </button>
         </div>
       </div>
-      <div className="section-order-panel-content">
+      <div className="ordering-panel-content">
         <p className="item-description">
           Drag sections to reorder them. Hidden sections are shown in gray but can still be reordered.
         </p>
-        <div className="section-order-list">
+        <div className="order-list">
           {sectionOrder.map((section, index) => {
             const isDragging = draggedIndex === index
             const isDragOver = dragOverIndex === index
@@ -295,10 +297,10 @@ const SectionOrderPanel = ({
               <React.Fragment key={`${section.sectionCode}-${index}`}>
                 {/* Show blue drop indicator line above the item when dragging up, below when dragging down */}
                 {showDropIndicator && !isDraggingDown && (
-                  <div className="section-order-drop-indicator" />
+                  <div className="order-drop-indicator" />
                 )}
                 <div
-                  className={`section-order-item ${isDragging ? 'dragging' : ''} ${isDisabled ? 'disabled' : ''}`}
+                  className={`order-item ${isDragging ? 'dragging' : ''} ${isDisabled ? 'disabled' : ''}`}
                   draggable={true}
                   onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={(e) => handleDragOver(e, index)}
@@ -306,17 +308,17 @@ const SectionOrderPanel = ({
                   onDrop={(e) => handleDrop(e, index)}
                   onDragEnd={handleDragEnd}
                 >
-                  <div className="section-order-handle">
+                  <div className="order-handle">
                     <i className="fa-solid fa-grip-vertical"></i>
                   </div>
-                  <div className="section-order-content">
-                    <span className="section-order-name">{section.name}</span>
-                    {isDisabled && <span className="section-order-hidden">(hidden)</span>}
+                  <div className="order-content">
+                    <span className="order-name">{section.name}</span>
+                    {isDisabled && <span className="order-hidden">(hidden)</span>}
                   </div>
                 </div>
                 {/* Show blue drop indicator line below the item when dragging down */}
                 {showDropIndicator && isDraggingDown && (
-                  <div className="section-order-drop-indicator" />
+                  <div className="order-drop-indicator" />
                 )}
               </React.Fragment>
             )
@@ -327,5 +329,5 @@ const SectionOrderPanel = ({
   )
 }
 
-export default SectionOrderPanel
+export default OrderingPanel
 

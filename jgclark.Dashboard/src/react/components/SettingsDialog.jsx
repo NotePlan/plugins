@@ -12,14 +12,12 @@
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import { defaultSectionDisplayOrder } from '../../constants.js'
 import type { TSettingItem, TDashboardSettings, TSectionCode } from '../../types.js'
-// import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import { setPerspectivesIfJSONChanged } from '../../perspectiveHelpers'
 import { useAppContext } from './AppContext.jsx'
-// import PerspectiveSettings from './PerspectiveSettings.jsx'
 import '../css/SettingsDialog.css' // Import the CSS file
 import Modal from './Modal'
-import SectionOrderPanel from './SectionOrderPanel.jsx'
+import OrderingPanel from '@helpers/react/DynamicDialog/OrderingPanel.jsx'
 import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
@@ -269,15 +267,15 @@ const SettingsDialog = ({
           {/* Iterate over all the settings */}
           {items.map((item, index) => {
 
-            // Handle sectionOrderPanel type specially
-            if (item.type === 'sectionOrderPanel') {
+            // Handle orderingPanel type specially
+            if (item.type === 'orderingPanel') {
               return (
                 <details key={`sdc${index}`} data-settings-key={item.key} className="ui-item">
-                  <summary className="section-order-panel-summary">
+                  <summary className="ordering-panel-summary">
                     <span className="switch-label">{item.label || 'Reorder Sections'}</span>
                     {item.description && <div className="item-description">{item.description}</div>}
                   </summary>
-                  <SectionOrderPanel
+                  <OrderingPanel
                     sections={sections}
                     dashboardSettings={dashboardSettings}
                     defaultOrder={defaultSectionDisplayOrder}

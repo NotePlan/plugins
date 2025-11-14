@@ -186,7 +186,7 @@ export function renderItem({
       // $FlowIgnore[incompatible-type] don't understand this
       case 'perspectiveList':
         return <PerspectiveSettings handleFieldChange={handleFieldChange} className={className} />
-      case 'sectionOrderPanel':
+      case 'orderingPanel':
         // This is handled specially in SettingsDialog, not here
         // Return null as placeholder - actual rendering happens in SettingsDialog
         return null
