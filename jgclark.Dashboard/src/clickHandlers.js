@@ -509,6 +509,14 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
           return handlerResult(res)
         } else {
           clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings: ${Object.keys(diff).length} keys: ${Object.keys(diff).join(', ')}`)
+          Object.keys(diff).forEach((d) => {
+            logDebug(
+              `doDashboardSettingsChanged`,
+              `activePerspDefDashboardSettingsWithDefaults['${d}']=${d ? activePerspDefDashboardSettingsWithDefaults[d] : ''} vs. sent to save: cleanedSettings['${d}']=${
+                d ? cleanedSettings[d] : ''
+              }`,
+            )
+          })
         }
         // ignore dashboard changes in the perspective definition until it is saved explicitly
         // but we need to set the isModified flag on the perspective
