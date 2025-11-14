@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2025-05-31 for v2.3.0.b3 by @jgclark */
+/* Last updated 2025-11-14 for v2.3.0.b14 by @jgclark */
 
 html {
 	--itemIndentWidth: 1.5rem;
@@ -98,6 +98,8 @@ dialog::backdrop {
 	padding-left: unset;
 	padding-right: unset;
 	background-color: unset;
+	color: var(--tint-color);
+	cursor: pointer;
 
 	/* &:focus {
 		outline: none;
@@ -176,7 +178,7 @@ button,
 }
 
 .greyedText {
-	color: rgb(from var(--fg-sidebar-color) r g b / 0.5)
+	color: rgb(from var(--fg-sidebar-color) r g b / 0.5);
 }
 
 /* --------------------------------------------------------------- */

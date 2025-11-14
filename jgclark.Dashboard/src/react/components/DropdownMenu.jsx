@@ -5,7 +5,7 @@
 // Note: the changes-pending message and logic was added late in 2.1.0 beta by @DBW
 // "because there were massive race conditions which would happen when you made a change and it started a refresh and then made another change and it would start another refresh, etc."
 //
-// Last updated 2025-01-16 for v2.1.4
+// Last updated 2025-11-14 for v2.3.0.b14 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -198,7 +198,7 @@ function DropdownMenu({
   // Render
   //----------------------------------------------------------------------
   return (
-    <div accessKey={accessKey} className={`dropdown ${className}`} ref={dropdownRef}>
+    <div accessKey={accessKey} className={`button dropdown ${className}`} ref={dropdownRef}>
       <i className={iconClass} onClick={toggleMenu}></i>
       <div className={`dropdown-content  ${isOpen ? 'show' : ''}`}>
         <div className="changes-pending">{changesMade ? `Changes pending. Will be applied when you close the menu.` : ''}</div>

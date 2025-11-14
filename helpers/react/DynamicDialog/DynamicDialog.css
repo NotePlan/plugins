@@ -18,61 +18,58 @@
     border-radius: 8px;
     transition: opacity 0.2s ease-out;
     /* overflow: hidden; commented out to allow for dropdowns to show */
-}
 
-/* Narrow for simpler confirmation dialogs */
-.dynamic-dialog.confirmation {
-    width: max(20rem, 50%);
-}
+    /* Narrow for simpler confirmation dialogs */
+    &.confirmation {
+        width: max(20rem, 50%);
+    }
 
-/* Ensure the settings dialog content is hidden when closed */
-.dynamic-dialog-content {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    background-color: var(--bg-mid-color);
-    padding: 0.75rem 0.6rem;
-    border-radius: 8px;
-    max-height: 90vh;
-    font-size: 95%;
-    /* overflow-y: auto; */
-    overflow-y: visible;
-}
+    /* Show the settings dialog with transition */
+    &[open] {
+        opacity: 1;
+    }
 
-/* Show the settings dialog with transition */
-.dynamic-dialog[open] {
-    opacity: 1;
-}
+    /* Ensure the settings dialog content is hidden when closed */
+    .dynamic-dialog-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        background-color: var(--bg-mid-color);
+        padding: 0.75rem 0.6rem;
+        border-radius: 8px;
+        max-height: 90vh;
+        font-size: 95%;
+        /* overflow-y: auto; */
+        overflow-y: visible;
+    }
 
-/* Style for the dialog buttons container */
-.dynamic-dialog-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.05rem;
-    font-weight: 600;
-    gap: 0.5rem;
-    background-color: var(--bg-alt-color);
-    color: var(--tint-color);
-    margin: 0;
-    background: none;
-    line-height: 1.2rem;
-    min-height: 2.5rem;
-    border-bottom: gray solid .5px;
-    padding-bottom: 2px;
-    /* Match the height of the buttons container */
-}
+    /* Style for the dialog buttons container */
+    .dynamic-dialog-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.05rem;
+        font-weight: 600;
+        gap: 0.5rem;
+        background-color: var(--bg-alt-color);
+        color: var(--tint-color);
+        margin: 0;
+        background: none;
+        line-height: 1.2rem;
+        min-height: 2.5rem;
+        border-bottom: gray solid .5px;
+        padding-bottom: 2px;
+        /* Match the height of the buttons container */
+    }
 
-/* Style for the centered header */
-/* Note: this uses clamp() and container-query width units (cqw) to set the font size based on the width of the dialog. */
-/* https://adrianroselli.com/2019/12/responsive-type-and-zoom.html warns about how this can interfere with zooming, but JGC doesn't think it will be an issue here. */
-.dynamic-dialog-title {
-    flex-grow: 1;
-    text-align: center;
-    font-size: clamp(0.6rem, calc(0.5rem + 1cqw), 1.2rem);
-}
-
-.dynamic-dialog {
+    /* Style for the centered header */
+    /* Note: this uses clamp() and container-query width units (cqw) to set the font size based on the width of the dialog. */
+    /* https://adrianroselli.com/2019/12/responsive-type-and-zoom.html warns about how this can interfere with zooming, but JGC doesn't think it will be an issue here. */
+    .dynamic-dialog-title {
+        flex-grow: 1;
+        text-align: center;
+        font-size: clamp(0.6rem, calc(0.5rem + 1cqw), 1.2rem);
+    }
     /* Base button styles */
     .PCButton {
         font-weight: 500;
@@ -494,31 +491,33 @@
     color: var(--fg-alt-color);
 } */
 
-.iOS .dynamic-dialog .dynamic-dialog-header {
-    font-size: 1rem;
-    line-height: 1rem;
+.iOS .dynamic-dialog {
+    .dynamic-dialog-header {
+        font-size: 1rem;
+        line-height: 1rem;
+    }
+}
+
+.dropdown-select-dropdiv {
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .thin-scrollbar {
     scrollbar-width: thin;
     /* The following is not yet supported in the NP HTML environment */
     /* scrollbar-color: var(--bg-alt-color) var(--divider-color); */
-}
 
-.thin-scrollbar::-webkit-scrollbar {
-    width: 8px;
-}
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
 
-.thin-scrollbar::-webkit-scrollbar-track {
-    background: var(--bg-alt-color);
-}
+    &::-webkit-scrollbar-track {
+        background: var(--bg-alt-color);
+    }
 
-.thin-scrollbar::-webkit-scrollbar-thumb {
-    background-color: var(--divider-color);
-    border-radius: 4px;
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--divider-color);
+        border-radius: 4px;
+    }
 }
-
-.dropdown-select-dropdiv {
-    max-height: 90vh;
-    overflow-y: auto;
-  }

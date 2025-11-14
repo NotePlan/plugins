@@ -80,12 +80,12 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         return prevVal !== currVal
       })
       if (changedKeys.length > 0) {
-        logInfo('Section', `- ${section.sectionCode} ${section.name} render #${renderCountRef.current}: pluginData changed keys: ${changedKeys.join(', ')}`)
+        logDebug('Section', `- ${section.sectionCode} render #${renderCountRef.current}: pluginData changed keys: ${changedKeys.join(', ')}`)
         logDiffForLabel('pluginData', prevPluginDataRef.current, pluginData)
       }
       prevPluginDataRef.current = pluginData
     } else {
-      logInfo('Section', `- ${section.sectionCode} ${section.name} render #${renderCountRef.current}: NO pluginData change: likely prop/context function reference change`)
+      logDebug('Section', `- ${section.sectionCode} render #${renderCountRef.current}: NO pluginData change: likely prop/context function reference change`)
     }
   })
 

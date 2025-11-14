@@ -111,12 +111,14 @@ Note:
 <img src="add-buttons-2.2.0.png" border="1px" margin="8px" width="200px" alt="add buttons" align="left"/>
 On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month. In the 'Today' section only is an extra button to allow you to add a task directly to any existing note.
 
-### 'All → ...' Move buttons
-Some sections have "All →  ..." buttons. They move or schedule all the items in that section to the destination (e.g. from Today to Tomorrow's daily note), including any hidden as lower-priority items. If there are more than 20 items to move, then (on macOS) it will first check whether you want to proceed.
+### Move 'All → ...' buttons
+Some sections have "All →  ..." buttons. They move or schedule all the items in that section to the destination e.g. from Today to Tomorrow's daily note. This includes any hidden as lower-priority items, unless you have the 'Do "Move all items" buttons only move shown items when filtering?' setting turned on.
 
 The 'Move not (re)schedule?' setting controls whether it will move or (re)schedule the items. However if you want to use the other action on a particular set of items, you can ⌘-click the button, and it will for this time only use the other action.
 
-Note: _Please be careful with this_: NotePlan doesn't provide a proper Undo/Redo mechanism for plugins, and so these Move operations can't easily be undone. If you do need to do so, then you'll need to use the 'Versions' feature on all the notes the tasks were moved from and to.
+On macOS, if there are more than 20 items to move, then it will first check whether you want to proceed.
+
+Note: _Please be careful_: NotePlan doesn't provide a proper Undo/Redo mechanism for plugins, so these Move operations can't easily be undone. If you do need to do so, then you'll need to use the 'Versions' feature on all the notes the tasks were moved from and to. You probably want to be using NotePlan's 'Create a full copy Backup' feature, or a system-wide Backup tool, such as Apple's own TimeMachine.
 
 ## Other notes about the Dashboard display
 The Dashboard uses a flexible HTML-based display, that's entirely different technology from NotePlan's editors. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)
@@ -203,6 +205,7 @@ Dashboard provides a quick access Settings window, accessed from the cog wheel a
 
 <img width="550px" src="settings-dialog-2.1.0.png" alt="Settings dialog"/>
 
+### What to Include and Exclude
 The 3 key settings in "What to Include and Exclude" section control what folders and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Finally, individual lines in notes can be ignored by adding terms to the third setting:
 
 - Folders to Include: Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included.
@@ -217,24 +220,40 @@ The 3 key settings in "What to Include and Exclude" section control what folders
   ```
   If this setting contains `Work`, then the two tasks in the H3 section will also be ignored because it is under the H2 `Work Tasks` section.
 
-The rest of the Settings change some of how the Dashboard displays and behaves:
-- #tag/@mention(s) to show: If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. May also be more than one, separated by a comma. NOTE: These tasks will only show up in their separate section, unless you have the 'Hide Duplicates' option turned OFF.
-- _the settings in the 'Moving/Scheduling Items' section are covered above_.
+### Moving/Scheduling Items
+_The settings in the 'Moving/Scheduling Items' section are covered above_.
+
+### Display settings
+- Reorder Sections...: Clicking on the reveal triangle opens up a panel where you can drag'n'drop to change the displayed order of Sections. There's a button to reset to the plugin's default sort order.
 - Max number of items to show in a section?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections. (Default: 30)
-- Show completed task count?: Show the number of tasks completed today at the top of the Dashboard. Note: For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.
-- Automatic Update frequency: If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.
+- Automatic Update interval: If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.
 - Theme to use for Dashboard: If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.
 - Show referenced items in separate section? Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes. The same also goes for Weekly/Monthly/Quarterly notes.
+- Show completed task count?: Show the number of tasks completed today at the top of the Dashboard. Note: For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.
 - Hide priority markers? Hide the `>>`, `!!`, `!`, and `!!` priority markers (if your theme uses priorities markers).
 - Show note link for tasks? Whether to show the note link for an open task or checklist.
 - Show folder name in note link? Whether to include the folder name when showing a note link
 - Show scheduled date for tasks? Whether to display scheduled >dates for tasks in dashboard view.
 - Show parent markers on items? If set adds an ellipsis icon on items that have "children" (indented sub-items), whether they are also shown or not.
+
+### Tag/Mention settings
+- #tag/@mention(s) to show: If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. May also be more than one, separated by a comma. NOTE: These tasks will only show up in their separate section, unless you have the 'Hide Duplicates' option turned OFF.
+- Include #tag/@mention(s) scheduled to future dates? If set, then #tag/@mention(s) scheduled to future dates will be included in the Tag/Mention section. This is useful if you want to see all the #next actions, or items to discuss with `@Bob` for example.
+
+### Search settings
+- Apply current filtering to Search? If set, then the search will use the "What to Include and Exclude?" settings above to filter the search results before displaying them. If not set, then the search will run over all open items.
+- Don't return future items? If set, don't return items dated in the future, or from future calendar notes.
+
+### Overdue Tasks settings
+- Number of days to look back for Overdue tasks: If set to any number > 0, will restrict Overdue tasks to just this last number of days.
 - Sort order for Overdue tasks: The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.
+
+### Interactive Processing settings
 - Enable interactive processing for each section? If enabled, the Dashboard will display a button that will loop through all the open items in a given section and prompt you to act on them.
 - Open note and highlight task when processing? If enabled, the Dashboard will open the note in the Editor and highlight the task in the note when it is processed. If this is turned, off, you can always open the note by clicking the task title in the dialog window
 - Show interactive processing transitions? By default, interactive processing will show a shrink/grow transition between each item to be processed. You can turn these off if you prefer.
 
+### Filter Menu
 The Filter menu includes the following toggles:
 - Include context for tasks? Whether to show the note link for an open task or checklist
 - Exclude tasks that include time blocks?: Whether to stop display of open tasks that contain a time block. (This setting does _not_ apply to the 'Current time block' section.)

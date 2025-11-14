@@ -1,8 +1,10 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2025-11-11 for v2.3.0.b13, @jgclark
+// Last updated 2025-11-12 for v2.3.0.b14, @jgclark
 //-----------------------------------------------------------------------------
+
+import { defaultSectionDisplayOrder } from './constants.js'
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
 
@@ -48,7 +50,7 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 ]
 
 export const searchPanelSettings: Array<TSettingItem> = [
-  // TODO(laurel): fill in or drop
+  // TODO(later): fill in or remove
   {},
 ]
 
@@ -195,20 +197,23 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
       'Settings that control how the Dashboard displays information. There are also toggles that control filtering of which Sections to show in the Filters dropdown menu.',
   },
   {
+    type: 'orderingPanel',
+    label: 'Reorder Sections…',
+    description: 'Click heading to open panel where you can drag and drop Section names to change the order they are displayed.',
+  },
+  {
+    key: 'customSectionDisplayOrder',
+    label: 'Custom Section Display Order',
+    type: 'hidden',
+    default: defaultSectionDisplayOrder,
+  },
+  {
     key: 'maxItemsToShowInSection',
     label: 'Max number of items to show in a section?',
     description: "The Dashboard isn't designed to show very large numbers of tasks. This sets the maximum number of items that will be shown at one time in each section.",
     type: 'number',
     default: 24,
     compactDisplay: true,
-  },
-  {
-    key: 'displayDoneCounts',
-    label: 'Show completed task count?',
-    description:
-      'Show the number of tasks completed today at the top of the Dashboard. For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.',
-    type: 'switch',
-    default: true,
   },
   {
     key: 'autoUpdateAfterIdleTime', // aka "autoRefresh"
@@ -236,6 +241,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     refreshAllOnChange: true,
   },
   {
+    key: 'displayDoneCounts',
+    label: 'Show completed task count?',
+    description:
+      'Show the number of tasks completed today at the top of the Dashboard. For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.',
+    type: 'switch',
+    default: true,
+  },
+  {
     key: 'showProgressInSections',
     label: 'How to show progress in Calendar sections?',
     description:
@@ -243,16 +256,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'dropdown-select',
     options: ['none', 'number closed', 'number open'],
     default: 'number closed',
-    compactDisplay: true,
-  },
-  {
-    key: 'overdueSortOrder',
-    label: 'Sort order for Tag/Mention and Overdue items',
-    description:
-      "The order to show items: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, 'due date' by the due date (if present), or 'most recent' changed note.",
-    type: 'dropdown-select',
-    options: ['priority', 'earliest', 'due date', 'most recent'],
-    default: 'priority',
     compactDisplay: true,
   },
   {
@@ -299,7 +302,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: 'Tag/Mention section(s)',
+    label: 'Tag/Mention settings',
   },
   {
     key: 'tagsToShow',
@@ -322,7 +325,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: 'Search section',
+    label: 'Search settings',
   },
   {
     key: 'applyCurrentFilteringToSearch',
@@ -346,7 +349,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: 'Overdue Tasks section',
+    label: 'Overdue Tasks settings',
   },
   {
     key: 'lookBackDaysForOverdue',
@@ -357,11 +360,21 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     compactDisplay: true,
   },
   {
+    key: 'overdueSortOrder',
+    label: 'Sort order for Tag/Mention and Overdue items',
+    description:
+      "The order to show items: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, 'due date' by the due date (if present), or 'most recent' changed note.",
+    type: 'dropdown-select',
+    options: ['priority', 'earliest', 'due date', 'most recent'],
+    default: 'priority',
+    compactDisplay: true,
+  },
+  {
     type: 'separator',
   },
   {
     type: 'heading',
-    label: 'Interactive Processing',
+    label: 'Interactive Processing settings',
   },
   {
     key: 'enableInteractiveProcessing',
@@ -490,6 +503,13 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           //$FlowIgnore[incompatible-call] don't understand the error
           type: 'perspectiveList',
           dependsOnKey: setting.dependsOnKey,
+        }
+      case 'orderingPanel':
+        return {
+          type: 'orderingPanel',
+          label: setting.label || 'Reorder Sections',
+          description: setting.description || '',
+          key: thisKey,
         }
       default:
         return {

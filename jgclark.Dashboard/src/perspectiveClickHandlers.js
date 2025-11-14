@@ -165,8 +165,8 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   // TEST: FIXME: DBW suspects this is not working as expected, because DataStore.settings is not correct here.
   const res = await saveSettings(pluginID, {
     ...(await getSettings('jgclark.Dashboard')),
-    perspectiveSettings: JSON.stringify(revisedDefs),
-    dashboardSettings: JSON.stringify(newDashboardSettings),
+    perspectiveSettings: revisedDefs,
+    dashboardSettings: newDashboardSettings,
   })
   if (!res) {
     return handlerResult(false, [], { errorMsg: `saveSettings failed` })
@@ -236,8 +236,8 @@ export async function doPerspectiveSettingsChanged(data: MessageDataObject): Pro
   }
   const combinedUpdatedSettings = {
     ...(await getSettings('jgclark.Dashboard')),
-    perspectiveSettings: JSON.stringify(cleanedPerspSettings),
-    dashboardSettings: JSON.stringify(dashboardSettings),
+    perspectiveSettings: cleanedPerspSettings,
+    dashboardSettings: dashboardSettings,
   }
 
   // Note: Use helper to save settings from now on, not unreliable `DataStore.settings = combinedUpdatedSettings`

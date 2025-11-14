@@ -373,13 +373,14 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             <i className="fa-solid fa-gear"></i>
           </button>
 
-          {/* Render the SettingsDialog only when it is open */}
-          {isDialogOpen && <SettingsDialog items={dashboardSettingsItems} className={'dashboard-settings'} onSaveChanges={handleChangesInSettings} />}
-
           {/* Spacer for the NP-generated close button on modal windows on mobile */}
           {isMobile && <span className="modalCloseButtonSpacer"></span>}
-
+          
         </div>
+
+        {/* Render the SettingsDialog only when it is open */}
+        {isDialogOpen && <SettingsDialog items={dashboardSettingsItems} className={'dashboard-settings'} onSaveChanges={handleChangesInSettings} />}
+
       </header>
 
       {/* SearchPanel container with sliding animation */}

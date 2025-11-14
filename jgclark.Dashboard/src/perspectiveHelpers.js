@@ -324,7 +324,7 @@ function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, name:
 }
 
 /**
- * Save all perspective definitions as a stringified array, to suit the forced type of the hidden setting.
+ * Save all perspective definitions. The array will be serialized by DataStore.saveJSON().
  * NOTE: from this NP automatically triggers NPHooks::onSettingsUpdated()
  * @param {Array<TPerspectiveDef>} allDefs perspective definitions
  * @return {boolean} true if successful
@@ -334,9 +334,8 @@ export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): 
     logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
     // TODO(later): we need to update the tagMentionCache with the new list of wanted tags and mentions
     updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)
-    const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ''
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    pluginSettings.perspectiveSettings = perspectiveSettingsStr
+    pluginSettings.perspectiveSettings = allDefs
 
     // Save settings using the reliable helper ("the long way")
     const res = await saveSettings(pluginID, pluginSettings)
@@ -498,7 +497,7 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
     )
 
     // SAVE IT!
-    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), perspectiveSettings: JSON.stringify(newPerspectiveSettings) })
+    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), perspectiveSettings: newPerspectiveSettings })
     if (!res) {
       throw new Error(`saveSettings failed for perspective ${name}`)
     }

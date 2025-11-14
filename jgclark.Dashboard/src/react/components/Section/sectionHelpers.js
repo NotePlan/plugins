@@ -57,6 +57,7 @@ const sectionIsVisible = (section: TSection, dashboardSettings: TDashboardSettin
   const settingName = section.showSettingName
   if (!settingName) logDebug(`sectionHelpers`, `sectionCode ${sectionCode} has no showSettingName`, section)
   if (!settingName) return true
+  // $FlowIgnore[invalid-computed-prop]
   const showSetting = sectionCode === 'TAG' ? dashboardSettings[settingName] : dashboardSettings[settingName]
   // logDebug('sectionHelpers', `sectionIsVisible ${sectionCode} ${settingName} ${showSetting} returning ${typeof showSetting === 'undefined' || showSetting === true}`)
   return typeof showSetting === 'undefined' || showSetting === true
@@ -249,30 +250,87 @@ export function getTagSectionDetails(dashboardSettings: TDashboardSettings): Arr
  * Sorts the sections array by sectionCode based on a predefined order and then by sectionName alphabetically.
  * @param {Array<TSection>} sections - The array of sections to be sorted.
  * @param {Array<TSectionCode>} predefinedOrder - The predefined order for sectionCode.
+ * @param {?Array<TSectionCode>} customDisplayOrder - Optional custom order. If provided and not empty, this overrides predefinedOrder.
  * @returns {Array<Section>} The sorted array of sections.
  */
-export function sortSections(sections: Array<TSection>, predefinedOrder: Array<TSectionCode>): Array<TSection> {
+export function sortSections(
+  sections: Array<TSection>,
+  predefinedOrder: Array<TSectionCode>,
+  customDisplayOrder?: ?Array<TSectionCode>,
+): Array<TSection> {
   // logDebug('sectionHelpers/sortSections', `Starting with ${sections.length} sections ${getDisplayListOfSectionCodes(sections)}`)
-  const orderMap = predefinedOrder.reduce((acc: { [key: string]: number }, code: string, index: number) => {
-    acc[code] = index
-    return acc
-  }, {})
+  
+  // Use custom order if provided and not empty, otherwise use predefined order
+  const orderToUse = customDisplayOrder && customDisplayOrder.length > 0 ? customDisplayOrder : predefinedOrder
+  
+  // Get all unique section codes from the actual sections
+  const sectionCodesInSections = new Set(sections.map((s) => s.sectionCode))
+  
+  // Build order map, handling missing sections by appending them
+  const orderMap: { [key: string]: number } = {}
+  let maxIndex = orderToUse.length
+  
+  // First, map the order we want to use
+  orderToUse.forEach((code: TSectionCode, index: number) => {
+    // For TAG sections, we'll handle them as a group, so just mark the position
+    if (code === 'TAG' || sectionCodesInSections.has(code)) {
+      orderMap[code] = index
+    }
+  })
+  
+  // Add any sections that exist but aren't in the order (append to end)
+  sections.forEach((section) => {
+    const code = section.sectionCode
+    if (typeof orderMap[code] === 'undefined') {
+      orderMap[code] = maxIndex++
+    }
+  })
+  
+  // For TAG sections, all TAG sections should be grouped together
+  // Find the TAG position in the order
+  const tagPosition = orderToUse.indexOf('TAG')
+  const tagPositionInMap = tagPosition >= 0 ? orderMap['TAG'] : maxIndex
 
   return sections.sort((a, b) => {
+    // SEARCH sections always come first
+    if (a.sectionCode === 'SEARCH' && b.sectionCode === 'SEARCH') {
+      return 0
+    }
+    if (a.sectionCode === 'SEARCH') {
+      return -1
+    }
+    if (b.sectionCode === 'SEARCH') {
+      return 1
+    }
+
+    // Handle TAG sections specially - group them together
+    if (a.sectionCode === 'TAG' && b.sectionCode === 'TAG') {
+      // Sort TAG sections alphabetically by name within the group
+      return a.name.localeCompare(b.name)
+    }
+    
+    if (a.sectionCode === 'TAG') {
+      // $FlowIgnore
+      const orderB = orderMap[b.sectionCode] ?? maxIndex
+      return tagPositionInMap - orderB
+    }
+    
+    if (b.sectionCode === 'TAG') {
+      // $FlowIgnore
+      const orderA = orderMap[a.sectionCode] ?? maxIndex
+      return orderA - tagPositionInMap
+    }
+    
     // $FlowIgnore
-    const orderA = orderMap[a.sectionCode]
+    const orderA = orderMap[a.sectionCode] ?? maxIndex
     // $FlowIgnore
-    const orderB = orderMap[b.sectionCode]
+    const orderB = orderMap[b.sectionCode] ?? maxIndex
 
     if (orderA !== orderB) {
       return orderA - orderB
     }
 
-    // If two 'TAG' sections have the same name, leave in same order
-    if (a.sectionCode === 'TAG' && b.sectionCode === 'TAG') {
-      return 0
-    }
-    // If two other sections with the same code, sort them alphabetically by name
-    return -a.name.localeCompare(b.name)
+    // If two sections with the same code (but not TAG or SEARCH), sort them alphabetically by name
+    return a.name.localeCompare(b.name)
   })
 }

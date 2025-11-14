@@ -10,16 +10,15 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
-import type { TSettingItem, TDashboardSettings } from '../../types'
-// import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
+import { defaultSectionDisplayOrder } from '../../constants.js'
+import type { TSettingItem, TDashboardSettings, TSectionCode } from '../../types.js'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import { setPerspectivesIfJSONChanged } from '../../perspectiveHelpers'
 import { useAppContext } from './AppContext.jsx'
-// import PerspectiveSettings from './PerspectiveSettings.jsx'
 import '../css/SettingsDialog.css' // Import the CSS file
 import Modal from './Modal'
+import OrderingPanel from '@helpers/react/DynamicDialog/OrderingPanel.jsx'
 import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
-// import { dt } from '@helpers/dev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -49,6 +48,7 @@ const SettingsDialog = ({
   // Context
   //----------------------------------------------------------------------
   const { dashboardSettings, pluginData, sendActionToPlugin, reactSettings, setReactSettings } = useAppContext()
+  const { sections } = pluginData
 
   const pluginDisplayVersion = `v${pluginData?.version || ''}`
 
@@ -77,12 +77,16 @@ const SettingsDialog = ({
 
   // Add a new state to track the controlling settings' states
   const [controllingSettingsState, setControllingSettingsState] = useState({})
+  
+  // Track section order changes separately (will be merged into updatedSettings on save)
+  const [sectionOrderChange, setSectionOrderChange] = useState<?Array<TSectionCode>>(null)
 
   if (!updatedSettings) return null // Prevent rendering before items are loaded
   logDebug('SettingsDialog/main', `Starting`)
 
   // Return whether the controlling setting item is checked or not
   function stateOfControllingSetting(item: TSettingItem): boolean {
+    // $FlowIgnore[invalid-computed-prop]
     return controllingSettingsState[item.dependsOnKey ?? ''] ?? false
   }
 
@@ -126,11 +130,21 @@ const SettingsDialog = ({
       // Because the settings dialog has the JSON editor for perspectives, which are not technically dashboard settings,
       // we need to make sure it gets updated
       let newSettings: TDashboardSettings = { ...updatedSettings }
+      
+      // Include section order change if it exists
+      if (sectionOrderChange) {
+        newSettings.customSectionDisplayOrder = sectionOrderChange
+      }
+      
       if (updatedSettings?.perspectiveSettings) {
         newSettings = setPerspectivesIfJSONChanged(newSettings, dashboardSettings, sendActionToPlugin, `Dashboard Settings updated`)
       }
       onSaveChanges(newSettings)
     }
+    
+    // Reset section order change tracking
+    setSectionOrderChange(null)
+    
     setReactSettings((prev) => ({
       ...prev,
       settingsDialog: {
@@ -211,6 +225,8 @@ const SettingsDialog = ({
   return (
     <Modal
       onClose={() => {
+        // Discard section order changes when closing via modal backdrop
+        setSectionOrderChange(null)
         setReactSettings((prev) => ({
           ...prev,
           settingsDialog: {
@@ -225,6 +241,8 @@ const SettingsDialog = ({
           <button
             className="PCButton cancel-button"
             onClick={() => {
+              // Discard section order changes on cancel
+              setSectionOrderChange(null)
               setReactSettings((prev) => ({
                 ...prev,
                 settingsDialog: {
@@ -247,32 +265,57 @@ const SettingsDialog = ({
         </div>
         <div className="settings-dialog-content">
           {/* Iterate over all the settings */}
-          {items.map((item, index) => (
-            <div key={`sdc${index}`} data-settings-key={item.key}>
-              {renderItem({
-                index,
-                item: {
-                  ...item,
-                  type: item.type,
-                  value: typeof item.key === 'undefined' ? '' : typeof updatedSettings[item.key] === 'boolean' ? '' : updatedSettings[item.key],
-                  checked: typeof item.key === 'undefined' ? false : typeof updatedSettings[item.key] === 'boolean' ? updatedSettings[item.key] : false,
-                },
-                disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
-                handleFieldChange,
-                labelPosition,
-                showSaveButton: false, // Do not show save button
-                // $FlowFixMe[incompatible-exact] reason for suppression
-                // $FlowFixMe[incompatible-call] reason for suppression
-                inputRef: item.type === 'dropdown-select' ? dropdownRef : undefined, // Assign ref to the dropdown input
-                indent: !!item.dependsOnKey,
-                className: '', // for future use
-                showDescAsTooltips: false,
-              })}
-              {/* {item.description && (
+          {items.map((item, index) => {
+
+            // Handle orderingPanel type specially
+            if (item.type === 'orderingPanel') {
+              return (
+                <details key={`sdc${index}`} data-settings-key={item.key} className="ui-item">
+                  <summary className="ordering-panel-summary">
+                    <span className="switch-label">{item.label || 'Reorder Sections'}</span>
+                    {item.description && <div className="item-description">{item.description}</div>}
+                  </summary>
+                  <OrderingPanel
+                    sections={sections}
+                    dashboardSettings={dashboardSettings}
+                    defaultOrder={defaultSectionDisplayOrder}
+                    onSave={(newOrder) => {
+                      // Track the section order change (will be saved when "Save & Close" is clicked)
+                      setSectionOrderChange(newOrder)
+                      setChangesMade(true)
+                    }}
+                  />
+                </details>
+              )
+            }
+
+            return (
+              <div key={`sdc${index}`} data-settings-key={item.key}>
+                {renderItem({
+                  index,
+                  item: {
+                    ...item,
+                    type: item.type,
+                    value: typeof item.key === 'undefined' ? '' : typeof updatedSettings[item.key] === 'boolean' ? '' : updatedSettings[item.key],
+                    checked: typeof item.key === 'undefined' ? false : typeof updatedSettings[item.key] === 'boolean' ? updatedSettings[item.key] : false,
+                  },
+                  disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
+                  handleFieldChange,
+                  labelPosition,
+                  showSaveButton: false, // Do not show save button
+                  // $FlowFixMe[incompatible-exact] reason for suppression
+                  // $FlowFixMe[incompatible-call] reason for suppression
+                  inputRef: item.type === 'dropdown-select' ? dropdownRef : undefined, // Assign ref to the dropdown input
+                  indent: !!item.dependsOnKey,
+                  className: '', // for future use
+                  showDescAsTooltips: false,
+                })}
+                {/* {item.description && (
 							<div className="item-description">{item.description}</div>
 						)} */}
-            </div>
-          ))}
+              </div>
+            )
+          })}
           <div className="item-description">{pluginDisplayVersion}</div>
         </div>
       </div>

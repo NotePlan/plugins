@@ -22,7 +22,6 @@ import { showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 
-const diagnosticsNoteFilename = 'diagnostics-for-dashboard.md'
 const diagnosticsNoteTitle = 'Diagnostics for Dashboard'
 
 /**
@@ -100,6 +99,9 @@ export async function generateDiagnosticsFile() {
 
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
     const outputNote = await getOrMakeRegularNoteInFolder(diagnosticsNoteTitle, '')
+    if (!outputNote) {
+      throw new Error(`Failed to create output note '${diagnosticsNoteTitle}'`)
+    }
     outputNote.content = output.join('\n')
     const res = await showMessageYesNo(`Diagnostics for Dashboard written to note '${diagnosticsNoteTitle}' in your root folder. Use 'Show in Finder' from the note '...' menu to find it and send it to plugin authors. Would you like me to open this note now?`)
     logInfo('generateDiagnosticsFile', `Diagnostics written to note ${diagnosticsNoteTitle} (hopefully)`)
