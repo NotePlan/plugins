@@ -12,6 +12,7 @@ import pluginJson from '../plugin.json'
 import { generateTagMentionCache } from './tagMentionCache'
 import { getDashboardSettingsDefaultsWithSectionsSetToFalse } from './dashboardHelpers'
 import { showDashboardReact } from './reactMain'
+import { parseSettings } from './shared'
 import { renameKeys } from '@helpers/dataManipulation'
 import { clo, compareObjects, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import * as npc from '@helpers/NPConfiguration'
@@ -99,7 +100,7 @@ export async function onUpdateOrInstall(): Promise<void> {
       //   includeTaskContext: 'showTaskContext',
     }
 
-    const initialDashboardSettings = JSON.parse(initialSettings.dashboardSettings)
+    const initialDashboardSettings = parseSettings(initialSettings.dashboardSettings)
     const defaults = getDashboardSettingsDefaultsWithSectionsSetToFalse()
     const migratedDashboardSettings = { ...defaults, ...renameKeys(initialDashboardSettings, keysToChange) }
 
@@ -113,9 +114,9 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     clo(migratedDashboardSettings, `onUpdateOrInstall - migratedDashboardSettings:`)
 
-    const perspectiveSettings = await JSON.parse(initialSettings.perspectiveSettings)
+    const perspectiveSettings = parseSettings(initialSettings.perspectiveSettings) ?? []
     const newPerspectives = perspectiveSettings.map((p) => ({ ...p, dashboardSettings: { ...defaults, ...p.dashboardSettings } }))
-    const migratedSettings = { ...initialSettings, dashboardSettings: JSON.stringify(migratedDashboardSettings), perspectiveSettings: JSON.stringify(newPerspectives) }
+    const migratedSettings = { ...initialSettings, dashboardSettings: migratedDashboardSettings, perspectiveSettings: newPerspectives }
 
     const diff = compareObjects(migratedDashboardSettings, initialDashboardSettings, [], true)
     if (diff != null) {

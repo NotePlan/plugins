@@ -79,7 +79,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
       // logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo} / ${thisSettingType})`)
       // TEST: use helper to save settings from now on
       // DataStore.settings = { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) }
-      const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(dashboardSettings) })
+      const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: dashboardSettings })
       if (!res) {
         throw new Error(`saveSettings failed for setting '${key}:${value}'`)
       }
@@ -391,7 +391,7 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
     }
 
     // use our more reliable helper to save settings
-    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: JSON.stringify(newDashboardSettings) })
+    const res = await saveSettings(pluginID, { ...await getSettings('jgclark.Dashboard'), dashboardSettings: newDashboardSettings })
     if (!res) {
       throw new Error(`saveSettings failed`)
     }

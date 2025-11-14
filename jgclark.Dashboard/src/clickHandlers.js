@@ -488,13 +488,16 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
         // $FlowIgnore[prop-missing]
         // $FlowIgnore[incompatible-call]
         const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
+
+        // Compare the cleaned settings with the active perspective settings
         const diff = compareObjects(activePerspDefDashboardSettingsWithDefaults, cleanedSettings, ['lastModified', 'lastChange', 'usePerspectives'])
         clo(diff, `doDashboardSettingsChanged: diff`)
+
         // if !diff or  all the diff keys start with FFlag, then return
         if (!diff || Object.keys(diff).length === 0) return handlerResult(true)
         if (Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
           logDebug(`doDashboardSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
-          const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: JSON.stringify(newSettings) })
+          const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: newSettings })
           return handlerResult(res)
         } else {
           clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings: ${Object.keys(diff).length} keys: ${Object.keys(diff).join(', ')}`)
@@ -518,7 +521,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     }
   }
 
-  const combinedUpdatedSettings = { ...(await getSettings('jgclark.Dashboard')), [settingName]: JSON.stringify(newSettings) }
+  const combinedUpdatedSettings = { ...(await getSettings('jgclark.Dashboard')), [settingName]: newSettings }
 
   if (perspectivesToSave) {
     const debugInfo = perspectivesToSave
@@ -526,7 +529,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
       .join(`\n\t`)
     logDebug(`doDashboardSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
 
-    combinedUpdatedSettings.perspectiveSettings = JSON.stringify(perspectivesToSave)
+    combinedUpdatedSettings.perspectiveSettings = perspectivesToSave
   }
 
   const res = await saveSettings(pluginID, combinedUpdatedSettings)

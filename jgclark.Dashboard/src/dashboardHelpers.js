@@ -105,16 +105,15 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
 }
 
 /**
- * Save all dashboard settings as a stringified array.
+ * Save all dashboard settings. The settings object will be serialized by DataStore.saveJSON().
  * @param {TDashboardSettings} settings
  * @return {boolean} true if successful
  */
 export async function saveDashboardSettings(settings: TDashboardSettings): Promise<boolean> {
   try {
     logDebug(`saveDashboardSettings saving settings in DataStore.settings`)
-    const dashboardSettingsStr = JSON.stringify(settings) ?? ''
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    pluginSettings.dashboardSettings = dashboardSettingsStr
+    pluginSettings.dashboardSettings = settings
 
     // Save settings using the reliable helper ("the long way")
     const res = await saveSettings(pluginID, pluginSettings)
@@ -931,7 +930,7 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
     }
     return acc
   }, {})
-  clo(dashboardSettingsDefaults, `dashboardSettingsDefaults:`)
+  // clo(dashboardSettingsDefaults, `dashboardSettingsDefaults:`)
   // $FlowIgnore[prop-missing]
   return dashboardSettingsDefaults
 }

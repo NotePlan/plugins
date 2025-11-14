@@ -16,6 +16,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
   - The text box (where the task text can be ed) is now focused by default
   - Ensured the controls in the top-right hand corner are always shown, even on very narrow screens (thanks, @Aligoran)
   - Further polish to layout at specific widths
+- Fix to double-escaped JSON in settings.json file. Updated all places it writes, and added a `parseSettings` to tidy up existing files.
 
 ## [2.3.0.b13] 2025-10-11???
 - When lower-priority items filter is turned on, change the move "All → ..." buttons to show "All shown → ..." instead.
