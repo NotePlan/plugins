@@ -489,8 +489,16 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
         // $FlowIgnore[incompatible-call]
         const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
 
+
+        // Now add all the TAG sections, which otherwise aren't included in the active perspective settings.
+        // Get any active perspective setting keys that start 'showTagSection_'
+        const activePerspDefShowTagSectionKeys = Object.keys(activePerspDef.dashboardSettings).filter((k) => k.startsWith('showTagSection_'))
+        clo(activePerspDefShowTagSectionKeys, `doDashboardSettingsChanged: activePerspDefShowTagSectionKeys`)
+        // Add all the TAG sections to the active perspective settings
+        const activePerspDefDashboardSettingsWithDefaultsAndTAGs = { ...activePerspDefDashboardSettingsWithDefaults, ...activePerspDefShowTagSectionKeys }
+
         // Compare the cleaned settings with the active perspective settings
-        const diff = compareObjects(activePerspDefDashboardSettingsWithDefaults, cleanedSettings, ['lastModified', 'lastChange', 'usePerspectives'])
+        const diff = compareObjects(activePerspDefDashboardSettingsWithDefaultsAndTAGs, cleanedSettings, ['lastModified', 'lastChange', 'usePerspectives'])
         clo(diff, `doDashboardSettingsChanged: diff`)
 
         // if !diff or  all the diff keys start with FFlag, then return
