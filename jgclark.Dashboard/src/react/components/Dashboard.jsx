@@ -11,7 +11,7 @@
 import React, { useEffect, useRef, useMemo, useCallback } from 'react'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
-import { dontDedupeSectionCodes, defaultSectionDisplayOrder, sectionPriority } from '../../constants.js'
+import { dontDedupeSectionCodes, sectionPriority } from '../../constants.js'
 import { copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { findSectionItems } from '../../dashboardHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
@@ -107,22 +107,16 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       workingSections = dedupedSections
     }
 
-    const sortedSections = sortSections(workingSections.slice(), sectionDisplayOrder)
+    const sortedSections = sortSections(workingSections.slice(), dashboardSettings?.customSectionDisplayOrder || [])
     const totalVisibleAfterSort = countTotalVisibleSectionItems(sortedSections, dashboardSettings)
 
-    // Use memoization to provide a sorted sections array based on section display order.
-    // Takes custom section order from dashboardSettings if set; otherwise falls back to default.
-    sections = useMemo(
-      () => sortSections(sections, defaultSectionDisplayOrder, dashboardSettings?.customSectionDisplayOrder),
-      [sections, defaultSectionDisplayOrder, dashboardSettings?.customSectionDisplayOrder]
-    )
-    // logDebug('Dashboard:sortSections', `after sort: ${sections.length} (${getDisplayListOfSectionCodes(sections)}) with ${String(countTotalSectionItems(sections, dontDedupeSectionCodes))} items`)
+    // logDebug('Dashboard:sortSections', `after sort: ${sortedSections.length} (${getDisplayListOfSectionCodes(sortedSections)}) with ${String(countTotalSectionItems(sortedSections, dontDedupeSectionCodes))} items`)
 
     return {
       sections: sortedSections,
       totalSectionItems: totalVisibleAfterSort,
     }
-  }, [origSections, dashboardSettings, sectionDisplayOrder])
+  }, [origSections, dashboardSettings])
 
   const dashboardContainerStyle = {
     maxWidth: '100vw',
