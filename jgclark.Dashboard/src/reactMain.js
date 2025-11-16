@@ -425,7 +425,7 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData) // Note: the only time this is called.
     logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
-    clo(pluginData.dashboardSettings, `getInitialData pluginData.dashboardData`)
+    // clo(pluginData.dashboardSettings, `getInitialDataForReactWindow pluginData.dashboardData`) // huge!
     const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,

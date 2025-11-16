@@ -102,6 +102,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     let workingSections = origSections
     if (workingSections.length >= 1 && dashboardSettings?.hideDuplicates) {
       // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
+
       // TB and PROJ sections need to be ignored here, as they have different item types
       const dedupedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dontDedupeSectionCodes, dashboardSettings)
       workingSections = dedupedSections
@@ -109,14 +110,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
     const sortedSections = sortSections(workingSections.slice(), dashboardSettings?.customSectionDisplayOrder || [])
     const totalVisibleAfterSort = countTotalVisibleSectionItems(sortedSections, dashboardSettings)
-
     // logDebug('Dashboard:sortSections', `after sort: ${sortedSections.length} (${getDisplayListOfSectionCodes(sortedSections)}) with ${String(countTotalSectionItems(sortedSections, dontDedupeSectionCodes))} items`)
 
     return {
       sections: sortedSections,
       totalSectionItems: totalVisibleAfterSort,
     }
-  }, [origSections, dashboardSettings])
+  }, [origSections, dashboardSettings, dashboardSettings?.customSectionDisplayOrder])
 
   const dashboardContainerStyle = {
     maxWidth: '100vw',

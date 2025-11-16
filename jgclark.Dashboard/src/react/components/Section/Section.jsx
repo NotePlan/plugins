@@ -48,7 +48,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   renderCountRef.current += 1
 
   /**
-   * Log a diff between previous and current values for easier debugging of rerenders.
+   * Log a diff between previous and current values for easier debugging of re-renders.
    *
    * @param {string} label - Identifier for the value being compared.
    * @param {any} previousValue - The previous render value.
@@ -68,26 +68,27 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     [section.sectionCode, section.name],
   )
 
-  useEffect(() => {
-    if (prevPluginDataRef.current !== pluginData) {
-      const changedKeys = Object.keys(pluginData).filter((key) => {
-        const prevVal = prevPluginDataRef.current[key]
-        const currVal = pluginData[key]
-        // Deep comparison for arrays/objects
-        if (Array.isArray(prevVal) && Array.isArray(currVal)) {
-          return prevVal.length !== currVal.length || prevVal.some((item, i) => item !== currVal[i])
-        }
-        return prevVal !== currVal
-      })
-      if (changedKeys.length > 0) {
-        logDebug('Section', `- ${section.sectionCode} render #${renderCountRef.current}: pluginData changed keys: ${changedKeys.join(', ')}`)
-        logDiffForLabel('pluginData', prevPluginDataRef.current, pluginData)
-      }
-      prevPluginDataRef.current = pluginData
-    } else {
-      logDebug('Section', `- ${section.sectionCode} render #${renderCountRef.current}: NO pluginData change: likely prop/context function reference change`)
-    }
-  })
+  // Note: Turn this back on to show the pluginData changes that trigger re-renders.
+  // useEffect(() => {
+  //   if (prevPluginDataRef.current !== pluginData) {
+  //     const changedKeys = Object.keys(pluginData).filter((key) => {
+  //       const prevVal = prevPluginDataRef.current[key]
+  //       const currVal = pluginData[key]
+  //       // Deep comparison for arrays/objects
+  //       if (Array.isArray(prevVal) && Array.isArray(currVal)) {
+  //         return prevVal.length !== currVal.length || prevVal.some((item, i) => item !== currVal[i])
+  //       }
+  //       return prevVal !== currVal
+  //     })
+  //     if (changedKeys.length > 0) {
+  //       logDebug('Section', `- ${section.sectionCode} render #${renderCountRef.current}: pluginData changed keys: ${changedKeys.join(', ')}`)
+  //       logDiffForLabel('pluginData', prevPluginDataRef.current, pluginData)
+  //     }
+  //     prevPluginDataRef.current = pluginData
+  //   } else {
+  //     logDebug('Section', `- ${section.sectionCode} render #${renderCountRef.current}: NO pluginData change: likely prop/context function reference change`)
+  //   }
+  // })
 
   useEffect(() => {
     if (prevDashboardSettingsRef.current !== dashboardSettings) {
@@ -141,7 +142,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   // Watch for changes to currentMaxPriorityFromAllVisibleSections and force re-render. This ensures that when one section updates the global max priority, all other sections will re-render and re-filter their items based on the new priority threshol.
   useEffect(() => {
-    logInfo('Section', `- ${section.sectionCode} ${section.name}: Main useEffect has pluginData changed. currentMaxPriFAVS=${currentMaxPriorityFromAllVisibleSections}`)
+    logDebug('Section', `- ${section.sectionCode} ${section.name}: Main useEffect has pluginData changed. currentMaxPriFAVS=${currentMaxPriorityFromAllVisibleSections}`)
   }, [currentMaxPriorityFromAllVisibleSections, section.sectionCode, section.name])
 
   // This useEffect is responsible for preparing and updating the items in a section whenever the section or dashboard settings change.
