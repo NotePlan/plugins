@@ -285,6 +285,7 @@ button,
 	/* Teamspace note link - default layer */
 	.teamspaceName {
 		color: var(--teamspace-color);
+		white-space: nowrap;
 	}
 
 	.scheduledDate {

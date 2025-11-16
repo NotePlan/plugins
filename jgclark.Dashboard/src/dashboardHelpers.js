@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-11-04 for v2.3.0.b10+, @jgclark
+// Last updated 2025-11-16 for v2.3.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -244,7 +244,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           filename: p.filename,
           // TODO(later): remove this workaround to fix regular teamspace paras.
           noteType: p.noteType === 'teamspaceNote' ? 'Notes' : note.type,
-          title: note.type === 'Notes' ? displayTitle(note) : note.title /* will be ISO-8601 date */,
+          // Get title, but don't add the 👥 icon and teamspace name for Teamspace notes. Fallback is to use the note.title, which will be ISO-8601 date for Calendar notes.
+          title: note.type === 'Notes' ? displayTitle(note, false) : note.title,
           type: p.type,
           prefix: p.rawContent.replace(p.content, ''),
           content: p.content,
@@ -314,18 +315,22 @@ export function getOpenItemParasForTimePeriod(
     const possTimePeriodNote = DataStore.calendarNoteByDateString(NPCalendarFilenameStr)
     if (possTimePeriodNote) {
       matchingNotes.push(possTimePeriodNote)
+    } else {
+      logInfo('getOpenItemPFCTP', `No matching calendar note found for ${NPCalendarFilenameStr}`)
     }
 
     if (usersVersionHas('teamspaceNotes')) {
       for (const teamspace of DataStore.teamspaces) {
-        // Get note for this teamspace (if it exists)
+        // Get note for this teamspace
+        // Note: as I report in https://discord.com/channels/763107030223290449/1439735396652028146 this seems to return even when note doesn't exist yet.
         const note = DataStore.calendarNoteByDateString(NPCalendarFilenameStr, teamspace.filename)
-        if (note) {
+        // Given above, we need to check if the note has any paragraphs, before using it.
+        if (note && note.paragraphs.length > 0) {
           matchingNotes.push(note)
-          logDebug('getOpenItemPFCTP', `- found matching teamspace calendar note for ${NPCalendarFilenameStr} in ${teamspace.filename}`)
+          logDebug('getOpenItemPFCTP', `- found non-empty matching teamspace calendar note for ${NPCalendarFilenameStr} in ${teamspace.filename}`)
         }
       }
-      // logDebug('getOpenItemPFCTP', `Found ${String(matchingNotes.length)} matching notes for ${NPCalendarFilenameStr}`)
+      // logDebug('getOpenItemPFCTP', `Found ${String(matchingNotes.length)} matching Teamspace calendar notes for ${NPCalendarFilenameStr}`)
     }
 
     //------------------------------------------------
@@ -351,6 +356,7 @@ export function getOpenItemParasForTimePeriod(
 
     // Note: No longer running in background thread, as I found in v1.x it more than doubled the time taken to run this section.
 
+    // Now apply a series of filters:
     // Need to filter out non-open task/checklist types for following function, and any scheduled tasks (with a >date) and any blank tasks.
     const todayHyphenated = getTodaysDateHyphenated()
     const theNoteDateHyphenated = NPCalendarFilenameStr
@@ -361,7 +367,8 @@ export function getOpenItemParasForTimePeriod(
     // Keep only non-empty open tasks (and checklists if wanted),
     // and now add in other timeblock lines (if wanted), other than checklists (if excluded)
     let openParas = alsoReturnTimeblockLines ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString)) : parasToUse.filter((p) => isOpen(p))
-    logDebug('getOpenItemPFCTP', `- after initial pull: ${openParas.length} para(s)`)
+    logDebug('getOpenItemPFCTP', `- after initial pull: ${openParas.length} para(s):`)
+
     if (dashboardSettings.ignoreChecklistItems) {
       openParas = openParas.filter((p) => !(p.type === 'checklist'))
       logDebug('getOpenItemPFCTP', `- after filtering out checklists: ${openParas.length} para(s)`)
@@ -392,9 +399,9 @@ export function getOpenItemParasForTimePeriod(
     // Additionally apply to calendar headings in this note
     openParas = filterParasByCalendarHeadingSections(openParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
 
-    // for (const p of openParas) {
-    //   logDebug('getOpenItemPFCTP', `- 👉 ${p.filename} is ${p.note.isTeamspaceNote ? '' : 'NOT'} a teamspace note`)
-    // }
+    for (const p of openParas) {
+      logDebug('getOpenItemPFCTP', `- 👉 {${p.content}} from ${p.filename} ${p.isTeamspace ? '' : 'NOT'} a Teamspace note`)
+    }
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
@@ -441,7 +448,7 @@ export function getOpenItemParasForTimePeriod(
       // Extend TParagraph with the task's priority + start/end time from time block (if present)
       const openDashboardParas = makeDashboardParas(openParas)
       const refOpenDashboardParas = makeDashboardParas(refOpenParas)
-      logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(openDashboardParas.length ?? 0)}+${String(refOpenDashboardParas.length ?? 0)} referenced items for ${calendarPeriodName}`)
+      logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(openDashboardParas.length ?? 0)}+${String(refOpenDashboardParas.length ?? 0)} referenced items for ${calendarPeriodName} (SEPARATE OUTPUT)`)
 
       return [openDashboardParas, refOpenDashboardParas]
     } else {
@@ -451,7 +458,7 @@ export function getOpenItemParasForTimePeriod(
 
       // Extend TParagraph with the task's priority + start/end time from time block (if present)
       const combinedDashboardParas = makeDashboardParas(combinedParas)
-      logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(combinedDashboardParas.length ?? 0)} items for ${calendarPeriodName}`)
+      logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(combinedDashboardParas.length ?? 0)} items for ${calendarPeriodName} (COMBINED OUTPUT)`)
 
       return [combinedDashboardParas, []]
     }

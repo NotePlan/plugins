@@ -91,7 +91,6 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
 
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')
     const nextPeriodFilename = nextPeriodNote?.filename ?? '(errorthisFilename'
-    logDebug('getTodaySectionData', `- nextPeriodFilename = ${nextPeriodFilename}`)
     const doneCountData = getNumCompletedTasksFromNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
@@ -197,7 +196,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         },
       ],
     }
-    // clo(section)
+    clo(section, 'dataGenerationDays: content')
     sections.push(section)
 
     // If we want this separated from the referenced items, then form a second section

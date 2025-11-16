@@ -14,4 +14,5 @@
 /* Teamspace note link */
 .teamspaceName {
 	color: rgb(from var(--teamspace-color) r g b / 0.8);
+	white-space: nowrap;
 }
