@@ -348,6 +348,21 @@ export async function removeEmptyElements(
 }
 
 /**
+ * Checks if the note has meaningful content (non-empty, non-title paragraphs)
+ * @param {TNote} note
+ * @returns {boolean} True if the note has meaningful content, false otherwise
+ */
+function noteHasMeaningfulContent(note: TNote): boolean {
+  const paragraphs = note.paragraphs
+  for (const para of paragraphs) {
+    if (para.type !== 'title' && para.content.trim() !== '') {
+      return true
+    }
+  }
+  return false
+}
+
+/**
  * Run removeEmptyElements on all recently-updated notes
  * Can be passed parameters to override defaults through an x-callback call
  * Supported params: { numDays?: number, runSilently?: boolean, stripAllEmptyLines?: boolean, preserveHeadingStructure?: boolean }
@@ -403,9 +418,28 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
     CommandBar.showLoading(true, `Looking for empty elements in ${String(recentNotes.length)} recent notes...`)
     for (const note of recentNotes) {
       const before = note.paragraphs.map((p) => p.rawContent).join('\n')
+      const hasMeaningfulContent = noteHasMeaningfulContent(note)
       await removeEmptyElements(note.filename, stripAllEmptyLines, preserveHeadingStructure)
       const afterNote = await getNoteFromFilename(note.filename)
       const after = afterNote?.paragraphs.map((p) => p.rawContent).join('\n') ?? ''
+      const afterContent =
+        afterNote?.paragraphs
+          .map((p) => p.content)
+          .join('\n')
+          .trim() ?? ''
+      if (hasMeaningfulContent && afterContent === '') {
+        await CommandBar.onMainThread()
+        CommandBar.showLoading(false)
+        await showMessage(
+          `Note '${displayTitle(note)}' has meaningful content but no content after removal; this is unexpected and may be a bug. Please report it to @jgclark. Stopping.`,
+        )
+        logError(
+          'removeEmptyElementsFromRecentNotes',
+          `- note '${displayTitle(note)}' has meaningful content but no content after removal! Note before:\n${before}\n===\nafter: (empty)`,
+        )
+        note.content = before // restore the note to its original content
+        return
+      }
       if (before !== after) numChanged++
     }
     await CommandBar.onMainThread()
