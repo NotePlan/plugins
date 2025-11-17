@@ -19,7 +19,7 @@ import {
 import { filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { getFolderFromFilename } from '@helpers/folders'
+import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
 import { getFrontmatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { getNoteByFilename } from '@helpers/note'
 import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers/NPnote'
@@ -114,16 +114,25 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
           source = 'using API'
         }
 
+        // Get the included and excluded folders
+        const includedFolders = config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',').map((folder) => folder.trim()) : []
         const excludedFolders = config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',').map((folder) => folder.trim()) : []
+        const allowedFolders = getFoldersMatching(includedFolders,false, excludedFolders)
 
         for (const n of notesWithTag) {
           // logTimer('getTaggedSectionData', thisStartTime, `- start of processing for note "${n.filename}"`)
           // Don't continue if this note is in an excluded folder
           const thisNoteFolder = getFolderFromFilename(n.filename)
-          if (excludedFolders.includes(thisNoteFolder)) {
-            logDebug('getTaggedSectionData', `  - ignoring note '${n.filename}' as it is in an ignored folder`)
+          if (!allowedFolders.includes(thisNoteFolder)) {
+            logDebug('getTaggedSectionData', `  - ignoring note '${n.filename}' as it is not in an allowed folder '${thisNoteFolder}'`)
             continue
+          } else {
+            logDebug('getTaggedSectionData', `  - including note '${n.filename}' as it is in an allowed folder '${thisNoteFolder}'`)
           }
+          // if (excludedFolders.includes(thisNoteFolder)) {
+          //   logDebug('getTaggedSectionData', `  - ignoring note '${n.filename}' as it is in an ignored folder`)
+          //   continue
+          // }
 
           // Get the relevant paras from this note
           const paras = n.paragraphs ?? []

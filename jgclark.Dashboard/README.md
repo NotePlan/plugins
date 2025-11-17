@@ -133,7 +133,7 @@ The top bar has a **count of tasks done today** (apart from on narrow windows an
 
 The display will **automatically refresh** in the background if you set the "Automatic Update interval" to any number > 0. This number is the number of minutes after the window is idle when it will refresh the sections you want to display. You can also press the 'Refresh' button at any point, and/or you can set a trigger (see below).
 
-(From v2.3) The Dashboard will show notes held in a **Teamspace** (if you are part of one). It shows with the title of the Teamspace in green with the Teamspace icon, before the note title:
+(From v2.3) The Dashboard will show notes held in a **Teamspace** if you are part of any. It shows with the title of the Teamspace in green with the Teamspace icon, before the note title:
 
 <img src="teamspace-title-2.3.0.png" width="300px" margin="8px" border="1px solid grey" alt="example of Teamspace title" align="center"/>
 
@@ -376,6 +376,8 @@ Thanks, team!
 The Dashboard requires the **Shared Resources** plugin to be installed as well, to work and display properly. The Dashboard should automatically offer to install it if it isn't already.
 
 Do join the excellent Discord community around NotePlan, where the plugins and much more, is discussed and ideas shared. If you find an issue with this plugin, or would like to suggest new features for it, as well as commenting there you can raise an ['Issue' of a Bug or Feature Request on GitHub](https://github.com/NotePlan/plugins/issues). Please always re-start NotePlan before raising issues, as that clears things more often than it should.
+
+I may ask you to run the special **/Generate Diagnostics file** command, and be ready to privately send me the note it produces. (This doesn't have any note data, but does have your folder structure, and all your Dashboard settings.)
 
 iOS/iPadOS users: if you need support, and we ask for more logs, you can change the logging level by running the "/Change Logging levels" command. For technical reasons, this is not available through the main Settings menu inside the Dashboard.
 
