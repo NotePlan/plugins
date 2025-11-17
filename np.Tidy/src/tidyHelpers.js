@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-10-13 for v1.0.0, @jgclark
+// Last updated 2025-11-17 for v1.16.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -23,6 +23,7 @@ export type TidyConfig = {
   matchType: string,
   ignoreFutureCalendarNotes: boolean,
   stripAllEmptyLines: boolean,
+  coverProjectNotes: boolean,
   numDays: number,
   conflictedNoteFilename: string,
   doubledNoteFilename: string,
