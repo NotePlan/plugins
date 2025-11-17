@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2025-09-01 for v2.3.0 by @jgclark
+// Last updated 2025-11-16 for v2.3.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -78,26 +78,15 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
     })
   }
 
-  // TODO: decide whether to keep this, perhaps as a hidden setting
-  // Remove tag/mention, if they match the item's sectionCode
+  // Note: This how to remove tag/mention, if they match the item's sectionCode. Decided not to keep this, as it is doesn't suit some use cases for tags/mentions.
   // if (thisSection.sectionCode === 'TAG') {
   //   const sectionTagOrMention = thisSection.name
   //   mainContent = mainContent.replace(sectionTagOrMention, '')
   // }
 
-  // console.log(`-> ${mainContent}`)
-
   // If hasChild, then set suitable display indicator
   // (Earlier options had used 'fa-arrow-down-from-line' and 'fa-block-quote' icons. But switched to ellipsis to match what main Editor added in 3.15.2)
   const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-solid fa-ellipsis parentMarker"></i> : ''
-
-  // Note: this section now deliberately disabled
-  // if isAChild, then set suitable icon (previously tried arrow-right-from-line)
-  // Note: now handled by flex layout and indent on ItemRow
-  // Note: Following only for debugging
-  // const possChildMarker =
-  //   dashboardSettings.parentChildMarkersEnabled && item.parentID && item.parentID !== '' ? <span className="pad-left pad-right">[P={item.parentID}]</span>
-  //     : ''
   const possChildMarker = ''
 
   const showItemNoteLink = dashboardSettings?.showTaskContext && item.para?.filename !== '<no filename found>' && item.para?.filename !== thisSection.sectionFilename
