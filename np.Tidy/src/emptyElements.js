@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Remove empty blocks functionality for Tidy plugin
-// Last updated 2025-11-13 for v1.16.0 by @jgclark
+// Last updated 2025-11-17 for v1.16.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,6 +10,10 @@ import { JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedT
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
 import { getAllNotesOfType, getNoteFromFilename, getNotesChangedInInterval } from '@helpers/NPnote'
 import { showMessage } from '@helpers/userInput'
+
+// -----------------------------------------------------------------------------
+// Private Helper functions
+// -----------------------------------------------------------------------------
 
 /**
  * PASS 1: Removes empty list items, quotes, and headings with no content
@@ -62,7 +66,7 @@ function removeEmptyParagraphs(note: TNote, preserveHeadings: boolean = false): 
       numChangesMade++
     }
   }
-  logInfo('removeEmptyElements', `Removed ${String(numChangesMade)} empty paras`)
+  logDebug('removeEmptyElements', `Removed ${String(numChangesMade)} empty paras`)
   return numChangesMade
 }
 
@@ -150,7 +154,7 @@ function removeEmptySections(note: TNote): number {
       numChangesMade++
     }
   }
-  logInfo('removeEmptyElements', `Removed ${String(numChangesMade)} empty headings`)
+  logDebug('removeEmptyElements', `Removed ${String(numChangesMade)} empty headings`)
   return numChangesMade
 }
 
@@ -226,15 +230,21 @@ function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean, p
       }
     }
   }
-  logInfo('removeEmptyElements', `Removed ${String(numChangesMade)} empty paras`)
+  logDebug('removeEmptyElements', `Removed ${String(numChangesMade)} empty paras`)
   return numChangesMade
 }
+
+// -----------------------------------------------------------------------------
 
 /**
  * Removes empty list items, quotations, headings, sections, and reduces multiple empty lines to a single empty line.
  * Setting 'stripAllEmptyLines' controls whether to leave no empty paragraphs at all.
  * Setting 'preserveHeadingStructure' controls whether to preserve all heading structure (no heading deletions).
  * Works on the note open in the Editor, unless a filename is provided.
+ *
+ * By default, this function only processes Calendar notes. To process Project notes as well, either:
+ * - Enable the 'Also cover Project notes?' setting in plugin settings, or
+ * - Pass coverRegularNotesAsWell=true as a parameter
  *
  * The function operates in three passes:
  * - PASS 1: Removes empty list items, quotes, and headings with no content
@@ -244,10 +254,11 @@ function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean, p
  * @param {string} filenameIn - Filename of note to work on. If not provided, works on the note open in the Editor. Can also pass literal string "Editor".
  * @param {boolean?} stripAllEmptyLinesArg - Optional setting to control whether to leave no empty paragraphs at all. If present it overrides the setting in the plugin settings.
  * @param {boolean?} preserveHeadingStructure - Optional setting to preserve all heading structure. When true, skips PASS 2 (no heading deletions) and only removes empty list items, quotes, and empty lines.
+ * @param {boolean?} coverRegularNotesAsWell - Optional parameter to override the plugin setting. When true, processes Project notes as well as Calendar notes. When false, only processes Calendar notes.
  * @returns {Promise<void>} - Promise that resolves when the operation is complete
  *
  * @example
- * Normal behavior - removes empty headings and sections
+ * Normal behavior - removes empty headings and sections from Calendar notes only
  * - await removeEmptyElements('Editor', false, false)
  *
  * Preserve heading structure - keeps all headings, even empty ones
@@ -256,15 +267,21 @@ function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean, p
  * Remove all empty lines while preserving heading structure
  * - await removeEmptyElements('Editor', true, true)
  *
+ * Process Project notes as well (overriding plugin setting)
+ * - await removeEmptyElements('Editor', false, false, true)
+ *
  * @author @jgclark
  */
-export async function removeEmptyElements(filenameIn: string = 'Editor', stripAllEmptyLinesArg: ?boolean = null, preserveHeadingStructure: ?boolean = null): Promise<void> {
+export async function removeEmptyElements(
+  filenameIn: string = 'Editor',
+  stripAllEmptyLinesArg: ?boolean = null,
+  preserveHeadingStructure: ?boolean = null,
+  coverRegularNotesAsWell: ?boolean = null,
+): Promise<void> {
   try {
     logDebug(
       pluginJson,
-      `Starting removeEmptyElements() with filenameIn: "${filenameIn}", stripAllEmptyLinesArg: ${String(stripAllEmptyLinesArg)}, preserveHeadingStructure: ${String(
-        preserveHeadingStructure,
-      )}`,
+      `Starting removeEmptyElements() with filenameIn: "${filenameIn}", stripAllEmptyLinesArg: ${String(stripAllEmptyLinesArg)}, preserveHeadingStructure: ${String(preserveHeadingStructure)}, coverRegularNotesAsWell: ${String(coverRegularNotesAsWell)}`,
     )
 
     let note: TNote | null
@@ -283,17 +300,31 @@ export async function removeEmptyElements(filenameIn: string = 'Editor', stripAl
     }
     logInfo(pluginJson, `Starting removeEmptyElements() for note '${displayTitle(note)}' ${workingInEditor ? ' (open in Editor)' : ''}`)
 
+    // Check note type: by default only process Calendar notes
+    const noteType = note.type ?? 'Notes'
+    const isCalendarNote = noteType === 'Calendar'
+    const isRegularNote = noteType === 'Notes'
+
+    const config = await getSettings()
+    const shouldCoverProjectNotes = coverRegularNotesAsWell !== null ? coverRegularNotesAsWell : (config.coverProjectNotes ?? false)
+
+    // If it's a Project note and we shouldn't cover Project notes, skip processing
+    if (isRegularNote && !shouldCoverProjectNotes) {
+      logInfo(pluginJson, `Skipping Project note '${displayTitle(note)}' (only Calendar notes are processed by default). Enable 'Also cover Project notes?' setting or pass coverRegularNotesAsWell=true to process Project notes.`)
+      return
+    }
+
     const paragraphs = note.paragraphs
     if (!paragraphs || paragraphs.length === 0) {
       logInfo(pluginJson, `No paragraphs found in note '${displayTitle(note)}', so stopping.`)
       return
     }
 
-    const config = await getSettings()
     const stripAllEmptyLines = stripAllEmptyLinesArg !== null ? stripAllEmptyLinesArg : config.stripAllEmptyLines
     const preserveHeadings = preserveHeadingStructure !== null ? preserveHeadingStructure : false
-    logDebug(pluginJson, `stripAllEmptyLinesArg: ${String(stripAllEmptyLinesArg)} typeof=${typeof stripAllEmptyLinesArg} / stripAllEmptyLines: ${String(stripAllEmptyLines)}`)
-    logDebug(pluginJson, `preserveHeadingStructure: ${String(preserveHeadingStructure)} typeof=${typeof preserveHeadingStructure} / preserveHeadings: ${String(preserveHeadings)}`)
+    // logDebug(pluginJson, `stripAllEmptyLinesArg: ${String(stripAllEmptyLinesArg)} typeof=${typeof stripAllEmptyLinesArg} / stripAllEmptyLines: ${String(stripAllEmptyLines)}`)
+    // logDebug(pluginJson, `preserveHeadingStructure: ${String(preserveHeadingStructure)} typeof=${typeof preserveHeadingStructure} / preserveHeadings: ${String(preserveHeadings)}`)
+    // logDebug(pluginJson, `Note type: ${noteType}, isCalendarNote: ${String(isCalendarNote)}, isRegularNote: ${String(isRegularNote)}, shouldCoverProjectNotes: ${String(shouldCoverProjectNotes)}`)
 
     // Execute the phases of cleanup
     const changes1 = removeEmptyParagraphs(note, preserveHeadings)
@@ -345,7 +376,15 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
     await CommandBar.onAsyncThread()
 
     // Find notes changed in interval (or all when numDays === 0)
-    const recentNotes = numDays > 0 ? getNotesChangedInInterval(numDays, ['Notes', 'Calendar']) : getAllNotesOfType(['Notes', 'Calendar'])
+    let recentNotes = numDays > 0 ? getNotesChangedInInterval(numDays, ['Notes', 'Calendar']) : getAllNotesOfType(['Notes', 'Calendar'])
+
+    // Filter out Template notes (those whose filename starts with '@Templates')
+    const originalCount = recentNotes.length
+    recentNotes = recentNotes.filter((note) => !note.filename.startsWith('@Templates'))
+
+    if (originalCount > recentNotes.length) {
+      logDebug('removeEmptyElementsFromRecentNotes', `- filtered out ${String(originalCount - recentNotes.length)} Template notes`)
+    }
 
     if (recentNotes.length === 0) {
       if (!runSilently) {
@@ -355,9 +394,13 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
       }
       return
     }
-    logDebug('removeEmptyElementsFromRecentNotes', `- found ${String(recentNotes.length)} notes to process`)
+    logDebug('removeEmptyElementsFromRecentNotes', `- found ${String(recentNotes.length)} recently-changednotes to process`)
+    // for (const note of recentNotes) {
+    //   logDebug('removeEmptyElementsFromRecentNotes', `- ${displayTitle(note)}`)
+    // }
 
     let numChanged = 0
+    CommandBar.showLoading(true, `Looking for empty elements in ${String(recentNotes.length)} recent notes...`)
     for (const note of recentNotes) {
       const before = note.paragraphs.map((p) => p.rawContent).join('\n')
       await removeEmptyElements(note.filename, stripAllEmptyLines, preserveHeadingStructure)

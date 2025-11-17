@@ -16,8 +16,8 @@ This plugin provides commands to help tidy up your notes:
 - **/List stubs**: creates a note that lists all your notes that contain "stubs" -- i.e. that caontain `[[note links]]` (aka "wikilinks") that don't lead to other notes in NotePlan.
 - **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See section below.
 - **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character. Note: this command cannot remove Teamspace notes (as of NotePlan v3.18.1), so it won't try.
-- **/Remove empty elements** (alias: "ree"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information.
-- **/Remove empty elements from recent notes** (alias: "reeRecent"): as above, but for all recent notes. It usees the same settings as the command above.
+- **/Remove empty elements** (alias: "ree"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information. **Note**: By default, this command only processes Calendar notes. Enable the "Also cover Project notes?" setting to also process Project notes.
+- **/Remove empty elements from recent notes** (alias: "reeRecent"): as above, but for all recent notes. It uses the same settings as the command above. **Note**: Template notes (those whose filename starts with '@Templates') are automatically excluded from processing.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
 - **/Remove section from recent notes** (alias "rsrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
  - **/Remove section from all notes** (alias "rsan"). Remove a given section (heading + its content block) from _all notes_. Use wisely, as this is dangerous! (original function by @dwertheimer)
@@ -50,6 +50,11 @@ The **/Remove empty blocks** command intelligently cleans up your notes while pr
 - Empty headings (e.g., `# ` with no text)
 - Multiple consecutive empty lines (reduces to single empty lines)
 
+#### Note type coverage
+- **By default**: Only processes Calendar notes (daily, weekly, monthly, quarterly, yearly notes)
+- **Project notes**: Can be included by enabling the "Also cover Project notes?" setting in plugin settings, or by passing `coverRegularNotesAsWell=true` as a parameter
+- **Template notes**: When using "/Remove empty elements from recent notes", Template notes (those whose filename starts with '@Templates') are automatically excluded from processing to preserve template structure which will frequently have empty sections.
+
 #### Smart heading behavior
 - **Preserves parent headings** when their subheadings contain content
 - **Removes headings** only when they have no content AND no subheadings with content
@@ -67,6 +72,11 @@ noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20el
 - This is useful for note templates where you want to keep the heading hierarchy intact
 ```
 noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20elements&arg0=Editor&arg1=false&arg2=true
+```
+
+- **Process Project notes**: When arg3 is true, processes Project notes as well as Calendar notes (overrides plugin setting)
+```
+noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20elements&arg0=Editor&arg1=false&arg2=false&arg3=true
 ```
 
 ### Details on /List conflicted notes

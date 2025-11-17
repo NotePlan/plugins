@@ -140,7 +140,8 @@
       "arguments": [
         "filename (or 'Editor' for the open note in the Editor) -- default: Editor",
         "stripAllEmptyLines -- default: false; By default, multiple consecutive empty lines are reduced to a single empty line. But if this is set to true, then all empty lines will be removed.",
-        "preserveHeadingStructure -- default: false; When true, keeps all headings (even empty ones) to maintain note templates and structure. Useful for preserving heading hierarchy in templates."
+        "preserveHeadingStructure -- default: false; When true, keeps all headings (even empty ones) to maintain note templates and structure. Useful for preserving heading hierarchy in templates.",
+        "coverRegularNotesAsWell -- default: null; By default, only Calendar notes are processed. When true, processes Project notes as well. When false or null, uses the plugin setting 'Also cover Project notes?'."
       ]
     },
     {
@@ -385,6 +386,14 @@
       "title": "Strip all empty lines?",
       "key": "stripAllEmptyLines",
       "description": "Normally, multiple consecutive empty lines are reduced to a single empty line. But if this is set, then all empty lines will be removed. This will particularly suit users who use a theme that adds vertical before headings",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Also cover Project notes?",
+      "key": "coverProjectNotes",
+      "description": "By default, '/Remove empty elements' only works on Calendar notes. Enable this setting to also process Project notes.",
       "type": "bool",
       "default": false,
       "required": true
