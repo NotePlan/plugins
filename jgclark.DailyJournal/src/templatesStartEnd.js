@@ -70,13 +70,16 @@ async function ensureCorrectNoteOpen(isNoteType: Function, noteType: string, wor
  * @param {string} commandName - Name of the command for logging
  */
 async function renderAndInsertTemplate(
-  templateData: string, templateTitle: string, commandName: string
+  templateData: string,
+  templateTitle: string,
+  commandName: string,
 ): Promise<void> {
   // Render the template, using recommended decoupled method of invoking a different plugin
   const result = await DataStore.invokePluginCommandByName('renderTemplate', 'np.Templating', [templateTitle])
-  if (result == null || result === '') {
-    throw new Error(`No result from running Template '${templateTitle}'. Stopping.`)
-  }
+  // TEST: turning off error message for now, as it fires on Templates that only do background work.
+  // if (result == null || result === '') {
+  //   throw new Error(`No result from running Template '${templateTitle}'. Stopping.`)
+  // }
   
   // Work out where to insert it in the note, by reading the template, and checking
   // the frontmatter attributes for a 'location' field (append/insert/cursor)
@@ -176,8 +179,7 @@ async function applyTemplateToNote(
     
   } catch (error) {
     logError('applyTemplateToNote', error.message)
-    // Turning off error message for now, as I'm getting "No result from running Template 'Daily Shutdown'. Stopping." messages when it just does background work.
-    // await showMessage(`Error: ${error.message}`)
+    await showMessage(`Error: ${error.message}`)
   }
 }
 
