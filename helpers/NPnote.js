@@ -628,8 +628,8 @@ export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
 }
 
 /**
- * Get the paragraphs in 'note' which are scheduled for date of the 'calendar' note.
- * TEST: Is this working for Teamspace notes? Initial testing on 20.8.25 by @jgclark implies not.
+ * Get the paragraphs in 'note' which are scheduled for date of the *private* calendar note 'calNote'
+ * TEST: Is this working in or from Teamspace notes? Initial testing on 20.8.25 by @jgclark implies not.
  * @author @dwertheimer extended by @jgclark
  * @param {CoreNoteFields} calendar note to look for links to (the note or Editor)
  * @param {CoreNoteFields} includeHeadings? (default to true for backwards compatibility)
@@ -656,7 +656,7 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
       if (includeHeadings) {
         // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
       } else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
-        logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today from ${para.note?.filename ?? '<no note>'}`)
+        // logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today from ${para.note?.filename ?? '<no note>'}`)
         if (!para.note) {
           logWarn(`getReferencedParagraphs`, `  - this backlink para.note is null. Para:\n${JSON.stringify(para, null, 2)}`)
         }

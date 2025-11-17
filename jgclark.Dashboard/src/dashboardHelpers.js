@@ -407,39 +407,41 @@ export function getOpenItemParasForTimePeriod(
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
     // A task in today dated for today doesn't show here b/c it's not in backlinks
     let refOpenParas: Array<TParagraph> = []
-    for (const note of matchingNotes) {
+
+    if (possTimePeriodNote) {
+      const note = possTimePeriodNote
       logDebug('getOpenItemPFCTP', `- getting referenced paras for ${note.filename}`)
       refOpenParas = alsoReturnTimeblockLines
         ? getReferencedParagraphs(note, false).filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
         : getReferencedParagraphs(note, false).filter((p) => isOpen(p))
       logTimer('getOpenItemPFCTP', startTime, `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`)
-      if (refOpenParas.length === 0) {
-        continue
+
+      if (refOpenParas.length > 0) {
+        if (dashboardSettings.ignoreChecklistItems) {
+          refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist'))
+          // logDebug('getOpenItemPFCTP', `- after filtering out referenced checklists: ${refOpenParas.length} para(s)`)
+        }
+        if (dashboardSettings.excludeChecklistsWithTimeblocks) {
+          refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
+        }
+
+        // Get list of allowed folders (using both include and exlcude settings)
+        const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
+        // $FlowIgnore[incompatible-call] - p.note almost guaranteed to exist
+        logDebug('getOpenItemPFCTP: refOpenParas', refOpenParas.map((p) => p.note?.filename ?? '<no note>'))
+
+        refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
+        logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
+
+        // Remove possible dupes from sync'd lines: returning the first Regular note copy found, otherwise the first copy found
+        refOpenParas = eliminateDuplicateParagraphs(refOpenParas, 'first', true)
+        logTimer('getOpenItemPFCTP', startTime, `- after 'eliminate sync dupes' filter: ${refOpenParas.length} para(s)`)
+
+        // Filter out anything from 'ignoreItemsWithTerms' setting
+        refOpenParas = filterParasByIgnoreTerms(refOpenParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
+
+        // TODO: now do any priority delta calculations if there is FM field 'note-priority-delta' set
       }
-      if (dashboardSettings.ignoreChecklistItems) {
-        refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist'))
-        // logDebug('getOpenItemPFCTP', `- after filtering out referenced checklists: ${refOpenParas.length} para(s)`)
-      }
-      if (dashboardSettings.excludeChecklistsWithTimeblocks) {
-        refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
-      }
-
-      // Get list of allowed folders (using both include and exlcude settings)
-      const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
-      // $FlowIgnore[incompatible-call] - p.note almost guaranteed to exist
-      logDebug('getOpenItemPFCTP: refOpenParas', refOpenParas.map((p) => p.note?.filename ?? '<no note>'))
-
-      refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
-      logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
-
-      // Remove possible dupes from sync'd lines: returning the first Regular note copy found, otherwise the first copy found
-      refOpenParas = eliminateDuplicateParagraphs(refOpenParas, 'first', true)
-      logTimer('getOpenItemPFCTP', startTime, `- after 'eliminate sync dupes' filter: ${refOpenParas.length} para(s)`)
-
-      // Filter out anything from 'ignoreItemsWithTerms' setting
-      refOpenParas = filterParasByIgnoreTerms(refOpenParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
-
-      // TODO: now do any priority delta calculations if there is FM field 'note-priority-delta' set
     }
 
     // Decide whether to return two separate arrays, or one combined one
