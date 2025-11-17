@@ -19,9 +19,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Fix to double-escaped JSON in settings.json file. Updated all places it writes, and added a `parseSettings` to tidy up existing files.
 - Fix for isModified setting for tags (#703, for @dwertheimer)
 - Fix for styling of note links that are from Teamspace notes
-- ??? Fix for missing referenced paras
+- Fix for issue that prevented referenced paras from being shown, if a Teamspace note was being shown.
+- Fix to tag/mention Sections not honouring the 'include folders' setting (thanks, @Ryan)
+- Tweak to icon positioning in display of icons in edit buttons and noteTitles
 
-## [2.3.0.b13] 2025-10-11???
+## [2.3.0.b13] 2025-10-11
 - When lower-priority items filter is turned on, change the move "All → ..." buttons to show "All shown → ..." instead.
 - Add new setting "" to always have the "All → ..." buttons operate on all section tasks, not just the shown ones.
 

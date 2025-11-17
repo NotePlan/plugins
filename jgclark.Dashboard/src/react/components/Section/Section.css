@@ -241,6 +241,8 @@
 .dialogTriggerIcon {
 	color: rgb(from var(--fg-main-color) r g b / 0.4);
 	cursor: pointer;
+	padding-left: 0.5rem;
+	padding-right: 0.3rem;
 }
 
 /* ------------------------------------------------------------------ */

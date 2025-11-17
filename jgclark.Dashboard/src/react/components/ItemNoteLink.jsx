@@ -85,14 +85,14 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
       metaKey={{ text: 'Open in Floating Window' }}
       label={`${item.itemType}_${item.ID}_Open Note Link`}
       enabled={!reactSettings?.dialogData?.isOpen}>
-      {folderNamePart && <span className={`pad-left-larger folderName pad-right`}>{folderNamePart}</span>}
+      {folderNamePart && <span className={`folderName pad-right`}>{folderNamePart}</span>}
       <a className={`noteTitle`} onClick={handleLinkClick}>
         {/* If it's a teamspace note prepend that icon + title */}
         {isFromTeamspace && teamspaceIndicator}
         {/* Show note title if wanted */}
         {showNoteTitle && (
           <>
-            <i className={`${noteIconToUse} pad-right`}></i>
+            <i className={`pad-left ${noteIconToUse} pad-right`}></i>
             {noteTitle}
           </>
         )}
