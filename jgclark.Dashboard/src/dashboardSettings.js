@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2025-11-12 for v2.3.0.b14, @jgclark
+// Last updated 2025-11-18 for v2.3.0.b14, @jgclark
 //-----------------------------------------------------------------------------
 
 import { defaultSectionDisplayOrder } from './constants.js'
@@ -88,7 +88,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'includedFolders',
     label: 'Folders to Include',
     description:
-      "Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included.",
+      "Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included. Note: Calendar notes are always included, where relevant.",
     type: 'input',
     default: '',
     compactDisplay: true,
@@ -105,7 +105,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     // Note: replaces earlier "ignoreTagMentionsWithPhrase" which applied only to the Tag/Mention section
     key: 'ignoreItemsWithTerms',
-    label: 'Ignore items in notes with phrase(s)',
+    label: 'Ignore items in notes with term(s)',
     description:
       'If set, open tasks/checklists with any of these words (which many include #tags and @mentions) will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control, or you want to ignore it in a particular Perpsective. To include more than one word, separate them by commas.',
     type: 'input',

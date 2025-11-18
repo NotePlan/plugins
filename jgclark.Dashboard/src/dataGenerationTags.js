@@ -126,13 +126,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
           if (!allowedFolders.includes(thisNoteFolder)) {
             logDebug('getTaggedSectionData', `  - ignoring note '${n.filename}' as it is not in an allowed folder '${thisNoteFolder}'`)
             continue
-          } else {
-            logDebug('getTaggedSectionData', `  - including note '${n.filename}' as it is in an allowed folder '${thisNoteFolder}'`)
           }
-          // if (excludedFolders.includes(thisNoteFolder)) {
-          //   logDebug('getTaggedSectionData', `  - ignoring note '${n.filename}' as it is in an ignored folder`)
-          //   continue
-          // }
 
           // Get the relevant paras from this note
           const paras = n.paragraphs ?? []

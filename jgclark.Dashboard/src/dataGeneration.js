@@ -11,16 +11,17 @@ import { allSectionCodes } from './constants.js'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionOpenItemsFromParas,
-  createSectionItemObject,
+  // createSectionItemObject,
   getDashboardSettings,
   getListOfEnabledSections,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
-  getRelevantPriorityTasks,
-  makeDashboardParas,
+  // getRelevantPriorityTasks,
+  // makeDashboardParas,
 } from './dashboardHelpers'
 import { getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
 import { getOverdueSectionData } from './dataGenerationOverdue'
+import { getPrioritySectionData } from './dataGenerationPriority'
 import { getProjectSectionData } from './dataGenerationProjects'
 import { getSavedSearchResults } from './dataGenerationSearch'
 import { getTaggedSectionData } from './dataGenerationTags'
@@ -32,7 +33,7 @@ import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
 import { getDateStringFromCalendarFilename, getNPMonthStr, getNPQuarterStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getHeadingsFromNote } from '@helpers/NPnote'
-import { sortListBy } from '@helpers/sorting'
+// import { sortListBy } from '@helpers/sorting'
 import { getLiveWindowRect, getStoredWindowRect, logWindowsList, rectToString } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------
@@ -578,117 +579,6 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
 // Note: If we want to do yearly in the future then the icon is
 //   fa-calendar-days (same as quarter). This would be section #6
 //----------------------------------------------------------------
-
-// ----------------------------------------------------------
-/**
- * Generate data for a section of raised Priority tasks
- * @param {TDashboardSettings} config
- * @param {boolean} useDemoData?
- */
-export async function getPrioritySectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
-  try {
-    const sectionNumStr = '14'
-    const thisSectionCode = 'PRIORITY'
-    let totalPriority = 0
-    let itemCount = 0
-    let priorityParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
-    let dashboardParas: Array<TParagraphForDashboard> = []
-    const maxInSection = config.maxItemsToShowInSection
-    const NPSettings = getNotePlanSettings()
-    const thisStartTime = new Date()
-
-    logInfo('getPrioritySectionData', `------- Gathering Priority Tasks for section #${String(sectionNumStr)} -------`)
-    if (useDemoData) {
-      // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
-      for (let c = 0; c < 30; c++) {
-        // const thisID = `${sectionNumStr}-${String(c)}`
-        const thisType = c % 3 === 0 ? 'checklist' : 'open'
-        const priorityPrefix = c % 30 === 0 ? '>> ' : c % 21 === 0 ? '!!! ' : c % 10 === 0 ? '!! ' : '! '
-        const fakeDateMom = new moment('2023-10-01').add(c, 'days')
-        const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
-        const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
-        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${NPSettings.defaultFileExtension}` : `fake_note_${String(c % 7)}.${NPSettings.defaultFileExtension}`
-        const type = c % 3 < 2 ? 'Calendar' : 'Notes'
-        const content = `${priorityPrefix}test priority item ${String(c + 1)} >${fakeIsoDateStr}`
-        priorityParas.push({
-          filename: filename,
-          content: content,
-          rawContent: `${thisType === 'open' ? '*' : '+'} ${priorityPrefix}${content}`,
-          type: thisType,
-          note: {
-            filename: filename,
-            title: `Priority Test Note ${(c % 10) + 1}`,
-            type: type,
-            changedDate: fakeDateMom.toDate(),
-          },
-        })
-      }
-    } else {
-      // Get priority tasks
-      // Note: Cannot move the reduce into here otherwise scheduleAllPriorityOpenToToday() doesn't have all it needs to work
-      priorityParas = await getRelevantPriorityTasks(config)
-      logDebug('getPrioritySectionData', `- found ${priorityParas.length} priority paras in ${timer(thisStartTime)}`)
-    }
-
-    const items: Array<TSectionItem> = []
-
-    if (priorityParas.length > 0) {
-      // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
-      // Note: this takes ~600ms for 1,000 items
-      dashboardParas = makeDashboardParas(priorityParas)
-      logDebug('getPrioritySectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
-
-      // TODO(later): Remove possible dupes from sync'd lines
-      // priorityParas = eliminateDuplicateParagraphs(priorityParas)
-      // logTimer('getPrioritySectionData', thisStartTime, `- after sync lines dedupe -> ${priorityParas.length}`)
-
-      totalPriority = dashboardParas.length
-
-      // Sort paragraphs by priority
-      const sortOrder = ['-priority', '-changedDate']
-      const sortedPriorityTaskParas = sortListBy(dashboardParas, sortOrder)
-      logTimer('getPrioritySectionData', thisStartTime, `- Sorted ${sortedPriorityTaskParas.length} items`)
-
-      // Apply limit to set of ordered results
-      // Note: Apply some limiting here, in case there are hundreds of items. There is also display filtering in the Section component via useSectionSortAndFilter.
-      // Note: this doesn't attempt to calculate parentIDs. TODO: Should it?
-      const priorityTaskParasLimited = totalPriority > maxInSection ? sortedPriorityTaskParas.slice(0, maxInSection) : sortedPriorityTaskParas
-      logDebug('getPrioritySectionData', `- after limit, now ${priorityTaskParasLimited.length} items to show`)
-      priorityTaskParasLimited.map((p) => {
-        const thisID = `${sectionNumStr}-${itemCount}`
-        items.push(createSectionItemObject(thisID, p))
-        itemCount++
-      })
-    }
-    logTimer('getPrioritySectionData', thisStartTime, `- finished finding priority items`)
-
-    let sectionDescription = `{countWithLimit} open {itemType}`
-    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
-
-    const section: TSection = {
-      ID: sectionNumStr,
-      name: 'Priority Tasks',
-      showSettingName: 'showPrioritySection',
-      sectionCode: thisSectionCode,
-      description: sectionDescription,
-      FAIconClass: 'fa-regular fa-angles-up',
-      // FAIconClass: 'fa-light fa-star-exclamation',
-      // no sectionTitleColorPart, so will use default
-      sectionFilename: '',
-      sectionItems: items,
-      generatedDate: new Date(),
-      totalCount: totalPriority,
-      isReferenced: false,
-      actionButtons: [],
-    }
-    logTimer('getPrioritySectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1500)
-    return section
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-    // $FlowFixMe[incompatible-return]
-    return null
-  }
-}
 
 /**
  * Copies specified fields from a provided object into the corresponding sectionItems in the sections array.

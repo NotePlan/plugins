@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-11-16 for v2.3.0 by @jgclark
+// Last updated 2025-11-18 for v2.3.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -21,14 +21,14 @@ import type {
   TSectionCode,
   TSectionItem,
 } from './types'
-import { getNestedValue, stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { getNestedValue, setNestedValue, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { getFoldersMatching, getFolderFromFilename, getRegularNotesFromFilteredFolders } from '@helpers/folders'
+import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
-import { isNoteFromAllowedFolder, pastCalendarNotes } from '@helpers/note'
+import { isNoteFromAllowedFolder } from '@helpers/note'
 import { saveSettings } from '@helpers/NPConfiguration'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
 import { getNoteFromFilename, getReferencedParagraphs } from '@helpers/NPnote'
@@ -39,7 +39,7 @@ import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
 import { getStartTimeObjFromParaContent, getTimeBlockString, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
-import { isOpen, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
+import { isOpen, isOpenNotScheduled } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Settings
@@ -473,65 +473,6 @@ export function getOpenItemParasForTimePeriod(
 // ---------------------------------------------------
 
 /**
- * Get all tasks marked with a priority, filtered and sorted according to various settings.
- * The number of items returned is not limited.
- * @param {TDashboardSettings} settings
- * @returns {Array<TParagraph>}
- */
-export async function getRelevantPriorityTasks(config: TDashboardSettings): Promise<Array<TParagraph>> {
-  try {
-    const thisStartTime = new Date()
-
-    await CommandBar.onAsyncThread()
-    // Get list of folders to include or ignore
-    // const includedFolders = config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',').map((folder) => folder.trim()) : []
-    const excludedFolders = config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
-    logInfo('getRelevantPriorityTasks', `excludedFolders: ${String(excludedFolders)}`)
-    // Reduce list to all notes that are not blank or in @ folders or excludedFolders
-    let notesToCheck = getRegularNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
-    logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
-
-    // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by `DataStore.projectNotes` (the call behind 'regularNotesFromFilteredFolders').
-    // Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
-    // Note: JGC has asked EM to not return other sorts of files
-    // Note: this takes roughly 1ms per note for JGC.
-    notesToCheck = notesToCheck.filter((n) => n.filename.match(/(.txt|.md)$/)).filter((n) => n.content && !isNaN(n.content.length) && n.content.length >= 1)
-    logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(notesToCheck.length)} non-blank MD notes to check`)
-
-    // Now find all open items in them which have a priority marker
-    const priorityParas = getAllOpenPriorityParas(notesToCheck)
-    logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(priorityParas.length)} priorityParas`)
-    await CommandBar.onMainThread()
-    // Log for testing
-    // for (const p of priorityParas) {
-    //   console.log(`- ${displayTitle(p.note)} : ${p.content}`)
-    // }
-
-    // Filter out items in non-valid folders
-    let filteredPriorityParas = filterParasByValidFolders(priorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
-
-    // Filter out anything from 'ignoreItemsWithTerms' setting
-    filteredPriorityParas = filterParasByIgnoreTerms(filteredPriorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
-
-    // Also if wanted, apply to calendar headings in this note
-    filteredPriorityParas = filterParasByCalendarHeadingSections(filteredPriorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
-
-    // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
-    // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time
-    // Note: this is a quick operation
-    // $FlowFixMe[class-object-subtyping]
-    filteredPriorityParas = removeDuplicates(filteredPriorityParas, ['content'])
-    logTimer('getRelevantPriorityTasks', thisStartTime, `- after deduping -> ${filteredPriorityParas.length}`)
-
-    // $FlowFixMe[class-object-subtyping]
-    return filteredPriorityParas
-  } catch (error) {
-    logError('getRelevantPriorityTasks', error.message)
-    return []
-  }
-}
-
-/**
  * Test to see if the current line contents is allowed in the current settings/Perspective, by whether it has any 'ignore' terms (word/tag/mention).
  * Note: the match is case insensitive.
  * @param {string} lineContent
@@ -551,14 +492,14 @@ export function isLineDisallowedByIgnoreTerms(lineContent: string, ignoreItemsWi
 }
 
 /**
- * Filter paragraphs to only include those from valid folders based on dashboard settings.
+ * Filter paragraphs to only include those from relevant folders based on dashboard settings.
  * @param {Array<TParagraph>} paras - paragraphs to filter
  * @param {TDashboardSettings} dashboardSettings - dashboard settings containing folder filters
  * @param {Date} startTime - timer start time for logging
  * @param {string} functionName - name of calling function for logging
  * @returns {Array<TParagraph>} filtered paragraphs
  */
-export function filterParasByValidFolders(
+export function filterParasByRelevantFolders(
   paras: Array<TParagraph>,
   dashboardSettings: TDashboardSettings,
   startTime: Date,
@@ -632,35 +573,6 @@ export function filterParasByCalendarHeadingSections(
   })
   logTimer(functionName, startTime, `- after filtering out calendar headings: ${filteredParas.length} paras`)
   return filteredParas
-}
-
-/**
- * Get all paras with open items with Priority > 0.
- * @param {Array<TNote>} notesToCheck
- * @returns {Array<TParagraph>}
- */
-function getAllOpenPriorityParas(notesToCheck: Array<TNote>): Array<TParagraph> {
-  const priorityParas: Array<TParagraph> = []
-  for (const note of notesToCheck) {
-    const priorityParasForNote = getOpenPriorityItems(note)
-    priorityParas.push(...priorityParasForNote)
-  }
-  return priorityParas
-}
-
-/**
- * Get all open items with Priority > 0 from the given note.
- * @param {TNote} note
- * @returns {Array<TParagraph>}
- */
-function getOpenPriorityItems(note: TNote): Array<TParagraph> {
-  const priorityParas: Array<TParagraph> = []
-  for (const paragraph of note.paragraphs) {
-    if (isOpenNotScheduled(paragraph) && getNumericPriorityFromPara(paragraph) > 0) {
-      priorityParas.push(paragraph)
-    }
-  }
-  return priorityParas
 }
 
 /**
@@ -1027,4 +939,35 @@ export function findSectionItems(
   })
 
   return matches
+}
+
+/**
+ * Copies specified fields from a provided object into the corresponding sectionItems in the sections array.
+ *
+ * @param {Array<SectionItemIndex>} results - An array of results from the findSectionItems function, containing section and item indices.
+ * @param {Array<string>} fieldPathsToReplace - An array of field paths (maybe nested) within TSectionItem (e.g. ['itemType', 'para.filename']) to copy from the provided object.
+ * @param {Object} updatedValues - The object containing the field values to be copied -- the keys are the field paths (can be strings with dots, e.g. para.filename) and the values are the values to copy.
+ * @param {Array<TSection>} sections - The original sections array to be modified.
+ * @returns {Array<TSection>} The modified sections array with the specified fields copied into the corresponding sectionItems.
+ */
+export function copyUpdatedSectionItemData(
+  results: Array<{ sectionIndex: number, itemIndex: number }>,
+  fieldPathsToReplace: Array<string>,
+  updatedValues: { [key: string]: any },
+  sections: Array<TSection>,
+): Array<TSection> {
+  results.forEach(({ sectionIndex, itemIndex }) => {
+    const sectionItem = sections[sectionIndex].sectionItems[itemIndex]
+
+    fieldPathsToReplace.forEach((fieldPath) => {
+      // const [firstField, ...remainingPath] = fieldPath.split('.')
+      const value = getNestedValue(updatedValues, fieldPath)
+      if (value !== undefined) {
+        setNestedValue(sectionItem, fieldPath, value)
+      }
+    })
+    sectionItem.updated = true
+  })
+
+  return sections
 }

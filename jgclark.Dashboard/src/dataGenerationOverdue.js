@@ -1,19 +1,19 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2025-07-17 for v2.3.0.b6
+// Last updated 2025-11-18 for v2.3.0.b14, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { createSectionItemObject, filterParasByValidFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
+import { createSectionItemObject, filterParasByRelevantFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
 import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
-import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
-import { getNoteFromFilename } from '@helpers/NPnote'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { removeDuplicates } from '@helpers/utils'
+import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
+// import { getNoteFromFilename } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
+import { removeDuplicates } from '@helpers/utils'
 
 // ----------------------------------------------------------
 /**
@@ -192,6 +192,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
 
 /**
  * Get all overdue tasks, filtered and sorted according to various settings:
+ * - includedFolders
  * - excludedFolders
  * - ignoreItemsWithTerms
  * - lookBackDaysForOverdue
@@ -216,7 +217,8 @@ export async function getRelevantOverdueTasks(
     // FIXME(@EduardMe): shows that p.note is empty here for regular notes, and noteType is 'teamspaceNote'. 
 
     // Filter out items in non-valid folders
-    let filteredOverdueParas = filterParasByValidFolders(overdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
+    // $FlowFixMe[incompatible-call]
+    let filteredOverdueParas = filterParasByRelevantFolders(overdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after filtering by valid folders, ${filteredOverdueParas.length} overdue items`)
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
