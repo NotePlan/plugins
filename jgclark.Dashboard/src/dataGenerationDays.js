@@ -196,7 +196,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         },
       ],
     }
-    clo(section, 'dataGenerationDays: content')
+    // clo(section, 'dataGenerationDays: content')
     sections.push(section)
 
     // If we want this separated from the referenced items, then form a second section

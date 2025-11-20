@@ -485,9 +485,9 @@ export function isLineDisallowedByIgnoreTerms(lineContent: string, ignoreItemsWi
   // logDebug('isLineDisallowedByIgnoreTerms', `using ${String(ignoreTermsArr.length)} exclusions [${ignoreTermsArr.toString()}]`)
 
   const matchFound = caseInsensitiveSubstringArrayIncludes(lineContent, ignoreTermsArr)
-  // if (matchFound) {
-  //   logDebug('isLineDisallowedByIgnoreTerms', `- DID find excluding term(s) [${ignoreTermsArr.toString()}] in '${String(lineContent)}'`)
-  // }
+  if (matchFound) {
+    logDebug('isLineDisallowedByIgnoreTerms', `- DID find excluding term(s) [${ignoreTermsArr.toString()}] in '${String(lineContent)}'`)
+  }
   return matchFound
 }
 
