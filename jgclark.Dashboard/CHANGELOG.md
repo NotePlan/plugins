@@ -10,6 +10,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
+## [2.3.0.b14] 2025-10-20
+- [Cursor] Refactor tagMentionCache to be more maintainable, and fix errors.
+
 ## [2.3.0.b14] 2025-10-18
 - Can now change the displayed order of Sections, using a new panel in the Settings window. This is set per Perspective (if used). It can be reset to the default sort order.
 - Edit dialog improvements:

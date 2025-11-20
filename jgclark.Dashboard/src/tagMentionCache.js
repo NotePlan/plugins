@@ -206,65 +206,15 @@ export async function getFilenamesOfNotesWithTagOrMentions(
       )}. TAG_CACHE_FOR_ALL_TAGS: ${String(TAG_CACHE_FOR_ALL_TAGS)}`,
     )
 
-    // If we're not caching all tags, then warn if we're asked for a tag/mention that's not in the wantedTagMentionsList.json file, and if so, add it to the list and then regenerate the cache.
-    if (!TAG_CACHE_FOR_ALL_TAGS) {
-      const wantedItems = getTagMentionCacheDefinitions()
-      const missingItems = tagOrMentions.filter((item) => !wantedItems.some((wanted) => caseInsensitiveMatch(item, wanted)))
-      if (missingItems.length > 0) {
-        logWarn(
-          'getFilenamesOfNotesWithTagOrMentions',
-          `Warning: the following tags/mentions are not in the wantedTagMentionsList.json filename: [${String(
-            missingItems,
-          )}]. Will use the API instead, and then regenerate the cache.`,
-        )
-        // Add missing items to the wantedTagMentionsList.json file, and schedule regeneration of the cache
-        addTagMentionCacheDefinitions(missingItems)
-        scheduleTagMentionCacheGeneration()
+    // 1. Ensure cache is ready for the requested tags/mentions
+    await ensureCacheIsReadyForTags(tagOrMentions, firstUpdateCache)
 
-        // And now do an update of the cache, which is quick, in case that does pick up a few of this new item
-        await updateTagMentionCache()
-      } else {
-        if (firstUpdateCache) {
-          logInfo('getFilenamesOfNotesWithTagOrMentions', `- updating cache before looking for notes with tags/mentions [${String(tagOrMentions)}]`)
-          await updateTagMentionCache()
-        }
-      }
-    } else {
-      // Update the cache if requested
-      if (firstUpdateCache) {
-        logInfo('getFilenamesOfNotesWithTagOrMentions', `- updating cache before looking for notes with tags/mentions [${String(tagOrMentions)}]`)
-        await updateTagMentionCache()
-      }
-    }
-
-    // FIXME: Somewhere here stop @Jo matching @Jonathan
-
-    // Get the cache contents
+    // 2. Load and refresh cache if needed
     const startTime = new Date()
-    let cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
-    let parsedCache = JSON.parse(cache)
+    const cache = await loadAndRefreshCacheIfNeeded()
 
-    // Update the cache if too old
-    const cacheUpdated = await updateTagMentionCacheIfTooOld(parsedCache.lastUpdated)
-    if (cacheUpdated) {
-      cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
-      parsedCache = JSON.parse(cache)  // ✅ Re-parse
-    }
-    const regularNoteItems = parsedCache.regularNotes
-    const calNoteItems = parsedCache.calendarNotes
-    logDebug('getFilenamesOfNotesWithTagOrMentions', `Regular notes in cache: ${String(regularNoteItems.length)}`)
-    logDebug('getFilenamesOfNotesWithTagOrMentions', `Calendar notes in cache: ${String(calNoteItems.length)}`)
-    const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
-    let countComparison = ''
-    
-    // Get matching Calendar notes using Cache
-    let matchingNoteFilenamesFromCache = calNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag.toLowerCase()))).map((item) => item.filename)
-
-    // Get matching Regular notes using Cache
-    // eslint-disable-next-line max-len
-    matchingNoteFilenamesFromCache = matchingNoteFilenamesFromCache.concat(
-      regularNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag.toLowerCase()))).map((item) => item.filename),
-    )
+    // 3. Find matching notes from cache
+    const matchingNoteFilenamesFromCache = findMatchingNotesFromCache(tagOrMentions, cache)
     // $FlowIgnore[unsafe-arithmetic]
     const cacheLookupTime = new Date() - startTime
     logTimer(
@@ -273,57 +223,18 @@ export async function getFilenamesOfNotesWithTagOrMentions(
       `-> found ${String(matchingNoteFilenamesFromCache.length)} notes from CACHE with wanted tags/mentions [${String(tagOrMentions)}]:`,
     )
 
-    // If wanted, compare the Cache results with API results
-    // FIXME: update to make more accurate
+    // 4. Compare with API if requested
+    let countComparison = ''
     if (turnOnAPIComparison) {
-      logInfo('getFilenamesOfNotesWithTagOrMentions', `- getting matching notes from API ready for comparison`)
-      const thisStartTime = new Date()
-      let matchingNotesFromAPI: Array<TNote> = []
-      const seenFilenames = new Set < string > ()
-      for (const tagOrMention of tagOrMentions) {
-        // matchingNotesFromAPI = matchingNotesFromAPI.concat(findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, [], WANTED_PARA_TYPES, '', false, true)) // no dedupe
-        // Get de-duplicated set of notes from API
-        const notes = findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, [], WANTED_PARA_TYPES, '', false, true)
-        notes.forEach((note) => {
-          if (!seenFilenames.has(note.filename)) {
-            matchingNotesFromAPI.push(note)
-            seenFilenames.add(note.filename)
-          }
-        })
-      }
-      // $FlowIgnore[unsafe-arithmetic]
-      const APILookupTime = new Date() - thisStartTime
-      logTimer('getFilenamesOfNotesWithTagOrMentions', thisStartTime, `-> found ${matchingNotesFromAPI.length} notes from API with wanted tags/mentions [${String(tagOrMentions)}]`)
-
-      logInfo('getFilenamesOfNotesWithTagOrMentions', `- CACHE took ${percent(cacheLookupTime, APILookupTime)} compared to API (${String(APILookupTime)}ms)`)
-      // Compare the two lists and note if different
-      if (matchingNoteFilenamesFromCache.length !== matchingNotesFromAPI.length) {
-        logWarn('getFilenamesOfNotesWithTagOrMentions', `- # notes from CACHE (${matchingNoteFilenamesFromCache.length}) !== API (${matchingNotesFromAPI.length}).`)
-        countComparison = `😡 ${matchingNoteFilenamesFromCache.length} CACHE notes != ${matchingNotesFromAPI.length} API notes`
-        // Write a list of filenames that are in one but not the other
-        const filenamesInCache = matchingNoteFilenamesFromCache
-        const filenamesInAPI = matchingNotesFromAPI.map((n) => n.filename)
-        logInfo('getFilenamesOfNotesWithTagOrMentions', `- filenames in CACHE but not in API: ${filenamesInCache.filter((f) => !filenamesInAPI.includes(f)).join(', ')}`)
-        logInfo('getFilenamesOfNotesWithTagOrMentions', `- filenames in API but not in CACHE: ${filenamesInAPI.filter((f) => !filenamesInCache.includes(f)).join(', ')}`)
-      } else {
-        logInfo('getFilenamesOfNotesWithTagOrMentions', `- 😃 # notes from CACHE (${matchingNoteFilenamesFromCache.length}) === API (${matchingNotesFromAPI.length})`)
-        countComparison = `😃 notes CACHE = API`
-      }
+      countComparison = compareCacheWithAPI(tagOrMentions, matchingNoteFilenamesFromCache, cacheLookupTime)
     }
 
-    // Now add details about age of the cache
-    const momNow = moment()
-    const momGeneratedAt = moment(parsedCache.generatedAt)
-    const momGeneratedAgeMins = momNow.diff(momGeneratedAt, 'minutes', true)
-    const momLastUpdated = moment(parsedCache.lastUpdated)
-    const momLastUpdatedAgeMins = momNow.diff(momLastUpdated, 'minutes', true)
-    const cacheGenerationAge = Math.round(momGeneratedAgeMins * 10) / 10
-    const cacheUpdatedAge = Math.round(momLastUpdatedAgeMins * 10) / 10
-    countComparison += `. Cache age: ${cacheGenerationAge}m, updated ${cacheUpdatedAge}m ago`
+    // 5. Add cache age info
+    countComparison += buildCacheAgeInfo(cache)
 
-    // Update the cache if too old
-    scheduleTagMentionCacheGenerationIfTooOld(parsedCache.generatedAt)
-    
+    // 6. Schedule regeneration if needed
+    scheduleTagMentionCacheGenerationIfTooOld(cache.generatedAt)
+
     return [matchingNoteFilenamesFromCache, countComparison]
   } catch (err) {
     logError('getFilenamesOfNotesWithTagOrMentions', JSP(err))
@@ -379,13 +290,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     let ccal = 0
     logDebug('generateTagMentionCache', `- Processing ${allCalNotes.length} calendar notes ...`)
     for (const note of allCalNotes) {
-      // Then get wanted/all tags and mentions, and add them
-      let foundItems: Array<string> = []
-      if (TAG_CACHE_FOR_ALL_TAGS) {
-        foundItems = getWantedTagOrMentionListFromNote(note, [], EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
-      } else {
-        foundItems = getWantedTagOrMentionListFromNote(note, wantedItems, EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
-      }
+      const foundItems = getFoundItemsFromNote(note, wantedItems)
       if (foundItems.length > 0) {
         ccal++
         // logDebug('generateTagMentionCache', `-> ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
@@ -399,14 +304,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     logDebug('generateTagMentionCache', `- Processing ${allRegularNotes.length} regular notes ...`)
     for (const note of allRegularNotes) {
       // logInfo('generateTagMentionCache', `- Processing ${note.filename}`)
-      // Then get wanted/all tags and mentions, and add them
-      let foundItems: Array<string> = []
-      if (TAG_CACHE_FOR_ALL_TAGS) {
-        foundItems = getWantedTagOrMentionListFromNote(note, [], EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
-        // logDebug('generateTagMentionCache', `  - ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
-      } else {
-        foundItems = getWantedTagOrMentionListFromNote(note, wantedItems, EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
-      }
+      const foundItems = getFoundItemsFromNote(note, wantedItems)
       if (foundItems.length > 0) {
         creg++
         // logDebug('generateTagMentionCache', `-> ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
@@ -489,26 +387,13 @@ export async function updateTagMentionCache(): Promise<void> {
 
       // First clear existing details for this note
       logDebug('updateTagMentionCache', `- removing existing items for recently changed file '${note.filename}'`)
-      if (isCalendarNote) {
-        cache.calendarNotes = cache.calendarNotes.filter((item) => item.filename !== note.filename)
-      } else {
-        cache.regularNotes = cache.regularNotes.filter((item) => item.filename !== note.filename)
-      }
+      removeNoteFromCache(cache, note.filename, isCalendarNote)
 
       // Then get either just-wanted or all-except-blacklist tags and mentions, and add them
-      let foundWantedItems: Array<string> = []
-      if (TAG_CACHE_FOR_ALL_TAGS) {
-        foundWantedItems = getWantedTagOrMentionListFromNote(note, [], EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
-      } else {
-        foundWantedItems = getWantedTagOrMentionListFromNote(note, wantedItems, EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
-      }
-      if (foundWantedItems.length > 0) logDebug('updateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}] calWantedItems`)
+      const foundWantedItems = getFoundItemsFromNote(note, wantedItems)
       if (foundWantedItems.length > 0) {
-        if (isCalendarNote) {
-          cache.calendarNotes.push({ filename: note.filename, items: foundWantedItems })
-        } else {
-          cache.regularNotes.push({ filename: note.filename, items: foundWantedItems })
-        }
+        logDebug('updateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}]`)
+        addNoteToCache(cache, note.filename, foundWantedItems, isCalendarNote)
         c++
       }
     }
@@ -570,15 +455,16 @@ export function getWantedTagOrMentionListFromNote(
   WANTED_PARA_TYPES: Array<string> = [],
   includeNoteTags: boolean = false,
 ): Array<string> {
-  // try {
+  try {
     // TAGS:
     // Ask API for all seen tags in this note, and reverse them
     const allTagsInNote = note.hashtags.slice().reverse()
     const seenWantedTags: Array<string> = []
     let lastTag = ''
     for (const tag of allTagsInNote) {
-      // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
-      if (caseInsensitiveStartsWith(lastTag, tag)) {
+      // Note: Known API issue where #one/two/three gets reported as '#one', '#one/two', and '#one/two/three'. Instead this reports just as '#one/two/three'.
+      // So, if this tag is starting subset of the last one, assume this is an example of the issue, so skip this tag
+      if (caseInsensitiveStartsWith(tag, lastTag)) {
         // logDebug('getWantedTagOrMentionListFromNote', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
       } else {
         // check this is one of the ones we're after, then add
@@ -661,6 +547,229 @@ export function getWantedTagOrMentionListFromNote(
 
 //-----------------------------------------------------------------
 // private helper functions
+
+/**
+ * Get wanted tags/mentions from a note based on cache configuration.
+ * This centralizes the logic for determining whether to get all tags or just wanted ones.
+ * @param {TNote} note - The note to process
+ * @param {Array<string>} wantedItems - The list of wanted tags/mentions
+ * @returns {Array<string>} Found tags/mentions from the note
+ */
+function getFoundItemsFromNote(note: TNote, wantedItems: Array<string>): Array<string> {
+  if (TAG_CACHE_FOR_ALL_TAGS) {
+    return getWantedTagOrMentionListFromNote(note, [], EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
+  } else {
+    return getWantedTagOrMentionListFromNote(note, wantedItems, EXCLUDED_TAGS_OR_MENTIONS, WANTED_PARA_TYPES, true)
+  }
+}
+
+/**
+ * Add a note's items to the cache.
+ * @param {Object} cache - The cache object
+ * @param {string} filename - The note filename
+ * @param {Array<string>} items - The tags/mentions found in the note
+ * @param {boolean} isCalendarNote - Whether this is a calendar note
+ */
+function addNoteToCache(cache: Object, filename: string, items: Array<string>, isCalendarNote: boolean): void {
+  if (isCalendarNote) {
+    cache.calendarNotes.push({ filename, items })
+  } else {
+    cache.regularNotes.push({ filename, items })
+  }
+}
+
+/**
+ * Remove a note from the cache by filename.
+ * @param {Object} cache - The cache object
+ * @param {string} filename - The filename to remove
+ * @param {boolean} isCalendarNote - Whether this is a calendar note
+ */
+function removeNoteFromCache(cache: Object, filename: string, isCalendarNote: boolean): void {
+  if (isCalendarNote) {
+    cache.calendarNotes = cache.calendarNotes.filter((item) => item.filename !== filename)
+  } else {
+    cache.regularNotes = cache.regularNotes.filter((item) => item.filename !== filename)
+  }
+}
+
+/**
+ * Ensures the cache is ready for the requested tags/mentions.
+ * Adds missing items to wanted list and updates cache if needed.
+ * @param {Array<string>} tagOrMentions - Tags/mentions to ensure are in wanted list
+ * @param {boolean} firstUpdateCache - Whether to update cache before searching
+ */
+async function ensureCacheIsReadyForTags(
+  tagOrMentions: Array<string>,
+  firstUpdateCache: boolean,
+): Promise<void> {
+  // If we're not caching all tags, then warn if we're asked for a tag/mention that's not in the wantedTagMentionsList.json file
+  if (!TAG_CACHE_FOR_ALL_TAGS) {
+    const wantedItems = getTagMentionCacheDefinitions()
+    const missingItems = tagOrMentions.filter((item) => !wantedItems.some((wanted) => caseInsensitiveMatch(item, wanted)))
+    if (missingItems.length > 0) {
+      logWarn(
+        'ensureCacheIsReadyForTags',
+        `Warning: the following tags/mentions are not in the wantedTagMentionsList.json filename: [${String(
+          missingItems,
+        )}]. Will use the API instead, and then regenerate the cache.`,
+      )
+      // Add missing items to the wantedTagMentionsList.json file, and schedule regeneration of the cache
+      addTagMentionCacheDefinitions(missingItems)
+      scheduleTagMentionCacheGeneration()
+
+      // And now do an update of the cache, which is quick, in case that does pick up a few of this new item
+      await updateTagMentionCache()
+    } else {
+      if (firstUpdateCache) {
+        logInfo('ensureCacheIsReadyForTags', `- updating cache before looking for notes with tags/mentions [${String(tagOrMentions)}]`)
+        await updateTagMentionCache()
+      }
+    }
+  } else {
+    // Update the cache if requested
+    if (firstUpdateCache) {
+      logInfo('ensureCacheIsReadyForTags', `- updating cache before looking for notes with tags/mentions [${String(tagOrMentions)}]`)
+      await updateTagMentionCache()
+    }
+  }
+}
+
+/**
+ * Loads the cache from disk and refreshes it if it's too old.
+ * @returns {Promise<Object>} Parsed cache object with regularNotes, calendarNotes, generatedAt, lastUpdated
+ */
+async function loadAndRefreshCacheIfNeeded(): Promise<Object> {
+  let cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
+  let parsedCache = JSON.parse(cache)
+
+  // Update the cache if too old
+  const cacheUpdated = await updateTagMentionCacheIfTooOld(parsedCache.lastUpdated)
+  if (cacheUpdated) {
+    cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
+    parsedCache = JSON.parse(cache)
+  }
+
+  const regularNoteItems = parsedCache.regularNotes
+  const calNoteItems = parsedCache.calendarNotes
+  logDebug('loadAndRefreshCacheIfNeeded', `Regular notes in cache: ${String(regularNoteItems.length)}`)
+  logDebug('loadAndRefreshCacheIfNeeded', `Calendar notes in cache: ${String(calNoteItems.length)}`)
+
+  return parsedCache
+}
+
+/**
+ * Checks if a note item matches any of the given tags/mentions (case-insensitive).
+ * @param {Object} line - Cache line with items array
+ * @param {Array<string>} lowerCasedTags - Lowercased tags/mentions to match against
+ * @returns {boolean} True if any item matches
+ */
+function noteItemsMatchTags(line: Object, lowerCasedTags: Array<string>): boolean {
+  return line.items.some((tag) => lowerCasedTags.includes(tag.toLowerCase()))
+}
+
+/**
+ * Searches the cache for notes containing the given tags/mentions.
+ * @param {Array<string>} tagOrMentions - Tags/mentions to search for
+ * @param {Object} cache - The cache object with regularNotes and calendarNotes
+ * @returns {Array<string>} Array of matching note filenames
+ */
+function findMatchingNotesFromCache(
+  tagOrMentions: Array<string>,
+  cache: Object,
+): Array<string> {
+  const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
+
+  // FIXME: Somewhere here stop @Jo matching @Jonathan
+
+  // Get matching Calendar notes using Cache
+  const matchingCalNotes = cache.calendarNotes
+    .filter((line) => noteItemsMatchTags(line, lowerCasedTagOrMentions))
+    .map((item) => item.filename)
+
+  // Get matching Regular notes using Cache
+  const matchingRegularNotes = cache.regularNotes
+    .filter((line) => noteItemsMatchTags(line, lowerCasedTagOrMentions))
+    .map((item) => item.filename)
+
+  return matchingCalNotes.concat(matchingRegularNotes)
+}
+
+/**
+ * Gets deduplicated notes from API for the given tags/mentions.
+ * @param {Array<string>} tagOrMentions - Tags/mentions to search for
+ * @returns {Array<TNote>} Array of deduplicated notes
+ */
+function getDeduplicatedNotesFromAPI(tagOrMentions: Array<string>): Array<TNote> {
+  const matchingNotes: Array<TNote> = []
+  const seenFilenames = new Set < string > ()
+
+  for (const tagOrMention of tagOrMentions) {
+    const notes = findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, [], WANTED_PARA_TYPES, '', false, true)
+    notes.forEach((note) => {
+      if (!seenFilenames.has(note.filename)) {
+        matchingNotes.push(note)
+        seenFilenames.add(note.filename)
+      }
+    })
+  }
+
+  return matchingNotes
+}
+
+/**
+ * Compares cache results with API results and returns comparison details.
+ * @param {Array<string>} tagOrMentions - Tags/mentions that were searched
+ * @param {Array<string>} matchingFilenamesFromCache - Filenames found in cache
+ * @param {number} cacheLookupTime - Time taken for cache lookup (ms)
+ * @returns {string} Comparison details string
+ */
+function compareCacheWithAPI(
+  tagOrMentions: Array<string>,
+  matchingFilenamesFromCache: Array<string>,
+  cacheLookupTime: number,
+): string {
+  logInfo('compareCacheWithAPI', `- getting matching notes from API ready for comparison`)
+  const thisStartTime = new Date()
+  const matchingNotesFromAPI = getDeduplicatedNotesFromAPI(tagOrMentions)
+  // $FlowIgnore[unsafe-arithmetic]
+  const APILookupTime = new Date() - thisStartTime
+  logTimer('compareCacheWithAPI', thisStartTime, `-> found ${matchingNotesFromAPI.length} notes from API with wanted tags/mentions [${String(tagOrMentions)}]`)
+
+  logInfo('compareCacheWithAPI', `- CACHE took ${percent(cacheLookupTime, APILookupTime)} compared to API (${String(APILookupTime)}ms)`)
+
+  // Compare the two lists and note if different
+  let countComparison = ''
+  if (matchingFilenamesFromCache.length !== matchingNotesFromAPI.length) {
+    logWarn('compareCacheWithAPI', `- # notes from CACHE (${matchingFilenamesFromCache.length}) !== API (${matchingNotesFromAPI.length}).`)
+    countComparison = `😡 ${matchingFilenamesFromCache.length} CACHE notes != ${matchingNotesFromAPI.length} API notes`
+    // Write a list of filenames that are in one but not the other
+    const filenamesInCache = matchingFilenamesFromCache
+    const filenamesInAPI = matchingNotesFromAPI.map((n) => n.filename)
+    logInfo('compareCacheWithAPI', `- filenames in CACHE but not in API: ${filenamesInCache.filter((f) => !filenamesInAPI.includes(f)).join(', ')}`)
+    logInfo('compareCacheWithAPI', `- filenames in API but not in CACHE: ${filenamesInAPI.filter((f) => !filenamesInCache.includes(f)).join(', ')}`)
+  } else {
+    logInfo('compareCacheWithAPI', `- 😃 # notes from CACHE (${matchingFilenamesFromCache.length}) === API (${matchingNotesFromAPI.length})`)
+    countComparison = `😃 CACHE = API. `
+  }
+
+  return countComparison
+}
+
+/**
+ * Builds a string describing the age of the cache.
+ * @param {Object} cache - The cache object with generatedAt and lastUpdated
+ * @returns {string} Cache age information string
+ */
+function buildCacheAgeInfo(cache: Object): string {
+  const momNow = moment()
+  const momGeneratedAt = moment(cache.generatedAt)
+  const momGeneratedAgeMins = momNow.diff(momGeneratedAt, 'minutes', true)
+  const momLastUpdated = moment(cache.lastUpdated)
+  const momLastUpdatedAgeMins = momNow.diff(momLastUpdated, 'minutes', true)
+  const cacheGenerationAge = Math.round(momGeneratedAgeMins * 10) / 10
+  const cacheUpdatedAge = Math.round(momLastUpdatedAgeMins * 10) / 10
+  return `Cache age: ${cacheGenerationAge}m, updated ${cacheUpdatedAge}m ago`
+}
 
 /**
  * Filters tags or mentions ('items') seen in note to:
