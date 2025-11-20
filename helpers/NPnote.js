@@ -15,7 +15,7 @@ import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes,
 import { getBlockUnderHeading } from '@helpers/NPParagraph'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
-import { caseInsensitiveArrayIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
+import { caseInsensitiveArrayIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
 
@@ -260,7 +260,9 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     console.log(`- created: ${String(note.createdDate) ?? '(not set!)'}`)
     console.log(`- changed: ${String(note.changedDate) ?? '(not set!'}`)
     console.log(`- hashtags: ${note.hashtags?.join(', ') ?? '-'}`)
+    console.log(`- corrected hashtags: ${getCorrectedHashtagsFromNote(note)?.join(', ') ?? '-'}`)
     console.log(`- mentions: ${note.mentions?.join(', ') ?? '-'}`)
+    console.log(`- corrected mentions: ${getCorrectedMentionsFromNote(note)?.join(', ') ?? '-'}`)
 
     if (note.paragraphs.length > 0) {
       const open = note.paragraphs.filter((p) => isOpen(p)).length
@@ -1058,7 +1060,7 @@ function filterTagsOrMentionsInNoteByWantedParaTypes(
       return hasValidParagraphType
     })
 
-    if (filteredItems.length > 0) logDebug('NPnote/filterTagsOMINBWPT', `Found ${filteredItems.length} of ${tagsOrMentions.length} wanted tags/mentions in ${note.filename}: [${String(filteredItems)}]`)
+    if (filteredItems.length > 0) logDebug('NPnote/filterTagsOMINBWPT', `Found [${String(filteredItems)}] of ${tagsOrMentions.length} wanted tags/mentions in ${note.filename}`)
 
     return filteredItems
   } catch (error) {
@@ -1146,7 +1148,7 @@ export function findNotesMatchingHashtagOrMentionFromList(
       })
     }
     if (projectNotesWithItem.length > 0) {
-      logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `In folder '${folder ?? '<all>'}' found ${projectNotesWithItem.length} notes matching '${item}'`)
+      logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `In folder '${folder || '<all>'}' found ${projectNotesWithItem.length} notes matching '${item}'`)
     }
 
     // If we care about the excluded tag, then further filter out notes where it is found

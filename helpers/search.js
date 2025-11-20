@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 // import { trimString } from '@helpers/dataManipulation'
-import { clo, logDebug, logError, logWarn } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_SYNC_MARKER } from '@helpers/regex'
 
 /**
@@ -22,10 +22,11 @@ export function caseInsensitiveArrayIncludes(searchTerm: string, arrayToSearch: 
     const matches = arrayToSearch.filter((h) => {
       return h !== '' && (h.toLowerCase() === searchTerm.toLowerCase())
     })
+    logInfo('search/caseInsensitiveArrayIncludes', `- Found ${matches.length} matches for '${searchTerm}' in array [${String(arrayToSearch)}]`)
     return matches.length > 0
   }
   catch (error) {
-    logError('search/caseInsensitiveArrayIncludes', `Error matching '${searchTerm}' to array '${String(arrayToSearch)}': ${error.message}`)
+    logError('search/caseInsensitiveArrayIncludes', `Error matching '${searchTerm}' to array [${String(arrayToSearch)}]: ${error.message}`)
     return false
   }
 }
@@ -181,13 +182,29 @@ export function fullWordMatch(searchTerm: string, textToSearch: string, caseSens
 }
 
 /**
+ * Version of note.hashtags to use. Deals with the API bug 
+ * where #one/two/three gets reported as '#one', '#one/two', and '#one/two/three'. Instead this reports just as '#one/two/three'.
+ * TODO: Should this (and the following) move to note.js or somewhere?
+ * @param {TNote} note
+ * @returns {Array<string>}
+ */
+export function getCorrectedHashtagsFromNote(note: TNote): Array<string> {
+  // First get the hashtags from the note (using the API)
+  // $FlowFixMe[incompatible-type] note.hashtags is read-only
+  const reportedHashtags: Array<string> = note.hashtags ?? []
+  // Then dedupe the shorter versions of longer ones
+  const dedupedHashtags = getFullLengthHashtagsFromList(reportedHashtags)
+  return dedupedHashtags
+}
+
+/**
  * Dedupe the shorter versions of longer hashtags, to cope with API bug.
  * @example ["#project", "#project/management", "#project/management/theory"] => ["#project/management/theory"]
  * @tests available in jest file
  * @param {Array<string>} hashtagsFromAPI 
  * @returns {Array<string>}
  */
-export function getDedupedHashtagsFromList(hashtagsIn: Array<string>): Array<string> {
+export function getFullLengthHashtagsFromList(hashtagsIn: Array<string>): Array<string> {
   const dedupedHashtags: Array<string> = []
   const hashtagsToUse = [...hashtagsIn, ''] // add an empty string to the end to avoid index errors
   // Dedupe the shorter versions of longer hashtags
@@ -203,18 +220,40 @@ export function getDedupedHashtagsFromList(hashtagsIn: Array<string>): Array<str
 }
 
 /**
- * Version of note.hashtags to use. Deals with the API bug 
- * where #one/two/three gets reported as '#one', '#one/two', and '#one/two/three'. Instead this reports just as '#one/two/three'.
+ * Version of note.mentions to use. Deals with the API bug 
+ * where @one/two/three gets reported as '@one', '@one/two', and '@one/two/three'. Instead this reports just as '@one/two/three'.
  * @param {TNote} note
  * @returns {Array<string>}
  */
-export function getCorrectedHashtagsFromNote(note: TNote): Array<string> {
-  // First get the hashtags from the note (using the API)
-  // $FlowFixMe[incompatible-type] note.hashtags is read-only
-  const reportedHashtags: Array<string> = note.hashtags ?? []
+export function getCorrectedMentionsFromNote(note: TNote): Array<string> {
+  // First get the mentions from the note (using the API)
+  // $FlowFixMe[incompatible-type] note.mentions is read-only
+  const reportedMentions: Array<string> = note.mentions ?? []
   // Then dedupe the shorter versions of longer ones
-  const dedupedHashtags = getDedupedHashtagsFromList(reportedHashtags)
-  return dedupedHashtags
+  const dedupedMentions = getFullLengthMentionsFromList(reportedMentions)
+  return dedupedMentions
+}
+
+/**
+ * Dedupe the shorter versions of longer mentions, to cope with API bug.
+ * @example ["@person", "@person/project", "@person/project/team"] => ["@person/project/team"]
+ * @tests available in jest file
+ * @param {Array<string>} mentionsFromAPI 
+ * @returns {Array<string>}
+ */
+export function getFullLengthMentionsFromList(mentionsIn: Array<string>): Array<string> {
+  const dedupedMentions: Array<string> = []
+  const mentionsToUse = [...mentionsIn, ''] // add an empty string to the end to avoid index errors
+  // Dedupe the shorter versions of longer mentions
+  // Walk through array and remove earlier ones which are a strict subset of the next one
+  for (let i = 0; i < mentionsToUse.length - 1; i++) {
+    const lenThisMention = mentionsToUse[i].length
+    const lenNextMention = mentionsToUse[i + 1].length ?? 0
+    if (!(caseInsensitiveStartsWith(mentionsToUse[i], mentionsToUse[i + 1], true) && lenNextMention > lenThisMention && mentionsToUse[i + 1][lenThisMention] === '/')) {
+      dedupedMentions.push(mentionsToUse[i])
+    }
+  }
+  return dedupedMentions
 }
 
 /**
@@ -230,6 +269,21 @@ export function hashtagAwareIncludes(tagToFind: string, note: TNote): string {
   logDebug('search/hashtagAwareIncludes', `tagToFind: ${tagToFind} from hashtags [${String(hashtags)}] in note '${note.title ?? note.filename ?? 'unknown'}'`)
   // Then match this set to the list
   return hashtags.filter(item => item.includes(tagToFind)).sort((a, b) => b.length - a.length)[0]
+}
+
+/**
+ * Returns the matching mention(s) from the ones present in the given note.
+ * Note: case sensitive.
+ * @param {string} hashtag including leading #
+ * @param {Array<string>} list 
+ * @returns {string} matching hashtag(s) if any
+ */
+export function mentionAwareIncludes(tagToFind: string, note: TNote): string {
+  // First remove shorter parts of a multi-level mention, leaving the longest match
+  const mentions = getCorrectedMentionsFromNote(note)
+  logDebug('search/mentionAwareIncludes', `tagToFind: ${tagToFind} from mentions [${String(mentions)}] in note '${note.title ?? note.filename ?? 'unknown'}'`)
+  // Then match this set to the list
+  return mentions.filter(item => item.includes(tagToFind)).sort((a, b) => b.length - a.length)[0]
 }
 
 /**

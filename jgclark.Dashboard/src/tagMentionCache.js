@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2025-09-07 for v2.3.0.b10, @jgclark
+// last updated 2025-11-20 for v2.3.0.b15, @jgclark
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -17,10 +17,10 @@ import moment from 'moment/min/moment-with-locales'
 import type { TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { CaseInsensitiveSet, displayTitle, percent } from '@helpers/general'
+import { CaseInsensitiveSet, percent } from '@helpers/general'
 import { getFrontmatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { findNotesMatchingHashtagOrMention, getNotesChangedInInterval } from '@helpers/NPnote'
-import { caseInsensitiveArrayIncludes, caseInsensitiveMatch, caseInsensitiveStartsWith, caseInsensitiveSubstringMatch } from '@helpers/search'
+import { caseInsensitiveArrayIncludes, caseInsensitiveMatch, caseInsensitiveStartsWith, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
 
 //--------------------------------------------------------------------------
 // Constants
@@ -457,26 +457,19 @@ export function getWantedTagOrMentionListFromNote(
 ): Array<string> {
   try {
     // TAGS:
-    // Ask API for all seen tags in this note, and reverse them
-    const allTagsInNote = note.hashtags.slice().reverse()
+    // Ask API for all seen tags in this note
+    // Note: Known API issue where #one/two/three gets reported as '#one', '#one/two', and '#one/two/three'. Instead this reports just as '#one/two/three'. So, use a helper function to get the correct list.
+    const correctedHashtagsInNote = getCorrectedHashtagsFromNote(note)
     const seenWantedTags: Array<string> = []
-    let lastTag = ''
-    for (const tag of allTagsInNote) {
-      // Note: Known API issue where #one/two/three gets reported as '#one', '#one/two', and '#one/two/three'. Instead this reports just as '#one/two/three'.
-      // So, if this tag is starting subset of the last one, assume this is an example of the issue, so skip this tag
-      if (caseInsensitiveStartsWith(tag, lastTag)) {
-        logDebug('getWantedTagOrMentionListFromNote', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
-      } else {
-        // check this is one of the ones we're after, then add
-        if (
-          (wantedTagsOrMentions.length === 0 || caseInsensitiveArrayIncludes(tag, wantedTagsOrMentions)) &&
-          (excludedTagsOrMentions.length === 0 || !caseInsensitiveArrayIncludes(tag, excludedTagsOrMentions))
-        ) {
-          // logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${tag} on date ${n.filename}`)
-          seenWantedTags.push(tag)
-        }
+    for (const tag of correctedHashtagsInNote) {
+      // check this is one of the ones we're after, then add
+      if (
+        (wantedTagsOrMentions.length === 0 || caseInsensitiveArrayIncludes(tag, wantedTagsOrMentions)) &&
+        (excludedTagsOrMentions.length === 0 || !caseInsensitiveArrayIncludes(tag, excludedTagsOrMentions))
+      ) {
+        logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${tag} in '${note.filename}'`)
+        seenWantedTags.push(tag)
       }
-      lastTag = tag
     }
 
     // Now create (case-insensitive) deduped list of the tags
@@ -484,27 +477,20 @@ export function getWantedTagOrMentionListFromNote(
     const distinctTags: Array<string> = [...tagSet]
 
     // MENTIONS:
-    // Now ask API for all seen mentions in this note, and reverse them
-    const allMentionsInNote = note.mentions.slice().reverse()
+    // Now ask API for all seen mentions in this note
+    const correctedMentionsInNote = getCorrectedMentionsFromNote(note)
     const seenWantedMentions: Array<string> = []
-    let lastMention = ''
-    for (const mention of allMentionsInNote) {
-      // if this mention is starting subset of the last one, assume this is an example of the bug, so skip this mention
-      if (caseInsensitiveStartsWith(mention, lastMention)) {
-        // logDebug('getWantedTagOrMentionListFromNote', `- Found ${mention} but ignoring as part of a longer mention of the same name`)
-      } else {
-        // trim the mention to remove any trailing parentheses
-        const trimmedMention = mention.replace(/\s*\(.*\)$/, '')
-        // check this is one of the ones we're after, then add
-        if (
-          (wantedTagsOrMentions.length === 0 || caseInsensitiveArrayIncludes(trimmedMention, wantedTagsOrMentions)) &&
-          (excludedTagsOrMentions.length === 0 || !caseInsensitiveArrayIncludes(trimmedMention, excludedTagsOrMentions))
-        ) {
-          // logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${mention} on date ${n.filename}`)
-          seenWantedMentions.push(trimmedMention)
-        }
+    for (const mention of correctedMentionsInNote) {
+      // trim the mention to remove any trailing parentheses
+      const trimmedMention = mention.replace(/\s*\(.*\)$/, '')
+      // check this is one of the ones we're after, then add
+      if (
+        (wantedTagsOrMentions.length === 0 || caseInsensitiveArrayIncludes(trimmedMention, wantedTagsOrMentions)) &&
+        (excludedTagsOrMentions.length === 0 || !caseInsensitiveArrayIncludes(trimmedMention, excludedTagsOrMentions))
+      ) {
+        logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${mention} from '${note.filename}'`)
+        seenWantedMentions.push(trimmedMention)
       }
-      lastMention = mention
     }
 
     // Now create (case-insensitive) set of the mentions
@@ -741,7 +727,7 @@ function compareCacheWithAPI(
   let countComparison = ''
   if (matchingFilenamesFromCache.length !== matchingNotesFromAPI.length) {
     logWarn('compareCacheWithAPI', `- # notes from CACHE (${matchingFilenamesFromCache.length}) !== API (${matchingNotesFromAPI.length}).`)
-    countComparison = `😡 ${matchingFilenamesFromCache.length} CACHE notes != ${matchingNotesFromAPI.length} API notes`
+    countComparison = `😡 ${matchingFilenamesFromCache.length} CACHE notes != ${matchingNotesFromAPI.length} API notes. `
     // Write a list of filenames that are in one but not the other
     const filenamesInCache = matchingFilenamesFromCache
     const filenamesInAPI = matchingNotesFromAPI.map((n) => n.filename)
