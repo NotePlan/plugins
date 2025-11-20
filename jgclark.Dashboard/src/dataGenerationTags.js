@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-09-07 for v2.3.0.b10, @jgclark
+// Last updated 2025-11-20 for v2.3.0.b15, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -24,7 +24,7 @@ import { getFrontmatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMat
 import { getNoteByFilename } from '@helpers/note'
 import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
-import { caseInsensitiveSubstringMatch, caseInsensitiveMatch } from '@helpers/search'
+import { caseInsensitiveMatch, fullHashtagOrMentionMatch } from '@helpers/search'
 import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
 
@@ -139,12 +139,13 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
             const noteTagList = noteTagAttribute ? stringListOrArrayToArray(noteTagAttribute, ',') : []
             if (noteTagList.length > 0) {
               hasMatchingNoteTag = noteTagList && noteTagList.some((tag) => caseInsensitiveMatch(tag, thisTag))
-
-              logInfo('getTaggedSectionData', `-> noteTag(s) '${String(noteTagList)}' is ${hasMatchingNoteTag ? 'a' : 'NOT a'} match for ${thisTag}`)
+              logDebug('getTaggedSectionData', `-> noteTag(s) '${String(noteTagList)}' is ${hasMatchingNoteTag ? 'a' : 'NOT a'} match for ${thisTag}`)
             }
           }
           // Add the paras that contain the tag/mention, unless this is a noteTag, in which case add all paras if FM field 'note-tag' matches. (Later we filter down to open non-scheduled items).
-          const tagParasFromNote = hasMatchingNoteTag ? paras : paras.filter((p) => caseInsensitiveSubstringMatch(thisTag, p.content))
+          // Note: a simple substring match can't be used, as it gets false positives (e.g. #test for #testing). So now using the new hashtagAwareIncludes and mentionAwareIncludes functions.
+          const tagParasFromNote = hasMatchingNoteTag ? paras : paras.filter((p) => fullHashtagOrMentionMatch(thisTag, p.content))
+          logDebug('getTaggedSectionData', `- for ${thisTag} => fullHashtagOrMentionMatch = ${String(paras.map((p) => fullHashtagOrMentionMatch(thisTag, p.content)))}`)
           logTimer('getTaggedSectionData', thisStartTime, `- found ${tagParasFromNote.length} ${thisTag} items in "${n.filename}"`)
 
           // Further filter out checklists and otherwise empty items
