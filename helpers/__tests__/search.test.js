@@ -2,7 +2,7 @@
 import { CustomConsole } from '@jest/console' // see note below
 import * as s from '../search'
 
-import { simpleFormatter, DataStore /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
+import { simpleFormatter, DataStore, Note /* mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
 beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
@@ -203,21 +203,21 @@ describe('search.js tests', () => {
     })
   })
 
-  describe('getDedupedHashtagsFromList', () => {
+  describe('getFullLengthHashtagsFromList', () => {
     test('should want "#project/management/theory from longer set', () => {
-      const result = s.getDedupedHashtagsFromList(['#project', '#project/management', '#project/management/theory'])
+      const result = s.getFullLengthHashtagsFromList(['#project', '#project/management', '#project/management/theory'])
       expect(result).toEqual(['#project/management/theory'])
     })
     test('should want "#project/management/theory from longer set', () => {
-      const result = s.getDedupedHashtagsFromList(['#project', '#project/management', '#project/startup', '#society', '#society/problems'])
+      const result = s.getFullLengthHashtagsFromList(['#project', '#project/management', '#project/startup', '#society', '#society/problems'])
       expect(result).toEqual(['#project/management', '#project/startup', '#society/problems'])
     })
     test('should not subset match "#project/management" from "#project/man" as break is in wrong place', () => {
-      const result = s.getDedupedHashtagsFromList(['#project/man', '#project/management'])
+      const result = s.getFullLengthHashtagsFromList(['#project/man', '#project/management'])
       expect(result).toEqual(['#project/man', '#project/management'])
     })
     test('should not subset match "#project/man" from "#project/management" as break is in wrong place', () => {
-      const result = s.getDedupedHashtagsFromList(['#project/management', '#project/man'])
+      const result = s.getFullLengthHashtagsFromList(['#project/management', '#project/man'])
       expect(result).toEqual(['#project/management', '#project/man'])
     })
   })
@@ -255,7 +255,216 @@ describe('search.js tests', () => {
     })
   })
 
-  // Identical logic is found in isMentionWanted
+  describe('hashtagAwareIncludes()', () => {
+    test('should return false for shorter hashtag when hierarchical tags are deduplicated', () => {
+      const note = new Note({ hashtags: ['#project', '#project/management', '#project/management/theory'] })
+      const result = s.hashtagAwareIncludes('#project', note)
+      expect(result).toEqual(false)
+    })
+    test('should return true when exact match exists after deduplication', () => {
+      const note = new Note({ hashtags: ['#project', '#project/management', '#project/management/theory'] })
+      const result = s.hashtagAwareIncludes('#project/management/theory', note)
+      expect(result).toEqual(true)
+    })
+    test('should return true for exact match when no hierarchical tags', () => {
+      const note = new Note({ hashtags: ['#project', '#society', '#work'] })
+      const result = s.hashtagAwareIncludes('#project', note)
+      expect(result).toEqual(true)
+    })
+    test('should return true for exact match in mixed hierarchical and non-hierarchical tags', () => {
+      const note = new Note({ hashtags: ['#project', '#project/management', '#society', '#work'] })
+      const result = s.hashtagAwareIncludes('#society', note)
+      expect(result).toEqual(true)
+    })
+    test('should return false when no match found', () => {
+      const note = new Note({ hashtags: ['#project', '#society'] })
+      const result = s.hashtagAwareIncludes('#work', note)
+      expect(result).toEqual(false)
+    })
+    test('should return false when hashtags array is empty', () => {
+      const note = new Note({ hashtags: [] })
+      const result = s.hashtagAwareIncludes('#project', note)
+      expect(result).toEqual(false)
+    })
+    test('should return false when note has no hashtags property', () => {
+      const note = new Note({})
+      const result = s.hashtagAwareIncludes('#project', note)
+      expect(result).toEqual(false)
+    })
+    test('should return false when note hashtags is null', () => {
+      const note = new Note({ hashtags: null })
+      const result = s.hashtagAwareIncludes('#project', note)
+      expect(result).toEqual(false)
+    })
+    test('should be case insensitive - uppercase search term', () => {
+      const note = new Note({ hashtags: ['#project', '#society'] })
+      const result = s.hashtagAwareIncludes('#PROJECT', note)
+      expect(result).toEqual(true)
+    })
+    test('should be case insensitive - mixed case search term', () => {
+      const note = new Note({ hashtags: ['#Project', '#society'] })
+      const result = s.hashtagAwareIncludes('#project', note)
+      expect(result).toEqual(true)
+    })
+    test('should be case insensitive - lowercase search term', () => {
+      const note = new Note({ hashtags: ['#PROJECT', '#SOCIETY'] })
+      const result = s.hashtagAwareIncludes('#project', note)
+      expect(result).toEqual(true)
+    })
+    test('should return true for middle-level hierarchical tag when it exists independently', () => {
+      const note = new Note({ hashtags: ['#project', '#project/management', '#project/startup'] })
+      const result = s.hashtagAwareIncludes('#project/management', note)
+      expect(result).toEqual(true)
+    })
+    test('should return false for partial substring match', () => {
+      const note = new Note({ hashtags: ['#project', '#project/management'] })
+      const result = s.hashtagAwareIncludes('#proj', note)
+      expect(result).toEqual(false)
+    })
+    test('should return false for hashtag that is substring but not exact match', () => {
+      const note = new Note({ hashtags: ['#project/management/theory'] })
+      const result = s.hashtagAwareIncludes('#project/management', note)
+      expect(result).toEqual(false)
+    })
+    test('should handle multiple independent hierarchical tag groups', () => {
+      const note = new Note({ hashtags: ['#project', '#project/management', '#society', '#society/problems'] })
+      const result1 = s.hashtagAwareIncludes('#project/management', note)
+      const result2 = s.hashtagAwareIncludes('#society/problems', note)
+      expect(result1).toEqual(true)
+      expect(result2).toEqual(true)
+    })
+    test('should return false for hashtag not in any group', () => {
+      const note = new Note({ hashtags: ['#project', '#project/management', '#society', '#society/problems'] })
+      const result = s.hashtagAwareIncludes('#work', note)
+      expect(result).toEqual(false)
+    })
+    test('should handle note with title property', () => {
+      const note = new Note({ hashtags: ['#project'], title: 'Test Note' })
+      const result = s.hashtagAwareIncludes('#project', note)
+      expect(result).toEqual(true)
+    })
+    test('should handle note with filename property but no title', () => {
+      const note = new Note({ hashtags: ['#project'], filename: 'test.md' })
+      const result = s.hashtagAwareIncludes('#project', note)
+      expect(result).toEqual(true)
+    })
+    test('should handle special characters in hashtag', () => {
+      const note = new Note({ hashtags: ['#project-test', '#project_test'] })
+      const result1 = s.hashtagAwareIncludes('#project-test', note)
+      const result2 = s.hashtagAwareIncludes('#project_test', note)
+      expect(result1).toEqual(true)
+      expect(result2).toEqual(true)
+    })
+    test('should handle regex special characters in hashtag', () => {
+      const note = new Note({ hashtags: ['#project.test', '#project*test'] })
+      const result1 = s.hashtagAwareIncludes('#project.test', note)
+      const result2 = s.hashtagAwareIncludes('#project*test', note)
+      expect(result1).toEqual(true)
+      expect(result2).toEqual(true)
+    })
+  })
+
+  // Identical logic is found in isMentionWanted, so no need for extra tests
+
+  // Tests for fullHashtagOrMentionMatch()
+  describe('fullHashtagOrMentionMatch()', () => {
+    test('should match simple hashtag at start of text', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', '#project is important')
+      expect(result).toEqual(true)
+    })
+    test('should match simple hashtag in middle of text', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', 'Working on #project today')
+      expect(result).toEqual(true)
+    })
+    test('should match simple hashtag at end of text', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', 'This is about #project')
+      expect(result).toEqual(true)
+    })
+    test('should match hashtag with punctuation after', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', 'Working on #project, and more')
+      expect(result).toEqual(true)
+    })
+    test('should match hashtag with punctuation before', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', 'See (#project) for details')
+      expect(result).toEqual(true)
+    })
+    test('should not match partial hashtag substring', () => {
+      const result = s.fullHashtagOrMentionMatch('#proj', 'Working on #project today')
+      expect(result).toEqual(false)
+    })
+    test('should not match hashtag that is substring of another', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', 'Working on #projectmanagement today')
+      expect(result).toEqual(false)
+    })
+    test('should match hierarchical hashtag', () => {
+      const result = s.fullHashtagOrMentionMatch('#project/management', 'Working on #project/management today')
+      expect(result).toEqual(true)
+    })
+    test('should match hierarchical hashtag with deeper level', () => {
+      const result = s.fullHashtagOrMentionMatch('#project/management/theory', 'See #project/management/theory for details')
+      expect(result).toEqual(true)
+    })
+    test('should be case insensitive - uppercase search', () => {
+      const result = s.fullHashtagOrMentionMatch('#PROJECT', 'Working on #project today')
+      expect(result).toEqual(true)
+    })
+    test('should be case insensitive - mixed case search', () => {
+      const result = s.fullHashtagOrMentionMatch('#Project', 'Working on #PROJECT today')
+      expect(result).toEqual(true)
+    })
+    test('should be case insensitive - lowercase search', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', 'Working on #PROJECT today')
+      expect(result).toEqual(true)
+    })
+    test('should not match hashtag in middle of word', () => {
+      const result = s.fullHashtagOrMentionMatch('#test', 'This is a #testing example')
+      expect(result).toEqual(false)
+    })
+    test('should match hashtag at start of line', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', '#project\nNext line')
+      expect(result).toEqual(true)
+    })
+    test('should match hashtag at end of line', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', 'Line with #project\nNext line')
+      expect(result).toEqual(true)
+    })
+    test('should handle special characters in hashtag', () => {
+      const result = s.fullHashtagOrMentionMatch('#project-test', 'Working on #project-test today')
+      expect(result).toEqual(true)
+    })
+    test('should handle regex special characters in hashtag', () => {
+      const result = s.fullHashtagOrMentionMatch('#project.test', 'Working on #project.test today')
+      expect(result).toEqual(true)
+    })
+    test('should return false for empty text', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', '')
+      expect(result).toEqual(false)
+    })
+    test('should match hashtag with space before and after', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', 'See #project here')
+      expect(result).toEqual(true)
+    })
+    test('should match hashtag with newline before and after', () => {
+      const result = s.fullHashtagOrMentionMatch('#project', '\n#project\n')
+      expect(result).toEqual(true)
+    })
+    test('should not match when hashtag is part of another hashtag', () => {
+      const result = s.fullHashtagOrMentionMatch('#pro', 'Working on #project today')
+      expect(result).toEqual(false)
+    })
+    test('should match mention with (...) after a space', () => {
+      const result = s.fullHashtagOrMentionMatch('@person', 'Working with @person (details)')
+      expect(result).toEqual(true)
+    })
+    test('should match mention with (...) after a space and a newline', () => {
+      const result = s.fullHashtagOrMentionMatch('@person', 'Talking about @person(details)')
+      expect(result).toEqual(true)
+    })
+    test('should match mention followed by numbers in parentheses', () => {
+      const result = s.fullHashtagOrMentionMatch('@exercise/run', 'Did @exercise/run(3.5)km today?')
+      expect(result).toEqual(true)
+    })
+  })
 
   describe('simplifyRawContent()', () => {
     test('empty -> empty', () => {

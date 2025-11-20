@@ -22,7 +22,6 @@ export function caseInsensitiveArrayIncludes(searchTerm: string, arrayToSearch: 
     const matches = arrayToSearch.filter((h) => {
       return h !== '' && (h.toLowerCase() === searchTerm.toLowerCase())
     })
-    logInfo('search/caseInsensitiveArrayIncludes', `- Found ${matches.length} matches for '${searchTerm}' in array [${String(arrayToSearch)}]`)
     return matches.length > 0
   }
   catch (error) {
@@ -257,43 +256,60 @@ export function getFullLengthMentionsFromList(mentionsIn: Array<string>): Array<
 }
 
 /**
- * Returns the matching hashtag(s) from the ones present in the given note.
- * Note: case sensitive.
+ * Returns true if the hashtag is found in the note.
+ * Note: case insensitive.
+ * @tests available in jest file
  * @param {string} hashtag including leading #
- * @param {Array<string>} list 
- * @returns {string} matching hashtag(s) if any
+ * @param {TNote} note
+ * @returns {boolean} true if the hashtag is found in the note
  */
-export function hashtagAwareIncludes(tagToFind: string, note: TNote): string {
-  // First remove shorter parts of a multi-level hashtag, leaving the longest match
+export function hashtagAwareIncludes(hashtagToFind: string, note: TNote): boolean {
   const hashtags = getCorrectedHashtagsFromNote(note)
-  logDebug('search/hashtagAwareIncludes', `tagToFind: ${tagToFind} from hashtags [${String(hashtags)}] in note '${note.title ?? note.filename ?? 'unknown'}'`)
-  // Then match this set to the list
-  return hashtags.filter(item => item.includes(tagToFind)).sort((a, b) => b.length - a.length)[0]
+  return hashtags.some(item => caseInsensitiveMatch(hashtagToFind, item))
 }
 
 /**
- * Returns the matching mention(s) from the ones present in the given note.
- * Note: case sensitive.
- * @param {string} hashtag including leading #
- * @param {Array<string>} list 
- * @returns {string} matching hashtag(s) if any
+ * Returns true if the mention is found in the note.
+ * Note: case insensitive.
+ * Note: no tests in jest file, but identical logic to hashtags above
+ * @param {string} mention including leading @
+ * @param {TNote} note
+ * @returns {boolean} true if the mention is found in the note
  */
-export function mentionAwareIncludes(tagToFind: string, note: TNote): string {
-  // First remove shorter parts of a multi-level mention, leaving the longest match
+export function mentionAwareIncludes(mentionToFind: string, note: TNote): boolean {
   const mentions = getCorrectedMentionsFromNote(note)
-  logDebug('search/mentionAwareIncludes', `tagToFind: ${tagToFind} from mentions [${String(mentions)}] in note '${note.title ?? note.filename ?? 'unknown'}'`)
-  // Then match this set to the list
-  return mentions.filter(item => item.includes(tagToFind)).sort((a, b) => b.length - a.length)[0]
+  return mentions.some(item => caseInsensitiveMatch(mentionToFind, item))
+}
+
+/**
+ * Returns true if the hashtag/mention is found as a full word in the text
+ * @author @jgclark
+ * @tests available in jest file
+ * @param {string} hashtagOrMentionToFind including leading # or @
+ * @param {string} textToSearch
+ * @returns {boolean} true if the hashtag/mention is found as a full word in the text
+ */
+export function fullHashtagOrMentionMatch(hashtagOrMentionToFind: string, textToSearch: string): boolean {
+  try {
+    // First need to escape any special characters in the search term
+    const escapedHashtagOrMentionToFind = hashtagOrMentionToFind.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    // return true if the hashtag is found as a full word in the text
+    const regex = new RegExp(`(^|[^\\w#@])${escapedHashtagOrMentionToFind}([^\\w#@]|$)`, 'i')
+    return regex.test(textToSearch)
+  } catch (error) {
+    logError('fullHashtagMatch', `Error matching '${hashtagOrMentionToFind}' to '${textToSearch}': ${error.message}`)
+    return false
+  }
 }
 
 /**
  * Check if 'hashtagToTest' is or isn't a member of wanted or excluded arrays. The check is done ignoring case
  * @author @jgclark
+ * @tests available in jest file
  * @param {string} hashtagToTest
  * @param {$ReadOnlyArray<string>} wantedHashtags
  * @param {$ReadOnlyArray<string>} excludedHashtags
  * @returns {boolean}
- * @tests available in jest file
  */
 export function isHashtagWanted(hashtagToTest: string,
   wantedHashtags: $ReadOnlyArray<string>,
