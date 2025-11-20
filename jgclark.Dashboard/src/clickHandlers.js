@@ -465,7 +465,7 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
  * @author @dwertheimer
  */
 export async function doDashboardSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
-  clo(data, `doDashboardSettingsChanged() starting with data = `)
+  // clo(data, `doDashboardSettingsChanged() starting with data = `)
   // $FlowFixMe[incompatible-type]
   const newSettings: Partial<TDashboardSettings> = data.settings
   if (!DataStore.settings || !newSettings) {
@@ -480,6 +480,7 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
       // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
       const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
       logDebug(`doDashboardSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
+
       if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
         // Clean up the settings before then comparing them with the active perspective settings
         const dashboardSettingsDefaults = getDashboardSettingsDefaults()
@@ -488,7 +489,6 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
         // $FlowIgnore[prop-missing]
         // $FlowIgnore[incompatible-call]
         const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
-
 
         // Now add all the TAG sections, which otherwise aren't included in the active perspective settings.
         // Get any active perspective setting keys that start 'showTagSection_'
@@ -507,17 +507,17 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
           logDebug(`doDashboardSettingsChanged`, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
           const res = await saveSettings(pluginID, { ...(await getSettings('jgclark.Dashboard')), dashboardSettings: newSettings })
           return handlerResult(res)
-        } else {
-          clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings: ${Object.keys(diff).length} keys: ${Object.keys(diff).join(', ')}`)
-          Object.keys(diff).forEach((d) => {
-            logDebug(
-              `doDashboardSettingsChanged`,
-              `activePerspDefDashboardSettingsWithDefaults['${d}']=${d ? activePerspDefDashboardSettingsWithDefaults[d] : ''} vs. sent to save: cleanedSettings['${d}']=${
-                d ? cleanedSettings[d] : ''
-              }`,
-            )
-          })
         }
+
+        clo(diff, `doDashboardSettingsChanged: Setting perspective.isModified because of changes to settings: ${Object.keys(diff).length} keys: ${Object.keys(diff).join(', ')}`)
+        Object.keys(diff).forEach((d) => {
+          logDebug(`doDashboardSettingsChanged`,
+            // $FlowIgnore[invalid-computed-prop]
+            `activePerspDefDashboardSettingsWithDefaults['${String(d)}']=${d ? activePerspDefDashboardSettingsWithDefaults[d] : ''} vs. sent to save: cleanedSettings['${String(d)}']=${d ? cleanedSettings[d] : ''
+            }`,
+          )
+        })
+
         // ignore dashboard changes in the perspective definition until it is saved explicitly
         // but we need to set the isModified flag on the perspective
         logDebug(`doDashboardSettingsChanged`, `Setting isModified to true for perspective ${activePerspDef.name}`)
@@ -539,9 +539,9 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
 
   const combinedUpdatedSettings = { ...(await getSettings('jgclark.Dashboard')), [settingName]: newSettings }
 
-  if (perspectivesToSave) {
-    const debugInfo = perspectivesToSave
-      .map((ps) => `${ps.name} excludedFolders=[${String(ps.dashboardSettings?.excludedFolders) ?? ''} ${ps.isModified ? 'modified' : ''} ${ps.isActive ? '<active>' : ''}`)
+  if (perspectivesToSave && Array.isArray(perspectivesToSave)) {
+    const debugInfo = perspectivesToSave.map(
+      (ps) => `${ps.name} excludedFolders=[${String(ps.dashboardSettings?.excludedFolders) ?? ''} ${ps.isModified ? 'modified' : ''} ${ps.isActive ? '<active>' : ''}`)
       .join(`\n\t`)
     logDebug(`doDashboardSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
 
@@ -555,11 +555,13 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
     updatedPluginData.perspectiveSettings = perspectivesToSave
   }
   await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
-  const refreshes = settingName === 'dashboardSettings' ? ['REFRESH_ALL_ENABLED_SECTIONS'] : [] // don't refresh if we were saving just perspectiveSettings
-  return handlerResult(res, refreshes)
-}
 
-export async function doCommsBridgeTest(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  // send a banner message by failing the handler
-  return await handlerResult(false, [], { errorMsg: `Success: This was sent from the plugin. Round trip works 5x5.` })
+  // Always close any unused sections, as some sections may no longer be needed
+  const resultsToHandle = ['CLOSE_UNNEEDED_SECTIONS']
+  // If we aren't just saving perspectiveSettings, then we need to refresh the enabled sections, as potentially every section might be altered
+  if (settingName === 'dashboardSettings') {
+    resultsToHandle.push('REFRESH_ALL_ENABLED_SECTIONS')
+  }
+
+  return handlerResult(res, resultsToHandle)
 }

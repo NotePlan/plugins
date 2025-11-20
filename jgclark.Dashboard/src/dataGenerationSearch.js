@@ -209,7 +209,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
       showColoredBackground: true,
       actionButtons: [
         {
-          actionName: 'closeSection',
+          actionName: 'closeSearchSection',
           actionPluginID: `${pluginJson['plugin.id']}`,
           tooltip: 'Close this Search section',
           display: '<i class= "fa-solid fa-circle-xmark"></i> ',
@@ -372,7 +372,7 @@ export async function getSavedSearchResults(
       showColoredBackground: true,
       actionButtons: [
         {
-          actionName: 'closeSection',
+          actionName: 'closeSearchSection',
           actionPluginID: `${pluginJson['plugin.id']}`,
           tooltip: 'Close this Search section',
           display: '<i class= "fa-solid fa-circle-xmark"></i> ',

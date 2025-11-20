@@ -20,7 +20,7 @@ import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } f
 import { CaseInsensitiveSet, percent } from '@helpers/general'
 import { getFrontmatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { findNotesMatchingHashtagOrMention, getNotesChangedInInterval } from '@helpers/NPnote'
-import { caseInsensitiveArrayIncludes, caseInsensitiveMatch, caseInsensitiveStartsWith, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
+import { caseInsensitiveArrayIncludes, caseInsensitiveMatch, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
 
 //--------------------------------------------------------------------------
 // Constants
@@ -462,7 +462,7 @@ export function getWantedTagOrMentionListFromNote(
     const correctedHashtagsInNote = getCorrectedHashtagsFromNote(note)
     const seenWantedTags: Array<string> = []
     for (const tag of correctedHashtagsInNote) {
-      // check this is one of the ones we're after, then add
+      // check this is one of the ones we're after (of if no wantedTagsOrMentions are specified so we get all), then add
       if (
         (wantedTagsOrMentions.length === 0 || caseInsensitiveArrayIncludes(tag, wantedTagsOrMentions)) &&
         (excludedTagsOrMentions.length === 0 || !caseInsensitiveArrayIncludes(tag, excludedTagsOrMentions))
@@ -477,13 +477,13 @@ export function getWantedTagOrMentionListFromNote(
     const distinctTags: Array<string> = [...tagSet]
 
     // MENTIONS:
-    // Now ask API for all seen mentions in this note
+    // Ask API for all seen mentions in this note (corrected for API issue, as above)
     const correctedMentionsInNote = getCorrectedMentionsFromNote(note)
     const seenWantedMentions: Array<string> = []
     for (const mention of correctedMentionsInNote) {
       // trim the mention to remove any trailing parentheses
       const trimmedMention = mention.replace(/\s*\(.*\)$/, '')
-      // check this is one of the ones we're after, then add
+      // check this is one of the ones we're after (of if no wantedTagsOrMentions are specified so we get all), then add
       if (
         (wantedTagsOrMentions.length === 0 || caseInsensitiveArrayIncludes(trimmedMention, wantedTagsOrMentions)) &&
         (excludedTagsOrMentions.length === 0 || !caseInsensitiveArrayIncludes(trimmedMention, excludedTagsOrMentions))
@@ -646,15 +646,15 @@ async function loadAndRefreshCacheIfNeeded(): Promise<Object> {
 /**
  * Checks if a note item matches any of the given tags/mentions (case-insensitive).
  * @param {Object} line - Cache line with items array
- * @param {Array<string>} lowerCasedTags - Lowercased tags/mentions to match against
+ * @param {Array<string>} itemsToMatch - tags/mentions to match against
  * @returns {boolean} True if any item matches
  */
-function noteItemsMatchTags(line: Object, lowerCasedTags: Array<string>): boolean {
-  return line.items.some((tag) => lowerCasedTags.includes(tag.toLowerCase()))
+function noteItemsMatchItems(line: Object, itemsToMatch: Array<string>): boolean {
+  return line.items.some((tag) => caseInsensitiveArrayIncludes(tag, itemsToMatch))
 }
 
 /**
- * Searches the cache for notes containing the given tags/mentions.
+ * Searches the cache for notes containing the given tags/mentions. It does this in a case-insensitive way.
  * @param {Array<string>} tagOrMentions - Tags/mentions to search for
  * @param {Object} cache - The cache object with regularNotes and calendarNotes
  * @returns {Array<string>} Array of matching note filenames
@@ -663,18 +663,14 @@ function findMatchingNotesFromCache(
   tagOrMentions: Array<string>,
   cache: Object,
 ): Array<string> {
-  const lowerCasedTagOrMentions = tagOrMentions.map((item) => item.toLowerCase())
-
-  // FIXME: Somewhere here stop @Jo matching @Jonathan
-
   // Get matching Calendar notes using Cache
   const matchingCalNotes = cache.calendarNotes
-    .filter((line) => noteItemsMatchTags(line, lowerCasedTagOrMentions))
+    .filter((line) => noteItemsMatchItems(line, tagOrMentions))
     .map((item) => item.filename)
 
   // Get matching Regular notes using Cache
   const matchingRegularNotes = cache.regularNotes
-    .filter((line) => noteItemsMatchTags(line, lowerCasedTagOrMentions))
+    .filter((line) => noteItemsMatchItems(line, tagOrMentions))
     .map((item) => item.filename)
 
   return matchingCalNotes.concat(matchingRegularNotes)

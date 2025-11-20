@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Bridging functions for Dashboard plugin
-// Last updated 2025-11-11 for v2.3.0.b13
+// Bridging functions for Dashboard plugin -- both ways!
+// Last updated 2025-11-20 for v2.3.0.b15
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,7 +12,7 @@ import {
   doCancelChecklist,
   doCancelTask,
   doContentUpdate,
-  doCommsBridgeTest,
+  // doCommsBridgeTest,
   doCompleteTask,
   doCompleteTaskThen,
   doCompleteChecklist,
@@ -357,10 +357,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await scheduleAllOverdueOpenToToday(data, true) // true = move only shown items
         break
       }
-      case 'commsBridgeTest': {
-        result = await doCommsBridgeTest(data)
-        break
-      }
+      // case 'commsBridgeTest': {
+      //   result = await doCommsBridgeTest(data)
+      //   break
+      // }
       case 'startSearch': {
         console.log(`pluginToHTMLBridge: startSearch: data:${JSP(data)}`)
         await externallyStartSearch(data.stringToEvaluate ?? '')
@@ -372,11 +372,19 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         }
         break
       }
-      case 'closeSection': {
+      case 'closeSections': {
         result = {
           success: true,
-          sectionCodes: ['SEARCH'],
-          actionsOnSuccess: ['CLOSE_SECTION'],
+          sectionCodes: ['SEARCH'], // TODO: make this dynamic based on the sections that are open
+          actionsOnSuccess: ['CLOSE_UNNEEDED_SECTIONS'],
+          errorMsg: '',
+        }
+        break
+      }
+      case 'closeSearchSection': {
+        result = {
+          success: true,
+          actionsOnSuccess: ['CLOSE_SEARCH_SECTION'],
           errorMsg: '',
         }
         break
@@ -536,19 +544,53 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       }
     }
 
-    if (actionsOnSuccess.includes('CLOSE_SECTION')) {
+    // FIXME: Probably works, but it looks like enabledSections is not being updated before this is called.
+    if (actionsOnSuccess.includes('CLOSE_UNNEEDED_SECTIONS')) {
+    // Identify which sections to close
       const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-      // Remove the search section from the sections array
       const sections = reactWindowData.pluginData.sections
-      logDebug('processActionOnReturn', `Starting CLOSE_SECTION with ${sections.length} sections: ${String(sections.map((s) => s.sectionCode).join(','))}.`)
-      const sectionIndex = sections.findIndex((section) => section.sectionCode === 'SEARCH')
-      logDebug('processActionOnReturn', `CLOSE_SECTION for section #${String(sectionIndex)}`)
-      sections.splice(sectionIndex, 1)
-      logDebug('processActionOnReturn', `Closed search section -> ${sections.length} sections: ${String(sections.map((s) => s.sectionCode).join(','))}.`)
+      const enabledSectionIDs = enabledSections.map((s) => sections.find((section) => section.sectionCode === s)?.ID ?? '')
+      logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: currently enabled sections: [${String(enabledSections)}]`)
+      logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: currently enabled sectiond IDs: [${String(enabledSectionIDs)}]`)
 
-      // Set showSearchSection to false
-      reactWindowData.pluginData.showSearchSection = false
-      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Closed Search Section`)
+      // Handle sections that are not enabled
+      const sectionIDsToClose = sections.filter(section => !enabledSections.includes(section.sectionCode)).map(section => section.ID)
+      logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: will close sections: [${sectionIDsToClose.join(',')}]`)
+      const actuallyClosed: Array<string> = []
+      for (const sectionID of sectionIDsToClose) {
+        const sectionIndex = sections.findIndex((section) => section.ID === sectionID)
+        if (sectionIndex !== -1) {
+          logDebug('processActionOnReturn', `Closing section ID: ${sectionID}`)
+          sections.splice(sectionIndex, 1)
+          actuallyClosed.push(sectionID)
+        }
+      }
+      await sendToHTMLWindow(
+        WEBVIEW_WINDOW_ID,
+        'UPDATE_DATA',
+        reactWindowData,
+        `Closed section(s): [${actuallyClosed.join(',')}]`
+      )
+    }
+
+    if (actionsOnSuccess.includes('CLOSE_SEARCH_SECTION')) {
+      logDebug('processActionOnReturn', `CLOSE_SEARCH_SECTION: closing section: [SEARCH]`)
+      const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      const sectionToClose = 'SEARCH'
+      const actuallyClosed: Array<string> = []
+      const sectionIndex = reactWindowData.pluginData.sections.findIndex((section) => section.sectionCode === sectionToClose)
+      if (sectionIndex !== -1) {
+        logDebug('processActionOnReturn', `Closing section: ${sectionToClose}`)
+        reactWindowData.pluginData.sections.splice(sectionIndex, 1)
+        actuallyClosed.push(sectionToClose)
+      }
+
+      await sendToHTMLWindow(
+        WEBVIEW_WINDOW_ID,
+        'UPDATE_DATA',
+        reactWindowData,
+        `Closed section: [${actuallyClosed.join(',')}]`
+      )
     }
 
     if (actionsOnSuccess.includes('INCREMENT_DONE_COUNT')) {

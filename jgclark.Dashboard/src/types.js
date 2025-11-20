@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-11-14 for v2.3.0.b14 by @jgclark
+// Last updated 2025-11-20 for v2.3.0.b15 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -236,7 +236,8 @@ export type TActionType =
   | 'completeTaskThen'
   | 'completeChecklist'
   | 'cancelChecklist'
-  | 'closeSection'
+  | 'closeSearchSection'
+  | 'closeSections'
   | 'cyclePriorityStateUp'
   | 'cyclePriorityStateDown'
   | 'dashboardSettingsChanged'
@@ -335,7 +336,8 @@ export type MessageDataObject = {
  */
 
 export type TActionOnReturn =
-  | 'CLOSE_SECTION'
+  | 'CLOSE_UNNEEDED_SECTIONS'
+  | 'CLOSE_SEARCH_SECTION'
   | 'INCREMENT_DONE_COUNT'
   | 'PERSPECTIVE_CHANGED'
   | 'REMOVE_LINE_FROM_JSON'
