@@ -11,89 +11,89 @@ beforeAll(() => {
 })
 
 describe('search.js tests', () => {
-  describe('caseInsensitiveIncludes()', () => {
+  describe('caseInsensitiveArrayIncludes()', () => {
     test('should not match empty searchTerm to empty array', () => {
-      const result = s.caseInsensitiveIncludes('', [])
+      const result = s.caseInsensitiveArrayIncludes('', [])
       expect(result).toEqual(false)
     })
     test('should not match empty searchTerm to array', () => {
-      const result = s.caseInsensitiveIncludes('', ['ABC', 'DEF'])
+      const result = s.caseInsensitiveArrayIncludes('', ['ABC', 'DEF'])
       expect(result).toEqual(false)
     })
     test('should match "AbC" to array ["abc"]', () => {
-      const result = s.caseInsensitiveIncludes('AbC', ['one', 'abc', 'two'])
+      const result = s.caseInsensitiveArrayIncludes('AbC', ['one', 'abc', 'two'])
       expect(result).toEqual(true)
     })
     test('should match "AbC" to array ["ABC"]', () => {
-      const result = s.caseInsensitiveIncludes('AbC', ['one', 'ABC', 'two'])
+      const result = s.caseInsensitiveArrayIncludes('AbC', ['one', 'ABC', 'two'])
       expect(result).toEqual(true)
     })
     test('should match "AbC" to array ["aBc"]', () => {
-      const result = s.caseInsensitiveIncludes('AbC', ['one', 'aBc', 'two'])
+      const result = s.caseInsensitiveArrayIncludes('AbC', ['one', 'aBc', 'two'])
       expect(result).toEqual(true)
     })
     test("should not match ABC to ['']", () => {
-      const result = s.caseInsensitiveIncludes('ABC', [''])
+      const result = s.caseInsensitiveArrayIncludes('ABC', [''])
       expect(result).toEqual(false)
     })
     test('should not match ABC to "oneABCtwo"', () => {
-      const result = s.caseInsensitiveIncludes('ABC', ['oneABCtwo'])
+      const result = s.caseInsensitiveArrayIncludes('ABC', ['oneABCtwo'])
       expect(result).toEqual(false)
     })
     test('should not match #project to #project/company', () => {
-      const result = s.caseInsensitiveIncludes('#project', ['#project/company'])
+      const result = s.caseInsensitiveArrayIncludes('#project', ['#project/company'])
       expect(result).toEqual(false)
     })
     test("should not match #project to ['The other #proj']", () => {
-      const result = s.caseInsensitiveSubstringIncludes('The other #proj', ['#project'])
+      const result = s.caseInsensitiveSubstringArrayIncludes('The other #proj', ['#project'])
       expect(result).toEqual(false)
     })
     test('should not match "Can do Simply Health claim for hospital nights" to array ["@Home","Hospital"]', () => {
-      const result = s.caseInsensitiveIncludes('Can do Simply Health claim for hospital nights', ['@Home', 'Hospital'])
+      const result = s.caseInsensitiveArrayIncludes('Can do Simply Health claim for hospital nights', ['@Home', 'Hospital'])
       expect(result).toEqual(false)
     })
   })
 
-  describe('caseInsensitiveSubstringIncludes()', () => {
+  describe('caseInsensitiveSubstringArrayIncludes()', () => {
     test('should not match empty searchTerm to empty array', () => {
-      const result = s.caseInsensitiveSubstringIncludes('', [])
+      const result = s.caseInsensitiveSubstringArrayIncludes('', [])
       expect(result).toEqual(false)
     })
     test('should not match empty searchTerm to array', () => {
-      const result = s.caseInsensitiveSubstringIncludes('', ['ABC', 'DEF'])
+      const result = s.caseInsensitiveSubstringArrayIncludes('', ['ABC', 'DEF'])
       expect(result).toEqual(false)
     })
     test('should match "AbC" to array ["abc"]', () => {
-      const result = s.caseInsensitiveSubstringIncludes('AbC', ['one', 'abc', 'two'])
+      const result = s.caseInsensitiveSubstringArrayIncludes('AbC', ['one', 'abc', 'two'])
       expect(result).toEqual(true)
     })
     test('should match "AbC" to array ["ABC"]', () => {
-      const result = s.caseInsensitiveSubstringIncludes('AbC', ['one', 'ABC', 'two'])
+      const result = s.caseInsensitiveSubstringArrayIncludes('AbC', ['one', 'ABC', 'two'])
       expect(result).toEqual(true)
     })
     test('should match "AbC" to array ["aBc"]', () => {
-      const result = s.caseInsensitiveSubstringIncludes('AbC', ['one', 'aBc', 'two'])
+      const result = s.caseInsensitiveSubstringArrayIncludes('AbC', ['one', 'aBc', 'two'])
       expect(result).toEqual(true)
     })
     test("should not match ABC to ['']", () => {
-      const result = s.caseInsensitiveSubstringIncludes('ABC', [''])
+      const result = s.caseInsensitiveSubstringArrayIncludes('ABC', [''])
       expect(result).toEqual(false)
     })
     test("should not match ABC to ['oneABCtwo']", () => {
-      const result = s.caseInsensitiveSubstringIncludes('ABC', ['oneABCtwo'])
+      const result = s.caseInsensitiveSubstringArrayIncludes('ABC', ['oneABCtwo'])
       expect(result).toEqual(false)
     })
     test("should not match #project to ['#project/company']", () => {
-      const result = s.caseInsensitiveSubstringIncludes('#project', ['#project/company'])
+      const result = s.caseInsensitiveSubstringArrayIncludes('#project', ['#project/company'])
       expect(result).toEqual(false)
     })
     test("should not match #project to ['The other #proj']", () => {
-      const result = s.caseInsensitiveSubstringIncludes('The other #proj', ['#project'])
+      const result = s.caseInsensitiveSubstringArrayIncludes('The other #proj', ['#project'])
       expect(result).toEqual(false)
     })
     // Note: Different outcome from above function
     test('should match "Can do Simply Health claim for hospital nights" to array ["@Home","Hospital"]', () => {
-      const result = s.caseInsensitiveSubstringIncludes('Can do Simply Health claim for hospital nights', ['@Home', 'Hospital'])
+      const result = s.caseInsensitiveSubstringArrayIncludes('Can do Simply Health claim for hospital nights', ['@Home', 'Hospital'])
       expect(result).toEqual(true)
     })
   })

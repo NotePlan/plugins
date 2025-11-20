@@ -16,7 +16,7 @@ import { RE_SYNC_MARKER } from '@helpers/regex'
  * @returns {boolean}
  * @tests available in jest file
  */
-export function caseInsensitiveIncludes(searchTerm: string, arrayToSearch: Array<string>): boolean {
+export function caseInsensitiveArrayIncludes(searchTerm: string, arrayToSearch: Array<string>): boolean {
   try {
     if (searchTerm === '') return false
     const matches = arrayToSearch.filter((h) => {
@@ -25,7 +25,7 @@ export function caseInsensitiveIncludes(searchTerm: string, arrayToSearch: Array
     return matches.length > 0
   }
   catch (error) {
-    logError('search/caseInsensitiveIncludes', `Error matching '${searchTerm}' to array '${String(arrayToSearch)}': ${error.message}`)
+    logError('search/caseInsensitiveArrayIncludes', `Error matching '${searchTerm}' to array '${String(arrayToSearch)}': ${error.message}`)
     return false
   }
 }
@@ -38,7 +38,7 @@ export function caseInsensitiveIncludes(searchTerm: string, arrayToSearch: Array
  * @returns {boolean}
  * @tests available in jest file
  */
-export function caseInsensitiveSubstringIncludes(stringToCheck: string, arrayOfTerms: Array<string>): boolean {
+export function caseInsensitiveSubstringArrayIncludes(stringToCheck: string, arrayOfTerms: Array<string>): boolean {
   try {
     if (stringToCheck === '') return false
     const matches = arrayOfTerms.filter((term) => {
@@ -47,7 +47,7 @@ export function caseInsensitiveSubstringIncludes(stringToCheck: string, arrayOfT
     return matches.length > 0
   }
   catch (error) {
-    logError('search/caseInsensitiveIncludes', `Error matching '${stringToCheck}' to array '${String(arrayOfTerms)}': ${error.message}`)
+    logError('search/caseInsensitiveArrayIncludes', `Error matching '${stringToCheck}' to array '${String(arrayOfTerms)}': ${error.message}`)
     return false
   }
 }

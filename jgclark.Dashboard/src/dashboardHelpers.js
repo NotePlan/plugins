@@ -34,7 +34,7 @@ import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
 import { getNoteFromFilename, getReferencedParagraphs } from '@helpers/NPnote'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { isAChildPara } from '@helpers/parentsAndChildren'
-import { caseInsensitiveSubstringIncludes } from '@helpers/search'
+import { caseInsensitiveSubstringArrayIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
@@ -484,7 +484,7 @@ export function isLineDisallowedByIgnoreTerms(lineContent: string, ignoreItemsWi
   const ignoreTermsArr = stringListOrArrayToArray(ignoreItemsWithTerms, ',')
   // logDebug('isLineDisallowedByIgnoreTerms', `using ${String(ignoreTermsArr.length)} exclusions [${ignoreTermsArr.toString()}]`)
 
-  const matchFound = caseInsensitiveSubstringIncludes(lineContent, ignoreTermsArr)
+  const matchFound = caseInsensitiveSubstringArrayIncludes(lineContent, ignoreTermsArr)
   // if (matchFound) {
   //   logDebug('isLineDisallowedByIgnoreTerms', `- DID find excluding term(s) [${ignoreTermsArr.toString()}] in '${String(lineContent)}'`)
   // }

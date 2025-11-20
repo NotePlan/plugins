@@ -20,7 +20,7 @@ import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } f
 import { CaseInsensitiveSet, displayTitle, percent } from '@helpers/general'
 import { getFrontmatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { findNotesMatchingHashtagOrMention, getNotesChangedInInterval } from '@helpers/NPnote'
-import { caseInsensitiveIncludes, caseInsensitiveMatch, caseInsensitiveStartsWith, caseInsensitiveSubstringMatch } from '@helpers/search'
+import { caseInsensitiveArrayIncludes, caseInsensitiveMatch, caseInsensitiveStartsWith, caseInsensitiveSubstringMatch } from '@helpers/search'
 
 //--------------------------------------------------------------------------
 // Constants
@@ -465,12 +465,12 @@ export function getWantedTagOrMentionListFromNote(
       // Note: Known API issue where #one/two/three gets reported as '#one', '#one/two', and '#one/two/three'. Instead this reports just as '#one/two/three'.
       // So, if this tag is starting subset of the last one, assume this is an example of the issue, so skip this tag
       if (caseInsensitiveStartsWith(tag, lastTag)) {
-        // logDebug('getWantedTagOrMentionListFromNote', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
+        logDebug('getWantedTagOrMentionListFromNote', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
       } else {
         // check this is one of the ones we're after, then add
         if (
-          (wantedTagsOrMentions.length === 0 || caseInsensitiveIncludes(tag, wantedTagsOrMentions)) &&
-          (excludedTagsOrMentions.length === 0 || !caseInsensitiveIncludes(tag, excludedTagsOrMentions))
+          (wantedTagsOrMentions.length === 0 || caseInsensitiveArrayIncludes(tag, wantedTagsOrMentions)) &&
+          (excludedTagsOrMentions.length === 0 || !caseInsensitiveArrayIncludes(tag, excludedTagsOrMentions))
         ) {
           // logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${tag} on date ${n.filename}`)
           seenWantedTags.push(tag)
@@ -497,8 +497,8 @@ export function getWantedTagOrMentionListFromNote(
         const trimmedMention = mention.replace(/\s*\(.*\)$/, '')
         // check this is one of the ones we're after, then add
         if (
-          (wantedTagsOrMentions.length === 0 || caseInsensitiveIncludes(trimmedMention, wantedTagsOrMentions)) &&
-          (excludedTagsOrMentions.length === 0 || !caseInsensitiveIncludes(trimmedMention, excludedTagsOrMentions))
+          (wantedTagsOrMentions.length === 0 || caseInsensitiveArrayIncludes(trimmedMention, wantedTagsOrMentions)) &&
+          (excludedTagsOrMentions.length === 0 || !caseInsensitiveArrayIncludes(trimmedMention, excludedTagsOrMentions))
         ) {
           // logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${mention} on date ${n.filename}`)
           seenWantedMentions.push(trimmedMention)
@@ -518,14 +518,14 @@ export function getWantedTagOrMentionListFromNote(
       tagsAndMentions = filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(note, tagsAndMentions, WANTED_PARA_TYPES, includeNoteTags)
     }
 
-    // Include the frontmatter tags in the results
+    // Include the frontmatter 'noteTags' in the results, if requested
     const seenWantedNoteTagsOrMentions: Array<string> = []
     if (includeNoteTags && noteHasFrontMatter(note)) {
       const frontmatterAttributes = note.frontmatterAttributes
       if (frontmatterAttributes && 'note-tag' in frontmatterAttributes) {
         const seenNoteTags = frontmatterAttributes['note-tag'].split(',')
         seenWantedNoteTagsOrMentions.push(...seenNoteTags.map((t) => t.trim()))
-        logInfo('getWantedTagOrMentionListFromNote', `-> found and added ${String(seenNoteTags)} noteTags from FM in ${displayTitle(note)}`)
+        logInfo('getWantedTagOrMentionListFromNote', `-> found and added [${String(seenNoteTags)}] noteTags from FM in '${note.filename}'`)
       }
     }
 
@@ -533,10 +533,10 @@ export function getWantedTagOrMentionListFromNote(
 
     if (tagsAndMentions.length > 0) {
       const distinctTagsAndMentions = [...new Set(tagsAndMentions)]
-      // logDebug('getWantedTagOrMentionListFromNote', `-> ${String(distinctTagsAndMentions.length)} distinct tags/mentions found from ${String(seenWantedTagsOrMentions.length)} instances in ${String(note.filename)}`)
+      // logDebug('getWantedTagOrMentionListFromNote', `-> ${String(distinctTagsAndMentions.length)} distinct tags/mentions found from [${String(seenWantedTagsOrMentions.length)}] instances in '${note.filename}'`)
       return distinctTagsAndMentions
     } else {
-      // logDebug('getWantedTagOrMentionListFromNote', `-> No wanted tags/mentions found in ${String(note.filename)}`)
+      // logDebug('getWantedTagOrMentionListFromNote', `-> No wanted tags/mentions found in '${note.filename}'`)
       return []
     }
   } catch (err) {

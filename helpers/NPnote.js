@@ -15,7 +15,7 @@ import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes,
 import { getBlockUnderHeading } from '@helpers/NPParagraph'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
-import { caseInsensitiveIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
+import { caseInsensitiveArrayIncludes, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote } from '@helpers/search'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
 
@@ -982,9 +982,9 @@ export function findNotesMatchingHashtagOrMention(
       notesWithItem = notesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
         return isHashtag
-          ? caseInsensitiveIncludes(item, correctedHashtags)
+          ? caseInsensitiveArrayIncludes(item, correctedHashtags)
           : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-            caseInsensitiveIncludes(item, n.mentions)
+          caseInsensitiveArrayIncludes(item, n.mentions)
       })
     } else {
       notesWithItem = notesInFolder.filter((n) => {
@@ -1058,7 +1058,7 @@ function filterTagsOrMentionsInNoteByWantedParaTypes(
       return hasValidParagraphType
     })
 
-    logDebug('NPnote/filterTagsOMINBWPT', `Found ${filteredItems.length} of ${tagsOrMentions.length} wanted tags/mentions in ${note.filename}: [${String(filteredItems)}]`)
+    if (filteredItems.length > 0) logDebug('NPnote/filterTagsOMINBWPT', `Found ${filteredItems.length} of ${tagsOrMentions.length} wanted tags/mentions in ${note.filename}: [${String(filteredItems)}]`)
 
     return filteredItems
   } catch (error) {
@@ -1131,18 +1131,18 @@ export function findNotesMatchingHashtagOrMentionFromList(
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
         // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         return isHashtag
-          ? caseInsensitiveIncludes(item, correctedHashtags)
+          ? caseInsensitiveArrayIncludes(item, correctedHashtags)
           : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-            caseInsensitiveIncludes(item, n.mentions)
+          caseInsensitiveArrayIncludes(item, n.mentions)
       })
     } else {
       projectNotesWithItem = projectNotesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
         // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         return isHashtag
-          ? caseInsensitiveIncludes(item, correctedHashtags)
+          ? caseInsensitiveArrayIncludes(item, correctedHashtags)
           : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-            caseInsensitiveIncludes(item, n.mentions)
+          caseInsensitiveArrayIncludes(item, n.mentions)
       })
     }
     if (projectNotesWithItem.length > 0) {
