@@ -12,7 +12,7 @@ import { tagParasFromNote } from './demoData'
 import {
   addTagMentionCacheDefinitions,
   getFilenamesOfNotesWithTagOrMentions,
-  isTagMentionCacheAvailableforItem,
+  isTagMentionCacheAvailableForItem,
   scheduleTagMentionCacheGeneration,
   WANTED_PARA_TYPES,
 } from './tagMentionCache'
@@ -79,7 +79,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         // Get notes with matching hashtag or mention (as can't get list of paras directly)
         // Use Cache if wanted (and available), otherwise the API.
         let notesWithTag: Array<TNote> = []
-        const cacheIsAvailableForThisTag = isTagMentionCacheAvailableforItem(thisTag)
+        const cacheIsAvailableForThisTag = isTagMentionCacheAvailableForItem(thisTag)
         if (config.FFlag_UseTagCache && cacheIsAvailableForThisTag) {
           // Use Cache
           logInfo('getTaggedSectionData', `- using cache for ${thisTag}`)

@@ -55,14 +55,13 @@ export function isTagMentionCacheAvailable(): boolean {
   return DataStore.fileExists(tagMentionCacheFile)
 }
 
-export function isTagMentionCacheAvailableforItem(item: string): boolean {
+export function isTagMentionCacheAvailableForItem(item: string): boolean {
   if (isTagMentionCacheAvailable()) {
     const cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
-    const parsedCache = JSON.parse(cache)
-    const wantedItems = parsedCache.wantedItems
-
-    const result = wantedItems.includes(item)
-    logInfo('isTagMentionCacheAvailableforItem', `-> ${item}: ${result}`)
+    const parsedCache = JSON.parse(cache) ?? {}
+    const wantedItems = parsedCache.wantedItems ?? []
+    const result = wantedItems.some((wanted) => caseInsensitiveMatch(item, wanted))
+    logInfo('isTagMentionCacheAvailableForItem', `-> ${item}: ${result}`)
     return result
   } else {
     return false
@@ -134,8 +133,8 @@ export function getTagMentionCacheDefinitions(): Array<string> {
  */
 export function addTagMentionCacheDefinitions(mentionOrTagsIn: Array<string>): void {
   const existingItems: Array<string> = getTagMentionCacheDefinitions()
-  const newItems: Array<string> = existingItems
-  // But only add if it's not already in the list
+  const newItems: Array<string> = existingItems.slice() // make a copy, to avoid mutating the original array
+  // Only add if it's not already in the list
   for (const mentionOrTag of mentionOrTagsIn) {
     const mentionOrTagTrimmed = mentionOrTag.trim()
     if (!existingItems.includes(mentionOrTagTrimmed)) {
@@ -210,7 +209,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(
     // If we're not caching all tags, then warn if we're asked for a tag/mention that's not in the wantedTagMentionsList.json file, and if so, add it to the list and then regenerate the cache.
     if (!TAG_CACHE_FOR_ALL_TAGS) {
       const wantedItems = getTagMentionCacheDefinitions()
-      const missingItems = tagOrMentions.filter((item) => !wantedItems.includes(item))
+      const missingItems = tagOrMentions.filter((item) => !wantedItems.some((wanted) => caseInsensitiveMatch(item, wanted)))
       if (missingItems.length > 0) {
         logWarn(
           'getFilenamesOfNotesWithTagOrMentions',
@@ -243,12 +242,13 @@ export async function getFilenamesOfNotesWithTagOrMentions(
     // Get the cache contents
     const startTime = new Date()
     let cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
-    const parsedCache = JSON.parse(cache)
+    let parsedCache = JSON.parse(cache)
 
     // Update the cache if too old
     const cacheUpdated = await updateTagMentionCacheIfTooOld(parsedCache.lastUpdated)
     if (cacheUpdated) {
       cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
+      parsedCache = JSON.parse(cache)  // ✅ Re-parse
     }
     const regularNoteItems = parsedCache.regularNotes
     const calNoteItems = parsedCache.calendarNotes
@@ -258,12 +258,12 @@ export async function getFilenamesOfNotesWithTagOrMentions(
     let countComparison = ''
     
     // Get matching Calendar notes using Cache
-    let matchingNoteFilenamesFromCache = calNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename)
+    let matchingNoteFilenamesFromCache = calNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag.toLowerCase()))).map((item) => item.filename)
 
     // Get matching Regular notes using Cache
     // eslint-disable-next-line max-len
     matchingNoteFilenamesFromCache = matchingNoteFilenamesFromCache.concat(
-      regularNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag))).map((item) => item.filename),
+      regularNoteItems.filter((line) => line.items.some((tag) => lowerCasedTagOrMentions.includes(tag.toLowerCase()))).map((item) => item.filename),
     )
     // $FlowIgnore[unsafe-arithmetic]
     const cacheLookupTime = new Date() - startTime
@@ -279,8 +279,17 @@ export async function getFilenamesOfNotesWithTagOrMentions(
       logInfo('getFilenamesOfNotesWithTagOrMentions', `- getting matching notes from API ready for comparison`)
       const thisStartTime = new Date()
       let matchingNotesFromAPI: Array<TNote> = []
+      const seenFilenames = new Set < string > ()
       for (const tagOrMention of tagOrMentions) {
-        matchingNotesFromAPI = matchingNotesFromAPI.concat(findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, [], WANTED_PARA_TYPES, '', false, true))
+        // matchingNotesFromAPI = matchingNotesFromAPI.concat(findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, [], WANTED_PARA_TYPES, '', false, true)) // no dedupe
+        // Get de-duplicated set of notes from API
+        const notes = findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, [], WANTED_PARA_TYPES, '', false, true)
+        notes.forEach((note) => {
+          if (!seenFilenames.has(note.filename)) {
+            matchingNotesFromAPI.push(note)
+            seenFilenames.add(note.filename)
+          }
+        })
       }
       // $FlowIgnore[unsafe-arithmetic]
       const APILookupTime = new Date() - thisStartTime
@@ -294,7 +303,6 @@ export async function getFilenamesOfNotesWithTagOrMentions(
         // Write a list of filenames that are in one but not the other
         const filenamesInCache = matchingNoteFilenamesFromCache
         const filenamesInAPI = matchingNotesFromAPI.map((n) => n.filename)
-        // const filenamesInBoth = filenamesInCache.filter((f) => filenamesInAPI.includes(f))
         logInfo('getFilenamesOfNotesWithTagOrMentions', `- filenames in CACHE but not in API: ${filenamesInCache.filter((f) => !filenamesInAPI.includes(f)).join(', ')}`)
         logInfo('getFilenamesOfNotesWithTagOrMentions', `- filenames in API but not in CACHE: ${filenamesInAPI.filter((f) => !filenamesInCache.includes(f)).join(', ')}`)
       } else {
@@ -344,7 +352,10 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
       const parsedCache = JSON.parse(existingCache) ?? {}
       const cachedWantedItems = parsedCache.wantedItems ?? []
       logInfo('generateTagMentionCache', `- cachedWantedItems: [${String(cachedWantedItems)}]`)
-      if (wantedItems.every((item, index) => item === cachedWantedItems[index])) {
+      // if (wantedItems.every((item, index) => item === cachedWantedItems[index])) { // Cursor says "❌ Order-dependent
+      if (wantedItems.length === cachedWantedItems.length &&
+        wantedItems.every((item) => cachedWantedItems.includes(item)) &&
+        cachedWantedItems.every((item) => wantedItems.includes(item))) {  // ✅ Order-independent
         logInfo('generateTagMentionCache', `- Not forcing a rebuild, and WANTED_PARA_TYPES are all present already in the cache, so calling updateTagMentionCache() instead.`)
         await updateTagMentionCache()
         return
@@ -354,7 +365,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     }
     logDebug('generateTagMentionCache', `- something requested a forced cache rebuild`)
 
-    // Start backgroud thread
+    // Start background thread
     await CommandBar.onAsyncThread()
 
     // Get all notes to scan
@@ -517,16 +528,22 @@ export async function updateTagMentionCache(): Promise<void> {
     logTimer(`updateTagMentionCache`, startTime, `total runtime`, 1000)
     return
   } catch (err) {
-    logError('updateTagMentionCache', err.message)
+    logError('updateTagMentionCache', JSP(err))
     return
   }
 }
 
+/**
+ * Return a human-readable summary of the tag mention cache.
+ * @returns {string} A human-readable summary of the tag mention cache.
+ */
 export function getTagMentionCacheSummary(): string {
   const cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
-  const parsedCache = JSON.parse(cache)
+  const parsedCache = JSON.parse(cache) ?? {}
+  // const wantedItems = parsedCache.wantedItems ?? []
+  const wantedItems = getTagMentionCacheDefinitions()
   const summary = `## Tag/Mention Cache Stats:
-- Wanted items: ${getTagMentionCacheDefinitions().join(', ')}
+- Wanted items: ${wantedItems.join(', ')}
 - Generated at: ${parsedCache.generatedAt}
 - Last updated: ${parsedCache.lastUpdated} (according to the cache file)
 - Last updated: ${String(DataStore.preference(lastTimeThisWasRunPref))} (according to the preference)
@@ -553,12 +570,7 @@ export function getWantedTagOrMentionListFromNote(
   WANTED_PARA_TYPES: Array<string> = [],
   includeNoteTags: boolean = false,
 ): Array<string> {
-  try {
-    // if (wantedTagsOrMentions.length === 0) {
-    //   logWarn('getWantedTagListFromNote', `Starting, with empty wantedTagsOrMentions params`)
-    //   return []
-    // }
-
+  // try {
     // TAGS:
     // Ask API for all seen tags in this note, and reverse them
     const allTagsInNote = note.hashtags.slice().reverse()
@@ -566,7 +578,7 @@ export function getWantedTagOrMentionListFromNote(
     let lastTag = ''
     for (const tag of allTagsInNote) {
       // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
-      if (caseInsensitiveStartsWith(tag, lastTag)) {
+      if (caseInsensitiveStartsWith(lastTag, tag)) {
         // logDebug('getWantedTagOrMentionListFromNote', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
       } else {
         // check this is one of the ones we're after, then add
