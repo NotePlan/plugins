@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 2025-08-22 for v0.23.0, by @jgclark
+// Last updated 2025-11-23 for v0.23.2, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well, @akrabat
 // ----------------------------------------------------------------------------
 
@@ -22,6 +22,161 @@ import { calcOffsetDateStr, getDateStrForStartofPeriodFromCalendarFilename, toNP
 import { showMessage } from '@helpers/userInput'
 
 // ----------------------------------------------------------------------------
+// Constants
+// ----------------------------------------------------------------------------
+
+const SORT_ORDER_CALENDAR = 'calendar'
+const DEFAULT_HEADING_LEVEL = 2
+const DEFAULT_FORMAT_EVENTS = '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'
+const DEFAULT_FORMAT_ALL_DAY = '- *|CAL|*: *|TITLE|**| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'
+
+// ----------------------------------------------------------------------------
+// Helper Functions (Private)
+// ----------------------------------------------------------------------------
+
+/**
+ * Normalize parameter string, handling null/undefined cases
+ * @param {?string} paramStringIn - Input parameter string
+ * @param {string} functionName - Name of calling function for logging
+ * @returns {string} Normalized parameter string
+ */
+function normalizeParamString(paramStringIn: ?string, functionName: string): string {
+  if (paramStringIn == null) {
+    logWarn(functionName, `No parameters passed (from template), so will use defaults.`)
+    return ''
+  }
+  return paramStringIn
+}
+
+/**
+ * Get format parameter from paramString, checking multiple possible parameter names
+ * @param {string} paramString - Parameter string to check
+ * @param {Array<string>} paramNames - Array of parameter names to check (in order)
+ * @param {string} defaultValue - Default value to use if no parameter found
+ * @returns {Promise<string>} Format string
+ */
+async function getFormatParam(paramString: string, paramNames: Array<string>, defaultValue: string): Promise<string> {
+  for (const paramName of paramNames) {
+    if (paramString.includes(`"${paramName}":`)) {
+      return String(await getTagParamsFromString(paramString, paramName, defaultValue))
+    }
+  }
+  return defaultValue
+}
+
+/**
+ * Generate heading for a day's events
+ * @param {number} daysToCover - Total number of days being processed
+ * @param {string} dateStr - Date string (YYYYMMDD format)
+ * @param {string} headingConfig - Heading configuration from config
+ * @param {boolean} includeHeadings - Whether to include headings for single day
+ * @returns {string} Generated heading string
+ */
+function generateDayHeading(
+  daysToCover: number,
+  dateStr: string,
+  headingConfig: string,
+  includeHeadings: boolean
+): string {
+  if (daysToCover > 1) {
+    const npDateStr = getDateFromYYYYMMDDString(dateStr)
+    if (!npDateStr) {
+      throw new Error(`Could not get valid NP date string from ${dateStr}`)
+    }
+    const localisedDateStr = toNPLocaleDateString(npDateStr)
+    const hLevel = headingConfig !== '' ? headingConfig.split(' ')[0].length : DEFAULT_HEADING_LEVEL
+    return headingConfig !== ''
+      ? `${headingConfig} for ${localisedDateStr}`
+      : `${'#'.repeat(hLevel)} for ${localisedDateStr}`
+  } else if (headingConfig !== '' && includeHeadings) {
+    return headingConfig
+  }
+  return ''
+}
+
+/**
+ * Process a single event into a sortable object
+ * @param {TCalendarItem} event - Calendar event to process
+ * @param {string} format - Format string for regular events
+ * @param {string} alldayFormat - Format string for all-day events
+ * @param {EventsConfig} config - Configuration object
+ * @param {Array<string>} calendarNameMappings - Calendar name mappings
+ * @param {boolean} withCalendarName - Whether to include calendar name
+ * @returns {{cal: string, start: Date, text: string}} Processed event object
+ */
+function processEvent(
+  event: TCalendarItem,
+  format: string,
+  alldayFormat: string,
+  config: EventsConfig,
+  calendarNameMappings: Array<string>,
+  withCalendarName: boolean
+): { cal: string, start: Date, text: string } {
+  const replacements = getReplacements(event, config)
+  const eventStr = replaceFormatPlaceholderStringWithActualValues(
+    event.isAllDay ? alldayFormat : format,
+    replacements
+  )
+  return {
+    cal: withCalendarName ? calendarNameWithMapping(event.calendar, calendarNameMappings) : '',
+    start: event.date,
+    text: eventStr,
+  }
+}
+
+/**
+ * Process events for a single day
+ * @param {string} dateStr - Date string (YYYYMMDD format)
+ * @param {Array<string>} calendarSet - Set of calendars to include
+ * @param {string} format - Format string for regular events
+ * @param {string} alldayFormat - Format string for all-day events
+ * @param {boolean} includeAllDayEvents - Whether to include all-day events
+ * @param {EventsConfig} config - Configuration object
+ * @param {Array<string>} calendarNameMappings - Calendar name mappings
+ * @param {boolean} withCalendarName - Whether to include calendar name
+ * @returns {Promise<Array<{cal: string, start: Date, text: string}>>} Array of processed events
+ */
+async function processEventsForDay(
+  dateStr: string,
+  calendarSet: Array<string>,
+  format: string,
+  alldayFormat: string,
+  includeAllDayEvents: boolean,
+  config: EventsConfig,
+  calendarNameMappings: Array<string>,
+  withCalendarName: boolean
+): Promise<Array<{ cal: string, start: Date, text: string }>> {
+  const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, calendarSet) ?? []
+  const mapForSorting: Array<{ cal: string, start: Date, text: string }> = []
+
+  for (const e of eArr) {
+    if (!includeAllDayEvents && e.isAllDay) {
+      continue
+    }
+
+    const processedEvent = processEvent(e, format, alldayFormat, config, calendarNameMappings, withCalendarName)
+    mapForSorting.push(processedEvent)
+  }
+
+  return mapForSorting
+}
+
+/**
+ * Sort events based on configuration
+ * @param {Array<{cal: string, start: Date, text: string}>} events - Events to sort
+ * @param {string} sortOrder - Sort order ('calendar' or 'time')
+ * @returns {void} Sorts array in place
+ */
+function sortEvents(events: Array<{ cal: string, start: Date, text: string }>, sortOrder: string): void {
+  if (sortOrder === SORT_ORDER_CALENDAR) {
+    events.sort(sortByCalendarNameThenStartTime())
+  } else {
+    // Default to time-based sorting
+    events.sort(sortByStartTimeThenCalendarName())
+  }
+}
+
+// ----------------------------------------------------------------------------
 
 /**
  * Return markdown list of the current open Calendar note's events (and potentially the days after it)
@@ -37,111 +192,61 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
       return ''
     }
     const openNote: TNote = Editor.note
-    // handle getting no parameters passed at all
-    let paramString = ''
-    if (paramStringIn == null) {
-      logWarn('listDaysEvents', `No parameters passed (from template), so will use defaults.`)
-    } else {
-      paramString = paramStringIn
-    }
+    const paramString = normalizeParamString(paramStringIn, 'listDaysEvents')
 
     const config = await getEventsSettings()
     const noteTimeFrame = getCalendarNoteTimeframe(openNote)
     if (!noteTimeFrame) throw new Error(`No noteTimeFrame found for note ${openNote.filename}. Stopping.`)
     const startDayDateString = getDateStrForStartofPeriodFromCalendarFilename(Editor.filename)
 
-    // Get a couple of other suppplied parameters, or use defaults
-    // Work out format for output line (from params, or if blank, a default)
-    // NB: be aware that this call doesn't do type checking
-    // NB: allow previous parameter names 'template' and 'allday_template' still.
-    const format = paramString.includes('"format":')
-      ? String(await getTagParamsFromString(paramString, 'format', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'))
-      : paramString.includes('"template":')
-      ? String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'))
-      : config.formatEventsDisplay
-    const alldayformat = paramString.includes('"allday_format":')
-      ? String(await getTagParamsFromString(paramString, 'allday_format', '- *|CAL|*: *|TITLE|**| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'))
-      : paramString.includes('"allday_template":')
-      ? String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|**| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'))
-      : config.formatAllDayEventsDisplay
+    // Get format parameters, checking both new and legacy parameter names
+    const format = await getFormatParam(paramString, ['format', 'template'], config.formatEventsDisplay || DEFAULT_FORMAT_EVENTS)
+    const alldayformat = await getFormatParam(paramString, ['allday_format', 'allday_template'], config.formatAllDayEventsDisplay || DEFAULT_FORMAT_ALL_DAY)
+
     const includeAllDayEvents: boolean = await getTagParamsFromString(paramString, 'includeAllDayEvents', true)
     const includeHeadings: boolean = await getTagParamsFromString(paramString, 'includeHeadings', true)
     const calendarSetStr: string = String(await getTagParamsFromString(paramString, 'calendarSet', config.calendarSet))
-    const calendarSet: Array<string> = calendarSetStr !== '' ? calendarSetStr.split(',') : [] // also deal with empty case
+    const calendarSet: Array<string> = calendarSetStr !== '' ? calendarSetStr.split(',') : []
     const calendarNameMappingsStr: string = String(await getTagParamsFromString(paramString, 'calendarNameMappings', config.calendarNameMappings))
     const calendarNameMappings: Array<string> = calendarNameMappingsStr !== '' ? calendarNameMappingsStr.split(',') : []
-    // If the format contains 'CAL' then we care about calendar names in output
     const withCalendarName = format.includes('CAL')
 
-    // Work out how many days to cover: use passed parameter, or default to 1, or 7 if weekly note
     const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', isWeeklyNote(openNote) ? 7 : 1)
 
     logDebug(pluginJson, `listDaysEvents: starting for noteTimeFrame=${noteTimeFrame} / daysToCover=${daysToCover} / from '${startDayDateString}' with paramString='${paramString}'`)
 
     const outputArray: Array<string> = []
 
-    // For each day to cover
     for (let i = 0; i < daysToCover; i++) {
       const dateStr = calcOffsetDateStr(startDayDateString, `+${i}d`)
-      logDebug('listDaysEvents', `${i}: startDayDateString=${startDayDateString}, dateStr=${dateStr}`)
+      logDebug(pluginJson, `${i}: startDayDateString=${startDayDateString}, dateStr=${dateStr}`)
 
-      // Add heading if wanted, or if doing more than 1 day
-      if (daysToCover > 1) {
-        const npDateStr = getDateFromYYYYMMDDString(dateStr)
-        if (!npDateStr) {
-          throw new Error(`Could not get valid NP date string from ${dateStr}`)
-        }
-        const localisedDateStr = toNPLocaleDateString(npDateStr)
-        // figure out H level to set: calc from config.eventsHeading or default to 2
-        const hLevel = config.eventsHeading !== '' ? config.eventsHeading.split(' ')[0].length : 2
-        outputArray.push(config.eventsHeading !== '' ? `${config.eventsHeading} for ${localisedDateStr}` : `${'#'.repeat(hLevel)} for ${localisedDateStr}`)
-      } else {
-        if (config.eventsHeading !== '' && includeHeadings) {
-          outputArray.push(config.eventsHeading)
-        }
+      const heading = generateDayHeading(daysToCover, dateStr, config.eventsHeading, includeHeadings)
+      if (heading !== '') {
+        outputArray.push(heading)
       }
 
-      // Get all the events for this day, for the given calendarSet
-      const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, calendarSet) ?? []
-      // logDebug('listDaysEvents', `- ${eArr.length} events found on ${dateStr} from  ${calendarSet.length} calendars ${String(calendarSet)}`)
-      const mapForSorting: { cal: string, start: Date, text: string }[] = []
+      const mapForSorting = await processEventsForDay(
+        dateStr,
+        calendarSet,
+        format,
+        alldayformat,
+        includeAllDayEvents,
+        config,
+        calendarNameMappings,
+        withCalendarName
+      )
 
-      // Process each event
-      for (const e of eArr) {
-        // logDebug('listDaysEvents', `- Processing event '${e.title}' (${typeof e})`)
-        if (!includeAllDayEvents && e.isAllDay) {
-          // logDebug('listDaysEvents', `  - skipping as event is all day and includeAllDayEvents is false`)
-          continue
-        }
-
-        // Replace any mentions of the keywords in the e.title string
-        const replacements = getReplacements(e, config)
-        const thisEventStr = replaceFormatPlaceholderStringWithActualValues(e.isAllDay ? alldayformat : format, replacements)
-
-        mapForSorting.push({
-          cal: withCalendarName ? calendarNameWithMapping(e.calendar, calendarNameMappings) : '',
-          start: e.date,
-          text: thisEventStr,
-        })
-      }
-
-      // Sort the events
-      if (config.sortOrder === 'calendar') {
-        mapForSorting.sort(sortByCalendarNameThenStartTime())
-      } else {
-        mapForSorting.sort(sortByStartTimeThenCalendarName())
-      }
-
+      sortEvents(mapForSorting, config.sortOrder)
       outputArray.push(mapForSorting.map((element) => element.text).join('\n'))
     }
-// ----------------------------------------------------------------------------
 
-    const output = outputArray.join('\n') // If this array is empty -> empty string
-    logDebug('listDaysEvents', output)
+    const output = outputArray.join('\n')
+    logDebug(pluginJson, output)
     return output
   } catch (err) {
-    logError('listDaysEvents', err.message)
-    return '(error)'
+    logError(pluginJson, `listDaysEvents: ${err.message}`)
+    return ''
   }
 }
 
@@ -187,19 +292,10 @@ export async function listMatchingDaysEvents(
       await showMessage(`Please run again with a calendar note open.`, 'OK', 'List Events')
       return ''
     }
-    const openNote = Editor.note
-
-    // handle getting no parameters passed at all
-    let paramString = ''
-    if (paramStringIn == null) {
-      logWarn('listMatchingDaysEvents', `No parameters passed (from template), so will use defaults.`)
-    } else {
-      paramString = paramStringIn
-    }
+    const openNote: TNote = Editor.note
+    const paramString = normalizeParamString(paramStringIn, 'listMatchingDaysEvents')
 
     const config = await getEventsSettings()
-    // const baseDateStr = getDateStringFromCalendarFilename(Editor.filename)
-    // logDebug(pluginJson, `listMatchingDaysEvents: starting for date ${baseDateStr} with paramString=${paramString}`)
     const noteTimeFrame = getCalendarNoteTimeframe(openNote)
     if (!noteTimeFrame) throw new Error(`No noteTimeFrame found for note ${openNote.filename}. Stopping.`)
     const startDayDateString = getDateStrForStartofPeriodFromCalendarFilename(Editor.filename)
@@ -210,104 +306,71 @@ export async function listMatchingDaysEvents(
       return `**Error: found no 'Add matching events' in plugin settings.**`
     }
 
-    const formatArr = Object.values(config.addMatchingEvents)
-    const textToMatchArr = Object.keys(config.addMatchingEvents)
-    logDebug('listMatchingDaysEvents', `- from settings found ${textToMatchArr.length} match strings to look for`)
+    const matchingEvents = config.addMatchingEvents
+    const formatArr = Object.values(matchingEvents)
+    const textToMatchArr = Object.keys(matchingEvents)
+    logDebug(pluginJson, `- from settings found ${textToMatchArr.length} match strings to look for`)
 
-    // Get a couple of other supplied parameters, or use defaults
     const includeAllDayEvents: boolean = await getTagParamsFromString(paramString, 'includeAllDayEvents', true)
-    const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
+    const includeHeadings: boolean = await getTagParamsFromString(paramString, 'includeHeadings', true)
     const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', 1)
     const calendarSetStr: string = String(await getTagParamsFromString(paramString, 'calendarSet', config.calendarSet))
-    const calendarSet: Array<string> = calendarSetStr !== '' ? calendarSetStr.split(',') : [] // also deal with empty case
+    const calendarSet: Array<string> = calendarSetStr !== '' ? calendarSetStr.split(',') : []
     const calendarNameMappingsStr: string = String(await getTagParamsFromString(paramString, 'calendarNameMappings', config.calendarNameMappings))
     const calendarNameMappings: Array<string> = calendarNameMappingsStr !== '' ? calendarNameMappingsStr.split(',') : []
 
     const outputArray: Array<string> = []
 
-    // For each day to cover
     for (let i = 0; i < daysToCover; i++) {
-      // Set dateStr to the day in question (YYYYMMDD)
-      // const dateStr = convertISODateFilenameToNPDayFilename(calcOffsetDateStr(getISODateStringFromYYYYMMDD(baseDateStr), `+${i}d`))
       const dateStr = calcOffsetDateStr(startDayDateString, `+${i}d`)
-      logDebug('listDaysEvents', `${i}: startDayDateString=${startDayDateString}, dateStr=${dateStr}`)
+      logDebug(pluginJson, `${i}: startDayDateString=${startDayDateString}, dateStr=${dateStr}`)
 
-      // Add heading if wanted, or if doing more than 1 day
-      if (daysToCover > 1) {
-        const npDateStr = getDateFromYYYYMMDDString(dateStr)
-        if (!npDateStr) {
-          throw new Error(`Could not get valid NP date string from ${dateStr}`)
-        }
-        const localisedDateStr = toNPLocaleDateString(npDateStr)
-        // figure out H level to set: calc from config.eventsHeading or default to 2
-        const hLevel = config.matchingEventsHeading !== '' ? config.matchingEventsHeading.split(' ')[0].length : 2
-        outputArray.push(config.matchingEventsHeading !== '' ? `${config.matchingEventsHeading} for ${localisedDateStr}` : `${'#'.repeat(hLevel)} for ${localisedDateStr}`)
-      } else {
-        if (config.matchingEventsHeading !== '' && includeHeadings) {
-          outputArray.push(config.matchingEventsHeading)
-        }
+      const heading = generateDayHeading(daysToCover, dateStr, config.matchingEventsHeading, includeHeadings)
+      if (heading !== '') {
+        outputArray.push(heading)
       }
 
-      // Get all the events for this day, for the wanted calendarSet
       const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, calendarSet) ?? []
-      const mapForSorting: { cal: string, start: Date, text: string }[] = []
+      const mapForSorting: Array<{ cal: string, start: Date, text: string }> = []
 
-      // Process each event
       for (const e of eArr) {
-        logDebug('listMatchingDaysEvents', `- Processing event '${e.title}' (${typeof e})`)
+        logDebug(pluginJson, `- Processing event '${e.title}'`)
         if (!includeAllDayEvents && e.isAllDay) {
-          logDebug('listMatchingDaysEvents', `  - skipping as event is all day and includeAllDayEvents is false`)
+          logDebug(pluginJson, `  - skipping as event is all day and includeAllDayEvents is false`)
           continue
         }
 
-        // for each event, check each of the strings we want to match
         for (let j = 0; j < textToMatchArr.length; j++) {
           const thisFormat: string = String(formatArr[j])
           const withCalendarName = thisFormat.includes('CAL')
           const reMatch = new RegExp(textToMatchArr[j], 'i')
           if (e.title.match(reMatch)) {
-            logDebug('listMatchingDaysEvents', `- Found match to event '${e.title}' from '${textToMatchArr[j]}`)
-            // Replace any mentions of the keywords in the e.title string
-            const replacements = getReplacements(e, config)
-            const thisEventStr = replaceFormatPlaceholderStringWithActualValues(thisFormat, replacements)
+            logDebug(pluginJson, `- Found match to event '${e.title}' from '${textToMatchArr[j]}`)
+            const processedEvent = processEvent(e, thisFormat, thisFormat, config, calendarNameMappings, withCalendarName)
+            mapForSorting.push(processedEvent)
 
-            mapForSorting.push({
-              cal: withCalendarName ? calendarNameWithMapping(e.calendar, calendarNameMappings) : '',
-              start: e.date,
-              text: thisEventStr,
-            })
-
-            // (v0.20.3) If we have the general configuration setting, or a 'STOPMATCHING' signal on this particular event, then break out of loop as we have made a match
-            if (config.stopMatching || thisFormat.includes('STOPMATCHING')) {
-              logDebug('listMatchingDaysEvents', `- STOPMATCHING signal given, so skipping other possible matches for this event`)
+            const stopMatching = 'stopMatching' in config ? (config: any).stopMatching: false
+            if (stopMatching || thisFormat.includes('STOPMATCHING')) {
+              logDebug(pluginJson, `- STOPMATCHING signal given, so skipping other possible matches for this event`)
               break
             }
-          } else {
-            // logDebug('listMatchingDaysEvents', `- No match to ${e.title}`)
           }
         }
       }
 
-      // Sort the events (if there are matching events)
       if (mapForSorting.length > 0) {
-        // Sort the matched events
-        if (config.sortOrder === 'calendar') {
-          mapForSorting.sort(sortByCalendarNameThenStartTime())
-        } else {
-          mapForSorting.sort(sortByStartTimeThenCalendarName())
-        }
-
+        sortEvents(mapForSorting, config.sortOrder)
         outputArray.push(mapForSorting.map((element) => element.text).join('\n'))
       } else {
         outputArray.push('No matching events')
       }
     }
 
-    const output = outputArray.join('\n') // If this array is empty -> empty string
-    logDebug('listMatchingDaysEvents', output)
+    const output = outputArray.join('\n')
+    logDebug(pluginJson, output)
     return output
   } catch (error) {
-    logError('insertMatchingDaysEvents', error.message)
+    logError(pluginJson, `listMatchingDaysEvents: ${error.message}`)
     return ''
   }
 }
@@ -498,25 +561,11 @@ const calendarNameWithMapping = (name: string, mappings: Array<string>): string 
  * Sorter for CalendarItems by .calendar then by .start (time)
  * @author @m1well
  */
-export const sortByCalendarNameThenStartTime = (): Function => {
-  return (b, a) => {
-    if (a.cal !== b.cal) {
-      if (a.cal > b.cal) {
-        return -1
-      }
-      if (b.cal > a.cal) {
-        return 1
-      }
-    } else {
-      if (a.start > b.start) {
-        return -1
-      }
-      if (b.start > a.start) {
-        return 1
-      }
-      return 0
-    }
-    return 0
+export const sortByCalendarNameThenStartTime = (): (a: { cal: string, start: Date, text: string }, b: { cal: string, start: Date, text: string }) => number => {
+  return (a, b) => {
+    const calCompare = a.cal.localeCompare(b.cal)
+    if (calCompare !== 0) return calCompare
+    return a.start.getTime() - b.start.getTime()
   }
 }
 
@@ -524,24 +573,10 @@ export const sortByCalendarNameThenStartTime = (): Function => {
  * Sorter for CalendarItems by .start (time) then .calendar (name)
  * @author @jgclark after @m1well
  */
-export const sortByStartTimeThenCalendarName = (): Function => {
-  return (b, a) => {
-    if (a.start !== b.start) {
-      if (a.start > b.start) {
-        return -1
-      }
-      if (b.start > a.start) {
-        return 1
-      }
-    } else {
-      if (a.cal > b.cal) {
-        return -1
-      }
-      if (b.cal > a.cal) {
-        return 1
-      }
-      return 0
-    }
-    return 0
+export const sortByStartTimeThenCalendarName = (): (a: { cal: string, start: Date, text: string }, b: { cal: string, start: Date, text: string }) => number => {
+  return (a, b) => {
+    const timeCompare = a.start.getTime() - b.start.getTime()
+    if (timeCompare !== 0) return timeCompare
+    return a.cal.localeCompare(b.cal)
   }
 }
