@@ -35,6 +35,91 @@ const DEFAULT_FORMAT_ALL_DAY = '- *|CAL|*: *|TITLE|**| with ATTENDEENAMES|**|\nL
 // ----------------------------------------------------------------------------
 
 /**
+ * Validate Editor state based on requirements
+ * @param {Object} options - Validation options
+ * @param {boolean} options.requireEditor - Whether Editor must exist
+ * @param {boolean} options.requireFilename - Whether Editor.filename must exist
+ * @param {boolean} options.requireCalendarType - Whether Editor.type must be 'Calendar'
+ * @param {boolean} options.requireDailyNote - Whether note must be a daily note
+ * @param {boolean} options.requireWeeklyNote - Whether note must be a weekly note
+ * @param {boolean} options.requireDailyOrWeekly - Whether note must be daily or weekly
+ * @returns {{isValid: boolean, errorMessage: ?string, note: ?TNote}} Validation result
+ */
+function validateEditorState(options: {
+  requireEditor?: boolean,
+  requireFilename?: boolean,
+  requireCalendarType?: boolean,
+  requireDailyNote?: boolean,
+  requireWeeklyNote?: boolean,
+  requireDailyOrWeekly?: boolean,
+}): { isValid: boolean, errorMessage: ?string, note: ?TNote } {
+  const {
+    requireEditor = true,
+    requireFilename = false,
+    requireCalendarType = true,
+    requireDailyNote = false,
+    requireWeeklyNote = false,
+    requireDailyOrWeekly = false,
+  } = options
+
+  if (requireEditor && (!Editor || Editor.note == null)) {
+    return {
+      isValid: false,
+      errorMessage: 'Please run again with a note open.',
+      note: null,
+    }
+  }
+
+  if (!Editor || Editor.note == null) {
+    return { isValid: false, errorMessage: 'No note is currently open.', note: null }
+  }
+
+  const note: TNote = Editor.note
+
+  if (requireFilename && Editor.filename == null) {
+    return {
+      isValid: false,
+      errorMessage: 'Note filename is not available.',
+      note: null,
+    }
+  }
+
+  if (requireCalendarType && Editor.type !== 'Calendar') {
+    return {
+      isValid: false,
+      errorMessage: 'Please run again with a calendar note open.',
+      note: null,
+    }
+  }
+
+  if (requireDailyNote && !isDailyNote(note)) {
+    return {
+      isValid: false,
+      errorMessage: 'Please run again with a daily calendar note open.',
+      note: null,
+    }
+  }
+
+  if (requireWeeklyNote && !isWeeklyNote(note)) {
+    return {
+      isValid: false,
+      errorMessage: 'Please run again with a weekly calendar note open.',
+      note: null,
+    }
+  }
+
+  if (requireDailyOrWeekly && !isDailyNote(note) && !isWeeklyNote(note)) {
+    return {
+      isValid: false,
+      errorMessage: 'Please run again with a daily or weekly calendar note open.',
+      note: null,
+    }
+  }
+
+  return { isValid: true, errorMessage: null, note }
+}
+
+/**
  * Normalize parameter string, handling null/undefined cases
  * @param {?string} paramStringIn - Input parameter string
  * @param {string} functionName - Name of calling function for logging
@@ -187,11 +272,17 @@ function sortEvents(events: Array<{ cal: string, start: Date, text: string }>, s
  */
 export async function listDaysEvents(paramStringIn: string = ''): Promise<string> {
   try {
-    if (!Editor || Editor.note == null || Editor.filename == null || Editor.type !== 'Calendar' || (!isDailyNote(Editor.note) && !isWeeklyNote(Editor.note))) {
-      await showMessage(`Please run again with a daily or weekly calendar note open.`, 'OK', 'List Events')
+    const validation = validateEditorState({
+      requireEditor: true,
+      requireFilename: true,
+      requireCalendarType: true,
+      requireDailyOrWeekly: true,
+    })
+    if (!validation.isValid) {
+      await showMessage(validation.errorMessage || 'Please run again with a daily or weekly calendar note open.', 'OK', 'List Events')
       return ''
     }
-    const openNote: TNote = Editor.note
+    const openNote: TNote = validation.note
     const paramString = normalizeParamString(paramStringIn, 'listDaysEvents')
 
     const config = await getEventsSettings()
@@ -261,8 +352,13 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
 export async function insertDaysEvents(paramString: ?string): Promise<void> {
   try {
     logDebug(pluginJson, 'insertDaysEvents: Starting')
-    if (!Editor || Editor.note == null || Editor.type !== 'Calendar' || !isDailyNote(Editor.note)) {
-      await showMessage(`Please run again with a daily calendar note open.`, 'OK', 'Insert Events')
+    const validation = validateEditorState({
+      requireEditor: true,
+      requireCalendarType: true,
+      requireDailyNote: true,
+    })
+    if (!validation.isValid) {
+      await showMessage(validation.errorMessage || 'Please run again with a daily calendar note open.', 'OK', 'Insert Events')
       return
     }
 
@@ -278,7 +374,7 @@ export async function insertDaysEvents(paramString: ?string): Promise<void> {
 // ----------------------------------------------------------------------------
 
 /**
- * Return string of matching events in the current day's note, from list in keys of config.addMatchingEvents, having applied placeholder formatting.
+ * Return markdown-formatted list of matching events for the currently-open Calendar note, from list in keys of config.addMatchingEvents, having applied placeholder formatting.
  * Note: Parameters can be passed in as a JSON string, except for the complex 'format' which only comes from 'config.addMatchingEvents'.
  * @author @jgclark
  * @param {?string} paramStringIn Paramaters to use
@@ -288,11 +384,16 @@ export async function listMatchingDaysEvents(
   paramStringIn: string = '', // NB: the parameter isn't currently used, but is provided for future expansion.
 ): Promise<string> {
   try {
-    if (Editor.note == null || Editor.filename == null || Editor.type !== 'Calendar') {
-      await showMessage(`Please run again with a calendar note open.`, 'OK', 'List Events')
+    const validation = validateEditorState({
+      requireEditor: false,
+      requireFilename: true,
+      requireCalendarType: true,
+    })
+    if (!validation.isValid) {
+      await showMessage(validation.errorMessage || 'Please run again with a calendar note open.', 'OK', 'List Events')
       return ''
     }
-    const openNote: TNote = Editor.note
+    const openNote: TNote = validation.note
     const paramString = normalizeParamString(paramStringIn, 'listMatchingDaysEvents')
 
     const config = await getEventsSettings()
@@ -426,8 +527,7 @@ export async function insertWeeksEvents(paramString: ?string): Promise<void> {
 
 // ----------------------------------------------------------------------------
 /**
- * Insert list of matching events in the current day's note, from list
- * in keys of config.addMatchingEvents. Apply format too.
+ * Insert list of matching events in the current day's note, from list in keys of config.addMatchingEvents. Apply format too.
  * @author @jgclark
  *
  * @param {?string} paramString Paramaters to use (to pass on to next function)
@@ -448,7 +548,7 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
 
 // ----------------------------------------------------------------------------
 /**
- * Change the format placeholders to the actual values, using a Map
+ * Change the format placeholders to the actual values, using a Map.
  * @author @jgclark
  *
  * @param {TCalendarItem} item Calendar item whose values to use
