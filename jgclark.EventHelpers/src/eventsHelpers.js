@@ -64,6 +64,7 @@ export async function getEventsSettings(): Promise<EventsConfig> {
     }
     config.locale = getLocale(config)
     config.timeOptions = getTimeOptions(config)
+    clo(config)
     return config
   }
   catch (err) {

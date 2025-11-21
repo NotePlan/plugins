@@ -2,6 +2,10 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.23.2] - 2025-11-21 @jgclark (??? not yet released)
+- add some missing PLACEHOLDERS in the setting descriptions
+- dev: refactor code for improved maintainability
+
 ## [0.23.1] - 2025-10-20 @jgclark
 - fix regression in '/shift dates' command on tasks scheduled to weeks
 
