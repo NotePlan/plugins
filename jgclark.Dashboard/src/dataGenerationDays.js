@@ -7,7 +7,7 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
-import { getNumCompletedTasksFromNote } from './countDoneTasks'
+import { getDoneCountsForToday, getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionItemObject,
   createSectionOpenItemsFromParas,
@@ -91,7 +91,8 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
 
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')
     const nextPeriodFilename = nextPeriodNote?.filename ?? '(errorthisFilename'
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getDoneCountsForToday()
+    clo(doneCountData, 'dataGenerationDays: doneCountData') // x zero here
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
@@ -357,6 +358,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         logDebug('getYesterdaySectionData', `No yesterday note found using filename '${thisFilename}'`)
       }
     }
+    // Note: this only counts from yesterday's note
     const doneCountData = getNumCompletedTasksFromNote(thisFilename)
     let sectionDescription = `{closedOrOpenTaskCount} from ${yesterdayDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`

@@ -1,11 +1,9 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2025-11-07 for v2.3.0.b6
+// Last updated 2025-11-22 for v2.3.0.b6+
 //-----------------------------------------------------------------------------
 
-// import moment from 'moment/min/moment-with-locales'
-// import { allCalendarSectionCodes, } from './constants'
 import {
   getDashboardSettings,
   handlerResult,
@@ -27,10 +25,7 @@ import {
   moveItemBetweenCalendarNotes,
   moveItemToRegularNote,
 } from '@helpers/NPMoveItems'
-import {
-  // findParaFromRawContentAndFilename,
-  findParaFromStringAndFilename
-} from '@helpers/NPParagraph'
+import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { scheduleItem, scheduleItemLiteMethod } from '@helpers/NPScheduleItems'
 import { showMessage } from '@helpers/userInput'
 

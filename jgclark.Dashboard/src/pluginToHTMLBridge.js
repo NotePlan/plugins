@@ -614,6 +614,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)
       await incrementallyRefreshSomeSections({ ...data, sectionCodes: allSectionCodes })
     } else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
+      // Note: only used by doMoveFromCalToCal(), as at 2.3.0.b15
       logDebug('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
       for (const sectionCode of allCalendarSectionCodes) {
         // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })

@@ -38,7 +38,7 @@ export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map((s) =>
 // TODO(later): remove once we re-work the sectionCodes
 export const indexIntoAllSectionCodes = ['DT', 'DT', 'DY', 'DY', 'DO', 'DO', 'W', 'W', 'M', 'M', 'Q', 'Q', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ', 'TB', '-', '-', 'LW', 'INFO', 'SEARCH', 'SAVEDSEARCH']
 
-export const allCalendarSectionCodes = ['TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q']
+export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q']
 
 export const defaultSectionDisplayOrder = ['SEARCH', 'INFO', 'SAVEDSEARCH', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
 

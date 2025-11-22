@@ -2,15 +2,15 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2025-11-11 for v2.3.0.b13
+// Last updated 2025-11-22 for v2.3.0.b15
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { allCalendarSectionCodes, interactiveProcessingPossibleSectionTypes, treatSingleItemTypesAsZeroItems } from '../../../constants.js'
 import type { TSection, TSectionItem, TActionButton } from '../../../types.js'
-import { interactiveProcessingPossibleSectionTypes, treatSingleItemTypesAsZeroItems } from '../../../constants.js'
 import CommandButton from '../CommandButton.jsx'
 import ItemGrid from '../ItemGrid.jsx'
 import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
@@ -412,12 +412,13 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   )
 
   // Replace {closedOrOpenTaskCount} with the number of completed or open tasks, depending on the 'showProgressInSections' setting
+  const doneCount = section.doneCounts?.completedTasks ?? 0
   if (descriptionToUse.includes('{closedOrOpenTaskCount}')) {
     let closedOrOpenTaskCountString = ''
     switch (dashboardSettings.showProgressInSections) {
       case 'number closed':
-        closedOrOpenTaskCountString = `closed ${section.doneCounts?.completedTasks ?? '0'} ${getTaskOrItemDisplayString(
-          section.doneCounts?.completedTasks ?? 0,
+        closedOrOpenTaskCountString = `closed ${String(doneCount)} ${getTaskOrItemDisplayString(
+          doneCount,
           dashboardSettings.ignoreChecklistItems ? 'task' : 'item',
         )}`
         break
@@ -441,12 +442,12 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   // Prep a task-completion circle to the description for calendar non-referenced sections (where showProgressInSections !== 'none')
   let completionCircle = null
-  if (numItemsToShow > 0 && ['DT', 'DY', 'W', 'LW', 'M', 'Q', 'Y'].includes(section.sectionCode) && section.doneCounts && dashboardSettings.showProgressInSections !== 'none') {
-    const percentComplete = (section.doneCounts.completedTasks / (section.doneCounts.completedTasks + items.length)) * 100.0
+  if (numItemsToShow > 0 && section.doneCounts && dashboardSettings.showProgressInSections !== 'none' && allCalendarSectionCodes.includes(section.sectionCode) && section.isReferenced === false) {
+    const percentComplete = (doneCount / (doneCount + items.length)) * 100.0
     completionCircle = (
       <span
         className="sectionCompletionCircle"
-        title={`${section.doneCounts.completedTasks} of ${section.doneCounts.completedTasks + items.length} tasks completed`}
+        title={`${String(doneCount)} of ${String(doneCount + items.length)} tasks completed`}
         style={{ justifySelf: 'end' }}
       >
         <CircularProgressBar

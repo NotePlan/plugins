@@ -10,6 +10,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: enlarged default window size on iPads
 -->
 
+## [2.3.0.b15] 2025-10-22 (unreleased)
+- improve the count of completed tasks shown in the Today section.
+
 ## [2.3.0.b14] 2025-10-20
 - [Cursor] Refactor tagMentionCache to be more maintainable, and fix errors.
 

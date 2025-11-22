@@ -1,11 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Dashboard plugin function to find and track tasks completed today in non-calendar notes
-// Last updated 2025-09-03 for v2.3.0
+// Dashboard plugin functions to count tasks completed today, across all notes,
+// and to count the tasks completed in a particular note.
+// Last updated 2025-11-22 for v2.3.0.b15
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import type { TDoneCount, TDoneTodayNotes, TSection } from './types'
+import type { TDoneCount, TDoneTodayNotes } from './types'
 import { todaysDateISOString } from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getNotesChangedInInterval, getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
@@ -13,11 +14,11 @@ import { smartPrependPara } from '@helpers/paragraph'
 
 //--------------------------------------------------------------------------
 
-const changedNoteFile = '../../data/jgclark.Dashboard/todaysChangedNoteList.json'
-const lastTimeThisWasRunPref = 'jgclark.Dashboard.todayDoneCountsList.lastTimeThisWasRunPref'
+const CHANGED_NOTE_FILE = '../../data/jgclark.Dashboard/todaysChangedNoteList.json'
+const LAST_TIME_THIS_WAS_RUN_PREF = 'jgclark.Dashboard.todayDoneCountsList.lastTimeThisWasRunPref'
 
 //-----------------------------------------------------------------
-// functions
+// Private Helper functions
 
 /**
  * Note: replaced by final function below (updateDoneCountsFromChangedNotes())
@@ -46,14 +47,21 @@ const lastTimeThisWasRunPref = 'jgclark.Dashboard.todayDoneCountsList.lastTimeTh
 //   }
 // }
 
+//-----------------------------------------------------------------
+// Public functions
+
 /**
- * Return number of completed tasks in the given (calendar or regular) note
+ * Return number of completed tasks in the single given (calendar or regular) note.
  * @param {string} filename
  * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open (default: true)
  * @param {boolean} onlyCountTasksCompletedToday? only count tasks in the note completed today (default: true)
  * @returns {TDoneCount} {completedTasks, lastUpdated}
  */
-export function getNumCompletedTasksFromNote(filename: string, useEditorWherePossible: boolean = true, onlyCountTasksCompletedToday: boolean = true): TDoneCount {
+export function getNumCompletedTasksFromNote(
+  filename: string,
+  useEditorWherePossible: boolean = true,
+  onlyCountTasksCompletedToday: boolean = true
+): TDoneCount {
   try {
     // Note: This is a quick operation, so no longer needing to time
     let parasToUse: $ReadOnlyArray<TParagraph>
@@ -68,7 +76,6 @@ export function getNumCompletedTasksFromNote(filename: string, useEditorWherePos
     } else {
       // Note: Reads note using the helper, which will work for both private and Teamspace notes
       const note = getNoteFromFilename(filename)
-
       if (!note) throw new Error(`Note not found: ${filename}`)
       parasToUse = note.paragraphs
       // logDebug('getNumCompletedTasksFromNote', `Processing ${note.filename}`)
@@ -77,10 +84,13 @@ export function getNumCompletedTasksFromNote(filename: string, useEditorWherePos
     // Calculate the number of closed items
     // const todaysDateISOString = todaysDateISOString()
     const RE_DONE_TODAY = new RegExp(`@done\\(${todaysDateISOString}.*\\)`)
+    // logDebug('getNumCompletedTasksFromNote', `RE_DONE_TODAY: ${RE_DONE_TODAY}`)
     const RE_DONE_ANY_TIME = new RegExp(`@done\\(.*\\)`)
-    const numCompletedTasks = onlyCountTasksCompletedToday
-      ? parasToUse.filter((p) => p.type === 'done' && RE_DONE_TODAY.test(p.content)).length
-      : parasToUse.filter((p) => p.type === 'done' && RE_DONE_ANY_TIME.test(p.content)).length
+    const completedTasks = onlyCountTasksCompletedToday
+      ? parasToUse.filter((p) => p.type === 'done' && RE_DONE_TODAY.test(p.content))
+      : parasToUse.filter((p) => p.type === 'done' && RE_DONE_ANY_TIME.test(p.content))
+    // logDebug('getNumCompletedTasksFromNote', `- ${filename}'s completed tasks: ${completedTasks.map((t) => t.content).join('\n')} `)
+    const numCompletedTasks = completedTasks.length
 
     const outputObject: TDoneCount = {
       completedTasks: numCompletedTasks,
@@ -88,6 +98,7 @@ export function getNumCompletedTasksFromNote(filename: string, useEditorWherePos
       lastUpdated: new Date(),
     }
     // logDebug('getNumCompletedTasksFromNote', `- ${filename} -> ${String(numCompletedTasks)} done`)
+    // clo(outputObject, 'getNumCompletedTasksFromNote: outputObject')
     return outputObject
   } catch (error) {
     logError('getNumCompletedTasksFromNote', error.message)
@@ -97,46 +108,6 @@ export function getNumCompletedTasksFromNote(filename: string, useEditorWherePos
     }
   }
 }
-
-/**
- * Note: now not used
- * Build a list of ordinary (non-calendar) notes that have tasks completed today
- * @returns {Array<TDoneTodayNotes>}
- */
-// export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {
-//   try {
-//     const startTime = new Date()
-//     const outputArr: Array<TDoneTodayNotes> = []
-//     logDebug('buildListOfDoneTasksToday', `Starting at ${String(startTime)}`)
-
-//     // Get list of regular (non-calendar) notes _updated today_ to check
-//     const notesChangedToday: Array<TNote> = getNotesChangedInInterval(0, ['Notes'])
-//     logDebug('buildListOfDoneTasksToday', `- after getNotesChangedInInterval(0) ${notesChangedToday.length} notes in ${timer(startTime)}`)
-
-//     let total = 0
-//     for (const note of notesChangedToday) {
-//       const doneCounts = getNumCompletedTasksFromNote(note.filename, false, true)
-//       const numDoneToday = doneCounts.completedTasks
-//       // logTimer('buildListOfDoneTasksToday', startTime, `- found ${String(numDoneToday)} done in '${note.filename}' changed ${moment(note.changedDate).format()}`)
-//       if (numDoneToday > 0) {
-//         total += numDoneToday
-//         outputArr.push({
-//           filename: note.filename,
-//           counts: {
-//             completedTasks: numDoneToday,
-//             lastUpdated: note.changedDate,
-//           },
-//         })
-//       }
-//     }
-//     logTimer('buildListOfDoneTasksToday', startTime, `=> to find ${total} done tasks today in ordinary notes`)
-//     logInfo('buildListOfDoneTasksToday', `Output:\n${outputArr.map((o) => `${o.filename} -> ${o.counts.completedTasks}`).join('\n')}\n`)
-//     return outputArr
-//   } catch (err) {
-//     logError('buildListOfDoneTasksToday', err.message)
-//     return []
-//   }
-// }
 
 /**
  * Summarise (roll up) the doneCounts, from both available Types of done count, into a single TDoneCount.
@@ -167,12 +138,48 @@ export function rollUpDoneCounts(countsArr: Array<TDoneCount>, countsNotesArr: A
 }
 
 /**
- * Returns a count of all completed tasks today.
- * It does this by keeping and updating a list of all notes changed today, and the number of completed tasks it contains.
- * It works smartly: it only recalculates notes that have been updated since the last time this was run, according to JS date saved in 'lastTimeThisWasRunPref'.
- * @param {string?} reason for calling this
+ * Read the CHANGED_NOTE_FILE note and summarise the done counts. 
+ * So far, this only covers tasks completed today. 
+ * Note: This is not quite the same as "tasks for today", as it reports on all tasks completed today, not just the tasks marked for today.
+ * TODO: see if there's a better overall scheme to distinguish:
+ * - tasks for today completed today
+ * - tasks for yesterday completed yesterday
+ * - tasks marked for this week which have been completed in the period
+ * - tasks for other time periods completed today
+ * - etc.
  * @returns {TDoneCount} An object containing the total number of completed tasks and the last updated date.
+ */
+export function getDoneCountsForToday(): TDoneCount {
+  try {
+    // Read the CHANGED_NOTE_FILE file and get the done counts for today
+    const changedNoteData = DataStore.loadData(CHANGED_NOTE_FILE, true) ?? '{}'
+    if (!changedNoteData) {
+      throw new Error(`CHANGED_NOTE_FILE file ${CHANGED_NOTE_FILE} empty or does not exist`)
+    }
+    const parsedData = JSON.parse(changedNoteData)
+    let totalCompletedTasks = 0
+    let lastUpdated = new Date(0)
+    if (parsedData.length > 0) {
+      parsedData.forEach((item) => {
+        totalCompletedTasks += item.completedTasks
+        if (item.lastUpdated > lastUpdated) lastUpdated = item.lastUpdated
+      })
+    }
+    return { completedTasks: totalCompletedTasks, lastUpdated: lastUpdated }
+  }
+  catch (err) {
+    logError('getDoneCountsForToday', err.message)
+    return { completedTasks: 0, lastUpdated: new Date(0) } // to pacify flow
+  }
+}
+
+/**
+ * Returns a count of all completed tasks today.
+ * It does this by keeping and updating the CHANGED_NOTE_FILE JSON file containing a list of all notes changed today, and the number of completed tasks it contains.
+ * It works smartly: it only recalculates notes that have been updated since the last time this was run, according to JS date saved in 'LAST_TIME_THIS_WAS_RUN_PREF'.
+ * @param {string?} reason for calling this
  * @param {boolean} keepPreviousData? if true, keep a copy of the previous data in a special note.  TODO: remove me later.
+ * @returns {TDoneCount} An object containing the total number of completed tasks and the last updated date.
  */
 export async function updateDoneCountsFromChangedNotes(reason: string = '', keepPreviousData: boolean = false): Promise<number> {
   try {
@@ -183,9 +190,9 @@ export async function updateDoneCountsFromChangedNotes(reason: string = '', keep
 
     // Read current list from todaysChangedNoteList.json, and get time of it.
     // Note: can't get a timestamp from plugin files, so need to use a separate preference
-    logDebug('updateDoneCountsFromChangedNotes', `Starting: ${reason}. About to read ${changedNoteFile} ...`)
-    if (DataStore.fileExists(changedNoteFile)) {
-      const data = DataStore.loadData(changedNoteFile, true) ?? '{}'
+    logDebug('updateDoneCountsFromChangedNotes', `Starting: ${reason}. About to read ${CHANGED_NOTE_FILE} ...`)
+    if (DataStore.fileExists(CHANGED_NOTE_FILE)) {
+      const data = DataStore.loadData(CHANGED_NOTE_FILE, true) ?? '{}'
       const parsedData = JSON.parse(data)
       if (parsedData.length > 0) {
         parsedData.forEach((item) => {
@@ -194,16 +201,16 @@ export async function updateDoneCountsFromChangedNotes(reason: string = '', keep
             completedTasks: item.completedTasks,
           })
         })
-        logDebug('updateDoneCountsFromChangedNotes', `Loaded ${parsedData.length} items from ${changedNoteFile}`)
+        logDebug('updateDoneCountsFromChangedNotes', `Loaded ${parsedData.length} items from ${CHANGED_NOTE_FILE}`)
       }
 
       // Get last updated time from special preference
-      const previousJSDate = DataStore.preference(lastTimeThisWasRunPref) ?? null
+      const previousJSDate = DataStore.preference(LAST_TIME_THIS_WAS_RUN_PREF) ?? null
       momPrevious = previousJSDate
         ? moment(previousJSDate)
         : momNow.startOf('day') // fallback to start of today
     } else {
-      logDebug('updateDoneCountsFromChangedNotes', `${changedNoteFile} does not exist, so starting a new list from start of today.`)
+      logDebug('updateDoneCountsFromChangedNotes', `${CHANGED_NOTE_FILE} does not exist, so starting a new list from start of today.`)
       momPrevious = momNow.startOf('day')
     }
     const fileAgeMins = momNow.diff(momPrevious, 'minutes')
@@ -248,12 +255,12 @@ export async function updateDoneCountsFromChangedNotes(reason: string = '', keep
       completedTasks: value.completedTasks,
       lastUpdated: value.lastUpdated,
     }))
-    const res = DataStore.saveData(JSON.stringify(mapArray), changedNoteFile, true)
+    const res = DataStore.saveData(JSON.stringify(mapArray), CHANGED_NOTE_FILE, true)
     // logDebug('updateDoneCountsFromChangedNotes', `Output:\n${mapArray.map((o) => `${o.filename} -> ${o.completedTasks}`).join('\n')}\n`)
 
     // Update the preference for current time
-    DataStore.setPreference(lastTimeThisWasRunPref, new Date())
-    // logDebug('updateDoneCountsFromChangedNotes', `pref is now ${moment(DataStore.preference(lastTimeThisWasRunPref)).format()}`)
+    DataStore.setPreference(LAST_TIME_THIS_WAS_RUN_PREF, new Date())
+    // logDebug('updateDoneCountsFromChangedNotes', `pref is now ${moment(DataStore.preference(LAST_TIME_THIS_WAS_RUN_PREF)).format()}`)
 
     logTimer(`updateDoneCountsFromChangedNotes`, startTime, `total runtime for updateDoneCountsFromChangedNotes`, 1000)
     return totalCompletedTasks
