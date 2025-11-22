@@ -424,12 +424,22 @@ export async function logNotesChangedInInterval(params: string = ''): Promise<vo
 /**
  * Remove orphaned blockIDs in all notes.
  * @author @jgclark
- * @param {boolean} runSilently?
+ * @param {string?} params optional JSON string that overrides user's normal settings for this plugin
  */
-export async function removeOrphanedBlockIDs(runSilently: boolean = false): Promise<void> {
+export async function removeOrphanedBlockIDs(params: string = ''): Promise<void> {
   try {
     // Get plugin settings (config)
-    const config: TidyConfig = await getSettings()
+    let config: TidyConfig = await getSettings()
+    if (params) {
+      logDebug(pluginJson, `removeOrphanedBlockIDs: Starting with params '${params}'`)
+      config = overrideSettingsWithEncodedTypedArgs(config, params)
+      // clo(config, `config after overriding with params '${params}'`)
+    } else {
+      // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
+      logDebug(pluginJson, `removeOrphanedBlockIDs: Starting with no params`)
+    }
+    // Decide whether to run silently
+    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
 
     // Find blockIDs in all notes, and save the details of it in a data structure that tracks the first found copy only, and the number of copies.
     let parasWithBlockID = DataStore.referencedBlocks()

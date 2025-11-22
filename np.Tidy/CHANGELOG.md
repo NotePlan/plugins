@@ -1,6 +1,12 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.17.0] - 2025-11-22 @jgclark
+### New
+- new **/Remove empty lines** command, that removes *all* empty lines from the open note. This is useful when trying to tidy up content copied into NP from other sources.
+### Changes
+- **/Remove empty elements** will now work again on a regular (non-calendar) note.
+
 ## [1.16.0] - 2025-11-17 @jgclark
 ### New
 - new **/Remove empty elements from recent notes** command, that uses the same settings as the existing '/Remove empty elements' command, but applies over all recent Calendar notes. (Optionally you can include regular notes as well, if you turn on the new setting.) (For @dwertheimer)

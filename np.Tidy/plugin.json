@@ -6,9 +6,9 @@
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "1.16.0",
+  "plugin.version": "1.17.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "v1.16.0: new '/Remove empty elements from recent notes' command.\nv1.15.2: update '/List doubled notes' command to refer to new built-in feature.\nv1.15.1: update '/File root notes' to improve menu display, particularly for Teamspace folders.\nv1.15.0: new '/Remove empty elements' command, and its setting 'Strip all empty lines?'. New setting 'Ignore future calendar notes?' for '/Remove section from all notes' command. Other fixes and improvements.\nv0.14.12: improvements to '/List duplicates' command.\nv0.14.11: improvements to '/List stubs' command.\nv0.14.10: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.9: update '/Generate @repeats from recent notes' and '/Remove blank notes' commands.\nv0.14.8: improvements to '/Remove section from all notes' command.\nv0.14.7: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.6: fix to allow top-level tasks to be run by template.\nv0.14.5: fix to allow top-level tasks to be run by xcallback.\nv0.14.4: fix to allow blank Calendar notes to be removed by '/remove blank notes'.\nv0.14.3: fix unwanted popups in '/generate @repeats from recent notes' command.\nv0.14.2: add new option to file root notes.\nv0.14.1: rebuild.\nv0.14.0: new '/Generate repeats' command.",
+  "plugin.lastUpdateInfo": "v1.17.0: new '/Remove empty lines' command.\nv1.16.0: new '/Remove empty elements from recent notes' command.\nv1.15.2: update '/List doubled notes' command to refer to new built-in feature.\nv1.15.1: update '/File root notes' to improve menu display, particularly for Teamspace folders.\nv1.15.0: new '/Remove empty elements' command, and its setting 'Strip all empty lines?'. New setting 'Ignore future calendar notes?' for '/Remove section from all notes' command. Other fixes and improvements.\nv0.14.12: improvements to '/List duplicates' command.\nv0.14.11: improvements to '/List stubs' command.\nv0.14.10: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.9: update '/Generate @repeats from recent notes' and '/Remove blank notes' commands.\nv0.14.8: improvements to '/Remove section from all notes' command.\nv0.14.7: fix regression in '/Generate @repeats from recent notes' command.\nv0.14.6: fix to allow top-level tasks to be run by template.\nv0.14.5: fix to allow top-level tasks to be run by xcallback.\nv0.14.4: fix to allow blank Calendar notes to be removed by '/remove blank notes'.\nv0.14.3: fix unwanted popups in '/generate @repeats from recent notes' command.\nv0.14.2: add new option to file root notes.\nv0.14.1: rebuild.\nv0.14.0: new '/Generate repeats' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -43,30 +43,30 @@
     },
     {
       "name": "List conflicted notes",
+      "description": "Creates/updates a note that lists all notes on this device that have conflicts",
+      "jsFunction": "listConflicts",
       "alias": [
         "conflicts"
-      ],
-      "description": "Creates/updates a note that lists all notes on this device that have conflicts",
-      "jsFunction": "listConflicts"
+      ]
     },
     {
       "name": "List duplicate notes",
+      "description": "Creates/updates a note that lists potentially duplicate notes because they have identical titles",
+      "jsFunction": "listDuplicates",
       "alias": [
         "duplicates",
         "dupes"
-      ],
-      "description": "Creates/updates a note that lists potentially duplicate notes because they have identical titles",
-      "jsFunction": "listDuplicates"
+      ]
     },
     {
       "name": "List duplicated content",
+      "description": "Creates/updates a note that lists calendar notes that potentially have duplicated content with them",
+      "jsFunction": "listPotentialDoubles",
       "alias": [
         "doubles",
         "duplicates",
         "dupes"
-      ],
-      "description": "Creates/updates a note that lists calendar notes that potentially have duplicated content with them",
-      "jsFunction": "listPotentialDoubles"
+      ]
     },
     {
       "hidden": true,
@@ -104,18 +104,6 @@
       ]
     },
     {
-      "name": "Remove @done() markers",
-      "description": "Remove @done() markers from recently-updated notes. Can be used with parameters from Template or Callback.",
-      "jsFunction": "removeDoneMarkers",
-      "alias": [
-        "rdm",
-        "tidy"
-      ],
-      "arguments": [
-        "Parameters"
-      ]
-    },
-    {
       "name": "Remove blank notes",
       "description": "Remove notes that are completely empty, or just have a `#` character",
       "jsFunction": "removeBlankNotes",
@@ -124,7 +112,19 @@
         "tidy"
       ],
       "arguments": [
-        "Parameters"
+        "runSilently (boolean)"
+      ]
+    },
+    {
+      "name": "Remove @done() markers",
+      "description": "Remove @done() markers from recently-updated notes. Can be used with parameters from Template or Callback.",
+      "jsFunction": "removeDoneMarkers",
+      "alias": [
+        "rdm",
+        "tidy"
+      ],
+      "arguments": [
+        "Parameters (JSON)"
       ]
     },
     {
@@ -140,8 +140,7 @@
       "arguments": [
         "filename (or 'Editor' for the open note in the Editor) -- default: Editor",
         "stripAllEmptyLines -- default: false; By default, multiple consecutive empty lines are reduced to a single empty line. But if this is set to true, then all empty lines will be removed.",
-        "preserveHeadingStructure -- default: false; When true, keeps all headings (even empty ones) to maintain note templates and structure. Useful for preserving heading hierarchy in templates.",
-        "coverRegularNotesAsWell -- default: null; By default, only Calendar notes are processed. When true, processes Project notes as well. When false or null, uses the plugin setting 'Also cover Project notes?'."
+        "preserveHeadingStructure -- default: false; When true, keeps all headings (even empty ones) to maintain note templates and structure. Useful for preserving heading hierarchy in templates."
       ]
     },
     {
@@ -151,6 +150,21 @@
       "alias": [
         "reeRecent",
         "tidy"
+      ],
+      "arguments": [
+        "filename (or 'Editor' for the open note in the Editor) -- default: Editor"
+      ]
+    },
+    {
+      "name": "Remove empty lines",
+      "description": "Remove *all* empty lines from the open note.",
+      "jsFunction": "removeEmptyLines",
+      "alias": [
+        "rel",
+        "tidy"
+      ],
+      "arguments": [
+        "filename (or 'Editor' for the open note in the Editor) -- default: Editor"
       ]
     },
     {
@@ -162,7 +176,7 @@
         "tidy"
       ],
       "arguments": [
-        "Parameters"
+        "Parameters (JSON)"
       ]
     },
     {
@@ -171,6 +185,18 @@
       "jsFunction": "removeDoneTimeParts",
       "alias": [
         "rtp",
+        "tidy"
+      ],
+      "arguments": [
+        "Parameters (JSON)"
+      ]
+    },
+    {
+      "name": "Remove section from all notes",
+      "description": "Remove a given section (both the heading and its content) from all notes.\nCan be used with parameters from Template or x-callback.",
+      "jsFunction": "removeSectionFromAllNotes",
+      "alias": [
+        "rsan",
         "tidy"
       ],
       "arguments": [
@@ -183,18 +209,6 @@
       "jsFunction": "removeSectionFromRecentNotes",
       "alias": [
         "rsrn",
-        "tidy"
-      ],
-      "arguments": [
-        "Parameters"
-      ]
-    },
-    {
-      "name": "Remove section from all notes",
-      "description": "Remove a given section (both the heading and its content) from all notes.\nCan be used with parameters from Template or x-callback.",
-      "jsFunction": "removeSectionFromAllNotes",
-      "alias": [
-        "rsan",
         "tidy"
       ],
       "arguments": [
@@ -219,7 +233,7 @@
         "tidy"
       ],
       "arguments": [
-        "filename"
+        "parameters (JSON)"
       ]
     },
     {
@@ -385,15 +399,15 @@
     {
       "title": "Strip all empty lines?",
       "key": "stripAllEmptyLines",
-      "description": "Normally, multiple consecutive empty lines are reduced to a single empty line. But if this is set, then all empty lines will be removed. This will particularly suit users who use a theme that adds vertical before headings",
+      "description": "Normally, multiple consecutive empty lines are reduced to a single empty line. But if this is set, then all empty lines will be removed. This will particularly suit users who use a theme that adds vertical before headings.\nNote: this setting is ignored by the '/Remove empty lines' command.",
       "type": "bool",
       "default": false,
       "required": true
     },
     {
-      "title": "Also cover Project notes?",
+      "title": "Also cover recent Regular notes?",
       "key": "coverProjectNotes",
-      "description": "By default, '/Remove empty elements' only works on Calendar notes. Enable this setting to also process Project notes.",
+      "description": "By default, '/Remove empty elements from recent notes' only works on Calendar notes. Enable this setting to also process regular notes.",
       "type": "bool",
       "default": false,
       "required": true

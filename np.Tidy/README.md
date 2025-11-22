@@ -16,8 +16,9 @@ This plugin provides commands to help tidy up your notes:
 - **/List stubs**: creates a note that lists all your notes that contain "stubs" -- i.e. that caontain `[[note links]]` (aka "wikilinks") that don't lead to other notes in NotePlan.
 - **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See section below.
 - **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character. Note: this command cannot remove Teamspace notes (as of NotePlan v3.18.1), so it won't try.
-- **/Remove empty elements** (alias: "ree"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information. **Note**: By default, this command only processes Calendar notes. Enable the "Also cover Project notes?" setting to also process Project notes.
-- **/Remove empty elements from recent notes** (alias: "reeRecent"): as above, but for all recent notes. It uses the same settings as the command above. **Note**: Template notes (those whose filename starts with '@Templates') are automatically excluded from processing.
+- **/Remove empty elements** (alias: "ree"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information.
+- **/Remove empty elements from recent notes** (alias: "reeRecent"): as above, but for all recent notes. It uses the same "Smart heading preservation" setting as the command above.  **Note**: By default, this command only processes Calendar notes. Enable the "Also cover Regular notes?" setting to change this. **Note**: Template notes (those whose filename starts with '@Templates') are always excluded from processing.
+- **/Remove empty lines**  (alias "rel"): Remove *all* empty lines from the open note.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
 - **/Remove section from recent notes** (alias "rsrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
  - **/Remove section from all notes** (alias "rsan"). Remove a given section (heading + its content block) from _all notes_. Use wisely, as this is dangerous! (original function by @dwertheimer)
@@ -62,7 +63,7 @@ The **/Remove empty blocks** command intelligently cleans up your notes while pr
 
 #### Empty line handling
 - **Default behavior**: Reduces multiple consecutive empty lines to a single empty line
-- **Strip all empty lines**: Available as an x-callback setting to remove ALL empty lines completely
+- **Strip all empty lines**: Available as an x-callback setting to remove ALL empty lines
 ```
 noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20elements&arg0=Editor&arg1=true
 ```
@@ -112,13 +113,13 @@ And this generates any needed new @repeat() lines from finished ones, that use t
 **Tip:** as these are complicated and fiddly to create, **I suggest you use @dwertheimer's excellent [Link Creator plugin](https://noteplan.co/plugins/np.CallbackURLs) command "/Get X-Callback-URL"** which makes it much simpler.
 
 ### Using from x-callback calls
-It's possible to call most of these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
+It's possible to call these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
 
 `noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=<encoded command name>&arg0=<encoded parameters>`
 
 Notes:
 - all parameters are passed as `"key":"value"` pairs separated by commas, and surrounded by curly brackets `{...}`. (This is JSON encoding.)
-- as with all x-callback URLs, all the arguments (including the command name) need to be URL-encoded. For example, spaces need to be turned into '%20'.
+- as with all x-callback URLs, all the arguments (including the command name) need to be URL-encoded. Most obviously, spaces need to be replaced by '%20'.
 
 This is an example of a fully URL-encoded call:
 
@@ -126,19 +127,33 @@ This is an example of a fully URL-encoded call:
 | ----- | ----- |
 | `noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove section from notes&arg0={"numDays":20, "sectionHeading":"Test Delete Me"}` | `noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20section%20from%20notes&arg0=%7B%22numDays%22%3A%202%2C%20%22sectionHeading%22%3A%22Test%20Delete%20Me%22%7D` |
 
-The available parameters are:
+Some commands have parameters that can be passed:
 
-| command name | parameter name |
-| --------- | --------- |
+| command name | parameter 1 | parameter 2 | parameter 3 |
+| --------- | --------- | --------- | --------- |
 | List conflicted notes | runSilently |
 | List duplicate notes | runSilently |
-| Remove @done() markers | foldersToExclude, justRemoveFromChecklists, numDays, runSilently |
-| Remove orphaned blockIDs | runSilently |
-| Remove section from all notes | keepHeading, runSilently, sectionHeading |
-| Remove section from recent notes | matchType, sectionHeading |
-| Remove time parts from @done() dates | runSilently |
+| Move top-level tasks in Editor to heading | Heading name to place the tasks under | runSilently | return content (true) rather than insert (false) | running from a template? |
+| Remove blank notes | runSilently |
+| Remove @done() markers | parameters (JSON) |
+| Remove empty elements | filename (or 'Editor') | stripAllEmptyLines | preserveHeadingStructure |
+| Remove empty elements from recent notes | filename (or 'Editor') |
+| Remove empty lines | filename (or 'Editor') |
+| Remove orphaned blockIDs | parameters (JSON) |
+| Remove section from all notes | parameters (JSON) |
+| Remove section from recent notes | parameters (JSON) |
+| Remove time parts from @done() dates | parameters (JSON) |
 | Remove >today tags from completed todos | runSilently |
-| Move top-level tasks in Editor to heading | Heading name to place the tasks under | runSilently |
+| Remove triggers from recent calendar notes | parameters (JSON) |
+
+Note: where it just says 'parameters (JSON)' this means you can pass in any relevant setting names which will override what's in your settings for the plugin:
+- foldersToExclude (Array<string>)
+- justRemoveFromChecklists (boolean)
+- keepHeading (boolean)
+- matchType (string: 'Exact', 'Starts with' or 'Contains')
+- numDays (integer)
+- runSilently (boolean)
+- sectionHeading (string)
 
 **Tip:** as these are complicated and fiddly to create, **I strongly suggest you use @dwertheimer's excellent [Link Creator plugin](https://noteplan.co/plugins/np.CallbackURLs) command "/Get X-Callback-URL"** which makes it vastly easier.
 
