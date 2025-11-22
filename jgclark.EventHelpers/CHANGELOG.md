@@ -2,7 +2,7 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-## [0.23.2] - 2025-11-21 @jgclark (??? not yet released)
+## [0.23.2] - 2025-11-22 @jgclark
 - add some missing PLACEHOLDERS in the setting descriptions
 - dev: refactor code for improved maintainability
 
