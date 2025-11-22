@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2025-09-01 for v1.2.4, @jgclark
+// Last updated 2025-11-22 for v1.2.4+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -164,9 +164,9 @@ export async function generateAllProjectsList(configIn: any, runInForeground: bo
     // Get all project notes as Project instances
     const projectInstances = await getAllMatchingProjects(configIn, runInForeground)
 
-    // Log the start this full generation to a special log note. TODO: remove this later.
-    if (configIn._logLevel === 'DEBUG') {
-      const logNote: TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
+    // Log the start this full generation to a special log note. FIXME: remove this later.
+    const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
+    if (logNote) {
       const newLogLine = `${new Date().toLocaleString()}: Reviews (generateAllProjectsList) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
       smartPrependPara(logNote, newLogLine, 'list')
     }

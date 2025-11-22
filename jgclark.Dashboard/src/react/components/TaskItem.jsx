@@ -10,7 +10,7 @@ import React, { type Node, useState } from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types'
 import ItemContent from './ItemContent.jsx'
 import StatusIcon from './StatusIcon.jsx'
-import { clo, JSP, logDebug, logInfo } from '@helpers/react/reactDev.js'
+import { clo, JSP, logDebug, logInfo, logWarn } from '@helpers/react/reactDev.js'
 
 type Props = {
   item: TSectionItem,
@@ -25,9 +25,6 @@ function TaskItem({ item, thisSection }: Props): Node {
     actionType: '(not yet set)',
     sectionCodes: [thisSection.sectionCode], // for the DialogForTaskItems
   }
-
-  // const [possTimeBlockStr, restOfTimeBlockLineStr] = getTimeBlockDetails(item.para?.content ?? '', '')
-  // const timeblockStr = (thisSection.sectionCode === 'TB') ? possTimeBlockStr : ''
 
   // Handle icon click, following action in the lower-level StatusIcon component (e.g. cancel/complete)
   function handleIconClick() {
@@ -45,20 +42,21 @@ function TaskItem({ item, thisSection }: Props): Node {
         }, 500)
         break
       }
-      case 'project':
+      case 'project': {
         messageObject.actionType = 'showNoteInEditorFromFilename'
         break
-      default:
-        logDebug(`ItemRow`, `ERROR - handleIconClick: unknown itemType: ${itemType}`)
+      }
+      default: {
+        logWarn(`ItemRow`, `Warning: handleIconClick: unknown itemType: ${itemType}`)
         break
+      }
     }
-    logDebug('TaskItem/handleIconClick', `-> actionType:${messageObject.actionType} for itemType:${itemType} and i.p.content = ${item.para?.content ?? '-'}`)
-    // clo(messageObject, `TaskItem: icon clicked: ${item.ID}`)
+    logDebug('TaskItem/handleIconClick', `-> actionType:${messageObject.actionType} for ID:${item.ID} itemType:${itemType} and i.p.content = ${item.para?.content ?? '-'}`)
   }
 
-  // Add an indent level to the start of the item iff it is a child and it has a selected parent
-  // TODO: and test that parent is being shown!
-  const indentLevelToDisplay = /* item.para?.isAChild && */ item.parentID && item.parentID !== '' ? item.para?.indents ?? 0 : 0
+  // Add an indent level to the start of the item iff it is a child and it has a selected parent and test that parent is being shown!
+  // TEST: this. First clause has been commented out for some time.
+  const indentLevelToDisplay = item.para?.isAChild && item.parentID && item.parentID !== '' ? (item.para?.indents ?? 0) : 0
 
   return (
     visible ? (
