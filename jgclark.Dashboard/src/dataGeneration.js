@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-05-16 for v2.3.0, @jgclark
+// Last updated 2025-11-22 for v2.3.0.b15, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -11,13 +11,10 @@ import { allSectionCodes } from './constants.js'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionOpenItemsFromParas,
-  // createSectionItemObject,
   getDashboardSettings,
   getListOfEnabledSections,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
-  // getRelevantPriorityTasks,
-  // makeDashboardParas,
 } from './dashboardHelpers'
 import { getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
 import { getOverdueSectionData } from './dataGenerationOverdue'
@@ -142,6 +139,7 @@ export async function getSomeSectionsData(
  */
 export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: boolean = false): Array<TSection> {
   const sections: Array<TSection> = []
+  const thisSectionCode = 'INFO'
   const outputLines = []
   outputLines.push(`Device name '${NotePlan.environment.machineName}' (${NotePlan.environment.platform}). Screen: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}`)
   const storedWindowRect: Rect | false = getStoredWindowRect('jgclark.Dashboard.main')
@@ -153,6 +151,7 @@ export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: bo
   const items: Array<TSectionItem> = outputLines.map((line) => {
     const item = {
       ID: `${sectionNumStr}-${itemCount}`,
+      sectionCode: thisSectionCode,
       itemType: 'info',
       message: line,
     }
@@ -160,10 +159,10 @@ export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: bo
     return item
   })
   sections.push({
-    ID: 'INFO',
+    ID: thisSectionCode,
     name: 'Info',
     showSettingName: 'showInfoSection',
-    sectionCode: 'INFO',
+    sectionCode: thisSectionCode,
     description: 'Window Details',
     FAIconClass: 'fa-light fa-info-circle',
     sectionTitleColorPart: 'sidebarInfo',
@@ -217,7 +216,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'month', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
         itemCount += items.length
 
         logTimer('getDataForDashboard', startTime, `- finished finding monthly items from ${dateStr}`)
@@ -348,7 +347,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         // Get list of open tasks/checklists from current monthly note (if it exists)
         if (sortedRefParas.length > 0) {
           // Iterate and write items for first (or combined) section
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
+          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
           itemCount += items.length
         }
       }
@@ -418,7 +417,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'quarter', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
         itemCount += items.length
 
         // logDebug('getDataForDashboard', `- finished finding Quarterly items from ${dateStr} after ${timer(startTime)}`)
@@ -543,7 +542,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         // Get list of open tasks/checklists from current quarterly note (if it exists)
         if (sortedRefParas.length > 0) {
           // Iterate and write items for this section
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
+          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
           itemCount += items.length
         }
       }

@@ -155,7 +155,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
         if (itemCount < 3) {
           clo(thisDashboardPara, `para ${itemCount}:`)
         }
-        items.push(createSectionItemObject(thisID, thisDashboardPara))
+        items.push(createSectionItemObject(thisID, thisSectionCode, thisDashboardPara))
         itemCount++
       }
     }
@@ -312,7 +312,7 @@ export async function getSavedSearchResults(
       //     if (itemCount < 3) {
       //       clo(thisDashboardPara, `para ${itemCount}:`)
       //     }
-      //     items.push(createSectionItemObject(thisID, thisDashboardPara))
+      //     items.push(createSectionItemObject(thisID, thisSectionCode, thisDashboardPara))
       //     itemCount++
       //   }
       // })

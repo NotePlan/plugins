@@ -63,7 +63,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'week', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
         itemCount += items.length
         // logDebug('getDataForDashboard', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
       } else {
@@ -199,7 +199,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
       } else {
         // Get list of open tasks/checklists from current weekly note (if it exists)
         if (sortedRefParas.length > 0) {
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
+          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
           itemCount += items.length
         }
       }
@@ -267,7 +267,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'week', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
         itemCount += items.length
 
         // logDebug('getLastWeekSectionData', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
@@ -322,7 +322,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
       } else {
         // Get list of open tasks/checklists from current weekly note (if it exists)
         if (sortedRefParas.length > 0) {
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
+          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
           itemCount += items.length
         }
       }

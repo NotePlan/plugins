@@ -727,18 +727,29 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
  * Helper function to create a sectionItem object from its constituent parts.
  *
  * @param {string} id - The ID of the sectionItem.
+ * @param {string} sectionCode - The section code of the sectionItem.
  * @param {TParagraph} p - The paragraph data for the sectionItem.
- * @param {string} theType - The type of the sectionItem (if left blank, will use the para's type)
+ * @param {string?} theType - The type of the sectionItem (if not given, will use the para's type)
  * @returns {SectionItem} A sectionItem object.
  */
-export function createSectionItemObject(id: string, p: TParagraph | TParagraphForDashboard, theType?: TItemType): TSectionItem {
+export function createSectionItemObject(
+  id: string,
+  sectionCode: string,
+  p: TParagraph | TParagraphForDashboard,
+  theType?: TItemType
+): TSectionItem {
   try {
     if (!p) {
       throw new Error(`In ID ${id}, para is null`)
     } else if (!p.filename || !p.type) {
       throw new Error(`In ID ${id}, para is missing filename or type`)
     }
-    const itemObj = { ID: id, itemType: theType ?? p.type, para: p, teamspaceTitle: '' }
+    const itemObj = {
+      ID: id,
+      sectionCode: sectionCode,
+      itemType: theType ?? p.type,
+      para: p, teamspaceTitle: '',
+    }
     const thisNote = getNoteFromFilename(p.filename)
     if (thisNote) {
       const possTeamspaceTitle = getTeamspaceTitleFromNote(thisNote)
@@ -755,7 +766,7 @@ export function createSectionItemObject(id: string, p: TParagraph | TParagraphFo
     logError('createSectionItemObject', `${error.message} from {${p?.content}}`)
     // $FlowIgnore[incompatible-return]
     // $FlowIgnore[incompatible-exact] - we are not using all the types in TParagraphForDashboard
-    return { ID: id, itemType: theType ?? p.type ?? 'error', para: p }
+    return { ID: id, sectionCode: sectionCode ?? '', itemType: theType ?? p.type ?? 'error', para: p }
   }
 }
 
@@ -764,9 +775,10 @@ export function createSectionItemObject(id: string, p: TParagraph | TParagraphFo
  * Note: sometimes non-open items are included, e.g. other types of timeblocks. They need to be filtered out first.
  * @param {Array<TParagraphForDashboard>} sortedOrCombinedParas
  * @param {string} sectionNumStr
+ * @param {string} sectionCode
  * @returns {Array<TSectionItem>}
  */
-export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TParagraphForDashboard>, sectionNumStr: string): Array<TSectionItem> {
+export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TParagraphForDashboard>, sectionNumStr: string, sectionCode: string): Array<TSectionItem> {
   let itemCounter = 0
   let lastIndent0ParentID = ''
   let lastIndent1ParentID = ''
@@ -780,7 +792,7 @@ export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TPa
       continue
     }
     const thisID = `${sectionNumStr}-${itemCounter}`
-    const thisSectionItemObject = createSectionItemObject(thisID, socp)
+    const thisSectionItemObject = createSectionItemObject(thisID, sectionCode, socp)
     // Now add parentID where relevant
     if (socp.isAChild) {
       const parentParaID =

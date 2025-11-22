@@ -166,16 +166,16 @@ export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'pro
 // an item within a section, with optional TParagraphForDashboard
 export type TSectionItem = {
   ID: string,
-  // sectionCode: TSectionCode, // might want this in future
+  sectionCode: TSectionCode, // needed to make it much easier to walk up the tree. E.g. when updating the done count for the section.
   itemType: TItemType,
   para?: TParagraphForDashboard, // where it is a paragraph-type item (not 'project')
   project?: TProjectForDashboard,
+  message?: string, // for items that don't have a para or project
   updated?: boolean, // used to keep deletes from confusing the dialog which is waiting for updates to the same line
   // updated will be set by the copyUpdatedSectionItemData function when content is modified
   parentID?: string, // if this is a sub-task, this holds the ID of the parent task if that is also an open item (required for displaying children properly with their parents in useSelectionSortAndFilter)
-  message?: string, // for items that don't have a para or project
   settingsDialogAnchor?: string, // scroll to this element when the gear icon is clicked
-  teamspaceTitle?: string, // if this is from a Teamspace note
+  teamspaceTitle?: string, // if this is from a Teamspace note. TODO: should this move to the TParagraphForDashboard type?
 }
 
 // reduced paragraph definition
@@ -312,9 +312,8 @@ export type TControlString =
 
 // for passing messages from React Window to plugin
 export type MessageDataObject = {
-  item?: TSectionItem, // optional because REFRESH doesn't need anything else
-  // itemID?: string, // we think this isn't needed
-  actionType: TActionType, // main verb (was .type)
+  actionType: TActionType, // main verb
+  item?: TSectionItem, // optional (but only because REFRESH doesn't need any data)
   controlStr?: TControlString, // further detail on actionType
   updatedContent?: string, // where we have made an update in React window
   newSettings?: string /* either reactSettings or dashboardSettings depending on actionType */,

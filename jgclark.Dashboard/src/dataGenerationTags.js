@@ -221,7 +221,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
           for (const p of sortedTagParas) {
             const thisID = `${sectionNumStr}.${itemCount}`
             // $FlowIgnore[incompatible-call]
-            items.push(createSectionItemObject(thisID, p))
+            items.push(createSectionItemObject(thisID, thisSectionCode, p))
             itemCount++
           }
         } else {

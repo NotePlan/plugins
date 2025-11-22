@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate Project section data
-// Last updated 2025-09-01 for v2.3.0
+// Last updated 2025-11-22 for v2.3.0.b15, @jgclark
 //-----------------------------------------------------------------------------
 
 import { getNextProjectsToReview } from '../../jgclark.Reviews/src/allProjectsListHelpers'
@@ -49,6 +49,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
       const thisFilename = p.filename ?? '<filename not found>'
       items.push({
         ID: thisID,
+        sectionCode: thisSectionCode,
         itemType: 'project',
         // $FlowIgnore[prop-missing]
         project: {
@@ -76,6 +77,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
         const thisID = `${sectionNumStr}-${itemCount}`
         items.push({
           ID: thisID,
+          sectionCode: thisSectionCode,
           itemType: 'project',
           // $FlowIgnore[prop-missing]
           project: {
@@ -126,9 +128,11 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
 
   // Log the start of the generation to a special log note, if we're running. TODO: remove this later.
   if (config?.FFlag_ShowSectionTimings) {
-    const logNote: TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
-    const newLogLine = `${new Date().toLocaleString()}: Dashboard -> ${nextProjectsToReview.length} Project(s) ready to review, in ${timer(thisStartTime)}`
-    smartPrependPara(logNote, newLogLine, 'list')
+    const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
+    if (logNote) {
+      const newLogLine = `${new Date().toLocaleString()}: Dashboard -> ${nextProjectsToReview.length} Project(s) ready to review, in ${timer(thisStartTime)}`
+      smartPrependPara(logNote, newLogLine, 'list')
+    }
   }
 
   return section

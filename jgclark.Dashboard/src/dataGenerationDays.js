@@ -82,7 +82,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         logDebug('getTodaySectionData', `getOpenItemParasForTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
         itemCount += items.length
       } else {
         logDebug('getTodaySectionData', `No daily note found using filename '${thisFilename}'`)
@@ -220,7 +220,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       } else {
         if (sortedRefParas.length > 0) {
           // Iterate and write items for first (or combined) section
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
+          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
           itemCount += items.length
         }
       }
@@ -263,7 +263,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         if (isActiveOrFutureTimeBlockPara(p, mustContainString)) {
           const thisID = `${TBsectionNumStr}-${itemCounter}`
           logDebug('getTodaySectionData', `+ TB ${thisID}: {${p.content}} from ${p.filename}`)
-          const thisSectionItemObject = createSectionItemObject(thisID, p)
+          const thisSectionItemObject = createSectionItemObject(thisID, 'TB', p)
           timeBlockItems.push(thisSectionItemObject)
           itemCounter++
         } else {
@@ -349,7 +349,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
         itemCount += items.length
 
         // logTimer('getYesterdaySectionData', startTime, `- finished finding yesterday's items from ${filenameDateStr}`)
@@ -412,7 +412,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         // Get list of open tasks/checklists from current daily note (if it exists)
         if (sortedRefParas.length > 0) {
           // Iterate and write items for first (or combined) section
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
+          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
           itemCount += items.length
         }
       }
@@ -494,7 +494,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
         itemCount += items.length
 
         // logTimer('getTomorrowSectionData', startTime, `- finished finding tomorrow's items from ${filenameDateStr}`)
@@ -578,7 +578,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         // Get list of open tasks/checklists from current daily note (if it exists)
         if (sortedRefParas.length > 0) {
           // Iterate and write items for this section
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
+          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
           itemCount += items.length
         }
       }

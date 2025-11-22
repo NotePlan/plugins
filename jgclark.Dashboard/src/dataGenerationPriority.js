@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-11-18 for v2.3.0.b14, @jgclark
+// Last updated 2025-11-22 for v2.3.0.b15, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -102,7 +102,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
       logDebug('getPrioritySectionData', `- after limit, now ${priorityTaskParasLimited.length} items to show`)
       priorityTaskParasLimited.map((p) => {
         const thisID = `${sectionNumStr}-${itemCount}`
-        items.push(createSectionItemObject(thisID, p))
+        items.push(createSectionItemObject(thisID, thisSectionCode, p))
         itemCount++
       })
     }
