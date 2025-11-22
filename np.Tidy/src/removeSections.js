@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-11-01 for v1.15.2, @jgclark
+// Last updated 2025-11-22 for v1.17.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,7 +13,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEnc
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
 import { allNotesSortedByChanged, pastCalendarNotes, removeSection } from '@helpers/note'
 import { getNotesChangedInIntervalFromList } from '@helpers/NPnote'
-import { findHeading, removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
+import { findHeading, removeContentUnderHeading } from '@helpers/NPParagraph'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -170,21 +170,43 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
 
     // For speed, first multi-core search the notes to find the notes that contain this string. 
     let allInstancesOfSectionHeadingString = await DataStore.search(sectionHeading, ['calendar', 'notes'], [], config.removeFoldersToExclude)
+
     // Then filter to just the headings that match sectionHeading.
-    let parasToRemove = allInstancesOfSectionHeadingString.filter((n) => n.type === 'title' && n.content === sectionHeading && n.headingLevel !== 1)
+    let parasToRemove = allInstancesOfSectionHeadingString.filter((p) => p.type === 'title' && p.content === sectionHeading && p.headingLevel !== 1)
+    let numToRemove = parasToRemove.length
+
+    // Then filter out any future calendar notes, if the setting is enabled
+    if (parasToRemove.length > 0 && config.ignoreFutureCalendarNotes) {
+      parasToRemove = parasToRemove.filter((p) => p.note?.type === 'Notes' || !filenameIsInFuture(p.note?.filename ?? ''))
+      logDebug('removeSectionFromAllNotes', `- filtered out ${String(numToRemove - parasToRemove.length)} future calendar notes`)
+      numToRemove = parasToRemove.length
+    }
+
+    // Log the list of notes that will be affected
+    logInfo('removeSectionFromAllNotes', `List of ${String(numToRemove)} notes with section heading '${sectionHeading}':`)
+    for (const p of parasToRemove) {
+      const thisNote = p.note
+      if (!thisNote) continue
+      logInfo('removeSectionFromAllNotes', `- '${displayTitle(thisNote)}'`)
+    }
+
     // Check if user wants to proceed
-    if (parasToRemove.length > 0) {
+    if (numToRemove > 0) {
       if (!runSilently) {
-        const res = await showMessageYesNo(`Are you sure you want to remove ${String(parasToRemove.length)} '${sectionHeading}' sections? (See Plugin Console for full list)`, ['Yes', 'No'], 'Remove Section from Notes')
+        const res = await showMessageYesNo(`Are you sure you want to remove ${String(numToRemove)} '${sectionHeading}' sections? (See Plugin Console for full list). Note: there is no simple way to undo this operation.`, ['Yes', 'No'], 'Remove Section from Notes')
         if (res === 'No') {
           logInfo('removeSectionFromAllNotes', `User cancelled operation`)
           return
         }
       }
 
-      // Run the powerful removal function by @dwertheimer
-      removeContentUnderHeadingInAllNotes(['Calendar', 'Notes'], sectionHeading, keepHeading, runSilentlyAsString)
-      logInfo(pluginJson, `Removed '${sectionHeading}' sections from all notes`)
+      // Do the removal for each note
+      for (const p of parasToRemove) {
+        const thisNote = p.note
+        if (!thisNote) continue
+        removeContentUnderHeading(thisNote, sectionHeading, false, keepHeading)
+      }
+      logInfo(pluginJson, `Removed ${String(numToRemove)} '${sectionHeading}' sections from all notes`)
 
     } else {
       if (!runSilently) {
