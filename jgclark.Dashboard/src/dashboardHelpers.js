@@ -890,7 +890,7 @@ export function getDashboardSettingsDefaultsWithSectionsSetToFalse(): TDashboard
 /**
  * Get the section code from an item ID.
  * Note: might now not be used.
- * TODO: in time we want to change the ID to start with the section code, so this will be easy.
+ * TODO: in time we want to change the ID to start with the section code, so this will be easy.  Note: I have since added sectionCode to the SectionItem object, which makes it easier still. Decide whether to phase this out.
  * @param {string} itemID - The ID of the item
  * @returns {string} The section code
  */

@@ -7,11 +7,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: ^⌥s triggers the search bar
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
-- TODO: enlarged default window size on iPads
 -->
 
 ## [2.3.0.b15] 2025-10-22 (unreleased)
 - improve the count of completed tasks shown in the Today section.
+- get count of completed tasks updated when an task in that seciton is completed.
+- improve wording of the Banner messages.
+- dev: finally bit the bullet and added 'sectionCode' to TSectionItem.
 
 ## [2.3.0.b14] 2025-10-20
 - [Cursor] Refactor tagMentionCache to be more maintainable, and fix errors.

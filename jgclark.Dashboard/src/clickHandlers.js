@@ -7,7 +7,7 @@
 // Last updated 2025-07-11 for v2.3.0.b, @jgclark
 //-----------------------------------------------------------------------------
 import moment from 'moment/min/moment-with-locales'
-// import pluginJson from '../plugin.json'
+import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getDashboardSettingsDefaults, handlerResult, makeDashboardParas, setPluginData } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettingsInAPerspective } from './perspectiveHelpers'
@@ -156,17 +156,26 @@ export async function doAddItemToFuture(data: MessageDataObject): Promise<TBridg
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename, content, item } = validateAndFlattenMessageObject(data)
+  clo(item, `doCompleteTask -> item`)
   const completedParagraph = await completeItem(filename, content)
   // clo(completedParagraph, `doCompleteTask -> completedParagraph`)
 
-  if (typeof completedParagraph !== 'boolean') {
-    logDebug('doCompleteTask', `-> {${completedParagraph.content}}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'INCREMENT_DONE_COUNT'], { updatedParagraph: completedParagraph })
-  } else {
-    logWarn('doCompleteTask', `-> failed`)
+  if (typeof completedParagraph === 'boolean') {
+    logWarn('doCompleteTask', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
     return handlerResult(false)
   }
+
+  // Update the done count for the section
+  await updateDoneCountsFromChangedNotes(`In doCompleteTask() for item ${item?.ID || 'unknown'}`)
+
+  // Now update the section.doneCounts.completedTasks
+  // by adding REFRESH_SECTION_IN_JSON below
+  const sectionCodes = [item?.sectionCode] || []
+
+  // Send instructions to update the window
+  logDebug('doCompleteTask', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
+  return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'INCREMENT_DONE_COUNT', 'REFRESH_SECTION_IN_JSON'], { updatedParagraph: completedParagraph, sectionCodes: sectionCodes })
 }
 
 /**
@@ -181,7 +190,7 @@ export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBrid
     logDebug('doCompleteTaskThen', `-> {${updatedParagraph.content}}`)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
   } else {
-    logWarn('doCompleteTaskThen', `-> failed`)
+    logWarn('doCompleteTaskThen', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
     return handlerResult(false)
   }
 }
@@ -198,10 +207,11 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
   const possiblePara = findParaFromStringAndFilename(filename, content)
   if (typeof possiblePara === 'boolean') {
     res = false
+    logWarn('doCancelTask', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
   } else {
     updatedParagraph = possiblePara || {}
   }
-  logDebug('doCancelTask', `-> ${res ? 'success' : 'failed'}`)
+  logDebug('doCancelTask', `-> ${res ? 'success' : 'failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?'}`)
   return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
@@ -211,10 +221,12 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doCompleteChecklist(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename, content, item } = validateAndFlattenMessageObject(data)
   const updatedParagraph = await completeItem(filename, content)
   // clo(updatedParagraph, `doCompleteChecklist -> updatedParagraph`)
-  // clo(updatedParagraph.note.filename, `doCompleteChecklist -> updatedParagraph.note.filename`)
+
+  // Send instructions to update the window
+  logDebug('doCompleteChecklist', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
   return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
@@ -249,7 +261,7 @@ export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerR
   } else {
     updatedParagraph = possiblePara || {}
   }
-  logDebug('doCancelChecklist', `-> ${res ? 'success' : 'failed'}`)
+  logDebug('doCancelChecklist', `-> ${res ? 'success' : 'failed. Perhaps the checklist was modified in NotePlan since the last time the Dashboard was refreshed?'}`)
   return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
