@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2025-11-20 for v2.3.0.b15
+// Last updated 2025-11-22 for v2.3.0.b15
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -52,12 +52,11 @@ import {
 import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickHandlers'
 import { scheduleAllOverdueOpenToToday, scheduleTodayToTomorrow, scheduleYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
-import { findSectionItems, getDashboardSettings, getListOfEnabledSections, getSectionCodeFromItemID, makeDashboardParas, setPluginData } from './dashboardHelpers'
+import { findSectionItems, getDashboardSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain' // Note: fixed circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
-import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified, TSection, TSectionItem } from './types'
-import { setNestedValue } from '@helpers/dataManipulation'
+import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
 import { clo, clof, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
@@ -428,7 +427,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       logDebug('processActionOnReturn', `-> failed handlerResult(false) ${handlerResult.errorMsg || ''}`)
       await sendBannerMessage(
         WEBVIEW_WINDOW_ID,
-        `Action processing failed for "${data.actionType}" ${handlerResult.errorMsg || ''}.\nCheck the Plugin Console for more details (after turning on DEBUG logging).`,
+        `Sorry; something's gone wrong for "${data.actionType}" ${handlerResult.errorMsg || ''}. This is normally caused by a changing a task in NotePlan since the last time the Dashboard was refreshed. There will be more details in the app's console log.`,
       )
       return
     }
@@ -595,6 +594,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 
     if (actionsOnSuccess.includes('INCREMENT_DONE_COUNT')) {
       const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      // Update the total done count for all sections
       const incrementedCount = reactWindowData.pluginData.totalDoneCount + 1
       logDebug('processActionOnReturn', `INCREMENT_DONE_COUNT to ${String(incrementedCount)}`)
       reactWindowData.pluginData.totalDoneCount = incrementedCount

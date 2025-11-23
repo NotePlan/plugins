@@ -12,6 +12,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.3.0.b15] 2025-10-22 (unreleased)
 - improve the count of completed tasks shown in the Today section.
 - get count of completed tasks updated when an task in that seciton is completed.
+- fix wording in Project section
+- make the info messages (e.g. "There are N overdue tasks ...") more consistent
 - improve wording of the Banner messages.
 - dev: finally bit the bullet and added 'sectionCode' to TSectionItem.
 

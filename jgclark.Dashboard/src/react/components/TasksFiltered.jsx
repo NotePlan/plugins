@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show an Indicator that a Filter has been applied and so some item(s) have been hidden.
 // Called by ItemRow component
-// Last updated 2024-10-23 for v2.0.7 by @jgclark
+// Last updated 2025-11-23 for v2.3.0.b15, @jgclark
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
@@ -47,7 +47,7 @@ const TasksFiltered = ({ item, onToggleShowAll }: Props): Node => {
         </div>
       </span>
       <div className="sectionItemContent sectionItem" onClick={(e) => handleLineClick(e)}>
-        <span className="content">
+        <span className="messageItemRow">
           <i>{item?.para?.content || '<no content>'}</i>
         </span>
       </div>

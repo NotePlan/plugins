@@ -40,7 +40,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   const { dashboardSettings, reactSettings, setReactSettings, pluginData, sendActionToPlugin, updatePluginData } = useAppContext()
 
   // TEST: Track what's changing to debug re-renders
-  const prevPluginDataRef = useRef(pluginData)
+  // const prevPluginDataRef = useRef(pluginData)
   const prevDashboardSettingsRef = useRef(dashboardSettings)
   const prevReactSettingsRef = useRef(reactSettings)
   const prevSectionRef = useRef(section)
@@ -177,6 +177,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
             sectionItems = [
               {
                 ID: `${section.sectionCode}-Empty`,
+                sectionCode: section.sectionCode,
                 itemType: 'itemCongrats',
               },
             ]
@@ -187,6 +188,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           sectionItems = [
             {
               ID: `${section.sectionCode}-Empty`,
+              sectionCode: section.sectionCode,
               itemType: 'itemCongrats',
             },
           ]
@@ -196,6 +198,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           sectionItems = [
             {
               ID: `${section.sectionCode}-Empty`,
+              sectionCode: section.sectionCode,
               itemType: 'projectCongrats',
             },
           ]
@@ -206,6 +209,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           sectionItems = [
             {
               ID: `${section.sectionCode}-Empty`,
+              sectionCode: section.sectionCode,
               itemType: 'noSearchResults',
             },
           ]
@@ -251,14 +255,14 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   const {
     filteredItems: _filteredItems,
     itemsToShow,
-    numFilteredOut: _numFilteredOut,
+    numFilteredOutThisSection: _numFilteredOutThisSection,
     limitApplied,
     maxPrioritySeenInThisSection,
     toggleShowAllTasks,
   } = useSectionSortAndFilter(section, items, dashboardSettings, currentMaxPriorityFromAllVisibleSections)
 
   // Debug: log the values from useSectionSortAndFilter
-  logDebug('Section', `- ${section.sectionCode} ${section.name} after useSectionSortAndFilter: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}`)
+  // logDebug('Section', `- ${section.sectionCode} ${section.name} after useSectionSortAndFilter: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}, itemsToShow=${itemsToShow.length}, numFilteredOutThisSection=${String(numFilteredOutThisSection)}, limitApplied=${String(limitApplied)}`)
 
   // Update global max priority when this section finds a higher priority
   // Use a ref to prevent duplicate updates to the same value
@@ -371,11 +375,12 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     }
   }
 
-  // Deal with special cases where we don't want to show item counts
   // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
   if (numItemsToShow === 1 && treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)) {
     processActionButtons = []
   }
+
+  // Deal with some special cases where we don't want to show item counts
   // If we have only one item to show, and it's a single item type that we don't want to count (e.g. 'Nothing left on this list'), set numItemsToShow to 0
   if (numItemsToShow === 1 && treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)) numItemsToShow = 0
 
@@ -402,8 +407,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
    * - PROJ: no limit: {T} projects ready to review
    *          limited: {L} of {T} projects ready to review
    */
-  // Replace {countWithLimit} with the number of items, and pluralise it if neccesary
-  descriptionToUse = descriptionToUse.replace('{countWithLimit}', limitApplied ? `first ${items.length} of ${totalCount ?? '?'}` : `${totalCount ?? '?'}`)
+  // Replace {countWithLimit} (e.g. from PROJECT) with the number of items, and pluralise it if neccesary
+  descriptionToUse = descriptionToUse.replace('{countWithLimit}', limitApplied ? `first ${numItemsToShow} of ${totalCount ?? '?'}` : `${totalCount ?? '?'}`)
 
   // Replace {count} with the number of items, and pluralise it if neccesary
   descriptionToUse = descriptionToUse.replace(
@@ -438,7 +443,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Replace {itemType} in description, and pluralise it if neccesary
   descriptionToUse = descriptionToUse.replace('{itemType}', getTaskOrItemDisplayString(totalCount ?? 0, dashboardSettings.ignoreChecklistItems ? 'task' : 'item'))
 
-  // logInfo('Section', `- ${section.sectionCode}: limitApplied? ${String(limitApplied)} / numItemsToShow: ${String(numItemsToShow)} / numItems: ${String(items.length)} / numFilteredOut: ${String(numFilteredOut)}. ${section.description} -> ${descriptionToUse}`)
+  // logInfo('Section', `- ${section.sectionCode}: limitApplied? ${String(limitApplied)} / numItemsToShow: ${String(numItemsToShow)} / numItems: ${String(items.length)} / numFilteredOutThisSection: ${String(numFilteredOutThisSection)}. ${section.description} -> ${descriptionToUse}`)
 
   // Prep a task-completion circle to the description for calendar non-referenced sections (where showProgressInSections !== 'none')
   let completionCircle = null
@@ -452,7 +457,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       >
         <CircularProgressBar
           // $FlowFixMe[incompatible-type]
-          size="0.9rem" // TODO: this only works as "Nrem" despite number being expected
+          size="0.9rem" // Note: this only works as "Nrem" despite number being expected
           progress={percentComplete}
           backgroundColor="var(--bg-sidebar-color)"
           trackWidth={8} // outer border width
@@ -488,7 +493,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     interactiveProcessingPossibleSectionTypes.includes(section.sectionCode) &&
     numItemsToShow > 1 &&
     // TODO: use this next line instead if we want to pass all items to interactive processing, not just the [possibly filtered] numItemsToShow
-    // (numItemsToShow > 1 || (numItemsToShow === 1 && numFilteredOut > 0)) &&
+    // (numItemsToShow > 1 || (numItemsToShow === 1 && numFilteredOutThisSection > 0)) &&
     !treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)
 
   // TB section can show up blank, without this extra check

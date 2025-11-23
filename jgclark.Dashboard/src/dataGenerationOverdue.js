@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2025-11-22 for v2.3.0.b15, @jgclark
+// Last updated 2025-11-23 for v2.3.0.b15, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -151,8 +151,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
         ID: `${sectionNumStr}-${String(overdueParas.length)}`,
         sectionCode: 'OVERDUE',
         itemType: 'preLimitOverdues',
-        // itemType: 'filterIndicator',
-        message: `There are ${preLimitCount - overdueParas.length} overdue tasks older than the window set to ${config.lookBackDaysForOverdue} days. Settings:`,
+        message: `There are also ${preLimitCount - overdueParas.length} overdue tasks older than the window set to ${config.lookBackDaysForOverdue} days. Settings:`,
         settingsDialogAnchor: 'lookBackDaysForOverdue',
       })
     }

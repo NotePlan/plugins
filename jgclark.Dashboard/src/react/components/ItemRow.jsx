@@ -3,7 +3,7 @@
 // Represents a row item within a section.
 // Could be: Task, Review Item, Filtered Indicator, No Tasks left, No Projects, No Search Results.
 // Called by ItemGrid component.
-// Last updated 2025-07-22 for v2.3.0.b, @jgclark
+// Last updated 2025-11-23 for v2.3.0.b15, @jgclark
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
@@ -41,11 +41,11 @@ function ItemRow({ item, thisSection, onToggleShowAll }: Props): Node {
       ) : itemType === 'projectCongrats' ? (
         <MessageOnlyItem message={'No Projects need reviewing: take a break'} contentClassName="projectCongrats" closingFAIconClassName="fa-solid fa-mug" />
       ) : itemType === 'noSearchResults' ? (
-        <MessageOnlyItem message={item?.message ?? ''} contentClassName="noSearchResults" settingsDialogAnchor={item?.settingsDialogAnchor ?? ''} />
+            <MessageOnlyItem message={item?.message ?? ''} contentClassName="messageItemRow" settingsDialogAnchor={item?.settingsDialogAnchor ?? ''} />
       ) : itemType === 'preLimitOverdues' ? (
         <MessageOnlyItem
           message={item?.message ?? ''}
-          contentClassName="noSearchResults"
+                contentClassName="messageItemRow"
           settingsDialogAnchor={item?.settingsDialogAnchor ?? ''}
           rowIconClassName="fa-regular fa-plus"
         />
@@ -54,7 +54,7 @@ function ItemRow({ item, thisSection, onToggleShowAll }: Props): Node {
       ) : itemType === 'itemCongrats' ? (
         <MessageOnlyItem message={congratsMessage} contentClassName="itemCongrats" closingFAIconClassName="fa-light fa-champagne-glasses pad-left" />
       ) : itemType === 'info' ? (
-        <MessageOnlyItem message={item?.message ?? ''} contentClassName="infoItem" />
+                    <MessageOnlyItem message={item?.message ?? ''} contentClassName="infoItemRow" />
       ) : (
         <TaskItem item={item} thisSection={thisSection} />
       )}

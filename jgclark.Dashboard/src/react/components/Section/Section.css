@@ -1,5 +1,5 @@
 /* CSS specific to Section components and their children.
-/* Last updated 2025-05-29 for v2.3.0, @jgclark */
+/* Last updated 2025-11-23 for v2.3.0.b15, @jgclark */
 
 /* The main grid for a section: sectionInfo then sectionGrid. */
 .section {
@@ -249,27 +249,22 @@
 /* ItemRow items */
 
 /* Default class for MessageOnlyItems that don't supply their own class */
-.messageOnlyItem {
+.messageItemRow {
   font-style: italic;
-  color: var(--fg-canceled-color);
+  color: rgb(from var(--fg-main-color) r g b / 0.7);
 }
 
-.infoItem {
+.infoItemRow {
   font-style: normal;
   color: var(--fg-main-color);
 }
 
-.noSearchResults {
-  font-style: italic;
-  color: var(--fg-sidebarSearch);
-}
-
-.projectCongrats {
+.projectCongratsItemRow {
   font-style: italic;
   color: var(--fg-done-color);
 }
 
-.itemCongrats {
+.itemCongratsItemRow {
   font-style: italic;
   color: var(--fg-done-color);
 }
