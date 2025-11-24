@@ -46,10 +46,10 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     describe('endOfFrontmatterLineIndex()', () => {
-      test('should return false if no frontmatter', () => {
+      test('should return 0 if no frontmatter', () => {
         const note = new Note({ paragraphs: [{ content: 'No frontmatter here' }] })
         const result = f.endOfFrontmatterLineIndex(note)
-        expect(result).toEqual(false)
+        expect(result).toEqual(0)
       })
 
       test('should return the index of the closing separator', () => {

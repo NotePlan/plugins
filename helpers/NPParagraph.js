@@ -23,8 +23,8 @@ import {
   SCHEDULED_YEARLY_NOTE_LINK,
   WEEK_NOTE_LINK,
 } from '@helpers/dateTime'
-import { displayTitle } from '@helpers/general'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { displayTitle, rangeToString } from '@helpers/general'
 import { getNoteType } from '@helpers/note'
 import { getFirstDateInPeriod, getNPWeekData, getMonthData, getQuarterData, getYearData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
 import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
@@ -34,7 +34,30 @@ import { caseInsensitiveMatch, caseInsensitiveSubstringMatch, caseInsensitiveSta
 import { stripTodaysDateRefsFromString } from '@helpers/stringTransforms'
 import { hasScheduledDate, isOpen, isOpenAndScheduled } from '@helpers/utils'
 
+//-----------------------------------------------------------------------------
+// Constants
+
 const pluginJson = 'NPParagraph'
+const CONFIRM_YES = 'Yes'
+const RUN_SILENTLY_YES = 'yes'
+
+//-----------------------------------------------------------------------------
+// Helper functions
+
+/**
+ * Get a note by filename, checking both project notes and calendar notes.
+ * This helper function extracts the common pattern of looking up notes by filename.
+ * FIXME(Eduard): update to cope with Teamspace notes
+ * @author @jgclark
+ * @param {string} filename - the filename to look up
+ * @returns {TNote | null} - the note if found, null otherwise
+ */
+function getNoteFromFilename(filename: string): TNote | null {
+  return DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename) ?? null
+}
+
+//-----------------------------------------------------------------------------
+// Public functions
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
@@ -447,11 +470,9 @@ export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray
 
   // Get the set of selected paragraphs (which can be different from selection),
   // and work out what selectedPara number(index) this selected selectedPara is
-  let charCount = 0
   for (let i = 0; i < paragraphs.length; i++) {
     const p = paragraphs[i]
-    charCount += p.content.length + 1 // +1 for the newline
-    logDebug('selectedLinesIndex', `- para ${i}: ${p.content} (total: ${charCount}) chars`)
+    logDebug('selectedLinesIndex', `- para ${i}: ${p.content}`)
     if (startParaRange.start <= p.contentRange?.start) {
       firstSelParaIndex = i
       break
@@ -542,7 +563,7 @@ export async function findHeadingInNotes(
   }
   logDebug(`removeSectionFromAllNotes`, `- list of ${String(filteredParas.length)} notes/section headings found:`)
   for (const p of filteredParas) {
-    logDebug('', `- in '${displayTitle(p.note)}': '${String(p.content)}'`)
+    logDebug('findHeadingInNotes', `- in '${p.note ? displayTitle(p?.note) : 'unknown note'}': '${String(p?.content ?? '')}'`)
   }
   return filteredParas
 }
@@ -574,20 +595,19 @@ export async function removeContentUnderHeadingInAllNotes(
       if (!/yes/i.test(runSilently)) {
         res = await showMessageYesNo(`Remove "${heading}"+content in ${prevCopies.length} notes?`)
       }
-      if (res === 'Yes') {
-        prevCopies.forEach(async (paragraph) => {
+      if (res === CONFIRM_YES) {
+        for (const paragraph of prevCopies) {
           if (syncedOnly) {
             //FIXME: I am here need to call the check and bail -- something like the following line:
-            if (!(await blockContainsOnlySyncedCopies(paragraph.note || Editor, true))) return
-            clo(prevCopies, `removeContentUnderHeadingInAllNotes: prevCopies`)
+            if (!(await blockContainsOnlySyncedCopies(paragraph.note || Editor, true))) continue
           }
           if (paragraph.note != null) {
             await removeContentUnderHeading(paragraph.note, heading, false, keepHeading)
           }
-        })
+        }
       }
     } else {
-      if (!(runSilently === 'yes')) await showMessage(`Found no previous notes with "${heading}"`)
+      if (runSilently !== RUN_SILENTLY_YES) await showMessage(`Found no previous notes with "${heading}"`)
     }
     logDebug(`NPParagraph`, `removeContentUnderHeadingInAllNotes found ${prevCopies.length} previous ${String(noteTypes)} notes with heading: "${heading}"`)
   } catch (error) {
@@ -791,10 +811,10 @@ export function testForOverdue(
   type: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Quarterly',
 ): boolean | OverdueDetails {
   const reMATCHLINK = new RegExp(regexString, 'g')
-  let links = para.content.match(reMATCHLINK) || []
+  let links: Array<string> = para.content.match(reMATCHLINK) || []
   const todayString = todayRelevantFilename // .replace(`.${DataStore.defaultFileExtension}`, '')
-  let overdueLinks: Array<string> = [],
-    notOverdueLinks: Array<string> = []
+  let overdueLinks: Array<string> = []
+  let notOverdueLinks: Array<string> = []
   if (links && links?.length > 0) {
     links = links.map((link) => link.trim())
     overdueLinks = links.filter((link) => link.slice(1) < todayString)
@@ -903,7 +923,7 @@ export function hasOverdueYearTag(para: TParagraph, returnDetails: boolean = fal
  * Precedence: is Daily, Weekly, Monthly, Quarterly, Yearly
  * Someday maybe this will be able to classify multiple date tags in a paragraph
  * @param {TParagraph} para - the paragraph to test
- * @param {*} asOfDayString? - the date to use for testing (e.g. for future dates), if not provided, will use today's date
+ * @param {string?} asOfDayString? - the date to use for testing (e.g. for future dates), if not provided, will use today's date
  * @returns {OverdueDetails | false} - the details of the first date tag found, or false if none found
  */
 export function getTagDetails(para: TParagraph, asOfDayString?: string = ''): OverdueDetails | false {
@@ -913,7 +933,7 @@ export function getTagDetails(para: TParagraph, asOfDayString?: string = ''): Ov
     // const type = typeNames[i]
     const result = typeFuncs[i](para, true, asOfDayString)
     // $FlowIgnore - flow doesn't know that result is an OverdueDetails object
-    if ((result && result.overdue) || result.overdueLinks.length || result.notOverdueLinks.length) {
+    if ((result && result.isOverdue) || result.overdueLinks?.length || result.notOverdueLinks?.length) {
       // $FlowIgnore - flow doesn't know that result is an OverdueDetails object
       return result
     }
@@ -1286,39 +1306,61 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
  * If 'thenStopHighlight' is true, the cursor will be moved to the start of the paragraph after briefly flashing the whole line. This is to prevent starting to type and inadvertdently removing the whole line.
  * If 'andFocusEditor' is true, the editor will be focused after highlighting.
  * @author @jgclark
- * @param {any} objectToTest
+ * @param {({ rawContent: string } | { content: string }) & {filename: string} & Partial<TParagraph>} paraObjectToTest - the paragraph data to highlight
  * @param {boolean} thenStopHighlight? (default: false)
  * @param {boolean} andFocusEditor? (default: true)
- * @results {boolean} success?
+ * @returns {boolean} true if successful, false if paragraph not found or error occurred
  */
-export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight: boolean = false, andFocusEditor: boolean = true): boolean {
+export function highlightParagraphInEditor(
+  paraObjectToTest: ({ rawContent: string } | { content: string }) & { filename: string } & Partial<TParagraph>,
+  thenStopHighlight: boolean = false,
+  andFocusEditor: boolean = true
+): boolean {
   try {
-    logDebug('highlightParagraphInEditor', `Looking for <${objectToTest.rawContent ?? objectToTest.content}>`)
+    logDebug('highlightParagraphInEditor', `Looking for <${paraObjectToTest.rawContent ?? paraObjectToTest.content ?? '?'}>`)
 
     const { paragraphs } = Editor
-    const resultPara: TParagraph | null = objectToTest.rawContent
-      ? findParagraph(paragraphs, objectToTest, ['filename', 'rawContent'])
-      : findParagraph(paragraphs, objectToTest, ['filename', 'content'])
-    if (resultPara) {
-      const lineIndex = resultPara.lineIndex
-      Editor.highlight(resultPara)
-      logDebug('highlightParagraphInEditor', `Found para to highlight at lineIndex ${String(lineIndex)}`)
-      const paraRange = resultPara.contentRange
-      if (thenStopHighlight && paraRange) {
-        logDebug('highlightParagraphInEditor', `Now moving cursor to highlight at charIndex ${String(paraRange.start)}`)
-        Editor.highlightByIndex(paraRange.start, 0)
-      }
-      if (andFocusEditor) {
-        Editor.focus()
-      }
-      return true
-    } else {
-      logWarn('highlightParagraphInEditor', `Sorry, couldn't find paragraph with rawContent <${objectToTest.rawContent}> to highlight in open note`)
+    const resultPara: TParagraph | null = paraObjectToTest.rawContent
+      ? findParagraph(paragraphs, paraObjectToTest, ['filename', 'rawContent'])
+      : findParagraph(paragraphs, paraObjectToTest, ['filename', 'content'])
+    if (!resultPara) {
+      logWarn('highlightParagraphInEditor', `Sorry, couldn't find paragraph with rawContent <${paraObjectToTest.rawContent ?? paraObjectToTest.content ?? '?'}> to highlight in open note`)
       return false
     }
+
+    const lineIndex = resultPara.lineIndex
+    Editor.highlight(resultPara)
+    logDebug('highlightParagraphInEditor', `Found para to highlight at lineIndex ${String(lineIndex)}`)
+    const paraRange = resultPara.contentRange
+    if (thenStopHighlight && paraRange) {
+      logDebug('highlightParagraphInEditor', `Now moving cursor to highlight at charIndex ${String(paraRange.start)}`)
+      Editor.highlightByIndex(paraRange.start, 0)
+    }
+    if (andFocusEditor) {
+      Editor.focus()
+    }
+    return true
   } catch (error) {
     logError('highlightParagraphInEditor', `highlightParagraphInEditor: ${error.message}`)
     return false
+  }
+}
+
+/**
+ * Highlight the given Paragraph range (including just a single line) in the open editor.
+ * @author @jgclark
+ * @param {Array<TParagraph>} paras
+ */
+export function highlightSelectionInEditor(paras: Array<TParagraph>): void {
+  const firstStartCharIndex = paras[0].contentRange?.start ?? NaN
+  const lastEndCharIndex = paras[paras.length - 1].contentRange?.end ?? null
+  if (firstStartCharIndex && lastEndCharIndex) {
+    const parasCharIndexRange: TRange = Range.create(firstStartCharIndex,
+      lastEndCharIndex)
+    logDebug('highlightSelectionInEditor', `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+    Editor.highlightByRange(parasCharIndexRange)
+  } else {
+    logWarn('highlightSelectionInEditor', `- could not highlight automatic block selection range for ${paras.length} paragraphs. firstStartCharIndex=${String(firstStartCharIndex)}, lastEndCharIndex=${String(lastEndCharIndex)}`)
   }
 }
 
@@ -1339,13 +1381,8 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
     } else if (filenameIn === 'thisweek') {
       filename = getNPWeekStr(new Date())
     }
-    // Long-winded way to get note title, as we don't have TNote, but do have note's filename
-    // FIXME(Eduard): update to cope with Teamspace notes
-    // V1
-    const thisNote: TNote | null = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename) ?? null
-    // V2
-    // TODO:
-    // const thisNote: TNote | null = getNoteFromFilename(filename)
+    // Get note by filename (checks both project and calendar notes)
+    const thisNote: TNote | null = getNoteFromFilename(filename)
 
     if (thisNote) {
       if (thisNote.paragraphs.length > 0) {
@@ -1393,13 +1430,8 @@ export function findParaFromRawContentAndFilename(filenameIn: string, rawContent
     } else if (filenameIn === 'thisweek') {
       filename = getNPWeekStr(new Date())
     }
-    // Long-winded way to get note title, as we don't have TNote, but do have note's filename
-    // FIXME(Eduard): update to cope with Teamspace notes
-    // V1
-    const thisNote: TNote | null = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename) ?? null
-    // V2
-    // TODO:
-    // const thisNote: TNote | null = getNoteFromFilename(filename)
+    // Get note by filename (checks both project and calendar notes)
+    const thisNote: TNote | null = getNoteFromFilename(filename)
 
     if (thisNote) {
       if (thisNote.paragraphs.length > 0) {
@@ -1495,12 +1527,13 @@ export async function markComplete(para: TParagraph, useScheduledDateAsCompletio
       let repeatConfig: RepeatConfig
       const installedPlugins = DataStore.installedPlugins()
       const repeatsIsInstalled = Boolean(Array.isArray(installedPlugins) ? installedPlugins.find((p) => p.id === 'jgclark.RepeatExtensions') : null)
-      if (repeatsIsInstalled) {
+      if (!repeatsIsInstalled) {
         logWarn('markComplete', `Repeat Extensions plugin is not installed and configured, so will use safe defaults`)
         repeatConfig = {
           deleteCompletedRepeat: false,
           dontLookForRepeatsInDoneOrArchive: true,
           runTaskSorter: false,
+          taskSortingOrder: '',
           _logLevel: 'INFO',
         }
       } else {
@@ -1646,7 +1679,7 @@ export async function deleteItem(filenameIn: string, content: string): Promise<b
   try {
     // logDebug('NPP/deleteItem', `starting with filename: ${filenameIn}, content: ${content}`)
     const possiblePara = findParaFromStringAndFilename(filenameIn, content)
-    if (typeof possiblePara === 'boolean') {
+    if (!possiblePara || typeof possiblePara === 'boolean' || !possiblePara?.note) {
       return false
     }
     // Check with user, as this is hard to recover from
@@ -1844,15 +1877,14 @@ export function getSelectedParagraphsWithCorrectLineIndex(): Array<TParagraph> {
     logInfo('getSelectedParagraphsWithCorrectLineIndex', 'No note open, so returning empty array.')
     return []
   }
-  const numberOfFrontmatterLines = endOfFrontmatterLineIndex(note) || 0
+  const numberOfFrontmatterLines = endOfFrontmatterLineIndex(note) + 1 || 0
   logDebug('getSelectedParagraphsWithCorrectLineIndex', `numberOfFrontmatterLines: ${String(numberOfFrontmatterLines)}`)
-  const selectedParagraphs = Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex]) ?? []
+  const selectedParagraphs = Editor.selectedParagraphs.map((p: TParagraph) => note.paragraphs[p.lineIndex + numberOfFrontmatterLines]) ?? [] // note.paragraphs[p.lineIndex] is the correct paragraph, but p.lineIndex is the line index in the note, not the line index in the Editor
   logDebug('getSelectedParagraphsWithCorrectLineIndex', `Editor.selectedParagraphs:\n${String(Editor.selectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
   const correctedSelectedParagraphs: Array<TParagraph> = selectedParagraphs.slice()
-  correctedSelectedParagraphs.forEach((p) => {
-    // $FlowIgnore[cannot-write]
-    p.lineIndex += numberOfFrontmatterLines + 1
-  })
+  // correctedSelectedParagraphs.forEach((p: TParagraph) => {
+  //   p.lineIndex += numberOfFrontmatterLines
+  // })
 
   logDebug('getSelectedParagraphsWithCorrectLineIndex', `${correctedSelectedParagraphs.length} Corrected selected paragraph(s) with lineIndex taking into account frontmatter lines:\n${String(correctedSelectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
 

@@ -522,24 +522,24 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
  * Works out which is the last line of the frontmatter, returning the line index number of the closing separator, or 0 if no frontmatter found.
  * @author @jgclark
  * @param {TNote} note - the note to assess
- * @returns {number | false} - the line index number of the closing separator, or false if no frontmatter found
+ * @returns {number} - the line index number of the closing separator, or 0 if no frontmatter found
  */
-export function endOfFrontmatterLineIndex(note: CoreNoteFields): number | false {
+export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
   try {
     const paras = note.paragraphs
     const lineCount = paras.length
     logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
     // Can't have frontmatter as less than 2 separators
     if (paras.filter((p) => p.type === 'separator').length < 2) {
-      return false
+      return 0
     }
     // No frontmatter if first line isn't ---
     if (note.paragraphs[0].type !== 'separator') {
-      return false
+      return 0
     }
     // No frontmatter if less than 3 lines
     if (note.paragraphs.length < 3) {
-      return false
+      return 0
     }
     // Look for second --- line
     let lineIndex = 1
@@ -552,7 +552,7 @@ export function endOfFrontmatterLineIndex(note: CoreNoteFields): number | false 
       lineIndex++
     }
     // Shouldn't get here ...
-    return false
+    return NaN
   } catch (err) {
     logError('paragraph/findEndOfActivePartOfNote', err.message)
     return NaN // for completeness

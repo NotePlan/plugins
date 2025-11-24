@@ -530,29 +530,29 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
  * @param {string?} defaultFMText to add to frontmatter if supplied
  * @returns {boolean} success?
  */
-export function convertNoteToFrontmatter(note: TNote, defaultFMText: string = ''): void {
+export function convertNoteToFrontmatter(note: TNote, defaultFMText: string = ''): boolean {
   try {
     if (!note) {
       throw new Error('NPnote/convertNoteToFrontmatter: No valid note supplied.')
     }
 
     const result = ensureFrontmatter(note)
-    if (result) {
-      logDebug('NPnote/convertNoteToFrontmatter', `ensureFrontmatter() worked for note ${note.filename}`)
-
-      if (defaultFMText !== '') {
-        const endOfFMLineIndex: number | false = endOfFrontmatterLineIndex(note) // closing separator line
-        if (endOfFMLineIndex !== false) {
-          note.insertParagraph(defaultFMText, endOfFMLineIndex, 'text') // inserts before closing separator line
-        } else {
-          logWarn('NPnote/convertNoteToFrontmatter', `endOfFrontmatterLineIndex() failed for note ${note.filename}`)
-        }
-      }
-    } else {
-      logWarn('NPnote/convertNoteToFrontmatter', `ensureFrontmatter() failed for note ${note.filename}`)
+    if (!result) {
+      throw new Error(`ensureFrontmatter() failed for note ${note.filename}`)
     }
+
+    if (defaultFMText !== '') {
+      const endOfFMLineIndex: number = endOfFrontmatterLineIndex(note) // closing separator line
+      if (endOfFMLineIndex !== 0) {
+        note.insertParagraph(defaultFMText, endOfFMLineIndex, 'text') // inserts before closing separator line
+      } else {
+        throw new Error(`failed for note ${note.filename}`)
+      }
+    }
+    return true
   } catch (error) {
     logError(pluginJson, `convertNoteToFrontmatter: ${error.message}`)
+    return false
   }
 }
 
