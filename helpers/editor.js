@@ -1,9 +1,11 @@
 // @flow
 
 import { logDebug, logError, logInfo, logWarn } from './dev'
+import { getFolderFromFilename } from './folders'
+import { getNoteTitleFromTemplate } from './NPFrontMatter'
+import { usersVersionHas } from './NPVersions'
+import { getSelectedParagraphsWithCorrectLineIndex } from './NPParagraph'
 import { showMessageYesNo, showMessage, chooseFolder } from './userInput'
-import { endOfFrontmatterLineIndex, getNoteTitleFromTemplate, getNoteTitleFromRenderedContent } from './NPFrontMatter'
-import { getFolderFromFilename } from '@helpers/folders'
 
 /**
  * Run Editor.save() if active Editor is dirty and needs saving
@@ -166,4 +168,32 @@ export async function checkAndProcessFolderAndNewNoteTitle(templateNote: TNote, 
   }
   logDebug(`checkAndProcessFolderAndNewNoteTitle: no folder or new note title, so continuing on with standard template rendering`)
   return false
+}
+
+/**
+ * Get the selected paragraphs, handling version differences and frontmatter issues.
+ * @returns {Array<TParagraph>} Selected paragraphs with correct line indices
+ */
+export function getSelectedParagraphsToUse(): Array<TParagraph> {
+  // First check Editor is active
+  const { note, content, selectedParagraphs, selection } = Editor
+  if (content == null || selectedParagraphs == null || note == null) {
+    // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
+    logWarn('getSelectedParagraphsToUse', 'No note open, so stopping.')
+    return []
+  }
+  // Get current selection, and its range
+  if (selection == null) {
+    // Really a belt-and-braces check that the editor is active
+    logError('getSelectedParagraphsToUse', 'No selection found, so stopping.')
+    return []
+  }
+
+  if (usersVersionHas('settableLineIndex')) {
+    // v3: use getSelectedParagraphsWithCorrectLineIndex() instead, which is settable from v3.19.2 (build 1440 onwards), to help deal with the issue mentioned above.
+    return getSelectedParagraphsWithCorrectLineIndex()
+  } else {
+    // v2: use Editor.selectedParagraphs instead
+    return Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex]) ?? []
+  }
 }
