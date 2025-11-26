@@ -28,11 +28,11 @@ These 4 commands each moves lines to the current weekly note, using the same sel
 They could be mapped to shortcut keys to make using them even faster.
 
 ## /add sync'd copy to note
-This command (alias **/asc**) adds a sync'd copy of the current line to a section in another note.  Here's a demo with two notes side by side, only to make it clearer:
+This command (alias **/asc**) adds a sync'd copy of the current line or selected block of lines to a section in another note.  Here's a demo with two notes side by side, only to make it clearer:
 
 ![add sync demo](add-link-line-demo-T2.gif)
 
-NB: This feature only works on single lines, not whole blocks, at the moment.
+If multiple lines are selected, then line is sync'd separately, but always to successive new lines in the chosen note's section.
 
 ## various /... note link ... commands
 There are 4 related commands that move or copy lines in calendar notes that include a `[[note link]]` to regular notes with that title:

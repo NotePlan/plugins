@@ -293,14 +293,19 @@ export function displayTitle(note: CoreNoteFields, addTeamspaceIconAndName: bool
  * @return {string} - string representation of those paragraphs, without trailling newline
  */
 export function parasToText(paras: Array<TParagraph>): string {
-  // logDebug('paragraph/parasToText', `starting with ${paras.length} paragraphs`)
-  let text = ''
-  for (let i = 0; i < paras.length; i++) {
-    const p = paras[i]
-    text += `${p.rawContent}\n` // NB: rawContent needed here
+  try {
+    // logDebug('paragraph/parasToText', `starting with ${paras.length} paragraphs`)
+    let text = ''
+    for (let i = 0; i < paras.length; i++) {
+      const p = paras[i]
+      text += `${p.rawContent}\n` // NB: rawContent needed here
+    }
+    const parasAsText = text.trimEnd() // remove extra newline not wanted after last line
+    return parasAsText
+  } catch (error) {
+    logError('parasToText', error.message)
+    return ''
   }
-  const parasAsText = text.trimEnd() // remove extra newline not wanted after last line
-  return parasAsText
 }
 
 /**
@@ -907,19 +912,20 @@ export function addParagraphsToNote(
     if (paragraphs.length === 0) {
       throw new Error('No paragraphs to add!')
     }
+    logDebug('paragraph/addParagraphsToNote', `-> adding ${paragraphs.length} paragraphs to note '${displayTitle(destinationNote)}' under heading '${headingToFind}'. whereToAddInSection=${whereToAddInSection}`)
     // Turn the paragraphs into a (multi-line) text string
     const selectedParasAsText = parasToText(paragraphs)
 
     const destinationNoteParas = destinationNote.paragraphs
     let insertionIndex: number
     // Now add the text to the destination note
-    if (headingToFind === destinationNote.title || headingToFind === '<<top of note>>') {
-      // i.e. the first line in project or calendar note
+    if (headingToFind === destinationNote.title || headingToFind === '<<top of note>>' || (headingToFind === '' && whereToAddInSection === 'start')) {
+    // insert at the first line in calendar note, or first active line in regular note
       insertionIndex = findStartOfActivePartOfNote(destinationNote, allowNotePreambleBeforeHeading)
       logDebug('paragraph/addParagraphsToNote', `-> top of note, line ${insertionIndex}`)
       destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
-    } else if (headingToFind === '<<bottom of note>>' || headingToFind === '') {
+    } else if (headingToFind === '<<bottom of note>>' || (headingToFind === '' && whereToAddInSection === 'end')) {
       // blank return from chooseHeading has special meaning of 'end of note'
       insertionIndex = destinationNoteParas.length + 1 || 0
       logDebug('paragraph/addParagraphsToNote', `-> bottom of note, line ${insertionIndex}`)

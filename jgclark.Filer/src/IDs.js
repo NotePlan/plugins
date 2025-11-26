@@ -2,19 +2,19 @@
 // ----------------------------------------------------------------------------
 // Plugin to help link lines between notes with Line IDs
 // Jonathan Clark
-// last updated 2025-08-30 for v1.3.1
+// last updated 2025-11-24 for v1.3.4
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { getFilerSettings, highlightSelectionInEditor } from './filerHelpers'
+import { getFilerSettings } from './filerHelpers'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
+import { getSelectedParagraphsToUse } from '@helpers/editor'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
-// import { getFrontmatterParagraphs } from '@helpers/NPFrontMatter'
 import { chooseNoteV2 } from '@helpers/NPnote'
+import { highlightSelectionInEditor } from '@helpers/NPParagraph'
 import { addParagraphsToNote, parasToText, smartAppendPara, smartPrependPara } from '@helpers/paragraph'
 import { chooseHeadingV2 } from '@helpers/userInput'
-import { getSelectedParagraphLineIndex } from '@helpers/NPParagraph'
 
 //-----------------------------------------------------------------------------
 
@@ -40,44 +40,18 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     logDebug(pluginJson, `Filer/addIDAndAddToOtherNote() starting for note '${displayTitle(note)}'`)
 
     // Work out which paragraph to add the line ID to
-    const firstSelParaIndex = selectedParagraphs[0].lineIndex
-    logDebug('addIDAndAddToOtherNote', `- firstSelParaIndex = ${String(firstSelParaIndex)} for {${selectedParagraphs[0].content}}`) // ❌
-    // const otherMethod = await getSelectedParagraphLineIndex()
-    // logDebug('addIDAndAddToOtherNote', `- otherMethod = ${String(otherMethod)}`)
-
-    // // Check .selection as well // ✅
-    // if (selection) {
-    //   clo(selection, `selection`)
-    // }
-
-    // TEST: that this is now not needed
-    // // Nasty fudge for Frontmatter is now required if it exists: add the number of lines of frontmatter to the index
-    // const frontmatterParas = getFrontmatterParagraphs(note, true)
-    // if (frontmatterParas && frontmatterParas.length > 0) {
-    //   firstSelParaIndex += frontmatterParas.length
-    //   logDebug('addIDAndAddToOtherNote', `- added ${frontmatterParas.length} lines of frontmatter to firstSelParaIndex => ${firstSelParaIndex}`)
-    // }
-    let para = note.paragraphs[firstSelParaIndex]
+    const selectedParagraphsToUse = getSelectedParagraphsToUse()
+    logDebug('addIDAndAddToOtherNote', `selectedParagraphsToUse:\n${String(selectedParagraphsToUse.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
+    const numSelectedParas = selectedParagraphsToUse.length
+    const firstPara = selectedParagraphsToUse[0]
+    logDebug('addIDAndAddToOtherNote', `- first selected para (of ${String(numSelectedParas)}): #${firstPara.lineIndex} {${firstPara.content}}`)
 
     // Attempt to highlight them to help user check all is well
-    // $FlowIgnore[incompatible-call] just a readonly array issue
-    highlightSelectionInEditor([para])
+    highlightSelectionInEditor(selectedParagraphsToUse)
 
-    // Add Line ID for the first paragraph (known as 'blockID' by API)
-    note.addBlockID(para) // in this case, note is Editor.note, which is not saved in realtime. This has been causing race conditions at times.
-    note.updateParagraph(para)
-    Editor.save() // save the note as well. Needs NP 3.9.3 (build 1053) or later
-    para = note.paragraphs[firstSelParaIndex] // refresh para
-    const newBlockID = para.blockId
-    if (newBlockID) {
-      logDebug('addIDAndAddToOtherNote', `- blockId added: '${newBlockID}'`)
-    } else {
-      logError('addIDAndAddToOtherNote', `- no blockId created. Stopping.`)
-      return
-    }
-
-    // Decide where to copy the line to
-    const destNote = await chooseNoteV2('Select note to sync the line to', allRegularNotesSortedByChanged(), true, true, false, true)
+    // Decide where to copy the para(s) to
+    const lineCountStr = (numSelectedParas > 1) ? `${numSelectedParas} lines` : 'current line'
+    const destNote = await chooseNoteV2(`Select note to sync the ${lineCountStr} to`, allRegularNotesSortedByChanged(), true, true, false, true)
     if (!destNote) {
       logWarn('addIDAndAddToOtherNote', `- No note chosen. Stopping.`)
       return
@@ -87,16 +61,31 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     const headingToFind = await chooseHeadingV2(destNote, true, true, false)
     logDebug('addIDAndAddToOtherNote', `- Will add to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
-    // Add text to the new location in destination note
+    // Add Line ID for each paragraph (known as 'blockID' by API), using the same destination note and heading
+    // TODO: Works for 1 para OK. But for >1 para they are synced in reverse order.
+    for (const para of selectedParagraphsToUse) {
+      note.addBlockID(para) // in this case, note is Editor.note, which is not saved in realtime. This has been causing race conditions at times.
+      note.updateParagraph(para)
+      Editor.save() // save the note as well
+      const newBlockID = para.blockId
+      if (newBlockID) {
+        logDebug('addIDAndAddToOtherNote', `- blockId present: {${para.rawContent}}`)
+      } else {
+        logError('addIDAndAddToOtherNote', `- no blockId created. Stopping.`)
+        return
+      }
+    }
+
+    // Add the selected paras with added blockIds to the new location in destination note
     // Note: handily, the blockId goes with it as part of the para.content
     if (headingToFind === '<<top of note>>') {
       // add to top of note
-      smartPrependPara(destNote, parasToText([para]), 'text')
+      smartPrependPara(destNote, parasToText(selectedParagraphsToUse), 'text')
     } else if (headingToFind === '<<bottom of note>>') {
       // add to bottom of note
-      smartAppendPara(destNote, parasToText([para]), 'text')
+      smartAppendPara(destNote, parasToText(selectedParagraphsToUse), 'text')
     } else {
-      addParagraphsToNote(destNote, [para], headingToFind, config.whereToAddInSection, true)
+      addParagraphsToNote(destNote, selectedParagraphsToUse, headingToFind, config.whereToAddInSection, true)
     }
 
     // unhighlight the previous selection, for safety's sake

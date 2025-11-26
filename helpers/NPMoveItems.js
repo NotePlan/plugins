@@ -301,7 +301,6 @@ export function moveParagraphToNote(para: TParagraph, destinationNote: TNote): b
 /**
  * Move a given paragraph (and any following indented paragraphs) to a different note.
  * Note: simplified version of 'moveParas()' in NPParagraph.
- * NB: the Setting 'includeFromStartOfSection' decides whether these directly following paragaphs have to be indented (false) or can take all following lines at same level until next empty line as well.
  * Note: originally in helpers/blocks.js, not used anywhere yet.
  * @param {TParagraph} para
  * @param {string} destFilename

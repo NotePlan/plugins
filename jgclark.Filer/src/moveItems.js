@@ -351,7 +351,6 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
       logWarn(pluginJson, 'moveParasToCalendarDate(): No note open, so stopping.')
       return
     }
-    logDebug(pluginJson, 'moveParasToCalendarDate(): Starting')
 
     // Get config settings
     const config = await getFilerSettings()

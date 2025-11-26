@@ -27,7 +27,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
 import { displayTitle, rangeToString } from '@helpers/general'
 import { getNoteType } from '@helpers/note'
 import { getFirstDateInPeriod, getNPWeekData, getMonthData, getQuarterData, getYearData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
-import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
+import { endOfFrontmatterLineIndex, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { caseInsensitiveMatch, caseInsensitiveSubstringMatch, caseInsensitiveStartsWith, getLineMainContentPos } from '@helpers/search'
@@ -1872,21 +1872,28 @@ export function removeAllDueDates(filename: string): boolean {
  * @returns {Array<TParagraph>} the selected paragraphs with the correct line index
  */
 export function getSelectedParagraphsWithCorrectLineIndex(): Array<TParagraph> {
-  const note = Editor.note
-  if (!note) {
-    logInfo('getSelectedParagraphsWithCorrectLineIndex', 'No note open, so returning empty array.')
+  try {
+    const note = Editor.note
+    if (!note) {
+      logInfo('getSelectedParagraphsWithCorrectLineIndex', 'No note open, so returning empty array.')
+      return []
+    }
+    const numberOfFrontmatterLines = noteHasFrontMatter(note) ? endOfFrontmatterLineIndex(note) + 1 : 0
+    logDebug('getSelectedParagraphsWithCorrectLineIndex', `numberOfFrontmatterLines: ${String(numberOfFrontmatterLines)}`)
+    // Note: note.paragraphs[p.lineIndex] is the correct paragraph, but p.lineIndex is the line index in the note, but not the line index in the Editor if there is frontmatter.
+    const selectedParagraphs = Editor.selectedParagraphs.map((p: TParagraph) => note.paragraphs[p.lineIndex + numberOfFrontmatterLines]) ?? []
+    logDebug('getSelectedParagraphsWithCorrectLineIndex', `Editor.selectedParagraphs:\n${String(Editor.selectedParagraphs.map((p) => `- #${p.lineIndex}: ${p.content}`).join('\n'))}`)
+
+    // TEST: removing this, as the necessary change has been made above
+    // const correctedSelectedParagraphs: Array<TParagraph> = selectedParagraphs.slice()
+    // correctedSelectedParagraphs.forEach((p: TParagraph) => {
+    //   p.lineIndex += numberOfFrontmatterLines
+    // })
+    // logDebug('getSelectedParagraphsWithCorrectLineIndex', `${correctedSelectedParagraphs.length} Corrected selected paragraph(s) with lineIndex taking into account frontmatter lines:\n${String(correctedSelectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
+
+    return selectedParagraphs
+  } catch (error) {
+    logError('getSelectedParagraphsWithCorrectLineIndex', error.message)
     return []
   }
-  const numberOfFrontmatterLines = endOfFrontmatterLineIndex(note) + 1 || 0
-  logDebug('getSelectedParagraphsWithCorrectLineIndex', `numberOfFrontmatterLines: ${String(numberOfFrontmatterLines)}`)
-  const selectedParagraphs = Editor.selectedParagraphs.map((p: TParagraph) => note.paragraphs[p.lineIndex + numberOfFrontmatterLines]) ?? [] // note.paragraphs[p.lineIndex] is the correct paragraph, but p.lineIndex is the line index in the note, not the line index in the Editor
-  logDebug('getSelectedParagraphsWithCorrectLineIndex', `Editor.selectedParagraphs:\n${String(Editor.selectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
-  const correctedSelectedParagraphs: Array<TParagraph> = selectedParagraphs.slice()
-  // correctedSelectedParagraphs.forEach((p: TParagraph) => {
-  //   p.lineIndex += numberOfFrontmatterLines
-  // })
-
-  logDebug('getSelectedParagraphsWithCorrectLineIndex', `${correctedSelectedParagraphs.length} Corrected selected paragraph(s) with lineIndex taking into account frontmatter lines:\n${String(correctedSelectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
-
-  return correctedSelectedParagraphs
 }

@@ -1,6 +1,13 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.4.0] - 2025-11-25
+### New
+- **/add sync'd copy to note** now can work on a block of lines. They will go to consecutive lines in the same destination note and section.
+### Fixed
+- trying a different way to fix recent NP API change when using "/move..." and "/add sync..." commands on notes with frontmatter. (Addresses #704)
+- "/quick move to today's note" not honouring "Where to add in the note" setting as 'start' (thanks, @anom)
+
 ## [1.3.3] - 2025-11-07
 - fix duplication in /move block (thanks for the tip, @bido_1977)
 - improved the heading picker used in some of these commands
