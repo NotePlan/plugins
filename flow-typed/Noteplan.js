@@ -688,10 +688,10 @@ declare class DataStore {
    * Note: 'parent' available from v3.17.0
    * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty (or undefined?), but can be set).
    * @param {string} dateString
-   * @param {TTeamspaceID? | string?} parent: Teamspace (if relevant) = the ID or filename of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
+   * @param {TTeamspaceID?} parent: Teamspace (if relevant) = the ID of the teamspace it belongs to. If left undefined, the private calendar note will be returned as before.
    * @returns {NoteObject}
    */
-  static calendarNoteByDateString(dateString: string, parent?: TTeamspaceID | string): ?TNote;
+  static calendarNoteByDateString(dateString: string, parent ?: TTeamspaceID): ?TNote;
   /**
    * DataStore.projectNoteByTitle()
    * Returns all regular notes with the given title.
@@ -1639,6 +1639,9 @@ type TTeamspace = {
   id: UUID,
   title: string,
 }
+
+// Note: In Flow, you cannot strictly enforce a string of a certain length at the type level.
+type TTeamspaceID = string; // should be a UUID string (length 36, e.g. "275ce631-6c20-4f76-b5fd-a082a9ac5160")
 
 /**
  * Ranges are used when you deal with selections or need to know where a
