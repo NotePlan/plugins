@@ -1,7 +1,8 @@
+/* eslint-disable max-len */
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for 'move all' actions for Weeks.
-// Last updated 2025-04-09 for v2.2.0.a12
+// Last updated 2025-11-27 for v2.3.0.b16
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -9,10 +10,7 @@ import { WEBVIEW_WINDOW_ID } from './constants'
 import { getOpenItemParasForTimePeriod, getDashboardSettings } from './dashboardHelpers'
 import { type MessageDataObject, type TBridgeClickHandlerResult } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer } from '@helpers/dev'
-import {
-  getNPWeekStr,
-  replaceArrowDatesInString,
-} from '@helpers/dateTime'
+import { getNPWeekStr, replaceArrowDatesInString } from '@helpers/dateTime'
 import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
 import { calcOffsetDateStr } from '@helpers/NPdateTime'
 import { moveItemBetweenCalendarNotes } from '@helpers/NPMoveItems'
@@ -64,16 +62,16 @@ export async function scheduleAllThisWeekNextWeek(data: MessageDataObject, moveO
     // Get list of open tasks/checklists from this calendar note
     // First, override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod(thisWeekNote.filename, 'week', config)
+    const [calendarNoteParas, sortedRefParas] = await getOpenItemParasForTimePeriod(thisWeekNote.filename, 'week', config)
 
     // If actionType ends with 'OnlyShown', filter to only items with priority >= currentMaxPriorityFromAllVisibleSections
     // TEST:
-    let combinedParasToMove = [...combinedSortedParas]
+    let calendarNoteParasToMove = [...calendarNoteParas]
     let refParasToMove = [...sortedRefParas]
     if (moveOnlyShown && reactWindowData?.pluginData?.currentMaxPriorityFromAllVisibleSections !== undefined) {
       const currentMaxPriority = reactWindowData.pluginData.currentMaxPriorityFromAllVisibleSections
       if (currentMaxPriority >= 0) {
-        combinedParasToMove = combinedSortedParas.filter((dp) => {
+        calendarNoteParasToMove = calendarNoteParas.filter((dp) => {
           const priority = dp.priority ?? 0
           return priority >= currentMaxPriority
         })
@@ -81,16 +79,16 @@ export async function scheduleAllThisWeekNextWeek(data: MessageDataObject, moveO
           const priority = dp.priority ?? 0
           return priority >= currentMaxPriority
         })
-        logDebug('scheduleAllThisWeekNextWeek', `Filtering to only shown items: ${combinedParasToMove.length} direct items and ${refParasToMove.length} referenced items (priority >= ${currentMaxPriority})`)
+        logDebug('scheduleAllThisWeekNextWeek', `Filtering to only shown items: ${calendarNoteParasToMove.length} direct items and ${refParasToMove.length} referenced items (priority >= ${currentMaxPriority})`)
       }
     }
 
-    const initialTotalToMove = combinedParasToMove.length + refParasToMove.length
+    const initialTotalToMove = calendarNoteParasToMove.length + refParasToMove.length
 
     // Remove child items from the lists
-    const combinedSortedParasWithoutChildren = combinedParasToMove.filter((dp) => !dp.isAChild)
+    const calendarNoteParasWithoutChildren = calendarNoteParasToMove.filter((dp) => !dp.isAChild)
     const sortedRefParasWithoutChildren = refParasToMove.filter((dp) => !dp.isAChild)
-    const totalToMove = combinedSortedParasWithoutChildren.length + sortedRefParasWithoutChildren.length
+    const totalToMove = calendarNoteParasWithoutChildren.length + sortedRefParasWithoutChildren.length
     if (totalToMove !== initialTotalToMove) {
       logDebug('scheduleAllThisWeekNextWeek', `- Excluding children reduced total to move from ${initialTotalToMove} to ${totalToMove}`)
     }
@@ -110,35 +108,40 @@ export async function scheduleAllThisWeekNextWeek(data: MessageDataObject, moveO
       }
     }
 
+    // First process the items in the calendar notes
     let c = 0
-    if (combinedSortedParasWithoutChildren.length > 0) {
+    if (calendarNoteParasWithoutChildren.length > 0) {
       reactWindowData.pluginData.refreshing = ['W']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for section ['W']`)
+      // logDebug('scheduleYesterdayOpenToToday', `calendarNoteParasWithoutChildren: ${String(calendarNoteParasWithoutChildren.map(p => '{' + p.rawContent + '} (' + p.filename + ')').join('\n'))}`)
 
       if (config.rescheduleNotMove) {
         // For each para append ' >' and next week's ISO date
-        for (const dashboardPara of combinedSortedParasWithoutChildren) {
+        for (const dashboardPara of calendarNoteParasWithoutChildren) {
           c++
           logDebug('scheduleAllThisWeekNextWeek', `- Scheduling item ${c}/${totalToMove} "${dashboardPara.content}" to next week`)
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
-          if (p) {
+          if (p && p.note) {
             p.content = replaceArrowDatesInString(p.content, `>${nextWeekDateStr}`)
-            if (p.note) {
-              p.note.updateParagraph(p)
-              // $FlowIgnore[incompatible-call] test above is still valid
-              DataStore.updateCache(p.note, false)
-            }
+            // $FlowIgnore[incompatible-use]
+            p.note.updateParagraph(p)
+            // $FlowIgnore[incompatible-call]
+            DataStore.updateCache(p.note, false)
             numberScheduled++
+          } else {
+            logWarn('scheduleAllThisWeekNextWeek', `Couldn't find calendar note para matching this dashboardPara to reschedule:`)
+            clo(dashboardPara, 'dashboardPara')
           }
         }
         logDebug('scheduleAllThisWeekNextWeek', `scheduled ${String(numberScheduled)} open items from this week's note`)
-      } else {
+      }
+      else {
         // For each para move to next week's note
-        for (const para of combinedSortedParasWithoutChildren) {
+        for (const dashboardPara of calendarNoteParasWithoutChildren) {
           c++
-          logDebug('scheduleAllThisWeekNextWeek', `- Moving item ${c}/${totalToMove} "${para.content}" to next week`)
-          const res = await moveItemBetweenCalendarNotes(thisWeekDateStr, nextWeekDateStr, para.rawContent, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
+          logDebug('scheduleAllThisWeekNextWeek', `- Moving item ${c}/${totalToMove} "${dashboardPara.content}" to next week`)
+          const res = await moveItemBetweenCalendarNotes(dashboardPara.filename, nextWeekDateStr, dashboardPara.rawContent, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
           if (res) {
             // logDebug('scheduleAllThisWeekNextWeek', `-> appeared to move item succesfully`)
             numberScheduled++
@@ -226,20 +229,20 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject, moveO
       logWarn('scheduleAllLastWeekThisWeek', `I can't get this week's weekly note (${thisWeekDateStr}). Does it exist yet?`)
       return { success: false }
     }
-    logDebug('scheduleAllLastWeekThisWeek', `Starting for last week's note (${lastWeekDateStr} -> ${thisWeekDateStr}`)
+    logDebug('scheduleAllLastWeekThisWeek', `Starting for last week's note ${lastWeekDateStr} -> ${thisWeekDateStr}`)
 
     // Get list of open tasks/checklists from this calendar note
     // First, override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod(lastWeekNote.filename, 'week', config)
+    const [calendarNoteParas, sortedRefParas] = await getOpenItemParasForTimePeriod(lastWeekNote.filename, 'week', config)
 
     // If actionType ends with 'OnlyShown', filter to only items with priority >= currentMaxPriorityFromAllVisibleSections
-    let combinedParasToMove = [...combinedSortedParas]
+    let calendarNoteParasToMove = [...calendarNoteParas]
     let refParasToMove = [...sortedRefParas]
     if (moveOnlyShown && reactWindowData?.pluginData?.currentMaxPriorityFromAllVisibleSections !== undefined) {
       const currentMaxPriority = reactWindowData.pluginData.currentMaxPriorityFromAllVisibleSections
       if (currentMaxPriority >= 0) {
-        combinedParasToMove = combinedSortedParas.filter((dp) => {
+        calendarNoteParasToMove = calendarNoteParas.filter((dp) => {
           const priority = dp.priority ?? 0
           return priority >= currentMaxPriority
         })
@@ -247,16 +250,16 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject, moveO
           const priority = dp.priority ?? 0
           return priority >= currentMaxPriority
         })
-        logDebug('scheduleAllLastWeekThisWeek', `Filtering to only shown items: ${combinedParasToMove.length} direct items and ${refParasToMove.length} referenced items (priority >= ${currentMaxPriority})`)
+        logDebug('scheduleAllLastWeekThisWeek', `Filtering to only shown items: ${calendarNoteParasToMove.length} direct items and ${refParasToMove.length} referenced items (priority >= ${currentMaxPriority})`)
       }
     }
 
-    const initialTotalToMove = combinedParasToMove.length + refParasToMove.length
+    const initialTotalToMove = calendarNoteParasToMove.length + refParasToMove.length
 
     // Remove child items from the lists
-    const combinedSortedParasWithoutChildren = combinedParasToMove.filter((dp) => !dp.isAChild)
+    const calendarNoteParasWithoutChildren = calendarNoteParasToMove.filter((dp) => !dp.isAChild)
     const sortedRefParasWithoutChildren = refParasToMove.filter((dp) => !dp.isAChild)
-    const totalToMove = combinedSortedParasWithoutChildren.length + sortedRefParasWithoutChildren.length
+    const totalToMove = calendarNoteParasWithoutChildren.length + sortedRefParasWithoutChildren.length
     if (totalToMove !== initialTotalToMove) {
       logDebug('scheduleAllLastWeekThisWeek', `- Excluding children reduced total to move from ${initialTotalToMove} to ${totalToMove}`)
     }
@@ -277,14 +280,16 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject, moveO
       }
     }
 
+    // First process the items in the calendar notes
     let c = 0
-    if (combinedSortedParasWithoutChildren.length > 0) {
-      reactWindowData.pluginData.refreshing = ['W']
-      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for section [LW']`)
+    if (calendarNoteParasWithoutChildren.length > 0) {
+      reactWindowData.pluginData.refreshing = ['LW', 'W']
+      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections [LW, W]`)
+    // logDebug('scheduleAllLastWeekThisWeek', `calendarNoteParasWithoutChildren: ${String(calendarNoteParasWithoutChildren.map(p => '{' + p.rawContent + '} (' + p.filename + ')').join('\n'))}`)
 
       if (config.rescheduleNotMove) {
         // For each para append ' >' and this week's ISO date
-        for (const dashboardPara of combinedSortedParasWithoutChildren) {
+        for (const dashboardPara of calendarNoteParasWithoutChildren) {
           c++
           logDebug('scheduleAllLastWeekThisWeek', `- Scheduling item ${c}/${totalToMove} "${dashboardPara.content}" to this week`)
           // Convert each reduced para back to the full one to update
@@ -301,10 +306,10 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject, moveO
         logDebug('scheduleAllLastWeekThisWeek', `scheduled ${String(numberScheduled)} open items from last week's note`)
       } else {
         // For each para move to this week's note
-        for (const para of combinedSortedParasWithoutChildren) {
+        for (const dashboardPara of calendarNoteParasWithoutChildren) {
           c++
-          logDebug('scheduleAllLastWeekThisWeek', `- Moving item ${c}/${totalToMove} "${para.content}" to this week`)
-          const res = await moveItemBetweenCalendarNotes(lastWeekDateStr, thisWeekDateStr, para.rawContent, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
+          logDebug('scheduleAllLastWeekThisWeek', `- Moving item ${c}/${totalToMove} "${dashboardPara.content}" to this week`)
+          const res = await moveItemBetweenCalendarNotes(dashboardPara.filename, thisWeekDateStr, dashboardPara.rawContent, config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
           if (res) {
             logDebug('scheduleAllLastWeekThisWeek', `-> appeared to move item succesfully`)
             numberScheduled++
@@ -322,8 +327,8 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject, moveO
     clo(sortedRefParasWithoutChildren, `scheduleAllLastWeekThisWeek: sortedRefParasWithoutChildren`)
 
     if (sortedRefParasWithoutChildren.length > 0) {
-      reactWindowData.pluginData.refreshing = ['W']
-      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for section ['LW']`)
+      reactWindowData.pluginData.refreshing = ['LW', 'W']
+      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections [LW, W]`)
 
       // For each para append ' >YYYY-Wnn'
       for (const dashboardPara of sortedRefParasWithoutChildren) {

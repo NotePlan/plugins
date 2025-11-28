@@ -9,7 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.3.0.b15] 2025-10-22 (unreleased)
+## [2.3.0.b15] 2025-10-27
+- the move "All → ..." buttons now support tasks in Teamspace notes
+
+## [2.3.0.b15] 2025-10-26
 - improve the count of completed tasks shown in the Today section.
 - get count of completed tasks updated when an task in that seciton is completed.
 - fix wording in Project section
@@ -17,7 +20,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - improve wording of the Banner messages.
 - dev: finally bit the bullet and added 'sectionCode' to TSectionItem.
 
-## [2.3.0.b14] 2025-10-20
+## [2.3.0.b14] 2025-10-20 (released)
 - [Cursor] Refactor tagMentionCache to be more maintainable, and fix errors.
 
 ## [2.3.0.b14] 2025-10-18

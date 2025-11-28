@@ -46,17 +46,13 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
     const dateOrInterval = String(controlStr)
     logDebug('doMoveFromCalToCal', `Starting with controlStr ${controlStr} and rawContent {${rawContent}}`)
 
-    let startDateStr = getDateStringFromCalendarFilename(filename, true)
+    const startDateStr: string = getDateStringFromCalendarFilename(filename, true)
     let newDateStr = ''
     if (dateOrInterval === 't') {
-    // Special case to change to '>today'
-
-      startDateStr = getDateStringFromCalendarFilename(filename, true)
+      // Special case to change to '>today'
       newDateStr = getTodaysDateHyphenated()
     } else if (dateOrInterval.match(RE_DATE_INTERVAL)) {
       const offsetUnit = dateOrInterval.charAt(dateOrInterval.length - 1) // get last character
-
-      startDateStr = getDateStringFromCalendarFilename(filename, true)
       // To calculate new date, use today's date (not the original date on the task) + offset
       newDateStr = calcOffsetDateStr(getTodaysDateHyphenated(), dateOrInterval, 'offset') // 'longer'
 
@@ -80,7 +76,7 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
     logDebug('doMoveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
 
     // Do the actual move 
-    const res = await moveItemBetweenCalendarNotes(startDateStr,
+    const res = await moveItemBetweenCalendarNotes(filename,
       newDateStr, rawContent,
       config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
 
