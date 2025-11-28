@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-04-25 for v2.2.2, @jgclark
+// Last updated 2025-11-28 for v2.3.0.b16, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -21,7 +21,8 @@ import { getHeadingsFromNote } from '@helpers/NPnote'
 //-----------------------------------------------------------------
 
 /**
- * Get open items from this Week's note
+ * Get open items from this Week's note, and scheduled to This Week from other notes.
+ * Includes relevant Teamspace calendar notes.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
@@ -175,7 +176,9 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         {
           actionName: 'moveAllThisWeekNextWeek',
           actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: 'Move or schedule all open items from this week to next week',
+          tooltip: config.rescheduleNotMove
+            ? '(Re)Schedule all open items from this week to next week. (Press ⌘-click to move instead.)'
+            : 'Move all open items from this week to next week. (Press ⌘-click to (re)schedule instead.)',
           display: 'All <i class="fa-solid fa-right-long"></i> Next Week',
           actionParam: 'true' /* refresh afterwards */,
           postActionRefresh: ['W'], // refresh the week section afterwards
@@ -231,7 +234,8 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
 }
 
 /**
- * Get open items from Last Week's note
+ * Get open items from Last Week's note, and scheduled to Last Week from other notes.
+ * Includes relevant Teamspace calendar notes.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
@@ -254,23 +258,18 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
-      // no demo data
+      // Deliberately no demo data defined
     } else {
       const lastWeeklyNote = DataStore.calendarNoteByDateString(dateStr)
+      // Get list of open tasks/checklists from last week's calendar note (if it exists)
       if (lastWeeklyNote) {
-        const dateStr = getDateStringFromCalendarFilename(thisFilename)
-        if (!thisFilename.includes(dateStr)) {
-          logError('getLastWeekSectionData', `- filename '${thisFilename}' but '${dateStr}' ??`)
-        }
-
-        // Get list of open tasks/checklists from this calendar note
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'week', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
         items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
         itemCount += items.length
 
-        // logDebug('getLastWeekSectionData', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
+        // logTimer('getLastWeekSectionData', startTime, `- finished finding weekly items from ${dateStr}`)
       } else {
         logDebug('getLastWeekSectionData', `No weekly note found for filename '${thisFilename}'`)
       }
@@ -297,7 +296,9 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
         {
           actionName: 'moveAllLastWeekThisWeek',
           actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: 'Move or schedule all open items from last week to this week',
+          tooltip: config.rescheduleNotMove
+            ? '(Re)Schedule all open items from last week to this week. (Press ⌘-click to move instead.)'
+            : 'Move all open items from last week to this week. (Press ⌘-click to (re)schedule instead.)',
           display: 'All <i class="fa-solid fa-right-long"></i> This Week',
           actionParam: 'true', // refresh afterwards
           postActionRefresh: ['LW', 'W'], // refresh the week section afterwards

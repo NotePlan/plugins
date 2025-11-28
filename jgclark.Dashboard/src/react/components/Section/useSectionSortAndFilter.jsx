@@ -152,24 +152,9 @@ const useSectionSortAndFilter = (
       // Hopefully by re-setting at start of refresh calls
 
       // Now filter the items based on priority
-      // V1
-      // const filteredItems = (() => {
-      //   if (!filterByPriority || showAllTasks) {
-      //     return typeWantedItems.slice()
-      //   }
-
-      //   // If priority filtering is enabled but there are no priority items, show only special message items
-      //   if (currentMaxPriorityFromAllVisibleSections === -1) {
-      //     return specialMessageItems
-      //   }
-
-      //   // Filter regular task items that have priority >= currentMaxPriorityFromAllVisibleSections
-      //   const filteredRegularItems = regularTaskItems.filter((f) => (f.para?.priority ?? 0) >= currentMaxPriorityFromAllVisibleSections)
-      //   // Always include special message items
-      //   return ([]: Array<TSectionItem>).concat(specialMessageItems, filteredRegularItems)
-      // })()
-      // V2
-      let filteredItems = typeWantedItems.slice()
+      // Use regularTaskItems instead of typeWantedItems to avoid including special message items (like itemCongrats) in filteredItems
+      // This prevents duplicates when we concatenate specialMessageItems later
+      let filteredItems = regularTaskItems.slice()
       if (filterByPriority && !showAllTasks && newCalculatedMaxPriority > -1) {
         filteredItems = filteredItems.filter((f) => (f.para?.priority ?? 0) >= newCalculatedMaxPriority)
       }
@@ -177,7 +162,9 @@ const useSectionSortAndFilter = (
         filteredItems = []
       }
 
-      const priorityFilteringHappening = memoizedItems.length > filteredItems.length
+      // Compare regularTaskItems.length to filteredItems.length to accurately detect priority filtering
+      // (since filteredItems only contains regular task items, not special message items)
+      const priorityFilteringHappening = regularTaskItems.length > filteredItems.length
       logDebug(
         'useSectionSortAndFilter',
         `${section.sectionCode} ${section.name}: ${memoizedItems.length} items; currentMaxPriorityFromAllVisibleSections = ${String(
@@ -197,7 +184,8 @@ const useSectionSortAndFilter = (
       const orderedFilteredLimitedItems = limitToApply > 0 ? orderedFilteredItems.slice(0, limitToApply) : orderedFilteredItems.slice()
 
       // If we are filtering items out, add 'filtered out' display line
-      const numFilteredOutThisSection = typeWantedItems.length - orderedFilteredLimitedItems.length
+      // Use regularTaskItems.length since orderedFilteredLimitedItems only contains items from regularTaskItems (not special message items)
+      const numFilteredOutThisSection = regularTaskItems.length - orderedFilteredLimitedItems.length
       if (numFilteredOutThisSection > 0) {
         specialMessageItems.unshift({
           ID: `${section.ID}-Filter`,

@@ -97,12 +97,13 @@ export async function updateTagMentionCacheIfTooOld(updatedAtStr: string): Promi
   const nowMom = moment()
   const updatedAtMom = moment(updatedAtStr)
   const diffHours = nowMom.diff(updatedAtMom, 'hours', true)
+  const diffHours3SF = diffHours.toFixed(3) // 3 significant figures
   if (diffHours >= TAG_CACHE_UPDATE_INTERVAL_HOURS) {
-    logInfo('updateTagMentionCacheIfTooOld', `Tag mention cache last update is too old (${diffHours}hours), so will now update it ...`)
+    logInfo('updateTagMentionCacheIfTooOld', `Tag mention cache last update is too old (${diffHours3SF}hours), so will now update it ...`)
     await updateTagMentionCache()
     return true
   } else {
-    logInfo('updateTagMentionCacheIfTooOld', `Tag mention cache last update is not too old (${diffHours}hours).`)
+    logInfo('updateTagMentionCacheIfTooOld', `Tag mention cache last update is not too old (${diffHours3SF}hours).`)
     return false
   }
 }

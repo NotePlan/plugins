@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2025-05-09 for v2.2.2
+// Last updated 2025-11-28 for v2.3.0.b16
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -25,8 +25,8 @@ import { isOpen } from '@helpers/utils'
 
 //--------------------------------------------------------------------
 /**
- * Get open items from Today's note
- * TODO: finish? add support for Teamspace daily notes
+ * Get open items from Today's note, and scheduled to Today from other notes.
+ * Includes relevant Teamspace calendar notes.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
@@ -71,11 +71,6 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     } else {
       // Get list of open tasks/checklists from current daily note (if it exists)
       if (currentDailyNote) {
-        // const filenameDateStr = getDateStringFromCalendarFilename(thisFilename)
-        if (!thisFilename.includes(filenameDateStr)) {
-          logError('getTodaySectionData', `- found filename '${thisFilename}' but '${filenameDateStr}' ??`)
-        }
-
         // Get list of open tasks/checklists from this calendar note
         // Note: now returns timeblocks (which may include just bullets) as well as tasks/checklists
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible, true)
@@ -297,7 +292,8 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
 }
 
 /**
- * Get open items from Yesterday's note
+ * Get open items from Yesterday's note, and scheduled to Yesterday from other notes.
+ * Includes relevant Teamspace calendar notes.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
@@ -337,14 +333,8 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         // itemCount++
       })
     } else {
-      // Get list of open tasks/checklists from yesterday's daily note (if wanted and it exists)
+      // Get list of open tasks/checklists from yesterday's daily note (if it exists)
       if (yesterdaysNote) {
-        const thisFilename = yesterdaysNote?.filename ?? '(error)'
-        // const filenameDateStr = getDateStringFromCalendarFilename(thisFilename)
-        if (!thisFilename.includes(filenameDateStr)) {
-          logError('getYesterdaySectionData', `- found filename '${thisFilename}' but '${filenameDateStr}' ??`)
-        }
-
         // Get list of open tasks/checklists from this calendar note
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible)
 
@@ -353,7 +343,6 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         itemCount += items.length
 
         // logTimer('getYesterdaySectionData', startTime, `- finished finding yesterday's items from ${filenameDateStr}`)
-        itemCount = items.length
       } else {
         logDebug('getYesterdaySectionData', `No yesterday note found using filename '${thisFilename}'`)
       }

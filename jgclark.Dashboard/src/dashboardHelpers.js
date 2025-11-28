@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2025-11-18 for v2.3.0 by @jgclark
+// Last updated 2025-11-28 for v2.3.0.b16, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -68,12 +68,10 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     // clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
     // }
     if (!pluginSettings.dashboardSettings) {
-      throw (
-        (pluginSettings,
+      clo(pluginSettings,
         `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${
           pluginSettings.pluginID || ''
         } plugin: `)
-      )
     }
 
     const parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
@@ -266,8 +264,6 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         return outputPara
       } else {
         logWarn('makeDashboardParas', `No note found for para {${p.content}} - probably an API teamspace bug?`)
-        // $FlowFixMe[incompatible-call]
-        return []
       }
     })
     // $FlowIgnore[unsafe-arithmetic]
@@ -398,10 +394,6 @@ export function getOpenItemParasForTimePeriod(
 
     // Additionally apply to calendar headings in this note
     openParas = filterParasByCalendarHeadingSections(openParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
-
-    for (const p of openParas) {
-      logDebug('getOpenItemPFCTP', `- 👉 {${p.content}} from ${p.filename} ${p.isTeamspace ? '' : 'NOT'} a Teamspace note`)
-    }
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
@@ -592,7 +584,7 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
       const extendedPara = p
       if (thisTimeStr !== '') {
         let startTimeStr = thisTimeStr.split('-')[0]
-        if (startTimeStr[1] === ':') {
+        if (startTimeStr.length > 1 && startTimeStr[1] === ':') {
           startTimeStr = `0${startTimeStr}`
         }
         if (startTimeStr.endsWith('AM')) {

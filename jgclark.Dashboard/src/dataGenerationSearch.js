@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-07-22 for v2.3.0.b
+// Last updated 2025-11-28 for v2.3.0.b16
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -152,6 +152,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
       // If we get here, then we still want this result, so make it a dashboard para and add it to the items array
       if (keepItem) {
         const thisDashboardPara = makeDashboardParas([thisPara])[0]
+        // for TEST:
         if (itemCount < 3) {
           clo(thisDashboardPara, `para ${itemCount}:`)
         }
@@ -159,7 +160,6 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
         itemCount++
       }
     }
-    itemCount += items.length
 
     // Apply limit to set of ordered results if necessary.
     // Note: We apply some limiting here, in case there are hundreds of items. There is also display filtering in the Section component via useSectionSortAndFilter.
@@ -181,6 +181,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
       }
       items.push({
         ID: `${sectionNumStr}-Empty`,
+        sectionCode: thisSectionCode,
         itemType: 'noSearchResults',
         message: message,
         settingsDialogAnchor: settingsDialogAnchor,
@@ -343,6 +344,7 @@ export async function getSavedSearchResults(
       // Add a link to the section offering to open settings
       items.push({
         ID: `${sectionNumStr}-Empty`,
+        sectionCode: thisSectionCode,
         itemType: 'noSearchResults',
         message: message,
         settingsDialogAnchor: settingsDialogAnchor,

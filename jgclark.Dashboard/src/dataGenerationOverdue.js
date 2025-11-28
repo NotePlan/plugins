@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2025-11-23 for v2.3.0.b15, @jgclark
+// Last updated 2025-11-28 for v2.3.0.b16, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -11,14 +11,13 @@ import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
-// import { getNoteFromFilename } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { removeDuplicates } from '@helpers/utils'
 
 // ----------------------------------------------------------
 /**
  * Generate data for a section for Overdue tasks
- * TODO: Send Yesterday items to getRelevantOverdueTasks() somehow
+ * Note: Could try to send yesterday items to getRelevantOverdueTasks() somehow
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
@@ -38,10 +37,8 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     logInfo('getOverdueSectionData', `------- Gathering Overdue Tasks for section #${String(sectionNumStr)} -------`)
     if (useDemoData) {
       // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
-
       // Add a lot of 'overdue' items (to test the limiting)
       for (let c = 0; c < 13; c++) {
-        // const thisID = `${sectionNumStr}-${String(c)}`
         const thisType = c % 3 === 0 ? 'checklist' : 'open'
         const priorityPrefix = c % 12 === 0 ? '!! ' : c % 11 === 0 ? '! ' : ''
         const fakeDateMom = new moment('2025-01-01').add(c, 'days')
@@ -151,7 +148,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
         ID: `${sectionNumStr}-${String(overdueParas.length)}`,
         sectionCode: 'OVERDUE',
         itemType: 'preLimitOverdues',
-        message: `There are also ${preLimitCount - overdueParas.length} overdue tasks older than the window set to ${config.lookBackDaysForOverdue} days. Settings:`,
+        message: `There are also ${preLimitCount - overdueParas.length} overdue tasks older than ${String(config.lookBackDaysForOverdue)} days. Settings:`,
         settingsDialogAnchor: 'lookBackDaysForOverdue',
       })
     }
@@ -211,10 +208,8 @@ export async function getRelevantOverdueTasks(
 }> {
   try {
     const thisStartTime = new Date()
-    const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
+    const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: API does not return open checklist items
     logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
-
-    // FIXME(@EduardMe): shows that p.note is empty here for regular notes, and noteType is 'teamspaceNote'. 
 
     // Filter out items in non-valid folders
     // $FlowFixMe[incompatible-call]
@@ -251,12 +246,18 @@ export async function getRelevantOverdueTasks(
     if (dashboardSettings.showYesterdaySection) {
       if (yesterdaysParas.length > 0) {
         // Filter out all items in array filteredOverdueParas that also appear in array yesterdaysParas
-        filteredOverdueParas.map((p) => {
-          if (yesterdaysParas.filter((y) => y.content === p.content).length > 0) {
-            logDebug('getRelevantOverdueTasks', `- removing duplicate item {${p.content}} from overdue list`)
-            filteredOverdueParas.splice(filteredOverdueParas.indexOf(p), 1)
-          }
-        })
+        // V1: Cursor says this includes an array mutation bug, because of the slice()
+        // filteredOverdueParas.map((p) => {
+        //   if (yesterdaysParas.filter((y) => y.content === p.content).length > 0) {
+        //     logDebug('getRelevantOverdueTasks', `- removing duplicate item {${p.content}} from overdue list`)
+        //     filteredOverdueParas.splice(filteredOverdueParas.indexOf(p), 1)
+        //   }
+        // })
+        // V2
+        // $FlowIgnore[incompatible-call] - Flow has trouble inferring filter predicate type
+        filteredOverdueParas = filteredOverdueParas.filter((p): boolean =>
+          !yesterdaysParas.some((y) => y.content === p.content)
+        )
       }
     }
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping with yesterday -> ${filteredOverdueParas.length}`)

@@ -559,9 +559,9 @@ export function getDateStringFromCalendarFilename(filenameIn: string, returnISOD
  * @param {string} dateStr without hyphens
  * @returns {string} ISO hyphenated string
  */
-export function getISODateStringFromYYYYMMDD(filename: string): string {
-  if (filename.match(/^\d{8}/)) {
-    return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`
+export function getISODateStringFromYYYYMMDD(dateStrWithoutHyphens: string): string {
+  if (dateStrWithoutHyphens.match(/^\d{8}/)) {
+    return `${dateStrWithoutHyphens.slice(0, 4)}-${dateStrWithoutHyphens.slice(4, 6)}-${dateStrWithoutHyphens.slice(6, 8)}`
   } else {
     return '(not a YYYYMMDD date)'
   }

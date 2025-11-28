@@ -80,7 +80,7 @@ export async function getSomeSectionsData(
     // logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
     const config: TDashboardSettings = await getDashboardSettings()
 
-    const sections: Array<TSection> = []
+    let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('INFO')) sections.push(...getInfoSectionData(config, useDemoData))
     // v2: for Timeblocks, now done inside getTodaySectionData()
     if (sectionCodesToGet.includes('DT') || sectionCodesToGet.includes('TB')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
@@ -123,7 +123,7 @@ export async function getSomeSectionsData(
 
     // logDebug('getSomeSectionsData', `=> 🔹 sections ${getDisplayListOfSectionCodes(sections)} (unfiltered)`)
 
-    sections.filter((s) => s) //get rid of any nulls b/c just in case any the sections above could return null
+    sections = sections.filter((s) => s) //get rid of any nulls b/c just in case any the sections above could return null
     return sections
   } catch (error) {
     logError('getSomeSectionsData', error.message)
@@ -206,12 +206,6 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
       })
     } else {
       if (currentMonthlyNote) {
-        // const thisFilename = currentMonthlyNote?.filename ?? '(error)'
-        const dateStr = getDateStringFromCalendarFilename(thisFilename)
-        if (!thisFilename.includes(dateStr)) {
-          logError('getThisMonthSectionData', `- filename '${thisFilename}' but '${dateStr}' ??`)
-        }
-
         // Get list of open tasks/checklists from this calendar note
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'month', config, useEditorWherePossible)
 
@@ -404,16 +398,10 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
-      // No demo data
+      // Deliberately no demo data defined
     } else {
       if (currentQuarterlyNote) {
-        const thisFilename = currentQuarterlyNote?.filename ?? '(error)'
-        const dateStr = getDateStringFromCalendarFilename(thisFilename)
-        if (!thisFilename.includes(dateStr)) {
-          logError('getThisQuarterSectionData', `- filename '${thisFilename}' but '${dateStr}' ??`)
-        }
-
-        // Get list of open tasks/checklists from this calendar note
+        // Get list of open tasks/checklists from this quarterly note (if it exists)
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'quarter', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
