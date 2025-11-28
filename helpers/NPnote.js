@@ -31,6 +31,8 @@ type TFolderIcon = {
 
 //------------------------------ Constants ------------------------------------
 
+const pluginJson = 'NPnote.js'
+
 const TEAMSPACE_ICON_COLOR = 'green-800'
 
 // Define icons to use in decorated CommandBar options
@@ -49,9 +51,9 @@ const noteIconsToUse: Array<TFolderIcon> = [
 // For speed, pre-compute the relative dates
 const relativeDates = getRelativeDates(true) // use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
 
-const pluginJson = 'NPnote.js'
 
-//------------------------------ Functions ------------------------------------
+//-----------------------------------------------------------------------------
+// Functions
 
 /**
  * Choose a particular note from a list of notes shown to the user, with a number of display options.
@@ -362,6 +364,8 @@ export function getTeamspaceDetailsFromNote(note: TNote): TTeamspace | null {
 /**
  * Get a note from its full filename, coping with Teamspace notes.
  * @author @jgclark for 3.17 for Teamspace notes
+ * Note: I asked Eduard in early 2025 to give a better interface for this in the light of Teamspace notes, but he hasn't done it yet. So in late 2025 I'm extending it myself.
+ * Note: There is a local copy of this function in helpers/NPParagraph.js to avoid a circular dependency
  * @param {string} filename
  * @returns {TNote?} note if found, or null
  */
@@ -375,11 +379,11 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
       if (!teamspaceID) {
         throw new Error(`Note ${filenameIn} is a teamspace note but cannot get valid ID for it.`)
       }
-      // FIXME(Eduard): projectNoteByFilename() is not working for teamspace notes
+      // The API isn't ideal, so we have to do it this way ...
       // So we have to do it this way ...
       foundNote = DataStore.noteByFilename(filenameIn, 'Notes', teamspaceID) ?? DataStore.noteByFilename(filenameIn, 'Calendar', teamspaceID) ?? null
       if (foundNote != null) {
-        logDebug('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
+        // logDebug('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
       } else {
         throw new Error(`No teamspace note found for ${filenameIn}`)
       }
@@ -397,7 +401,7 @@ export function getNoteFromFilename(filenameIn: string): TNote | null {
       if (foundNote) {
         // logDebug('NPnote/getNoteFromFilename', `Found note '${displayTitle(foundNote)}' from ${filenameIn}`)
       } else {
-        logInfo('NPnote/getNoteFromFilename', `No note found for ${filenameIn}`)
+        logWarn('NPnote/getNoteFromFilename', `No note found for ${filenameIn}`)
       }
     }
     return foundNote
@@ -598,7 +602,7 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
 /**
  * note.backlinks is an array of Paragraphs, but its subItems can be nested. The nesting can be multiple levels deep.
  * This function returns an array of TParagraphs, one for each backlink, undoing the nesting.
- * FIXME: or TEST: is this working for teamspace notes? Initial testing on 20.8.25 by @jgclark implies not.
+ * TEST: is this working for teamspace notes? Initial testing on 20.8.25 by @jgclark implies not.
  */
 // $FlowFixMe[incompatible-return]
 export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {

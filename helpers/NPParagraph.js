@@ -8,21 +8,7 @@ import moment from 'moment/min/moment-with-locales'
 import { getRepeatSettings, RE_EXTENDED_REPEAT, type RepeatConfig } from '../jgclark.RepeatExtensions/src/repeatHelpers'
 import { generateRepeatForPara } from '../jgclark.RepeatExtensions/src/repeatPara'
 import { trimString } from '@helpers/dataManipulation'
-import {
-  calculateDaysOverdue,
-  getNPWeekStr,
-  getTodaysDateHyphenated,
-  getTodaysDateUnhyphenated,
-  hyphenatedDate,
-  isScheduled,
-  replaceArrowDatesInString,
-  RE_SCHEDULED_ISO_DATE,
-  SCHEDULED_WEEK_NOTE_LINK,
-  SCHEDULED_QUARTERLY_NOTE_LINK,
-  SCHEDULED_MONTH_NOTE_LINK,
-  SCHEDULED_YEARLY_NOTE_LINK,
-  WEEK_NOTE_LINK,
-} from '@helpers/dateTime'
+import * as dt from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle, rangeToString } from '@helpers/general'
 import { getNoteType } from '@helpers/note'
@@ -32,6 +18,7 @@ import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { caseInsensitiveMatch, caseInsensitiveSubstringMatch, caseInsensitiveStartsWith, getLineMainContentPos } from '@helpers/search'
 import { stripTodaysDateRefsFromString } from '@helpers/stringTransforms'
+import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { hasScheduledDate, isOpen, isOpenAndScheduled } from '@helpers/utils'
 
 //-----------------------------------------------------------------------------
@@ -42,18 +29,53 @@ const CONFIRM_YES = 'Yes'
 const RUN_SILENTLY_YES = 'yes'
 
 //-----------------------------------------------------------------------------
-// Helper functions
+// Local copies of other helper, to avoid circular dependency issues
 
 /**
- * Get a note by filename, checking both project notes and calendar notes.
- * This helper function extracts the common pattern of looking up notes by filename.
- * FIXME(Eduard): update to cope with Teamspace notes
- * @author @jgclark
- * @param {string} filename - the filename to look up
- * @returns {TNote | null} - the note if found, null otherwise
+ * Get a note from its full filename, coping with Teamspace notes.
+ * Note: This is a local copy of the function in helpers/NPnote.js to avoid a circular dependency
+ * @param {string} filename
+ * @returns {TNote?} note if found, or null
  */
-function getNoteFromFilename(filename: string): TNote | null {
-  return DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename) ?? null
+function getNoteFromFilename(filenameIn: string): TNote | null {
+  try {
+    let foundNote: TNote | null = null
+    // eslint-disable-next-line no-unused-vars
+    const { filename, filepath, isTeamspace, teamspaceID } = parseTeamspaceFilename(filenameIn)
+    // logDebug('NPnote/getNoteFromFilename', `- filenameIn: ${filenameIn} / filename: ${filename} / isTeamspace: ${String(isTeamspace)} /  teamspaceID: ${String(teamspaceID)}`)
+    if (isTeamspace) {
+      if (!teamspaceID) {
+        throw new Error(`Note ${filenameIn} is a teamspace note but cannot get valid ID for it.`)
+      }
+      // The API isn't ideal, so we have to do it this way ...
+      foundNote = DataStore.noteByFilename(filenameIn, 'Notes', teamspaceID) ?? DataStore.noteByFilename(filenameIn, 'Calendar', teamspaceID) ?? null
+      if (foundNote != null) {
+        // logDebug('NPnote/getNoteFromFilename', `Found teamspace note '${displayTitle(foundNote)}' from ${filenameIn}`)
+      } else {
+        throw new Error(`No teamspace note found for ${filenameIn}`)
+      }
+    } else {
+      // Check for private notes
+      foundNote = DataStore.projectNoteByFilename(filenameIn) ?? null
+      if (!foundNote) {
+        // Check for calendar notes
+        const isPossibleCalendarFilename = dt.isValidCalendarNoteFilename(filenameIn)
+        if (isPossibleCalendarFilename) {
+          const dateString = dt.getDateStringFromCalendarFilename(filenameIn)
+          foundNote = DataStore.calendarNoteByDateString(dateString) ?? null
+        }
+      }
+      if (foundNote) {
+        // logDebug('NPnote/getNoteFromFilename', `Found note '${displayTitle(foundNote)}' from ${filenameIn}`)
+      } else {
+        logWarn('NPnote/getNoteFromFilename', `No note found for ${filenameIn}`)
+      }
+    }
+    return foundNote
+  } catch (err) {
+    logError('NPnote/getNoteFromFilename', `${err.name}: ${err.message}`)
+    return null
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -309,7 +331,9 @@ export function getParagraphBlock(
  * It uses getParagraphBlock() which won't return the title of a note in the first block.
  * TODO(@jgclark): this really needs a global setting for the two getParagraphBlock() settings that are currently fixed below.
  * Note: Moved from helpers/paragraph.js to avoid circular depdency problem with getParagraphBlock()
+ * Note: There is a local copy of this function in helpers/NPNote.js to avoid a circular depdency
  * @author @dwertheimer
+ * 
  * @tests available in jest file
  * @param {TNote} note
  * @param {TParagraph | string} heading
@@ -371,13 +395,13 @@ export async function gatherMatchingLines(
         ? `[[${n.title ?? ''}]]`
         : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
         ? // $FlowIgnore(incompatible-call)
-          ` > ${hyphenatedDate(n.date)} `
+          ` > ${dt.hyphenatedDate(n.date)} `
         : dateStyle === 'date'
         ? // $FlowIgnore(incompatible-call)
           ` (${toLocaleDateTimeString(n.date)})`
         : dateStyle === 'at'
         ? // $FlowIgnore(incompatible-call)
-          ` @${hyphenatedDate(n.date)} `
+              ` @${dt.hyphenatedDate(n.date)} `
         : ''
 
     // set up regex for searching, now with word boundaries on either side
@@ -473,7 +497,7 @@ export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray
   for (let i = 0; i < paragraphs.length; i++) {
     const p = paragraphs[i]
     logDebug('selectedLinesIndex', `- para ${i}: ${p.content}`)
-    if (startParaRange.start <= p.contentRange?.start) {
+    if (startParaRange.start <= (p.contentRange?.start ?? 0)) {
       firstSelParaIndex = i
       break
     }
@@ -779,7 +803,7 @@ export const getOverdueParagraphs = (paras: $ReadOnlyArray<TParagraph>, asOfDayS
  */
 export function findOverdueWeeksInString(line: string): Array<string> {
   const weekData = getNPWeekData(moment().toDate())
-  const dates = line.match(new RegExp(WEEK_NOTE_LINK, 'g'))
+  const dates = line.match(new RegExp(dt.WEEK_NOTE_LINK, 'g'))
   if (dates && weekData) {
     const overdue = dates.filter((d) => d.slice(1) < weekData.weekString)
     return overdue.length === dates.length ? overdue.sort() : [] // if all dates are overdue, return them sorted
@@ -845,9 +869,9 @@ export function testForOverdue(
  * @returns
  */
 export function hasOverdueDayTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
-  const today = asOfDayString?.length ? asOfDayString : getTodaysDateHyphenated()
+  const today = asOfDayString?.length ? asOfDayString : dt.getTodaysDateHyphenated()
   if (today) {
-    return testForOverdue(para, RE_SCHEDULED_ISO_DATE, today, returnDetails, 'Daily')
+    return testForOverdue(para, dt.RE_SCHEDULED_ISO_DATE, today, returnDetails, 'Daily')
   } else {
     return false
   }
@@ -864,7 +888,7 @@ export function hasOverdueDayTag(para: TParagraph, returnDetails: boolean = fals
 export function hasOverdueWeekTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
   const thisWeek = getNPWeekData(moment(asOfDayString?.length ? asOfDayString : undefined).toDate())?.weekString
   if (thisWeek) {
-    return testForOverdue(para, SCHEDULED_WEEK_NOTE_LINK, thisWeek, returnDetails, 'Weekly')
+    return testForOverdue(para, dt.SCHEDULED_WEEK_NOTE_LINK, thisWeek, returnDetails, 'Weekly')
   } else {
     return false
   }
@@ -878,9 +902,9 @@ export function hasOverdueWeekTag(para: TParagraph, returnDetails: boolean = fal
  * @returns {boolean | OverdueDetails}
  */
 export function hasOverdueMonthTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
-  const thieMonth = (asOfDayString?.length ? asOfDayString : getTodaysDateHyphenated()).slice(0, 7)
+  const thieMonth = (asOfDayString?.length ? asOfDayString : dt.getTodaysDateHyphenated()).slice(0, 7)
   if (thieMonth) {
-    return testForOverdue(para, SCHEDULED_MONTH_NOTE_LINK, thieMonth, returnDetails, 'Monthly')
+    return testForOverdue(para, dt.SCHEDULED_MONTH_NOTE_LINK, thieMonth, returnDetails, 'Monthly')
   } else {
     return false
   }
@@ -896,7 +920,7 @@ export function hasOverdueMonthTag(para: TParagraph, returnDetails: boolean = fa
 export function hasOverdueQuarterTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
   const thisQuarter = moment(asOfDayString?.length ? asOfDayString : undefined).format('YYYY-[Q]Q')
   if (thisQuarter) {
-    return testForOverdue(para, SCHEDULED_QUARTERLY_NOTE_LINK, thisQuarter, returnDetails, 'Quarterly')
+    return testForOverdue(para, dt.SCHEDULED_QUARTERLY_NOTE_LINK, thisQuarter, returnDetails, 'Quarterly')
   } else {
     return false
   }
@@ -912,7 +936,7 @@ export function hasOverdueQuarterTag(para: TParagraph, returnDetails: boolean = 
 export function hasOverdueYearTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
   const thisYear = moment(asOfDayString?.length ? asOfDayString : undefined).format('YYYY')
   if (thisYear) {
-    return testForOverdue(para, SCHEDULED_YEARLY_NOTE_LINK, thisYear, returnDetails, 'Yearly')
+    return testForOverdue(para, dt.SCHEDULED_YEARLY_NOTE_LINK, thisYear, returnDetails, 'Yearly')
   } else {
     return false
   }
@@ -996,7 +1020,7 @@ export function getOverdueTags(para: TParagraph, asOfDayString?: string = ''): s
  * @param {TParagraph} para
  * @returns {boolean} - true if the paragraph has any type of scheduled tag
  */
-const paragraphIsScheduled = (para: TParagraph): boolean => isScheduled(para.content)
+const paragraphIsScheduled = (para: TParagraph): boolean => dt.isScheduled(para.content)
 
 /**
  * Test whether a paragraph in a calendar note is "effectively overdue" (a.k.a. "forgotten tasks")
@@ -1021,7 +1045,7 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
   let isOverdue = false
   switch (noteType) {
     case 'Daily':
-      if (thisNoteTitle < getTodaysDateHyphenated()) isOverdue = true
+      if (thisNoteTitle < dt.getTodaysDateHyphenated()) isOverdue = true
       break
     case 'Weekly': {
       const weekData = getNPWeekData()
@@ -1029,7 +1053,7 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
       break
     }
     case 'Monthly': {
-      const thisMonth = getTodaysDateHyphenated().slice(0, 7)
+      const thisMonth = dt.getTodaysDateHyphenated().slice(0, 7)
       if (thisNoteTitle < thisMonth) isOverdue = true
       break
     }
@@ -1065,7 +1089,7 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
  * @returns {number} - the number of days overdue
  * @tests in jest file
  */
-export function getDaysTilDue(paragraph: TParagraph, toISODate: string = getTodaysDateHyphenated()): number {
+export function getDaysTilDue(paragraph: TParagraph, toISODate: string = dt.getTodaysDateHyphenated()): number {
   const paraDateTagDetails: OverdueDetails | false = getTagDetails(paragraph, toISODate)
   // clo(paragraph, 'getDaysTilDue: calculating days til due for paragraph')
   // clo(paraDateTagDetails, 'getDaysTilDue: paraDateTagDetails')
@@ -1073,7 +1097,7 @@ export function getDaysTilDue(paragraph: TParagraph, toISODate: string = getToda
     const endDate = endOfPeriod(paraDateTagDetails.linkType, paragraph.date)
     if (endDate) {
       // logDebug(`getDaysTilDue: endDate:${endDate.toString()} toISODate:${toISODate}`)
-      const daysTilDue = calculateDaysOverdue(endDate, toISODate)
+      const daysTilDue = dt.calculateDaysOverdue(endDate, toISODate)
       return daysTilDue
     } else {
       logError(`getDaysTilDue: could not get end of period for ${endDate || ''}`)
@@ -1124,7 +1148,7 @@ function endOfPeriod(periodType: string, paraDate: Date): Date | null {
  * @returns {any} - the static object
  * @author @dwertheimer
  */
-export function createStaticObject(obj: any, fields: Array<string>, additionalFieldObj: any = {}, untilDate?: string = getTodaysDateHyphenated()): any {
+export function createStaticObject(obj: any, fields: Array<string>, additionalFieldObj: any = {}, untilDate?: string = dt.getTodaysDateHyphenated()): any {
   if (!obj) throw 'createStaticObject: input obj is null; cannot convert it'
   if (!fields?.length) throw 'createStaticObject: no fieldlist provided; cannot create static object'
   if (typeof obj !== 'object') throw 'createStaticObject: input obj is not an object; cannot convert it'
@@ -1377,9 +1401,9 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
     logDebug('NPP/findParaFromStringAndFilename', `starting with filename: ${filenameIn}, content: {${content}}`)
     let filename = filenameIn
     if (filenameIn === 'today') {
-      filename = getTodaysDateUnhyphenated()
+      filename = dt.getTodaysDateUnhyphenated()
     } else if (filenameIn === 'thisweek') {
-      filename = getNPWeekStr(new Date())
+      filename = dt.getNPWeekStr(new Date())
     }
     // Get note by filename (checks both project and calendar notes)
     const thisNote: TNote | null = getNoteFromFilename(filename)
@@ -1416,8 +1440,9 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
  * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph rawContent at 300 chars).
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Works on both Regular ('Project') and Calendar notes.
+ * Note: updated in Nov 2025 to work for Teamspace notes as well.
  * @author @jgclark
- * @param {string} filenameIn to look in
+ * @param {string} filenameIn to look in, or 'today' or 'thisweek'
  * @param {string} rawContent to find
  * @returns {TParagraph | boolean} TParagraph if succesful, false if unsuccesful
  */
@@ -1426,14 +1451,15 @@ export function findParaFromRawContentAndFilename(filenameIn: string, rawContent
     logDebug('NPP/findParaFromRawContentAndFilename', `starting with filename: ${filenameIn}, rawContent: {${rawContentIn}}`)
     let filename = filenameIn
     if (filenameIn === 'today') {
-      filename = getTodaysDateUnhyphenated()
+      filename = dt.getTodaysDateUnhyphenated()
     } else if (filenameIn === 'thisweek') {
-      filename = getNPWeekStr(new Date())
+      filename = dt.getNPWeekStr(new Date())
     }
     // Get note by filename (checks both project and calendar notes)
     const thisNote: TNote | null = getNoteFromFilename(filename)
 
     if (thisNote) {
+      logDebug('NPP/findParaFromRawContentAndFilename', `found note ${displayTitle(thisNote, true)}`)
       if (thisNote.paragraphs.length > 0) {
         const isTruncated = rawContentIn.endsWith('...')
         const truncatedContent = isTruncated ? rawContentIn.slice(0, -3) : rawContentIn // only slice if truncated
@@ -1453,7 +1479,7 @@ export function findParaFromRawContentAndFilename(filenameIn: string, rawContent
         return false
       }
     } else {
-      logWarn('NPP/findParaFromRawContentAndFilename', `Can't find note '${filename}'`)
+      logWarn('NPP/findParaFromRawContentAndFilename', `Can't find note for filename '${filename}'`)
       return false
     }
   } catch (error) {
@@ -1490,7 +1516,7 @@ export async function markComplete(para: TParagraph, useScheduledDateAsCompletio
       } else {
         // Use date of the note if it has one. (What does para.note.date return for non-daily calendar notes?)
         if (para.note?.type === 'Calendar' && para.note.date) {
-          dateString = hyphenatedDate(para.note.date)
+          dateString = dt.hyphenatedDate(para.note.date)
           logDebug('markComplete', `will use date of note ${dateString} as completion date`)
         }
       }
@@ -1786,8 +1812,8 @@ export function getDaysToCalendarNote(para: TParagraph, asOfDayString?: string =
   if (para.noteType !== 'Calendar') return null
   if (!para.note) return null
   const noteDate = para.note.title || ''
-  const date = asOfDayString?.length ? asOfDayString : getTodaysDateHyphenated()
-  return calculateDaysOverdue(noteDate, date)
+  const date = asOfDayString?.length ? asOfDayString : dt.getTodaysDateHyphenated()
+  return dt.calculateDaysOverdue(noteDate, date)
 }
 
 /**
@@ -1850,7 +1876,7 @@ export function removeAllDueDates(filename: string): boolean {
     // remove all >dates, of type "scheduled" or "open" and checklist equivalents
     paras.forEach((para) => {
       const thisLine = para.content
-      para.content = replaceArrowDatesInString(thisLine, '')
+      para.content = dt.replaceArrowDatesInString(thisLine, '')
       if (para.type === 'scheduled') para.type = 'open'
       if (para.type === 'checklistScheduled') para.type = 'checklist'
     })
