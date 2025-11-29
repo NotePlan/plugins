@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-10-05 for v2.3.0
+// Last updated 2025-11-28 for v2.3.0.b16
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -184,6 +184,7 @@ function ensureDefaultPerspectiveExists(perspectiveSettings: Array<TPerspectiveD
  * @param {boolean?} logAllKeys? whether to log every setting key:value or just the key ones (default: false)
  * @returns {Array<TPerspectiveDef>} all perspective settings
  */
+// FIXME: Fix this parameter
 export async function getPerspectiveSettings(logAllKeys: boolean = false): Promise<Array<TPerspectiveDef>> {
   try {
     // Note: we think following (newer API call) is unreliable.
@@ -203,11 +204,13 @@ export async function getPerspectiveSettings(logAllKeys: boolean = false): Promi
       perspectiveSettings = await getPerspectiveSettingDefaults()
       const defaultPersp = getPerspectiveNamed('-', perspectiveSettings)
       if (!defaultPersp) {
-        logError('getPerspectiveSettings', `getDefaultPerspectiveDef failed`)
+        logError('getPerspectiveSettings', `Couldn't get default perspective - from getPerspectiveSettingDefaults()`)
         return []
       }
       const dashboardSettings = await getDashboardSettings()
-      defaultPersp.dashboardSettings = { ...defaultPersp.dashboardSettings, ...cleanDashboardSettingsInAPerspective(dashboardSettings) }
+      // $FlowFixMe[prop-missing]
+      // $FlowFixMe[incompatible-call]
+      defaultPersp.dashboardSettings = { ...defaultPersp.dashboardSettings, ...cleanDashboardSettingsInAPerspective(dashboardSettings, true) }
       perspectiveSettings = replacePerspectiveDef(perspectiveSettings, defaultPersp)
       logPerspectives(perspectiveSettings)
     }
@@ -546,7 +549,6 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
       return false
     }
     activeDef.isModified = false
-    // $FlowIgnore // doesn't like the partial settings
     const dSet: Partial<TDashboardSettings> = await getDashboardSettings()
     activeDef.dashboardSettings = dSet
     const newDefs = replacePerspectiveDef(allDefs, activeDef)
@@ -612,7 +614,7 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPlugi
 
     const settingsOut = Object.keys(perspSettingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
       if (!shouldRemoveKey(key)) {
-        acc[key] = settingsIn[key]
+        acc[key] = perspSettingsWithoutIrrelevantTags[key] // TEST: Cursor is suggesting that this should be acc[key] = perspSettingsWithoutIrrelevantTags[key] not = settingsIn[key]
       } else {
         logDebug('cleanDashboardSettingsInAPerspective', `- Removing key '${key}'`)
       }
@@ -633,20 +635,26 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardPlugi
  * @returns {TDashboardSettings} - settings without irrelevant tag sections
  */
 export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashboardSettings {
-  // aka validateTagSections validateTags limitTagsToShow
-  const tagSectionDetails = getTagSectionDetails(settingsIn)
-  const showTagSectionKeysToRemove = Object.keys(settingsIn).filter(
-    (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
-  )
+  try {
+    const result = { ...settingsIn }
+    // aka validateTagSections validateTags limitTagsToShow
+    const tagSectionDetails = getTagSectionDetails(result)
+    const showTagSectionKeysToRemove = Object.keys(result).filter(
+      (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
+    )
 
-  // Remove the keys only if they exist and are defined
-  showTagSectionKeysToRemove.forEach((key) => {
-    if (settingsIn[key] !== undefined && typeof settingsIn[key] === 'boolean') {
+    // Remove the keys only if they exist and are defined
+    showTagSectionKeysToRemove.forEach((key) => {
+      if (result[key] !== undefined && typeof result[key] === 'boolean') {
       // $FlowIgnore[incompatible-type]
-      delete settingsIn[key]
-    }
-  })
-  return settingsIn
+        delete result[key]
+      }
+    })
+    return result
+  } catch (error) {
+    logError('removeInvalidTagSections', `Error: ${error.message}. Returning original settings.`)
+    return settingsIn
+  }
 }
 
 /**
@@ -663,7 +671,7 @@ export async function addNewPerspective(nameArg?: string): Promise<void> {
     name = nameArg
   } else {
     const res = await getInputTrimmed('Enter name of new Perspective:', 'OK', 'Add Perspective', 'Test')
-    if (typeof name === 'boolean') {
+    if (typeof res === 'boolean' && !res) {
       logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
       return
     }
@@ -719,7 +727,7 @@ export async function addNewPerspective(nameArg?: string): Promise<void> {
  * Delete all Perspective settings, other than default
  */
 export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
-  logDebug('deleteAllNamedPerspectiveSettings', `Attempting to delete all Perspective settings (other than edfault) ...`)
+  logDebug('deleteAllNamedPerspectiveSettings', `Attempting to delete all Perspective settings (other than default) ...`)
   // v1
   // const pluginSettings = DataStore.settings
   // pluginSettings.perspectiveSettings = "[]"
