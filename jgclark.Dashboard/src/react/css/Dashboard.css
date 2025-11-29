@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2025-11-14 for v2.3.0.b14 by @jgclark */
+/* Last updated 2025-11-29 for v2.3.0.b16 by @jgclark */
 
 html {
 	--itemIndentWidth: 1.5rem;
@@ -34,6 +34,35 @@ dialog::backdrop {
   background: rgba(0,0,0,0.4);
 }
 
+/* Make square-based icons a touch larger, as they're optically smaller than the circle equivalents. Advanced stuff! */
+.fa-square, .fa-square-plus, .fa-square-arrow-right {
+	font-size: 106%; /* 110%; */
+}
+
+/* Override the theme definition of a completed task a little */
+.checked {
+	/* padding-top: 1px !important; */
+	margin-bottom: 0px !important; /* over-ride margin-bottom: 0.25rem that is set somwhere else */
+	font-size: 98%
+}
+
+.projectIcon {
+	/* less to do as this is SVG not text */
+	/* align-self: center; -- would have worked when a single line, but it can now have progress text */
+	align-self: start;
+	justify-self: center;
+	/* and give a little nudge down to make things line up in practice */
+	margin-block-start: 2px;
+	margin-right: 2px;
+}
+
+.dialogTriggerIcon {
+	color: rgb(from var(--fg-main-color) r g b / 0.4);
+	cursor: pointer;
+	padding-left: 0.5rem;
+	padding-right: 0.3rem;
+}
+
 /* For MESSAGE_BANNER: Override w3.css which seems to take precedence for reasons unknown */
 .w3-panel {
 	margin-top: 0px;
@@ -51,18 +80,25 @@ dialog::backdrop {
 	margin-right: 10px;
 }
 
+/* ------------------------------------------------------------------ */
+/* Font Awesome specific overrides */
+
+/* Override what Font Awesome adds, which is a fixed width for fixed-with	icons of 1.25rem */
+.fa-fw {
+	width: 1.0rem;
+}
+
 /* Specific alignment fixes for icons inside buttons or links */
 /* Inside a layer to make them lower priority than other  */
 /* TODO: I don't think this is needed anymore */
-@layer A {
+/* @layer A {
 	.fa-regular,
-	.fa-solid {
+	.fa-solid { */
 		/* Centers icon within its container, vertically and horizontally */
-		align-self: center;
+		/* align-self: center;
 		margin: auto;
-		/* color: var(--tint-color); */
 	}
-}
+} */
 
 /* --------------------------------------------------------------- */
 

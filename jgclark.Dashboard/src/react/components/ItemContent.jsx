@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2025-11-16 for v2.3.0 by @jgclark
+// Last updated 2025-11-29 for v2.3.0.b16 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -86,7 +86,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
 
   // If hasChild, then set suitable display indicator
   // (Earlier options had used 'fa-arrow-down-from-line' and 'fa-block-quote' icons. But switched to ellipsis to match what main Editor added in 3.15.2)
-  const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-solid fa-ellipsis parentMarker"></i> : ''
+  const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-solid fa-ellipsis parentMarkerIcon"></i> : ''
   const possChildMarker = ''
 
   const showItemNoteLink = dashboardSettings?.showTaskContext && item.para?.filename !== '<no filename found>' && item.para?.filename !== thisSection.sectionFilename
@@ -293,7 +293,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
     // Add a child marker if relevant
     // Note: best done after truncation and adding priority style
     // if (para.isAChild) {
-    //   output += '<i class="parentMarker fa-solid fa-turn-down-right pad-right"></i>'
+    //   output += '<i class="parentMarkerIcon fa-solid fa-turn-down-right pad-right"></i>'
     //   // clo(para,`makeParaContent...: - adding child marker for ${thisItem.ID}`)
     // }
 

@@ -3,7 +3,7 @@
 // OrderingPanel Component
 // Allows users to visually reorder dashboard sections using drag-and-drop.
 // Written 2025-11-12 for Dashboard v2.3.0.b14 by Cursor AI guided by @jgclark
-// Last updated 2025-11-13 by @jgclark
+// Last updated 2025-11-29 for v2.3.0.b16 by @jgclark
 //
 // TODO: Needs making generic so it can be used in other plugins. Requires lots of changes here and in Dashboard's SettingsDialog. JGC had one go at it, but it got complicated quickly, so backed out.
 //--------------------------------------------------------------------------
@@ -272,9 +272,10 @@ const OrderingPanel = ({
   return (
     <div className="ordering-panel-expanded">
       <div className="ordering-panel-header">
-        {changesMade && (
+        {/* Note: decided this didn't add value, at least for this first use case,so commented it out. But left here in case we want to add it to the more generic version. */}
+        {/* {changesMade && (
           <span className="order-unsaved-indicator">* Unsaved changes</span>
-        )}
+        )} */}
         <div className="order-header-buttons">
           <button className="PCButton" onClick={handleReset} type="button">
             Reset to Default

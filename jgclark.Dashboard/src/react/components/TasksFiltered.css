@@ -1,0 +1,46 @@
+/* CSS specific to TasksFiltered component.
+/* Last updated 2025-11-23 for v2.3.0.b15, @jgclark */
+
+.sectionItemRow {
+	/* The important trick to avoiding bad wrapping at end of columns */
+	break-inside: avoid;
+	display: flex;
+	/* trying margin not padding now */
+	margin: 0px 4px 3px 0px; 	
+	border: 0px none;
+	column-gap: 3px;
+	/* vertical for all items this contains */
+	align-items: baseline; /* start; */
+	/* horizontal for all items this contains */
+	justify-items: start;
+}
+
+/* The actual item's details (was col4) */
+.sectionItemContent {
+	/* reduce vertical spacing and line below */
+	font-size: 1.0rem;
+	font-weight: 400;
+	padding: 1px 4px;
+	border-bottom: 0px;
+	break-inside: avoid;
+	line-height: 1.2rem;
+	/* Ensure we don't get a single word orphan on a line. Not sure if it is supported in NotePlan's version of Safari. */
+	text-wrap: pretty;
+}
+
+/* Need to override some CSS that comes in the theme */
+.itemIcon {
+	/* color: var(--item-icon-color); */ /* TEST: set more specifically on each icon type */
+	/* need to override some CSS that comes in the theme */
+	margin-bottom: unset !important;
+	line-height: unset !important;
+	font-size: 1.0rem  !important;
+	font-weight: 400;
+	/* position this horizontally centred; vertically at start */
+	align-self: start;
+	justify-self: center;
+	/* and give a little nudge down to make things line up in practice */
+	padding-block-start: 1px;
+	/* cursor: pointer; */ /* TEST: now set in todo class */
+}
+

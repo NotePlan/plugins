@@ -1,0 +1,17 @@
+/* CSS specific to TaskItem component.
+/* Last updated 2025-11-23 for v2.3.0.b15, @jgclark */
+
+.sectionItemRow {
+	/* The important trick to avoiding bad wrapping at end of columns */
+	break-inside: avoid;
+	display: flex;
+	/* trying margin not padding now */
+	margin: 0px 4px 3px 0px; 	
+	border: 0px none;
+	column-gap: 3px;
+	/* vertical for all items this contains */
+	align-items: baseline; /* start; */
+	/* horizontal for all items this contains */
+	justify-items: start;
+}
+

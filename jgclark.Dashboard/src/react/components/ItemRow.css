@@ -1,0 +1,24 @@
+/* CSS specific to ItemRow component and its children.
+/* Last updated 2025-11-23 for v2.3.0.b15, @jgclark */
+
+/* Default class for MessageOnlyItems that don't supply their own class */
+.messageItemRow {
+  font-style: italic;
+  color: rgb(from var(--fg-main-color) r g b / 0.65);
+}
+
+.infoItemRow {
+  font-style: normal;
+  color: var(--fg-main-color);
+}
+
+.projectCongrats {
+  font-style: italic;
+  color: var(--fg-done-color);
+}
+
+.itemCongrats {
+  font-style: italic;
+  color: var(--fg-done-color);
+}
+

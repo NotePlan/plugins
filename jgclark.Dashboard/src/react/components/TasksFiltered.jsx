@@ -10,6 +10,7 @@ import { DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
+import './TasksFiltered.css'
 
 type Props = {
   item: TSectionItem,

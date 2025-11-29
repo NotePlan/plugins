@@ -13,6 +13,7 @@ import TaskItem from './TaskItem.jsx'
 import TasksFiltered from './TasksFiltered.jsx'
 import MessageOnlyItem from './MessageOnlyItem.jsx'
 import { logDebug, logInfo } from '@helpers/react/reactDev'
+import './ItemRow.css'
 
 type Props = {
   item: TSectionItem,
@@ -23,7 +24,7 @@ type Props = {
 /**
  * Represents a row item within a section.
  * Loads the proper Component depending on itemType
- * Note: the contentClassName are CSS classes that are used to style the item row, and are defined in Section.css
+ * Note: the contentClassName are CSS classes that are used to style the item row, and are defined in ItemRow.css
  */
 function ItemRow({ item, thisSection, onToggleShowAll }: Props): Node {
   const { itemType } = item
