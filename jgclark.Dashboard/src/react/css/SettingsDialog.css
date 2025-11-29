@@ -1,5 +1,5 @@
 /* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
-/* Last updated 2025-04-16 for v2.2.1 by @jgclark */
+/* Last updated 2025-11-29 for v2.3.0.b16 by @jgclark */
 
 /* Style for the settings dialog */
 .settings-dialog {
@@ -314,16 +314,6 @@
         background-color: var(--bg-alt-color);
         color: var(--fg-alt-color);
     }
-
-    .settings-dialog-header {
-        font-size: large;
-        font-weight: 600;
-        color: var(--tint-color);
-        margin: 0;
-        background: none;
-        /* Match the height of the buttons container */
-        line-height: 40px;
-    }
 }
 
 /* Ensure the settings dialog content is hidden when closed */
@@ -364,7 +354,7 @@
     /* vertically align items in the centre */
     align-items: center;
     justify-content: space-between;
-    padding: 0.3rem;
+    padding: 0.2rem 0.7rem;
     border-bottom: 1px solid #ddd;
     background-color: var(--bg-alt-color);
     /* Adjusted height for better visibility */
@@ -376,15 +366,6 @@
     font-weight: 600;
     color: var(--tint-color);
     text-align: center;
-}
-
-/* Heading style for settings dialog */
-.settings-dialog-heading {
-    font-size: large;
-    font-weight: 500;
-    color: var(--tint-color);
-    padding-top: 0.3rem;
-    padding-bottom: 0.2rem;
 }
 
 /* Make disabled settings lower opacity */

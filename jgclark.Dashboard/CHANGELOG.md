@@ -9,9 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.3.0.b16] 2025-10-28
+## [2.3.0.b16] 2025-10-29
 - the move "All → ..." buttons now support tasks in (Team)Space notes
 - update documentation to refer to (Team)Spaces now, as NP has changed its language
+- improve layout in Settings heading area (for @dwertheimer)
 
 ## [2.3.0.b15] 2025-10-26
 - improve the count of completed tasks shown in the Today section.
