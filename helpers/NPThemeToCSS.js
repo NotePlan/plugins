@@ -234,20 +234,21 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles.todo
     if (styleObj) {
       const todoColor = RGBColourConvert(styleObj.color) ?? 'var(--tint-color)'
-      tempSel.push(`color: ${todoColor}`)
+      rootSel.push(`--item-icon-color: ${todoColor}`)
+      tempSel.push(`color: var(--item-icon-color)`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       // hack: easier to add second definition than to undo the last one
       tempSel.push('line-height: var(--body-line-height)')
       output.push(makeCSSSelector('.todo', tempSel))
-      rootSel.push(`--item-icon-color: ${todoColor}`)
     }
 
     // Set class for completed tasks ('checked') if present
     tempSel = []
     styleObj = themeJSON.styles.checked
     if (styleObj) {
-      rootSel.push(`--fg-done-color:${RGBColourConvert(styleObj.color ?? '#098308A0')}`)
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#098308A0')}`)
+      const checkedColor = RGBColourConvert(styleObj.color ?? '#098308A0')
+      rootSel.push(`--fg-done-color:${checkedColor}`)
+      tempSel.push(`color: ${checkedColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       tempSel.push('line-height: var(--body-line-height)')
       output.push(makeCSSSelector('.checked', tempSel))
@@ -258,8 +259,9 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['checked-canceled']
     if (styleObj) {
-      rootSel.push(`--fg-canceled-color:${RGBColourConvert(styleObj.color ?? '#E04F57A0')}`)
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#E04F57A0')}`)
+      const canceledColor = RGBColourConvert(styleObj.color ?? '#E04F57A0')
+      rootSel.push(`--fg-canceled-color:${canceledColor}`)
+      tempSel.push(`color: ${canceledColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       tempSel.push('line-height: var(--body-line-height)')
       output.push(makeCSSSelector('.cancelled', tempSel))
@@ -270,8 +272,9 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['checked-scheduled']
     if (styleObj) {
-      rootSel.push(`--fg-scheduled-color:${RGBColourConvert(styleObj.color ?? '#7B7C86A0')}`)
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#7B7C86A0')}`)
+      const scheduledColor = RGBColourConvert(styleObj.color ?? '#7B7C86A0')
+      rootSel.push(`--fg-scheduled-color:${scheduledColor}`)
+      tempSel.push(`color: ${scheduledColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       tempSel.push('line-height: var(--body-line-height)')
       output.push(makeCSSSelector('.task-scheduled', tempSel))
@@ -281,35 +284,37 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.hashtag
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
+      const hashtagColor = RGBColourConvert(styleObj.color ?? 'inherit')
+      rootSel.push(`--hashtag-color: ${hashtagColor}`)
+      tempSel.push(`color: ${hashtagColor}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
       tempSel.push('border-radius: 5px')
       tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.hashtag', tempSel))
-      // Also save just the foreground colour to root
-      rootSel.push(`--hashtag-color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
     }
 
     // Set class for mentions ('attag') if present
     tempSel = []
     styleObj = themeJSON.styles.attag
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
+      const attagColor = RGBColourConvert(styleObj.color ?? 'inherit')
+      rootSel.push(`--attag-color: ${attagColor}`)
+      tempSel.push(`color: ${attagColor}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
       tempSel.push('border-radius: 5px')
       tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.attag', tempSel))
-      // Also save just the foreground colour to root
-      rootSel.push(`--attag-color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
     }
 
     // Set class for `pre-formatted text` ('code') if present
     tempSel = []
     styleObj = themeJSON.styles.code
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
+      const codeColor = RGBColourConvert(styleObj.color ?? 'inherit')
+      rootSel.push(`--code-color: ${codeColor}`)
+      tempSel.push(`color: ${codeColor}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
       tempSel.push('border-radius: 5px')
       tempSel.push('padding-inline: 3px')
@@ -321,7 +326,9 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.highlighted
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
+      const highlightedColor = RGBColourConvert(styleObj.color ?? 'inherit')
+      rootSel.push(`--highlighted-color: ${highlightedColor}`)
+      tempSel.push(`color: ${highlightedColor}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
       tempSel.push('border-radius: 5px')
       tempSel.push('padding-inline: 3px')

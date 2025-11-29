@@ -197,18 +197,18 @@
 
 /* Need to override some CSS that comes in the theme */
 .itemIcon {
-	color: var(--item-icon-color);
+	/* color: var(--item-icon-color); */ /* TEST: set more specifically on each icon type */
+	/* need to override some CSS that comes in the theme */
 	margin-bottom: unset !important;
 	line-height: unset !important;
 	font-size: 1.0rem  !important;
-	/* font-size: unset !important; */
 	font-weight: 400;
 	/* position this horizontally centred; vertically at start */
-	align-self: center;
+	align-self: start;
 	justify-self: center;
 	/* and give a little nudge down to make things line up in practice */
-	/* padding-block-start: 1px; */
-	cursor: pointer;
+	padding-block-start: 1px;
+	/* cursor: pointer; */ /* TEST: now set in todo class */
 }
 
 /* Override what FA adds, which is a fixed width for fixed-with	icons of 1.25rem */
@@ -251,7 +251,7 @@
 /* Default class for MessageOnlyItems that don't supply their own class */
 .messageItemRow {
   font-style: italic;
-  color: rgb(from var(--fg-main-color) r g b / 0.7);
+  color: rgb(from var(--fg-main-color) r g b / 0.65);
 }
 
 .infoItemRow {

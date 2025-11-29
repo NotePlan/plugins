@@ -13,6 +13,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - the move "All → ..." buttons now support tasks in (Team)Space notes
 - update documentation to refer to (Team)Spaces now, as NP has changed its language
 - improve layout in Settings heading area (for @dwertheimer)
+- tweak some itemIcon colour/position/cursor
 
 ## [2.3.0.b15] 2025-10-26
 - improve the count of completed tasks shown in the Today section.
