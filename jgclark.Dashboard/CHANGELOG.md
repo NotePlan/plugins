@@ -9,13 +9,48 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.3.0.b16] 2025-10-29
+## [2.3.0] 2025-11-30
+### New
+- support for (Team)Space notes in all Dashboard operations
+- new % complete pie charts in Section areas for Calendar notes
+- you can now change the displayed order of Sections, using a new panel in the Settings window. This is set per Perspective (if used). It can be reset to the default sort order.
+- new setting "Do 'Move all items' buttons only move shown items when filtering?"
+- new setting 'Include #tag/@mention(s) scheduled to future dates?' (default: false)
+- new setting 'How to show progress in Calendar sections?'. If set to 'number closed', then the number of tasks completed in that note will be shown in the section heading area. If set to 'number open', then the number of tasks still open will be shown instead. Or can be set to 'none'. (Default: 'number closed'.)
+- new **/backupSettings** command
+- added little circles for task completion in section headings, and tweaked the text after it
+
+### Changes
+- big speed up of #tag and @mention sections (at least after the first call; it creates a cache in the background for new tags and mentions)
+- when the "filter out lower-priority items" is on, this now calculated across all sections, not just each one independently. 
+- show Tag/Mention sections that have no items
+- hide Referenced calendar sections (e.g. ">Today") that have no items to show
+- the label that says there are hidden items now includes "(click to show all)" text to make it clearer how to turn off the filter for that section.
+- the Overdue section now shows the number of overdue beyond the 'lookback N days' setting limit, if that's applied (requested by @tastapod)
+- a backup of Dashboard settings is created whenever installing a new version
+- when using "Move to Note" task action, if the note starts in a Calendar note, and is moved to a Regular note, then that >date is added.
+- completing, cancelling or updating an item will also now immediately update the same item if it is shown in a different section (e.g. Yesterday and Overdue).
+- change de-duplication of sync'd lines to now favour showing the one in the Regular, not Calendar, note
+- the Priority and Overdue sections now apply the 'Apply to sections under Calendar note headings' sub-setting of 'Ignore items in notes with phrase(s)' where set
+- lots of visual polish
+
+### Fixed
+- fix incorrect display after Unscheduling a task
+- fix to Refresh button continually showing 'Generating' long after it should.
+- fix to display of hashtags and mentions with included hyphens or underscores
+- several fixes to display of URLs
+- lots of other small fixes
+
+<!-- 
+## [2.3.0.b16] 2025-11-29
 - the move "All → ..." buttons now support tasks in (Team)Space notes
 - update documentation to refer to (Team)Spaces now, as NP has changed its language
 - improve layout in Settings heading area (for @dwertheimer)
 - tweak some itemIcon colour/position/cursor
+- dev: rationalised CSS definition files
+- chore: updated docs and UI to refer to (Team)Spaces, following NP renaming them from v3.19.3.
 
-## [2.3.0.b15] 2025-10-26
+## [2.3.0.b15] 2025-11-26
 - improve the count of completed tasks shown in the Today section.
 - get count of completed tasks updated when an task in that seciton is completed.
 - fix wording in Project section
@@ -23,10 +58,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - improve wording of the Banner messages.
 - dev: finally bit the bullet and added 'sectionCode' to TSectionItem.
 
-## [2.3.0.b14] 2025-10-20 (released)
+## [2.3.0.b14] 2025-11-20 (released)
 - [Cursor] Refactor tagMentionCache to be more maintainable, and fix errors.
 
-## [2.3.0.b14] 2025-10-18
+## [2.3.0.b14] 2025-11-18
 - Can now change the displayed order of Sections, using a new panel in the Settings window. This is set per Perspective (if used). It can be reset to the default sort order.
 - Edit dialog improvements:
   - The text box (where the task text can be ed) is now focused by default
@@ -39,7 +74,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Fix to tag/mention Sections not honouring the 'include folders' setting (thanks, @Ryan)
 - Tweak to icon positioning in display of icons in edit buttons and noteTitles
 
-## [2.3.0.b13] 2025-10-11
+## [2.3.0.b13] 2025-11-11
 - When lower-priority items filter is turned on, change the move "All → ..." buttons to show "All shown → ..." instead.  Added new setting "Do "Move all items" buttons only move shown items when filtering?" to control this. 
 
 ## [2.3.0.b12] 2025-10-10
@@ -158,7 +193,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ### Dev notes
 - added FF for including Teamspace notes, by default turned off.
 - fixed more Teamspace handling
-<!-- 
+-->
+
 ## [2.2.1] 2025-04-16
 ### Changed
 - You can now order results in Tag and Overdue sections by due date, as well as by the existing options (for @LauraH)

@@ -82,7 +82,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'heading',
     label: 'What to Include and Exclude',
     description:
-      "These 3 key settings control what folders and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Finally, individual lines in notes can be ignored by adding terms to the third setting.",
+      "These 3 key settings control what folders and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Finally, individual lines in notes can be ignored by adding terms to the third setting. Note: It looks over all (Team)Spaces that you are signed into.",
   },
   {
     key: 'includedFolders',

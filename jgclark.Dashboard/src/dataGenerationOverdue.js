@@ -85,7 +85,6 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       // TODO: Send Yesterday items to getRelevantOverdueTasks() somehow
       const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, [])
       overdueParas = filteredOverdueParas
-      // ??? FIXME: p.note is absent here for Teamspace items.
       preLimitCount = preLimitOverdueCount
       logDebug('getOverdueSectionData', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
     }
@@ -101,7 +100,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
 
       totalOverdue = dashboardParas.length
 
-      // Sort paragraphs by one of several options
+      // Sort all overdue paragraphs by one of several options
       const sortOrder =
         config.overdueSortOrder === 'priority'
           ? ['-priority', '-changedDate']
@@ -113,8 +112,8 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       const sortedOverdueTaskParas = sortListBy(dashboardParas, sortOrder)
       logDebug('getOverdueSectionData', `- Sorted ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
 
-      // Apply limit to set of ordered results
-      // Note: Apply some limiting here, in case there are hundreds of items. There is also display filtering in the Section component via useSectionSortAndFilter.
+      // Apply limit to set of ordered results, in case there are hundreds of items.
+      // Note: There is also display filtering in the Section component via useSectionSortAndFilter.
       // Note: this doesn't attempt to calculate parentIDs. TODO: Should it?
       const overdueTaskParasLimited = totalOverdue > maxInSection
         ? sortedOverdueTaskParas.slice(0, maxInSection)
@@ -124,7 +123,6 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       // Create section items from the limited set of overdue tasks
       for (const p of overdueTaskParasLimited) {
         const thisID = `${sectionNumStr}-${itemCount}`
-        // For now, just log a warning and skip it.
         if (p == null || Object.keys(p).length === 0) {
           logWarn('getOverdueSectionData', `- p is null for ${thisID}. Ignoring it.`)
         } else {
@@ -133,7 +131,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
         }
       }
     }
-    logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
+    logDebug('getOverdueSectionData', `- finished processing ${String(totalOverdue)} overdue items after ${timer(thisStartTime)}`)
 
     let sectionDescription = `{countWithLimit} open {itemType}`
     if (config.lookBackDaysForOverdue > 0) {

@@ -134,9 +134,9 @@ The top bar has a **count of tasks done today** (apart from on narrow windows an
 
 The display will **automatically refresh** in the background if you set the "Automatic Update interval" to any number > 0. This number is the number of minutes after the window is idle when it will refresh the sections you want to display. You can also press the 'Refresh' button at any point, and/or you can set a trigger (see below).
 
-(From v2.3) The Dashboard will show notes held in a **Teamspace** if you are part of any. It shows with the title of the Teamspace in green with the Teamspace icon, before the note title:
+(From v2.3) The Dashboard will show notes held in any **(Team)Spaces** you are part of. It shows with the title of the (Team)Space in green with the (Team)Space icon, before the note title:
 
-<img src="teamspace-title-2.3.0.png" width="300px" margin="8px" border="1px solid grey" alt="example of Teamspace title" align="center"/>
+<img src="teamspace-title-2.3.0.png" width="300px" margin="8px" border="1px solid grey" alt="example of (Team)Space title" align="center"/>
 
 
 ### Current Time Block section
