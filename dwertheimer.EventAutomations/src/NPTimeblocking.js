@@ -612,6 +612,30 @@ async function generateTimeBlocks(
 }
 
 /**
+ * If configured to leave completed timeblocks in the note, remove the timeBlockTag from the content
+ * so they don't get deleted when the timeblocks are re-calculated.
+ * @returns {Promise<void>}
+ */
+function keepCompletedTimeblocks(): void {
+  const { todoChar, leaveCompletedTBs, timeBlockTag } = DataStore.settings
+  const mustContainString = String(DataStore.preference('timeblockTextMustContainString')) || ''
+  if (leaveCompletedTBs) {
+    const doneType = todoChar === '+' ? 'checklistDone' : todoChar === '*' ? 'done' : ''
+    if (doneType && Editor && timeBlockTag) {
+      const completedItems = Editor.paragraphs.filter((p) => p.type === doneType && p.content.includes(timeBlockTag))
+      clo(completedItems, `keepCompletedTimeblocks FOUND ${completedItems.length} completedItems`)
+      // remove the timeBlockTag from the content
+      completedItems.forEach((p) => {
+        p.content = p.content.replace(timeBlockTag, mustContainString)
+      })
+      clo(completedItems, `keepCompletedTimeblocks AFTER removing timeBlockTag from content: ${completedItems.length} completedItems`)
+      Editor.updateParagraphs(completedItems)
+      logDebug(pluginJson, `keepCompletedTimeblocks: Updated ${completedItems.length} completedItems but not saving the Editor because of hang`)
+    }
+  }
+}
+
+/**
  * Main function for creating time blocks for today's tasks, utilizing modular functions
  * for improved maintainability and readability.
  *
@@ -622,6 +646,9 @@ async function generateTimeBlocks(
 export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingConfig = getConfig(), completedItems: Array<TParagraph> = []): Promise<?Array<string>> {
   // Step 1: Initialize and log start
   initializeAndLogStart(config)
+
+  // Step 5: Get completed items text if configured to leave them in the note (removes the timeBlockTag from the content)
+  keepCompletedTimeblocks()
 
   // Step 2: Fetch and prepare todos
   const cleanTodayTodoParas = await gatherAndPrepareTodos(config, completedItems)

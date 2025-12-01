@@ -5,8 +5,8 @@
   "plugin.name": "🗓 AutoTimeBlocking / Events",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.21.2-notreleasedyet",
-  "plugin.lastUpdateInfo": "1.21.2: Fix with changes in trigger logic",
+  "plugin.version": "1.22.0",
+  "plugin.lastUpdateInfo": "1.22.0: Add setting to leave completed timeblocks in the note for posterity",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -186,7 +186,15 @@
     {
       "key": "checkedItemChecksOriginal",
       "title": "Checking a checklist item marks the original item done",
-      "description": "Checking off a checklist AutoTimeBlocked line item will find and check the original task. To make this work, the onEditorWillSave trigger/frontmatter will be automatically added by the plugin.\nIMPORTANT NOTE: Only applies if:\n(1) you use the “+” for your Time Block Leading Character and\n(2) the 'Include links to task location in time blocks' is set to 'Pretty Links'",
+      "description": "Checking off a checklist AutoTimeBlocked line item will find and check the original task. To make this work, the onEditorWillSave trigger/frontmatter will be automatically added by the plugin.\nIMPORTANT NOTE: Only applies if:\n(1) you use the \"+\" for your Time Block Leading Character and\n(2) the 'Include links to task location in time blocks' is set to 'Pretty Links'",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "leaveCompletedTBs",
+      "title": "Leave completed timeblocks when re-calculating?",
+      "description": "Timeblocks that have been marked complete will remain in the note/calendar when timeblocks are re-calculated.",
       "type": "bool",
       "default": false,
       "required": true

@@ -4,6 +4,9 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.22.0] 2025-11-29 @dwertheimer
+- Add setting to leave completed timeblocks in the note for posterity (thx @DrawingTheSun https://discord.com/channels/763107030223290449/1111377061148368968/1443638522954383402)
+
 ## [1.21.2] 2025-08-08 @dwertheimer
 - Fix with changes in trigger logic
 - Minor change to heading logic
