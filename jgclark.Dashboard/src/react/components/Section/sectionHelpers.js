@@ -1,22 +1,22 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated for v2.1.0.b+
+// Last updated 2025-12-03 by @jgclark for v2.3.3
 //--------------------------------------------------------------------------
 
 import type { TSection, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
 import { allSectionDetails } from '../../../constants.js'
-// import { getDisplayListOfSectionCodes } from '../../../dashboardHelpers.js'
 import { logTimer } from '@helpers/dev.js'
 import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/reactDev.js'
 
 /**
- * Get a list of TSettingItem (key, label, type) objects for the showSettingName settings for all sections except TAG and DT
+ * Get a list of TSettingItem (key, label, type) objects for the showSettingName settings for all sections except TAG (which requires special handling).
+ * Also, INFO section is turned off by default. (TODO: this could do with being set in the constants.js file)
  * @returns {Array<TSettingItem>}
  */
 export const showSectionSettingItems: Array<TSettingItem> = allSectionDetails.reduce((acc, s) => {
   if (s.sectionCode !== 'TAG') {
-    acc.push({ label: `Show ${s.sectionName}`, key: s.showSettingName, type: 'switch', default: true, checked: true })
+    acc.push({ label: `Show ${s.sectionName}`, key: s.showSettingName, type: 'switch', default: s.sectionCode !== 'INFO', checked: s.sectionCode !== 'INFO' })
   }
   return acc
 }, [])
@@ -62,21 +62,6 @@ const sectionIsVisible = (section: TSection, dashboardSettings: TDashboardSettin
   // logDebug('sectionHelpers', `sectionIsVisible ${sectionCode} ${settingName} ${showSetting} returning ${typeof showSetting === 'undefined' || showSetting === true}`)
   return typeof showSetting === 'undefined' || showSetting === true
 }
-
-/**
- * Taskes in a TSection (the full section data) and returns the visibility setting for a given section
- * which may be the showSettingName or in the case of a TAG, will be an amalgamated string
- * @param {TSection} section - The section to get the setting name for.
- * @returns {string} - The setting name.
- */
-// export function getSettingName(section:TSection):string {
-//   logDebug('sectionHelpers', `getSettingName ${section.sectionCode} ${section.name}`)
-//   const settingName = section.showSettingName ?? (getSectionDetailsFromSectionCode(section.sectionCode)?.showSettingName || '')
-//   // if (!settingName && section.sectionCode === 'TAG') {
-//   //   settingName = section.showSettingName
-//   // }
-//   return settingName
-// }
 
 /**
  * Reduce the useFirst array to include only the visible sections.
@@ -248,15 +233,18 @@ export function getTagSectionDetails(dashboardSettings: TDashboardSettings): Arr
 
 /**
  * Sorts the sections array by sectionCode based on a predefined order and then by sectionName alphabetically.
+ * TAG sections are sorted by the order in dashboardSettings.tagsToShow instead of alphabetically.
  * @param {Array<TSection>} sections - The array of sections to be sorted.
  * @param {Array<TSectionCode>} predefinedOrder - The predefined order for sectionCode.
  * @param {?Array<TSectionCode>} customDisplayOrder - Optional custom order. If provided and not empty, this overrides predefinedOrder.
+ * @param {?TDashboardSettings} dashboardSettings - Optional dashboard settings to get tagsToShow order for TAG sections.
  * @returns {Array<Section>} The sorted array of sections.
  */
 export function sortSections(
   sections: Array<TSection>,
   predefinedOrder: Array<TSectionCode>,
-  customDisplayOrder?: ?Array<TSectionCode>,
+  customDisplayOrder: ?Array<TSectionCode> = [],
+  tagsToShowOrder: ?string = '',
 ): Array<TSection> {
   // logDebug('sectionHelpers/sortSections', `Starting with ${sections.length} sections ${getDisplayListOfSectionCodes(sections)}`)
   
@@ -266,6 +254,18 @@ export function sortSections(
   // Get all unique section codes from the actual sections
   const sectionCodesInSections = new Set(sections.map((s) => s.sectionCode))
   
+  // Build order map for TAG sections based on tagsToShow order
+  const tagOrderMap: { [key: string]: number } = {}
+  if (tagsToShowOrder) {
+    const tags = (tagsToShowOrder ?? '')
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t !== '')
+    tags.forEach((tag, index) => {
+      tagOrderMap[tag] = index
+    })
+  }
+
   // Build order map, handling missing sections by appending them
   const orderMap: { [key: string]: number } = {}
   let maxIndex = orderToUse.length
@@ -305,7 +305,13 @@ export function sortSections(
 
     // Handle TAG sections specially - group them together
     if (a.sectionCode === 'TAG' && b.sectionCode === 'TAG') {
-      // Sort TAG sections alphabetically by name within the group
+      // Sort TAG sections by the order in tagsToShow, falling back to alphabetical if not found
+      const orderA = typeof tagOrderMap[a.name] !== 'undefined' ? tagOrderMap[a.name] : Number.MAX_SAFE_INTEGER
+      const orderB = typeof tagOrderMap[b.name] !== 'undefined' ? tagOrderMap[b.name] : Number.MAX_SAFE_INTEGER
+      if (orderA !== orderB) {
+        return orderA - orderB
+      }
+      // If both are not in tagsToShow (or same order), sort alphabetically
       return a.name.localeCompare(b.name)
     }
     

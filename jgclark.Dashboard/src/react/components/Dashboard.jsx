@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for v2.2.0.a12
+// Last updated for 2025-12-03 for v2.3.3, @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -11,7 +11,7 @@
 import React, { useEffect, useRef, useMemo, useCallback } from 'react'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
-import { dontDedupeSectionCodes, sectionPriority } from '../../constants.js'
+import { dontDedupeSectionCodes, sectionPriority, defaultSectionDisplayOrder } from '../../constants.js'
 import { copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { findSectionItems } from '../../dashboardHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
@@ -108,7 +108,12 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       workingSections = dedupedSections
     }
 
-    const sortedSections = sortSections(workingSections.slice(), dashboardSettings?.customSectionDisplayOrder || [])
+    const sortedSections = sortSections(
+      workingSections.slice(),
+      defaultSectionDisplayOrder,
+      dashboardSettings?.customSectionDisplayOrder,
+      dashboardSettings?.tagsToShow,
+    )
     const totalVisibleAfterSort = countTotalVisibleSectionItems(sortedSections, dashboardSettings)
     // logDebug('Dashboard:sortSections', `after sort: ${sortedSections.length} (${getDisplayListOfSectionCodes(sortedSections)}) with ${String(countTotalSectionItems(sortedSections, dontDedupeSectionCodes))} items`)
 
