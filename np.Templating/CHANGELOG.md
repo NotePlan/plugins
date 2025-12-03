@@ -6,6 +6,9 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.2.4] 2025-12-03 @dwertheimer
+- fix <default> templateLocale setting to allow for locale-specific date/time formatting
+
 ## [2.2.3] 2025-11-11 @dwertheimer
 - add new weather formatting fields (location.*, :formatted: etc.)
 

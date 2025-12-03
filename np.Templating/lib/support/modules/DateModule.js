@@ -67,7 +67,7 @@ export default class DateModule {
     this.config = config
 
     // setup date/time local, using configuration locale if exists, otherwise fallback to system locale
-    const osLocale = this.config?.templateLocale?.length > 0 ? this.config?.templateLocale : 'en-US'
+    const osLocale = this._getLocale()
     moment.locale(osLocale)
 
     // module constants
@@ -80,8 +80,37 @@ export default class DateModule {
     this.DAY_NUMBER_SATURDAY = DAY_NUMBER_SATURDAY
   }
 
+  /**
+   * Get the locale to use for date/time formatting
+   * If templateLocale is set to '<system>' or is empty, get from NotePlan environment
+   * Otherwise use the configured value
+   * @returns {string} locale string (e.g., 'en-US', 'fr-FR')
+   * @private
+   */
+  _getLocale(): string {
+    const configLocale = this.config?.templateLocale
+
+    // If no locale specified or set to '<system>', get from NotePlan environment
+    if (!configLocale || configLocale === '' || configLocale === '<system>') {
+      // $FlowFixMe[prop-missing] NotePlan.environment exists at runtime
+      const envRegion = typeof NotePlan !== 'undefined' && NotePlan?.environment?.regionCode ? NotePlan.environment.regionCode : ''
+      // $FlowFixMe[prop-missing] NotePlan.environment exists at runtime
+      const envLanguage = typeof NotePlan !== 'undefined' && NotePlan?.environment?.languageCode ? NotePlan.environment.languageCode : ''
+
+      if (envRegion !== '' && envLanguage !== '') {
+        return `${envLanguage}-${envRegion}`
+      }
+
+      // Fallback to en-US if environment not available
+      return 'en-US'
+    }
+
+    // Use the configured locale
+    return configLocale
+  }
+
   setLocale() {
-    const osLocale = this.config?.templateLocale?.length > 0 ? this.config?.templateLocale : 'en-US'
+    const osLocale = this._getLocale()
     moment.locale(osLocale)
   }
 

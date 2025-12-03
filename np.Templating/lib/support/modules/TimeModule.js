@@ -17,12 +17,38 @@ export default class TimeModule {
   constructor(config) {
     this.config = config
 
-    let osLocale = 'en-US'
-    if (this.config?.locale?.length > 0) {
-      osLocale = this.config?.locale
+    const osLocale = this._getLocale()
+    moment.locale(osLocale)
+  }
+
+  /**
+   * Get the locale to use for date/time formatting
+   * If templateLocale is set to '<system>' or is empty, get from NotePlan environment
+   * Otherwise use the configured value
+   * @returns {string} locale string (e.g., 'en-US', 'fr-FR')
+   * @private
+   */
+  _getLocale() {
+    // Check both templateLocale (newer) and locale (legacy) for backwards compatibility
+    const configLocale = this.config?.templateLocale || this.config?.locale
+
+    // If no locale specified or set to '<system>', get from NotePlan environment
+    if (!configLocale || configLocale === '' || configLocale === '<system>') {
+      // $FlowFixMe[prop-missing] NotePlan.environment exists at runtime
+      const envRegion = typeof NotePlan !== 'undefined' && NotePlan?.environment?.regionCode ? NotePlan.environment.regionCode : ''
+      // $FlowFixMe[prop-missing] NotePlan.environment exists at runtime
+      const envLanguage = typeof NotePlan !== 'undefined' && NotePlan?.environment?.languageCode ? NotePlan.environment.languageCode : ''
+
+      if (envRegion !== '' && envLanguage !== '') {
+        return `${envLanguage}-${envRegion}`
+      }
+
+      // Fallback to en-US if environment not available
+      return 'en-US'
     }
 
-    moment.locale(osLocale)
+    // Use the configured locale
+    return configLocale
   }
 
   convertTime12to24(userTime = '') {
@@ -50,7 +76,7 @@ export default class TimeModule {
   format(formatInput = '', dateInput = '') {
     const effectiveFormat = formatInput !== null && formatInput !== undefined && String(formatInput).length > 0 ? String(formatInput) : this.config?.timeFormat || 'h:mm A' // Default time format
 
-    const locale = this.config?.locale || 'en-US'
+    const locale = this._getLocale()
 
     let momentToFormat // This will be a moment object
 
@@ -98,7 +124,7 @@ export default class TimeModule {
   }
 
   now(format = '') {
-    const locale = this.config?.locale || 'en-US'
+    const locale = this._getLocale()
     const configFormat = this.config?.timeFormat || 'short'
 
     format = format.length > 0 ? format : configFormat
