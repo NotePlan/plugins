@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { WEBVIEW_WINDOW_ID, allSectionDetails, indexIntoAllSectionCodes } from './constants'
+import { WEBVIEW_WINDOW_ID, allSectionDetails } from './constants'
 import { dashboardSettingDefs, dashboardFilterDefs } from './dashboardSettings'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
@@ -781,11 +781,10 @@ export function createSectionItemObject(
  * Make a sectionItem for each open item (para) of interest.
  * Note: sometimes non-open items are included, e.g. other types of timeblocks. They need to be filtered out first.
  * @param {Array<TParagraphForDashboard>} sortedOrCombinedParas
- * @param {string} sectionNumStr
- * @param {string} sectionCode
+ * @param {string} sectionCode - The section code to use for item IDs and sectionCode field (e.g., 'DT', 'M', 'TAG-0')
  * @returns {Array<TSectionItem>}
  */
-export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TParagraphForDashboard>, sectionNumStr: string, sectionCode: string): Array<TSectionItem> {
+export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TParagraphForDashboard>, sectionCode: string): Array<TSectionItem> {
   let itemCounter = 0
   let lastIndent0ParentID = ''
   let lastIndent1ParentID = ''
@@ -798,7 +797,7 @@ export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TPa
     if (!isOpen(socp)) {
       continue
     }
-    const thisID = `${sectionNumStr}-${itemCounter}`
+    const thisID = `${sectionCode}-${itemCounter}`
     const thisSectionItemObject = createSectionItemObject(thisID, sectionCode, socp)
     // Now add parentID where relevant
     if (socp.isAChild) {
@@ -909,25 +908,6 @@ export function getDashboardSettingsDefaultsWithSectionsSetToFalse(): TDashboard
   // $FlowIgnore[prop-missing]
   // $FlowIgnore[cannot-spread-indexer]
   return { ...dashboardSettingsDefaults, ...sectionsSetToFalse }
-}
-
-/**
- * Get the section code from an item ID.
- * Note: might now not be used.
- * TODO: in time we want to change the ID to start with the section code, so this will be easy.  Note: I have since added sectionCode to the SectionItem object, which makes it easier still. Decide whether to phase this out.
- * @param {string} itemID - The ID of the item
- * @returns {string} The section code
- */
-export function getSectionCodeFromItemID(itemID: string): string {
-  const sectionNumber = Number(itemID.split('-')[0])
-  // Look up the section code from the section number, based on index into allSectionCodes
-  const sectionCode = indexIntoAllSectionCodes[sectionNumber]
-  if (!sectionCode) {
-    logWarn('getSectionCodeFromItemID', `-> unable to find section code for item ${itemID} (section number ${String(sectionNumber)})`)
-    return ''
-  }
-  logDebug('getSectionCodeFromItemID', `-> sectionCode for ${itemID} is ${sectionCode}`)
-  return sectionCode
 }
 
 /**

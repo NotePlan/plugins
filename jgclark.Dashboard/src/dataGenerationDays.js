@@ -34,7 +34,6 @@ import { isOpen } from '@helpers/utils'
  */
 export function getTodaySectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNumStr = '0'
     const thisSectionCode = 'DT'
     const sections: Array<TSection> = []
     let items: Array<TSectionItem> = []
@@ -48,7 +47,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     // const thisFilename = currentDailyNote?.filename ?? '(error)'
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getTodaySectionData', `--------- Gathering Today's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} from ${filenameDateStr} --------`)
+    logInfo('getTodaySectionData', `--------- Gathering Today's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} from ${filenameDateStr} --------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -64,7 +63,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
             // $FlowIgnore[incompatible-use] already checked item.para exists
             item.para.startTime = timeStr
           }
-          const thisID = `${sectionNumStr}-${itemCount}`
+          const thisID = `${thisSectionCode}-${itemCount}`
           items.push({ ID: thisID, ...item }) // thisID is already present in demo data
         }
       })
@@ -77,7 +76,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         logDebug('getTodaySectionData', `getOpenItemParasForTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
       } else {
         logDebug('getTodaySectionData', `No daily note found using filename '${thisFilename}'`)
@@ -122,7 +121,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: thisSectionCode,
       name: 'Today',
       showSettingName: 'showTodaySection',
       sectionCode: thisSectionCode,
@@ -198,7 +197,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       let items: Array<TSectionItem> = []
-      sectionNumStr = '1'
+      const referencedSectionCode = `${thisSectionCode}_REF`
       if (useDemoData) {
         const sortedRefParas = refTodayItems
         // Note: parentID already supplied
@@ -208,21 +207,21 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
             // $FlowIgnore[incompatible-use] already checked item.para exists
             item.para.startTime = timeStr
           }
-          const thisID = `${sectionNumStr}-${itemCount}`
+          const thisID = `${referencedSectionCode}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
         })
       } else {
         if (sortedRefParas.length > 0) {
           // Iterate and write items for first (or combined) section
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
+          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }
 
       // Add separate section (if there are any items found)
       const section: TSection = {
-        ID: sectionNumStr,
+        ID: referencedSectionCode,
         name: '>Today',
         showSettingName: 'showTodaySection',
         sectionCode: thisSectionCode,
@@ -244,7 +243,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     //------------------------------------------------------------
     // Add a section for time blocks, if wanted
     if (config.showTimeBlockSection) {
-      const TBsectionNumStr = '16'
+      const TBsectionCode = 'TB'
       const timeBlockItems: Array<TSectionItem> = []
       const combinedParas = sortedOrCombinedParas.concat(sortedRefParas)
       const mustContainString = NPSettings.timeblockMustContainString
@@ -256,7 +255,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         // $FlowIgnoree[prop-missing]
         // $FlowIgnoree[incompatible-use]
         if (isActiveOrFutureTimeBlockPara(p, mustContainString)) {
-          const thisID = `${TBsectionNumStr}-${itemCounter}`
+          const thisID = `${TBsectionCode}-${itemCounter}`
           logDebug('getTodaySectionData', `+ TB ${thisID}: {${p.content}} from ${p.filename}`)
           const thisSectionItemObject = createSectionItemObject(thisID, 'TB', p)
           timeBlockItems.push(thisSectionItemObject)
@@ -267,7 +266,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       }
 
       const section: TSection = {
-        ID: TBsectionNumStr,
+        ID: TBsectionCode,
         sectionCode: 'TB',
         name: 'Current time block',
         showSettingName: 'showTimeBlockSection',
@@ -301,7 +300,6 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
  */
 export function getYesterdaySectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNumStr = '2'
     let itemCount = 0
     const sections: Array<TSection> = []
     const thisSectionCode = 'DY'
@@ -316,7 +314,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
     const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getYesterdaySectionData', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} from ${filenameDateStr} ----------`)
+    logInfo('getYesterdaySectionData', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} from ${filenameDateStr} ----------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -328,7 +326,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
           // $FlowIgnore[incompatible-use] already checked item.para exists
           item.para.startTime = timeStr
         }
-        const thisID = `${sectionNumStr}-${itemCount}`
+        const thisID = `${thisSectionCode}-${itemCount}`
         items.push({ ID: thisID, ...item })
         // itemCount++
       })
@@ -339,7 +337,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
 
         // logTimer('getYesterdaySectionData', startTime, `- finished finding yesterday's items from ${filenameDateStr}`)
@@ -353,7 +351,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: thisSectionCode,
       name: 'Yesterday',
       showSettingName: 'showYesterdaySection',
       sectionCode: thisSectionCode,
@@ -384,7 +382,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       let items: Array<TSectionItem> = []
-      sectionNumStr = '3'
+      const referencedSectionCode = `${thisSectionCode}_REF`
       if (useDemoData) {
         const sortedRefParas = refYesterdayParas
         sortedRefParas.map((item) => {
@@ -393,7 +391,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
             // $FlowIgnore[incompatible-use] already checked item.para exists
             item.para.startTime = timeStr
           }
-          const thisID = `${sectionNumStr}-${itemCount}`
+          const thisID = `${referencedSectionCode}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
         })
@@ -401,13 +399,13 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         // Get list of open tasks/checklists from current daily note (if it exists)
         if (sortedRefParas.length > 0) {
           // Iterate and write items for first (or combined) section
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
+          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }
       // Add separate section (if there are any items found)
       const section: TSection = {
-        ID: sectionNumStr,
+        ID: referencedSectionCode,
         name: '>Yesterday',
         showSettingName: 'showYesterdaySection',
         sectionCode: thisSectionCode,
@@ -441,7 +439,6 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
  */
 export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNumStr = '4'
     const thisSectionCode = 'DO'
     const sections: Array<TSection> = []
     let items: Array<TSectionItem> = []
@@ -455,7 +452,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     // const thisFilename = tomorrowsNote?.filename ?? '(error)'
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logDebug('getTomorrowSectionData', `---------- Gathering Tomorrow's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} ------------`)
+    logDebug('getTomorrowSectionData', `---------- Gathering Tomorrow's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -467,7 +464,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
           // $FlowFixMe[incompatible-use] already checked item.para exists
           item.para.startTime = timeStr
         }
-        const thisID = `${sectionNumStr}-${itemCount}`
+        const thisID = `${thisSectionCode}-${itemCount}`
         items.push({ ID: thisID, ...item })
         itemCount++
       })
@@ -483,7 +480,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
 
         // logTimer('getTomorrowSectionData', startTime, `- finished finding tomorrow's items from ${filenameDateStr}`)
@@ -508,7 +505,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: thisSectionCode,
       name: 'Tomorrow',
       showSettingName: 'showTomorrowSection',
       sectionCode: thisSectionCode,
@@ -550,7 +547,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       let items: Array<TSectionItem> = []
-      sectionNumStr = '5'
+      const referencedSectionCode = `${thisSectionCode}_REF`
       if (useDemoData) {
         const sortedRefParas = refTomorrowParas
         sortedRefParas.map((item) => {
@@ -559,7 +556,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
             // $FlowFixMe[incompatible-use] already checked item.para exists
             item.para.startTime = timeStr
           }
-          const thisID = `${sectionNumStr}-${itemCount}`
+          const thisID = `${referencedSectionCode}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
         })
@@ -567,13 +564,13 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         // Get list of open tasks/checklists from current daily note (if it exists)
         if (sortedRefParas.length > 0) {
           // Iterate and write items for this section
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
+          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }
       // Add separate section (if there are any items found)
       const section: TSection = {
-        ID: sectionNumStr,
+        ID: referencedSectionCode,
         name: '>Tomorrow',
         showSettingName: 'showTomorrowSection',
         sectionCode: thisSectionCode,

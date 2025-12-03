@@ -336,6 +336,14 @@ export function sortSections(
       return orderA - orderB
     }
 
+    // If two sections have the same order and same sectionCode, ensure referenced sections come after non-referenced
+    if (a.sectionCode === b.sectionCode) {
+      // Non-referenced sections (isReferenced: false) should come before referenced sections (isReferenced: true)
+      if (a.isReferenced !== b.isReferenced) {
+        return a.isReferenced ? 1 : -1
+      }
+    }
+
     // If two sections with the same code (but not TAG or SEARCH), sort them alphabetically by name
     return a.name.localeCompare(b.name)
   })

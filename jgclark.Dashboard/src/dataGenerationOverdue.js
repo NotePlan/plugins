@@ -23,7 +23,6 @@ import { removeDuplicates } from '@helpers/utils'
  */
 export async function getOverdueSectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   try {
-    const sectionNumStr = '13'
     const thisSectionCode = 'OVERDUE'
     let totalOverdue = 0
     let preLimitCount = 0
@@ -34,7 +33,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     const NPSettings = getNotePlanSettings()
     const thisStartTime = new Date()
 
-    logInfo('getOverdueSectionData', `------- Gathering Overdue Tasks for section #${String(sectionNumStr)} -------`)
+    logInfo('getOverdueSectionData', `------- Gathering Overdue Tasks for section ${thisSectionCode} -------`)
     if (useDemoData) {
       // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
       // Add a lot of 'overdue' items (to test the limiting)
@@ -122,7 +121,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
 
       // Create section items from the limited set of overdue tasks
       for (const p of overdueTaskParasLimited) {
-        const thisID = `${sectionNumStr}-${itemCount}`
+        const thisID = `${thisSectionCode}-${itemCount}`
         if (p == null || Object.keys(p).length === 0) {
           logWarn('getOverdueSectionData', `- p is null for ${thisID}. Ignoring it.`)
         } else {
@@ -143,7 +142,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     // If we have more than the limit, then we need to show the total count as an extra information message
     if (preLimitCount > overdueParas.length) {
       items.push({
-        ID: `${sectionNumStr}-${String(overdueParas.length)}`,
+        ID: `${thisSectionCode}-${String(overdueParas.length)}`,
         sectionCode: 'OVERDUE',
         itemType: 'preLimitOverdues',
         message: `There are also ${preLimitCount - overdueParas.length} overdue tasks older than ${String(config.lookBackDaysForOverdue)} days. Settings:`,
@@ -152,7 +151,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     }
 
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: thisSectionCode,
       name: 'Overdue Tasks',
       showSettingName: 'showOverdueSection',
       sectionCode: thisSectionCode,

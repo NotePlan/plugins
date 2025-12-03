@@ -33,7 +33,6 @@ import { isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
  */
 export async function getPrioritySectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   try {
-    const sectionNumStr = '14'
     const thisSectionCode = 'PRIORITY'
     let totalPriority = 0
     let itemCount = 0
@@ -43,11 +42,11 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
     const NPSettings = getNotePlanSettings()
     const thisStartTime = new Date()
 
-    logInfo('getPrioritySectionData', `------- Gathering Priority Tasks for section #${String(sectionNumStr)} -------`)
+    logInfo('getPrioritySectionData', `------- Gathering Priority Tasks for section ${thisSectionCode} -------`)
     if (useDemoData) {
       // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
       for (let c = 0; c < 30; c++) {
-        // const thisID = `${sectionNumStr}-${String(c)}`
+        // const thisID = `${thisSectionCode}-${String(c)}`
         const thisType = c % 3 === 0 ? 'checklist' : 'open'
         const priorityPrefix = c % 30 === 0 ? '>> ' : c % 21 === 0 ? '!!! ' : c % 10 === 0 ? '!! ' : '! '
         const fakeDateMom = new moment('2023-10-01').add(c, 'days')
@@ -101,7 +100,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
       const priorityTaskParasLimited = totalPriority > maxInSection ? sortedPriorityTaskParas.slice(0, maxInSection) : sortedPriorityTaskParas
       logDebug('getPrioritySectionData', `- after limit, now ${priorityTaskParasLimited.length} items to show`)
       priorityTaskParasLimited.map((p) => {
-        const thisID = `${sectionNumStr}-${itemCount}`
+        const thisID = `${thisSectionCode}-${itemCount}`
         items.push(createSectionItemObject(thisID, thisSectionCode, p))
         itemCount++
       })
@@ -112,7 +111,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
 
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: thisSectionCode,
       name: 'Priority Tasks',
       showSettingName: 'showPrioritySection',
       sectionCode: thisSectionCode,

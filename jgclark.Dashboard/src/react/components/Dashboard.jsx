@@ -94,16 +94,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // State
   //----------------------------------------------------------------------
 
-  //----------------------------------------------------------------------
-  // Constants
-  //----------------------------------------------------------------------
-
+  // Order the display of sections, and count the total number of items to show
   const { sections, totalSectionItems } = useMemo(() => {
     let workingSections = origSections
     if (workingSections.length >= 1 && dashboardSettings?.hideDuplicates) {
       // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
 
-      // TB and PROJ sections need to be ignored here, as they have different item types
+      // These sections need to be ignored here, as they have different item types: TB, PROJ, TAG, INFO, SEARCH, SAVEDSEARCH
       const dedupedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dontDedupeSectionCodes, dashboardSettings)
       workingSections = dedupedSections
     }
@@ -123,11 +120,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [origSections, dashboardSettings, dashboardSettings?.customSectionDisplayOrder])
 
-  const dashboardContainerStyle = {
-    maxWidth: '100vw',
-    width: '100vw',
-  }
-
   // For PerspectivesTable
   const settingDefs = useMemo(
     () => [
@@ -139,6 +131,15 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     ],
     [],
   )
+
+  //----------------------------------------------------------------------
+  // Constants
+  //----------------------------------------------------------------------
+
+  const dashboardContainerStyle = {
+    maxWidth: '100vw',
+    width: '100vw',
+  }
 
   //----------------------------------------------------------------------
   // Effects

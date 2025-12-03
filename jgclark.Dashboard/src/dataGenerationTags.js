@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-11-20 for v2.3.0.b15, @jgclark
+// Last updated 2025-12-03 for v2.3.3, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -41,10 +41,10 @@ import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
 export async function getTaggedSectionData(config: TDashboardSettings, useDemoData: boolean = false, sectionDetail: TSectionDetails, index: number): Promise<?TSection> {
   try {
     const thisStartTime = new Date()
-    const sectionNumStr = `12-${index}`
+    const sectionID = `TAG_${String(index)}`
     const thisSectionCode = 'TAG'
     const thisTag = sectionDetail.sectionName
-    logInfo('getTaggedSectionData', `------- Gathering Tag items for section #${String(sectionNumStr)}: ${thisTag} --------`)
+    logInfo('getTaggedSectionData', `------- Gathering Tag items for section ${sectionID}: ${thisTag} --------`)
     // if (config.ignoreChecklistItems) logDebug('getTaggedSectionData', `Note: will filter out checklists`)
     let itemCount = 0
     let totalCount = 0
@@ -63,7 +63,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
     if (useDemoData) {
       isHashtag = true
       tagParasFromNote.map((item) => {
-        const thisID = `${sectionNumStr}-${itemCount}`
+        const thisID = `${sectionID}-${itemCount}`
         items.push({ ID: thisID, ...item })
         itemCount++
       })
@@ -219,7 +219,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
           logTimer('getTaggedSectionData', thisStartTime, `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)}`)
 
           for (const p of sortedTagParas) {
-            const thisID = `${sectionNumStr}.${itemCount}`
+            const thisID = `${sectionID}-${itemCount}`
             // $FlowIgnore[incompatible-call]
             items.push(createSectionItemObject(thisID, thisSectionCode, p))
             itemCount++
@@ -245,7 +245,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
     sectionDescription += `, ${source}`
     if (comparisonDetails !== '') sectionDescription += ` [${comparisonDetails}]`
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: sectionID,
       name: thisTag,
       showSettingName: sectionDetail.showSettingName,
       sectionCode: thisSectionCode,

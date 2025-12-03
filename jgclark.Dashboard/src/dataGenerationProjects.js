@@ -26,13 +26,12 @@ import { smartPrependPara } from '@helpers/paragraph'
  */
 
 export async function getProjectSectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
-  const sectionNumStr = '15'
   const thisSectionCode = 'PROJ'
   let itemCount = 0
   // const maxProjectsToShow = _config.maxItemsToShowInSection
   let nextProjectsToReview: Array<Project> = []
   const items: Array<TSectionItem> = []
-  logDebug('getProjectSectionData', `------- Gathering Project items for section #${String(sectionNumStr)} --------`)
+  logDebug('getProjectSectionData', `------- Gathering Project items for section ${thisSectionCode} --------`)
   const thisStartTime = new Date()
   const dashboardSettings = await getDashboardSettings()
   const allowedFolders = getCurrentlyAllowedFolders(dashboardSettings)
@@ -45,7 +44,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
     })
 
     filteredProjects.map((p) => {
-      const thisID = `${sectionNumStr}-${itemCount}`
+      const thisID = `${thisSectionCode}-${itemCount}`
       const thisFilename = p.filename ?? '<filename not found>'
       items.push({
         ID: thisID,
@@ -74,7 +73,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
     nextProjectsToReview = await getNextProjectsToReview()
     if (nextProjectsToReview) {
       nextProjectsToReview.map((p) => {
-        const thisID = `${sectionNumStr}-${itemCount}`
+        const thisID = `${thisSectionCode}-${itemCount}`
         items.push({
           ID: thisID,
           sectionCode: thisSectionCode,
@@ -103,7 +102,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
   const section = {
     name: 'Projects',
     showSettingName: 'showProjectSection',
-    ID: sectionNumStr,
+    ID: thisSectionCode,
     sectionCode: thisSectionCode,
     description: sectionDescription,
     sectionItems: items,

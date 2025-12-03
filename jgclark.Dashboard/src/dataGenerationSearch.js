@@ -88,10 +88,9 @@ export async function externallyStartSearch(
  */
 export async function getSearchResults(searchTermsStr: string, config: TDashboardSettings, searchOptions: TSearchOptions): Promise<Array<TSection>> {
   try {
-    const sectionNumStr = '21'
     const thisSectionCode = 'SEARCH'
     const sections: Array<TSection> = []
-    logInfo('getSearchResults', `---------- Getting (non-saved) Search results for section #${String(sectionNumStr)} ------------`)
+    logInfo('getSearchResults', `---------- Getting (non-saved) Search results for section ${thisSectionCode} ------------`)
     logInfo('getSearchResults', `- setting basic searchOptions ${config.applyCurrentFilteringToSearch ? 'WITH' : 'WITHOUT'} Perspective filtering'}`)
     // clo(searchOptions, 'getSearchResults: searchOptions:')
     const startTime = new Date() // for timing only
@@ -110,7 +109,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     let itemCount = 0
     const items: Array<TSectionItem> = []
     for (const rnal of resultNALs) {
-      const thisID = `${sectionNumStr}-${itemCount}`
+      const thisID = `${thisSectionCode}-${itemCount}`
       // resultNALs is an array of noteAndLine objects, not paragraphs. We need to go and find the paragraph from the noteAndLine object
       const thisPara = getParagraphFromSearchResult(rnal)
       let keepItem = true
@@ -180,7 +179,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
         settingsDialogAnchor = 'searchSection'
       }
       items.push({
-        ID: `${sectionNumStr}-Empty`,
+        ID: `${thisSectionCode}-Empty`,
         sectionCode: thisSectionCode,
         itemType: 'noSearchResults',
         message: message,
@@ -197,7 +196,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     }
 
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: thisSectionCode,
       name: 'Search',
       showSettingName: 'showSearchSection',
       sectionCode: thisSectionCode,
@@ -244,12 +243,11 @@ export async function getSavedSearchResults(
   useDemoData: boolean = false,
 ): Promise<Array<TSection>> {
   try {
-    const sectionNumStr = '22'
     const thisSectionCode = 'SAVEDSEARCH'
     const sections: Array<TSection> = []
     // const config: TDashboardSettings = await getDashboardSettings()
     // const NPSettings = getNotePlanSettings()
-    logInfo('getSavedSearchResults', `---------- Getting Saved Search results for section #${String(sectionNumStr)} ${useDemoData ? 'with DEMO data ' : ''}------------`)
+    logInfo('getSavedSearchResults', `---------- Getting Saved Search results for section ${thisSectionCode} ${useDemoData ? 'with DEMO data ' : ''}------------`)
     // clo(searchOptions, 'getSavedSearchResults: searchOptions:')
     let itemCount = 0
     const items: Array<TSectionItem> = []
@@ -303,7 +301,7 @@ export async function getSavedSearchResults(
 
       // // Iterate and write items for the section
       // resultNALs.map((rnal) => {
-      //   const thisID = `${sectionNumStr}-${itemCount}`
+      //   const thisID = `${thisSectionCode}-${itemCount}`
       //   // resultNALs is an array of noteAndLine objects, not paragraphs. We need to go and find the paragraph from the noteAndLine object
       //   const thisParagraph = getParagraphFromSearchResult(rnal)
 
@@ -343,7 +341,7 @@ export async function getSavedSearchResults(
       }
       // Add a link to the section offering to open settings
       items.push({
-        ID: `${sectionNumStr}-Empty`,
+        ID: `${thisSectionCode}-Empty`,
         sectionCode: thisSectionCode,
         itemType: 'noSearchResults',
         message: message,
@@ -360,7 +358,7 @@ export async function getSavedSearchResults(
     }
 
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: thisSectionCode,
       name: 'Saved Search',
       showSettingName: 'showSearchSection', // TODO(later): This will probably change to showQuickSearchSection if we have multiple saved search sections.
       sectionCode: thisSectionCode,

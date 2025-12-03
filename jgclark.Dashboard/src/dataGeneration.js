@@ -146,11 +146,10 @@ export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: bo
   const liveWindowRect: Rect | false = getLiveWindowRect('')
   outputLines.push(`stored window rect: ${storedWindowRect ? rectToString(storedWindowRect) : 'no stored window rect'}`)
   outputLines.push(`live window rect: ${liveWindowRect ? rectToString(liveWindowRect) : 'no live window rect'}`)
-  const sectionNumStr = '20'
   let itemCount = 0
   const items: Array<TSectionItem> = outputLines.map((line) => {
     const item = {
-      ID: `${sectionNumStr}-${itemCount}`,
+      ID: `${thisSectionCode}-${itemCount}`,
       sectionCode: thisSectionCode,
       itemType: 'info',
       message: line,
@@ -181,7 +180,6 @@ export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: bo
  */
 export function getThisMonthSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNumStr = '8'
     const thisSectionCode = 'M'
     const sections: Array<TSection> = []
     let items: Array<TSectionItem> = []
@@ -193,14 +191,14 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getDataForDashboard', `---------- Gathering Month's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} ------------`)
+    logInfo('getDataForDashboard', `---------- Gathering Month's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
       const sortedParas = config.separateSectionForReferencedNotes ? openMonthParas : openMonthParas.concat(refMonthParas)
       // Note: parentID already supplied
       sortedParas.map((item) => {
-        const thisID = `${sectionNumStr}-${itemCount}`
+        const thisID = `${thisSectionCode}-${itemCount}`
         items.push({ ID: thisID, ...item })
         itemCount++
       })
@@ -210,7 +208,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'month', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
 
         logTimer('getDataForDashboard', startTime, `- finished finding monthly items from ${dateStr}`)
@@ -265,7 +263,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: thisSectionCode,
       name: 'This Month',
       showSettingName: 'showMonthSection',
       sectionCode: thisSectionCode,
@@ -328,12 +326,12 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       let items: Array<TSectionItem> = []
-      sectionNumStr = '9'
+      const referencedSectionCode = `${thisSectionCode}_REF`
       if (useDemoData) {
         const sortedRefParas = refMonthParas
         // Note: parentID already supplied
         sortedRefParas.map((item) => {
-          const thisID = `${sectionNumStr}-${itemCount}`
+          const thisID = `${referencedSectionCode}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
         })
@@ -341,14 +339,14 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         // Get list of open tasks/checklists from current monthly note (if it exists)
         if (sortedRefParas.length > 0) {
           // Iterate and write items for first (or combined) section
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
+          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }
 
       // Add separate section (if there are any items found)
       const section: TSection = {
-        ID: sectionNumStr,
+        ID: referencedSectionCode,
         name: '>This Month',
         showSettingName: 'showMonthSection',
         sectionCode: thisSectionCode,
@@ -382,7 +380,6 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
  */
 export function getThisQuarterSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNumStr = '10'
     const thisSectionCode = 'Q'
     const sections: Array<TSection> = []
     let items: Array<TSectionItem> = []
@@ -394,7 +391,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logDebug('getDataForDashboard', `---------- Gathering Quarter's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} ------------`)
+    logDebug('getDataForDashboard', `---------- Gathering Quarter's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -405,7 +402,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'quarter', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
 
         // logDebug('getDataForDashboard', `- finished finding Quarterly items from ${dateStr} after ${timer(startTime)}`)
@@ -460,7 +457,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: thisSectionCode,
       name: 'This Quarter',
       showSettingName: 'showQuarterSection',
       sectionCode: thisSectionCode,
@@ -523,21 +520,21 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       let items: Array<TSectionItem> = []
-      sectionNumStr = '11'
+      const referencedSectionCode = `${thisSectionCode}_REF`
       if (useDemoData) {
         // No demo data
       } else {
         // Get list of open tasks/checklists from current quarterly note (if it exists)
         if (sortedRefParas.length > 0) {
           // Iterate and write items for this section
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
+          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }
 
       // Add separate section (if there are any items found)
       const section: TSection = {
-        ID: sectionNumStr,
+        ID: referencedSectionCode,
         name: '>This Quarter',
         showSettingName: 'showQuarterSection',
         sectionCode: thisSectionCode,

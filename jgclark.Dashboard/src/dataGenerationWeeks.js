@@ -30,7 +30,6 @@ import { getHeadingsFromNote } from '@helpers/NPnote'
  */
 export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNumStr = '6'
     const thisSectionCode = 'W'
     const sections: Array<TSection> = []
     let items: Array<TSectionItem> = []
@@ -42,14 +41,14 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} ------------`)
+    logInfo('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
       // write first or combined section
       const sortedParas = config.separateSectionForReferencedNotes ? openWeekParas : openWeekParas.concat(refWeekParas)
       sortedParas.map((item) => {
-        const thisID = `${sectionNumStr}-${itemCount}`
+        const thisID = `${thisSectionCode}-${itemCount}`
         items.push({ ID: thisID, ...item })
         itemCount++
       })
@@ -64,7 +63,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'week', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
         // logDebug('getDataForDashboard', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
       } else {
@@ -118,7 +117,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: thisSectionCode,
       name: 'This Week',
       showSettingName: 'showWeekSection',
       sectionCode: thisSectionCode,
@@ -191,25 +190,25 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       let items: Array<TSectionItem> = []
-      sectionNumStr = '7'
+      const referencedSectionCode = `${thisSectionCode}_REF`
       if (useDemoData) {
         const sortedRefParas = refWeekParas
         sortedRefParas.map((item) => {
-          const thisID = `${sectionNumStr}-${itemCount}`
+          const thisID = `${referencedSectionCode}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
         })
       } else {
         // Get list of open tasks/checklists from current weekly note (if it exists)
         if (sortedRefParas.length > 0) {
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
+          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }
 
       // Add separate section (whether or not there are any items found; this is needed for React to render an empty section properly)
       const section: TSection = {
-        ID: sectionNumStr,
+        ID: referencedSectionCode,
         name: '>This Week',
         showSettingName: 'showWeekSection',
         sectionCode: thisSectionCode,
@@ -243,7 +242,6 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
  */
 export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNumStr = '19' // Note: out of order, because it was added later.
     const thisSectionCode = 'LW'
     const sections: Array<TSection> = []
     let items: Array<TSectionItem> = []
@@ -254,7 +252,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
 
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getLastWeekSectionData', `---------- Gathering Last Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} from ${thisFilename} ------------`)
+    logInfo('getLastWeekSectionData', `---------- Gathering Last Week's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} from ${thisFilename} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -266,7 +264,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'week', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
-        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr, thisSectionCode)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
 
         // logTimer('getLastWeekSectionData', startTime, `- finished finding weekly items from ${dateStr}`)
@@ -280,7 +278,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
-      ID: sectionNumStr,
+      ID: thisSectionCode,
       name: 'Last Week',
       showSettingName: 'showLastWeekSection',
       sectionCode: thisSectionCode,
@@ -311,26 +309,26 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
-      sectionNumStr = '20'
+      const referencedSectionCode = `${thisSectionCode}_REF`
       let items: Array<TSectionItem> = []
       if (useDemoData) {
         const sortedRefParas = refWeekParas
         sortedRefParas.map((item) => {
-          const thisID = `${sectionNumStr}-${itemCount}`
+          const thisID = `${referencedSectionCode}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
         })
       } else {
         // Get list of open tasks/checklists from current weekly note (if it exists)
         if (sortedRefParas.length > 0) {
-          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr, thisSectionCode)
+          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
           itemCount += items.length
         }
       }
 
       // Add separate section (whether or not there are any items found; this is needed for React to render an empty section properly)
       const section: TSection = {
-        ID: sectionNumStr,
+        ID: referencedSectionCode,
         name: '>Last Week',
         showSettingName: 'showLastWeekSection',
         sectionCode: thisSectionCode,
