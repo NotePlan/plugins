@@ -49,16 +49,16 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr
       case 'itemCongrats':
       case 'projectCongrats':
         return 'fa-regular fa-fw fa-circle-check'
-      // case 'noSearchResults':
-      //   return 'fa-regular fa-search'
       case 'deleted':
         return 'fa-regular fa-trash-xmark'
       case 'timeblock': // for non-task/checklist timeblock lines
         return 'fa-regular fa-calendar-clock'
       case 'info': // for Info section lines
         return 'fa-regular fa-bullet'
+      case 'noSearchResults':
+        return '' // deliberately no icon
       default:
-        return '' // default case if none of the types match
+        return 'emptyIcon' // default spacer in place of an icon
     }
   }
 
@@ -117,12 +117,12 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr
   }
 
   const renderedIcon = timeblockStr ? (
-    <div className="sectionItemTodo itemIcon todo">
+    <div className="sectionItemTodo itemIcon">
       <span className="timeBlock pad-right-larger">{timeblockStr}</span>
       <i className={iconClassName} onClick={handleIconClick}></i>
     </div>
   ) : (
-    <div className="sectionItemTodo itemIcon todo">
+      <div className="sectionItemTodo itemIcon">
       <i className={iconClassName} onClick={handleIconClick}></i>
     </div>
   )

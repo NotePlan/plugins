@@ -9,6 +9,16 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.3.3] 2025-12-03
+- change order of display of tag sections to the order they are defined in the settings, not alphabetical.
+
+## [2.3.2] 2025-12-02
+- fix display when there are no priority items shown.
+
+## [2.3.1] 2025-12-01
+- fix for possible loss of settings error seen by @Jim when upgrading
+- dev: updated default handling for dashboardSettings and perspectiveSettings
+
 ## [2.3.0] 2025-11-30
 ### New
 - support for (Team)Space notes in all Dashboard operations

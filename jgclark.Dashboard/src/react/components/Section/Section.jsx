@@ -384,8 +384,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // If we have only one item to show, and it's a single item type that we don't want to count (e.g. 'Nothing left on this list'), set numItemsToShow to 0
   if (numItemsToShow === 1 && treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)) numItemsToShow = 0
 
-  // If the last one is the filterIndicator, decrement the number of items to show
-  if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') {
+  // If the last one is the filterIndicator or offerToFilter, decrement the number of items to show
+  if (numItemsToShow > 0 && (itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator' || itemsToShow[numItemsToShow - 1].itemType === 'offerToFilter')) {
     numItemsToShow--
   }
 

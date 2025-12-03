@@ -2,11 +2,10 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2025-11-28 for v2.3.0.b16
+// Last updated 2025-12-01 for v2.3.1
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-// import { generateProjectListsAndRenderIfOpen, renderProjectListsIfOpen } from '../../jgclark.Reviews/src/reviews.js' // produces circular dependency
 import { getDashboardSettings, getOpenItemParasForTimePeriod, setPluginData } from './dashboardHelpers.js'
 import { dashboardSettingsDefaults } from './react/support/settingsHelpers'
 import { getTagSectionDetails, showSectionSettingItems } from './react/components/Section/sectionHelpers'
@@ -169,7 +168,7 @@ export function logPerspectives(perspectivesArray: Array<TPerspectiveDef>, logAl
 
 function ensureDefaultPerspectiveExists(perspectiveSettings: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
   if (perspectiveSettings.find((s) => s.name === '-') === undefined) {
-    // $FlowFixMe[prop-missing] // an empty dashboardSettings is ok but does not match TDashboardSettings
+    logWarn('ensureDefaultPerspectiveExists', `Default perspective '-' not found in perspectiveSettings. Adding it.`)
     return [...perspectiveSettings, { name: '-', isModified: false, dashboardSettings: dashboardSettingsDefaults, isActive: false }]
   }
   return perspectiveSettings
@@ -181,14 +180,12 @@ function ensureDefaultPerspectiveExists(perspectiveSettings: Array<TPerspectiveD
 
 /**
  * Get all perspective settings (as array of TPerspectiveDef)
- * @param {boolean?} logAllKeys? whether to log every setting key:value or just the key ones (default: false)
+ * @param {boolean?} _logAllKeys? whether to log every setting key:value or just the key ones (default: false)
  * @returns {Array<TPerspectiveDef>} all perspective settings
  */
-// FIXME: Fix this parameter
-export async function getPerspectiveSettings(logAllKeys: boolean = false): Promise<Array<TPerspectiveDef>> {
+export async function getPerspectiveSettings(_logAllKeys: boolean = false): Promise<Array<TPerspectiveDef>> {
   try {
-    // Note: we think following (newer API call) is unreliable.
-    // So use the older way:
+    // Note: we think newer API call is unreliable. So use the older way:
     let perspectiveSettings: Array<TPerspectiveDef>
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     const perspectiveSettingsStr = pluginSettings?.perspectiveSettings
@@ -196,11 +193,11 @@ export async function getPerspectiveSettings(logAllKeys: boolean = false): Promi
     if (perspectiveSettingsStr && perspectiveSettingsStr !== '[]') {
       // must parse it because it is stringified JSON (an array of TPerspectiveDef)
       perspectiveSettings = parseSettings(perspectiveSettingsStr) ?? []
-      // logPerspectives(perspectiveSettings, logAllKeys)
+      // logPerspectives(perspectiveSettings, _logAllKeys)
     } else {
       // No perspective settings found, so will need to set from the defaults instead
       logWarn('getPerspectiveSettings', `No perspective settings found, so will load in the defaults. But first, I will save a copy of the settings.json file for investigation.`)
-      await backupSettings('jgclark.Dashboard', 'after_no_perspective_settings_found')
+      await backupSettings('jgclark.Dashboard', 'when_no_perspective_settings_found')
       perspectiveSettings = await getPerspectiveSettingDefaults()
       const defaultPersp = getPerspectiveNamed('-', perspectiveSettings)
       if (!defaultPersp) {
@@ -212,6 +209,7 @@ export async function getPerspectiveSettings(logAllKeys: boolean = false): Promi
       // $FlowFixMe[incompatible-call]
       defaultPersp.dashboardSettings = { ...defaultPersp.dashboardSettings, ...cleanDashboardSettingsInAPerspective(dashboardSettings, true) }
       perspectiveSettings = replacePerspectiveDef(perspectiveSettings, defaultPersp)
+      await savePerspectiveSettings(perspectiveSettings)
       logPerspectives(perspectiveSettings)
     }
     // clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
@@ -335,7 +333,7 @@ function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, name:
 export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): Promise<boolean> {
   try {
     logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
-    // TODO(later): we need to update the tagMentionCache with the new list of wanted tags and mentions
+    // First, update the tagMentionCache with the list of wanted tags and mentions (in case the list has changed)
     updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     pluginSettings.perspectiveSettings = allDefs

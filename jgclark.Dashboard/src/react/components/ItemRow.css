@@ -22,3 +22,6 @@
   color: var(--fg-done-color);
 }
 
+.emptyIcon {
+  width: 1rem; /* in place of a fixed width icon */
+}

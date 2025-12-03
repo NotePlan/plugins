@@ -49,7 +49,7 @@ const useSectionSortAndFilter = (
   // Memoize the items array to prevent unnecessary re-renders
   const memoizedItems = useMemo(() => items, [items])
   const memoizedDashboardSettings = useMemo(() => dashboardSettings, [dashboardSettings])
-  // const memoizedCurrentMaxPriorityFromAllVisibleSections = useMemo(() => currentMaxPriorityFromAllVisibleSections, [currentMaxPriorityFromAllVisibleSections])
+  // const memoizedcurrentMaxPriorityFromAllVisibleSections = useMemo(() => currentMaxPriorityFromAllVisibleSections, [currentMaxPriorityFromAllVisibleSections])
 
   //----------------------------------------------------------------------
   // State
@@ -131,48 +131,64 @@ const useSectionSortAndFilter = (
     }
     // Handle all other sections
     else {
-      // Drop checklist items (if 'ignoreChecklistItems' is set)
-      let typeWantedItems = memoizedItems
-      let totalCountToUse = section.totalCount ?? 0
-      if (memoizedItems.length > 0 && memoizedDashboardSettings && memoizedDashboardSettings.ignoreChecklistItems) {
-        typeWantedItems = memoizedItems.filter((si) => !(si.para?.type === 'checklist'))
-        totalCountToUse = totalCountToUse - (memoizedItems.length - typeWantedItems.length)
-      }
-
       // Separate special message types from regular task items
-      const specialMessageItems = typeWantedItems.filter((item) => treatSingleItemTypesAsZeroItems.includes(item.itemType))
-      const regularTaskItems = typeWantedItems.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType))
+      const specialMessageItems = memoizedItems.filter((item) => treatSingleItemTypesAsZeroItems.includes(item.itemType))
+      const regularTaskItems = memoizedItems.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType))
 
-      // Find highest priority seen (globally), and then filter out lower-priority items (if wanted)
-      // Only calculate max priority from regular task items, not special message types
-      const newCalculatedMaxPriority = getMaxPriorityInItems(regularTaskItems)
-      logDebug('useSectionSortAndFilter', `Section ${section.sectionCode} calculated max priority: ${newCalculatedMaxPriority}`)
-      setCalculatedMaxPriority(newCalculatedMaxPriority)
-      // TODO: but how do we downgrade this after it has been raised?
-      // Hopefully by re-setting at start of refresh calls
-
-      // Now filter the items based on priority
-      // Use regularTaskItems instead of typeWantedItems to avoid including special message items (like itemCongrats) in filteredItems
-      // This prevents duplicates when we concatenate specialMessageItems later
-      let filteredItems = regularTaskItems.slice()
-      if (filterByPriority && !showAllTasks && newCalculatedMaxPriority > -1) {
-        filteredItems = filteredItems.filter((f) => (f.para?.priority ?? 0) >= newCalculatedMaxPriority)
-      }
-      if (currentMaxPriorityFromAllVisibleSections === -1) {
-        filteredItems = []
+      // Drop checklist items (if 'ignoreChecklistItems' is set)
+      let typeWantedItems = regularTaskItems
+      let totalCountToUse = section.totalCount ?? 0
+      if (typeWantedItems.length > 0 && memoizedDashboardSettings && memoizedDashboardSettings.ignoreChecklistItems) {
+        typeWantedItems = typeWantedItems.filter((si) => !(si.para?.type === 'checklist'))
+        totalCountToUse = totalCountToUse - (regularTaskItems.length - typeWantedItems.length)
       }
 
-      // Compare regularTaskItems.length to filteredItems.length to accurately detect priority filtering
-      // (since filteredItems only contains regular task items, not special message items)
-      const priorityFilteringHappening = regularTaskItems.length > filteredItems.length
-      logDebug(
-        'useSectionSortAndFilter',
-        `${section.sectionCode} ${section.name}: ${memoizedItems.length} items; currentMaxPriorityFromAllVisibleSections = ${String(
-          currentMaxPriorityFromAllVisibleSections,
-        )}; maxPrioritySeenInThisSection = ${String(newCalculatedMaxPriority)}; leaves ${String(filteredItems.length)} filteredItems`,
-      )
-      // clo(filteredItems, 'useSectionSortAndFilter filteredItems:')
+      // If we want to filter by priority, find highest priority seen (globally), and then filter out lower-priority items.
+      // Only calculate max priority from remaining regular task items, not special message types
+      let filteredItems = typeWantedItems
+      let priorityFilteringHappening = false
+      if (filterByPriority) {
+        const thisSectionCalculatedMaxPriority = getMaxPriorityInItems(typeWantedItems)
+        // logDebug('useSectionSortAndFilter', `Section ${section.sectionCode} calculated max priority: ${thisSectionCalculatedMaxPriority}`)
+        setCalculatedMaxPriority(thisSectionCalculatedMaxPriority)
 
+        // TODO: but how do we downgrade this after it has been raised?
+        // Hopefully by re-setting at start of render calls
+
+        // Clear items if priority filtering is enabled AND we're waiting for global priority calculation.
+        // (This prevents showing items prematurely during initial load when global priority hasn't been calculated yet.)
+        // if (currentMaxPriorityFromAllVisibleSections === -1 && thisSectionCalculatedMaxPriority === -1) {
+        if (currentMaxPriorityFromAllVisibleSections === -1) {
+          // Wait for priority calculation - don't show items yet if no priority items exist anywhere
+          logInfo('useSectionSortAndFilter', `- ${section.sectionCode} waiting for priority calculations to be available ( all ${String(currentMaxPriorityFromAllVisibleSections)} / this ${String(thisSectionCalculatedMaxPriority)})`)
+          filteredItems = []
+        }
+        else {
+          // Filter the regular (non-message) items based on priority, unless showAllTasks is true, which means user has overridden the priority filtering for this section.
+          if (!showAllTasks) {
+            // if (!showAllTasks && thisSectionCalculatedMaxPriority > 0) {
+            // // When priority filtering is enabled, filter by this section's max priority
+            // Use the global max priority if available, otherwise use this section's max priority
+            const priorityToUse = currentMaxPriorityFromAllVisibleSections > -1
+              ? currentMaxPriorityFromAllVisibleSections
+              : thisSectionCalculatedMaxPriority
+            logInfo('useSectionSortAndFilter', `${section.sectionCode}: starting to filter ${String(typeWantedItems.length)} items with all ${String(currentMaxPriorityFromAllVisibleSections)} / this ${String(thisSectionCalculatedMaxPriority)}`)
+            filteredItems = filteredItems.filter((f) => (f.para?.priority ?? 0) >= priorityToUse)
+            logInfo('useSectionSortAndFilter', `  filtered to ${filteredItems.length} items using priority ${priorityToUse}`)
+          } else {
+            logInfo('useSectionSortAndFilter', `${section.sectionCode}: no priority filtering`)
+          }
+        }
+
+        // Compare regularTaskItems.length to filteredItems.length to accurately detect priority filtering
+        priorityFilteringHappening = regularTaskItems.length > filteredItems.length
+        logInfo(
+          'useSectionSortAndFilter',
+          `=> ${filteredItems.length} items from ${memoizedItems.length} (all  ${String(
+            currentMaxPriorityFromAllVisibleSections,
+          )} / this ${String(thisSectionCalculatedMaxPriority)})`,
+        )
+      }
       filteredItems.sort(itemSort)
       // logDebug('useSectionSortAndFilter', `sorted: ${String(filteredItems.map(fi => fi.ID).join(','))}`)
 
@@ -180,33 +196,35 @@ const useSectionSortAndFilter = (
       // logDebug('useSectionSortAndFilter', `after reordering children: ${String(orderedFilteredItems.map(fi => fi.ID).join(','))}`)
 
       // If more than limitToApply items, then just keep the first 'maxItemsToShowInSection' items, otherwise keep all
-      // const itemsToShow = limitToApply > 0 ? orderedFilteredItems.slice(0, limitToApply) : orderedFilteredItems.slice()
       const orderedFilteredLimitedItems = limitToApply > 0 ? orderedFilteredItems.slice(0, limitToApply) : orderedFilteredItems.slice()
 
       // If we are filtering items out, add 'filtered out' display line
       // Use regularTaskItems.length since orderedFilteredLimitedItems only contains items from regularTaskItems (not special message items)
       const numFilteredOutThisSection = regularTaskItems.length - orderedFilteredLimitedItems.length
-      if (numFilteredOutThisSection > 0) {
-        specialMessageItems.unshift({
-          ID: `${section.ID}-Filter`,
-          sectionCode: section.sectionCode,
+      if (showAllTasks) {
+        const messageItem = {
           itemType: 'filterIndicator',
-          para: {
-            lineIndex: -1,
-            content: showAllTasks
-              ? `Showing all ${typeWantedItems.length} items (click to filter by priority)`
-              : `There ${numFilteredOutThisSection >= 2 ? 'are' : 'is'} also ${String(numFilteredOutThisSection)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${numFilteredOutThisSection >= 2 ? 'items' : 'item'
-                } currently hidden (click to show all)`,
-            filename: '',
-            type: 'text',
-            noteType: 'Notes',
-            rawContent: '',
-            priority: -1,
-            indents: 0,
-          },
-        })
-
+          ID: `${section.ID}-FilterOffer`,
+          // Note: ideally indicate here that the display of this shouldn't start with the + icon
+          sectionCode: section.sectionCode,
+          message: `Showing all ${typeWantedItems.length} items (click to filter by priority)`
+        }
+        logInfo('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
+        specialMessageItems.unshift(messageItem)
+      } else {
+        if (numFilteredOutThisSection > 0) {
+          const messageItem = {
+            itemType: 'filterIndicator',
+            ID: `${section.ID}-FilterIndicator`,
+            sectionCode: section.sectionCode,
+            message: `There ${numFilteredOutThisSection >= 2 ? 'are' : 'is'} also ${String(numFilteredOutThisSection)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${numFilteredOutThisSection >= 2 ? 'items' : 'item'
+              } currently hidden (click to show all)`,
+          }
+          logInfo('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
+          specialMessageItems.unshift(messageItem)
+        }
       }
+
       const itemsToShow = orderedFilteredLimitedItems.concat(specialMessageItems)
       // logInfo('useSectionSortAndFilter', `${section.sectionCode}: typeWantedItems: ${String(typeWantedItems.length)}; numFilteredOutThisSection: ${String(numFilteredOutThisSection)}; itemsToShow: ${String(itemsToShow.length)}; totalCountToUse: ${String(totalCountToUse)}; limitToApply: ${String(limitToApply)}`)
 
@@ -230,19 +248,27 @@ const useSectionSortAndFilter = (
 // Supporting Functions
 //----------------------------------------------------------------------
 
+/**
+ * Calculate the maximum priority in a list of items. Returns -1 if there are no items. Returns the highest priority found, or 0 if no items have a priority.
+ * @param {Array<TSectionItem>} items 
+ * @returns {number} The maximum priority found, or -1 if there are no items, or 0 if no items have a priority.
+ */
 function getMaxPriorityInItems(items: Array<TSectionItem>): number {
-  let maxPrioritySeenInThisSection = -1
+  if (items.length === 0) {
+    return -1
+  }
+  let maxPrioritySeen = 0
   for (const i of items) {
     // Skip special message types when calculating max priority
     if (treatSingleItemTypesAsZeroItems.includes(i.itemType)) {
       continue
     }
-    if (i.para?.priority && i.para.priority > maxPrioritySeenInThisSection) {
-      maxPrioritySeenInThisSection = i.para.priority
-      // logDebug('useSectionSortAndFilter', `- raised max priority to ${String(maxPrioritySeenInThisSection)}`)
+    if (i.para?.priority && i.para.priority > maxPrioritySeen) {
+      maxPrioritySeen = i.para.priority
+    // logDebug('useSectionSortAndFilter', `- raised max priority to ${String(maxPrioritySeen)}`)
     }
   }
-  return maxPrioritySeenInThisSection
+  return maxPrioritySeen
 }
 
 /**

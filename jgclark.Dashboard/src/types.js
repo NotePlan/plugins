@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-11-20 for v2.3.0.b15 by @jgclark
+// Last updated 2025-11-30 for v2.3.2 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -31,7 +31,7 @@ export type TDashboardSettings = {
   applyIgnoreTermsToCalendarHeadingSections: boolean,
   // FFlag_UseTagCache?: boolean,
   FFlag_ShowSearchPanel?: boolean,
-  // searchSettings?: TSearchOptions, // an object holding a number of settings TODO: add from 2.3.0
+  // searchSettings?: TSearchOptions, // an object holding a number of settings TODO: add from 2.4.0?
   // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings
   FFlag_DebugPanel?: boolean, // to show debug pane
   FFlag_ShowTestingPanel?: boolean,
@@ -160,7 +160,7 @@ export type TSection = {
   showColoredBackground?: boolean, // whether to show a colored background for the section
 }
 
-export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'timeblock' | 'noSearchResults' | 'info' | 'preLimitOverdues' | 'error'
+export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'offerToFilter' | 'timeblock' | 'noSearchResults' | 'info' | 'preLimitOverdues' | 'error'
 // Note: If you add a new item type, make sure to update the ItemRow.jsx and StatusIcon.jsx components to display it properly
 
 // an item within a section, with optional TParagraphForDashboard

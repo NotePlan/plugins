@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 2025-11-12 for v2.3.0.b14, @jgclark
+// Last updated 2025-12-01 for v2.3.0.b14+, @jgclark
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -16,19 +16,20 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'DY', sectionName: 'Yesterday', showSettingName: 'showYesterdaySection' },
   { sectionCode: 'DO', sectionName: 'Tomorrow', showSettingName: 'showTomorrowSection' },
   { sectionCode: 'LW', sectionName: 'Last Week', showSettingName: 'showLastWeekSection' },
-  { sectionCode: 'W', sectionName: 'Week', showSettingName: 'showWeekSection' },
+  { sectionCode: 'W', sectionName: 'This Week', showSettingName: 'showWeekSection' },
   { sectionCode: 'M', sectionName: 'Month', showSettingName: 'showMonthSection' },
   { sectionCode: 'Q', sectionName: 'Quarter', showSettingName: 'showQuarterSection' },
   // TAG types are treated specially (one for each tag a user wants to see).
   // Use getTagSectionDetails() to get them
-  { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` }, // sectionName set later to reflect the tagsToShow setting
+  // sectionName set later to reflect the tagsToShow setting
+  { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` },
   { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
   { sectionCode: 'PRIORITY', sectionName: 'Priority', showSettingName: 'showPrioritySection' },
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
   { sectionCode: 'TB', sectionName: 'Current time block', showSettingName: 'showTimeBlockSection' },
   { sectionCode: 'SEARCH', sectionName: 'Search', showSettingName: '' },
   { sectionCode: 'INFO', sectionName: 'Info', showSettingName: 'showInfoSection' },
-  // For later use:
+  // For possible future use:
   // { sectionCode: 'SAVEDSEARCH', sectionName: 'Saved Search', showSettingName: 'showSavedSearchSection' },
 ]
 

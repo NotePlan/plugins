@@ -74,10 +74,24 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
         } plugin: `)
     }
 
-    const parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
+    let parsedDashboardSettings: any = parseSettings(pluginSettings.dashboardSettings)
 
     // additional setting that always starts as true
-    parsedDashboardSettings.showSearchSection = true
+    // parsedDashboardSettings.showSearchSection = true
+
+    // On first run, dashboardSettings may be empty/undefined. Populate with defaults if needed.
+    if (!parsedDashboardSettings || typeof parsedDashboardSettings !== 'object' || Object.keys(parsedDashboardSettings).length === 0) {
+      logInfo('getDashboardSettings', `dashboardSettings is empty on first run, populating with defaults`)
+      const defaults = getDashboardSettingsDefaults()
+      parsedDashboardSettings = { ...defaults, showSearchSection: true }
+      // Save the defaults back to DataStore so they persist
+      // $FlowFixMe[prop-missing] showSearchSection is included in defaults
+      await saveDashboardSettings(parsedDashboardSettings)
+    } else {
+      // Merge with defaults to ensure any new settings are added (existing settings take precedence)
+      const defaults = getDashboardSettingsDefaults()
+      parsedDashboardSettings = { ...defaults, ...parsedDashboardSettings, showSearchSection: true }
+    }
 
     // Note: I can't find the underlying issue, but we need to ensure number setting types are numbers, and not strings
     // const numberSettingTypes = dashboardSettingDefs.filter((ds) => ds.type === 'number')
@@ -94,6 +108,7 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
       clvt(parsedDashboardSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedDashboardSettings.newTaskSectionHeadingLevel:`)
     }
 
+    // $FlowFixMe[prop-missing] showSearchSection is included in defaults and merged above
     return parsedDashboardSettings
   } catch (err) {
     logError('getDashboardSettings', `${err.name}: ${err.message}`)
@@ -855,9 +870,26 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
     }
     return acc
   }, {})
+
+  // Add section show settings from allSectionDetails
+  // Most sections default to true, except INFO which defaults to false,
+  // and TAG sections are handled specially (one for each tag a user wants to see).
+  const sectionDefaults = allSectionDetails.reduce((acc, section) => {
+    if (section.showSettingName && section.showSettingName !== '') {
+      // $FlowIgnore[prop-missing]
+      acc[section.showSettingName] = section.sectionCode !== 'INFO'
+    }
+    return acc
+  }, {})
+
+  // Add showSearchSection (SEARCH section doesn't have showSettingName in allSectionDetails)
+  // $FlowIgnore[prop-missing]
+  sectionDefaults.showSearchSection = true
+
   // clo(dashboardSettingsDefaults, `dashboardSettingsDefaults:`)
   // $FlowIgnore[prop-missing]
-  return dashboardSettingsDefaults
+  // $FlowIgnore[cannot-spread-indexer]
+  return { ...dashboardSettingsDefaults, ...sectionDefaults }
 }
 
 /**

@@ -304,7 +304,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
     //   // clo(para,`makeParaContent...: - adding child marker for ${thisItem.ID}`)
     // }
 
-    logDebug('makeParaContent...', `\n-> ${output}`)
+    // logDebug('makeParaContent...', `\n-> ${output}`)
     return output
   } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, error.message)
