@@ -3,7 +3,7 @@
 // Represents a row item within a section.
 // Could be: Task, Review Item, Filtered Indicator, No Tasks left, No Projects, No Search Results.
 // Called by ItemGrid component.
-// Last updated 2025-12-01 for v2.3.1, @jgclark
+// Last updated 2025-12-04 for v2.3.3, @jgclark
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
@@ -50,10 +50,8 @@ function ItemRow({ item, thisSection, onToggleShowAll }: Props): Node {
           settingsDialogAnchor={item?.settingsDialogAnchor ?? ''}
           rowIconClassName="fa-regular fa-plus"
         />
-      ) : itemType === 'filterIndicator' ? (
-        <TasksFiltered item={item} onToggleShowAll={onToggleShowAll} />
-              ) : itemType === 'offerToFilter' ? (
-                <MessageOnlyItem message={item?.message ?? ''} contentClassName="messageItemRow" rowIconClassName="fa-regular fa-plus" settingsDialogAnchor={item?.settingsDialogAnchor ?? ''} />
+            ) : (itemType === 'filterIndicator' || itemType === 'offerToFilter') ? (
+                <TasksFiltered item={item} onToggleShowAll={onToggleShowAll} />
       ) : itemType === 'itemCongrats' ? (
                     <MessageOnlyItem message={itemCongratsMessage} contentClassName="itemCongrats" closingFAIconClassName="fa-light fa-champagne-glasses pad-left" />
       ) : itemType === 'info' ? (

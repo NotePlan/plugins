@@ -6,7 +6,7 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2025-11-23 for v2.3.0.b15, @jgclark
+// Last updated 2025-12-04 for v2.3.3, @jgclark
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -137,10 +137,10 @@ const useSectionSortAndFilter = (
 
       // Drop checklist items (if 'ignoreChecklistItems' is set)
       let typeWantedItems = regularTaskItems
-      let totalCountToUse = section.totalCount ?? 0
+      // let totalCountToUse = section.totalCount ?? 0
       if (typeWantedItems.length > 0 && memoizedDashboardSettings && memoizedDashboardSettings.ignoreChecklistItems) {
         typeWantedItems = typeWantedItems.filter((si) => !(si.para?.type === 'checklist'))
-        totalCountToUse = totalCountToUse - (regularTaskItems.length - typeWantedItems.length)
+        // totalCountToUse = totalCountToUse - (regularTaskItems.length - typeWantedItems.length)
       }
 
       // If we want to filter by priority, find highest priority seen (globally), and then filter out lower-priority items.
@@ -160,7 +160,7 @@ const useSectionSortAndFilter = (
         // if (currentMaxPriorityFromAllVisibleSections === -1 && thisSectionCalculatedMaxPriority === -1) {
         if (currentMaxPriorityFromAllVisibleSections === -1) {
           // Wait for priority calculation - don't show items yet if no priority items exist anywhere
-          logInfo('useSectionSortAndFilter', `- ${section.sectionCode} waiting for priority calculations to be available ( all ${String(currentMaxPriorityFromAllVisibleSections)} / this ${String(thisSectionCalculatedMaxPriority)})`)
+          logDebug('useSectionSortAndFilter', `- ${section.sectionCode} waiting for priority calculations to be available ( all ${String(currentMaxPriorityFromAllVisibleSections)} / this ${String(thisSectionCalculatedMaxPriority)})`)
           filteredItems = []
         }
         else {
@@ -172,17 +172,17 @@ const useSectionSortAndFilter = (
             const priorityToUse = currentMaxPriorityFromAllVisibleSections > -1
               ? currentMaxPriorityFromAllVisibleSections
               : thisSectionCalculatedMaxPriority
-            logInfo('useSectionSortAndFilter', `${section.sectionCode}: starting to filter ${String(typeWantedItems.length)} items with all ${String(currentMaxPriorityFromAllVisibleSections)} / this ${String(thisSectionCalculatedMaxPriority)}`)
+            logDebug('useSectionSortAndFilter', `${section.sectionCode}: starting to filter ${String(typeWantedItems.length)} items with all ${String(currentMaxPriorityFromAllVisibleSections)} / this ${String(thisSectionCalculatedMaxPriority)}`)
             filteredItems = filteredItems.filter((f) => (f.para?.priority ?? 0) >= priorityToUse)
-            logInfo('useSectionSortAndFilter', `  filtered to ${filteredItems.length} items using priority ${priorityToUse}`)
+            logDebug('useSectionSortAndFilter', `  filtered to ${filteredItems.length} items using priority ${priorityToUse}`)
           } else {
-            logInfo('useSectionSortAndFilter', `${section.sectionCode}: no priority filtering`)
+            logDebug('useSectionSortAndFilter', `${section.sectionCode}: no priority filtering`)
           }
         }
 
         // Compare regularTaskItems.length to filteredItems.length to accurately detect priority filtering
         priorityFilteringHappening = regularTaskItems.length > filteredItems.length
-        logInfo(
+        logDebug(
           'useSectionSortAndFilter',
           `=> ${filteredItems.length} items from ${memoizedItems.length} (all  ${String(
             currentMaxPriorityFromAllVisibleSections,
@@ -203,13 +203,13 @@ const useSectionSortAndFilter = (
       const numFilteredOutThisSection = regularTaskItems.length - orderedFilteredLimitedItems.length
       if (showAllTasks) {
         const messageItem = {
-          itemType: 'filterIndicator',
+          itemType: 'offerToFilter',
           ID: `${section.ID}-FilterOffer`,
           // Note: ideally indicate here that the display of this shouldn't start with the + icon
           sectionCode: section.sectionCode,
           message: `Showing all ${typeWantedItems.length} items (click to filter by priority)`
         }
-        logInfo('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
+        logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
         specialMessageItems.unshift(messageItem)
       } else {
         if (numFilteredOutThisSection > 0) {
@@ -220,13 +220,13 @@ const useSectionSortAndFilter = (
             message: `There ${numFilteredOutThisSection >= 2 ? 'are' : 'is'} also ${String(numFilteredOutThisSection)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${numFilteredOutThisSection >= 2 ? 'items' : 'item'
               } currently hidden (click to show all)`,
           }
-          logInfo('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
+          logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
           specialMessageItems.unshift(messageItem)
         }
       }
 
       const itemsToShow = orderedFilteredLimitedItems.concat(specialMessageItems)
-      // logInfo('useSectionSortAndFilter', `${section.sectionCode}: typeWantedItems: ${String(typeWantedItems.length)}; numFilteredOutThisSection: ${String(numFilteredOutThisSection)}; itemsToShow: ${String(itemsToShow.length)}; totalCountToUse: ${String(totalCountToUse)}; limitToApply: ${String(limitToApply)}`)
+      // logDebug('useSectionSortAndFilter', `${section.sectionCode}: typeWantedItems: ${String(typeWantedItems.length)}; numFilteredOutThisSection: ${String(numFilteredOutThisSection)}; itemsToShow: ${String(itemsToShow.length)}; totalCountToUse: ${String(totalCountToUse)}; limitToApply: ${String(limitToApply)}`)
 
       setFilteredItems(filteredItems)
       setItemsToShow(itemsToShow)
@@ -240,7 +240,7 @@ const useSectionSortAndFilter = (
     setShowAllTasks(!showAllTasks)
   }
 
-  // logInfo('useSectionSortAndFilter', `Section ${section.sectionCode} returning: maxPrioritySeenInThisSection: ${calculatedMaxPriority}; itemsToShow: ${itemsToShow.length}; numFilteredOut: ${String(numFilteredOut)}; limitApplied: ${String(limitApplied)}`)
+  // logDebug('useSectionSortAndFilter', `Section ${section.sectionCode} returning: maxPrioritySeenInThisSection: ${calculatedMaxPriority}; itemsToShow: ${itemsToShow.length}; numFilteredOut: ${String(numFilteredOut)}; limitApplied: ${String(limitApplied)}`)
   return { filteredItems, itemsToShow, numFilteredOutThisSection, limitApplied, maxPrioritySeenInThisSection: calculatedMaxPriority, toggleShowAllTasks }
 }
 

@@ -9,10 +9,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.3.3] 2025-12-03
+## [2.3.3] 2025-12-04
 - new 'Year' section available
 - change order of display of tag sections to the order they are defined in the settings, not alphabetical.
 - dev: removed `sectionNumStr` throughout, now using `sectionCode` instead
+- remove + icon on the "Showing all N items..." message line
 
 ## [2.3.2] 2025-12-02
 - fix display when there are no priority items shown.
