@@ -10,7 +10,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 -->
 
 ## [2.3.3] 2025-12-03
+- new 'Year' section available
 - change order of display of tag sections to the order they are defined in the settings, not alphabetical.
+- dev: removed `sectionNumStr` throughout, now using `sectionCode` instead
 
 ## [2.3.2] 2025-12-02
 - fix display when there are no priority items shown.

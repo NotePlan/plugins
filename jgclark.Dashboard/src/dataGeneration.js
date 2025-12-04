@@ -27,7 +27,7 @@ import { openMonthParas, refMonthParas, tagParasFromNote } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import { removeInvalidTagSections } from './perspectiveHelpers'
 import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
-import { getDateStringFromCalendarFilename, getNPMonthStr, getNPQuarterStr } from '@helpers/dateTime'
+import { getDateStringFromCalendarFilename, getNPMonthStr, getNPQuarterStr, getNPYearStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 // import { sortListBy } from '@helpers/sorting'
@@ -90,6 +90,7 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
+    if (sectionCodesToGet.includes('Y') && config.showYearSection) sections.push(...getThisYearSectionData(config, useDemoData, useEditorWherePossible))
     // moderately quick to generate
     if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) {
       logInfo('getSomeSectionsData', `🔹 Getting Project section data as part of ${sectionCodesToGet.toString()}`)
@@ -559,9 +560,194 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
   }
 }
 
-//----------------------------------------------------------------
-// Note: If we want to do yearly in the future then the icon is
-//   fa-calendar-days (same as quarter). This would be section #6
+/**
+ * Get open items from this Year's note
+ * @param {TDashboardSettings} config
+ * @param {boolean} useDemoData?
+ * @param {boolean} useEditorWherePossible?
+ * @returns {TSection} data
+ */
+export function getThisYearSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+  try {
+    const thisSectionCode = 'Y'
+    const sections: Array<TSection> = []
+    let items: Array<TSectionItem> = []
+    let itemCount = 0
+    const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+    const dateStr = getNPYearStr(today)
+    const NPSettings = getNotePlanSettings()
+    const currentYearlyNote = DataStore.calendarNoteByDate(today, 'year')
+    const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
+    let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
+    let sortedRefParas: Array<TParagraphForDashboard> = []
+    logDebug('getDataForDashboard', `---------- Gathering Year's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} ------------`)
+    const startTime = new Date() // for timing only
+
+    if (useDemoData) {
+      // Deliberately no demo data defined
+    } else {
+      if (currentYearlyNote) {
+        // Get list of open tasks/checklists from this yearly note (if it exists)
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(dateStr, 'year', config, useEditorWherePossible)
+
+        // Iterate and write items for first (or combined) section
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, thisSectionCode)
+        itemCount += items.length
+
+        // logDebug('getDataForDashboard', `- finished finding Yearly items from ${dateStr} after ${timer(startTime)}`)
+      } else {
+        logDebug('getDataForDashboard', `No Yearly note found for filename '${thisFilename}'`)
+      }
+    }
+    const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'year').toDate(), 'year')
+    const nextPeriodFilename = nextPeriodNote?.filename ?? ''
+    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+
+    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
+    const thisYearHeadings: Array<string> = currentYearlyNote ? getHeadingsFromNote(currentYearlyNote, false, true, true, true) : []
+    const nextYearHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
+    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
+    const thisYearFormFields: Array<TSettingItem> = formFieldsBase.concat(
+      thisYearHeadings.length
+        ? // $FlowIgnore[incompatible-type]
+        [
+          {
+            type: 'dropdown-select',
+            label: 'Under Heading:',
+            key: 'heading',
+            // $FlowFixMe[incompatible-type]
+            options: thisYearHeadings,
+            noWrapOptions: true,
+            value: defaultHeadingToAddTo,
+          },
+        ]
+        : [],
+    )
+    const nextYearFormFields: Array<TSettingItem> = formFieldsBase.concat(
+      nextYearHeadings.length
+        ? // $FlowIgnore[incompatible-type]
+        [
+          {
+            type: 'dropdown-select',
+            label: 'Under Heading:',
+            key: 'heading',
+            // $FlowFixMe[incompatible-type]
+            options: nextYearHeadings,
+            noWrapOptions: true,
+            value: defaultHeadingToAddTo,
+          },
+        ]
+        : [],
+    )
+
+    let sectionDescription = `{countWithLimit} from ${dateStr}`
+    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
+
+    const section: TSection = {
+      ID: thisSectionCode,
+      name: 'This Year',
+      showSettingName: 'showYearSection',
+      sectionCode: thisSectionCode,
+      description: sectionDescription,
+      FAIconClass: 'fa-regular fa-calendar-days',
+      sectionTitleColorPart: 'sidebarYearly',
+      sectionFilename: thisFilename,
+      sectionItems: items,
+      generatedDate: new Date(),
+      doneCounts: doneCountData,
+      totalCount: items.length,
+      actionButtons: [
+        {
+          actionName: 'addTask',
+          actionPluginID: `${pluginJson['plugin.id']}`,
+          tooltip: "Add a new task to this year's note",
+          display: '<i class= "fa-regular fa-fw  fa-circle-plus sidebarYearly" ></i> ',
+          actionParam: thisFilename,
+          postActionRefresh: ['Y'],
+          formFields: thisYearFormFields,
+          submitOnEnter: true,
+          submitButtonText: 'Add & Close',
+        },
+        {
+          actionName: 'addChecklist',
+          actionPluginID: `${pluginJson['plugin.id']}`,
+          tooltip: "Add a checklist item to this year's note",
+          display: '<i class= "fa-regular fa-fw  fa-square-plus sidebarYearly" ></i> ',
+          actionParam: thisFilename,
+          postActionRefresh: ['Y'],
+          formFields: thisYearFormFields,
+          submitOnEnter: true,
+          submitButtonText: 'Add & Close',
+        },
+        {
+          actionName: 'addTask',
+          actionPluginID: `${pluginJson['plugin.id']}`,
+          tooltip: "Add a new task to next year's note",
+          display: '<i class= "fa-regular fa-fw  fa-circle-arrow-right sidebarYearly" ></i> ',
+          actionParam: nextPeriodFilename,
+          formFields: nextYearFormFields,
+          submitOnEnter: true,
+          submitButtonText: 'Add & Close',
+        },
+        {
+          actionName: 'addChecklist',
+          actionPluginID: `${pluginJson['plugin.id']}`,
+          tooltip: "Add a checklist item to next year's note",
+          display: '<i class= "fa-regular fa-fw  fa-square-arrow-right sidebarYearly" ></i> ',
+          actionParam: nextPeriodFilename,
+          formFields: nextYearFormFields,
+          submitOnEnter: true,
+          submitButtonText: 'Add & Close',
+        },
+      ],
+      isReferenced: false,
+    }
+    sections.push(section)
+
+    // If we want this separated from the referenced items, then form a second section
+    if (config.separateSectionForReferencedNotes) {
+      let items: Array<TSectionItem> = []
+      const referencedSectionCode = `${thisSectionCode}_REF`
+      if (useDemoData) {
+        // No demo data
+      } else {
+        // Get list of open tasks/checklists from current yearly note (if it exists)
+        if (sortedRefParas.length > 0) {
+          // Iterate and write items for this section
+          items = createSectionOpenItemsFromParas(sortedRefParas, referencedSectionCode)
+          itemCount += items.length
+        }
+      }
+
+      // Add separate section (if there are any items found)
+      const section: TSection = {
+        ID: referencedSectionCode,
+        name: '>This Year',
+        showSettingName: 'showYearSection',
+        sectionCode: thisSectionCode,
+        description: `{count} scheduled to ${dateStr}`,
+        FAIconClass: 'fa-regular fa-calendar-days',
+        sectionTitleColorPart: 'sidebarYearly',
+        sectionFilename: thisFilename,
+        sectionItems: items,
+        totalCount: items.length,
+        generatedDate: new Date(),
+        actionButtons: [],
+        isReferenced: true,
+      }
+      sections.push(section)
+    }
+
+    logDebug('getDataForDashboard', `- found ${itemCount} yearly items from ${dateStr} in ${timer(startTime)}`)
+    return sections
+  } catch (error) {
+    logError('getDataForDashboard/year', `ERROR: ${error.message}`)
+    return []
+  }
+}
+
 //----------------------------------------------------------------
 
 /**

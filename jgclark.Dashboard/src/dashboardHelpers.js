@@ -201,6 +201,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   if (config.showWeekSection) sectionsToShow.push('W')
   if (config.showMonthSection) sectionsToShow.push('M')
   if (config.showQuarterSection) sectionsToShow.push('Q')
+  if (config.showYearSection) sectionsToShow.push('Y')
   if (config.showProjectSection) sectionsToShow.push('PROJ')
   if (config.tagsToShow) sectionsToShow.push('TAG')
   if (config.showOverdueSection) sectionsToShow.push('OVERDUE')

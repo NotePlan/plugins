@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 2025-12-01 for v2.3.0.b14+, @jgclark
+// Last updated 2025-12-03 for v2.3.3, @jgclark
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -19,6 +19,7 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'W', sectionName: 'This Week', showSettingName: 'showWeekSection' },
   { sectionCode: 'M', sectionName: 'Month', showSettingName: 'showMonthSection' },
   { sectionCode: 'Q', sectionName: 'Quarter', showSettingName: 'showQuarterSection' },
+  { sectionCode: 'Y', sectionName: 'Year', showSettingName: 'showYearSection' },
   // TAG types are treated specially (one for each tag a user wants to see).
   // Use getTagSectionDetails() to get them
   // sectionName set later to reflect the tagsToShow setting
@@ -35,12 +36,12 @@ export const allSectionDetails: Array<TSectionDetails> = [
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map((s) => s.sectionCode)
 
-export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q']
+export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y']
 
-export const defaultSectionDisplayOrder = ['SEARCH', 'INFO', 'SAVEDSEARCH', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
+export const defaultSectionDisplayOrder = ['SEARCH', 'INFO', 'SAVEDSEARCH', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
 
 // change this order to change which duplicate items get kept - the first on the list. Should not include 'dontDedupeSectionCodes' below.
-export const sectionPriority = ['TB', 'TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'PRIORITY', 'OVERDUE']
+export const sectionPriority = ['TB', 'TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
 
 // Those sections we can't or shouldn't attempt to dedupe:
 // - TB as its for info only
@@ -48,7 +49,7 @@ export const sectionPriority = ['TB', 'TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'P
 export const dontDedupeSectionCodes = ['INFO', 'PROJ', 'SEARCH', 'SAVEDSEARCH']
 
 // Enable interactive processing for these itemTypes:
-export const interactiveProcessingPossibleSectionTypes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'TAG', 'OVERDUE', 'PRIORITY']
+export const interactiveProcessingPossibleSectionTypes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY']
 
 // Treat these itemTypes as if they are zero items, so we don't show the Interactive or other Processing buttons, and correct the count in the description
 export const treatSingleItemTypesAsZeroItems = ['itemCongrats', 'projectCongrats', 'noSearchResults', 'preLimitOverdues']

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-11-30 for v2.3.2 by @jgclark
+// Last updated 2025-12-03 for v2.3.3 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -105,6 +105,7 @@ export type TDashboardSettings = {
   showPrioritySection: boolean,
   showProjectSection: boolean,
   showQuarterSection: boolean,
+  showYearSection: boolean,
   showSavedSearchSection: boolean, // Note: the SEARCH Section doesn't need a setting. This is for future use for SAVEDSEARCH section(s).
   showTimeBlockSection: boolean,
   showTodaySection: boolean,
@@ -135,7 +136,7 @@ export type TDashboardPluginSettings = {
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' | 'INFO' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'Y' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' | 'INFO' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
 // Note: INFO is a new section code for v2.3.0 for testing.
 // Note: When adding a new section code, make sure to update the constants in constants.js and dashboardSettings.js files, and getSomeSectionsData in dataGeneration.js
 
