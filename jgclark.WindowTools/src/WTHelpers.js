@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for WindowTools plugin
 // Jonathan Clark
-// last update 2025-11-07 for v1.4.0 by @jgclark
+// last update 2025-11-30 for v1.5.0 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -93,6 +93,7 @@ export type WindowSetsConfig = {
   saveMainSidebarWidth: boolean,
   defaultMainSidebarWidth: ?number, // only valid for macOS
   defaultEditorWidth: ?number, // only valid for macOS
+  useSmartPlacement: boolean, // only valid for macOS
   _logDebug: string,
 }
 
@@ -136,6 +137,7 @@ export async function getPluginSettings(): Promise<WindowSetsConfig> {
       saveMainSidebarWidth: true,
       defaultMainSidebarWidth: 250,
       defaultEditorWidth: 500,
+      useSmartPlacement: true,
       _logDebug: 'DEBUG',
     } // for completeness
   }

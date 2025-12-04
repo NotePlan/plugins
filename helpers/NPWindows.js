@@ -10,12 +10,18 @@ import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search
 import { inputIntegerBounded } from '@helpers/userInput'
 
 // ----------------------------------------------------------------------------
-// TYPES
+// Types
 
 export type TWindowType = 'Editor' | 'HTMLView' | 'FolderView'
 
 // ----------------------------------------------------------------------------
-// FUNCTIONS
+// Constants
+
+const MIN_WINDOW_WIDTH = 300
+const MIN_WINDOW_HEIGHT = 430
+
+// ----------------------------------------------------------------------------
+// Functions
 
 /**
  * Return string version of Rect's x/y/width/height attributes
@@ -301,19 +307,23 @@ export function noteOpenInEditor(openNoteFilename: string): boolean {
 }
 
 /**
- * Returns the Editor object that matches a given filename (if available)
+ * Returns the TEditor that matches a given filename (if available). 
+ * If getLastOpenEditor is true, then return the last open Editor window (which is the most recently opened one), otherwise the first one that matches the filename.
  * @author @jgclark
  * @param {string} openNoteFilename to find in list of open Editor windows
+ * @param {boolean} getLastOpenEditor - whether to return the last open Editor window
  * @returns {TEditor} the matching open Editor window
  */
-export function getOpenEditorFromFilename(openNoteFilename: string): TEditor | false {
+export function getOpenEditorFromFilename(openNoteFilename: string, getLastOpenEditor: boolean = false): TEditor | false {
   const allEditorWindows = NotePlan.editors
-  for (const thisEditorWindow of allEditorWindows) {
-    if (thisEditorWindow.filename === openNoteFilename) {
-      return thisEditorWindow
-    }
+  const matchingEditorWindows = allEditorWindows.filter(ew => ew.filename === openNoteFilename)
+  if (matchingEditorWindows.length === 0) {
+    logWarn('getOpenEditorFromFilename', `No open Editor window found for filename '${openNoteFilename}'`)
+    return false
   }
-  return false
+  return getLastOpenEditor
+    ? matchingEditorWindows[matchingEditorWindows.length - 1]
+    : matchingEditorWindows[0]
 }
 
 /**
@@ -335,23 +345,257 @@ export function focusHTMLWindowIfAvailable(customId: string): boolean {
 }
 
 /**
- * Opens note in new floating window, if it's not already open in one
- * @param {string} filename to open in window
+ * Position an Editor window at a smart placement on the screen.
+ * @param {TEditor} editor - the Editor window to position
+ * @param {number} requestedWidth - requested width of the window (if set at zero, treat as if not set)
  * @returns {boolean} success?
  */
-export async function openNoteInNewWindowIfNeeded(filename: string): Promise<boolean> {
-  const isAlreadyOpen = isEditorWindowOpen(filename)
-  if (isAlreadyOpen) {
-    logDebug('openNoteInNewWindowIfNeeded', `Note '${filename}' is already open in an Editor window. Skipping.`)
+function positionEditorWindowWithSmartPlacement(editor: TEditor, requestedWidth: number): boolean {
+  const editorId = editor.id
+  logDebug('positionEditorWindowWithSmartPlacement', `Positioning Editor window '${editorId}' for filename '${editor.filename}' (customId: '${editor.customId}')`)
+
+  const currentWindowRect = getLiveWindowRect(editorId)
+  if (!currentWindowRect) {
+    logWarn('positionEditorWindowWithSmartPlacement', `Couldn't get window rect for Editor window '${editorId}'`)
     return false
   }
-  const res = await Editor.openNoteByFilename(filename, true, 0, 0, false, false) // create new floating window
-  if (res) {
-    logDebug('openWindowSet', `Opened floating window '${filename}'`)
-  } else {
-    logWarn('openWindowSet', `Failed to open floating window '${filename}'`)
+
+  // Calculate the smart location for the new window
+  const newWindowRect = calculateSmartLocation(currentWindowRect, requestedWidth)
+  logDebug('positionEditorWindowWithSmartPlacement', `Calculated smart location for new window -> ${rectToString(newWindowRect)}`)
+
+  // Set the window rect for the new window
+  editor.windowRect = newWindowRect
+  return true
+}
+
+/**
+ * Opens note in new floating window, optionally only if it's not already open in one, and optionally move window to a smart location on the screen, rather than the default position, which is often unhelpful.
+ * @param {string} filename to open in window
+ * @param {number} width - requested width of the new window (if set at zero, treat as if not set)
+ * @param {boolean} onlyIfNotAlreadyOpen - whether to only open the window if it's not already open in one
+ * @param {boolean} smartLocation - whether to move window to a smart location on the screen, based on the current NP window size(s), position(s) and the screen area
+ * @returns {boolean} success?
+ */
+export async function openNoteInNewWindow(
+  filename: string,
+  width: number,
+  onlyIfNotAlreadyOpen: boolean = false,
+  smartLocation: boolean = true): Promise<boolean> {
+  try {
+    // Check if note is already open
+    if (onlyIfNotAlreadyOpen && isEditorWindowOpen(filename)) {
+      logDebug('openNoteInNewWindow', `Note '${filename}' is already open in an Editor window. Skipping.`)
+      return false
+    }
+
+    // Open the note in a new floating window
+    const res: ?TNote = await Editor.openNoteByFilename(filename, true, 0, 0, false, false) // create new floating window
+    if (!res) {
+      logWarn('openNoteInNewWindow', `Failed to open floating window '${filename}'`)
+      return false
+    }
+    logDebug('openNoteInNewWindow', `Opened floating window '${filename}'`)
+
+    // Position window at smart location if requested
+    if (smartLocation) {
+      const thisEditor = getOpenEditorFromFilename(filename, true)
+      if (!thisEditor) {
+        throw new Error(`Couldn't find open Editor window for filename '${filename}'`)
+      }
+      positionEditorWindowWithSmartPlacement(thisEditor, width)
+    }
+
+    return true
+  } catch (error) {
+    logError('openNoteInNewWindow', `Error: ${error.message}`)
+    return false
   }
-  return !!res
+}
+
+/** 
+ * Calculate the smart placement for the new window:
+ *   - Calculate all the areas of the screen from the existing open Editor and HTML windows.
+ *   - Then find the next available area that is big enough for the same height and requested width, that is next to an existing Editor window, but within the screen boundaries.
+ * @param {Rect} currenthisWindowRect - the Rect of the current window
+ * @param {number} requestedWidth - the requested width of the new window (if set at zero, treat as if not set)
+ * @returns {Rect} the smart location for the new window
+ */
+export function calculateSmartLocation(thisWindowRect: Rect, requestedWidth: number): Rect {
+  const allWindows = NotePlan.editors.concat(NotePlan.htmlWindows)
+  const allWindowRects = allWindows.map(win => win.windowRect)
+  const allWindowRectsString = allWindowRects.map(rect => rectToString(rect)).join('\n')
+  logDebug('calculateSmartLocation', `All window rects: ${allWindowRectsString}`)
+  const requestedHeight = thisWindowRect.height
+  const newWindowRect = findNextClosestAvailableArea(allWindowRects, requestedHeight, requestedWidth)
+  logDebug('calculateSmartLocation', `Calculated smart location: ${rectToString(newWindowRect)}`)
+  return newWindowRect
+}
+
+/**
+ * Find the next available area that is:
+ * - not overlapping with any existing 'allWindowRects'
+ * - big enough for the requested height and width
+ * - next to an existing Editor window
+ * - within the screen boundaries
+ * @param {Array<Rect>} allWindowRects - the Rects of the existing open Editor and HTML windows
+ * @param {number} requestedHeight - the requested height of the new window
+ * @param {number} requestedWidth - the requested width of the new window
+ * @returns {Rect} the next available area
+ */
+function findNextClosestAvailableArea(allWindowRects: Array<Rect>, requestedHeight: number, requestedWidth: number): Rect {
+  const screenWidth = NotePlan.environment.screenWidth
+  const screenHeight = NotePlan.environment.screenHeight
+
+  // Helper function to check if two rects overlap
+  function rectsOverlap(rect1: Rect, rect2: Rect): boolean {
+    return !(
+      rect1.x + rect1.width <= rect2.x ||
+      rect2.x + rect2.width <= rect1.x ||
+      rect1.y + rect1.height <= rect2.y ||
+      rect2.y + rect2.height <= rect1.y
+    )
+  }
+
+  // Helper function to check if a rect fits within screen boundaries
+  function rectFitsInScreen(rect: Rect): boolean {
+    return (
+      rect.x >= 0 &&
+      rect.y >= 0 &&
+      rect.x + rect.width <= screenWidth &&
+      rect.y + rect.height <= screenHeight
+    )
+  }
+
+  // Helper function to check if a candidate rect overlaps with any existing windows
+  function doesNotOverlapWithExisting(candidateRect: Rect): boolean {
+    for (const existingRect of allWindowRects) {
+      if (rectsOverlap(candidateRect, existingRect)) {
+        return false
+      }
+    }
+    return true
+  }
+
+  // If no existing windows, place in top-left corner
+  if (allWindowRects.length === 0) {
+    return {
+      x: 0,
+      y: 0,
+      width: requestedWidth > 0 ? requestedWidth : screenWidth,
+      height: requestedHeight > 0 ? requestedHeight : screenHeight,
+    }
+  }
+
+  // Try to place the new window adjacent to each existing window
+  // Priority: right, left, bottom, top
+  const candidatePositions: Array<Rect> = []
+
+  // Helper to create and check a candidate position, pushing to array if valid
+  function tryAddCandidate(rect: Rect, description: string) {
+    if (rectFitsInScreen(rect) && doesNotOverlapWithExisting(rect)) {
+      logDebug('findNextClosestAvailableArea', `Found candidate position ${description}: ${rectToString(rect)}`)
+      candidatePositions.push(rect)
+    }
+  }
+
+  for (const existingRect of allWindowRects) {
+    // Try placing to the right
+    tryAddCandidate({
+      x: existingRect.x + existingRect.width,
+      y: existingRect.y,
+      width: requestedWidth > 0 ? requestedWidth : Math.max(300, screenWidth - (existingRect.x + existingRect.width)),
+      height: requestedHeight > 0 ? requestedHeight : existingRect.height,
+    }, 'to the right')
+
+    // Try placing to the left
+    tryAddCandidate({
+      x: existingRect.x - (requestedWidth > 0 ? requestedWidth : Math.max(300, existingRect.x)),
+      y: existingRect.y,
+      width: requestedWidth > 0 ? requestedWidth : Math.max(300, existingRect.x),
+      height: requestedHeight > 0 ? requestedHeight : existingRect.height,
+    }, 'to the left')
+
+    // Try placing below
+    tryAddCandidate({
+      x: existingRect.x,
+      y: existingRect.y + existingRect.height,
+      width: requestedWidth > 0 ? requestedWidth : existingRect.width,
+      height: requestedHeight > 0 ? requestedHeight : Math.max(300, screenHeight - (existingRect.y + existingRect.height)),
+    }, 'below')
+
+    // Try placing above
+    tryAddCandidate({
+      x: existingRect.x,
+      y: existingRect.y - (requestedHeight > 0 ? requestedHeight : Math.max(300, existingRect.y)),
+      width: requestedWidth > 0 ? requestedWidth : existingRect.width,
+      height: requestedHeight > 0 ? requestedHeight : Math.max(300, existingRect.y),
+    }, 'above')
+  }
+
+  // If we found candidate positions, return the first one
+  if (candidatePositions.length > 0) {
+    logDebug('findNextClosestAvailableArea', `Found ${candidatePositions.length} candidate positions, using first: ${rectToString(candidatePositions[0])}`)
+    return candidatePositions[0]
+  }
+
+  // Helper for fallback scanning
+  function scanForAvailableRect(minWidth: number, minHeight: number, desc: string): Rect | null {
+    for (let y = 0; y <= screenHeight - minHeight; y += stepSize) {
+      for (let x = 0; x <= screenWidth - minWidth; x += stepSize) {
+        const candidateRect: Rect = {
+          x,
+          y,
+          width: minWidth,
+          height: minHeight,
+        }
+        if (rectFitsInScreen(candidateRect) && doesNotOverlapWithExisting(candidateRect)) {
+          logDebug('findNextClosestAvailableArea', `Found fallback position (${desc}): ${rectToString(candidateRect)}`)
+          return candidateRect
+        }
+      }
+    }
+    return null
+  }
+
+  // TODO: ideally we would now try to reduce the requested size in steps, down to the minimum size, find any available space on the screen
+
+  // Fallback 1: try to find any available space on the screen
+  logDebug('findNextClosestAvailableArea', `No candidate positions found, trying first fallback`)
+  const stepSize = 50 // Check every 50 pixels
+  let minHeight = requestedHeight > 0 ? requestedHeight : 300
+  let minWidth = requestedWidth > 0 ? requestedWidth : 300
+
+  let fallbackPosition = scanForAvailableRect(
+    requestedWidth > 0 ? requestedWidth : Math.max(300, screenWidth),
+    requestedHeight > 0 ? requestedHeight : Math.max(300, screenHeight),
+    "requested size"
+  )
+  if (fallbackPosition) return fallbackPosition
+
+  // Fallback 2: reduce from the requested width to minimums, and try to find any available space on the screen
+  logDebug('findNextClosestAvailableArea', `No candidate positions found, trying second fallback (width)`)
+  minWidth = MIN_WINDOW_WIDTH
+  fallbackPosition = scanForAvailableRect(minWidth, minHeight, "minimum width")
+  if (fallbackPosition) return fallbackPosition
+
+  // Fallback 3: reduce from the requested window size to minimums, and try to find any available space on the screen
+  logDebug('findNextClosestAvailableArea', `No candidate positions found, trying third fallback (width+height)`)
+  minHeight = MIN_WINDOW_HEIGHT
+  minWidth = MIN_WINDOW_WIDTH
+  fallbackPosition = scanForAvailableRect(minWidth, minHeight, "minimum width+height")
+  if (fallbackPosition) return fallbackPosition
+
+  // Last resort: place in top-right corner, constrained to screen
+  logDebug('findNextClosestAvailableArea', `No candidate positions found, so will use last resort fallback`)
+  const fallbackRect: Rect = {
+    x: Math.max(0, screenWidth - (requestedWidth > 0 ? requestedWidth : screenWidth)),
+    y: 0,
+    width: requestedWidth > 0 ? Math.min(requestedWidth, screenWidth) : screenWidth,
+    height: requestedHeight > 0 ? Math.min(requestedHeight, screenHeight) : screenHeight,
+  }
+  logWarn('findNextClosestAvailableArea', `Could not find ideal position, using fallback: ${rectToString(fallbackRect)}`)
+  return fallbackRect
 }
 
 /**

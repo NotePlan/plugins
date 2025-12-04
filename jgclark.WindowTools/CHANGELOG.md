@@ -4,6 +4,10 @@ _Please see the [Plugin documentation](https://noteplan.co/plugins/jgclark.Windo
 <!-- - TODO: Extend to deal with closed main sidebars.
 - TODO: Can now save a folder as part of a window set. (Note: not yet a particular 'folder view'.) -->
 
+## [1.5.0] - 2025-11-30
+- **open note in new window** and **open current note in new window** now don't just open the new 'floating' window wherever NP decides, which is often unhelpful. Instead it tries to place it next to, _but not on top of_, existing NP windows.  You can turn off this behaviour using the new '
+- prevent the **open ... note in new window/split** commands from running on iOS and iPadOS, as they don't have any effect.
+
 ## [1.4.0] - 2025-11-07
 ### New
 - New **reset main window** command. This resets the main NP window to default widths, including the main (left) sidebar (requires NP v3.19.2 or later). Alias: /rmw.
