@@ -17,6 +17,7 @@ import { RE_TEAMSPACE_INDICATOR_AND_ID, RE_UUID } from './regex'
 
 // export const TEAMSPACE_FA_ICON = 'fa-regular fa-screen-users' // used in v3.18 
 export const TEAMSPACE_FA_ICON = 'fa-regular fa-cube' // used from v3.19
+export const PRIVATE_FA_ICON = 'fa-solid fa-user' // made by JGC for Dashboard v2.4.0
 
 //-----------------------------------------------------------
 // FUNCTIONS

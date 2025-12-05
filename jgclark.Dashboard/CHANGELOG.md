@@ -9,6 +9,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0] 2025-12-04???
+- new "Spaces to Include" setting which controls which (Team)Spaces you wish to include, plus whether or not to include the Private "Space" (all notes not in a Space). This is applied per Perspective.
+
 ## [2.3.3] 2025-12-04
 - new 'Year' section available
 - change order of display of tag sections to the order they are defined in the settings, not alphabetical.

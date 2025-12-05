@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2024-08-27 for v2.1.a10 by @jgclark
+// Last updated 2025-12-05 for v2.4.0 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -13,9 +13,10 @@ import Switch from '../components/Switch.jsx'
 import InputBox from '../components/InputBox.jsx'
 import TextComponent from '../components/TextComponent.jsx'
 import PerspectiveSettings from '../components/PerspectiveSettings.jsx'
+import MultiSelectSpaces from '../components/MultiSelectSpaces.jsx'
 import type { TSettingItem, TPerspectiveDef } from '../../types'
 import DropdownSelect, { type Option } from '@helpers/react/DynamicDialog/DropdownSelect.jsx'
-import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { logDebug, logError, logInfo, logWarn } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -156,6 +157,19 @@ export function renderItem({
             fixedWidth={item.fixedWidth}
           />
         )
+      // $FlowIgnore[incompatible-type] see TODO in types.js which explains this
+      case 'teamspace-multiselect':
+        logInfo('renderItem', `teamspace-multiselect: ${String(index)} / '${thisLabel}' / ${item.description} / ${String(item.handleDescriptionItself || false)}`)
+        return <MultiSelectSpaces
+          key={`tsms${index}`}
+          label={thisLabel}
+          value={Array.isArray(item.value) ? item.value : (item.value ? [item.value] : ['private'])}
+          disabled={disabled}
+          onChange={(newValue: Array<string>) => {
+            item.key && handleFieldChange(item.key, newValue)
+          }}
+          description={item.description}
+        />
       case 'text':
         return (
           <TextComponent
@@ -187,10 +201,10 @@ export function renderItem({
       case 'perspectiveList':
         return <PerspectiveSettings handleFieldChange={handleFieldChange} className={className} />
       case 'orderingPanel':
-        // This is handled specially in SettingsDialog, not here
         // Return null as placeholder - actual rendering happens in SettingsDialog
+        // TODO: try again to move rendering here, using principle from MultiSelectSpaces.jsx -- but it's a bit different, so need to think about it.
         return null
-      default:
+      default: // including 'hidden' type
         return null
     }
   }
@@ -203,8 +217,7 @@ export function renderItem({
   return (
     <div className={`ui-item ${classNameToUse}`} key={`item${index}`} title={item.description || ''} data-settings-key={item.key || ''}>
       {element()}
-      {/* $FlowIgnore[incompatible-type] don't understand this */}
-      {!showDescAsTooltips && item.type !== 'hidden' && item.description && <div className="item-description">{item.description}</div>}
+      {!showDescAsTooltips && item.type !== 'hidden' && !item.handleDescriptionItself && item.description && <div className="item-description">{item.description}</div>}
     </div>
   )
 }

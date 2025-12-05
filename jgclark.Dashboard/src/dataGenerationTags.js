@@ -7,7 +7,7 @@
 import moment from 'moment/min/moment-with-locales'
 import type { TDashboardSettings, TSection, TSectionItem, TSectionDetails } from './types'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
-import { createSectionItemObject, isLineDisallowedByIgnoreTerms, makeDashboardParas } from './dashboardHelpers'
+import { createSectionItemObject, isLineDisallowedByIgnoreTerms, isNoteFromAllowedTeamspace, makeDashboardParas } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
 import {
   addTagMentionCacheDefinitions,
@@ -119,8 +119,16 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         const excludedFolders = config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',').map((folder) => folder.trim()) : []
         const allowedFolders = getFoldersMatching(includedFolders,false, excludedFolders)
 
+        // Get allowed teamspaces
+        const allowedTeamspaceIDs = config.includedTeamspaces ?? ['private']
+
         for (const n of notesWithTag) {
           // logTimer('getTaggedSectionData', thisStartTime, `- start of processing for note "${n.filename}"`)
+          // Don't continue if this note is not from an allowed teamspace
+          if (!isNoteFromAllowedTeamspace(n, allowedTeamspaceIDs)) {
+            logDebug('getTaggedSectionData', `  - ignoring note '${n.filename}' as it is not from an allowed teamspace`)
+            continue
+          }
           // Don't continue if this note is in an excluded folder
           const thisNoteFolder = getFolderFromFilename(n.filename)
           if (!allowedFolders.includes(thisNoteFolder)) {

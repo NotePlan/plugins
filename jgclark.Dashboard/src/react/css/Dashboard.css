@@ -2,7 +2,7 @@
 /* Last updated 2025-11-29 for v2.3.0.b16 by @jgclark */
 
 html {
-	--itemIndentWidth: 1.5rem;
+	/* Define 'Named Colors' -------------------------------- */
 	--teamspace-color: #269F54;
 	--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%); /* for subtle colouring - not yet used */
 	--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%); /* for subtle colouring - not yet used */
@@ -10,7 +10,7 @@ html {
 	scrollbar-gutter: stable;
 
 	/* Define 'Magic Numbers' -------------------------------- */
-
+	--itemIndentWidth: 1.5rem;
 	/* For the NP-generated close button on modal windows on mobile */
 	--modalCloseButtonSpacerWidth: 20px;
 }
@@ -88,17 +88,6 @@ dialog::backdrop {
 	width: 1.0rem;
 }
 
-/* Specific alignment fixes for icons inside buttons or links */
-/* Inside a layer to make them lower priority than other  */
-/* TODO: I don't think this is needed anymore */
-/* @layer A {
-	.fa-regular,
-	.fa-solid { */
-		/* Centers icon within its container, vertically and horizontally */
-		/* align-self: center;
-		margin: auto;
-	}
-} */
 
 /* --------------------------------------------------------------- */
 
@@ -268,16 +257,22 @@ button,
 		z-index: 20;
 	}
 }
-/* ------------------------------------------------------------------ */
 
-/* show as italic. Note: now unused */
-/* .commentLine {
+/* ------------------------------------------------------------------ */
+/* Miscellaneous styles */
+
+.teamspace-color {
+	color: var(--teamspace-color);
+}
+
+/* show as italic */
+.italicText {
 	font-weight: 400;
 	font-style: italic;
-} */
+}
 
+/* change cursor for elements which can be clicked on */
 .clickTarget {
-	/* change cursor for icons which can be clicked on */
 	cursor: pointer;
 }
 

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2025-11-18 for v2.3.0.b14, @jgclark
+// Last updated 2025-12-04 for v2.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import { defaultSectionDisplayOrder } from './constants.js'
@@ -82,7 +82,18 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'heading',
     label: 'What to Include and Exclude',
     description:
-      "These 3 key settings control what folders and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Finally, individual lines in notes can be ignored by adding terms to the third setting. Note: It looks over all (Team)Spaces that you are signed into.",
+      "These settings control what Spaces, folders and items are included and excluded in Dashboard's many sections. It will first use only the included Spaces. Then, it includes the folders from the next setting, and removes any specified from the following setting. Finally, individual lines in notes can be ignored by adding terms to the last setting.",
+  },
+  {
+    key: 'includedTeamspaces',
+    label: 'Spaces to Include',
+    description:
+      'Select which Spaces to include when searching for tasks and items. \'Private space\' includes all notes not in a Space. At least one must be selected.',
+    handleDescriptionItself: true,
+    // $FlowIgnore[incompatible-type] see TODO in types.js which explains this
+    type: 'teamspace-multiselect',
+    default: ['private'],
+    compactDisplay: true,
   },
   {
     key: 'includedFolders',
@@ -205,6 +216,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'customSectionDisplayOrder',
     label: 'Custom Section Display Order',
     type: 'hidden',
+    handleDescriptionItself: true,
     default: defaultSectionDisplayOrder,
   },
   {
@@ -487,20 +499,33 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           compactDisplay: setting.compactDisplay ?? false,
           dependsOnKey: setting.dependsOnKey,
         }
-      // $FlowIgnore[incompatible-type] don't understand the error
+      // $FlowIgnore[incompatible-type] see TODO in types.js which explains this
+      case 'teamspace-multiselect':
+        return {
+          // $FlowIgnore[incompatible-call] see TODO in types.js which explains this
+          type: 'teamspace-multiselect',
+          label: setting.label || '',
+          key: thisKey,
+          value: allSettings[thisKey] ?? setting.default,
+          description: setting.description,
+          compactDisplay: setting.compactDisplay ?? false,
+          dependsOnKey: setting.dependsOnKey,
+          handleDescriptionItself: setting.handleDescriptionItself ?? false,
+        }
+      // $FlowIgnore[incompatible-type] see TODO in types.js which explains this
       case 'hidden':
         return {
-          //$FlowIgnore[incompatible-call] don't understand the error
+          //$FlowIgnore[incompatible-call] see TODO in types.js which explains this
           type: 'hidden',
           label: setting.label || '',
           key: thisKey,
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
         }
-      // $FlowIgnore[incompatible-type] don't understand the error
+      // $FlowIgnore[incompatible-type] see TODO in types.js which explains this
       case 'perspectiveList':
         return {
-          //$FlowIgnore[incompatible-call] don't understand the error
+          //$FlowIgnore[incompatible-call] see TODO in types.js which explains this
           type: 'perspectiveList',
           dependsOnKey: setting.dependsOnKey,
         }

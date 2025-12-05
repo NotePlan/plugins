@@ -47,6 +47,7 @@ export type TSettingItemType =
   | 'hidden'
   | 'orderingPanel'
 
+
 export type TSettingItem = {
   type: TSettingItemType,
   key?: string, // we can have setting items which are just 'separator' with no key, so this is optional
@@ -56,6 +57,7 @@ export type TSettingItem = {
   options?: Array<string | { label: string, value: string, isDefault?: boolean }>,
   textType?: 'title' | 'description' | 'separator',
   description?: string,
+  handleDescriptionItself?: boolean, // if true, then the description is handled by the item itself (e.g. for teamspace-multiselect)
   default?: any,
   refreshAllOnChange?: boolean,
   compactDisplay?: boolean,

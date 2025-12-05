@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2025-11-28 for v2.3.0.b16, @jgclark
+// Last updated 2025-12-04 for v2.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { createSectionItemObject, filterParasByRelevantFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
+import { createSectionItemObject, filterParasByRelevantFolders, filterParasByIgnoreTerms, filterParasByCalendarHeadingSections, filterParasByAllowedTeamspaces, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
 import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -208,9 +208,13 @@ export async function getRelevantOverdueTasks(
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: API does not return open checklist items
     logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
 
+    // Filter out items from non-allowed teamspaces
+    let filteredOverdueParas = filterParasByAllowedTeamspaces(overdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after filtering by allowed teamspaces, ${filteredOverdueParas.length} overdue items`)
+
     // Filter out items in non-valid folders
     // $FlowFixMe[incompatible-call]
-    let filteredOverdueParas = filterParasByRelevantFolders(overdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
+    filteredOverdueParas = filterParasByRelevantFolders(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after filtering by valid folders, ${filteredOverdueParas.length} overdue items`)
 
     // Filter out anything from 'ignoreItemsWithTerms' setting

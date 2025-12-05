@@ -77,6 +77,7 @@ export type TDashboardSettings = {
   hidePriorityMarkers: boolean,
   ignoreChecklistItems: boolean,
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use
+  includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
   showFolderName: boolean, // Note: was includeFolderName before 2.2.0.
   showScheduledDates: boolean, // Note: was includeScheduledDates before 2.2.0.rename to show...
@@ -412,7 +413,8 @@ export type TPluginData = {
  * - the change is picked up by the first useEffect in useSyncDashboardSettingsWithPlugin and then that var is set to false and stored locally in pluginData without sending it back to the plugin
  */
 
-export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' | 'orderingPanel'
+// TODO: figure out how to make this superclass of TSettingItemType from DynamicDialog.jsx -- applies to teamspace-multiselect (and orderingPanel at the moment) which are Dashboard-specific items.
+export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' | 'orderingPanel' | 'teamspace-multiselect'
 
 export type TPluginCommandSimplified = {
   commandName: string,

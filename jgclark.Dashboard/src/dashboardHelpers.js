@@ -345,10 +345,15 @@ export function getOpenItemParasForTimePeriod(
       // logDebug('getOpenItemPFCTP', `Found ${String(matchingNotes.length)} matching Teamspace calendar notes for ${NPCalendarFilenameStr}`)
     }
 
+    // Filter notes by allowed teamspaces
+    const allowedTeamspaceIDs = dashboardSettings.includedTeamspaces ?? ['private']
+    const filteredMatchingNotes = matchingNotes.filter((note) => isNoteFromAllowedTeamspace(note, allowedTeamspaceIDs))
+    logDebug('getOpenItemPFCTP', `- after teamspace filter: ${filteredMatchingNotes.length} of ${matchingNotes.length} notes`)
+
     //------------------------------------------------
     // Get paras from calendar note(s)
     const startTime = new Date() // for timing only
-    for (const note of matchingNotes) {
+    for (const note of filteredMatchingNotes) {
       // Note: this takes 100-110ms for me
       let thisNoteParas: Array<TParagraph> = []
 
@@ -433,13 +438,25 @@ export function getOpenItemParasForTimePeriod(
           refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
         }
 
-        // Get list of allowed folders (using both include and exlcude settings)
+        // Get list of allowed folders (using both include and exclude settings)
         const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
         // $FlowIgnore[incompatible-call] - p.note almost guaranteed to exist
         logDebug('getOpenItemPFCTP: refOpenParas', refOpenParas.map((p) => p.note?.filename ?? '<no note>'))
 
-        refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
-        logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
+        // Filter by teamspace first
+        refOpenParas = refOpenParas.filter((p) => {
+          const note = p.note ?? getNoteFromFilename(p.filename ?? '') ?? null
+          if (!note) return false
+          return isNoteFromAllowedTeamspace(note, allowedTeamspaceIDs)
+        })
+        logTimer('getOpenItemPFCTP', startTime, `- after teamspace filter on refOpenParas: ${refOpenParas.length} para(s)`)
+
+        // Then filter by folders
+        refOpenParas = refOpenParas.filter((p) => {
+          const note = p.note ?? getNoteFromFilename(p.filename ?? '') ?? null
+          return note ? isNoteFromAllowedFolder(note, allowedFoldersInCurrentPerspective, true) : false
+        })
+        logTimer('getOpenItemPFCTP', startTime, `- after folder filter on refOpenParas: ${refOpenParas.length} para(s)`)
 
         // Remove possible dupes from sync'd lines: returning the first Regular note copy found, otherwise the first copy found
         refOpenParas = eliminateDuplicateParagraphs(refOpenParas, 'first', true)
@@ -500,6 +517,42 @@ export function isLineDisallowedByIgnoreTerms(lineContent: string, ignoreItemsWi
 }
 
 /**
+ * Check if a note is from an allowed teamspace based on dashboard settings.
+ * If no teamspaces specified, allow all (backward compatibility).
+ * @param {TNote} note - note to check
+ * @param {Array<string>} allowedTeamspaceIDs - array of allowed teamspace IDs (and 'private' must be specified)
+ * @returns {boolean} true if note is from an allowed teamspace
+ */
+export function isNoteFromAllowedTeamspace(note: TNote, allowedTeamspaceIDs: Array<string>): boolean {
+  if (!allowedTeamspaceIDs || allowedTeamspaceIDs.length === 0) {
+    // If no teamspaces specified, allow all (backward compatibility)
+    return true
+  }
+
+  if (note.isTeamspaceNote && note.teamspaceID) {
+    // Teamspace note - check if its ID is in the allowed list
+    return allowedTeamspaceIDs.includes(note.teamspaceID)
+  } else {
+    // Private note - check if 'private' is in the allowed list
+    return allowedTeamspaceIDs.includes('private')
+  }
+}
+
+/**
+ * Filter notes to only include those from allowed teamspaces based on dashboard settings.
+ * @param {Array<TNote>} notes - notes to filter
+ * @param {TDashboardSettings} dashboardSettings - dashboard settings containing teamspace filters
+ * @returns {Array<TNote>} filtered notes
+ */
+export function filterNotesByAllowedTeamspaces(
+  notes: Array<TNote>,
+  dashboardSettings: TDashboardSettings
+): Array<TNote> {
+  const allowedTeamspaceIDs = dashboardSettings.includedTeamspaces ?? ['private']
+  return notes.filter((note) => isNoteFromAllowedTeamspace(note, allowedTeamspaceIDs))
+}
+
+/**
  * Filter paragraphs to only include those from relevant folders based on dashboard settings.
  * @param {Array<TParagraph>} paras - paragraphs to filter
  * @param {TDashboardSettings} dashboardSettings - dashboard settings containing folder filters
@@ -518,6 +571,33 @@ export function filterParasByRelevantFolders(
   const validFolders = getFoldersMatching(includedFolders, true, excludedFolders)
   const filteredParas = paras.filter((p) => validFolders.includes(getFolderFromFilename(p.filename ?? '')))
   logTimer(functionName, startTime, `- after validFolders filter: ${filteredParas.length} paras`)
+  return filteredParas
+}
+
+/**
+ * Filter paragraphs to only include those from allowed teamspaces based on dashboard settings.
+ * @param {Array<TParagraph>} paras - paragraphs to filter
+ * @param {TDashboardSettings} dashboardSettings - dashboard settings containing teamspace filters
+ * @param {Date} startTime - timer start time for logging
+ * @param {string} functionName - name of calling function for logging
+ * @returns {Array<TParagraph>} filtered paragraphs
+ */
+export function filterParasByAllowedTeamspaces(
+  paras: Array<TParagraph>,
+  dashboardSettings: TDashboardSettings,
+  startTime: Date,
+  functionName: string
+): Array<TParagraph> {
+  const allowedTeamspaceIDs = dashboardSettings.includedTeamspaces ?? ['private']
+  const filteredParas = paras.filter((p) => {
+    const note = p.note ?? getNoteFromFilename(p.filename ?? '') ?? null
+    if (!note) {
+      // If we can't determine the note, exclude it to be safe
+      return false
+    }
+    return isNoteFromAllowedTeamspace(note, allowedTeamspaceIDs)
+  })
+  logTimer(functionName, startTime, `- after allowedTeamspaces filter: ${filteredParas.length} paras`)
   return filteredParas
 }
 
