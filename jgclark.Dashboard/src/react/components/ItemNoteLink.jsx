@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show Note Links after main item content
-// Last updated 2025-11-16 for v2.3.0 by @jgclark
+// Last updated 2025-12-05 for v2.4.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
@@ -9,7 +9,7 @@ import { useAppContext } from './AppContext.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { isDailyDateStr, isWeeklyDateStr, isMonthlyDateStr, isQuarterlyDateStr } from '@helpers/dateTime'
 import { parseTeamspaceFilename, TEAMSPACE_FA_ICON } from '@helpers/teamspace'
-import { logDebug, clo } from '@helpers/react/reactDev'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 //-----------------------------------------------------------
@@ -17,7 +17,8 @@ import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 type Props = {
   item: TSectionItem,
   thisSection: TSection,
-  alwaysShowNoteTitle: boolean
+  alwaysShowNoteTitle: boolean,
+  suppressTeamspaceName?: boolean
 }
 
 //-----------------------------------------------------------
@@ -25,7 +26,7 @@ type Props = {
 /**
  * Represents the main content for a single item within a section
  */
-function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props): React$Node {
+function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppressTeamspaceName = false }: Props): React$Node {
 
   // ------ COMPUTED VALUES --------------------------------
 
@@ -48,20 +49,24 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
   const parsedTeamspace = parseTeamspaceFilename(filename)
   const isFromTeamspace = parsedTeamspace.isTeamspace
   const filenameWithoutTeamspacePrefix = parsedTeamspace.filename
-  // FIXME: this is still returning '/' for Teamspace calendar notes
-  const folderNamePart = (parsedTeamspace.filepath !== '/') ? `${parsedTeamspace.filepath} /` : ''
-  // logDebug(`ItemNoteLink`, `noteIconToUse:${noteIconToUse} with filenameWithoutTeamspacePrefix:${filenameWithoutTeamspacePrefix}`)
+  const trimmedFilePath = parsedTeamspace.filepath.trim()
+  // For Teamspace calendar notes, filepath can be '/', so we need to check for both empty and '/'
+  let folderNamePart = (trimmedFilePath !== '/' && trimmedFilePath !== '') ? `${trimmedFilePath} /` : ''
+  // logDebug(`ItemNoteLink`, `initial filePath:${parsedTeamspace.filepath} with folderNamePart:${folderNamePart}`)
   const showNoteTitle = alwaysShowNoteTitle || item.para?.noteType === 'Notes' || filenameWithoutTeamspacePrefix !== thisSection.sectionFilename
 
   // Show Teamspace indicator and name, if this is a Teamspace note
-  let teamspaceIndicator = null
-  if (isFromTeamspace) {
+  let teamspaceName = null
+  if (isFromTeamspace && !suppressTeamspaceName) {
     const teamspaceTitle = item.teamspaceTitle && item.teamspaceTitle !== 'Unknown Teamspace' ? item.teamspaceTitle : ''
-    teamspaceIndicator = (
-      <span className='pad-left teamspaceName pad-right-larger'>
+    teamspaceName = (
+      <span className='pad-left teamspaceName pad-right'>
         <i className={`${TEAMSPACE_FA_ICON} pad-right`}></i>{teamspaceTitle}
       </span>
     )
+    if (folderNamePart !== '' && !folderNamePart.endsWith('/')) {
+      folderNamePart = `/ ${folderNamePart}`
+    }
   }
 
   // ------ HANDLERS ---------------------------------------
@@ -85,10 +90,10 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false }: Props)
       metaKey={{ text: 'Open in Floating Window' }}
       label={`${item.itemType}_${item.ID}_Open Note Link`}
       enabled={!reactSettings?.dialogData?.isOpen}>
-      {folderNamePart && <span className={`folderName pad-right`}>{folderNamePart}</span>}
+      {/* If it's a teamspace note prepend that icon + title */}
+      {isFromTeamspace && teamspaceName}
+      {folderNamePart && <span className={`folderName`}>{folderNamePart}</span>}
       <a className={`noteTitle`} onClick={handleLinkClick}>
-        {/* If it's a teamspace note prepend that icon + title */}
-        {isFromTeamspace && teamspaceIndicator}
         {/* Show note title if wanted */}
         {showNoteTitle && (
           <>

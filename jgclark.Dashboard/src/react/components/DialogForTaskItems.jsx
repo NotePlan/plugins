@@ -438,6 +438,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
                   item={item}
                   thisSection={sectionCodes}
                   alwaysShowNoteTitle={true}
+                suppressTeamspaceName={false}
                 />
             </div>
           </TooltipOnKeyPress>

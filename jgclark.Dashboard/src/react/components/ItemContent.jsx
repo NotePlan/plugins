@@ -78,11 +78,14 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
     })
   }
 
-  // Note: This how to remove tag/mention, if they match the item's sectionCode. Decided not to keep this, as it is doesn't suit some use cases for tags/mentions.
+  // Note: This is how to remove tag/mention, if they match the item's sectionCode. Decided not to keep this, as it is doesn't suit some use cases for tags/mentions.
   // if (thisSection.sectionCode === 'TAG') {
   //   const sectionTagOrMention = thisSection.name
   //   mainContent = mainContent.replace(sectionTagOrMention, '')
   // }
+
+  // If dashboardSettings reveals that we only have 1 teamspace active, and it is not the private space, then suppress the Teamspace name in the note link
+  const suppressTeamspaceName = dashboardSettings.includedTeamspaces.length === 1 && dashboardSettings.includedTeamspaces[0] !== 'private'
 
   // If hasChild, then set suitable display indicator
   // (Earlier options had used 'fa-arrow-down-from-line' and 'fa-block-quote' icons. But switched to ellipsis to match what main Editor added in 3.15.2)
@@ -132,6 +135,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
         item={item}
         thisSection={thisSection}
         alwaysShowNoteTitle={false}
+        suppressTeamspaceName={suppressTeamspaceName}
       />}
     </div>
   )
