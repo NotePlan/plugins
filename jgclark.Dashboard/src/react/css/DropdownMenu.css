@@ -1,12 +1,13 @@
 /**
  * CSS for the Dropdown menus
- * Last updated for v2.1.0.b
+ * Last updated for v2.4.0 by @jgclark
  */
 
 /* Content in just 1 column */
+/* Note: not expecting this hide transition to work yet, as it only works in quite recent browser engines */
 .dropdown-content {
   /* Ensure the dropdown content is completely hidden when closed */
-  display: none;
+  display: grid;
   grid-template-columns: unset;
   grid-template-areas: "justTheOne";
   color: var(--fg-main-color);
@@ -14,13 +15,16 @@
   /* box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); */
   box-shadow: 0px 1px 1px 1px rgb(from var(--fg-main-color) r g b / 0.5);
   overflow: hidden;
-  /* max-height: 0; */
-  transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
+  max-height: 0;
   opacity: 0;
+  visibility: hidden;
+  transition: max-height 0.2s ease-out, opacity 0.2s ease-out, visibility 0s 0.2s;
   position: absolute;
   top: 2rem;
   /* Fix the positioning to be right-aligned with the icon */
   right: 0;
+  width: max-content;
+  padding: 0;
   /* Remove the conflicting positioning that might cause flickering */
   /* right: 2rem; */
 }
@@ -67,8 +71,11 @@
   width: max-content;
   /* Remove the right positioning that might cause flickering */
   /* right: -1rem; */
+  max-height: 80vh;
   opacity: 1;
+  visibility: visible;
   padding: 0.75rem;
+  transition: max-height 0.2s ease-out, opacity 0.2s ease-out, visibility 0s;
   animation: unfurl 0.2s ease-out forwards, showScrollbar 0s 0.2s forwards;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
