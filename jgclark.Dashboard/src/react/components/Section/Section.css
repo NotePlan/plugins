@@ -1,5 +1,35 @@
 /* CSS specific to Section components and their children.
-/* Last updated 2025-11-23 for v2.3.0.b15, @jgclark */
+/* Last updated 2025-12-05 for v2.4.0 by @jgclark */
+
+/* Animation keyframes for section appearance and removal */
+@keyframes sectionFadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(-12px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes sectionFadeOut {
+	from {
+		opacity: 1;
+		transform: translateY(0);
+		max-height: 1000px;
+	}
+	to {
+		opacity: 0;
+		transform: translateY(-12px);
+		max-height: 0;
+		padding-top: 0;
+		padding-bottom: 0;
+		margin-top: 0;
+		margin-bottom: 0;
+		overflow: hidden;
+	}
+}
 
 /* The main grid for a section: sectionInfo then sectionGrid. */
 .section {
@@ -11,6 +41,15 @@
 	border-right: 1px solid var(--divider-color);
 	/* border-bottom: 1px solid var(--divider-color); */
 	/* position: relative; */
+	/* Subtle animation when section appears */
+	/* Note: turning off, as the amount of re-rendering introduces too much flickering */	/* animation: sectionFadeIn 0.3s ease-out; */
+}
+
+/* Class for fade-out animation when section is being removed */
+/* Note: This requires React to apply the class before unmounting for the animation to be visible */
+.section.sectionRemoving {
+	/* Note: turning off, as the amount of re-rendering introduces too much flickering */
+	/* animation: sectionFadeOut 0.3s ease-in forwards; */
 }
 
 .sectionInfo {
@@ -44,7 +83,7 @@
 	padding-inline-start: 1.6rem;
 }
 
-/* first part of sectionInfo. Grid to contain sectionIcon, sectionName, .buttonsWithoutBordersOrBackground */
+/* First part of sectionInfo. Grid to contain sectionIcon, sectionName, .buttonsWithoutBordersOrBackground */
 .sectionInfoFirstLine {
 	display: grid;
 	grid-template-columns: auto auto;
