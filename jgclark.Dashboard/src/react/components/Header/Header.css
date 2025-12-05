@@ -116,7 +116,8 @@
 			cursor: pointer;
 			/* Make button a little darker on hover */
 			&:hover {
-				/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this */
+				/* TODO(later): revert to this when it is supported */
+				/* color: hsl(from currentcolor h s calc(l*0.8)); */
 				filter: brightness(80%);
 			}
 		}
@@ -175,7 +176,7 @@
 
 /* On hover, make the button a little larger and darker */
 .HAButton:hover {
-	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this when better support in dev tooling */
+	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this when it is supported */
 	filter: brightness(110%);
 }
 
