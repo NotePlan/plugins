@@ -9,7 +9,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0] 2025-12-04???
+## [2.4.0.b1] 2025-12-05
 - new "Spaces to Include" setting which controls which (Team)Spaces you wish to include, plus whether or not to include the Private "Space" (all notes not in a Space). This is applied per Perspective.
 
 ## [2.3.3] 2025-12-04
