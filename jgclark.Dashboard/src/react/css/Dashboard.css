@@ -63,16 +63,20 @@ dialog::backdrop {
 	padding-right: 0.3rem;
 }
 
-/* For MESSAGE_BANNER: Override w3.css which seems to take precedence for reasons unknown */
+/* ------------------------------------------------------------------ */
+/* For SHOW_BANNER messages in the top of the page as a Message Banner */
+
 .w3-panel {
 	margin-top: 0px;
 	margin-bottom: 0px;
 	width: 98vw;
 }
+
 .w3-button {
 	margin-right: 20px;
 }
 
+/* ------------------------------------------------------------------ */
 /* Large rows on page */
 .sections {
 	display: block;
@@ -101,12 +105,6 @@ dialog::backdrop {
 		background-color: var(--bg-alt-color);
 		border: 1px solid rgb(from var(--fg-main-color) r g b/0.3);
 		box-shadow: 1px 1px 0px 0px rgb(from var(--fg-main-color) r g b / 0.2);
-	}
-	/* set input backgrounds a little lighter on hover */
-	input &:hover {
-		filter: brightness(112%);
-		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to use this when CSS standards catch up. */
-		/* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
 	}
 }
 
@@ -161,8 +159,8 @@ dialog::backdrop {
 	align-self: center;
 }
 .addButton:hover {
-	/* FIXME: this 'currentcolor' is not working as advertised. The equivalent in dropbdownButtons is working ... */
-	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert in time */
+	/* TODO(later): this 'currentcolor' is not yet working as advertised, so using a fallback for now */
+	/* color: hsl(from currentcolor h s calc(l*0.4)); */
 	filter: saturate(140%);
 }
 
@@ -189,8 +187,8 @@ dialog::backdrop {
 
 	/* set backgrounds a little lighter on hover */
 	&:hover {
-		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to this */
-		/* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
+		/* TODO(later): revert to this when it is supported */
+		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); */
 		filter: brightness(103%);
 	}
 }
@@ -385,7 +383,6 @@ html {
 }
 /* But still need these as named styles */
 .sidebarDaily {color: var(--fg-sidebarDaily);}
-	/* background-color: var(--bg-sidebar-color);} FIXME: need to find out why this is needed */
 .sidebarWeekly {color: var(--fg-sidebarWeekly);}
 .sidebarMonthly {color: var(--fg-sidebarMonthly);}
 .sidebarQuarterly {color: var(--fg-sidebarQuarterly);}
@@ -404,22 +401,21 @@ html {
 /* For fancy toggle as checkbox */
 /* from [Pure CSS3 iOS switch checkbox by Pedro M. S. Duarte | codeburst](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb)
  */
- /* Note: This is a copy of what is in helpers/.../DynamicDialog.css */
+ /* Note: This is forked from what is in helpers/.../DynamicDialog.css */
 input.apple-switch {
 	position: relative;
 	appearance: none;
 	vertical-align: baseline; /* top; */
 	outline: none;
 	width: 2.0rem;
-	/* 50px; */
 	height: 1.2rem;
-	/* 30px; */
-	border: 1px solid var(--divider-color); /* rgb(from var(--fg-main-color) r g b / 0.3); */
+	border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
 	border-radius: 1.9rem;
 	background-color: var(--bg-apple-switch-color);
 	/* box-shadow: 1px 1px 1px 0px var(--divider-color); */
 	margin-top: 0px;
 	margin-right: 4px;
+	transition: background-color 0.2s;
 }
 
 input.apple-switch:after {
@@ -428,31 +424,25 @@ input.apple-switch:after {
 	position: absolute;
 	top: 1px;
 	left: 1px;
-	background-color: #fff; /* var(--fg-alt-color); */
-	/* border: 1px solid rgb(from var(--fg-main-color) r g b / 0.5); */
-	width: 1.0rem;
-	/* 26px; */
-	height: 1.0rem;
-	/* 26px; */
+	background-color: var(--fg-main-color);
+	width: 0.95rem;
+	height: 0.95rem;
 	border-radius: 50%;
 	box-shadow: 0px 0px 2px var(--divider-color);
 	margin-right: 1.0rem;
+	transition: left 0.2s ease, background-color 0.2s ease;
 }
 
 input.apple-switch:checked {
 	vertical-align: top;
-	background-color: var(--tint-color);
-	/* box-shadow: inset 0.8rem 0 0 0 var(--tint-color); */
-	/* 20px; */
+	background-color: hsl(from var(--tint-color) h s calc(l*0.5)); /* make darker */
+	transition: background-color 0.3s ease;
 }
 
 input.apple-switch:checked:after {
 	vertical-align: top;
-	/* top: 1px; */
-	left: 0.8rem;
-	/* 20px; */
-	background-color:  #fff; /* var(--fg-alt-color); */
-	/* border: 1px solid var(--tint-color); */
+	left: 0.85rem;
+	background-color: var(--fg-main-color);
 	box-shadow: 0px 0px 2px var(--divider-color);
 }
 

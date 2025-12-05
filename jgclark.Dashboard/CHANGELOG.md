@@ -12,6 +12,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.4.0.b1] 2025-12-05
 - new "Spaces to Include" setting which controls which (Team)Spaces you wish to include, plus whether or not to include the Private "Space" (all notes not in a Space). This is applied per Perspective.
 - Improved display of Teamspace part of note links in displayed items
+- improve design of toggle switches, and add subtle animation
 
 ## [2.3.3] 2025-12-04
 - new 'Year' section available
