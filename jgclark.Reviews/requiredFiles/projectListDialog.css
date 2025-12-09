@@ -26,7 +26,12 @@ dialog:modal {
   padding-inline-end: 0.5rem;
   padding-block-end: 0.3rem;
   border-block-end: 1px solid var(--divider-color); /*gray;*/
-  /* margin-block-end: 4px; */
+
+  /* color FA icon in title */
+  i {
+    color: var(--tint-color);
+  }
+
 }
 
 .closeButton {
@@ -83,6 +88,15 @@ dialog:modal {
 	/* box-shadow: 0 1px 1px 0px rgba(0,0,0,0.3); */
 	padding: 2px 5px 2px 5px;
 	margin: 2px 4px;
+
+  i {
+    color: var(--tint-color);
+  }
+
+  /* set backgrounds a little lighter on hover */
+  &:hover {
+    filter: brightness(103%);
+  }
 }
 
 .dialogBody button {
@@ -94,6 +108,16 @@ dialog:modal {
   /* background: var(--bg-alt-color);
   border: 1px solid var(--tint-color);
   box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.3);*/
+
+  i {
+    color: var(--tint-color);
+  }
+
+  /* set backgrounds a little lighter on hover */
+  &:hover {
+    filter: brightness(103%);
+  }
+
 }
 
 .itemActionsDialog {

@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "1.2.4",
-  "plugin.lastUpdateInfo": "1.2.4: TEST: to try and fix things in Dashboard.\n1.2.3: bug fixes.\n.1.2.2: fix bug with 'Finish + Next' review.\n1.2.1: small improvements and bug fixes and under-the-hood changes for integration with Dashboard plugin.\n1.2.0: new settings that affect how plugin calculates % completion for a project.\n1.1.2: fix bug with 'next action' setting.\n1.1.1: turn off background refresh of Dashboard plugin after every change to Project List, as it was causing problems.\n1.1.0: new option to use current 'Perspective' from the Dashboard plugin. New simpler top bar. Other small improvements and fixes.\n1.0.2: theme font size can now be overriden by user setting in NP.\n1.0.1: fix bug with 'next action' setting.\n1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)",
+  "plugin.version": "1.3.0.b1",
+  "plugin.lastUpdateInfo": "1.3.0.b1: now supports projects in (Team)Space notes, using the Perspective setting from Dashboard v2.4 which allows you to specify which (Team)Spaces you wish to include.\n1.2.4: improve inter-plugin communication with the Dashboard.\n1.2.3: bug fixes.\n.1.2.2: fix bug with 'Finish + Next' review.\n1.2.1: small improvements and bug fixes and under-the-hood changes for integration with Dashboard plugin.\n1.2.0: new settings that affect how plugin calculates % completion for a project.\n1.1.2: fix bug with 'next action' setting.\n1.1.1: turn off background refresh of Dashboard plugin after every change to Project List, as it was causing problems.\n1.1.0: new option to use current 'Perspective' from the Dashboard plugin. New simpler top bar. Other small improvements and fixes.\n1.0.2: theme font size can now be overriden by user setting in NP.\n1.0.1: fix bug with 'next action' setting.\n1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)",
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
@@ -291,7 +291,7 @@
     {
       "key": "usePerspectives",
       "title": "Use Perspectives to filter projects?",
-      "description": "Whether to use the current Perspective definition from the Dashboard plugin to filter the projects to review.\nNote: this requires the Dashboard plugin to be installed, and if set it overrides the following 2 settings.",
+      "description": "Whether to use the current Perspective definition from the Dashboard plugin to filter the projects to review, by (Team)Space(s) and/or folder(s).\nNote: this requires the Dashboard plugin to be installed, and if set it overrides the following 2 settings.",
       "type": "bool",
       "default": false,
       "required": true

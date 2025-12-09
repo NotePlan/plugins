@@ -4,20 +4,18 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2025-11-22 for v1.2.4+, @jgclark
+// Last updated 2025-12-09 for v1.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import {
-  logAvailableSharedResources, logProvidedSharedResources
-} from '../../np.Shared/src/index.js'
+// import { logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
+import { Project } from './projectClass.js'
 import {
   getReviewSettings,
   type ReviewConfig,
   updateDashboardIfOpen,
 } from './reviewHelpers.js'
-import { Project } from './projectClass.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
@@ -34,6 +32,62 @@ const maxAgeAllProjectsListInHours = 1
 const generatedDatePrefName = 'Reviews-lastAllProjectsGenerationTime'
 
 //-------------------------------------------------------------------------------
+// Helper functions
+
+/**
+ * Filter list of regular notes by folder inclusion and exclusion rules.
+ * It selects notes whose filenames start with any of the paths in the filteredFolderListWithoutSubdirs array. If the filteredFolderListWithoutSubdirs array includes '/', it will match all files in the root (i.e. not in a folder).
+ * Note: filteredFolderListWithoutSubdirs and foldersToIgnore expect the paths to be without a leading or trailing slash (apart from root folder '/').
+ * And it excludes notes whose filenames include any of the paths specified in the foldersToIgnore array.
+ * (Note ignored folders can be inside an included folder.)
+ * @author @jgclark, aided by oCurr
+ * @tests available in jest file
+ * @param {$ReadOnlyArray<TNote>} notesArray - Array of regular notes to filter
+ * @param {Array<string>} filteredFolderListWithoutSubdirs - Array of folder paths to include
+ * @param {Array<string>} foldersToIgnore - Array of folder paths to exclude
+ * @returns {Array<TNote>} Filtered array of project notes
+ */
+export function filterProjectNotesByFolders(
+  notesArray: $ReadOnlyArray<TNote>,
+  filteredFolderListWithoutSubdirs: Array<string>,
+  foldersToIgnore: Array<string>,
+): Array<TNote> {
+  const folderSet = new Set(filteredFolderListWithoutSubdirs)
+  const ignoreSet = new Set(foldersToIgnore.map(s => `${s}/`.replace('//', '/')))
+  return notesArray.filter(f => {
+    // Check if file is in any of the filtered folders
+    // For root folder ('/'), match all files without a folder path
+    // Also check if filename starts with any other folder path
+    const isRootMatch = folderSet.has('/') && !f.filename.includes('/')
+    const isFolderMatch = Array.from(folderSet).some(folder => folder !== '/' && (f.filename === folder || f.filename.startsWith(`${folder}/`)))
+    const isInFolder = isRootMatch || isFolderMatch
+    const isIgnored = Array.from(ignoreSet).some(ignorePath => f.filename.includes(ignorePath))
+    return isInFolder && !isIgnored
+  })
+}
+
+/**
+ * Filter list of regular notes by teamspace inclusion rules.
+ * It selects notes that belong to teamspaces (or private space) specified in the includedTeamspaces array.
+ * @author @jgclark
+ * @param {$ReadOnlyArray<TNote>} notesArray - Array of regular notes to filter
+ * @param {Array<string>} includedTeamspaces - Array of teamspace IDs to include ('private' for Private space)
+ * @returns {Array<TNote>} Filtered array of project notes
+ */
+export function filterProjectNotesByTeamspaces(
+  notesArray: $ReadOnlyArray<TNote>,
+  includedTeamspaces: Array<string>,
+): Array<TNote> {
+  return notesArray.filter(note => {
+    if (note.isTeamspaceNote && note.teamspaceID) {
+      // Teamspace note - check if its ID is in the allowed list
+      return includedTeamspaces.includes(note.teamspaceID)
+    } else {
+      // Private note - check if 'private' is in the allowed list
+      return includedTeamspaces.includes('private')
+    }
+  })
+}
 
 function stringifyProjectObjects(objArray: Array<any>): string {
   /**
@@ -63,7 +117,7 @@ export async function logAllProjectsList(): Promise<void> {
 }
 
 /**
- * Return all projects that match config items 'projectTypeTags' as Project instances.
+ * Return as Project instances all projects that match config items 'foldersToInclude', 'foldersToIgnore', and 'projectTypeTags'.
  * @author @jgclark
  * @param {any} configIn
  * @param {boolean} runInForeground?
@@ -94,18 +148,20 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
   // logDebug('getAllMatchingProjects', `- filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
 
   // Filter the list of project notes from the DataStore.
-  // It selects notes whose filenames start with any of the paths in the filteredFolderListWithoutSubdirs array.
-  // And it excludes notes whose filenames include any of the paths specified in the config.foldersToIgnore array.
-  // (Note ignored folders can be inside an included folder.)
-  // V2: (more efficient thanks to Cursor AI)
-  const folderSet = new Set(filteredFolderListWithoutSubdirs)
-  const ignoreSet = new Set(config.foldersToIgnore.map(s => `${s}/`.replace('//', '/')))
+  let filteredProjectNotes = filterProjectNotesByFolders(
+    DataStore.projectNotes,
+    filteredFolderListWithoutSubdirs,
+    config.foldersToIgnore,
+  )
 
-  const filteredProjectNotes = DataStore.projectNotes.filter(f => {
-    const isInFolder = folderSet.has('/') || folderSet.has(f.filename.split('/')[0])
-    const isIgnored = Array.from(ignoreSet).some(ignorePath => f.filename.includes(ignorePath))
-    return isInFolder && !isIgnored
-  })
+  // If using Perspectives, also filter by teamspaces
+  if (config.usePerspectives && config.includedTeamspaces && config.includedTeamspaces.length > 0) {
+    filteredProjectNotes = filterProjectNotesByTeamspaces(
+      filteredProjectNotes,
+      config.includedTeamspaces,
+    )
+    logDebug('getAllMatchingProjects', `- after teamspace filter: ${filteredProjectNotes.length} project notes`)
+  }
 
   logTimer(`getAllMatchingProjects`, startTime, `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`)
 
@@ -146,6 +202,9 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
   logTimer('getAllMatchingProjects', startTime, `- found ${projectInstances.length} available matching project notes`)
   return projectInstances
 }
+
+//-------------------------------------------------------------------------------
+// Main functions
 
 /**
  * Generate JSON representation of all project notes as Project objects that match the main folder and 'projectTypeTags' settings.
@@ -215,6 +274,10 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
 
     // find the Project with matching filename
     const projectIndex = allProjects.findIndex((project) => project.filename === projectToUpdate.filename)
+    if (projectIndex === -1) {
+      logWarn('updateProjectInAllProjectsList', `Couldn't find project with filename '${projectToUpdate.filename}' to update`)
+      return
+    }
     allProjects[projectIndex] = projectToUpdate
     logDebug('updateProjectInAllProjectsList', `- will update project #${projectIndex} filename ${projectToUpdate.filename}`)
 
@@ -243,7 +306,7 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
       // read this from a NP preference
       // $FlowFixMe[incompatible-call]
       const reviewListDate = new Date(DataStore.preference(generatedDatePrefName) ?? 0)
-      const fileAge = Date.now() - reviewListDate
+      const fileAge = Date.now() - reviewListDate.getTime()
       logDebug('getAllProjectsFromList', `- reviewListDate = ${String(reviewListDate)} = ${String(fileAge)} ago`)
       // If this note is more than a day old, then regenerate it
       if (fileAge > (1000 * 60 * 60 * maxAgeAllProjectsListInHours)) {

@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2025-11-07 for v1.2.4+, @jgclark
+// Last updated 2025-12-09 for v1.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -45,6 +45,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import { saveEditorIfNecessary } from '@helpers/editor'
+import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
 import {
   createRunPluginCallbackUrl, displayTitle,
 } from '@helpers/general'
@@ -59,7 +60,6 @@ import {
   isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId,
 } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-// import { smartPrependPara } from '@helpers/paragraph'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -276,6 +276,7 @@ const addToggleEvents: string = `
 `
 
 //-----------------------------------------------------------------------------
+// Main functions
 
 /**
  * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
@@ -529,7 +530,8 @@ export async function renderProjectListsHTML(
 
       // Add folder name, but only if we're only looking at 1 folder, and we're not grouping by folder. (If we are then folder names are added inside the table.)
       if (!config.displayGroupedByFolder && config.foldersToInclude.length === 1) {
-        outputArray.push(`<h4>${config.foldersToInclude[0]} folder</h4>`)
+        const folderDisplayName = getFolderDisplayNameForHTML(config.foldersToInclude[0])
+        outputArray.push(`<h4>${folderDisplayName} folder</h4>`)
       }
 
       // Start constructing table (if there any results)
@@ -718,7 +720,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
           togglesValues += (displayFinished) ? ' plus finished ones' : ''
           // Write out the count + metadata
-          outputArray.unshift(`Total ${noteCount} active projects${perspectivePart}(${togglesValues}). Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
+          outputArray.unshift(`Total ${noteCount} active projects${perspectivePart} (${togglesValues}). Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
           outputArray.unshift(`# ${noteTitle}`)
 
           // Save the list(s) to this note
@@ -871,10 +873,37 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
       // Write new folder header (if change of folder)
       const folder = thisProject.folder
       if (config.displayGroupedByFolder && lastFolder !== folder) {
-        let folderPart = config.hideTopLevelFolder
-          ? String(folder.split('/').slice(-1)) // just last part. String(...) to satisfy flow
-          : folder
-        if (folderPart === '/') folderPart = '(root folder)'
+        // Get display name with teamspace name if applicable
+        const folderDisplayName = ((style.match(/rich/i))
+          ? getFolderDisplayNameForHTML(folder)
+          : getFolderDisplayName(folder, true))
+        let folderPart: string
+        if (config.hideTopLevelFolder) {
+          // Extract just the last part of the folder path
+          // Handle teamspace format: [👥 TeamspaceName] /folder/path -> [👥 TeamspaceName] path
+          // Handle regular format: folder/path -> path
+          if (folderDisplayName.includes(']')) {
+            // Teamspace folder: extract prefix and last part of path
+            const match = folderDisplayName.match(/^(\[.*?\])\s*(.+)$/)
+            if (match) {
+              const teamspacePrefix = match[1]
+              const pathPart = match[2]
+              const pathParts = pathPart.split('/').filter(p => p !== '')
+              const lastPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : pathPart
+              folderPart = `${teamspacePrefix} ${lastPart}`
+            } else {
+              folderPart = folderDisplayName.split('/').slice(-1)[0] || folderDisplayName
+            }
+          } else {
+            // Regular folder: just get last part
+            const pathParts = folderDisplayName.split('/').filter(p => p !== '')
+            folderPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : folderDisplayName
+          }
+        } else {
+          folderPart = folderDisplayName
+        }
+        // Handle root folder display - check if original folder was root, not the display name
+        if (folder === '/') folderPart = '(root folder)'
         if (style.match(/rich/i)) {
           outputArray.push(`<thead>\n <tr class="folder-header-row">`)
           outputArray.push(`  <th colspan=2 class="h4 folder-header">${folderPart}</th>`)

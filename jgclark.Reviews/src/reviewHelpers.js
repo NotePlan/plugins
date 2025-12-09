@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2025-03-17 for v1.2.0, @jgclark
+// Last updated 2025-12-09 for v1.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -37,6 +37,7 @@ export type ReviewConfig = {
   folderToStore: string,
   foldersToInclude: Array<string>,
   foldersToIgnore: Array<string>,
+  includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
   projectTypeTags: Array<string>,
   numberDaysForFutureToIgnore: number,
   ignoreChecklistsInProgress: boolean,
@@ -102,6 +103,12 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     DataStore.setPreference('numberDaysForFutureToIgnore', config.numberDaysForFutureToIgnore)
     DataStore.setPreference('ignoreChecklistsInProgress', config.ignoreChecklistsInProgress)
 
+    // Set default for includedTeamspaces if not using Perspectives
+    // Note: This value is only used when Perspectives are enabled, so the default doesn't affect filtering when Perspectives are off
+    if (!config.usePerspectives) {
+      config.includedTeamspaces = ['private'] // Default value (not used when Perspectives are off)
+    }
+
     // If we want to use Perspectives, get all perspective settings
     if (config.usePerspectives) {
       const perspectiveSettings: Array<TPerspectiveDef> = await getPerspectiveSettings(false)
@@ -109,11 +116,13 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
       const currentPerspective: any = getActivePerspectiveDef(perspectiveSettings)
       // clo(currentPerspective, `currentPerspective`)
       config.perspectiveName = currentPerspective.name
-      logInfo('getReviewSettings', `Will use Perspective '${config.perspectiveName}', and will override any foldersToInclude and foldersToIgnore settings`)
+      logInfo('getReviewSettings', `Will use Perspective '${config.perspectiveName}', and will override any foldersToInclude, foldersToIgnore, and includedTeamspaces settings`)
       config.foldersToInclude = stringListOrArrayToArray(currentPerspective.dashboardSettings?.includedFolders ?? '', ',')
       config.foldersToIgnore = stringListOrArrayToArray(currentPerspective.dashboardSettings?.excludedFolders ?? '', ',')
+      config.includedTeamspaces = currentPerspective.dashboardSettings?.includedTeamspaces ?? ['private']
       // logDebug('getReviewSettings', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
       // logDebug('getReviewSettings', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
+      logDebug('getReviewSettings', `- includedTeamspaces: [${String(config.includedTeamspaces)}]`)
 
       const validFolders = getAllowedFoldersInCurrentPerspective(perspectiveSettings)
       logDebug('getReviewSettings', `-> validFolders for '${config.perspectiveName}': [${String(validFolders)}]`)
