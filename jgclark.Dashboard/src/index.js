@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2025-10-05 for v2.3.0
+// last updated 2025-12-09 for v2.4.0
 // ----------------------------------------------------------------------------
 
 /**
@@ -29,7 +29,11 @@ export { editSettings } from '@helpers/NPSettings'
 /**
  * Other imports/exports
  */
-export { decideWhetherToUpdateDashboard, refreshSectionByCode } from './dashboardHooks.js'
+export {
+  decideWhetherToUpdateDashboard, /// TODO(later): remove, now that onEditorWillSave is here
+  onEditorWillSave,
+  refreshSectionByCode
+} from './dashboardHooks.js'
 
 export { generateDiagnosticsFile } from './diagnosticGenerator'
 

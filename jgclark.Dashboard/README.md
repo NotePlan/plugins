@@ -277,7 +277,7 @@ The dashboard window can automatically update when a change is made in the relev
 Or you can use the **/add trigger to note** command from my [Note Helpers plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/) which adds this:
 ```yaml
 ---
-triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard
+triggers: onEditorWillSave => jgclark.Dashboard.onEditorWillSave
 ---
 ```
 

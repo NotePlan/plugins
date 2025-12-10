@@ -46,6 +46,10 @@ import { isOpen } from '@helpers/utils'
  * @returns {boolean}
  */
 function haveOpenItemsChanged(note: TNote): boolean {
+  if (!note.versions || note.versions.length === 0) {
+    logDebug('haveOpenItemsChanged', `No versions found, so won't compare.`)
+    return false
+  }
   const beforeContent = note.versions[0].content
   const beforeOpenParas = makeBasicParasFromContent(beforeContent).filter((p) => isOpen(p))
   const beforeOpenLines = beforeOpenParas.map((p) => p.rawContent)
@@ -93,13 +97,18 @@ function makeFilenameToSectionCodeList(): Array<{ filename: string, sectionCode:
 }
 
 /**
- * Decide whether to update Dashboard, to be called by an onSave or onChange trigger.
- * Decides whether the number of open items has changed, or if open item contents have changed.
- * But ignore if open items have just moved around.
- * Note: ideally should have left this named 'onEditorWillSave'
- * @returns {boolean}
+ * Decide whether to update Dashboard, to be called by an onSave or onChange trigger, *and if so, update the dashboard*.
+ * Note: ideally should have left this named 'onEditorWillSave', for the current name is misleading. So now the work has moved to that new function, and this one just calls that function.
  */
 export async function decideWhetherToUpdateDashboard(): Promise<void> {
+  await onEditorWillSave()
+}
+
+/**
+ * Decides whether the number of open items in the Editor has changed, or if open item contents have changed. Ignore open items have just moved around.
+ * If open items have changed, then update the dashboard for this calendar period (if it is one), or all sections if not.
+ */
+export async function onEditorWillSave(): Promise<void> {
   try {
     // Check to stop it running on iOS
     if (NotePlan.environment.platform !== 'macOS') {
@@ -121,14 +130,16 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
 
     // Get the details of what's been changed
     if (Editor.content && Editor.note) {
-      // const latestContent = Editor.content ?? ''
-      const noteReadOnly: CoreNoteFields = Editor.note
-
-      // const previousContent = noteReadOnly.versions[0].content
-      const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
+      const note: Note = Editor.note
+      if (!note.versions || note.versions.length === 0) {
+        logDebug('decideWhetherToUpdateDashboard', `No versions found, so won't proceed to check for changes.`)
+        return
+      }
+      const versionDate: Date = new Date(note.versions[0].date)
+      const timeSinceLastEdit: number = Date.now() - versionDate.getTime()
       logDebug(
         'decideWhetherToUpdateDashboard',
-        `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`,
+        `onEditorWillSave triggered for '${note.filename}' with ${note.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago at ${versionDate.toLocaleString()}`,
       )
 
       // first check to see if this has been called in the last 1000ms: if so don't proceed, as this could be a double call.
@@ -138,21 +149,16 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
       }
 
       // Decide if there are more or fewer open items than before, or they have changed content
-      const openItemsHaveChanged = haveOpenItemsChanged(noteReadOnly)
+      const openItemsHaveChanged = haveOpenItemsChanged(note)
       if (openItemsHaveChanged) {
         // Note: had wanted to try using Editor.save() here, but seems to trigger an infinite loop
         // Note: DataStore.updateCache(Editor.note) doesn't work either.
         // Instead we test for Editor in the dataGeneration::getOpenItemParasForTimePeriod() function
 
         // Update the dashboard
-        // Note: v1 following redraws whole window incrementally, which leaves flash or empty screen for a while
-        // showDashboardReact('trigger') // indicate this comes from a trigger, so won't take focus
-        // Note: v2 avoids flashing, because
-        // const data: MessageDataObject = { actionType: 'refreshSomeSections', sectionCodes: allSectionCodes }
-        // const res = await incrementallyRefreshSomeSections(data)
         // v3 only update the section for this note (or if not found then all sections still)
         const FTSCList = makeFilenameToSectionCodeList()
-        const filename = Editor.filename
+        const filename = note.filename
         // find element in FTSCList matching filename and return the sectionCode
         const thisObject = FTSCList.find((obj) => obj.filename === filename)
         const theseSectionCodes: Array<TSectionCode> = thisObject?.sectionCode ? [thisObject.sectionCode] : allSectionCodes
