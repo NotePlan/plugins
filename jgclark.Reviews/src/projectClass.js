@@ -609,8 +609,6 @@ export class Project {
       metadataPara.content = newMetadataLine
       if (Editor && Editor.note && Editor.note === this.note) {
         Editor.updateParagraph(metadataPara)
-        // DataStore.updateCache(Editor.note, true)
-        // TEST:
         await Editor.save()
       } else {
         this.note.updateParagraph(metadataPara)
@@ -697,57 +695,119 @@ export class Project {
 //-----------------------------------------------------------------
 
 /**
- * From a Project metadata object read in, calculate updated due/finished durations, and return the updated Project object.
+ * Type for updatable Project fields in helper functions
+ */
+type ProjectUpdates = {
+  dueDays?: number,
+  nextReviewDate?: ?Date,
+  nextReviewDays?: number,
+  completedDuration?: ?string,
+  cancelledDuration?: ?string,
+}
+
+/**
+ * Create an immutable copy of a Project with updated properties.
+ * Returns a new object with all properties from the original plus any updates.
+ * @param {Project} project - The original Project instance
+ * @param {ProjectUpdates} updates - Object with properties to update
+ * @returns {Project} - New immutable Project-like object
+ */
+function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = {}): Project {
+  // $FlowIgnore[incompatible-return] - Object literal has all Project properties, compatible for our use case
+  return {
+    note: project.note,
+    filename: project.filename,
+    folder: project.folder,
+    metadataParaLineIndex: project.metadataParaLineIndex,
+    projectTag: project.projectTag,
+    title: project.title,
+    startDate: project.startDate,
+    dueDate: project.dueDate,
+    dueDays: updates.dueDays !== undefined ? updates.dueDays : project.dueDays,
+    reviewedDate: project.reviewedDate,
+    reviewInterval: project.reviewInterval,
+    nextReviewDate: updates.nextReviewDate !== undefined ? updates.nextReviewDate : project.nextReviewDate,
+    nextReviewDateStr: project.nextReviewDateStr,
+    nextReviewDays: updates.nextReviewDays !== undefined ? updates.nextReviewDays : project.nextReviewDays,
+    completedDate: project.completedDate,
+    completedDuration: updates.completedDuration !== undefined ? updates.completedDuration : project.completedDuration,
+    cancelledDate: project.cancelledDate,
+    cancelledDuration: updates.cancelledDuration !== undefined ? updates.cancelledDuration : project.cancelledDuration,
+    numOpenItems: project.numOpenItems,
+    numCompletedItems: project.numCompletedItems,
+    numTotalItems: project.numTotalItems,
+    numWaitingItems: project.numWaitingItems,
+    numFutureItems: project.numFutureItems,
+    isCompleted: project.isCompleted,
+    isCancelled: project.isCancelled,
+    isPaused: project.isPaused,
+    percentComplete: project.percentComplete,
+    lastProgressComment: project.lastProgressComment,
+    mostRecentProgressLineIndex: project.mostRecentProgressLineIndex,
+    nextActionsRawContent: project.nextActionsRawContent,
+    ID: project.ID,
+  }
+}
+
+/**
+ * From a Project metadata object read in, calculate updated due/finished durations, and return an immutable updated Project object.
  * On error, returns the original Project object.
  * @author @jgclark
- * @param {Project} thisProject
+ * @param {Project} thisProjectIn
  * @returns {Project}
 */
 export function calcDurationsForProject(thisProjectIn: Project): Project {
   try {
     const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-    // $FlowFixMe[incompatible-type]
-    const thisProject: Project = { ...thisProjectIn }
+    
     // Calculate # days until due
-    thisProject.dueDays =
-      thisProject.dueDate != null
-        ? daysBetween(now, thisProject.dueDate)
-        : NaN
+    const dueDays = thisProjectIn.dueDate != null
+      ? daysBetween(now, thisProjectIn.dueDate)
+      : NaN
 
     // Calculate durations or time since cancel/complete
-    logDebug('calcDurationsForProject', String(thisProject.startDate ?? 'no startDate'))
-    if (thisProject.startDate) {
-      const momTSD = moment(thisProject.startDate)
-      if (thisProject.completedDate != null) {
-        thisProject.completedDuration = `after ${momTSD.to(moment(thisProject.completedDate), true)}`
-        logDebug('calcDurationsForProject', `-> completedDuration = ${thisProject.completedDuration}`)
+    logDebug('calcDurationsForProject', String(thisProjectIn.startDate ?? 'no startDate'))
+    
+    let completedDuration = thisProjectIn.completedDuration
+    let cancelledDuration = thisProjectIn.cancelledDuration
+    
+    if (thisProjectIn.startDate) {
+      const momTSD = moment(thisProjectIn.startDate)
+      if (thisProjectIn.completedDate != null) {
+        completedDuration = `after ${momTSD.to(moment(thisProjectIn.completedDate), true)}`
+        logDebug('calcDurationsForProject', `-> completedDuration = ${completedDuration}`)
       }
-      else if (thisProject.cancelledDate != null) {
-        thisProject.cancelledDuration = `after ${momTSD.to(moment(thisProject.cancelledDate), true)}`
-        logDebug('calcDurationsForProject', `-> cancelledDuration = ${thisProject.cancelledDuration}`)
+      else if (thisProjectIn.cancelledDate != null) {
+        cancelledDuration = `after ${momTSD.to(moment(thisProjectIn.cancelledDate), true)}`
+        logDebug('calcDurationsForProject', `-> cancelledDuration = ${cancelledDuration}`)
       }
     }
     else {
-      if (thisProject.completedDate != null) {
-        thisProject.completedDuration = moment(thisProject.completedDate).fromNow() // ...ago
-        if (thisProject.completedDuration.includes('hours')) {
-          thisProject.completedDuration = 'today' // edge case
+      if (thisProjectIn.completedDate != null) {
+        completedDuration = moment(thisProjectIn.completedDate).fromNow() // ...ago
+        if (completedDuration.includes('hours')) {
+          completedDuration = 'today' // edge case
         }
-        logDebug('calcDurationsForProject', `-> completedDuration = ${thisProject.completedDuration ?? '?'}`)
+        logDebug('calcDurationsForProject', `-> completedDuration = ${completedDuration ?? '?'}`)
       }
-      else if (thisProject.cancelledDate != null) {
-        thisProject.cancelledDuration = moment(thisProject.cancelledDate).fromNow() // ...ago
-        if (thisProject.cancelledDuration.includes('hours')) {
-          thisProject.cancelledDuration = 'today' // edge case
+      else if (thisProjectIn.cancelledDate != null) {
+        cancelledDuration = moment(thisProjectIn.cancelledDate).fromNow() // ...ago
+        if (cancelledDuration.includes('hours')) {
+          cancelledDuration = 'today' // edge case
         }
-        logDebug('calcDurationsForProject', `-> completedDuration = ${thisProject.cancelledDuration ?? '?'}`)
+        logDebug('calcDurationsForProject', `-> completedDuration = ${cancelledDuration ?? '?'}`)
       }
       else {
         // Nothing to do
         logDebug('calcDurationsForProject', `No completed or cancelled dates.`)
       }
     }
-    return thisProject
+    
+    return createImmutableProjectCopy(thisProjectIn, {
+      dueDays,
+      completedDuration,
+      cancelledDuration,
+    })
   } catch (error) {
     logError('calcDurationsForProject', error.message)
     return thisProjectIn
@@ -755,7 +815,7 @@ export function calcDurationsForProject(thisProjectIn: Project): Project {
 }
 
 /**
- * From a Project metadata object read in, calculate updated next review date, and return the updated Project object.
+ * From a Project metadata object read in, calculate updated next review date, and return an immutable updated Project object.
  * On error, returns the original Project object.
  * @author @jgclark
  * @param {Project} thisProjectIn
@@ -765,42 +825,48 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
   try {
     // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
     const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-    // $FlowFixMe[incompatible-type]
-    const thisProject: any = { ...thisProjectIn }
+
+    let nextReviewDate: ?Date = thisProjectIn.nextReviewDate
+    let nextReviewDays: number = thisProjectIn.nextReviewDays
 
     // First check to see if project start is in future: if so set nextReviewDate to project start
-    if (thisProject.startDate) {
-      const momTSD = moment(thisProject.startDate)
+    if (thisProjectIn.startDate) {
+      const momTSD = moment(thisProjectIn.startDate)
       if (momTSD.isAfter(now)) {
-        thisProject.nextReviewDate = thisProject.startDate
-        thisProject.nextReviewDays = daysBetween(now, momTSD.toDate())
-        logDebug('calcNextReviewDate', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(thisProject.nextReviewDays)} interval`)
+        nextReviewDate = thisProjectIn.startDate
+        nextReviewDays = daysBetween(now, momTSD.toDate())
+        logDebug('calcNextReviewDate', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(nextReviewDays)} interval`)
       }
     }
 
     // Now check to see if we have a specific nextReviewDate
-    if (thisProject.nextReviewDateStr != null) {
-      thisProject.nextReviewDays = daysBetween(now, thisProject.nextReviewDateStr)
-      logDebug('calcNextReviewDate', `already had a nextReviewDateStr ${thisProject.nextReviewDateStr ?? '?'} -> ${String(thisProject.nextReviewDays)} interval`)
+    if (thisProjectIn.nextReviewDateStr != null) {
+      nextReviewDays = daysBetween(now, thisProjectIn.nextReviewDateStr)
+      logDebug('calcNextReviewDate', `already had a nextReviewDateStr ${thisProjectIn.nextReviewDateStr ?? '?'} -> ${String(nextReviewDays)} interval`)
     }
-    else if (thisProject.reviewInterval != null) {
-      if (thisProject.reviewedDate != null) {
-        thisProject.nextReviewDate = calcNextReviewDate(thisProject.reviewedDate, thisProject.reviewInterval)
-        if (thisProject.nextReviewDate != null) {
+    else if (thisProjectIn.reviewInterval != null) {
+      if (thisProjectIn.reviewedDate != null) {
+        const calculatedNextReviewDate = calcNextReviewDate(thisProjectIn.reviewedDate, thisProjectIn.reviewInterval)
+        if (calculatedNextReviewDate != null) {
           // this now uses moment and truncated (not rounded) date diffs in number of days
-          thisProject.nextReviewDays = daysBetween(now, thisProject.nextReviewDate)
-    // logDebug('calcNextReviewDate', `${String(thisProject.reviewedDate)} + ${thisProject.reviewInterval ?? ''} -> nextReviewDate: ${thisProject.nextReviewDateStr ?? ''} = ${String(thisProject.nextReviewDays) ?? '-'}`)
+          nextReviewDate = calculatedNextReviewDate
+          nextReviewDays = daysBetween(now, calculatedNextReviewDate)
+    // logDebug('calcNextReviewDate', `${String(thisProjectIn.reviewedDate)} + ${thisProjectIn.reviewInterval ?? ''} -> nextReviewDate: ${thisProjectIn.nextReviewDateStr ?? ''} = ${String(nextReviewDays) ?? '-'}`)
         } else {
-          throw new Error(`nextReviewDate is null; reviewedDate = ${String(thisProject.reviewedDate)}`)
+          throw new Error(`nextReviewDate is null; reviewedDate = ${String(thisProjectIn.reviewedDate)}`)
         }
       } else {
         // no next review date, so set at today
-        thisProject.nextReviewDate = now
-        thisProject.nextReviewDays = 0
+        nextReviewDate = now
+        nextReviewDays = 0
       }
     }
-    // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisProject.reviewedDate)} / nextReviewDate = ${String(thisProject.nextReviewDate)} / nextReviewDays = ${String(thisProject.nextReviewDays)}`)
-    return thisProject
+    // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisProjectIn.reviewedDate)} / nextReviewDate = ${String(nextReviewDate)} / nextReviewDays = ${String(nextReviewDays)}`)
+    
+    return createImmutableProjectCopy(thisProjectIn, {
+      nextReviewDate,
+      nextReviewDays,
+    })
   } catch (error) {
     logError('calcNextReviewDate', error.message)
     return thisProjectIn
@@ -1005,7 +1071,6 @@ export function generateProjectOutputLine(
 /**
  * Returns title of note as folder name + link, also showing complete or cancelled where relevant.
  * Supports 'Markdown' or 'HTML' styling or simpler 'list' styling
- * Note: There is now a non-Class version of the function.
  * @param {Project} thisProject 'Markdown' or 'HTML' or 'list'
  * @param {string} style 'Markdown' or 'HTML' or 'list'
  * @param {any} config
@@ -1014,18 +1079,14 @@ export function generateProjectOutputLine(
 function decoratedProjectTitle(thisProject: Project, style: string, config: any): string {
   const folderNamePart = config.showFolderName ? `${thisProject.folder} / ` : ''
   const titlePart = thisProject.title ?? '(error, not available)'
-  // const titlePartEncoded = encodeURIComponent(thisProject.title) ?? '(error, not available)'
   switch (style) {
     case 'Rich': {
       // Method 1: make [[notelinks]] via x-callbacks
-      // Method 1a: x-callback using note title
-      // const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.title, "title", "", "splitView", false)
-      // Method 1b: x-callback using filename
+      // Method 2: x-callback using note title
+      // Method 3: x-callback using filename
       const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", null, false)
       const noteTitleWithOpenAction = `<span class="noteTitle"><a href="${noteOpenActionURL}"><i class="fa-regular fa-file-lines pad-right"></i> ${folderNamePart}${titlePart}</a></span>`
-      // TODO: if possible change to use internal links: see method in Dashboard
-      // see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
-      // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
+      // Note: in theory could change to using onclick handler to a function that opens the note (like in Dashboard), but a lot of work for little gain. TODO(later): if switching to React.
 
       if (thisProject.isCompleted) {
         return `<span class="checked">${noteTitleWithOpenAction}</span>`
