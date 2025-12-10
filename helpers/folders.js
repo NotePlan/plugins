@@ -9,7 +9,9 @@ import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { caseInsensitiveMatch, caseInsensitiveStartsWith, caseInsensitiveSubstringMatch } from '@helpers/search'
 import { TEAMSPACE_INDICATOR } from '@helpers/regex'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from '@helpers/NPTeamspace'
-import { getFilenameWithoutTeamspaceID, getTeamspaceIDFromFilename, isTeamspaceNoteFromFilename } from '@helpers/teamspace'
+import { getFilenameWithoutTeamspaceID, getTeamspaceIDFromFilename, isTeamspaceNoteFromFilename, TEAMSPACE_FA_ICON } from '@helpers/teamspace'
+
+//-------------------------------------------------------------------------------
 
 /**
  * Return a list of folders (and any sub-folders) that contain one of the strings on the inclusions list (if given). 
@@ -347,6 +349,43 @@ export function getFolderDisplayName(folderPath: string, includeTeamspaceEmoji: 
     }
   } catch (error) {
     logError('folders/getFolderDisplayName', `Error getting folder display name from '${folderPath}: ${error.message}`)
+    return '(error)'
+  }
+}
+
+/**
+ * Get a decorated folder name from the folder path (*not* filename) for use in HTML. Returns prefixed with Teamspace icon + name, and without leading or trailing slash.
+ * Note: Not needed before Teamspaces.
+ * @author @jgclark
+ * @tests in jest file
+ *
+ * @param {string} folderPath - as returned by DataStore.folders. Note: not full filename.
+ * @returns {string} folder name for display (including Teamspace name if applicable)
+ */
+export function getFolderDisplayNameForHTML(folderPath: string): string {
+  try {
+    // If folderPath is empty, warn and return '(error)'
+    if (!folderPath) {
+      throw new Error(`Empty folderPath given. Returning '(error)'.`)
+    }
+    // logDebug('folders/getFolderDisplayNameForHTML', `folderPath: ${folderPath}`)
+
+    if (isTeamspaceNoteFromFilename(folderPath)) {
+      const teamspaceID = getTeamspaceIDFromFilename(folderPath)
+      // logDebug('folders/getFolderDisplayNameForHTML', `teamspaceID: ${teamspaceID}`)
+      const teamspaceName = getTeamspaceTitleFromID(teamspaceID)
+      // logDebug('folders/getFolderDisplayNameForHTML', `teamspaceName: ${teamspaceName}`)
+      let folderPart = getFilenameWithoutTeamspaceID(folderPath)
+      // logDebug('folders/getFolderDisplayNameForHTML', `folderPart: ${folderPart} from ${folderPath}`)
+      if (folderPart === '') {
+        folderPart = '/'
+      }
+      return `<span style="color: var(--teamspace-color);"><i class="${TEAMSPACE_FA_ICON}"></i> ${teamspaceName}</span> ${folderPart}`
+    } else {
+      return folderPath
+    }
+  } catch (error) {
+    logError('folders/getFolderDisplayNameForHTML', `Error getting folder display name from '${folderPath}: ${error.message}`)
     return '(error)'
   }
 }

@@ -1,8 +1,14 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.under-the-hood fixes for integration with Dashboard plugin
 
+## [1.3.0.b1] - 2025-12-09
+- now supports projects in (Team)Space notes, using the settings in the Perspective from Dashboard v2.4 which allows you to specify which (Team)Spaces you wish to include, plus whether or not to include the Private "Space" (all notes not in a Space).
+
+## [1.2.4] - not released
+- improve inter-plugin communication with the Dashboard.
+
 ## [1.2.3] - 2025-04-28
-- Fixed race condition stopping 'Finish + Next' review from working. (thanks, @gdrn)
+- Fixed race condition stopping 'Finish + Next' review from working (thanks, @gdrn).
 - Fixed problem in 'Pause Project'
 
 ## [1.2.2] - 2025-04-03

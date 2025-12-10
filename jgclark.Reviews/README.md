@@ -99,7 +99,7 @@ There are 2 parts of this:
 1. Use the '**Hashtags to review**' setting to control which notes are included in the review lists. If it is set (e.g. `#project, #area, #goal`), then it will include just those notes which also have one or more of those tags. If this setting is empty, then it will include all notes for review that include a `@review(...)` string.
 2. Then specify which folders you want to include and/or exclude notes from. There are 2 ways to do this:
    1. The original way is to use the 'Folders to Include' and 'Folders to Exclude' settings to put a comma-separated list of folders to include and exclude. I have this set to `Summaries, Reviews, Saved Searches`. Any sub-folders of these will also be ignored. (Note that the special Templates, Archive and Trash are always excluded.)
-   2. From v1.1 you can now instead turn on the '**Use Perspectives**' setting to control which folders are included. This requires the [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) to be installed. Note that if you change the active Perspective in the Dashboard, this window will also automatically update.
+   2. From v1.1 you can now instead turn on the '**Use Perspectives**' setting to control which folders are included. _This method (from v1.3) also allows you to allow or disallow any (Team)Spaces you're part of. This requires the [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) to be installed. Note that if you change the active Perspective in the Dashboard, this window will also automatically update.
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
