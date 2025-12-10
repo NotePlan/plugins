@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2025-12-03 for v2.3.3 by @jgclark
+// Last updated 2025-12-08 for v2.4.0.b by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -239,7 +239,6 @@ export type TActionType =
   | 'completeChecklist'
   | 'cancelChecklist'
   | 'closeSearchSection'
-  | 'closeSections'
   | 'cyclePriorityStateUp'
   | 'cyclePriorityStateDown'
   | 'dashboardSettingsChanged'

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2025-11-22 for v2.3.0.b6+
+// Last updated 2025-12-07 for v2.4.0.b by @jgclark
 //-----------------------------------------------------------------------------
 
 import {
@@ -20,7 +20,7 @@ import {
   RE_NP_WEEK_SPEC,
 } from '@helpers/dateTime'
 import { displayTitle } from '@helpers/general'
-import { calcOffsetDateStr, getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
+import { calcOffsetDateStr, getNPWeekData } from '@helpers/NPdateTime'
 import {
   moveItemBetweenCalendarNotes,
   moveItemToRegularNote,
@@ -30,6 +30,55 @@ import { scheduleItem, scheduleItemLiteMethod } from '@helpers/NPScheduleItems'
 import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
+
+/**
+ * Calculate the new date string from a control string (date interval or date).
+ * Handles 't' for today, date intervals (e.g., '1w', '2d'), and explicit dates.
+ * @param {string} dateOrInterval - the control string ('t', date interval, or date)
+ * @param {string} baseDateStr - the base date string to use for calculations (today's date for reschedule, original date for move)
+ * @param {TDashboardSettings} config - dashboard settings
+ * @param {string} filename - filename for error messages
+ * @param {boolean} isReschedule - if true, uses 'longer' mode for intervals; if false, uses 'offset' mode
+ * @returns {string} the calculated new date string
+ */
+function calculateNewDateStr(
+  dateOrInterval: string,
+  baseDateStr: string,
+  config: TDashboardSettings,
+  filename: string,
+  isReschedule: boolean = false,
+): string {
+  if (dateOrInterval === 't') {
+    // Special case to change to '>today'
+    return config.useTodayDate ? 'today' : getTodaysDateHyphenated()
+  } else if (dateOrInterval.match(RE_DATE_INTERVAL)) {
+    const offsetUnit = dateOrInterval.charAt(dateOrInterval.length - 1) // get last character
+    // To calculate new date, use today's date (not the original date on the task) + offset
+    const calcMode = isReschedule ? 'longer' : 'offset'
+    let newDateStr = calcOffsetDateStr(getTodaysDateHyphenated(), dateOrInterval, calcMode)
+
+    // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week'
+    if (offsetUnit === 'w') {
+      // For move operations, only use NPWeekData if baseDateStr is not already a week spec
+      // For reschedule operations, always use NPWeekData for weeks
+      if (isReschedule || !baseDateStr.match(RE_NP_WEEK_SPEC)) {
+        const offsetNum = Number(dateOrInterval.substr(0, dateOrInterval.length - 1)) // return all but last character
+        const NPWeekData = getNPWeekData(baseDateStr, offsetNum, 'week')
+        if (NPWeekData) {
+          newDateStr = NPWeekData.weekString
+          logDebug('calculateNewDateStr', `- used NPWeekData instead -> ${newDateStr}`)
+        } else {
+          throw new Error(`Can't get NPWeekData for '${String(offsetNum)}w' when ${isReschedule ? 'rescheduling' : 'moving'} task from ${filename} (${baseDateStr})`)
+        }
+      }
+    }
+    return newDateStr
+  } else if (dateOrInterval.match(RE_DATE)) {
+    return dateOrInterval
+  } else {
+    throw new Error(`bad move date/interval: ${dateOrInterval}`)
+  }
+}
 
 /**
  * Move an item from one calendar note to a different one.
@@ -48,29 +97,10 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
 
     const startDateStr: string = getDateStringFromCalendarFilename(filename, true)
     let newDateStr = ''
-    if (dateOrInterval === 't') {
-      // Special case to change to '>today'
-      newDateStr = getTodaysDateHyphenated()
-    } else if (dateOrInterval.match(RE_DATE_INTERVAL)) {
-      const offsetUnit = dateOrInterval.charAt(dateOrInterval.length - 1) // get last character
-      // To calculate new date, use today's date (not the original date on the task) + offset
-      newDateStr = calcOffsetDateStr(getTodaysDateHyphenated(), dateOrInterval, 'offset') // 'longer'
-
-      // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week' but startDateStr is not of type 'week'
-      if (offsetUnit === 'w' && !startDateStr.match(RE_NP_WEEK_SPEC)) {
-        const offsetNum = Number(dateOrInterval.substr(0, dateOrInterval.length - 1)) // return all but last character
-        const NPWeekData = getNPWeekData(startDateStr, offsetNum, 'week')
-        if (NPWeekData) {
-          newDateStr = NPWeekData.weekString
-          logDebug('doMoveFromCalToCal', `- used NPWeekData instead -> ${newDateStr}`)
-        } else {
-          throw new Error(`Can't get NPWeekData for '${String(offsetNum)}w' when moving task from ${filename} (${startDateStr})`)
-        }
-      }
-    } else if (dateOrInterval.match(RE_DATE)) {
-      newDateStr = controlStr
-    } else {
-      logError('doMoveFromCalToCal', `bad move date/interval: ${dateOrInterval}`)
+    try {
+      newDateStr = calculateNewDateStr(dateOrInterval, startDateStr, config, filename, false)
+    } catch (error) {
+      logError('doMoveFromCalToCal', String(error))
       return handlerResult(false)
     }
     logDebug('doMoveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
@@ -81,7 +111,7 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
       config.newTaskSectionHeading, config.newTaskSectionHeadingLevel)
 
     if (res) {
-      logDebug('doMoveFromCalToCal', `-> appeared to move item succesfully`)
+      logDebug('doMoveFromCalToCal', `-> appeared to move item successfully`)
       // Send a message to update all the calendar sections (as its too hard to work out which of the sections to update)
       return handlerResult(true, ['REFRESH_ALL_CALENDAR_SECTIONS', 'START_DELAYED_REFRESH_TIMER'])
     } else {
@@ -173,32 +203,17 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
   }
   const origNoteType = thePara.note?.type
 
-  if (dateOrInterval === 't') {
-    // Special case to change to '>today' (or the actual date equivalent)
-    newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
-    logDebug('doRescheduleItem', `- move task in ${filename} -> 'today'`)
-  } else if (dateOrInterval.match(RE_DATE_INTERVAL)) {
-    const dateInterval = dateOrInterval
-    const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
-    // Get today's date, ignoring current date on task. Note: this means we always start with a *day* base date, not week etc.
+  try {
+    // For reschedule, we use today's date as the base for intervals (not the original date on the task)
     startDateStr = getTodaysDateHyphenated()
-    // Get the new date, but output using the longer of the two types of dates given
-    newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'longer')
-
-    // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week'
-    if (offsetUnit === 'w') {
-      const offsetNum = Number(dateInterval.substr(0, dateInterval.length - 1)) // return all but last character
-      // $FlowFixMe(incompatible-type)
-      const NPWeekData: NotePlanWeekInfo = getNPWeekData(startDateStr, offsetNum, 'week')
-      // clo(NPWeekData, "NPWeekData:")
-      newDateStr = NPWeekData.weekString
-      logDebug('doRescheduleItem', `- used NPWeekData instead -> ${newDateStr}`)
+    newDateStr = calculateNewDateStr(dateOrInterval, startDateStr, config, filename, true)
+    if (dateOrInterval === 't') {
+      logDebug('doRescheduleItem', `- move task in ${filename} -> 'today'`)
+    } else if (dateOrInterval.match(RE_DATE)) {
+      logDebug('doRescheduleItem', `- newDateStr ${newDateStr} from controlStr`)
     }
-  } else if (dateOrInterval.match(RE_DATE)) {
-    newDateStr = controlStr
-    logDebug('doRescheduleItem', `- newDateStr ${newDateStr} from controlStr`)
-  } else {
-    logError('doRescheduleItem', `bad move date/interval: ${dateOrInterval}`)
+  } catch (error) {
+    logError('doRescheduleItem', String(error))
     return handlerResult(false)
   }
   logDebug('doRescheduleItem', `change due date on task from '${startDateStr ?? '?'}' -> '${newDateStr}'`)

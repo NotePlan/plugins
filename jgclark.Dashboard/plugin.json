@@ -126,8 +126,14 @@
     {
       "hidden": true,
       "name": "decideWhetherToUpdateDashboard",
-      "description": "onEditorWillSave",
+      "description": "onEditorWillSave trigger to decide whether to update Dashboard",
       "jsFunction": "decideWhetherToUpdateDashboard"
+    },
+    {
+      "hidden": true,
+      "name": "onEditorWillSave",
+      "description": "onEditorWillSave trigger to decide whether to update Dashboard",
+      "jsFunction": "onEditorWillSave"
     },
     {
       "hidden": true,

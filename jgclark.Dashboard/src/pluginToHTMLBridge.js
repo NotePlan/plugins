@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2025-11-22 for v2.3.0.b15
+// Last updated 2025-12-08 for v2.4.0.b by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,7 +12,6 @@ import {
   doCancelChecklist,
   doCancelTask,
   doContentUpdate,
-  // doCommsBridgeTest,
   doCompleteTask,
   doCompleteTaskThen,
   doCompleteChecklist,
@@ -86,14 +85,7 @@ export async function runPluginCommand(data: TPluginCommandSimplified) {
  */
 export async function bridgeClickDashboardItem(data: MessageDataObject) {
   try {
-    // const windowId = getWindowIdFromCustomId(windowCustomId);
-    // if (!windowId) {
-    //   logError('bridgeClickDashboardItem', `Can't find windowId for ${windowCustomId}`)
-    //   return
-    // }
     const startTime = new Date()
-
-    // const ID = data.item?.ID ?? '<no ID found>'
     const actionType: TActionType = data.actionType
     const logMessage = data.logMessage ?? ''
     const filename = data.item?.para?.filename ?? '<no filename found>'
@@ -104,7 +96,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     logInfo(`************* bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} *************`)
     // clo(data, 'bridgeClickDashboardItem received data object; data=')
-    if (!actionType === 'refreshEnabledSections' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
+    if (actionType !== 'refreshEnabledSections' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
     // Allow for a combination of button click and a content update
     if (updatedContent && data.actionType !== 'updateItemContent') {
@@ -129,7 +121,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         logInfo('bCDI / refreshEnabledSections', `sectionCodesToUse: ${String(sectionCodesToUse)}`)
 
         result = await incrementallyRefreshSomeSections({ ...data, sectionCodes: sectionCodesToUse }, false, true)
-        result = { success: true }
+        // result = { success: true } // TODO: TEST: remove this
         break
       }
       case 'refreshSomeSections': {
@@ -146,7 +138,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // Used by 'Hard Refresh' button for devs
         const useDemoData = false
         // Using Plugin command invocation rather than `await showDashboardReact('full', useDemoData)` to avoid circular dependency
-        DataStore.invokePluginCommandByName('Show Dashboard', 'jgclark.Dashboard', ['full', useDemoData])
+        await DataStore.invokePluginCommandByName('Show Dashboard', 'jgclark.Dashboard', ['full', useDemoData])
         result = { success: true }
         return
       }
@@ -356,10 +348,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await scheduleAllOverdueOpenToToday(data, true) // true = move only shown items
         break
       }
-      // case 'commsBridgeTest': {
-      //   result = await doCommsBridgeTest(data)
-      //   break
-      // }
       case 'startSearch': {
         console.log(`pluginToHTMLBridge: startSearch: data:${JSP(data)}`)
         await externallyStartSearch(data.stringToEvaluate ?? '')
@@ -367,15 +355,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           success: true,
           sectionCodes: ['SEARCH'],
           actionsOnSuccess: [],
-          errorMsg: '',
-        }
-        break
-      }
-      case 'closeSections': {
-        result = {
-          success: true,
-          sectionCodes: ['SEARCH'], // TODO: make this dynamic based on the sections that are open
-          actionsOnSuccess: ['CLOSE_UNNEEDED_SECTIONS'],
           errorMsg: '',
         }
         break
@@ -389,6 +368,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       default: {
+        result = {
+          success: false,
+          errorMsg: `Can't yet handle type ${actionType}`,
+        }
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
     }
@@ -396,7 +379,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     if (result) {
       await processActionOnReturn(result, data) // process all actions based on result of handler
     } else {
-      logWarn('bCDI', `false result from call`)
+      logWarn('bridgeClickDashboardItem', `false result from call`)
     }
     logTimer('bridgeClickDashboardItem', startTime, `total runtime for bridgeClickDashboardItem: "${data.actionType}"`, 1000)
   } catch (error) {

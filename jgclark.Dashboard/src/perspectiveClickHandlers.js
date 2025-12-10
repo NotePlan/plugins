@@ -23,13 +23,14 @@ import {
   removeInvalidTagSections,
   logPerspectiveNames,
 } from './perspectiveHelpers'
-import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
+// import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getSettings, saveSettings } from '@helpers/NPConfiguration'
 
 /****************************************************************************************************************************
  *                             NOTES
  ****************************************************************************************************************************
+
 - Handlers should use the standard return type of TBridgeClickHandlerResult
 - handlerResult() can be used to create the result object
 - Types are defined in types.js
@@ -52,9 +53,14 @@ export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBr
   return handlerResult(true, [])
 }
 
+/**
+ * Copy a perspective.
+ * Note: This deliberately doesn't guard against the new name already being in use.
+ * @param {MessageDataObject} data - the data object containing the oldnew name for the perspective
+ * @returns {TBridgeClickHandlerResult} - the result of the copy perspective
+ */
 export async function doCopyPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   clo(data, `doCopyPerspective starting ... with mbo`)
-  // const fromName = data.userInputObj?.fromName ?? ''
   const newName = data.userInputObj?.newName ?? ''
   const perspectiveSettings = await getPerspectiveSettings()
   const activeDef = getActivePerspectiveDef(perspectiveSettings)
@@ -143,18 +149,21 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective failed` })
   const activeDef = getActivePerspectiveDef(revisedDefs)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
+
+  // get the previous dashboard settings
   const prevDashboardSettings = await getDashboardSettings()
+  if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
 
   // each perspective has its own tagged sections so we don't want to keep old ones around
-  // so we will remove all keys from prevDS that start with showTagSection_
-  if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
-  // apply the new perspective's settings to the main dashboard settings
-
+  // so we will remove all keys from prevDS that start with showTagSection_ and then apply the new perspective's settings to the main dashboard settings
+  // strip out tag section flags from the previous perspective so they don't leak into the next one
+  const prevWithoutTagSections: Partial<TDashboardSettings> = (Object.fromEntries(
+    Object.entries(prevDashboardSettings).filter(([k]) => !k.startsWith('showTagSection_')),
+  ): any)
   const dashboardSettingsDefaults = getDashboardSettingsDefaults()
-
   let newDashboardSettings = {
     ...dashboardSettingsDefaults, // helps to add settings that may be new since this perspective was last saved
-    ...prevDashboardSettings,
+    ...prevWithoutTagSections,
     ...(activeDef.dashboardSettings || {}),
   }
   newDashboardSettings = removeInvalidTagSections(newDashboardSettings) // just to make sure we don't have any invalid tag sections left over from previous perspectives
