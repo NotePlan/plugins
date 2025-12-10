@@ -197,16 +197,18 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Set font for native controls (otherwise will go to Apple default)
     output.push(makeCSSSelector('button, input', [`font-family: "${bodyFont}"`]))
 
-    // Set a few styles here that require computed light and dark settings
+    // Set a few styles here that require specfic light and dark settings, borrowing directly from macOS
     // Note: These days probably could do this just in CSS, but for clarity doing so here.
     if (currentThemeMode === 'light') {
       rootSel.push(`--bg-apple-input-color: #fbfbfb`)
-      rootSel.push(`--bg-apple-switch-color: #e6e5e7`)
+      rootSel.push(`--bg-apple-switch-color: #dadada`)
+      rootSel.push(`--fg-apple-switch-color: #ffffff`)
       rootSel.push(`--bg-apple-button-color: #fcfcfc`)
     } else {
       // dark theme
       rootSel.push(`--bg-apple-input-color: #1f1d21`)
-      rootSel.push(`--bg-apple-switch-color: #323234`)
+      rootSel.push(`--bg-apple-switch-color: #414141`)
+      rootSel.push(`--fg-apple-switch-color: #cacaca`)
       rootSel.push(`--bg-apple-button-color: #5c5c5f`)
     }
 

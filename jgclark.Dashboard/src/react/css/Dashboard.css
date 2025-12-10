@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2025-11-29 for v2.3.0.b16 by @jgclark */
+/* Last updated 2025-12-10 for v2.4.0 by @jgclark */
 
 html {
 	/* Define 'Named Colors' -------------------------------- */
@@ -424,7 +424,7 @@ input.apple-switch:after {
 	position: absolute;
 	top: 1px;
 	left: 1px;
-	background-color: var(--fg-main-color);
+	background-color: var(--fg-apple-switch-color);
 	width: 0.95rem;
 	height: 0.95rem;
 	border-radius: 50%;
@@ -435,14 +435,14 @@ input.apple-switch:after {
 
 input.apple-switch:checked {
 	vertical-align: top;
-	background-color: hsl(from var(--tint-color) h s calc(l*0.5)); /* make darker */
+	background-color: hsl(from var(--tint-color) h s l); /* Note: in dark mode making this a little darker looks good, but not in light mode */
 	transition: background-color 0.3s ease;
 }
 
 input.apple-switch:checked:after {
 	vertical-align: top;
 	left: 0.85rem;
-	background-color: var(--fg-main-color);
+	background-color: var(--fg-apple-switch-color);
 	box-shadow: 0px 0px 2px var(--divider-color);
 }
 
