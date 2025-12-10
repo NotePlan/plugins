@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 2025-02-03 for v1.1.0+, @jgclark
+// Last updated 2025-12-10 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -40,9 +40,14 @@ export async function addProgressUpdate(noteArg?: TNote): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines) or we're passed a valid Note
     logDebug('addProgressUpdate', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
-    const note: TNote = noteArg ? noteArg : Editor
-    if (!note || note.type === 'Calendar' || note.paragraphs.length < 2) {
-      logWarn('addProgressUpdate', `Not in (or passed) a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
+    const noteMaybe: ?TNote = noteArg ?? Editor?.note
+    if (!noteMaybe) {
+      logWarn('addProgressUpdate', 'No note available in Editor and none passed.')
+      return
+    }
+    const note: TNote = noteMaybe
+    if (note.type === 'Calendar' || note.paragraphs.length < 2) {
+      logWarn('addProgressUpdate', `Not in (or passed) a Project note (at least 2 lines long). (Note title = '${note.title ?? ''}')`)
       return
     }
 
@@ -71,19 +76,23 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines) or we're passed a valid Note
     logDebug('project/completeProject', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
-    const note: TNote = noteArg ? noteArg : Editor
-    if (!note || note.type === 'Calendar' || note.paragraphs.length < 2) {
-      throw new Error(`Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
+    const noteMaybe: ?TNote = noteArg ?? Editor?.note
+    if (!noteMaybe) {
+      throw new Error('Not in an Editor and no note passed.')
+    }
+    const note: TNote = noteMaybe
+    if (note.type === 'Calendar' || note.paragraphs.length < 2) {
+      throw new Error(`Not in a Project note (at least 2 lines long). (Note title = '${note.title ?? ''}')`)
     }
 
     // Construct a Project class object from this note
     const thisProject = new Project(note)
 
     // Then call the class' method to update its metadata
-    const newMSL = await thisProject.completeProject()
+    const newSummaryLine = await thisProject.completeProject()
 
     // If this has worked, then ...
-    if (newMSL) {
+    if (newSummaryLine) {
       // Get settings
       const config: ReviewConfig = await getReviewSettings()
       if (config) {
@@ -164,9 +173,13 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines) or we're passed a valid Note
     logDebug('project/cancelProject', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
-    const note: TNote = noteArg ? noteArg : Editor
-    if (!note || note.type === 'Calendar' || note.paragraphs.length < 2) {
-      throw new Error(`Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
+    const noteMaybe: ?TNote = noteArg ?? Editor?.note
+    if (!noteMaybe) {
+      throw new Error('Not in an Editor and no note passed.')
+    }
+    const note: TNote = noteMaybe
+    if (note.type === 'Calendar' || note.paragraphs.length < 2) {
+      throw new Error(`Not in a Project note (at least 2 lines long). (Note title = '${note.title ?? ''}')`)
     }
 
     // Construct a Project class object from this note
@@ -177,11 +190,11 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
 
     // Then call the class' method to update its metadata
     // logDebug('project/cancelProject', `before cancelProject`)
-    const newMSL = await thisProject.cancelProject()
-    // logDebug('project/cancelProject', `after cancelProject, newMSL=${newMSL}`)
+    const newSummaryLine = await thisProject.cancelProject()
+    // logDebug('project/cancelProject', `after cancelProject, newSummaryLine=${newSummaryLine}`)
 
     // If this has worked, then ...
-    if (newMSL) {
+    if (newSummaryLine) {
       // Get settings
       const config: ReviewConfig = await getReviewSettings()
       if (config) {
@@ -258,30 +271,33 @@ export async function togglePauseProject(noteArg?: TNote): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines) or we're passed a valid Note
     logDebug('addProgressUpdate', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
-    const note: TNote = noteArg ? noteArg : Editor
-    if (!note || note.type === 'Calendar' || note.paragraphs.length < 2) {
-      throw new Error(`Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
+    const noteMaybe: ?TNote = noteArg ?? Editor?.note
+    if (!noteMaybe) {
+      throw new Error('Not in a Project note and no note passed.')
+    }
+    const note: TNote = noteMaybe
+    if (note.type === 'Calendar' || note.paragraphs.length < 2) {
+      throw new Error(`Not in a Project note (at least 2 lines long). (Note title = '${note.title ?? ''}')`)
     }
 
     // Construct a Project class object from the open note
     const thisProject = new Project(note)
 
     // Then call the class' method to update its metadata
-    const newMSL = await thisProject.togglePauseProject()
+    const newSummaryLine = await thisProject.togglePauseProject()
 
     // If this has worked, then ...
-    if (newMSL !== '') {
+    if (newSummaryLine !== '') {
       // Get settings
       const config: ReviewConfig = await getReviewSettings()
       if (config) {
         // we need to re-load the note according to EM
         await Editor.openNoteByFilename(note.filename)
-      // logDebug('pauseProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
+        // logDebug('pauseProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
         // update the full-review-list, using the TSVSummaryLine
         // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
-        // FIXME: remove newMSL implication
-        await updateAllProjectsListAfterChange(note.filename ?? '<error>', false, config, newMSL)
+        await updateAllProjectsListAfterChange(note.filename ?? '<error>', false, config)
 
         // re-render the outputs (but don't focus)
         await renderProjectLists(config, false)

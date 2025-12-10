@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2025-04-28 for v1.2.3, @jgclark
+// Last updated 2025-12-10 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -114,7 +114,8 @@ export class Project {
         const editorNote: CoreNoteFields = Editor.note
         paras = editorNote.paragraphs
         this.note = Editor.note // Note: not plain Editor, as otherwise it isn't the right type and will throw app run-time errors later.
-        const timeSinceLastEdit: number = Date.now() - editorNote.versions[0].date
+        const versionDateMS = editorNote.versions && editorNote.versions.length > 0 ? new Date(editorNote.versions[0].date).getTime() : NaN
+        const timeSinceLastEdit: number = isNaN(versionDateMS) ? NaN : Date.now() - versionDateMS
         logDebug('Project', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
       } else {
         // read note from DataStore in the usual way
@@ -696,15 +697,17 @@ export class Project {
 //-----------------------------------------------------------------
 
 /**
- * From a Project metadata object read in, calculate updated due/finished durations, and return the updated Project object
+ * From a Project metadata object read in, calculate updated due/finished durations, and return the updated Project object.
+ * On error, returns the original Project object.
  * @author @jgclark
  * @param {Project} thisProject
  * @returns {Project}
 */
-export function calcDurationsForProject(thisProjectIn: Project): Partial<Project> {
+export function calcDurationsForProject(thisProjectIn: Project): Project {
   try {
     const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-    const thisProject = { ...thisProjectIn }
+    // $FlowFixMe[incompatible-type]
+    const thisProject: Project = { ...thisProjectIn }
     // Calculate # days until due
     thisProject.dueDays =
       thisProject.dueDate != null
@@ -743,21 +746,27 @@ export function calcDurationsForProject(thisProjectIn: Project): Partial<Project
         // Nothing to do
         logDebug('calcDurationsForProject', `No completed or cancelled dates.`)
       }
-      // $FlowFixMe[incompatible-return] changed from $Shape<Project> to Partial<Project>, but I don't understand why this doesn't work now
-      return thisProject
     }
+    return thisProject
   } catch (error) {
     logError('calcDurationsForProject', error.message)
-    // $FlowFixMe[incompatible-return] reason for suppression
-    return null
+    return thisProjectIn
   }
 }
 
-export function calcReviewFieldsForProject(thisProjectIn: Project): Partial<Project> {
+/**
+ * From a Project metadata object read in, calculate updated next review date, and return the updated Project object.
+ * On error, returns the original Project object.
+ * @author @jgclark
+ * @param {Project} thisProjectIn
+ * @returns {Project}
+ */
+export function calcReviewFieldsForProject(thisProjectIn: Project): Project {
   try {
     // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
     const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-    const thisProject = { ...thisProjectIn }
+    // $FlowFixMe[incompatible-type]
+    const thisProject: any = { ...thisProjectIn }
 
     // First check to see if project start is in future: if so set nextReviewDate to project start
     if (thisProject.startDate) {
@@ -766,8 +775,6 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Partial<Proj
         thisProject.nextReviewDate = thisProject.startDate
         thisProject.nextReviewDays = daysBetween(now, momTSD.toDate())
         logDebug('calcNextReviewDate', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(thisProject.nextReviewDays)} interval`)
-        // $FlowFixMe[incompatible-return] changed from $Shape<Project> to Partial<Project>, but I don't understand why this doesn't work now
-        return thisProject
       }
     }
 
@@ -793,11 +800,10 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): Partial<Proj
       }
     }
     // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisProject.reviewedDate)} / nextReviewDate = ${String(thisProject.nextReviewDate)} / nextReviewDays = ${String(thisProject.nextReviewDays)}`)
-    // $FlowFixMe[incompatible-return] changed from $Shape<Project> to Partial<Project>, but I don't understand why this doesn't work now
     return thisProject
   } catch (error) {
     logError('calcNextReviewDate', error.message)
-    return null
+    return thisProjectIn
   }
 }
 
