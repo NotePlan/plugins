@@ -9,10 +9,12 @@
  * 2. LATEST STABLE: Always keep the highest version number without pre-release identifiers
  * 3. RECENT ACTIVITY: Keep all releases from the last 6 months regardless of version
  * 4. PRE-RELEASE MANAGEMENT: Keep the latest 2-3 pre-release versions if they're recent
- * 5. OBSOLETE PRE-RELEASES: Prune pre-release versions of a version that has been published as stable for more than 3 months
- * 6. AGE-BASED PRUNING: Prune releases older than 2 years (unless they're the latest stable)
- * 7. PRE-RELEASE LIMITS: Prune excess pre-release versions (more than 5 total pre-releases)
- * 8. VOLUME LIMITS: Prune non-recent, non-latest-stable releases when more than 5 total releases
+ * 5. SUPERSEDED PRE-RELEASES: Prune pre-releases that have been superseded by a full release
+ *    (e.g., 1.0.1-beta is superseded when 1.0.2 full release is published, after 7-day grace period)
+ * 6. OBSOLETE PRE-RELEASES: Prune pre-release versions of a version that has been published as stable for more than 3 months (legacy pattern)
+ * 7. AGE-BASED PRUNING: Prune releases older than 2 years (unless they're the latest stable)
+ * 8. PRE-RELEASE LIMITS: Prune excess pre-release versions (more than 5 total pre-releases)
+ * 9. VOLUME LIMITS: Prune non-recent, non-latest-stable releases when more than 5 total releases
  */
 
 const { system } = require('@codedungeon/gunner')
@@ -70,6 +72,57 @@ function compareVersions(a, b) {
 }
 
 /**
+ * Increment patch version by 1 (e.g., "1.0.1" -> "1.0.2")
+ * @param {string} version - Version string
+ * @returns {string} - Incremented version
+ */
+function incrementPatchVersion(version) {
+  const parts = version.split('.')
+  const major = parseInt(parts[0] || '0', 10)
+  const minor = parseInt(parts[1] || '0', 10)
+  const patch = parseInt(parts[2] || '0', 10)
+  return `${major}.${minor}.${patch + 1}`
+}
+
+/**
+ * Check if a pre-release has been superseded by a full release (one patch version higher)
+ * In this system, a pre-release at version X becomes a full release at version X+1
+ * @param {{name: string, tag: string, version: string, publishedAt: string}} preRelease - The pre-release object to check
+ * @param {Array<{name: string, tag: string, version: string, publishedAt: string}>} allReleases - All releases
+ * @param {number} daysGracePeriod - Number of days to wait after full release before marking pre-release as obsolete (default: 7)
+ * @returns {boolean} - True if the pre-release has been superseded by a full release
+ */
+function isPreReleaseSupersededByFullRelease(preRelease, allReleases, daysGracePeriod = 7) {
+  if (!isPreRelease(preRelease.version)) {
+    return false // Not a pre-release
+  }
+
+  const baseVersion = getBaseVersion(preRelease.version)
+  const expectedFullReleaseVersion = incrementPatchVersion(baseVersion)
+
+  // Find the full release that supersedes this pre-release
+  const fullRelease = allReleases.find((release) => !isPreRelease(release.version) && release.version === expectedFullReleaseVersion)
+
+  if (!fullRelease) {
+    return false // No full release found yet, keep the pre-release
+  }
+
+  // Get publication dates
+  const preReleaseDate = new Date(preRelease.publishedAt)
+  const fullReleaseDate = new Date(fullRelease.publishedAt)
+
+  // Full release must be published after the pre-release
+  if (fullReleaseDate < preReleaseDate) {
+    return false // Full release was published before pre-release (shouldn't happen, but be safe)
+  }
+
+  // Check if grace period has passed
+  const now = new Date()
+  const gracePeriodEnd = new Date(fullReleaseDate.getTime() + daysGracePeriod * 24 * 60 * 60 * 1000)
+  return now >= gracePeriodEnd
+}
+
+/**
  * Check if a pre-release version has an obsolete stable counterpart
  * @param {string} preReleaseVersion - The pre-release version to check
  * @param {Array<{name: string, tag: string, version: string, publishedAt: string}>} allReleases - All releases
@@ -77,6 +130,12 @@ function compareVersions(a, b) {
  * @returns {boolean} - True if the pre-release is obsolete
  */
 function isPreReleaseObsolete(preReleaseVersion, allReleases, monthsThreshold = 3) {
+  // First check if it's been superseded by a full release (newer pattern)
+  if (isPreReleaseSupersededByFullRelease(preReleaseVersion, allReleases)) {
+    return true
+  }
+
+  // Fall back to old pattern: same base version
   const baseVersion = getBaseVersion(preReleaseVersion)
   const now = new Date()
   const thresholdDate = new Date(now.getTime() - monthsThreshold * 30 * 24 * 60 * 60 * 1000)
@@ -157,16 +216,20 @@ function identifyReleasesToPrune(releases) {
     const isOld = new Date(release.publishedAt) < twoYearsAgo
     const isLatestStable = release === latestStable
     const isRecentPreRelease = recentPreReleases.includes(release)
+    const isSupersededPreRelease = isPreRelease(release.version) && isPreReleaseSupersededByFullRelease(release, releases)
     const isObsoletePreRelease = isPreRelease(release.version) && isPreReleaseObsolete(release.version, releases)
 
     // Prune if:
     // 1. It's old (2+ years) AND not the latest stable
-    // 2. It's a pre-release that's obsolete (stable version published 3+ months ago)
-    // 3. It's a pre-release that's not recent and we have more than 5 pre-releases
-    // 4. It's not recent and not the latest stable and we have more than 5 total releases
-    // 5. When there are many releases (>6), prune older ones keeping only the latest 5
+    // 2. It's a pre-release that's been superseded by a full release (new pattern: X-beta -> X+1)
+    // 3. It's a pre-release that's obsolete (old pattern: same base version published 3+ months ago)
+    // 4. It's a pre-release that's not recent and we have more than 5 pre-releases
+    // 5. It's not recent and not the latest stable and we have more than 5 total releases
+    // 6. When there are many releases (>6), prune older ones keeping only the latest 5
 
     if (isOld && !isLatestStable) {
+      toPrune.push(release)
+    } else if (isSupersededPreRelease) {
       toPrune.push(release)
     } else if (isObsoletePreRelease) {
       toPrune.push(release)
@@ -210,10 +273,10 @@ function generatePruneCommands(releasesToPrune) {
 /**
  * Get intelligent delete commands for CLI system (replaces buildDeleteCommands)
  * @param {string} pluginId - Plugin identifier
- * @param {string} currentVersion - Current version being released
+ * @param {string} _currentVersion - Current version being released (unused, kept for API compatibility)
  * @returns {Promise<Array<string>>} - Array of delete commands
  */
-async function getIntelligentDeleteCommands(pluginId, currentVersion) {
+async function getIntelligentDeleteCommands(pluginId, _currentVersion) {
   const releases = await getExistingReleases(pluginId)
   if (!releases || releases.length === 0) {
     return []
@@ -258,6 +321,8 @@ module.exports = {
   getBaseVersion,
   compareVersions,
   isPreReleaseObsolete,
+  isPreReleaseSupersededByFullRelease,
+  incrementPatchVersion,
   getExistingReleases,
   identifyReleasesToPrune,
   generatePruneCommands,

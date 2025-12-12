@@ -26,10 +26,21 @@ describe('Releases Script Utility Functions', () => {
   }
 
   /**
+   * Check if a releaseStatus indicates a pre-release
+   */
+  function isPreReleaseStatus(releaseStatus) {
+    return releaseStatus !== undefined && releaseStatus !== '' && releaseStatus !== 'full'
+  }
+
+  /**
    * Generate release tag name from plugin name and version
    */
-  function getReleaseTagName(pluginName, version) {
-    return `${pluginName}-v${version}`
+  function getReleaseTagName(pluginName, version, releaseStatus) {
+    let tagVersion = version
+    if (isPreReleaseStatus(releaseStatus)) {
+      tagVersion = `${version}-${releaseStatus}`
+    }
+    return `${pluginName}-v${tagVersion}`
   }
 
   /**
@@ -283,6 +294,18 @@ describe('Releases Script Utility Functions', () => {
     })
   })
 
+  describe('isPreReleaseStatus', () => {
+    test('should identify pre-release statuses correctly', () => {
+      expect(isPreReleaseStatus('beta')).toBe(true)
+      expect(isPreReleaseStatus('alpha')).toBe(true)
+      expect(isPreReleaseStatus('rc')).toBe(true)
+      expect(isPreReleaseStatus('dev')).toBe(true)
+      expect(isPreReleaseStatus('')).toBe(false)
+      expect(isPreReleaseStatus('full')).toBe(false)
+      expect(isPreReleaseStatus(undefined)).toBe(false)
+    })
+  })
+
   describe('getReleaseTagName', () => {
     test('should generate correct release tag name', () => {
       expect(getReleaseTagName('dwertheimer.TaskAutomations', '1.0.0')).toBe('dwertheimer.TaskAutomations-v1.0.0')
@@ -299,6 +322,19 @@ describe('Releases Script Utility Functions', () => {
     test('should handle edge cases', () => {
       expect(getReleaseTagName('', '1.0.0')).toBe('-v1.0.0')
       expect(getReleaseTagName('plugin.name', '')).toBe('plugin.name-v')
+    })
+
+    test('should append pre-release status to tag name', () => {
+      expect(getReleaseTagName('np.MultipleReleases', '1.0.1', 'beta')).toBe('np.MultipleReleases-v1.0.1-beta')
+      expect(getReleaseTagName('plugin.name', '2.0.0', 'alpha')).toBe('plugin.name-v2.0.0-alpha')
+      expect(getReleaseTagName('plugin.name', '3.0.0', 'rc')).toBe('plugin.name-v3.0.0-rc')
+      expect(getReleaseTagName('plugin.name', '4.0.0', 'dev')).toBe('plugin.name-v4.0.0-dev')
+    })
+
+    test('should not append non-pre-release statuses', () => {
+      expect(getReleaseTagName('plugin.name', '1.0.0', '')).toBe('plugin.name-v1.0.0')
+      expect(getReleaseTagName('plugin.name', '1.0.0', 'full')).toBe('plugin.name-v1.0.0')
+      expect(getReleaseTagName('plugin.name', '1.0.0', undefined)).toBe('plugin.name-v1.0.0')
     })
   })
 

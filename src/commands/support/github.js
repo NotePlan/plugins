@@ -41,17 +41,14 @@ module.exports = {
     return releases
   },
 
-  getReleaseCommand: function (
-    version = null,
-    pluginId = null,
-    pluginName = null,
-    fileList = null,
-    sendToGithub = false,
-  ) {
+  getReleaseCommand: function (version = null, pluginId = null, pluginName = null, fileList = null, sendToGithub = false, releaseStatus = undefined) {
+    // Check if releaseStatus indicates a pre-release (not undefined, "", or "full")
+    let tagVersion = version
+    if (releaseStatus !== undefined && releaseStatus !== '' && releaseStatus !== 'full') {
+      tagVersion = `${version}-${releaseStatus}`
+    }
     const changeLog = fileList?.changelog ? `-F "${fileList.changelog}"` : ''
-    const cmd = `gh release create "${pluginId}-v${version}" -t "${pluginName}" ${changeLog} ${
-      !sendToGithub ? `--draft` : ''
-    } ${fileList.files.map((m) => `"${m}"`).join(' ')}`
+    const cmd = `gh release create "${pluginId}-v${tagVersion}" -t "${pluginName}" ${changeLog} ${!sendToGithub ? `--draft` : ''} ${fileList.files.map((m) => `"${m}"`).join(' ')}`
 
     return cmd
   },

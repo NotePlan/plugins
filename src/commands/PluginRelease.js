@@ -113,10 +113,7 @@ module.exports = {
     const noBuild = args.noBuild || false
 
     if (result.length === 0) {
-      toolbox.print.error(
-        `Unable to locate plugin ${pluginId}, make sure you are at the project root directory`,
-        'ERROR',
-      )
+      toolbox.print.error(`Unable to locate plugin ${pluginId}, make sure you are at the project root directory`, 'ERROR')
       process.exit()
     }
     const configData = pluginUtils.getPluginConfig(pluginId)
@@ -152,6 +149,19 @@ module.exports = {
         print.warn('Release Cancelled', 'ABORT')
         process.exit()
       }
+    }
+
+    // Check if this is a pre-release and ask for confirmation
+    const releaseStatus = configData['plugin.releaseStatus']
+    if (releaseStatus !== undefined && releaseStatus !== '' && releaseStatus !== 'full') {
+      console.log('')
+      const preReleasePrompt = await prompt.toggle(`${pluginName} version ${nextVersion} is marked "${releaseStatus}", continue with pre-release?`)
+      if (!preReleasePrompt || !preReleasePrompt.answer) {
+        console.log('')
+        print.warn('Release Cancelled', 'ABORT')
+        process.exit()
+      }
+      console.log('')
     }
 
     const runner = pluginRelease.run(pluginId, pluginName, nextVersion, args)

@@ -41,6 +41,7 @@ const fs = require('fs/promises')
 const path = require('path')
 const colors = require('chalk')
 const Messenger = require('@codedungeon/messenger')
+const inquirer = require('inquirer')
 
 // Import shared release management utilities
 const { program } = require('commander')
@@ -261,13 +262,27 @@ async function getExistingReleases(pluginName) {
 }
 
 /**
+ * Check if a releaseStatus indicates a pre-release
+ * @param {string|undefined} releaseStatus - The release status from plugin.json
+ * @returns {boolean} - True if it's a pre-release
+ */
+function isPreReleaseStatus(releaseStatus) {
+  return releaseStatus !== undefined && releaseStatus !== '' && releaseStatus !== 'full'
+}
+
+/**
  * Generate release tag name from plugin name and version
  * @param {string} pluginName - The plugin name
  * @param {string} version - The version number
+ * @param {string|undefined} [releaseStatus] - The release status from plugin.json
  * @returns {string} - The formatted tag name
  */
-function getReleaseTagName(pluginName, version) {
-  return `${pluginName}-v${version}`
+function getReleaseTagName(pluginName, version, releaseStatus) {
+  let tagVersion = version
+  if (isPreReleaseStatus(releaseStatus)) {
+    tagVersion = `${version}-${releaseStatus}`
+  }
+  return `${pluginName}-v${tagVersion}`
 }
 
 /**
@@ -519,13 +534,33 @@ async function main() {
     const existingReleases = await getExistingReleases(pluginName)
     const pluginData = await getPluginFileContents(path.join(pluginDevDirFullPath, 'plugin.json'))
     const versionNumber = getPluginDataField(pluginData, 'plugin.version')
+    const releaseStatus = pluginData['plugin.releaseStatus']
     const copyTargetPath = await getCopyTargetPath(rootFolderDirs)
     const fileList = await getReleaseFileList(pluginDevDirFullPath, path.join(copyTargetPath, pluginName), pluginData['plugin.requiredFiles'] || [])
 
     if (fileList) {
-      const versionedTagName = getReleaseTagName(pluginName, versionNumber)
+      const versionedTagName = getReleaseTagName(pluginName, versionNumber, releaseStatus)
       // console.log(`==> ${COMMAND}: This version/tag will be:\n\t${versionedTagName}`)
       ensureVersionIsNew(existingReleases, versionedTagName)
+
+      // Check if this is a pre-release and ask for confirmation
+      if (isPreReleaseStatus(releaseStatus)) {
+        console.log('')
+        const { confirm } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'confirm',
+            message: `${pluginName} version ${versionNumber} is marked "${releaseStatus}", continue with pre-release?`,
+            default: false,
+          },
+        ])
+        if (!confirm) {
+          Messenger.warn('Release cancelled by user', 'ABORT')
+          process.exit(0)
+        }
+        console.log('')
+      }
+
       await releasePlugin(versionedTagName, pluginData, fileList, !TEST)
 
       // Note: We no longer automatically remove previous releases - they are kept for history
