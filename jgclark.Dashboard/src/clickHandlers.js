@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2025-07-11 for v2.3.0.b, @jgclark
+// Last updated 2025-12-12 for v2.4.0.b, @jgclark
 //-----------------------------------------------------------------------------
 import moment from 'moment/min/moment-with-locales'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
@@ -507,7 +507,13 @@ export async function doDashboardSettingsChanged(data: MessageDataObject, settin
         const activePerspDefShowTagSectionKeys = Object.keys(activePerspDef.dashboardSettings).filter((k) => k.startsWith('showTagSection_'))
         clo(activePerspDefShowTagSectionKeys, `doDashboardSettingsChanged: activePerspDefShowTagSectionKeys`)
         // Add all the TAG sections to the active perspective settings
-        const activePerspDefDashboardSettingsWithDefaultsAndTAGs = { ...activePerspDefDashboardSettingsWithDefaults, ...activePerspDefShowTagSectionKeys }
+        // $FlowIgnore[prop-missing] - Dynamic property access for tag section keys
+        const activePerspDefShowTagSectionObject = activePerspDefShowTagSectionKeys.reduce((acc, k) => {
+          acc[k] = activePerspDef.dashboardSettings[k]
+          return acc
+        }, ({}: { [string]: any }))
+        // $FlowIgnore[cannot-spread-indexer] - Dynamic property spread for tag section keys
+        const activePerspDefDashboardSettingsWithDefaultsAndTAGs = { ...activePerspDefDashboardSettingsWithDefaults, ...activePerspDefShowTagSectionObject }
 
         // Compare the cleaned settings with the active perspective settings
         const diff = compareObjects(activePerspDefDashboardSettingsWithDefaultsAndTAGs, cleanedSettings, ['lastModified', 'lastChange', 'usePerspectives'])

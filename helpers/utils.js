@@ -132,12 +132,12 @@ export const findLongestStringInArray = (arr: Array<string>): string =>
 
 /**
  * Convert semver string to number, ignoring any non-numeric, non-period characters (e.g., "-beta3").
+ * Note: now copes with just x.y and treats as x.y.0.
  * The generated number is a base-1024 number, so the maximum version is 1023.1023.1023 (1024^3 - 1). Not useful in itself, but it's a good way to compare versions.
  * @param {string} version - semver version string
  * @returns {number} Numeric representation of version
  * @throws {Error} If version string is invalid
  */
-
 export function semverVersionToNumber(version: string): number {
   try {
     // Trim the version string at the first non-numeric, non-period character
@@ -151,8 +151,15 @@ export function semverVersionToNumber(version: string): number {
       return numberPart
     })
 
-    if (parts.length !== 3) {
-      throw new Error(`Version string must have exactly three parts: version=${version} parts=${parts.length}`)
+    if (parts.length === 2) {
+      logDebug('semverVersionToNumber', `checking version=${version}; adding a .0 to make 3 parts`)
+      parts.push(0)
+    }
+    else if (parts.length < 2) {
+      throw new Error(`Version string must have at least two parts: version=${version} parts=${parts.length}`)
+    }
+    else if (parts.length > 3) {
+      throw new Error(`Version string must have at most three parts: version=${version} parts=${parts.length}`)
     }
 
     let numericVersion = 0
