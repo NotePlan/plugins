@@ -136,7 +136,6 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
  * @returns {TBridgeClickHandlerResult} - the result of the switch to perspective
  */
 export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  //aka doSwitchPerspective
   const switchToName = data?.perspectiveName || ''
   if (!switchToName) {
     logError('doSwitchToPerspective', `No perspective name provided.`)
@@ -144,9 +143,10 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   }
   const ps = await getPerspectiveSettings()
   // logPerspectiveNames(ps, 'doSwitchToPerspective: Persp settings before switch:')
+  // TODO: JGC thinks the following function could be more clearly named.
   const revisedDefs = await switchToPerspective(switchToName, ps)
   // logPerspectiveNames(revisedDefs || [], 'doSwitchToPerspective: Persp settings after switch:')
-  if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective failed` })
+  if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective couldn't get def for perspective'${switchToName}'` })
   const activeDef = getActivePerspectiveDef(revisedDefs)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
 
@@ -157,8 +157,9 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   // each perspective has its own tagged sections so we don't want to keep old ones around
   // so we will remove all keys from prevDS that start with showTagSection_ and then apply the new perspective's settings to the main dashboard settings
   // strip out tag section flags from the previous perspective so they don't leak into the next one
+  // Also strip out includedTeamspaces since it's perspective-specific and shouldn't leak between perspectives. (JGC doesn't understand this, but DBW does. See https://discord.com/channels/@me/863719873175093259/1449100417211564053)
   const prevWithoutTagSections: Partial<TDashboardSettings> = (Object.fromEntries(
-    Object.entries(prevDashboardSettings).filter(([k]) => !k.startsWith('showTagSection_')),
+    Object.entries(prevDashboardSettings).filter(([k]) => !k.startsWith('showTagSection_') && k !== 'includedTeamspaces'),
   ): any)
   const dashboardSettingsDefaults = getDashboardSettingsDefaults()
   let newDashboardSettings = {
@@ -171,7 +172,6 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
 
   // Use helper to save settings from now on, not unreliable `DataStore.settings = {...}`
-  // TEST: FIXME: DBW suspects this is not working as expected, because DataStore.settings is not correct here.
   const res = await saveSettings(pluginID, {
     ...(await getSettings('jgclark.Dashboard')),
     perspectiveSettings: revisedDefs,
