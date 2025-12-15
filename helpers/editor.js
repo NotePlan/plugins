@@ -202,3 +202,19 @@ export function getSelectedParagraphsToUse(): Array<TParagraph> {
     return []
   }
 }
+
+/**
+ * Clear any highlighting in the editor.
+ */
+export function clearHighlighting(): void {
+  // Get current selection, and its range
+  const { selection } = Editor
+  if (selection == null) {
+    const emptyRange = Range.create(0, 0)
+    Editor.highlightByRange(emptyRange)
+  } else {
+    const currentStart = selection.start
+    const thisRange = Range.create(currentStart, currentStart)
+    Editor.highlightByRange(thisRange)
+  }
+}

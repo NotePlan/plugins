@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2025-11-24, for v1.3.4
+// last updated 2025-12-15, for v1.4.1
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -11,7 +11,7 @@ import { getFilerSettings } from './filerHelpers'
 import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
-import { getSelectedParagraphsToUse } from '@helpers/editor'
+import { clearHighlighting, getSelectedParagraphsToUse } from '@helpers/editor'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { addParagraphsToNote, findHeading } from '@helpers/paragraph'
@@ -121,14 +121,6 @@ function moveParagraphsToNote(
 }
 
 /**
- * Clear any highlighting in the editor.
- */
-function clearHighlighting(): void {
-  const emptyRange: TRange = Range.create(0, 0)
-  Editor.highlightByRange(emptyRange)
-}
-
-/**
  * Move text to a different note, forcing treating this as a block.
  * See moveParas() for definition of selection logic.
  * @author @jgclark
@@ -202,15 +194,29 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
       return
     }
 
-    // Handle trailing whitespace in heading names
-    if (headingToFind !== '<<top of note>>' && headingToFind !== '<<bottom of note>>' && /\s$/.test(headingToFind)) {
-      logWarn('moveParas', `Heading to move to ('${headingToFind}') has trailing whitespace. Will pre-emptively remove them to try to avoid problems.`)
-      const headingPara = findHeading(destNote, headingToFind)
+    // Handle trailing whitespace and normalize heading name
+    // Special cases that don't need heading lookup
+    if (headingToFind !== '<<top of note>>' && headingToFind !== '<<bottom of note>>') {
+      // Try to find the heading (ignoring leading and trailing whitespace, but otherwise an exact match)
+      const headingPara = findHeading(destNote, headingToFind, false)
       if (headingPara) {
-        headingPara.content = headingPara.content.trim()
-        destNote.updateParagraph(headingPara)
-        logDebug('moveParas', `now headingPara in destNote is '${headingPara.content}'`)
-        headingToFind = headingPara.content
+        // Found the heading - use the actual heading content from the note (normalized)
+        const actualHeadingContent = headingPara.content.trim()
+        // If the actual heading has trailing whitespace, fix it in the note
+        if (headingPara.content !== actualHeadingContent) {
+          logWarn('moveParas', `Heading in note ('${headingPara.content}') has trailing whitespace. Removing it.`)
+          headingPara.content = actualHeadingContent
+          destNote.updateParagraph(headingPara)
+        }
+        // Use the normalized heading content
+        headingToFind = actualHeadingContent
+        logDebug('moveParas', `Normalized heading to: '${headingToFind}'`)
+      } else {
+        // Heading not found - warn user before proceeding
+        const errorMsg = `Cannot find heading '${headingToFind}' in note '${displayTitle(destNote)}'. The move operation will be cancelled to prevent data loss.`
+        logError('moveParas', errorMsg)
+        await showMessage(errorMsg, 'OK', 'Filer: Heading Not Found')
+        return
       }
     }
 

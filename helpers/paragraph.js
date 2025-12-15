@@ -682,7 +682,8 @@ export function getParaFromContent(note: CoreNoteFields, contentToFind: string):
 }
 
 /**
- * Find a note's heading/title that matches the string given.
+ * Find a note's heading/title that matches the string given (first both are trimmed to remove leading/trailing whitespace). If 'includesString' is true, it matches any heading/title that just _includes_ the string (i.e. is a substring).
+ * It returns the first matching heading/title paragraph, irrespective of heading level, or null if not found.
  * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
  * @author @dwertheimer
  *

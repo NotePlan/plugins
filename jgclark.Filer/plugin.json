@@ -8,9 +8,9 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "1.4.0",
-  "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "1.4.0: /add sync'd copy to note now can work on a block of lines. Further bug fixes for some commands on notes with frontmatter.\n1.3.3: Improve the heading picker used in some of these commands.\n1.3.2: Fix for /archive command. Fix for /add sync'd copy to note command.\n1.3.1: Futher bug fixes for /move paragraph block on notes with frontmatter.\n1.3.0: Can now access notes from Teamspaces. Uses improved note chooser (available from NP 3.18). Bug fixes.\n1.1.6: move /new note commands to NoteHelpers plugin. Updated folder chooser. Fix to /move commands.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive command. 1.1.0: new '/... note links...' commands.",
+  "plugin.version": "1.4.1",
+  "plugin.releaseStatus": "b1",
+  "plugin.lastUpdateInfo": "1.4.1: fix for /move paras command when moving to a note with a heading with trailing whitespace.\n1.4.0: /add sync'd copy to note now can work on a block of lines. Further bug fixes for some commands on notes with frontmatter.\n1.3.3: Improve the heading picker used in some of these commands.\n1.3.2: Fix for /archive command. Fix for /add sync'd copy to note command.\n1.3.1: Futher bug fixes for /move paragraph block on notes with frontmatter.\n1.3.0: Can now access notes from Teamspaces. Uses improved note chooser (available from NP 3.18). Bug fixes.\n1.1.6: move /new note commands to NoteHelpers plugin. Updated folder chooser. Fix to /move commands.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive command. 1.1.0: new '/... note links...' commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -90,7 +90,7 @@
         "mp",
         "file"
       ],
-      "description": "moves this paragraph (or selected paragraphs) to a different note",
+      "description": "moves this line (or selected lines) to a different note",
       "jsFunction": "moveParas"
     },
     {
@@ -99,7 +99,7 @@
         "mb",
         "block"
       ],
-      "description": "moves all paragraphs in the current block to a different note",
+      "description": "moves all lines in the current block to a different note",
       "jsFunction": "moveParaBlock"
     },
     {
@@ -109,7 +109,7 @@
         "day",
         "daily"
       ],
-      "description": "quick move a block of paragraphs to Today's note",
+      "description": "quick move a block of lines to Today's note",
       "jsFunction": "moveParasToToday"
     },
     {
@@ -119,7 +119,7 @@
         "day",
         "daily"
       ],
-      "description": "quick move a block of paragraphs to Tomorrow's daily note",
+      "description": "quick move a block of lines to Tomorrow's daily note",
       "jsFunction": "moveParasToTomorrow"
     },
     {
@@ -128,7 +128,7 @@
         "qmtw",
         "week"
       ],
-      "description": "quick move a block of paragraphs to the current Weekly note",
+      "description": "quick move a block of lines to the current Weekly note",
       "jsFunction": "moveParasToThisWeekly"
     },
     {
@@ -137,7 +137,7 @@
         "qmnw",
         "week"
       ],
-      "description": "quick move a block of paragraphs to Next Week's note",
+      "description": "quick move a block of lines to Next Week's note",
       "jsFunction": "moveParasToNextWeekly"
     },
     {
