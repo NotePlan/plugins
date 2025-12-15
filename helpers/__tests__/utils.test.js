@@ -77,6 +77,120 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(objectsArray)
       })
     })
+
+    /*
+     * semverVersionToNumber
+     */
+    describe('semverVersionToNumber', () => {
+      describe('valid semver versions', () => {
+        it('should convert basic semver version to number', () => {
+          expect(f.semverVersionToNumber('1.2.3')).toBe(1050627) // 1*1024^2 + 2*1024^1 + 3*1024^0
+        })
+
+        it('should convert version 0.0.0 to 0', () => {
+          expect(f.semverVersionToNumber('0.0.0')).toBe(0)
+        })
+
+        it('should convert maximum valid version', () => {
+          expect(f.semverVersionToNumber('1023.1023.1023')).toBe(1073741823) // 1023*1024^2 + 1023*1024^1 + 1023*1024^0
+        })
+
+        it('should convert version with double digits', () => {
+          expect(f.semverVersionToNumber('10.20.30')).toBe(10506270) // 10*1024^2 + 20*1024^1 + 30*1024^0
+        })
+
+        it('should convert version with triple digits', () => {
+          expect(f.semverVersionToNumber('100.200.300')).toBe(105062700) // 100*1024^2 + 200*1024^1 + 300*1024^0
+        })
+        it('should cope with just x.y and treat as x.y.0', () => {
+          expect(f.semverVersionToNumber('1.2')).toBe(1050624)
+        })
+      })
+
+      describe('versions with suffixes', () => {
+        it('should ignore beta suffix', () => {
+          expect(f.semverVersionToNumber('1.2.3-beta3')).toBe(1050627)
+        })
+
+        it('should ignore alpha suffix', () => {
+          expect(f.semverVersionToNumber('1.2.3-alpha.1')).toBe(1050627)
+        })
+
+        it('should ignore rc suffix', () => {
+          expect(f.semverVersionToNumber('1.2.3-rc.1')).toBe(1050627)
+        })
+
+        it('should ignore build metadata', () => {
+          expect(f.semverVersionToNumber('1.2.3+build.123')).toBe(1050627)
+        })
+
+        it('should ignore both pre-release and build metadata', () => {
+          expect(f.semverVersionToNumber('1.2.3-beta+build.123')).toBe(1050627)
+        })
+
+        it('should handle version with dash in suffix', () => {
+          expect(f.semverVersionToNumber('2.0.0-beta-1')).toBe(2097152) // 2*1024^2 + 0*1024^1 + 0*1024^0
+        })
+      })
+
+      describe('invalid versions - should return 0', () => {
+
+        it('should return 0 for version with too many parts', () => {
+          expect(f.semverVersionToNumber('1.2.3.4')).toBe(0)
+        })
+
+        it('should return 0 for version with non-numeric parts', () => {
+          expect(f.semverVersionToNumber('1.2.a')).toBe(0)
+        })
+
+        it('should return 0 for version with empty parts', () => {
+          expect(f.semverVersionToNumber('1.2.')).toBe(0)
+        })
+
+        it('should return 0 for version with negative numbers', () => {
+          expect(f.semverVersionToNumber('1.2.-3')).toBe(0)
+        })
+
+        it('should return 0 for version exceeding maximum (1024)', () => {
+          expect(f.semverVersionToNumber('1024.0.0')).toBe(0)
+        })
+
+        it('should return 0 for version with part exceeding maximum', () => {
+          expect(f.semverVersionToNumber('1023.1024.1023')).toBe(0)
+        })
+
+        it('should return 0 for empty string', () => {
+          expect(f.semverVersionToNumber('')).toBe(0)
+        })
+
+        it('should return 0 for non-semver string', () => {
+          expect(f.semverVersionToNumber('not-a-version')).toBe(0)
+        })
+
+        it('should return 0 for version with only letters', () => {
+          expect(f.semverVersionToNumber('a.b.c')).toBe(0)
+        })
+      })
+
+      describe('edge cases', () => {
+        it('should handle single digit versions correctly', () => {
+          expect(f.semverVersionToNumber('5.4.3')).toBe(5242880 + 4096 + 3) // 5*1024^2 + 4*1024^1 + 3*1024^0
+        })
+
+        it('should handle version with leading zeros', () => {
+          expect(f.semverVersionToNumber('01.02.03')).toBe(1050627) // Leading zeros are parsed as regular numbers
+        })
+
+        it('should handle very large valid version', () => {
+          expect(f.semverVersionToNumber('999.888.777')).toBe(999 * 1048576 + 888 * 1024 + 777)
+        })
+
+        it('should handle version with spaces before suffix', () => {
+          // Spaces are non-numeric, non-period, so they should be trimmed
+          expect(f.semverVersionToNumber('1.2.3 beta')).toBe(1050627)
+        })
+      })
+    })
   })
 })
 
