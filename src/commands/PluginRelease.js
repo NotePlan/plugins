@@ -122,6 +122,9 @@ module.exports = {
     const pluginName = configData['plugin.name']
 
     let nextVersion = configData['plugin.version']
+    if (configData['plugin.releaseStatus'] && configData['plugin.releaseStatus'] !== 'full') {
+      nextVersion += `-${configData['plugin.releaseStatus']}`
+    }
     if (!(await pluginUtils.checkVersion(pluginId, nextVersion))) {
       const existingReleaseName = `${pluginId} v${configData['plugin.version']}`
       print.warn(`Release matching ${colors.cyan(existingReleaseName)} has already been published.`, 'HALT')

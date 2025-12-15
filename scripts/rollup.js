@@ -214,9 +214,11 @@ const dt = () => {
       }
 
       // Prepare a single-line success message
-      let msg = `${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']}) Built ${
+      const version = pluginJsonData['plugin.version'] + (pluginJsonData['plugin.releaseStatus'] && pluginJsonData['plugin.releaseStatus'] !== 'full' ? `-${pluginJsonData['plugin.releaseStatus']}` : '')
+      // let msg = `${dateTime} -- ${pluginFolder} (v${version}): Built ${
+      let msg = `${dt()} -- ${pluginFolder} (v${version}): Built ${
         dependenciesCopied > 0 ? `script.js, plugin.json + ${dependenciesCopied} requiredFiles` : `script.js & copied plugin.json`
-      } copied to the "Plugins" folder.`
+      } to the "Plugins" folder.`
 
       if (DEBUGGING) {
         msg += ' Built in DEBUG mode. Not ready to deploy.'
