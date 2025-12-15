@@ -642,7 +642,7 @@ export function getLogDateAndTypeString(type: string): string {
 }
 
 /**
- * Formats log output to include timestamp pluginId, pluginVersion
+ * Formats log output to include timestamp pluginId, pluginVersion, and pluginReleaseStatus (if populated)
  * @author @codedungeon extended by @jgclark
  * @param {any} pluginInfo
  * @param {any} message
@@ -661,7 +661,8 @@ export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): 
     if (isPluginJson) {
       pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
       pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
-      msg = `${ldts} ${pluginId} v${pluginVersion} :: ${_message(message)}`
+      const pluginReleaseStatus = pluginInfo.hasOwnProperty('plugin.releaseStatus') && pluginInfo['plugin.releaseStatus'] ? `-${pluginInfo['plugin.releaseStatus']}` : ''
+      msg = `${ldts} ${pluginId} v${pluginVersion}${pluginReleaseStatus} :: ${_message(message)}`
     } else {
       if (message.length > 0) {
         // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${pluginInfo} :: ${_message(message)}`
