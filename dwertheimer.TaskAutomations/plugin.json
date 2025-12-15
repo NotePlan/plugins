@@ -5,8 +5,8 @@
   "plugin.name": "✅ Overdue Task Processing",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "3.0.0",
-  "plugin.lastUpdateInfo": "\n- Moved sorting to Task Sorting plugin.\n- Renamed this plugin Overdue Task Processing",
+  "plugin.version": "3.1.0",
+  "plugin.lastUpdateInfo": "Added optional noteTitle parameter to followUpInFuture to skip date picker\n- Added fallback to note picker if note title lookup fails\n- Added followUpHeadingTitle setting to save todos under a specific heading instead of prepending to note",
   "DELETE_ME": "DON'T DELETE commandMigrationMessage or offerToDownloadPlugin until they are documented somewhere",
   "commandMigrationMessage": "NOTE: Task Sorting commands have been moved from the Task Automations plugin to the Task Sorting plugin. This plugin has been renamed to 'Overdue Task Processing'.",
   "offerToDownloadPlugin": {
@@ -204,7 +204,10 @@
         "followupfuture",
         "fupfuture"
       ],
-      "arguments": []
+      "arguments": [
+        "Optional: Selected paragraph to mark done and create follow-up for. If not provided, uses current selection.",
+        "Optional: Note title to save the follow-up task to. If provided, skips the date picker and uses this note title instead."
+      ]
     },
     {
       "COMMENT": "HIDING FOR NOW, PROBABLY DELETING LATER, WITH OVERDUE TASK SCAN Date+ PROBABLY ISN'T NECESSARY",
@@ -261,6 +264,14 @@
       "type": "string",
       "default": "original task",
       "required": true
+    },
+    {
+      "key": "followUpHeadingTitle",
+      "title": "Optional Heading Title for Follow-up Tasks",
+      "description": "If set, follow-up tasks will be added under this heading instead of at the top of the note. Leave blank to prepend tasks to the top of the note (default behavior).",
+      "type": "string",
+      "default": "",
+      "required": false
     },
     {
       "DELETE_ME_IN_FUTURE": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv",
