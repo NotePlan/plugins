@@ -56,8 +56,8 @@ import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
  * Run an extended search over all search terms in 'searchTermsStr' over the set of notes determined by the parameters.
  * V4 of this function, which uses NP's extended search syntax available from 3.18.1.
  * Note: To get 'fullWord' matches, the syntax is now to surround a word with quotes. Example: "sun" returns lines where sun appears as a word, not as part of sunlight. So the fullWordSearching parameter is now ignored.
- * FIXME: failing to run with "date:2025-01-02-2025-03-03 Gratitude" when it comes through from /SIP. 
- * FIXME: failing to write results correctly with "date:2025-01-02-2025-03-03 Gratitude" when called from /SS.
+ * FIXME(Eduard): failing to run with "date:2025-01-02-2025-03-03 Gratitude" or "date:2025-12 #tag" when it comes through from /SIP. Reported as an API bug to Eduard.
+ * Also failing to write results correctly with "date:2025-01-02-2025-03-03 Gratitude" when called from /SS.
  *
  * @param {Array<string>} searchStringIn
  * @param {SearchConfig} config object for various settings - Note: there are two overrides later in these parameters
@@ -124,7 +124,6 @@ export async function runNPExtendedSyntaxSearches(
     //-------------------------------------------------------
     // And now, the actual Search API Call!
     // const basicResponse = await DataStore.search(searchString, [], [], [], false)
-    // logInfo('runNPExtendedSyntaxSearches', `🔷 API response ${String(basicResponse.length)} results for [${searchString}] with no further params`)
     const response = await DataStore.search(searchString, noteTypesToInclude, foldersToInclude, foldersToExclude, false)
     logInfo('runNPExtendedSyntaxSearches', `🔶 API response ${String(response.length)} results for [${searchString}] with params noteTypesToInclude: [${String(noteTypesToInclude)}], foldersToInclude: [${String(foldersToInclude)}], foldersToExclude: [${String(foldersToExclude)}]`)
     const initialResult: Array<TParagraph> = response.slice() // to convert from $ReadOnlyArray to $Array

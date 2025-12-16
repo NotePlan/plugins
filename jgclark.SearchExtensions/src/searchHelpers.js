@@ -168,7 +168,7 @@ export async function getSearchSettings(): Promise<any> {
 }
 
 //------------------------------------------------------------------------------
-// Functions
+// Helper Functions
 
 /**
  * Get array of paragraph types from a string
@@ -460,7 +460,7 @@ export function createFormattedResultLines(resultSet: resultOutputV3Type, config
         nc++
         lastFilename = thisFilename
       } else {
-        // FIXME: suffixes causing sync line problems.
+        // Note: way back, suffixes were causing sync line problems. TEST: to see if this is still a problem.
         // - do I need to remove this non-grouped option entirely?
 
         // Write the line, first transforming it to add context on the end, and make other changes according to what the user has configured
@@ -618,16 +618,4 @@ export async function makeAnySyncs(input: resultOutputV3Type): Promise<resultOut
     // $FlowFixMe[incompatible-return]
     return null
   }
-}
-
-/**
- * Hash a string to an RGB color
- * @param {string} str 
- * @returns {string} RGB color as #RRGGBB
- */
-function hashStringToRGBColor(str: string): string {
-  const hash = str.split('').reduce((acc, char) => {
-    return ((acc << 5) - acc) + char.charCodeAt(0)
-  }, 0)
-  return `#${hash.toString(16).padStart(6, '0')}`
 }

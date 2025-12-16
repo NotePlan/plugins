@@ -141,7 +141,8 @@ export function stringToColorHSL(str) {
 
 /**
  * Maps a string to a Tailwind CSS color name from a restricted palette of predefined colors.
- * Uses a hash function to consistently select from the palette
+ * Uses a hash function to consistently select from the palette.
+ * See also:hashStringToRGBColor()
  * @author Cursor AI guided by @jgclark
  * 
  * @param {string} str - The input string to hash
@@ -217,11 +218,24 @@ export function testStringToColor(str) {
  * @param {string} hex - Hex color code
  * @returns {number} - Brightness value (0-255)
  */
-function getBrightness(hex) {
+export function getBrightness(hex) {
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
   
   // Perceived brightness formula
   return Math.round(0.299 * r + 0.587 * g + 0.114 * b)
+}
+
+/**
+ * Hash a string to an RGB color.
+ * See also: stringToTailwindColorName()
+ * @param {string} str 
+ * @returns {string} RGB color as #RRGGBB
+ */
+export function hashStringToRGBColor(str) {
+  const hash = str.split('').reduce((acc, char) => {
+    return ((acc << 5) - acc) + char.charCodeAt(0)
+  }, 0)
+  return `#${hash.toString(16).padStart(6, '0')}`
 }
