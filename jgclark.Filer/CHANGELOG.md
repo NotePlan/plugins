@@ -1,6 +1,9 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.4.1] - 2025-12-15
+- fix **/move paragraph...** commands when moving to a heading with trailing spaces (thanks, @Stacey)
+
 ## [1.4.0] - 2025-11-25
 ### New
 - **/add sync'd copy to note** now can work on a block of lines. They will go to consecutive lines in the same destination note and section.
