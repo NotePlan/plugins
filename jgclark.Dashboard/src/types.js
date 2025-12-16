@@ -29,7 +29,6 @@ export type TDashboardSettings = {
   // Note: add all of these to the list of items in cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
   usePerspectives: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
-  // FFlag_UseTagCache?: boolean,
   FFlag_ShowSearchPanel?: boolean,
   // searchSettings?: TSearchOptions, // an object holding a number of settings TODO: add from 2.4.0?
   // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings
@@ -38,8 +37,9 @@ export type TDashboardSettings = {
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
   FFlag_ShowSectionTimings?: boolean,
-  FFlag_UseTagCache?: boolean, // TODO: remove this in v2.4.0
-  FFlag_UseTagCacheAPIComparison?: boolean, // TODO: remove this in v2.4.0
+  FFlag_UseTagCache?: boolean, // TODO: remove this in v2.5.0?
+  FFlag_UseTagCacheAPIComparison?: boolean, // TODO: remove this in v2.5.0?
+  FFlag_ShowBannerTestButtons?: boolean, // for v2.4.0 beta testing; TODO: remove this before v2.4.0 release
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
   defaultFileExtension?: string,
@@ -287,6 +287,11 @@ export type TActionType =
   | 'windowReload' // Used by 'Hard Refresh' button for devs
   | 'windowResized'
   | '(not yet set)'
+  // TODO(later): remove these once we have a proper banner system
+  | 'testBannerInfo'
+  | 'testBannerError'
+  | 'testBannerWarning'
+  | 'testRemoveBanner'
 
 export type TControlString =
   | 't'

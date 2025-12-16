@@ -80,6 +80,8 @@ export async function getSomeSectionsData(
     // logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
     const config: TDashboardSettings = await getDashboardSettings()
 
+    // TODO: change generation order to suit the new custom section display order
+
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('INFO')) sections.push(...getInfoSectionData(config, useDemoData))
     // v2: for Timeblocks, now done inside getTodaySectionData()
@@ -91,20 +93,18 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Y') && config.showYearSection) sections.push(...getThisYearSectionData(config, useDemoData, useEditorWherePossible))
+
     // moderately quick to generate
     if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) {
       logInfo('getSomeSectionsData', `🔹 Getting Project section data as part of ${sectionCodesToGet.toString()}`)
       const projectSection = await getProjectSectionData(config, useDemoData)
       if (projectSection) sections.push(projectSection)
     }
+
     // The rest can all be slow to generate
     if (sectionCodesToGet.includes('SAVEDSEARCH')) sections.push(...(await getSavedSearchResults(config, useDemoData)))
     if (sectionCodesToGet.includes('TAG') && config.tagsToShow) {
-      // v1:
-      // const tagSections = getTaggedSections(config, useDemoData).filter((s) => s) //get rid of any nulls
-      // sections = tagSections.length ? sections.concat(tagSections) : sections
-
-      // v2:
+      // TODO: change so that tags can be generated separately from each other, letting them be specified in the section order component.
       const tagSections = getTagSectionDetails(removeInvalidTagSections(config))
       // clo(tagSections, 'getSomeSectionsData tagSections')
       let index = 0
@@ -168,6 +168,37 @@ export function getInfoSectionData(_config: TDashboardSettings, _useDemoData: bo
     sectionTitleColorPart: 'sidebarInfo',
     sectionItems: items,
     isReferenced: false,
+    // TODO(later): remove this once we have a proper banner system
+    actionButtons: (_config.FFlag_ShowBannerTestButtons ? [
+      {
+        actionName: 'testBannerInfo',
+        actionParam: 'jgclark.Dashboard.main',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        display: '<i class= "fa-regular fa-info-circle sidebarInfo" ></i> ',
+        tooltip: 'Show an info banner',
+      },
+      {
+        actionName: 'testBannerWarning',
+        actionParam: 'jgclark.Dashboard.main',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        display: '<i class= "fa-regular fa-triangle-exclamation sidebarInfo" ></i> ',
+        tooltip: 'Show a warning banner',
+      },
+      {
+        actionName: 'testBannerError',
+        actionParam: 'jgclark.Dashboard.main',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        display: '<i class= "fa-regular fa-circle-exclamation sidebarInfo" ></i> ',
+        tooltip: 'Show an error banner',
+      },
+      {
+        actionName: 'testRemoveBanner',
+        actionParam: 'jgclark.Dashboard.main',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        display: '<i class= "fa-regular fa-xmark sidebarInfo" ></i> ',
+        tooltip: 'Remove the banner',
+      },
+    ] : []),
   })
   return sections
 }

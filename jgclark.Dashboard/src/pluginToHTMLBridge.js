@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { handleBannerTestClick } from './bannerClickHandlers'
 import {
   doAddItem,
   doAddItemToFuture,
@@ -367,6 +368,25 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         }
         break
       }
+
+      // TODO(later): remove these once we have a proper banner system
+      case 'testBannerInfo': {
+        result = await handleBannerTestClick({ actionType: 'testBannerInfo', sectionCodes: data.sectionCodes })
+        break
+      }
+      case 'testBannerError': {
+        result = await handleBannerTestClick({ actionType: 'testBannerError' })
+        break
+      }
+      case 'testBannerWarning': {
+        result = await handleBannerTestClick({ actionType: 'testBannerWarning' })
+        break
+      }
+      case 'testRemoveBanner': {
+        result = await handleBannerTestClick({ actionType: 'testRemoveBanner' })
+        break
+      }
+
       default: {
         result = {
           success: false,

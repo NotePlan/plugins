@@ -1,5 +1,5 @@
 // @flow
-// Last updated 2025-05-15 for v2.3.0 by @jgclark
+// Last updated 2025-12-16 for v2.4.0.b2 by @jgclark
 
 import type { TSettingItem, TDashboardSettings } from '../../../types.js'
 
@@ -17,6 +17,7 @@ const featureFlagSettingDefs = [
   { key: 'FFlag_UseTagCache', label: 'Use Tag Cache', description: 'Use Tag Cache to speed up tag/mention searches' },
   { key: 'FFlag_UseTagCacheAPIComparison', label: 'Use Tag Cache API Comparison', description: 'When using Tag Cache, compare the results with the API. (Slows it down.)' },
   { key: 'FFlag_ShowSectionTimings', label: 'Show Section Timings', description: 'Show timings for how long it took to generate sections' },
+  { key: 'FFlag_ShowBannerTestButtons', label: 'Show Banner Test Buttons', description: 'Show test buttons for info, error, warning and remove banners' },
 ]
 
 export const createFeatureFlagItems = (dashboardSettings: TDashboardSettings): Array<TSettingItem> => {

@@ -769,14 +769,24 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
  * @return {any} - the result of the runJavaScript call (should be unimportant in this case -- undefined is ok)
  * @author @dwertheimer
  */
-export async function sendToHTMLWindow(windowId: string, actionType: string, data: any = {}, updateInfo: string = ''): any {
+export async function sendToHTMLWindow(
+  windowId: string,
+  actionType: string,
+  data: any = {},
+  updateInfo: string = '',
+): Promise<any> {
   try {
     const windowExists = isHTMLWindowOpen(windowId)
     if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = undefined`)
     const windowIdToSend = windowExists ? windowId : undefined // for iphone/ipad you have to send undefined
     const dataWithUpdated = {
       ...data,
-      ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } },
+      ...{
+        lastUpdated: {
+          msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`,
+          date: new Date().toLocaleString()
+        },
+      },
       NPWindowID: windowExists ? windowId : undefined,
     }
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
@@ -879,14 +889,47 @@ export async function updateGlobalSharedData(windowId: string, data: any, mergeD
 }
 
 /**
- * Send a warning message to the HTML window (displays a warning message at the top of page)
+ * Send a warning message to the HTML window (displays a warning message at the top of page). Takes various parameters.
  * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
  * @param {string} message - the message to be displayed
  * @param {string} color https://www.w3schools.com/w3css/w3css_colors.asp
- * @param {string} border (left vertical stripe border of box) https://www.w3schools.com/w3css/w3css_colors.asp
+ * @param {string} border (left vertical stripe border of box)
  */
-export async function sendBannerMessage(windowId: string, message: string, color: string = 'w3-pale-red', border: string = 'w3-border-red'): Promise<any> {
-  return await sendToHTMLWindow(windowId, 'SHOW_BANNER', { warn: true, msg: message, color, border })
+export async function sendBannerMessage(windowId: string, message: string, color: string = 'w3-pale-red', border: string = 'w3-border-red', timeout: number = NaN): Promise<any> {
+  return await sendToHTMLWindow(windowId, 'SHOW_BANNER', { warn: true, msg: message, color, border }, '')
+}
+
+/**
+ * Send a warning message to the HTML window (displays a warning message at the top of page). Takes various parameters. Newer version that allows for more easier specifiation of message severity level.
+ * TODO(later): decide whether to replace the old sendBannerMessage() with this one.
+ * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
+ * @param {string} message - the message to be displayed
+ * @param {string} level - the level of the message: 'INFO', 'WARN', 'ERROR', 'REMOVE'
+ * @param {number} timeout (optional) - the number of milliseconds to wait before the message disappears
+ */
+export async function sendBannerMessageV2(windowId: string, message: string, level: string, timeout: number = NaN): Promise<any> {
+  logInfo(`sendBannerMessageV2`, `message: ${message}, level: ${level}, timeout: ${timeout}`)
+  if (level === 'REMOVE') {
+    return await sendToHTMLWindow(windowId, 'REMOVE_BANNER', {}, '')
+  }
+
+  let color = 'color-error'
+  let border = 'border-error'
+  let icon = 'fa-regular fa-circle-exclamation'
+  switch (level) {
+    case 'INFO':
+      color = 'color-info'
+      border = 'border-info'
+      icon = 'fa-regular fa-circle-info'
+      break
+    case 'WARN':
+      color = 'color-warn'
+      border = 'border-warn'
+      icon = 'fa-regular fa-triangle-exclamation'
+      break
+  }
+  logInfo(`sendBannerMessageV2`, `color: ${color}, border: ${border}, icon: ${icon}`)
+  return await sendToHTMLWindow(windowId, 'SHOW_BANNER', { level, msg: message, color, border, icon, timeout }, '')
 }
 
 /**

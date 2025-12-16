@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2025-11-20 for v2.3.0.b15, @jgclark
+// last updated 2025-12-15 for v2.4.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -14,10 +14,12 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
+import { WEBVIEW_WINDOW_ID } from './constants'
 import type { TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { CaseInsensitiveSet, percent } from '@helpers/general'
+import { sendBannerMessageV2 } from '@helpers/HTMLView'
 import { getFrontmatterAttribute, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { findNotesMatchingHashtagOrMention, getNotesChangedInInterval } from '@helpers/NPnote'
 import { caseInsensitiveArrayIncludes, caseInsensitiveMatch, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
@@ -33,7 +35,7 @@ const TAG_CACHE_UPDATE_INTERVAL_HOURS = 1 // how often to update the cache
 const TAG_CACHE_GENERATE_INTERVAL_HOURS = 24 // how often to re-generate the cache
 
 // TODO(later): remove some of these in time
-const TAG_CACHE_ONLY_FOR_OPEN_ITEMS = true // WARNING: if false, then for JGC the cache file is 20x larger.
+const TAG_CACHE_ONLY_FOR_OPEN_ITEMS = true // Note: if false, then for JGC the cache file is 20x larger.
 const TAG_CACHE_FOR_ALL_TAGS = false // if true, then will cache all tags, otherwise will cache only the wanted items
 // If TAG_CACHE_FOR_ALL_TAGS is true, then will use this 'blacklist' of tags/mentions
 const EXCLUDED_TAGS_OR_MENTIONS = ['@done', '@start', '@review', '@reviewed', '@completed', '@cancelled']
@@ -43,8 +45,8 @@ export const WANTED_PARA_TYPES: Array<string> = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? 
 //-----------------------------------------------------------------
 // private functions
 
-function clearTagMentionCacheGeneration(): void {
-  logInfo('clearTagMentionCacheGeneration', `Clearing tag mention cache generation.`)
+function clearTagMentionCacheGenerationPref(): void {
+  logInfo('clearTagMentionCacheGenerationPref', `Clearing tag mention cache generation pref.`)
   DataStore.setPreference(regenerateTagMentionCachePref, null)
 }
 
@@ -277,6 +279,9 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     }
     logDebug('generateTagMentionCache', `- something requested a forced cache rebuild`)
 
+    // add a banner to say what we're doing
+    await sendBannerMessageV2(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)}${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' in all open items' : ''}`, 'INFO')
+
     // Start background thread
     await CommandBar.onAsyncThread()
 
@@ -284,6 +289,9 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     const allCalNotes = DataStore.calendarNotes
     const allRegularNotes = DataStore.projectNotes.filter((note) => !note.filename.startsWith('@'))
     logTimer('generateTagMentionCache', startTime, `- processing ${allCalNotes.length} calendar notes + ${allRegularNotes.length} regular notes ...`)
+
+    // add a banner to say what we're doing
+    await sendBannerMessageV2(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)} from ${String(allCalNotes.length)} calendar notes + ${String(allRegularNotes.length)} regular notes`, 'INFO')
 
     // Iterate over all notes and get all open paras with tags and mentions
     // First, get all calendar notes ...
@@ -302,6 +310,8 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     // ... then all regular notes.
     const regularWantedItems = []
     let creg = 0
+    let totalFoundItems = 0
+    let totalMatchingNotes = 0
     logDebug('generateTagMentionCache', `- Processing ${allRegularNotes.length} regular notes ...`)
     for (const note of allRegularNotes) {
       // logInfo('generateTagMentionCache', `- Processing ${note.filename}`)
@@ -310,6 +320,8 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
         creg++
         // logDebug('generateTagMentionCache', `-> ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
         regularWantedItems.push({ filename: note.filename, items: foundItems })
+        totalFoundItems += foundItems.length
+        totalMatchingNotes++
       }
     }
     logTimer('generateTagMentionCache', startTime, `to find ${ccal} calendar notes with wanted items / ${creg} regular notes with wanted items`)
@@ -329,8 +341,11 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     DataStore.saveData(JSON.stringify(cache), tagMentionCacheFile, true)
     logTimer('generateTagMentionCache', startTime, `- after saving to mentionTagCacheFile`)
 
+    // add a banner to say what we've done
+    await sendBannerMessageV2(WEBVIEW_WINDOW_ID, `Tag/mention cache found ${String(totalFoundItems)} matching open items in ${String(totalMatchingNotes)} notes`, 'INFO', 4000)
+
     // Clear the preference that was set to trigger a regeneration
-    clearTagMentionCacheGeneration()
+    clearTagMentionCacheGenerationPref()
   } catch (err) {
     logError('generateTagMentionCache', JSP(err))
   }

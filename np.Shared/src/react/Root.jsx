@@ -25,6 +25,7 @@ declare function sendMessageToPlugin(Array<string | any>): void
 //   msg?: string,
 //   color?: string,
 //   border?: string,
+
 // }
 /****************************************************************************************************************************
  *                             TYPES
@@ -36,11 +37,10 @@ declare function sendMessageToPlugin(Array<string | any>): void
 
 import React, { useState, useEffect, Profiler, type Node, useRef } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
-
 // import { WebView } from './_Cmp-WebView.jsx' // we are assuming it's externally loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
-import { logDebug, formatReactError, JSP, clo, logError } from '@helpers/react/reactDev'
+import { logDebug, formatReactError, JSP, clo, logError, logInfo } from '@helpers/react/reactDev'
 
 const ROOT_DEBUG = false
 
@@ -69,7 +69,7 @@ export function Root(/* props: Props */): Node {
   const [npData, setNPData] = useState(globalSharedData) // set it from initial data
   const [reactSettings, setReactSettings] = useState({})
 
-  const [warning, setWarning] = useState({ warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red' })
+  const [warning, setWarning] = useState({ warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red', icon: 'fa-regular fa-circle-exclamation' })
   // const [setMessageFromPlugin] = useState({})
   const [history, setHistory] = useState([lastUpdated])
 
@@ -217,7 +217,7 @@ export function Root(/* props: Props */): Node {
    */
   const onMessageReceived = (event: MessageEvent) => {
     const { data } = event
-    // console.log(`Root: onMessageReceived ${event.type} data: ${JSON.stringify(data, null, 2)}`)
+    logInfo('Root', `onMessageReceived ${event.type} data=${JSP(data, 2)}`)
     if (!shouldIgnoreMessage(event) && data) {
       // const str = JSON.stringify(event, null, 4)
       try {
@@ -259,13 +259,24 @@ export function Root(/* props: Props */): Node {
               break
             }
             case 'SHOW_BANNER':
-              logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it.`)
+              logInfo(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it. (timeout: ${payload.timeout ?? '-'})`)
               setNPData((prevData) => {
                 prevData.passThroughVars = prevData.passThroughVars ?? {}
                 prevData.passThroughVars.lastWindowScrollTop = 0
                 return { ...prevData, ...payload }
               })
-              showBanner(payload.msg, payload.color, payload.border)
+              showBanner(payload.msg, payload.color, payload.border, payload.icon)
+              // If timeout is a valid positive number, then start a timer to clear the message after the timeout period
+              if (typeof payload.timeout === 'number' && payload.timeout > 0 && !isNaN(payload.timeout)) {
+                logInfo(`Root`, ` onMessageReceived: Setting timeout to clear banner after ${payload.timeout}ms`)
+                setTimeout(() => {
+                  hideBanner()
+                }, payload.timeout)
+              }
+              break
+            case 'REMOVE_BANNER':
+              logInfo(`Root`, ` onMessageReceived: Removing banner`)
+              hideBanner()
               break
             case 'SEND_TO_PLUGIN':
               sendToPlugin(payload)
@@ -320,9 +331,9 @@ export function Root(/* props: Props */): Node {
    * Callback passed to child components that allows them to put a message in the banner
    * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_BANNER', payload)
    */
-  const showBanner = (msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red') => {
-    const warnObj = { warn: true, msg, color, border }
-    logDebug(`Root`, `showBanner zz: ${JSON.stringify(warnObj, null, 2)}`)
+  const showBanner = (msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red', icon: string = 'fa-regular fa-circle-exclamation') => {
+    const warnObj = { warn: true, msg, color, border, icon }
+    logDebug(`Root`, `showBanner: ${JSON.stringify(warnObj, null, 2)}`)
     setWarning(warnObj)
   }
 
@@ -330,7 +341,7 @@ export function Root(/* props: Props */): Node {
    * handle click on X on banner to hide it
    */
   const hideBanner = () => {
-    setWarning({ warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red' })
+    setWarning({ warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red', icon: 'fa-regular fa-circle-exclamation' })
   }
 
   /**
@@ -346,14 +357,15 @@ export function Root(/* props: Props */): Node {
 
   /**
    * Profiling React Components
-   * @param {*} id
-   * @param {*} phase
-   * @param {*} actualDuration
-   * @param {*} baseDuration
-   * @param {*} startTime
-   * @param {*} commitTime
+   * @param {string} id
+   * @param {string} phase
+   * @param {number} actualDuration
+   * @param {number} baseDuration
+   * @param {number} startTime
+   * @param {number} commitTime
+   * @param {Set<any>} interactions
    */
-  function onRender(id: string, phase: string, actualDuration: number, baseDuration: number, startTime: number, commitTime: number, interactions: Set<any>) {
+  function onRender(id: string, phase: string, actualDuration: number, baseDuration: number, startTime: number, commitTime: number, interactions: Set<any>): void {
     // DBW: MOST OF THIS INFO IS NOT INTERESTING. ONLY THE PHASE IS
     // Much better data is available in the React Dev Tools but only when the page is open in a browser
     logDebug(
@@ -401,12 +413,12 @@ export function Root(/* props: Props */): Node {
       <div className="Root" onClickCapture={onClickCapture}>
         {logProfilingMessage ? (
           <Profiler id="MemoizedWebView" onRender={onRender}>
-            <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
+            <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner} icon={warning.icon} />
             <MemoizedWebView dispatch={dispatch} data={npData} reactSettings={reactSettings} setReactSettings={setReactSettings} />
           </Profiler>
         ) : (
           <>
-            <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
+              <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner} icon={warning.icon} />
             <MemoizedWebView data={npData} dispatch={dispatch} reactSettings={reactSettings} setReactSettings={setReactSettings} />
           </>
         )}
