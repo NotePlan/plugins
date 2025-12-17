@@ -217,7 +217,7 @@ export function Root(/* props: Props */): Node {
    */
   const onMessageReceived = (event: MessageEvent) => {
     const { data } = event
-    logInfo('Root', `onMessageReceived ${event.type} data=${JSP(data, 2)}`)
+    // logDebug('Root', `onMessageReceived ${event.type} data=${JSP(data, 2)}`)
     if (!shouldIgnoreMessage(event) && data) {
       // const str = JSON.stringify(event, null, 4)
       try {
@@ -259,7 +259,7 @@ export function Root(/* props: Props */): Node {
               break
             }
             case 'SHOW_BANNER':
-              logInfo(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it. (timeout: ${payload.timeout ?? '-'})`)
+              logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it. (timeout: ${payload.timeout ?? '-'})`)
               setNPData((prevData) => {
                 prevData.passThroughVars = prevData.passThroughVars ?? {}
                 prevData.passThroughVars.lastWindowScrollTop = 0
@@ -268,7 +268,7 @@ export function Root(/* props: Props */): Node {
               showBanner(payload.msg, payload.color, payload.border, payload.icon)
               // If timeout is a valid positive number, then start a timer to clear the message after the timeout period
               if (typeof payload.timeout === 'number' && payload.timeout > 0 && !isNaN(payload.timeout)) {
-                logInfo(`Root`, ` onMessageReceived: Setting timeout to clear banner after ${payload.timeout}ms`)
+                logDebug(`Root`, ` onMessageReceived: Setting timeout to clear banner after ${payload.timeout}ms`)
                 setTimeout(() => {
                   hideBanner()
                 }, payload.timeout)
