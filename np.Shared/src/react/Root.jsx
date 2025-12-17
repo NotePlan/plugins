@@ -69,7 +69,17 @@ export function Root(/* props: Props */): Node {
   const [npData, setNPData] = useState(globalSharedData) // set it from initial data
   const [reactSettings, setReactSettings] = useState({})
 
-  const [warning, setWarning] = useState({ warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red', icon: 'fa-regular fa-circle-exclamation' })
+  // Initialize warning banner from globalSharedData if provided, otherwise default to hidden
+  const initialWarning = globalSharedData?.initialBanner
+    ? {
+        warn: true,
+        msg: globalSharedData.initialBanner.msg || '',
+        color: globalSharedData.initialBanner.color || 'w3-pale-red',
+        border: globalSharedData.initialBanner.border || 'w3-border-red',
+        icon: globalSharedData.initialBanner.icon || 'fa-regular fa-circle-exclamation',
+      }
+    : { warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red', icon: 'fa-regular fa-circle-exclamation' }
+  const [warning, setWarning] = useState(initialWarning)
   // const [setMessageFromPlugin] = useState({})
   const [history, setHistory] = useState([lastUpdated])
 
@@ -418,7 +428,7 @@ export function Root(/* props: Props */): Node {
           </Profiler>
         ) : (
           <>
-              <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner} icon={warning.icon} />
+            <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner} icon={warning.icon} />
             <MemoizedWebView data={npData} dispatch={dispatch} reactSettings={reactSettings} setReactSettings={setReactSettings} />
           </>
         )}
