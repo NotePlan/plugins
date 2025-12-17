@@ -18,7 +18,7 @@ html {
 
 body {
 	margin: 0px;
-	width: 90vw;
+	width: 100%;
 }
 
 /* Add a focus-visible outline to any element that is focussed and the browser decides needs to show a focus ring */

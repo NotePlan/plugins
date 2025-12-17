@@ -105,12 +105,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       workingSections = dedupedSections
     }
 
-    const sortedSections = sortSections(
-      workingSections.slice(),
-      defaultSectionDisplayOrder,
-      dashboardSettings?.customSectionDisplayOrder,
-      dashboardSettings?.tagsToShow,
-    )
+    const sortedSections = sortSections(workingSections.slice(), defaultSectionDisplayOrder, dashboardSettings?.customSectionDisplayOrder, dashboardSettings?.tagsToShow)
     const totalVisibleAfterSort = countTotalVisibleSectionItems(sortedSections, dashboardSettings)
     // logDebug('Dashboard:sortSections', `after sort: ${sortedSections.length} (${getDisplayListOfSectionCodes(sortedSections)}) with ${String(countTotalSectionItems(sortedSections, dontDedupeSectionCodes))} items`)
 
@@ -137,8 +132,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
 
   const dashboardContainerStyle = {
-    maxWidth: '100vw',
-    width: '100vw',
+    maxWidth: '100%',
+    width: '100%',
   }
 
   //----------------------------------------------------------------------
