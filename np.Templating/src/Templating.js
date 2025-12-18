@@ -306,8 +306,14 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
       if (chosenOpt) {
         // variable passed is a note title, but we need the filename
         selectedTemplate = chosenOpt.value
+      } else {
+        logError(
+          `templateNew`,
+          `Was passed template title of ${templateTitle} but that template was not found (or is set to ignore). So will fall back and ask user for the template.`,
+        )
       }
-    } else {
+    }
+    if (!selectedTemplate) {
       // ask the user for the template
       logDebug(pluginJson, `templateNew: about to chooseTemplate`)
       selectedTemplate = await NPTemplating.chooseTemplate()
@@ -326,7 +332,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     // In the case we have been passed rendered arguments (e.g. from the /insert button that rendered the frontmatter already)
     // if every property in templateAttributes is in args, then we can use args to render the template
     const argsKeys = typeof args === 'object' ? Object.keys(args) : []
-    const templateAttributesKeys = Object.keys(templateAttributes)
+    const templateAttributesKeys = Object.keys(templateAttributes).filter((k) => k !== '')
     logDebug(pluginJson, `templateNew: argsKeys:${JSON.stringify(argsKeys)}\ntemplateAttributesKeys:${JSON.stringify(templateAttributesKeys)}`)
     const allArgsKeysAreInTemplateAttributes = templateAttributesKeys.length && argsKeys.length && templateAttributesKeys.every((key) => argsKeys.includes(key))
     if (allArgsKeysAreInTemplateAttributes) {
