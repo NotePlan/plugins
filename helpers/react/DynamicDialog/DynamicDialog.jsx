@@ -47,7 +47,6 @@ export type TSettingItemType =
   | 'hidden'
   | 'orderingPanel'
 
-
 export type TSettingItem = {
   type: TSettingItemType,
   key?: string, // we can have setting items which are just 'separator' with no key, so this is optional
@@ -305,7 +304,7 @@ const DynamicDialog = ({
     ...style,
   }
   const dialogContents = (
-    <dialog ref={dialogRef} className={`dynamic-dialog ${className || ''}`} style={dialogStyle} onClick={(e) => e.stopPropagation()}>
+    <dialog ref={dialogRef} open={isOpen} className={`dynamic-dialog ${className || ''}`} style={dialogStyle} onClick={(e) => e.stopPropagation()}>
       <div className={`dynamic-dialog-header ${hideHeaderButtons ? 'title-only' : 'title-with-buttons'}`}>
         {!hideHeaderButtons && (
           <button className="PCButton cancel-button" onClick={onCancel}>
@@ -349,6 +348,7 @@ const DynamicDialog = ({
       </div>
     </dialog>
   )
+  console.log(`DynamicDialog dialogcontents`, dialogContents)
   return isModal ? (
     <Modal
       onClose={() => {

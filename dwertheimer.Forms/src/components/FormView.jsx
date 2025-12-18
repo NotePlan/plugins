@@ -207,7 +207,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     >
       <div className={`webview ${pluginData.platform || ''}`}>
         {/* replace all this code with your own component(s) */}
-        <div style={{ maxWidth: '100%', width: '100%' }}>
+        <div style={{ maxWidth: '100vw', width: '100vw' }}>
           <DynamicDialog
             isOpen={true}
             title={pluginData?.formTitle || 'Form Entry'}

@@ -20,7 +20,7 @@
     {
       "name": "Test React Window",
       "description": "React Window",
-      "jsFunction": "testReactWindow",
+      "jsFunction": "openReactWindow",
       "hidden": false,
       "alias": [
       ],

@@ -361,10 +361,10 @@ export async function openFormWindow(argObj: Object): Promise<void> {
         </script>
       `,
     }
-    logDebug(`===== testReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
-    logDebug(pluginJson, `testReactWindow invoking window. testReactWindow stopping here. It's all React from this point forward`)
-    clo(windowOptions, `testReactWindow windowOptions object passed`)
-    clo(data, `testReactWindow data object passed`)
+    logDebug(`===== openReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
+    logDebug(pluginJson, `openReactWindow invoking window. openReactWindow stopping here. It's all React from this point forward`)
+    clo(windowOptions, `openReactWindow windowOptions object passed`)
+    clo(data, `openReactWindow data object passed`)
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
   } catch (error) {
