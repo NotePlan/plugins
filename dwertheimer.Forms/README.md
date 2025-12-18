@@ -23,7 +23,7 @@ The Forms plugin enables you to create dynamic, interactive forms in NotePlan. Y
 2. When the form command is triggered, a dialog window opens with your form fields
 3. Fill out the form and click "Submit"
 4. The form data is automatically sent to a **Processing Template** (specified by `receivingTemplateTitle`)
-5. The processing template uses the form data to create a note or other content. You can use any Tempalating capabilities in your processing template to do just about anything you want.
+5. The processing template uses the form data to create a note or other content. You can use any Templating capabilities in your processing template to do just about anything you want.
 
 ## Quick Start
 
