@@ -58,13 +58,13 @@ height: 750
 |--------|----------|-------------|---------|
 | `title` | Yes | The name of your form template | - |
 | `receivingTemplateTitle` | Yes | Title of the template that will process the form data | - |
+| `type` | Yes | Set to `template-form` so it comes up in the forms chooser | - |
 | `windowTitle` | No | Title shown in the form window | "Form" |
 | `formTitle` | No | Title shown inside the form dialog | "Form Entry" |
 | `width` | No | Width of the form window in pixels | Auto |
 | `height` | No | Height of the form window in pixels | Auto |
 | `hideDependentItems` | No | Hide dependent fields until parent is enabled | `false` |
 | `allowEmptySubmit` | No | Allow submitting form with empty required fields | `false` |
-| `type` | Yes | Set to `template-form` so it comes up in the forms chooser | - |
 
 ### Form Fields Code Block
 
