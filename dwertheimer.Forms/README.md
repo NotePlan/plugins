@@ -64,7 +64,7 @@ height: 750
 | `height` | No | Height of the form window in pixels | Auto |
 | `hideDependentItems` | No | Hide dependent fields until parent is enabled | `false` |
 | `allowEmptySubmit` | No | Allow submitting form with empty required fields | `false` |
-| `type` | No | Set to `ignore` to prevent template from being used as a regular template | - |
+| `type` | Yes | Set to `template-form` so it comes up in the forms chooser | - |
 
 ### Form Fields Code Block
 
@@ -458,7 +458,7 @@ You can use conditional logic in your processing template:
 ````markdown
 ---
 title: jgclark Project Form
-type: ignore
+type: form-processor
 receivingTemplateTitle: "Project Form Processing Template"
 windowTitle: "Project"
 formTitle: "Create New Project"
@@ -528,7 +528,7 @@ height: 750
 ```yaml
 ---
 title: Project Form Processing Template
-type: ignore
+type: form-processor
 newNoteTitle: <%- noteTitle %>
 folder: <select Projects>
 start: <%- startDateEntry ? date.format("YYYY-MM-DD", startDateEntry) : '' %>
