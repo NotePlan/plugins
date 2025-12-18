@@ -10,8 +10,12 @@ The Forms plugin enables you to create dynamic, interactive forms in NotePlan. Y
 
 > **⚠️ Beta Warning:** This is an early beta release and may not yet be fully functional. Features may change, and you may encounter bugs or incomplete functionality. Please report issues to @dwertheimer on Discord.
 
-| Form Definition | Form Entry | Form Processor | Result |
-| <img width="962" height="1778" alt="Screen Cap 2025-12-17 at 23 12 54@2x" src="https://github.com/user-attachments/assets/5ffe85dd-51b8-47ae-84a8-1fbf6061ae92" /> |
+| Form Definition > | Form Entry > | Form Processor > | Result |
+|--------|----------|-------------|---------|
+| <img width="962" height="1778" alt="Screen Cap 2025-12-17 at 23 12 54@2x" src="https://github.com/user-attachments/assets/5ffe85dd-51b8-47ae-84a8-1fbf6061ae92" /> | <img width="756" height="938" alt="Screen Cap 2025-12-17 at 23 16 26@2x" src="https://github.com/user-attachments/assets/e2681277-de53-4fcd-84b2-ae8638f2bc15" /> | <img width="922" height="932" alt="Screen Cap 2025-12-17 at 23 17 09@2x" src="https://github.com/user-attachments/assets/ffd7b7b1-fead-4853-83b9-8ce93049438c" /> | <img width="864" height="692" alt="Screen Cap 2025-12-17 at 23 17 40@2x" src="https://github.com/user-attachments/assets/67929891-ded3-4b4e-9ac5-490e97e1e4f0" /> |
+
+
+
 
 ## How It Works
 
