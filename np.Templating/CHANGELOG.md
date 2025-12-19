@@ -6,9 +6,10 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
-## [2.2.5] not released yet
+## [2.2.5] 2025-12-19 @dwertheimer
 
 - Fix messaging in templateNew when templates not found
+- Enhanced `template: ignore` code block handling: Code blocks starting with ```template: ignore on the first line are now completely removed from templates (not just protected). Comment-style ignores (`// template: ignore` or `/* template: ignore */`) continue to be protected during processing and restored in the output. This allows template authors to include metadata or instructions that should not appear in the final rendered output.
 
 ## [2.2.4] 2025-12-03 @dwertheimer
 - fix <default> templateLocale setting to allow for locale-specific date/time formatting

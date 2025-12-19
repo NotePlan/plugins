@@ -103,8 +103,15 @@ export const getCodeBlocks = (templateData: string = ''): Array<string> => {
 }
 
 /**
- * Extracts all fenced code blocks from template data that contain an "ignore" comment.
+ * Extracts all fenced code blocks from template data that contain an "ignore" comment or directive.
  * These are blocks that should not be processed or executed by the templating engine.
+ *
+ * Supports two patterns:
+ * 1. First-line directive: Code blocks where the first line matches ```template: ignore (with optional whitespace).
+ *    These blocks will be completely removed from the template during processing.
+ * 2. Comment-style ignore: Code blocks containing // template: ignore or block comment style anywhere in the block.
+ *    These blocks will be protected during processing and restored afterward.
+ *
  * @param {string} [templateData=''] - The template string to parse.
  * @returns {Array<string>} An array of ignored fenced code block strings.
  */
@@ -114,9 +121,29 @@ export const getIgnoredCodeBlocks = (templateData: string = ''): Array<string> =
 
   // Iterate through all found code blocks
   allCodeBlocks.forEach((codeBlock) => {
-    // If a code block contains an ignore comment, add it to the list
-    if (codeBlockHasComment(codeBlock)) {
-      ignoredCodeBlocks.push(codeBlock)
+    // Check if the first line starts with ```template: ignore pattern
+    const lines = codeBlock.split('\n')
+    let isFirstLineTemplateIgnore = false
+    if (lines.length > 0) {
+      const firstLine = lines[0]
+      if (/```\s*template:\s*ignore/.test(firstLine)) {
+        isFirstLineTemplateIgnore = true
+        ignoredCodeBlocks.push(codeBlock)
+      }
+    }
+
+    // If not matched by first-line pattern, check for comment-style ignores
+    // Comment-style ignores must have // or /* before template: ignore
+    if (!isFirstLineTemplateIgnore) {
+      // Check for comment-style patterns: // template: ignore or /* template: ignore */
+      if (
+        codeBlock.includes('// template: ignore') ||
+        codeBlock.includes('/* template: ignore */') ||
+        codeBlock.includes('// template:ignore') ||
+        codeBlock.includes('/* template:ignore */')
+      ) {
+        ignoredCodeBlocks.push(codeBlock)
+      }
     }
   })
 

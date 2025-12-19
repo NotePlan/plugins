@@ -562,6 +562,26 @@ export function parseObjectString(str: string): Array<Object> | Object {
 }
 
 /**
+ * Removes surrounding double quotes from a string if present.
+ * Only removes quotes if they wrap the entire string (one at the beginning and one at the end).
+ * Whitespace is trimmed before checking for quotes.
+ * @param {string} text - The string that may have surrounding double quotes
+ * @returns {string} The string with surrounding double quotes removed (if present)
+ */
+export function stripDoubleQuotes(text: string): string {
+  if (!text || typeof text !== 'string') {
+    return text
+  }
+  // Trim whitespace before checking for quotes
+  const trimmed = text.trim()
+  // Remove double quotes only if they wrap the entire trimmed string
+  if (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2) {
+    return trimmed.slice(1, -1)
+  }
+  return text
+}
+
+/**
  * Validates a string representation of an array or object.
  * It attempts to parse the string and identifies any errors.
  * @param {string} str - The string to validate.
