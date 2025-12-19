@@ -248,6 +248,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
     let selectedTemplate
     let formFields: Array<Object> = []
     let templateNote = null
+    let receivingTemplateTitle: string = '' // Track receiving template title for newly created forms
 
     if (templateTitle?.trim().length) {
       logDebug(pluginJson, `openFormBuilder: Using provided templateTitle`)
@@ -300,7 +301,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
 
         // Ask if they want to create a receiving template
         const createReceiving = await CommandBar.showOptions(['Yes, create receiving template', 'No, skip for now'], 'Form Builder', 'Create receiving template for form output?')
-        let receivingTemplateTitle = ''
+        // receivingTemplateTitle is declared in outer scope above
 
         if (createReceiving?.value === 'Yes, create receiving template' || createReceiving.index === 0) {
           const receivingTitle = `${newTitle} Processing Template`
@@ -336,6 +337,17 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         })
         selectedTemplate = filename
         logDebug(pluginJson, `openFormBuilder: Set frontmatter and selectedTemplate = ${selectedTemplate}, receivingTemplateTitle = "${receivingTemplateTitle}"`)
+
+        // Reload the note to ensure frontmatter is up to date before opening FormBuilder
+        templateNote = await getNoteByFilename(filename)
+        logDebug(pluginJson, `openFormBuilder: Reloaded template note after setting frontmatter`)
+        if (templateNote) {
+          const reloadedReceivingTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle
+          logDebug(pluginJson, `openFormBuilder: After reload, frontmatter receivingTemplateTitle = "${reloadedReceivingTitle || 'NOT FOUND'}"`)
+          if (!reloadedReceivingTitle && receivingTemplateTitle) {
+            logWarn(pluginJson, `openFormBuilder: WARNING - receivingTemplateTitle was set to "${receivingTemplateTitle}" but not found in reloaded note frontmatter!`)
+          }
+        }
         // $FlowFixMe[incompatible-type] - showOptions returns number index
       } else if (createNew.index === 1 || createNew.value === 'Edit Existing Template') {
         logDebug(pluginJson, `openFormBuilder: User chose to edit existing template`)
@@ -388,10 +400,13 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
       pluginJson,
       `openFormBuilder: About to call openFormBuilderWindow with ${formFields.length} fields, templateFilename="${selectedTemplate}", templateTitle="${templateNote?.title || ''}"`,
     )
+    // If we just created a receiving template, pass it directly to ensure it's available
+    const initialReceivingTemplateTitle = receivingTemplateTitle || undefined
     await openFormBuilderWindow({
       formFields,
       templateFilename: selectedTemplate,
       templateTitle: templateNote?.title || '',
+      initialReceivingTemplateTitle: initialReceivingTemplateTitle,
     })
     logDebug(pluginJson, `openFormBuilder: openFormBuilderWindow call completed`)
   } catch (error) {
@@ -415,12 +430,19 @@ async function openFormBuilderWindow(argObj: Object): Promise<void> {
 
     const startTime = new Date()
     const ENV_MODE = 'development'
-    // Get receiving template title from the template note
+    // Get receiving template title - use initialReceivingTemplateTitle if provided (for newly created forms),
+    // otherwise read from note's frontmatter (for existing forms)
     let receivingTemplateTitle = ''
-    if (argObj.templateFilename) {
+    if (argObj.initialReceivingTemplateTitle) {
+      // For newly created forms, use the value we already have - no need to read from note
+      receivingTemplateTitle = argObj.initialReceivingTemplateTitle
+      logDebug(pluginJson, `openFormBuilderWindow: Using initialReceivingTemplateTitle="${receivingTemplateTitle}"`)
+    } else if (argObj.templateFilename) {
+      // For existing forms, read from note's frontmatter
       const templateNote = await getNoteByFilename(argObj.templateFilename)
       if (templateNote) {
         receivingTemplateTitle = templateNote.frontmatterAttributes?.receivingTemplateTitle || ''
+        logDebug(pluginJson, `openFormBuilderWindow: Read receivingTemplateTitle="${receivingTemplateTitle}" from note frontmatter`)
       }
     }
 
@@ -651,32 +673,41 @@ async function saveFormFieldsToTemplate(templateFilename: string, fields: Array<
     // We'll create a more readable format similar to the example
     const jsonString = formatFormFieldsAsCodeBlock(fields)
 
-    // Get existing code blocks
+    // Get ALL existing formfields code blocks (there might be duplicates from previous saves)
     const codeBlocks = getCodeBlocksOfType(templateNote, 'formfields')
+    logDebug(pluginJson, `saveFormFieldsToTemplate: Found ${codeBlocks.length} existing formfields codeblocks`)
 
-    if (codeBlocks.length > 0 && codeBlocks[0].paragraphs.length > 0) {
-      // Replace existing formfields code block
-      const firstPara = codeBlocks[0].paragraphs[0]
-      const lastPara = codeBlocks[0].paragraphs[codeBlocks[0].paragraphs.length - 1]
-      const startIndex = firstPara.lineIndex
-      const endIndex = lastPara.lineIndex
-
-      // Get all paragraphs
-      const paras = templateNote.paragraphs
-      const beforeParas = paras.filter((p) => p.lineIndex < startIndex)
-      const afterParas = paras.filter((p) => p.lineIndex > endIndex)
-
-      // Build new content
-      const beforeContent = paras.length > 0 ? beforeParas.map((p) => p.rawContent).join('\n') : ''
-      const afterContent = afterParas.map((p) => p.rawContent).join('\n')
-
-      const newCodeBlock = `\`\`\`formfields\n${jsonString}\n\`\`\``
-      templateNote.content = `${beforeContent}\n${newCodeBlock}\n${afterContent}`
-    } else {
-      // Add new code block at the end
-      const newCodeBlock = `\n\n\`\`\`formfields\n${jsonString}\n\`\`\``
-      templateNote.appendParagraph(newCodeBlock, 'text')
+    // Collect all paragraph line indices that belong to any formfields codeblock
+    const codeBlockLineIndices = new Set<number>()
+    if (codeBlocks.length > 0) {
+      for (const codeBlock of codeBlocks) {
+        if (codeBlock.paragraphs && codeBlock.paragraphs.length > 0) {
+          for (const para of codeBlock.paragraphs) {
+            codeBlockLineIndices.add(para.lineIndex)
+          }
+        }
+      }
     }
+    logDebug(
+      pluginJson,
+      `saveFormFieldsToTemplate: Removing paragraphs at line indices: ${Array.from(codeBlockLineIndices)
+        .sort((a, b) => a - b)
+        .join(', ')}`,
+    )
+
+    // Get all paragraphs that are NOT part of any formfields codeblock
+    const paras = templateNote.paragraphs
+    const parasToKeep = paras.filter((p) => !codeBlockLineIndices.has(p.lineIndex))
+
+    // Build content from remaining paragraphs
+    const existingContent = parasToKeep.length > 0 ? parasToKeep.map((p) => p.rawContent).join('\n') : ''
+
+    // Add the new code block at the end
+    const newCodeBlock = `\`\`\`formfields\n${jsonString}\n\`\`\``
+    const finalContent = existingContent ? `${existingContent}\n\n${newCodeBlock}` : newCodeBlock
+
+    // Update the note content
+    templateNote.content = finalContent
 
     await showMessage(`Form fields saved to template "${templateNote.title || templateFilename}"`)
     logDebug(pluginJson, `saveFormFieldsToTemplate: Saved ${fields.length} fields to template`)
@@ -734,7 +765,7 @@ async function updateReceivingTemplateWithFields(receivingTemplateTitle: string,
 
     // Create new body content with all field keys as template variables
     // Replace ALL body content (everything after frontmatter)
-    const newBodyContent = `## Form Fields\n### Available form field variables:\n${fieldKeys.map((key) => `**${key}:** <%- ${key} %>`).join('\n')}`
+    const newBodyContent = `## Any content here will print out\n### Available form field variables:\n${fieldKeys.map((key) => `**${key}:** <%- ${key} %>`).join('\n')}`
 
     // Find where the active part of the note starts (after frontmatter)
     const startOfActive = findStartOfActivePartOfNote(receivingNote)

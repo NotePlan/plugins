@@ -71,10 +71,13 @@ export type TSettingItem = {
   fixedWidth?: number, // for dropdowns, set a fixed width
   selectedDate?: Date, // for calendarpicker, the selected date
   numberOfMonths?: number, // for calendarpicker, the number of months to show
+  size?: number, // for calendarpicker, the size scale factor (0.5 = 50%, default)
   required?: boolean, // for input fields, require the field to be filled out
   validationType?: 'email' | 'number' | 'date-interval', // for input fields, validate the input
   isEditable?: boolean, // for dropdown-select, allow the user to edit the value
   placeholder?: string, // for dropdown-select, placeholder text when no value is selected
+  buttonText?: string, // for calendarpicker and button, text to display on button
+  visible?: boolean, // for calendarpicker, whether calendar is shown by default
 }
 
 export type TDynamicDialogProps = {

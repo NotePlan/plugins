@@ -325,26 +325,36 @@ export function renderItem({
         )
       }
       case 'calendarpicker': {
-        const selectedDate = item.selectedDate || null
+        const selectedDate: ?Date = item.selectedDate || null
         const numberOfMonths = item.numberOfMonths || 1
         const label = item.label || ''
+        const compactDisplay = item.compactDisplay || false
 
-        const handleDateChange = (date) => {
+        const handleDateChange = (date: Date) => {
           if (item.key) {
             handleFieldChange(item.key, date)
           }
         }
 
+        // Render label similar to other fields
+        const labelElement = label ? (
+          <div className={`calendarpicker-label ${compactDisplay ? 'compact' : ''}`} style={compactDisplay ? { display: 'inline-block', marginRight: '0.5rem' } : {}}>
+            {label}
+          </div>
+        ) : null
+
         return (
-          <div key={`calendarpicker${index}`} className="calendarpicker-container">
+          <div key={`calendarpicker${index}`} className={`calendarpicker-container ${compactDisplay ? 'compact' : ''}`} style={compactDisplay ? { display: 'flex', alignItems: 'center' } : {}}>
+            {labelElement}
             <CalendarPicker
-              startingSelectedDate={selectedDate}
+              startingSelectedDate={selectedDate ?? undefined}
               onSelectDate={handleDateChange}
               numberOfMonths={numberOfMonths}
               className="calendarPickerCustom"
-              buttonText={item.buttonText}
-              label={item.label}
-              visible={item.visible}
+              buttonText={(item: any).buttonText}
+              label={label}
+              visible={(item: any).visible}
+              size={(item: any).size ?? 0.75}
             />
           </div>
         )

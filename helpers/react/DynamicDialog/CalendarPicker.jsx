@@ -22,6 +22,7 @@ type Props = {
   label?: string, // Label for the text next to the button
   buttonText?: string, // Text for the button
   leaveOpen?: boolean, // Whether the calendar should stay open after a date is selected
+  size?: number, // Size scale factor (0.5 = 50%, 1.0 = 100%, etc.) - default is 0.5
 }
 
 const CalendarPicker = ({
@@ -35,8 +36,9 @@ const CalendarPicker = ({
   buttonText,
   label,
   leaveOpen,
+  size = 0.75,
 }: Props): React$Node => {
-  const [selectedDate, setSelectedDate] = useState(startingSelectedDate)
+  const [selectedDate, setSelectedDate] = useState<Date | void>(startingSelectedDate)
   const [isOpen, setIsOpen] = useState(visible ?? true)
 
   const handleDateChange = (date: Date) => {
@@ -55,29 +57,44 @@ const CalendarPicker = ({
   // Reset selectedDate when reset prop changes
   useEffect(() => {
     if (reset) {
-      setSelectedDate(null) // or any default value
+      setSelectedDate(undefined) // or any default value
     }
   }, [reset])
 
+  // If visible is true and no buttonText, don't show button at all - just show the calendar
+  const showButton = !(visible && !buttonText)
+
   return (
     <>
-      <button className="PCButton" title="Open calendar to pick a specific day" onClick={toggleDatePicker}>
-        <i className="fa-solid fa-calendar-alt pad-left pad-right"></i>
-        {buttonText ? <span className="calendar-picker-button-text">{buttonText}</span> : null}
-        {!isOpen && selectedDate && <span className="calendar-picker-label">: {selectedDate?.toLocaleDateString()}</span>}
-      </button>
+      {showButton && (
+        <button className="PCButton" title="Open calendar to pick a specific day" onClick={toggleDatePicker}>
+          <i className="fa-solid fa-calendar-alt pad-left pad-right"></i>
+          {buttonText && <span className="calendar-picker-button-text">{buttonText}</span>}
+          {!isOpen && selectedDate && <span className="calendar-picker-label">: {selectedDate?.toLocaleDateString()}</span>}
+        </button>
+      )}
       {isOpen && (
-        <div className="dayPicker-container">
-          <DayPicker
-            selected={selectedDate}
-            onSelect={handleDateChange}
-            mode="single"
-            numberOfMonths={numberOfMonths}
-            required
-            fixedHeight
-            label
-            className={`calendarPickerCustom ${className || ''}`}
-          />
+        <div style={{ display: 'inline-block', verticalAlign: 'top', lineHeight: 0 }}>
+          <div
+            className="dayPicker-container"
+            style={{
+              transform: `scale(${size})`,
+              transformOrigin: 'top left',
+              display: 'inline-block',
+              marginBottom: size !== 1 ? `${((1 - size) / size) * -100}%` : '0',
+            }}
+          >
+            <DayPicker
+              selected={selectedDate}
+              onSelect={handleDateChange}
+              mode="single"
+              numberOfMonths={numberOfMonths}
+              required
+              fixedHeight
+              label
+              className={`calendarPickerCustom ${className || ''}`}
+            />
+          </div>
         </div>
       )}
     </>

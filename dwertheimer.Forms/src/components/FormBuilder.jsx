@@ -84,6 +84,26 @@ export function FormBuilder({
     height: height,
   })
 
+  // Sync frontmatter when props change (e.g., when receivingTemplateTitle is set after template creation)
+  useEffect(() => {
+    if (receivingTemplateTitle && receivingTemplateTitle !== frontmatter.receivingTemplateTitle) {
+      setFrontmatter((prev) => ({
+        ...prev,
+        receivingTemplateTitle: receivingTemplateTitle,
+      }))
+    }
+  }, [receivingTemplateTitle])
+
+  // Helper function to strip surrounding double quotes from frontmatter values
+  const stripQuotes = (value: string): string => {
+    if (!value || typeof value !== 'string') return value || ''
+    // Remove surrounding double quotes if present
+    if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
+      return value.slice(1, -1)
+    }
+    return value
+  }
+
   //----------------------------------------------------------------------
   // Drag and Drop Handlers
   //----------------------------------------------------------------------
@@ -234,7 +254,7 @@ export function FormBuilder({
           <button className="PCButton cancel-button" onClick={onCancel}>
             Cancel
           </button>
-          <button className="PCButton save-button" onClick={handleSave}>
+          <button className={`PCButton save-button ${hasUnsavedChanges ? 'save-button-active' : 'save-button-disabled'}`} onClick={handleSave} disabled={!hasUnsavedChanges}>
             Save Form
           </button>
         </div>
@@ -252,7 +272,7 @@ export function FormBuilder({
                   type="text"
                   value={frontmatter.windowTitle || ''}
                   onChange={(e) => handleFrontmatterChange('windowTitle', e.target.value)}
-                  placeholder="Window Title"
+                  placeholder="Form Window"
                   style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
                 />
               </div>
@@ -379,7 +399,7 @@ export function FormBuilder({
                         >
                           <div className="field-header">
                             <span className="field-type-badge">{field.type}</span>
-                            <span className="field-label-preview">{field.label || field.key || '(no label)'}</span>
+                            <span className="field-label-preview">{field.label || field.key || ''}</span>
                           </div>
                           {field.description && <div className="field-description-preview">{field.description}</div>}
                           {field.key && (
@@ -413,13 +433,13 @@ export function FormBuilder({
             <div className="form-preview-container">
               <div className="form-preview-window">
                 <div className="form-preview-window-titlebar">
-                  <span className="form-preview-window-title">{frontmatter.windowTitle || 'Form Window'}</span>
+                  <span className="form-preview-window-title">{stripQuotes(frontmatter.windowTitle) || 'Form Window'}</span>
                 </div>
                 <div className="form-preview-window-content">
                   <DynamicDialog
                     isOpen={true}
                     isModal={false}
-                    title={frontmatter.formTitle || 'Form Entry'}
+                    title={stripQuotes(frontmatter.formTitle) || 'Form Heading'}
                     items={fields}
                     hideHeaderButtons={true}
                     onSave={() => {}}
@@ -690,8 +710,8 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
 
   const needsKey = editedField.type !== 'separator' && editedField.type !== 'heading'
 
-  // Construct header title with label and key
-  const headerTitle = needsKey && editedField.key ? `Editing: ${editedField.label || 'no label'} (${editedField.key})` : `Editing: ${editedField.type}`
+  // Construct header title with label, key, and type
+  const headerTitle = needsKey && editedField.key ? `Editing ${editedField.type}: ${editedField.label || ''} (${editedField.key})` : `Editing: ${editedField.type}`
 
   return (
     <div className="field-editor-overlay" onClick={onCancel}>
@@ -719,7 +739,7 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
             </div>
           )}
 
-          {editedField.type !== 'separator' && editedField.type !== 'heading' && (
+          {editedField.type !== 'separator' && editedField.type !== 'heading' && editedField.type !== 'calendarpicker' && (
             <div className="field-editor-row">
               <label>
                 <input type="checkbox" checked={editedField.compactDisplay || false} onChange={(e) => updateField({ compactDisplay: e.target.checked })} />
@@ -857,7 +877,30 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
                   }}
                   placeholder="Button text"
                 />
+                <div className="field-editor-help">Text to show on the button which pops up the calendar picker</div>
               </div>
+              <div className="field-editor-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={((editedField: any): { visible?: boolean }).visible ?? false}
+                    onChange={(e) => {
+                      const updated = { ...editedField }
+                      ;(updated: any).visible = e.target.checked
+                      setEditedField(updated)
+                    }}
+                  />
+                  Show calendar by default (visible without clicking button)
+                </label>
+              </div>
+              {editedField.type !== 'separator' && editedField.type !== 'heading' && (
+                <div className="field-editor-row">
+                  <label>
+                    <input type="checkbox" checked={editedField.compactDisplay || false} onChange={(e) => updateField({ compactDisplay: e.target.checked })} />
+                    Compact Display (label and field side-by-side)
+                  </label>
+                </div>
+              )}
             </>
           )}
 

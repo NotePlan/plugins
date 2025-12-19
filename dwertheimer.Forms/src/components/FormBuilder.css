@@ -703,3 +703,31 @@
   font-style: italic;
   margin-top: 0.5rem;
 }
+
+/* Save Button Styles - match other buttons */
+.save-button-active {
+  background-color: var(--tint-color) !important;
+  color: white !important;
+  cursor: pointer;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 4px 8px !important;
+  margin: 2px 4px 2px 0px !important;
+  font-size: 0.85rem !important;
+  line-height: 1.2rem !important;
+  white-space: nowrap !important;
+  align-self: center !important;
+}
+
+.save-button-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 4px 8px !important;
+  margin: 2px 4px 2px 0px !important;
+  font-size: 0.85rem !important;
+  line-height: 1.2rem !important;
+  white-space: nowrap !important;
+  align-self: center !important;
+}
