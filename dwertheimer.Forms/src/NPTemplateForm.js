@@ -2,6 +2,7 @@
 
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
+import { createProcessingTemplate } from './ProcessingTemplate'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
@@ -304,27 +305,18 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         // receivingTemplateTitle is declared in outer scope above
 
         if (createReceiving?.value === 'Yes, create receiving template' || createReceiving.index === 0) {
-          const receivingTitle = `${newTitle} Processing Template`
-          logDebug(pluginJson, `openFormBuilder: Creating receiving template "${receivingTitle}" in ${formFolderPath}`)
-          const receivingFilename = DataStore.newNote(receivingTitle, formFolderPath)
+          logDebug(pluginJson, `openFormBuilder: Calling createProcessingTemplate with form template details`)
+          const result = await createProcessingTemplate({
+            formTemplateTitle: newTitle,
+            formTemplateFilename: filename,
+            suggestedProcessingTitle: `${newTitle} Processing Template`,
+          })
 
-          if (receivingFilename) {
-            const receivingNote = await getNoteByFilename(receivingFilename)
-            if (receivingNote) {
-              // Set frontmatter for receiving template
-              updateFrontMatterVars(receivingNote, {
-                type: 'forms-processor',
-              })
-
-              // Add basic template content with placeholders for all fields
-              // We'll create a simple template that includes all field keys
-              // (Field keys will be added when form fields are saved)
-              const basicContent = `## Content from form will be inserted here`
-              receivingNote.appendParagraph(basicContent, 'text')
-
-              receivingTemplateTitle = receivingTitle
-              logDebug(pluginJson, `openFormBuilder: Created receiving template "${receivingTitle}" with filename: ${receivingFilename}`)
-            }
+          if (result?.processingTitle) {
+            receivingTemplateTitle = result.processingTitle
+            logDebug(pluginJson, `openFormBuilder: Created receiving template "${receivingTemplateTitle}" via createProcessingTemplate`)
+          } else {
+            logDebug(pluginJson, `openFormBuilder: createProcessingTemplate returned no result, user may have cancelled`)
           }
         }
 
@@ -650,8 +642,24 @@ async function saveFrontmatterToTemplate(templateFilename: string, frontmatter: 
       return
     }
 
+    // Convert all frontmatter values to strings (updateFrontMatterVars expects strings)
+    const frontmatterAsStrings: { [string]: string } = {}
+    Object.keys(frontmatter).forEach((key) => {
+      const value = frontmatter[key]
+      // Convert to string, handling null/undefined
+      if (value === null || value === undefined) {
+        frontmatterAsStrings[key] = ''
+      } else if (typeof value === 'boolean') {
+        frontmatterAsStrings[key] = String(value)
+      } else if (typeof value === 'number') {
+        frontmatterAsStrings[key] = String(value)
+      } else {
+        frontmatterAsStrings[key] = String(value)
+      }
+    })
+
     // Update frontmatter
-    updateFrontMatterVars(templateNote, frontmatter)
+    updateFrontMatterVars(templateNote, frontmatterAsStrings)
     logDebug(pluginJson, `saveFrontmatterToTemplate: Saved frontmatter to template`)
   } catch (error) {
     logError(pluginJson, `saveFrontmatterToTemplate error: ${JSP(error)}`)

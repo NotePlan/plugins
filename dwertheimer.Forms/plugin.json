@@ -40,6 +40,17 @@
       ]
     },
     {
+      "name": "Create Processing Template",
+      "alias": [
+        "createprocessor",
+        "newprocessor"
+      ],
+      "description": "Create a form processing template separately (for use with existing form templates)",
+      "jsFunction": "createProcessingTemplate",
+      "arguments": [
+      ]
+    },
+    {
       "name": "openFormWindow",
       "description": "Open HTML+React Form Window",
       "jsFunction": "openFormWindow",
