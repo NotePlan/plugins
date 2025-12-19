@@ -328,15 +328,24 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
           }
         }
 
-        // Set initial frontmatter
+        // Generate launchLink URL
+        const encodedTitle = encodeURIComponent(newTitle)
+        const launchLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Open%20Template%20Form&arg0=${encodedTitle}`
+
+        // Set initial frontmatter including launchLink
         updateFrontMatterVars(templateNote, {
           type: 'template-form',
           receivingTemplateTitle: receivingTemplateTitle,
           windowTitle: newTitle,
           formTitle: newTitle,
+          launchLink: launchLink,
         })
         selectedTemplate = filename
         logDebug(pluginJson, `openFormBuilder: Set frontmatter and selectedTemplate = ${selectedTemplate}, receivingTemplateTitle = "${receivingTemplateTitle}"`)
+
+        // Add markdown link to body content (before formfields codeblock)
+        const markdownLink = `[Run Form: ${newTitle}](${launchLink})\n`
+        templateNote.appendParagraph(markdownLink, 'text')
 
         // Reload the note to ensure frontmatter is up to date before opening FormBuilder
         templateNote = await getNoteByFilename(filename)
