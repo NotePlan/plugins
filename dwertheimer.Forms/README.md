@@ -10,13 +10,20 @@ The Forms plugin enables you to create dynamic, interactive forms in NotePlan. Y
 
 > **⚠️ Beta Warning:** This is an early beta release and may not yet be fully functional. Features may change, and you may encounter bugs or incomplete functionality. Please report issues to @dwertheimer on Discord.
 
+| Form Definition > | Form Entry > | Form Processor > | Result |
+|--------|----------|-------------|---------|
+| <img width="962" height="1778" alt="Screen Cap 2025-12-17 at 23 12 54@2x" src="https://github.com/user-attachments/assets/5ffe85dd-51b8-47ae-84a8-1fbf6061ae92" /> | <img width="756" height="938" alt="Screen Cap 2025-12-17 at 23 16 26@2x" src="https://github.com/user-attachments/assets/e2681277-de53-4fcd-84b2-ae8638f2bc15" /> | <img width="922" height="932" alt="Screen Cap 2025-12-17 at 23 17 09@2x" src="https://github.com/user-attachments/assets/ffd7b7b1-fead-4853-83b9-8ce93049438c" /> | <img width="864" height="692" alt="Screen Cap 2025-12-17 at 23 17 40@2x" src="https://github.com/user-attachments/assets/67929891-ded3-4b4e-9ac5-490e97e1e4f0" /> |
+
+
+
+
 ## How It Works
 
 1. You create a **Form Template** that defines the fields to be filled out
 2. When the form command is triggered, a dialog window opens with your form fields
 3. Fill out the form and click "Submit"
 4. The form data is automatically sent to a **Processing Template** (specified by `receivingTemplateTitle`)
-5. The processing template uses the form data to create a note or other content. You can use any Tempalating capabilities in your processing template to do just about anything you want.
+5. The processing template uses the form data to create a note or other content. You can use any Templating capabilities in your processing template to do just about anything you want.
 
 ## Quick Start
 
@@ -58,13 +65,13 @@ height: 750
 |--------|----------|-------------|---------|
 | `title` | Yes | The name of your form template | - |
 | `receivingTemplateTitle` | Yes | Title of the template that will process the form data | - |
+| `type` | Yes | Set to `template-form` so it comes up in the forms chooser | - |
 | `windowTitle` | No | Title shown in the form window | "Form" |
 | `formTitle` | No | Title shown inside the form dialog | "Form Entry" |
 | `width` | No | Width of the form window in pixels | Auto |
 | `height` | No | Height of the form window in pixels | Auto |
 | `hideDependentItems` | No | Hide dependent fields until parent is enabled | `false` |
 | `allowEmptySubmit` | No | Allow submitting form with empty required fields | `false` |
-| `type` | No | Set to `ignore` to prevent template from being used as a regular template | - |
 
 ### Form Fields Code Block
 
@@ -458,7 +465,7 @@ You can use conditional logic in your processing template:
 ````markdown
 ---
 title: jgclark Project Form
-type: ignore
+type: form-processor
 receivingTemplateTitle: "Project Form Processing Template"
 windowTitle: "Project"
 formTitle: "Create New Project"
@@ -528,7 +535,7 @@ height: 750
 ```yaml
 ---
 title: Project Form Processing Template
-type: ignore
+type: form-processor
 newNoteTitle: <%- noteTitle %>
 folder: <select Projects>
 start: <%- startDateEntry ? date.format("YYYY-MM-DD", startDateEntry) : '' %>
