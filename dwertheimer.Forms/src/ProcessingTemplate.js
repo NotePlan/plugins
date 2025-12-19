@@ -6,6 +6,9 @@ import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
 import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 
+export const varsInForm = `# Variables in your form:`
+export const varsCodeBlockType = 'template:ignore form variables'
+
 /**
  * Create a form processing template (standalone command or called from Form Builder)
  * Allows users to create a processing template separately from the Form Builder flow
@@ -13,12 +16,16 @@ import { ensureFrontmatter } from '@helpers/NPFrontMatter'
  * @param {string} options.formTemplateTitle - Pre-filled form template title (when called from Form Builder)
  * @param {string} options.formTemplateFilename - Pre-filled form template filename (when called from Form Builder)
  * @param {string} options.suggestedProcessingTitle - Pre-filled suggested processing template title
+ * @param {string} options.formLaunchLink - The form's launch link x-callback URL to add to processing template frontmatter
+ * @param {string} options.formEditLink - The form's edit link x-callback URL to add to processing template frontmatter
  * @returns {Promise<{processingTitle?: string, processingFilename?: string}>}
  */
 export async function createProcessingTemplate(options?: {
   formTemplateTitle?: string,
   formTemplateFilename?: string,
   suggestedProcessingTitle?: string,
+  formLaunchLink?: string,
+  formEditLink?: string,
 }): Promise<{ processingTitle?: string, processingFilename?: string }> {
   try {
     logDebug(pluginJson, `createProcessingTemplate: Starting with options: ${JSP(options || {})}`)
@@ -117,6 +124,16 @@ export async function createProcessingTemplate(options?: {
       type: 'forms-processor',
     }
 
+    // Add form links to frontmatter if provided (must be done early, before other frontmatter vars)
+    if (options?.formLaunchLink) {
+      frontmatterVars.formLaunchLink = options.formLaunchLink
+      logDebug(pluginJson, `createProcessingTemplate: Added formLaunchLink to processing template frontmatter`)
+    }
+    if (options?.formEditLink) {
+      frontmatterVars.formEditLink = options.formEditLink
+      logDebug(pluginJson, `createProcessingTemplate: Added formEditLink to processing template frontmatter`)
+    }
+
     if (noteDestination?.value === 'Create a new note' || noteDestination?.index === 0) {
       // Create new note - ask for title
       const newNoteTitleValue = await CommandBar.textPrompt('New Note Title', 'Enter the title for the new note (use <%- fieldName %> for form data):', '<%- noteTitle %>')
@@ -168,16 +185,24 @@ export async function createProcessingTemplate(options?: {
       }
     }
 
-    // Ensure frontmatter exists before updating
+    // Ensure frontmatter exists before updating (this sets the title in frontmatter)
     ensureFrontmatter(processingNote, true, processingTitle)
 
     // Convert frontmatterVars object to array format for updateFrontmatterAttributes API
+    // Note: title is already set by ensureFrontmatter, but we include it here to ensure it's correct
     const frontmatterAttributes = Object.keys(frontmatterVars).map((key) => ({
       key,
       value: String(frontmatterVars[key]),
     }))
+    logDebug(
+      pluginJson,
+      `createProcessingTemplate: About to set frontmatter with ${frontmatterAttributes.length} attributes: ${frontmatterAttributes
+        .map((a) => `${a.key}=${a.value.substring(0, 50)}`)
+        .join(', ')}`,
+    )
 
     // Set frontmatter using native NotePlan API
+    // Note: updateFrontmatterAttributes should update all attributes including title
     try {
       processingNote.updateFrontmatterAttributes(frontmatterAttributes)
       logDebug(pluginJson, `createProcessingTemplate: Successfully set frontmatter for processing template "${processingTitle}"`)
@@ -187,52 +212,48 @@ export async function createProcessingTemplate(options?: {
     }
 
     // Add basic template content with field variable examples
-    let basicContent = `## Content from form will be processed by this template
-    ***NOTE:*** All content in this template (including the blank lines) will be included in the output!
-### Available form field variables:
+    let basicContent = `\`\`\`template:ignore
+## Content from forms will be processed by this template
+NOTE: template:ignore code blocks like this one will be ignored in the template output but all other content in this template (including the blank lines) will be included in the output!
 
-### Add your form field variables here using the format:
-    **fieldName:** <%- fieldName %>
-Example:
-**Project Name:** <%- noteTitle %>
-**Team:** <%- team %>
-**Status:** <%- status %>
+### Add your form field variables in the template body using the format:
+
+Example (these variables may or may not be in your particular form):
+Project: <%- noteTitle %>
+Team: <%- team %>
+Status: <%- status %>
+(assuming your form has fields with keys "noteTitle", "team", and "status")
+
+## OTHER NOTES:
 `
-
     // Add note-specific instructions based on what was configured
     if (frontmatterVars.newNoteTitle) {
-      basicContent += `\n**Note:** This template will create a new note with title: "${frontmatterVars.newNoteTitle}"\n`
+      basicContent += `\nNote: This template will create a new note with title: "${frontmatterVars.newNoteTitle}"\n`
     }
     if (frontmatterVars.folder) {
-      basicContent += `**Folder:** ${frontmatterVars.folder} (use <select> to be prompted each time for the folder, change in frontmatter if you want to use a different folder)\n`
+      basicContent += `Folder: ${frontmatterVars.folder} (use <select> to be prompted each time for the folder, change in frontmatter if you want to use a different folder)\n`
     }
     if (frontmatterVars.writeNoteTitle) {
-      basicContent += `\n**Note:** This template will write to: "${frontmatterVars.writeNoteTitle}"\n`
+      basicContent += `\nNote: This template will write to: "${frontmatterVars.writeNoteTitle}"\n`
     }
     if (frontmatterVars.writeUnderHeading) {
-      basicContent += `**Heading:** ${frontmatterVars.writeUnderHeading}\n`
+      basicContent += `Heading: ${frontmatterVars.writeUnderHeading}\n`
     }
     if (frontmatterVars.location) {
-      basicContent += `**Location:** ${frontmatterVars.location}\n`
+      basicContent += `Location: ${frontmatterVars.location} (append, prepend, replace, write under heading)\n`
     }
+    basicContent += `\n\`\`\`\n`
+    basicContent += `\`\`\`${varsCodeBlockType}\n`
+    basicContent += `${varsInForm}\n\`\`\`\n`
 
     processingNote.appendParagraph(basicContent, 'text')
+    const emptyParagraph = processingNote.paragraphs.find((p) => p.type === 'empty')
+    if (emptyParagraph) processingNote.removeParagraph(emptyParagraph)
 
-    // If we have a form template, update its frontmatter to point to this processing template
+    // Note: Form template frontmatter is updated by the caller (NPTemplateForm.js), so we don't update it here
+    // to avoid duplicate receivingTemplateTitle entries
     if (formTemplateFilename && formTemplateTitle) {
-      const formNote = await getNoteByFilename(formTemplateFilename)
-      if (formNote) {
-        try {
-          formNote.updateFrontmatterAttributes([{ key: 'receivingTemplateTitle', value: processingTitle }])
-          logDebug(pluginJson, `createProcessingTemplate: Updated form template "${formTemplateTitle}" to use processing template "${processingTitle}"`)
-          await showMessage(`Created processing template "${processingTitle}" and linked it to form template "${formTemplateTitle}"`)
-        } catch (error) {
-          logError(pluginJson, `createProcessingTemplate: Failed to update form template frontmatter: ${JSP(error)}`)
-          await showMessage(`Created processing template "${processingTitle}" (could not update form template link)`)
-        }
-      } else {
-        await showMessage(`Created processing template "${processingTitle}" (could not update form template link)`)
-      }
+      await showMessage(`Created processing template "${processingTitle}" and linked it to form template "${formTemplateTitle}"`)
     } else {
       await showMessage(`Created processing template "${processingTitle}"`)
     }

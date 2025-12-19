@@ -218,6 +218,23 @@ export const replaceSmartQuotes = (text: string): string => {
 }
 
 /**
+ * Removes surrounding double quotes from a string if present.
+ * Only removes quotes if they wrap the entire string (one at the beginning and one at the end).
+ * @param {string} text - The string that may have surrounding double quotes
+ * @returns {string} The string with surrounding double quotes removed (if present)
+ */
+export const stripDoubleQuotes = (text: string): string => {
+  if (!text || typeof text !== 'string') {
+    return text
+  }
+  // Remove double quotes only if they wrap the entire string
+  if (text.startsWith('"') && text.endsWith('"') && text.length >= 2) {
+    return text.slice(1, -1)
+  }
+  return text
+}
+
+/**
  * Gets the raw text content of the currently selected paragraphs in the NotePlan editor.
  * Each paragraph's raw content is joined by a newline character.
  * @async

@@ -2,14 +2,15 @@
 
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
-import { createProcessingTemplate } from './ProcessingTemplate'
+import { stripDoubleQuotes } from '../../np.Templating/lib/utils/stringUtils'
+import { createProcessingTemplate, varsInForm, varsCodeBlockType } from './ProcessingTemplate'
 import { log, logError, logDebug, logWarn, timer, clo, JSP, logInfo } from '@helpers/dev'
 import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { showMessage } from '@helpers/userInput'
 import NPTemplating from 'NPTemplating'
 import { getNoteByFilename } from '@helpers/note'
-import { getCodeBlocksOfType } from '@helpers/codeBlocks'
+import { getCodeBlocksOfType, replaceCodeBlockContent } from '@helpers/codeBlocks'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
 import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
@@ -264,17 +265,23 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
     } else {
       logDebug(pluginJson, `openFormBuilder: Asking user to choose or create template`)
       // Ask user to choose or create a new template
-      const createNew = await CommandBar.showOptions(['Create New Form Template', 'Edit Existing Template'], 'Form Builder', 'Choose an option')
+      const createNew = await CommandBar.showOptions(['Create New Form', 'Edit Existing Form'], 'Form Builder', 'Choose an option')
       clo(createNew, `openFormBuilder: User selected option`)
       // $FlowFixMe[incompatible-type] - showOptions returns number index
-      if (createNew.value === 'Create New Form Template') {
+      if (createNew.value === 'Create New Form' || createNew.index === 0) {
         logDebug(pluginJson, `openFormBuilder: User chose to create new template`)
         // Create new template
-        const newTitle = await CommandBar.textPrompt('New Form Template', 'Enter template title:', '')
+        let newTitle = await CommandBar.textPrompt('New Form Template', 'Enter template title:', '')
         logDebug(pluginJson, `openFormBuilder: User entered title: "${String(newTitle)}"`)
         if (!newTitle || typeof newTitle === 'boolean') {
           logDebug(pluginJson, `openFormBuilder: User cancelled or empty title, returning`)
           return
+        }
+
+        // Append "Form" to title if it doesn't already contain "form" (case-insensitive)
+        if (!/form/i.test(newTitle)) {
+          newTitle = `${newTitle} Form`
+          logDebug(pluginJson, `openFormBuilder: Appended "Form" to title, new title: "${newTitle}"`)
         }
 
         // Create folder path: @Templates/Forms/{form name}
@@ -300,6 +307,12 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
         }
         logDebug(pluginJson, `openFormBuilder: Setting frontmatter for new template`)
 
+        // Generate launchLink URL (needed for both form and processing template)
+        const encodedTitle = encodeURIComponent(newTitle)
+        const launchLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Open%20Template%20Form&arg0=${encodedTitle}`
+        // Generate formEditLink URL to launch Form Builder
+        const formEditLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Form%20Builder&arg0=${encodedTitle}`
+
         // Ask if they want to create a receiving template
         const createReceiving = await CommandBar.showOptions(['Yes, create receiving template', 'No, skip for now'], 'Form Builder', 'Create receiving template for form output?')
         // receivingTemplateTitle is declared in outer scope above
@@ -310,6 +323,8 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
             formTemplateTitle: newTitle,
             formTemplateFilename: filename,
             suggestedProcessingTitle: `${newTitle} Processing Template`,
+            formLaunchLink: launchLink, // Pass the launch link to add to processing template frontmatter
+            formEditLink: formEditLink, // Pass the edit link to add to processing template frontmatter
           })
 
           if (result?.processingTitle) {
@@ -320,24 +335,30 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
           }
         }
 
-        // Generate launchLink URL
-        const encodedTitle = encodeURIComponent(newTitle)
-        const launchLink = `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Forms&command=Open%20Template%20Form&arg0=${encodedTitle}`
-
-        // Set initial frontmatter including launchLink
+        // Set initial frontmatter including launchLink and formEditLink
         updateFrontMatterVars(templateNote, {
           type: 'template-form',
           receivingTemplateTitle: receivingTemplateTitle,
           windowTitle: newTitle,
           formTitle: newTitle,
           launchLink: launchLink,
+          formEditLink: formEditLink,
         })
         selectedTemplate = filename
         logDebug(pluginJson, `openFormBuilder: Set frontmatter and selectedTemplate = ${selectedTemplate}, receivingTemplateTitle = "${receivingTemplateTitle}"`)
 
-        // Add markdown link to body content (before formfields codeblock)
-        const markdownLink = `[Run Form: ${newTitle}](${launchLink})\n`
-        templateNote.appendParagraph(markdownLink, 'text')
+        // Generate processing template link if receiving template exists
+        let processingTemplateLink = ''
+        if (receivingTemplateTitle) {
+          const encodedProcessingTitle = encodeURIComponent(receivingTemplateTitle)
+          processingTemplateLink = `noteplan://x-callback-url/openNote?noteTitle=${encodedProcessingTitle}`
+        }
+
+        // Add markdown links to body content in format: "title [open form]() [edit form]() [open processing template]()"
+        const markdownLinks = `${newTitle}: [open form](${launchLink}) [edit form](${formEditLink})${
+          processingTemplateLink ? ` [open processing template](${processingTemplateLink})` : ''
+        }`
+        templateNote.appendParagraph(markdownLinks, 'text')
 
         // Reload the note to ensure frontmatter is up to date before opening FormBuilder
         templateNote = await getNoteByFilename(filename)
@@ -350,8 +371,8 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
           }
         }
         // $FlowFixMe[incompatible-type] - showOptions returns number index
-      } else if (createNew.index === 1 || createNew.value === 'Edit Existing Template') {
-        logDebug(pluginJson, `openFormBuilder: User chose to edit existing template`)
+      } else if (createNew.index === 1 || createNew.value === 'Edit Existing Form') {
+        logDebug(pluginJson, `openFormBuilder: User chose to edit existing form`)
         // Edit existing
         selectedTemplate = await NPTemplating.chooseTemplate('template-form')
         logDebug(pluginJson, `openFormBuilder: User selected existing template: "${selectedTemplate || 'none'}"`)
@@ -605,7 +626,8 @@ export async function onFormBuilderAction(actionType: string, data: any = null):
         }
       }
 
-      closeWindowFromCustomId(FORMBUILDER_WINDOW_ID)
+      // If you want to automatically close the window after saving, uncomment the line below
+      // closeWindowFromCustomId(FORMBUILDER_WINDOW_ID)
     } else if (actualActionType === 'cancel') {
       logDebug(pluginJson, `onFormBuilderAction: User cancelled, closing window`)
       closeWindowFromCustomId(FORMBUILDER_WINDOW_ID)
@@ -690,41 +712,13 @@ async function saveFormFieldsToTemplate(templateFilename: string, fields: Array<
     // We'll create a more readable format similar to the example
     const jsonString = formatFormFieldsAsCodeBlock(fields)
 
-    // Get ALL existing formfields code blocks (there might be duplicates from previous saves)
-    const codeBlocks = getCodeBlocksOfType(templateNote, 'formfields')
-    logDebug(pluginJson, `saveFormFieldsToTemplate: Found ${codeBlocks.length} existing formfields codeblocks`)
-
-    // Collect all paragraph line indices that belong to any formfields codeblock
-    const codeBlockLineIndices = new Set<number>()
-    if (codeBlocks.length > 0) {
-      for (const codeBlock of codeBlocks) {
-        if (codeBlock.paragraphs && codeBlock.paragraphs.length > 0) {
-          for (const para of codeBlock.paragraphs) {
-            codeBlockLineIndices.add(para.lineIndex)
-          }
-        }
-      }
+    // Use the helper function to replace code block content (or add if it doesn't exist)
+    const success = replaceCodeBlockContent(templateNote, 'formfields', jsonString, pluginJson.id)
+    if (!success) {
+      logError(pluginJson, `saveFormFieldsToTemplate: Failed to replace code block content`)
+      await showMessage(`Error: Failed to save form fields to template`)
+      return
     }
-    logDebug(
-      pluginJson,
-      `saveFormFieldsToTemplate: Removing paragraphs at line indices: ${Array.from(codeBlockLineIndices)
-        .sort((a, b) => a - b)
-        .join(', ')}`,
-    )
-
-    // Get all paragraphs that are NOT part of any formfields codeblock
-    const paras = templateNote.paragraphs
-    const parasToKeep = paras.filter((p) => !codeBlockLineIndices.has(p.lineIndex))
-
-    // Build content from remaining paragraphs
-    const existingContent = parasToKeep.length > 0 ? parasToKeep.map((p) => p.rawContent).join('\n') : ''
-
-    // Add the new code block at the end
-    const newCodeBlock = `\`\`\`formfields\n${jsonString}\n\`\`\``
-    const finalContent = existingContent ? `${existingContent}\n\n${newCodeBlock}` : newCodeBlock
-
-    // Update the note content
-    templateNote.content = finalContent
 
     await showMessage(`Form fields saved to template "${templateNote.title || templateFilename}"`)
     logDebug(pluginJson, `saveFormFieldsToTemplate: Saved ${fields.length} fields to template`)
@@ -760,7 +754,12 @@ async function updateReceivingTemplateWithFields(receivingTemplateTitle: string,
 
     // Find the receiving template
     const templateList = await NPTemplating.getTemplateList('forms-processor')
-    const receivingTemplate = templateList.find((t) => t.label === receivingTemplateTitle)
+    const receivingTemplate = templateList.find((t) => {
+      // Strip double quotes from both sides for comparison
+      const templateLabel = stripDoubleQuotes(t.label)
+      const receivingTitle = stripDoubleQuotes(receivingTemplateTitle)
+      return templateLabel === receivingTitle
+    })
 
     if (!receivingTemplate) {
       logError(pluginJson, `updateReceivingTemplateWithFields: Could not find receiving template "${receivingTemplateTitle}"`)
@@ -775,35 +774,26 @@ async function updateReceivingTemplateWithFields(receivingTemplateTitle: string,
       return
     }
 
-    // Extract field keys (only fields that have keys)
-    const fieldKeys = fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading').map((f) => f.key)
+    // Extract fields that have keys (only fields that have keys, excluding separators and headings)
+    const fieldsWithKeys = fields.filter((f) => f.key && f.type !== 'separator' && f.type !== 'heading')
 
-    logDebug(pluginJson, `updateReceivingTemplateWithFields: Found ${fieldKeys.length} field keys to add`)
+    logDebug(pluginJson, `updateReceivingTemplateWithFields: Found ${fieldsWithKeys.length} fields with keys to add`)
 
-    // Create new body content with all field keys as template variables
-    // Replace ALL body content (everything after frontmatter)
-    const newBodyContent = `## Any content here will print out\n### Available form field variables:\n${fieldKeys.map((key) => `**${key}:** <%- ${key} %>`).join('\n')}`
-
-    // Find where the active part of the note starts (after frontmatter)
-    const startOfActive = findStartOfActivePartOfNote(receivingNote)
-    logDebug(pluginJson, `updateReceivingTemplateWithFields: startOfActive=${startOfActive}`)
-
-    const allParas = receivingNote.paragraphs
-
-    // Remove all paragraphs from startOfActive to the end
-    if (startOfActive < allParas.length) {
-      // Keep paragraphs from 0 to startOfActive - 1 (preserves frontmatter)
-      receivingNote.paragraphs = allParas.slice(0, startOfActive)
-      // Add new body content after frontmatter
-      receivingNote.appendParagraph(newBodyContent, 'text')
-    } else {
-      // No existing body content, just append
-      receivingNote.appendParagraph(newBodyContent, 'text')
+    // Build the code block content: varsInForm followed by lines like "<label>: <%- key %>"
+    const codeBlockLines = [varsInForm]
+    for (const field of fieldsWithKeys) {
+      const label = field.label || field.key
+      codeBlockLines.push(`${label}: <%- ${field.key} %>`)
     }
+    const codeBlockContent = codeBlockLines.join('\n')
 
-    await receivingNote.updateParagraphs(receivingNote.paragraphs)
-    logDebug(pluginJson, `updateReceivingTemplateWithFields: Updated receiving template with ${fieldKeys.length} field keys`)
-    await showMessage(`Updated receiving template "${receivingTemplateTitle}" with ${fieldKeys.length} field keys`)
+    // Use the helper function to replace code block content
+    const success = replaceCodeBlockContent(receivingNote, varsCodeBlockType, codeBlockContent, pluginJson.id)
+    if (!success) {
+      logError(pluginJson, `updateReceivingTemplateWithFields: Failed to replace code block content`)
+    }
+    logDebug(pluginJson, `updateReceivingTemplateWithFields: Updated receiving template with ${fieldsWithKeys.length} field variables`)
+    await showMessage(`Updated receiving template "${receivingTemplateTitle}" with ${fieldsWithKeys.length} field variables`)
   } catch (error) {
     logError(pluginJson, `updateReceivingTemplateWithFields error: ${JSP(error)}`)
     await showMessage(`Error updating receiving template: ${error.message}`)

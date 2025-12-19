@@ -924,7 +924,7 @@ function FieldEditor({ field, allFields, onSave, onCancel }: FieldEditorProps): 
             Cancel
           </button>
           <button className="PCButton save-button" onClick={handleSave}>
-            Save
+            Apply
           </button>
         </div>
       </div>
