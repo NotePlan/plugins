@@ -8,8 +8,13 @@
  * It is the parent of all other components on the page
  * dbw: Think about lightweight datastore https://blog.openreplay.com/lightweight-alternatives-to-redux/
 
-// globalSharedData is passed to window load time from the plugin, so you can use it for initial state
-*/
+ * globalSharedData is passed to window load time from the plugin, so you can use it for initial state.
+
+ * It uses css.w3.css for styling the Debug area, when whatever
+ main CSS for the plugin might not be available. 
+ * It is *not* recommended to use this for styling the plugin itself.
+ * For that please use the CSS provided converted from the NP Theme by the HTMLView.js functions.
+ */
 
 /****************************************************************************************************************************
  *                             GLOBAL VARS/FUNCTIONS
@@ -330,8 +335,9 @@ export function Root(/* props: Props */): Node {
   )
 
   /**
-   * Callback passed to child components that allows them to put a message in the banner
-   * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_BANNER', payload)
+   * Callback passed to child components that allows them to put a message in the banner.
+   * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_BANNER', payload).
+   * TODO: Hopefully can still remove the color/border/icon parameters, but leaving them in for now to avoid breaking changes.
    */
   const showBanner = (type: string, msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red', icon: string = 'fa-regular fa-circle-exclamation', timeout: number = 0) => {
     const bannerMessage = { type, msg, timeout, color, border, icon }
