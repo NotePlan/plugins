@@ -1381,21 +1381,53 @@ async function processTemplatePrompts(templateData: string, sessionData: Object)
 }
 
 /**
- * Handles code blocks that should be ignored (not processed) in the template, temporarily protecting them during processing.
+ * Handles code blocks that should be ignored (not processed) in the template.
+ *
+ * There are two types of ignored code blocks, which are handled differently:
+ * 1. First-line directive blocks (```template: ignore): These blocks are completely removed from the template
+ *    and not stored. They will not appear in the final rendered output.
+ * 2. Comment-style ignore blocks (// template: ignore or block comment style): These blocks are temporarily
+ *    protected during processing (replaced with placeholders) and restored afterward. Useful for code examples in
+ *    documentation that should not be processed by the templating engine but should appear in the output.
+ *
  * @param {string} templateData - The template data with code blocks
- * @returns {{templateData: string, codeBlocks: Array<string>}} Template with placeholders and original blocks
+ * @returns {{templateData: string, codeBlocks: Array<string>}} Template with placeholders for protected blocks (first-line directive blocks are removed entirely)
  */
-function tempSaveIgnoredCodeBlocks(templateData: string): { templateData: string, codeBlocks: Array<string> } {
+export function tempSaveIgnoredCodeBlocks(templateData: string): { templateData: string, codeBlocks: Array<string> } {
   const ignoredCodeBlocks = getIgnoredCodeBlocks(templateData)
   let processedTemplate = templateData
+  const processedCodeBlocks = []
+  let blockIndex = 0 // Track index for placeholders (only for blocks we keep)
 
   for (let index = 0; index < ignoredCodeBlocks.length; index++) {
-    processedTemplate = processedTemplate.replace(ignoredCodeBlocks[index], `__codeblock:${index}__`)
+    const codeBlock = ignoredCodeBlocks[index]
+    // Check if first line contains ```template: ignore pattern
+    const lines = codeBlock.split('\n')
+    let shouldRemove = false
+    if (lines.length > 0) {
+      const firstLine = lines[0]
+      if (/```\s*template:\s*ignore/.test(firstLine)) {
+        shouldRemove = true
+      }
+    }
+
+    if (shouldRemove) {
+      // Remove the entire code block plus the newline that follows it
+      // Escape special regex characters in the code block
+      const escapedCodeBlock = codeBlock.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      // Match the code block and any trailing newline, replace with empty string
+      processedTemplate = processedTemplate.replace(new RegExp(`${escapedCodeBlock}\\n?`), '')
+    } else {
+      // Keep the block: replace with placeholder and store it
+      processedTemplate = processedTemplate.replace(codeBlock, `__codeblock:${blockIndex}__`)
+      processedCodeBlocks.push(codeBlock)
+      blockIndex++
+    }
   }
 
   return {
     templateData: processedTemplate,
-    codeBlocks: ignoredCodeBlocks,
+    codeBlocks: processedCodeBlocks,
   }
 }
 
