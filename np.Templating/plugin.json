@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.19.2",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "2.2.5-notreleased",
+  "plugin.version": "2.2.5",
   "plugin.lastUpdateInfo": "2.2.4: fix <default> templateLocale setting to allow for locale-specific date/time formatting\n2.2.3: add new weather formatting fields (location.*, :formatted: etc.",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson ( codedungeon)",
